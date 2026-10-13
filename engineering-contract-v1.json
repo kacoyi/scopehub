@@ -2,11 +2,11 @@
   "artifact_type": "engineering_contract",
   "contract_id": "market-ai-workbench.v1",
   "contract_version": "1.0.0",
-  "language": "zh-CN",
+  "language": "en-US",
   "normative_terms": {
-    "MUST": "必须实现",
-    "MUST_NOT": "禁止",
-    "SHOULD": "偏离时必须记录理由"
+    "MUST": "MUST be implemented",
+    "MUST_NOT": "MUST NOT be allowed",
+    "SHOULD": "Any deviation MUST have a documented rationale"
   },
   "implementation_policy": {
     "mode": "implement_not_redesign",
@@ -16,55 +16,55 @@
       "acceptance_tests",
       "local_conventions"
     ],
-    "unknowns": "不得猜测凭据、供应商权限、商业授权或安全能力；使用明确的 blocked 状态或模拟实现",
-    "changes": "改变语言分工、进程边界、权限模型或协议必须新增 ADR 并获得项目所有者批准",
-    "dependencies": "实现时选择相容的稳定版本并提交全部锁文件；不得自动升级主版本；禁止为占位模块引入依赖",
-    "completion": "只有测试实际执行通过才能标记完成；不可将模拟行情验收报告成真实行情验收"
+    "unknowns": "Do not guess credentials, provider permissions, commercial licenses, or security capabilities; use an explicit blocked status or a simulated implementation",
+    "changes": "Changes to programming language responsibilities, process boundaries, the permission model, or protocols require a new ADR and project owner approval",
+    "dependencies": "Choose compatible stable versions during implementation and commit all lockfiles; do not automatically upgrade major versions or add dependencies for placeholder modules",
+    "completion": "Mark work complete only after tests have actually run and passed; do not report simulated market data acceptance as real market data acceptance"
   },
   "product": {
-    "purpose": "人与 AI 协作的轻量市场工作台",
+    "purpose": "A lightweight market workbench for human–AI collaboration",
     "platform": {
       "v1": "Windows 10/11 x64",
       "later": [
         "Linux",
         "macOS"
       ],
-      "later_policy": "仅预留平台接口，不实现或宣称支持"
+      "later_policy": "Reserve platform interfaces only; do not implement or claim support"
     },
-    "release_unit": "单一 Windows 桌面安装包",
-    "architecture": "模块化单体应用核心 + 受控本地 worker；非微服务",
+    "release_unit": "A single Windows desktop installer",
+    "architecture": "A modular monolithic application core with controlled local workers; not microservices",
     "v1_scope": [
-      "模拟行情和本地历史样本",
-      "单工作区单标的主图",
-      "K线与折线切换",
-      "周期切换",
-      "AI 对话与工具操作",
-      "声明式指标预览和接受",
-      "可信 Python 指标的显式授权预览",
-      "操作记录",
-      "工作区恢复",
-      "离线演示模式"
+      "Simulated market data and local historical samples",
+      "A single workspace with one main instrument chart",
+      "Switching between candlestick and line charts",
+      "Timeframe switching",
+      "AI conversations and tool operations",
+      "Declarative indicator previews and acceptance",
+      "Explicitly authorized previews of trusted Python indicators",
+      "Operation history",
+      "Workspace restoration",
+      "Offline demo mode"
     ],
     "excluded": [
-      "真实交易",
-      "订单和账户接入",
-      "默认指标库",
-      "策略回测平台",
-      "插件商城",
-      "全市场扫描",
-      "全量 tick 持久化",
-      "云端同步",
-      "多代理系统",
-      "热更新生成代码",
-      "Linux/macOS 发布",
-      "未经核实的真实行情供应商"
+      "Live trading",
+      "Order and account integration",
+      "A default indicator library",
+      "A strategy backtesting platform",
+      "A plugin marketplace",
+      "Full-market scanning",
+      "Persistence of all ticks",
+      "Cloud synchronization",
+      "Multi-agent systems",
+      "Hot-reloading generated code",
+      "Linux/macOS releases",
+      "Unverified real market data providers"
     ],
     "market_targets": [
-      "中国期货",
-      "中国股票",
-      "美国股票"
+      "Chinese futures",
+      "Chinese stocks",
+      "US stocks"
     ],
-    "real_data_gate": "第一版以模拟数据完成架构闭环；真实行情适配需要后续确认渠道、权限、历史范围、SDK及再分发许可"
+    "real_data_gate": "V1 completes the end-to-end architecture using simulated data; real market data adapters require subsequent verification of sources, permissions, historical coverage, SDKs, and redistribution licenses"
   },
   "stack": {
     "ui": {
@@ -80,54 +80,54 @@
       "async": "Tokio",
       "serialization": "Serde",
       "database": "SQLite via rusqlite",
-      "ownership": "所有持久化写入通过 core 单写入队列"
+      "ownership": "All persistence writes go through a single-writer queue in the core"
     },
     "workers": {
       "language": "Python 3.12",
-      "packaging": "PyInstaller standalone sidecar；构建环境不是运行前提",
-      "validation": "生成协议类型与运行时验证",
+      "packaging": "PyInstaller standalone sidecar; the build environment is not a runtime prerequisite",
+      "validation": "Generated protocol types and runtime validation",
       "roles": [
         "market",
         "ai",
         "indicator"
       ]
     },
-    "node": "仅构建及前端开发使用；生产不包含 Node.js 服务",
+    "node": "Used only for builds and frontend development; production does not include a Node.js service",
     "package_manager": "pnpm",
     "python_dependency_manager": "uv",
-    "transport": "Rust/Python: UTF-8 NDJSON stdin/stdout；UI/core: Tauri invoke 与事件"
+    "transport": "Rust/Python: UTF-8 NDJSON over stdin/stdout; UI/core: Tauri invoke and events"
   },
   "repository": {
     "paths": {
-      "apps/desktop/ui": "React UI 与图表适配器",
-      "apps/desktop/src-tauri": "Tauri 入口及白名单桥接",
-      "crates/domain": "领域类型，无 UI、SQLite、供应商 SDK 依赖",
-      "crates/application": "用例、权限、任务与工作区操作",
-      "crates/persistence": "SQLite 和迁移",
-      "crates/worker-host": "worker 生命周期及协议",
-      "crates/platform": "Windows 凭据、路径、进程资源限制",
-      "python/worker_runtime": "协议读写、任务循环",
-      "python/providers": "模拟行情及未来供应商适配器",
-      "python/ai": "mock AI 和模型 provider 接口",
-      "python/indicators": "声明式计算及可信 Python 执行入口",
-      "contracts/schemas": "JSON Schema，跨语言消息规范的唯一来源",
-      "contracts/generated": "生成的 TS/Rust/Python 类型；禁止手改",
-      "tests/fixtures": "确定性行情与预期输出",
-      "tests/contracts": "跨语言协议一致性",
-      "tests/integration": "进程及应用闭环",
+      "apps/desktop/ui": "React UI and chart adapter",
+      "apps/desktop/src-tauri": "Tauri entry point and allowlisted bridge",
+      "crates/domain": "Domain types without dependencies on the UI, SQLite, or provider SDKs",
+      "crates/application": "Use cases, permissions, tasks, and workspace operations",
+      "crates/persistence": "SQLite and migrations",
+      "crates/worker-host": "Worker lifecycle and protocol",
+      "crates/platform": "Windows credentials, paths, and process resource limits",
+      "python/worker_runtime": "Protocol input/output and task loop",
+      "python/providers": "Simulated market data and future provider adapters",
+      "python/ai": "Mock AI and model provider interfaces",
+      "python/indicators": "Declarative computation and trusted Python execution entry point",
+      "contracts/schemas": "JSON Schema, the single source of truth for cross-language message specifications",
+      "contracts/generated": "Generated TS/Rust/Python types; manual edits are prohibited",
+      "tests/fixtures": "Deterministic market data and expected outputs",
+      "tests/contracts": "Cross-language protocol consistency",
+      "tests/integration": "End-to-end process and application integration",
       "docs/decisions": "ADR",
-      "scripts": "构建、生成、测试与打包入口"
+      "scripts": "Build, generation, test, and packaging entry points"
     },
     "dependency_rules": [
-      "domain 不依赖其他内部层",
-      "application 依赖 domain 和抽象端口，不依赖供应商",
-      "persistence/worker-host/platform 实现 application 端口",
-      "Tauri composition root 组装实现",
-      "UI 不读取数据库或启动进程",
-      "Python 不访问应用数据库",
-      "图表库仅存在于 ui/chart-adapter",
-      "供应商 SDK 仅存在于 providers",
-      "模型 SDK 仅存在于 ai/providers"
+      "domain does not depend on other internal layers",
+      "application depends on domain and abstract ports, not providers",
+      "persistence/worker-host/platform implement application ports",
+      "The Tauri composition root assembles implementations",
+      "The UI does not read the database or start processes",
+      "Python does not access the application database",
+      "Chart libraries are confined to ui/chart-adapter",
+      "Provider SDKs are confined to providers",
+      "Model SDKs are confined to ai/providers"
     ],
     "required_files": [
       "README.md",
@@ -141,18 +141,18 @@
   },
   "runtime": {
     "processes": {
-      "core": "唯一可信控制面",
-      "market": "一个模拟行情 worker，复用订阅",
-      "ai": "有 AI 任务时启动一个 worker",
-      "indicator": "每次代码计算启动短生命周期子进程；结束后释放"
+      "core": "The sole trusted control plane",
+      "market": "One simulated market data worker with reused subscriptions",
+      "ai": "Start one worker when there is an AI task",
+      "indicator": "Start a short-lived child process for each code computation; release it on completion"
     },
     "lifecycle": [
-      "启动后 handshake",
-      "版本/角色不兼容立即终止",
-      "取消先发送 cancel，再等待宽限期，最后终止进程树",
-      "应用退出必须清理所有 worker",
-      "market 重启指数退避并限制次数",
-      "ai/indicator 失败不得阻断行情"
+      "Perform a handshake after startup",
+      "Terminate immediately on incompatible versions or roles",
+      "On cancellation, send cancel first, wait for the grace period, then terminate the process tree",
+      "Application shutdown must clean up all workers",
+      "Use exponential backoff and a bounded retry count for market restarts",
+      "ai/indicator failures must not interrupt market data"
     ],
     "defaults": {
       "handshake_timeout_ms": 5000,
@@ -166,13 +166,13 @@
       "max_message_bytes": 4194304,
       "max_pending_requests": 128
     },
-    "flow_control": "使用有界队列；UI 更新可以合并；原始数据丢弃必须产生带计数的数据质量事件，禁止静默丢弃",
-    "stdout": "只允许协议消息",
-    "stderr": "结构化诊断，禁止输出凭据、完整提示词或用户代码的敏感内容"
+    "flow_control": "Use bounded queues; UI updates may be coalesced; dropping raw data must emit a data quality event with a count; silent drops are prohibited",
+    "stdout": "Only protocol messages are allowed",
+    "stderr": "Structured diagnostics; do not output credentials, complete prompts, or sensitive content from user code"
   },
   "protocol": {
     "version": "1.0",
-    "encoding": "UTF-8 NDJSON，一个 JSON 对象一行",
+    "encoding": "UTF-8 NDJSON, one JSON object per line",
     "message_types": [
       "hello",
       "request",
@@ -197,11 +197,11 @@
       "request_id": "UUID",
       "ok": "boolean",
       "result": "object|null",
-      "error": "Error|null；ok=false 时必须有 error"
+      "error": "Error|null; error is required when ok=false"
     },
     "event": {
       "stream_id": "string",
-      "sequence": "递增 integer",
+      "sequence": "Increasing integer",
       "event": "allowlisted string",
       "payload": "object"
     },
@@ -234,30 +234,30 @@
       "INTERNAL_ERROR"
     ],
     "validation": [
-      "每个消息及操作 payload 都生成可执行 JSON Schema",
-      "明确 additionalProperties=false；扩展字段仅在显式 metadata 中",
-      "拒绝 NaN/Infinity",
-      "拒绝超长消息",
-      "按 request_id 关联，不能依赖响应顺序",
-      "取消和重复请求有明确终态",
-      "未知协议主版本 fail closed"
+      "Generate executable JSON Schemas for every message and operation payload",
+      "Explicitly set additionalProperties=false; extension fields are allowed only in explicit metadata",
+      "Reject NaN/Infinity",
+      "Reject oversized messages",
+      "Correlate by request_id; do not rely on response order",
+      "Cancellation and duplicate requests have explicit terminal states",
+      "Fail closed on unknown protocol major versions"
     ],
-    "ai_channel": "AI 的工具请求作为 ai.tool_request 事件进入 core；core 执行后的 tool_result 通过独立请求返回 AI worker；禁止 worker 自执行工具"
+    "ai_channel": "AI tool requests enter the core as ai.tool_request events; after execution by the core, tool_result is returned to the AI worker through a separate request; workers must not execute tools themselves"
   },
   "domain": {
-    "identifiers": "内部 opaque ID 与供应商代码分离；禁止用 display symbol 作为唯一身份",
+    "identifiers": "Separate internal opaque IDs from provider codes; do not use display symbols as unique identities",
     "Instrument": {
       "id": "string",
       "display_symbol": "string",
       "name": "string",
-      "asset_class": "开放字符串；期货/股票不是封闭全集",
+      "asset_class": "Open string; futures/stocks are not an exhaustive closed set",
       "venue": "string",
       "currency": "string",
       "calendar_id": "string",
       "timezone": "IANA string",
       "price_tick": "decimal string|null",
       "quantity_unit": "string",
-      "tradability": "non_tradable|unknown；v1 不允许 tradable",
+      "tradability": "non_tradable|unknown; tradable is not allowed in v1",
       "metadata": "object",
       "provider_mappings": "array of provider_id + provider_symbol"
     },
@@ -276,7 +276,7 @@
       "provenance": "object"
     },
     "Bar": {
-      "time_ms": "UTC epoch milliseconds integer，bar 起始",
+      "time_ms": "UTC epoch milliseconds integer, the start of the bar",
       "trading_day": "YYYY-MM-DD",
       "open": "finite number",
       "high": "finite number",
@@ -288,14 +288,14 @@
     "bar_invariants": [
       "low <= open/close <= high",
       "low <= high",
-      "同一数据集时间递增且唯一",
-      "更新未结束 bar 使用相同时间键",
-      "未知 volume 用 null，不冒充 0",
-      "图表单位转换仅在 adapter 进行",
-      "交易日不由 UTC 日期直接推断"
+      "Timestamps within a dataset are increasing and unique",
+      "Updates to an unclosed bar use the same time key",
+      "Use null for unknown volume; do not represent it as 0",
+      "Chart unit conversions occur only in the adapter",
+      "Do not infer the trading day directly from the UTC date"
     ],
     "series_identity": "instrument + provider + timeframe + adjustment + dataset revision",
-    "continuous_futures": "仅分析序列，与实际合约分别标识；metadata 声明构造口径",
+    "continuous_futures": "Analysis series only, identified separately from actual contracts; metadata declares the construction methodology",
     "provider_capabilities": [
       "instrument_search",
       "historical_bars",
@@ -319,7 +319,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
     },
     {
       "name": "market.getBars",
@@ -332,7 +332,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
     },
     {
       "name": "workspace.openInstrument",
@@ -345,7 +345,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
     },
     {
       "name": "chart.setTimeframe",
@@ -358,7 +358,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
     },
     {
       "name": "chart.setStyle",
@@ -371,7 +371,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
     },
     {
       "name": "chart.addAnnotation",
@@ -384,7 +384,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
     },
     {
       "name": "chart.removeLayer",
@@ -397,7 +397,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
     },
     {
       "name": "indicator.createDraft",
@@ -410,7 +410,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
     },
     {
       "name": "indicator.runPreview",
@@ -423,7 +423,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
     },
     {
       "name": "indicator.acceptVersion",
@@ -436,7 +436,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
     },
     {
       "name": "indicator.remove",
@@ -449,7 +449,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
     },
     {
       "name": "workspace.undo",
@@ -462,7 +462,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
     },
     {
       "name": "task.cancel",
@@ -475,7 +475,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
     },
     {
       "name": "workspace.getContext",
@@ -488,7 +488,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
     }
   ],
   "authorization": {
@@ -497,23 +497,23 @@
       "ai",
       "system"
     ],
-    "authority": "仅 core 授权",
-    "confirmations": "绑定 actor、操作、完整参数规范化哈希、工作区 revision、有效期；单次消费；参数变化或 revision 失效须重新确认",
+    "authority": "Only the core grants authorization",
+    "confirmations": "Bind confirmations to the actor, operation, canonical hash of all parameters, workspace revision, and validity period; consume once; require a new confirmation when parameters change or the revision becomes invalid",
     "default_confirmation_ttl_ms": 300000,
-    "replay": "改变持久状态的操作使用 idempotency_key；重复请求返回既有结果，不重复写入",
-    "permissions": "worker role + operation allowlist；AI 没有原始 Tauri/文件/进程/SQL 权限",
-    "tauri": "主窗口 capability 白名单；不向 UI 暴露通用 shell、任意 filesystem 或任意 SQL 接口",
+    "replay": "Operations that change persistent state use idempotency_key; duplicate requests return existing results without duplicate writes",
+    "permissions": "Worker role plus operation allowlist; AI has no raw Tauri/file/process/SQL permissions",
+    "tauri": "An allowlist of capabilities for the main window; do not expose general shell, arbitrary filesystem, or arbitrary SQL interfaces to the UI",
     "v1_forbidden": [
-      "真实下单",
-      "访问账户",
-      "AI 改产品源码",
-      "AI 修改权限配置",
-      "AI 自行批准确认",
-      "任意外部 URL 导航或远程 UI 内容"
+      "Placing real orders",
+      "Accessing accounts",
+      "AI modifying product source code",
+      "AI modifying permission configuration",
+      "AI approving confirmations itself",
+      "Arbitrary external URL navigation or remote UI content"
     ]
   },
   "indicators": {
-    "default_mode": "声明式表达式 AST，不执行动态代码",
+    "default_mode": "A declarative expression AST without dynamic code execution",
     "declarative_ops": [
       "field",
       "constant",
@@ -530,19 +530,19 @@
       "and",
       "or"
     ],
-    "ast_policy": "拒绝未定义操作、循环、函数调用、导入；限制节点数和窗口；不得用 eval/exec 实现",
-    "window_semantics": "仅使用当前及过去的数据，lag>=0；不足窗口输出 null；rolling_std 使用 ddof=0；除零输出 null 与 diagnostic",
+    "ast_policy": "Reject undefined operations, loops, function calls, and imports; limit node counts and windows; do not implement using eval/exec",
+    "window_semantics": "Use only current and past data, with lag>=0; output null for incomplete windows; rolling_std uses ddof=0; division by zero outputs null and a diagnostic",
     "python_mode": {
       "enabled_by_default": false,
       "trust_label": "trusted_code_only_not_secure_sandbox",
       "entrypoint": "compute(bars, params) -> IndicatorResult",
-      "authorization": "用户每次授权，绑定代码哈希、参数和输入数据 revision；AI 不能批准",
-      "warning": "独立进程与资源限制不阻止任意文件或网络访问；未实现可靠 OS 隔离前不得自动执行不可信 Python",
-      "credentials": "不传入 SDK 凭据，不继承不必要环境变量",
-      "cwd": "隔离临时目录，但不得描述为文件访问安全边界"
+      "authorization": "Require user authorization for every execution, bound to the code hash, parameters, and input data revision; AI cannot approve",
+      "warning": "Separate processes and resource limits do not prevent arbitrary file or network access; do not automatically execute untrusted Python until reliable OS isolation is implemented",
+      "credentials": "Do not pass SDK credentials or inherit unnecessary environment variables",
+      "cwd": "An isolated temporary directory, which must not be described as a file access security boundary"
     },
     "immutable_versions": true,
-    "execution_input": "确定性 bars 快照、参数、数据 descriptor；无隐藏全局数据源",
+    "execution_input": "A deterministic bars snapshot, parameters, and a data descriptor; no hidden global data sources",
     "limits": {
       "max_bars": 100000,
       "max_series": 16,
@@ -557,7 +557,7 @@
       "diagnostics": "array: code,message,severity",
       "provenance": "code_hash,params_hash,dataset_id,dataset_revision,engine_version"
     },
-    "output_policy": "只允许结构化数据；禁止 HTML/JS/React/DOM 输出；验证时间、规模、有限数值与样式白名单",
+    "output_policy": "Allow only structured data; prohibit HTML/JS/React/DOM output; validate timestamps, sizes, finite numeric values, and style allowlists",
     "lifecycle": [
       "draft",
       "running",
@@ -566,31 +566,31 @@
       "rejected",
       "failed"
     ],
-    "preview": "临时图层；失败不得覆盖现有版本；接受后保存不可变版本；支持移除和撤销"
+    "preview": "Temporary layers; failures must not overwrite existing versions; acceptance saves an immutable version; support removal and undo"
   },
   "ai": {
     "providers_v1": [
       "deterministic_mock",
-      "用户明确配置后启用的模型适配器"
+      "Model adapters enabled after explicit user configuration"
     ],
-    "default": "deterministic_mock；不要求云模型凭据才能运行",
+    "default": "deterministic_mock; cloud model credentials are not required to run",
     "context": [
       "workspace revision",
-      "当前标的和周期",
-      "可见区间",
-      "数据来源、模式、质量",
-      "当前图层",
-      "授权能力",
-      "与任务相关的数据快照"
+      "Current instrument and timeframe",
+      "Visible range",
+      "Data source, mode, and quality",
+      "Current layers",
+      "Authorized capabilities",
+      "Task-relevant data snapshots"
     ],
-    "context_policy": "按需最小化；原始全量行情、凭据和账户信息不进入默认上下文；发送云端前用户启用外部 AI provider",
-    "claim_policy": "区分事实、计算、推断、建议与已执行动作；只有 core 成功响应才可声称执行成功",
-    "tool_policy": "只能从 core 提供的工具 schema 选择；每次修改操作绑定 expected_workspace_revision",
+    "context_policy": "Minimize context as needed; complete raw market data, credentials, and account information are excluded from the default context; the user must enable an external AI provider before data is sent to the cloud",
+    "claim_policy": "Distinguish facts, calculations, inferences, suggestions, and executed actions; claim successful execution only after a successful core response",
+    "tool_policy": "Select only from tool schemas provided by the core; bind every mutation to expected_workspace_revision",
     "loop_limits": {
       "max_tool_calls_per_task": 12,
       "task_timeout_ms": 120000
     },
-    "injection_policy": "行情文本、代码注释、模型输出均为不可信数据；不允许其改变工具权限或确认规则",
+    "injection_policy": "Market data text, code comments, and model output are untrusted data; they must not change tool permissions or confirmation rules",
     "task_states": [
       "queued",
       "running",
@@ -601,15 +601,15 @@
     ]
   },
   "ui": {
-    "layout": "顶栏标的/周期/来源状态；左侧AI与任务；右侧主图；底部按需诊断",
+    "layout": "Top bar: instrument/timeframe/source status; left: AI and tasks; right: main chart; bottom: diagnostics as needed",
     "minimal_controls": [
-      "标的搜索",
-      "周期选择",
-      "K线/折线切换",
-      "图层移除",
-      "任务取消",
-      "撤销",
-      "数据模式与连接状态"
+      "Instrument search",
+      "Timeframe selection",
+      "Candlestick/line chart switching",
+      "Layer removal",
+      "Task cancellation",
+      "Undo",
+      "Data mode and connection status"
     ],
     "chart_adapter": [
       "setMarketSeries",
@@ -622,12 +622,12 @@
       "dispose"
     ],
     "chart_rules": [
-      "无默认指标",
-      "React 组件不持有供应商 SDK",
-      "AI 标记可查看来源和任务",
-      "preview 与 accepted 可辨识",
-      "图表资源卸载清理",
-      "更新合并不得丢失最终 bar 状态"
+      "No default indicators",
+      "React components do not hold provider SDKs",
+      "AI annotations expose their source and task for inspection",
+      "preview and accepted states are distinguishable",
+      "Clean up chart resources on unmount",
+      "Coalescing updates must not lose the final bar state"
     ],
     "states": [
       "loading",
@@ -638,8 +638,8 @@
       "error",
       "awaiting_confirmation"
     ],
-    "security": "模型文本按纯文本或受限 Markdown 呈现，禁用原始 HTML；禁止动态生成脚本",
-    "licenses": "发布包含第三方许可和 NOTICE；核对图表库 attribution 要求，不默认删除品牌声明"
+    "security": "Render model text as plain text or restricted Markdown with raw HTML disabled; prohibit dynamically generated scripts",
+    "licenses": "Include third-party licenses and NOTICE in releases; verify chart library attribution requirements and do not remove branding notices by default"
   },
   "persistence": {
     "owner": "Rust core",
@@ -657,11 +657,11 @@
       "idempotency_records",
       "settings"
     ],
-    "sqlite": "WAL；外键开启；事务写入；迁移有版本且测试",
-    "credentials": "Windows Credential Manager；DB 仅存引用；mock 不使用凭据",
-    "cache": "可清理，不能与用户指标版本一起删除；不同数据来源和调整口径不得混合",
-    "log": "记录操作、actor、摘要、状态、关联ID；敏感字段脱敏；不做完整事件溯源",
-    "undo": "v1 支持图层添加/移除和周期变更；撤销也是新操作；不宣称所有操作可撤销"
+    "sqlite": "WAL; foreign keys enabled; transactional writes; versioned and tested migrations",
+    "credentials": "Windows Credential Manager; the DB stores references only; mock implementations do not use credentials",
+    "cache": "The cache can be cleared without deleting user indicator versions; do not mix different data sources or price adjustment methodologies",
+    "log": "Record operations, actors, summaries, statuses, and correlation IDs; redact sensitive fields; do not implement full event sourcing",
+    "undo": "V1 supports undo for layer additions/removals and timeframe changes; undo is itself a new operation; do not claim that all operations are undoable"
   },
   "fixtures": {
     "instruments": [
@@ -669,52 +669,52 @@
       "SIM.CN.STOCK.001",
       "SIM.US.STOCK.001"
     ],
-    "label": "全部是合成数据，不使用伪装的真实市场报价",
+    "label": "All data is synthetic; do not disguise it as real market quotes",
     "timeframes": [
       "1m",
       "5m",
       "1d"
     ],
-    "generator": "固定 seed 与固定 UTC 起点，生成并提交 fixture；测试中禁止依赖当前时间",
+    "generator": "Use a fixed seed and fixed UTC start time to generate and commit fixtures; tests must not depend on the current time",
     "cases": [
-      "正常连续数据",
-      "缺口",
-      "过期数据",
-      "worker 中断",
-      "未结束 bar 更新",
-      "跨 UTC 日期但同一交易日样本"
+      "Normal contiguous data",
+      "Gaps",
+      "Stale data",
+      "Worker interruption",
+      "Updates to unclosed bars",
+      "Samples spanning UTC dates within the same trading day"
     ]
   },
   "delivery": {
     "installer": "Windows x64 NSIS",
-    "webview2": "明确采用安装器 bootstrapper 策略；首次安装可能联网，README 和安装说明不得承诺完全离线安装",
-    "python": "随安装包分发 worker，不要求用户系统 Python",
-    "build": "Windows 原生构建及验证；锁定依赖并记录构建信息",
+    "webview2": "Explicitly use the installer bootstrapper strategy; first installation may require internet access; the README and installation instructions must not promise a fully offline installation",
+    "python": "Distribute workers with the installer; do not require Python on the user system",
+    "build": "Build and validate natively on Windows; lock dependencies and record build information",
     "platform_interfaces": [
       "credentialStore",
       "applicationPaths",
       "processRestrictions",
       "desktopIntegration"
     ],
-    "supply_chain": "安装资源仅从明确来源构建；不得运行模型建议的下载脚本；包含依赖清单和许可",
+    "supply_chain": "Build installer resources only from identified sources; do not run download scripts suggested by models; include a dependency inventory and licenses",
     "final_artifacts": [
       "Windows NSIS installer",
       "test-report.json",
       "build-manifest.json",
       "third-party-licenses",
-      "完整源代码与锁文件"
+      "Complete source code and lockfiles"
     ]
   },
   "milestones": [
     {
       "id": "M0",
-      "goal": "骨架与协议",
+      "goal": "Scaffolding and protocol",
       "deliver": [
-        "仓库",
+        "Repository",
         "ADR",
-        "可运行 schemas",
-        "类型生成",
-        "Windows Tauri 空应用",
+        "Executable schemas",
+        "Type generation",
+        "An empty Windows Tauri application",
         "worker handshake"
       ],
       "gate": [
@@ -724,13 +724,13 @@
     },
     {
       "id": "M1",
-      "goal": "模拟行情闭环",
+      "goal": "End-to-end simulated market data",
       "deliver": [
         "mock provider",
-        "标的搜索",
-        "历史图",
-        "实时 bar 更新",
-        "状态与重连"
+        "Instrument search",
+        "Historical chart",
+        "Live bar updates",
+        "Status and reconnection"
       ],
       "gate": [
         "fixture correctness",
@@ -739,11 +739,11 @@
     },
     {
       "id": "M2",
-      "goal": "操作与持久化",
+      "goal": "Operations and persistence",
       "deliver": [
-        "操作注册表",
-        "权限",
-        "确认",
+        "Operation registry",
+        "Permissions",
+        "Confirmations",
         "revision",
         "SQLite",
         "undo"
@@ -756,7 +756,7 @@
     },
     {
       "id": "M3",
-      "goal": "指标闭环",
+      "goal": "End-to-end indicators",
       "deliver": [
         "AST engine",
         "output validation",
@@ -773,7 +773,7 @@
     },
     {
       "id": "M4",
-      "goal": "AI 协作闭环",
+      "goal": "End-to-end AI collaboration",
       "deliver": [
         "mock AI",
         "tools",
@@ -788,7 +788,7 @@
     },
     {
       "id": "M5",
-      "goal": "安装与稳定性",
+      "goal": "Installation and stability",
       "deliver": [
         "NSIS",
         "sidecar bundle",
@@ -804,35 +804,35 @@
   ],
   "acceptance": {
     "required": [
-      "未安装 Python/Node 的干净 Windows x64 可安装并运行模拟模式",
-      "打开三种合成标的并切换周期，界面明确显示 simulated",
-      "断开 market worker 后状态可见，有限重试恢复且没有重复订阅",
-      "mock AI 根据用户需求创建声明式异常波动指标，预览、接受、移除、撤销完成",
-      "AI 工具与用户操作调用同一注册表；直接请求未授权操作被拒绝",
-      "参数、代码哈希或 workspace revision 变化后旧确认失效",
-      "指标超时、异常、非法输出不阻断行情，且不覆盖已接受指标",
-      "关闭重开恢复工作区和指标版本，但不重复执行之前 AI 任务",
-      "日志、数据库和 worker 环境不出现明文凭据",
-      "退出应用后没有存活 worker 子进程",
-      "生成类型无未提交差异，schemas 和三语言验证一致"
+      "A clean Windows x64 system without Python/Node can install and run simulated mode",
+      "Open all three synthetic instruments and switch timeframes; the UI explicitly displays simulated",
+      "After disconnecting the market worker, its status is visible and recovery uses bounded retries without duplicate subscriptions",
+      "Mock AI creates a declarative abnormal-volatility indicator based on user requirements; preview, acceptance, removal, and undo all complete",
+      "AI tools and user operations use the same registry; direct requests for unauthorized operations are rejected",
+      "Existing confirmations become invalid when parameters, the code hash, or workspace revision change",
+      "Indicator timeouts, exceptions, and invalid output neither interrupt market data nor overwrite accepted indicators",
+      "Closing and reopening restores the workspace and indicator versions without re-executing previous AI tasks",
+      "Logs, the database, and worker environments contain no plaintext credentials",
+      "No worker child processes remain alive after application shutdown",
+      "Generated types have no uncommitted differences; schemas and validation in all three languages are consistent"
     ],
     "performance": {
-      "profile": "记录 CPU/RAM/Windows/WebView2 版本；release build；10000 bars；单图；mock stream 10 updates/s",
+      "profile": "Record CPU/RAM/Windows/WebView2 versions; release build; 10000 bars; one chart; mock stream at 10 updates/s",
       "initial_bars_to_chart_p95_ms": 1000,
       "chart_update_p95_ms": 200,
       "continuous_run_minutes": 120,
-      "memory_policy": "记录进程总内存时间序列；热身后不得呈现持续无界增长；不宣称未实测的固定内存值"
+      "memory_policy": "Record a time series of total process memory usage; after warmup, it must not exhibit sustained unbounded growth; do not claim fixed memory values without measurement"
     },
-    "test_report": "逐项记录 passed/failed/blocked、命令、环境、实际结果；blocked 不算 passed"
+    "test_report": "Record passed/failed/blocked, commands, environment, and actual results for each item; blocked does not count as passed"
   },
   "implementation_instructions": [
-    "先实现 M0，逐个里程碑推进；不得跳过权限与失败路径",
-    "根据本文件生成 contracts/schemas/*.schema.json，全部可执行验证；本文件自身是规范而非已经完成的 JSON Schema",
-    "任何动态操作都先经过 Rust 注册表；不得添加通用 execute/shell/sql 工具",
-    "未确定供应商时保持 mock，不从互联网临时抓取行情以伪装接入",
-    "非目标平台代码只保留接口；禁止花时间实现跨平台发布",
-    "测试先覆盖协议、身份、权限和计算语义，然后覆盖界面",
-    "真实交易类型、按钮和工具不得作为隐藏占位实现",
-    "提交最终报告中明确真实数据和云模型是否配置，不得夸大完成范围"
+    "Implement M0 first and proceed milestone by milestone; do not skip permissions or failure paths",
+    "Generate contracts/schemas/*.schema.json from this file, all executable for validation; this file is a specification, not a completed JSON Schema",
+    "All dynamic operations must pass through the Rust registry first; do not add generic execute/shell/sql tools",
+    "Keep mock implementations until a provider is confirmed; do not temporarily scrape market data from the internet to pretend that integration exists",
+    "Keep only interfaces for non-target platforms; do not spend time implementing cross-platform releases",
+    "Tests cover protocols, identity, permissions, and computation semantics first, then the UI",
+    "Do not implement live trading types, buttons, or tools as hidden placeholders",
+    "State explicitly in the final report whether real data and cloud models are configured; do not exaggerate the completed scope"
   ]
 }

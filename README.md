@@ -1,27 +1,31 @@
 # ScopeHub
 
-ScopeHub 是一个规划中的轻量市场工作台，面向人与 AI 协作的行情查看与指标探索。
+ScopeHub is a planned lightweight market workbench for human–AI collaboration, market data visualization, and indicator exploration.
 
-## 当前状态
+## Current status
 
-项目处于工程规范阶段，目前尚无可运行的应用或安装包。
-本仓库中的 [工程规范 v1](engineering-contract-v1.json) 定义了产品范围、架构、协议、里程碑和验收要求。
+The project is at the engineering specification stage. No runnable application or installer is available yet.
+The [v1 engineering contract](engineering-contract-v1.json) defines the product scope, architecture, protocols, milestones, and acceptance criteria.
 
-## 第一版计划
+## Planned v1 scope
 
-- 面向 Windows 10/11 x64 的桌面应用。
-- 使用模拟行情和本地历史样本，支持单工作区、单标的主图、K 线与折线切换以及周期切换。
-- 提供 AI 对话、工具操作、指标预览、操作记录和工作区恢复。
-- 支持离线演示模式；安装时 WebView2 bootstrapper 可能需要联网。
+- A desktop application for Windows 10/11 x64.
+- Simulated market data and local historical samples, with a single workspace and instrument chart, candlestick and line styles, and timeframe selection.
+- AI conversations, tool operations, indicator previews, operation history, and workspace restoration.
+- An offline demo mode. The WebView2 bootstrapper may require an internet connection during installation.
 
-计划采用 React、TypeScript 与 Tauri 2 构建界面和 Rust 应用核心，使用 SQLite 持久化，并通过受控 Python worker 执行行情、AI 和指标任务。
+The planned stack uses React, TypeScript, and Tauri 2 for the interface and Rust application core, SQLite for persistence, and controlled Python workers for market data, AI, and indicator tasks.
 
-第一版不包含真实交易、订单或账户接入。真实行情接入需要后续确认数据渠道、权限与再分发许可。
+V1 excludes live trading, orders, and account integration. Real market data integration requires subsequent verification of data sources, permissions, and redistribution licenses.
 
-## 参与项目
+## Contributing
 
-欢迎通过 Issues 讨论需求或提出建议，通过 Pull Requests 改进工程规范。实现工作应遵循工程规范中的范围、依赖规则和验收要求。
+Use issues to discuss requirements or suggest improvements, and pull requests to improve the engineering specification. Implementation must follow the scope, dependency rules, and acceptance criteria in the engineering contract.
 
-## 许可证
+## Repository language
 
-本项目采用 [MIT License](LICENSE)。
+English is the default language for repository content, including documentation, specifications, source comments, commit messages, issues, and pull requests.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
