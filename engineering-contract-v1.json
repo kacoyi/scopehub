@@ -1,0 +1,838 @@
+{
+  "artifact_type": "engineering_contract",
+  "contract_id": "market-ai-workbench.v1",
+  "contract_version": "1.0.0",
+  "language": "zh-CN",
+  "normative_terms": {
+    "MUST": "必须实现",
+    "MUST_NOT": "禁止",
+    "SHOULD": "偏离时必须记录理由"
+  },
+  "implementation_policy": {
+    "mode": "implement_not_redesign",
+    "priority": [
+      "security_invariants",
+      "contract",
+      "acceptance_tests",
+      "local_conventions"
+    ],
+    "unknowns": "不得猜测凭据、供应商权限、商业授权或安全能力；使用明确的 blocked 状态或模拟实现",
+    "changes": "改变语言分工、进程边界、权限模型或协议必须新增 ADR 并获得项目所有者批准",
+    "dependencies": "实现时选择相容的稳定版本并提交全部锁文件；不得自动升级主版本；禁止为占位模块引入依赖",
+    "completion": "只有测试实际执行通过才能标记完成；不可将模拟行情验收报告成真实行情验收"
+  },
+  "product": {
+    "purpose": "人与 AI 协作的轻量市场工作台",
+    "platform": {
+      "v1": "Windows 10/11 x64",
+      "later": [
+        "Linux",
+        "macOS"
+      ],
+      "later_policy": "仅预留平台接口，不实现或宣称支持"
+    },
+    "release_unit": "单一 Windows 桌面安装包",
+    "architecture": "模块化单体应用核心 + 受控本地 worker；非微服务",
+    "v1_scope": [
+      "模拟行情和本地历史样本",
+      "单工作区单标的主图",
+      "K线与折线切换",
+      "周期切换",
+      "AI 对话与工具操作",
+      "声明式指标预览和接受",
+      "可信 Python 指标的显式授权预览",
+      "操作记录",
+      "工作区恢复",
+      "离线演示模式"
+    ],
+    "excluded": [
+      "真实交易",
+      "订单和账户接入",
+      "默认指标库",
+      "策略回测平台",
+      "插件商城",
+      "全市场扫描",
+      "全量 tick 持久化",
+      "云端同步",
+      "多代理系统",
+      "热更新生成代码",
+      "Linux/macOS 发布",
+      "未经核实的真实行情供应商"
+    ],
+    "market_targets": [
+      "中国期货",
+      "中国股票",
+      "美国股票"
+    ],
+    "real_data_gate": "第一版以模拟数据完成架构闭环；真实行情适配需要后续确认渠道、权限、历史范围、SDK及再分发许可"
+  },
+  "stack": {
+    "ui": {
+      "language": "TypeScript strict",
+      "framework": "React",
+      "build": "Vite",
+      "charts": "Lightweight Charts",
+      "runtime": "Tauri WebView2"
+    },
+    "core": {
+      "language": "Rust stable",
+      "framework": "Tauri 2",
+      "async": "Tokio",
+      "serialization": "Serde",
+      "database": "SQLite via rusqlite",
+      "ownership": "所有持久化写入通过 core 单写入队列"
+    },
+    "workers": {
+      "language": "Python 3.12",
+      "packaging": "PyInstaller standalone sidecar；构建环境不是运行前提",
+      "validation": "生成协议类型与运行时验证",
+      "roles": [
+        "market",
+        "ai",
+        "indicator"
+      ]
+    },
+    "node": "仅构建及前端开发使用；生产不包含 Node.js 服务",
+    "package_manager": "pnpm",
+    "python_dependency_manager": "uv",
+    "transport": "Rust/Python: UTF-8 NDJSON stdin/stdout；UI/core: Tauri invoke 与事件"
+  },
+  "repository": {
+    "paths": {
+      "apps/desktop/ui": "React UI 与图表适配器",
+      "apps/desktop/src-tauri": "Tauri 入口及白名单桥接",
+      "crates/domain": "领域类型，无 UI、SQLite、供应商 SDK 依赖",
+      "crates/application": "用例、权限、任务与工作区操作",
+      "crates/persistence": "SQLite 和迁移",
+      "crates/worker-host": "worker 生命周期及协议",
+      "crates/platform": "Windows 凭据、路径、进程资源限制",
+      "python/worker_runtime": "协议读写、任务循环",
+      "python/providers": "模拟行情及未来供应商适配器",
+      "python/ai": "mock AI 和模型 provider 接口",
+      "python/indicators": "声明式计算及可信 Python 执行入口",
+      "contracts/schemas": "JSON Schema，跨语言消息规范的唯一来源",
+      "contracts/generated": "生成的 TS/Rust/Python 类型；禁止手改",
+      "tests/fixtures": "确定性行情与预期输出",
+      "tests/contracts": "跨语言协议一致性",
+      "tests/integration": "进程及应用闭环",
+      "docs/decisions": "ADR",
+      "scripts": "构建、生成、测试与打包入口"
+    },
+    "dependency_rules": [
+      "domain 不依赖其他内部层",
+      "application 依赖 domain 和抽象端口，不依赖供应商",
+      "persistence/worker-host/platform 实现 application 端口",
+      "Tauri composition root 组装实现",
+      "UI 不读取数据库或启动进程",
+      "Python 不访问应用数据库",
+      "图表库仅存在于 ui/chart-adapter",
+      "供应商 SDK 仅存在于 providers",
+      "模型 SDK 仅存在于 ai/providers"
+    ],
+    "required_files": [
+      "README.md",
+      "Cargo.lock",
+      "pnpm-lock.yaml",
+      "uv.lock",
+      "docs/decisions/0001-architecture.md",
+      "docs/decisions/0002-python-trust.md",
+      "contracts/contract.json"
+    ]
+  },
+  "runtime": {
+    "processes": {
+      "core": "唯一可信控制面",
+      "market": "一个模拟行情 worker，复用订阅",
+      "ai": "有 AI 任务时启动一个 worker",
+      "indicator": "每次代码计算启动短生命周期子进程；结束后释放"
+    },
+    "lifecycle": [
+      "启动后 handshake",
+      "版本/角色不兼容立即终止",
+      "取消先发送 cancel，再等待宽限期，最后终止进程树",
+      "应用退出必须清理所有 worker",
+      "market 重启指数退避并限制次数",
+      "ai/indicator 失败不得阻断行情"
+    ],
+    "defaults": {
+      "handshake_timeout_ms": 5000,
+      "heartbeat_interval_ms": 5000,
+      "heartbeat_timeout_ms": 15000,
+      "cancel_grace_ms": 1000,
+      "indicator_timeout_ms": 10000,
+      "indicator_memory_limit_mb": 512,
+      "market_restart_max_attempts": 5,
+      "ui_flush_interval_ms": 100,
+      "max_message_bytes": 4194304,
+      "max_pending_requests": 128
+    },
+    "flow_control": "使用有界队列；UI 更新可以合并；原始数据丢弃必须产生带计数的数据质量事件，禁止静默丢弃",
+    "stdout": "只允许协议消息",
+    "stderr": "结构化诊断，禁止输出凭据、完整提示词或用户代码的敏感内容"
+  },
+  "protocol": {
+    "version": "1.0",
+    "encoding": "UTF-8 NDJSON，一个 JSON 对象一行",
+    "message_types": [
+      "hello",
+      "request",
+      "response",
+      "event",
+      "cancel",
+      "heartbeat"
+    ],
+    "common": {
+      "protocol_version": "string",
+      "message_id": "UUID",
+      "type": "enum",
+      "timestamp_ms": "UTC epoch milliseconds integer"
+    },
+    "request": {
+      "request_id": "UUID",
+      "task_id": "UUID|null",
+      "operation": "allowlisted string",
+      "payload": "operation-specific object"
+    },
+    "response": {
+      "request_id": "UUID",
+      "ok": "boolean",
+      "result": "object|null",
+      "error": "Error|null；ok=false 时必须有 error"
+    },
+    "event": {
+      "stream_id": "string",
+      "sequence": "递增 integer",
+      "event": "allowlisted string",
+      "payload": "object"
+    },
+    "hello": {
+      "role": "market|ai|indicator",
+      "worker_version": "string",
+      "supported_protocols": "array",
+      "capabilities": "array"
+    },
+    "error": {
+      "code": "enum",
+      "message": "non-sensitive string",
+      "retryable": "boolean",
+      "details": "object"
+    },
+    "error_codes": [
+      "INVALID_ARGUMENT",
+      "UNSUPPORTED_CAPABILITY",
+      "PERMISSION_DENIED",
+      "CONFIRMATION_REQUIRED",
+      "CANCELLED",
+      "TIMEOUT",
+      "WORKER_EXITED",
+      "PROTOCOL_MISMATCH",
+      "DATA_UNAVAILABLE",
+      "STALE_CONTEXT",
+      "RESOURCE_LIMIT",
+      "OUTPUT_INVALID",
+      "PROVIDER_NOT_CONFIGURED",
+      "INTERNAL_ERROR"
+    ],
+    "validation": [
+      "每个消息及操作 payload 都生成可执行 JSON Schema",
+      "明确 additionalProperties=false；扩展字段仅在显式 metadata 中",
+      "拒绝 NaN/Infinity",
+      "拒绝超长消息",
+      "按 request_id 关联，不能依赖响应顺序",
+      "取消和重复请求有明确终态",
+      "未知协议主版本 fail closed"
+    ],
+    "ai_channel": "AI 的工具请求作为 ai.tool_request 事件进入 core；core 执行后的 tool_result 通过独立请求返回 AI worker；禁止 worker 自执行工具"
+  },
+  "domain": {
+    "identifiers": "内部 opaque ID 与供应商代码分离；禁止用 display symbol 作为唯一身份",
+    "Instrument": {
+      "id": "string",
+      "display_symbol": "string",
+      "name": "string",
+      "asset_class": "开放字符串；期货/股票不是封闭全集",
+      "venue": "string",
+      "currency": "string",
+      "calendar_id": "string",
+      "timezone": "IANA string",
+      "price_tick": "decimal string|null",
+      "quantity_unit": "string",
+      "tradability": "non_tradable|unknown；v1 不允许 tradable",
+      "metadata": "object",
+      "provider_mappings": "array of provider_id + provider_symbol"
+    },
+    "DatasetDescriptor": {
+      "id": "UUID",
+      "instrument_id": "string",
+      "provider_id": "string",
+      "mode": "simulated|historical|delayed|realtime",
+      "timeframe": "string",
+      "price_adjustment": "raw|provider-defined string",
+      "timezone": "string",
+      "calendar_id": "string",
+      "quantity_unit": "string",
+      "revision": "string",
+      "quality": "fresh|stale|gapped|degraded",
+      "provenance": "object"
+    },
+    "Bar": {
+      "time_ms": "UTC epoch milliseconds integer，bar 起始",
+      "trading_day": "YYYY-MM-DD",
+      "open": "finite number",
+      "high": "finite number",
+      "low": "finite number",
+      "close": "finite number",
+      "volume": "finite number|null",
+      "is_closed": "boolean"
+    },
+    "bar_invariants": [
+      "low <= open/close <= high",
+      "low <= high",
+      "同一数据集时间递增且唯一",
+      "更新未结束 bar 使用相同时间键",
+      "未知 volume 用 null，不冒充 0",
+      "图表单位转换仅在 adapter 进行",
+      "交易日不由 UTC 日期直接推断"
+    ],
+    "series_identity": "instrument + provider + timeframe + adjustment + dataset revision",
+    "continuous_futures": "仅分析序列，与实际合约分别标识；metadata 声明构造口径",
+    "provider_capabilities": [
+      "instrument_search",
+      "historical_bars",
+      "stream_bars",
+      "ticks",
+      "depth",
+      "supported_timeframes",
+      "price_adjustments",
+      "historical_limits"
+    ]
+  },
+  "operations": [
+    {
+      "name": "instrument.search",
+      "input_spec": "query:string, limit:integer<=50",
+      "output_spec": "Instrument[]",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+    },
+    {
+      "name": "market.getBars",
+      "input_spec": "instrument_id,timeframe,from_ms,to_ms,provider_id",
+      "output_spec": "DatasetDescriptor+Bar[]",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+    },
+    {
+      "name": "workspace.openInstrument",
+      "input_spec": "instrument_id,timeframe,expected_workspace_revision",
+      "output_spec": "workspace snapshot",
+      "effect": "workspace",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+    },
+    {
+      "name": "chart.setTimeframe",
+      "input_spec": "timeframe,expected_workspace_revision",
+      "output_spec": "workspace snapshot",
+      "effect": "workspace",
+      "confirmation": false,
+      "undoable": true,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+    },
+    {
+      "name": "chart.setStyle",
+      "input_spec": "style:candlestick|line,expected_workspace_revision",
+      "output_spec": "workspace snapshot",
+      "effect": "workspace",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+    },
+    {
+      "name": "chart.addAnnotation",
+      "input_spec": "annotation,expected_workspace_revision",
+      "output_spec": "layer_id",
+      "effect": "workspace",
+      "confirmation": false,
+      "undoable": true,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+    },
+    {
+      "name": "chart.removeLayer",
+      "input_spec": "layer_id,expected_workspace_revision",
+      "output_spec": "operation_id",
+      "effect": "workspace",
+      "confirmation": false,
+      "undoable": true,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+    },
+    {
+      "name": "indicator.createDraft",
+      "input_spec": "language:declarative|python,source,params,expected_workspace_revision",
+      "output_spec": "draft_id+code_hash",
+      "effect": "draft",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+    },
+    {
+      "name": "indicator.runPreview",
+      "input_spec": "draft_id,dataset_id,dataset_revision,params,expected_workspace_revision",
+      "output_spec": "task_id",
+      "effect": "compute",
+      "confirmation": "python_only",
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+    },
+    {
+      "name": "indicator.acceptVersion",
+      "input_spec": "preview_id,expected_workspace_revision",
+      "output_spec": "version_id+layer_id",
+      "effect": "persist",
+      "confirmation": true,
+      "undoable": true,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+    },
+    {
+      "name": "indicator.remove",
+      "input_spec": "layer_id,expected_workspace_revision",
+      "output_spec": "operation_id",
+      "effect": "workspace",
+      "confirmation": false,
+      "undoable": true,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+    },
+    {
+      "name": "workspace.undo",
+      "input_spec": "operation_id,expected_workspace_revision",
+      "output_spec": "workspace snapshot",
+      "effect": "workspace",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+    },
+    {
+      "name": "task.cancel",
+      "input_spec": "task_id",
+      "output_spec": "task terminal status",
+      "effect": "control",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+    },
+    {
+      "name": "workspace.getContext",
+      "input_spec": "workspace_id",
+      "output_spec": "bounded structured context",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "schema_requirement": "生成独立 input/output JSON Schema；id 为 opaque string；revision 为非负 integer"
+    }
+  ],
+  "authorization": {
+    "actors": [
+      "user",
+      "ai",
+      "system"
+    ],
+    "authority": "仅 core 授权",
+    "confirmations": "绑定 actor、操作、完整参数规范化哈希、工作区 revision、有效期；单次消费；参数变化或 revision 失效须重新确认",
+    "default_confirmation_ttl_ms": 300000,
+    "replay": "改变持久状态的操作使用 idempotency_key；重复请求返回既有结果，不重复写入",
+    "permissions": "worker role + operation allowlist；AI 没有原始 Tauri/文件/进程/SQL 权限",
+    "tauri": "主窗口 capability 白名单；不向 UI 暴露通用 shell、任意 filesystem 或任意 SQL 接口",
+    "v1_forbidden": [
+      "真实下单",
+      "访问账户",
+      "AI 改产品源码",
+      "AI 修改权限配置",
+      "AI 自行批准确认",
+      "任意外部 URL 导航或远程 UI 内容"
+    ]
+  },
+  "indicators": {
+    "default_mode": "声明式表达式 AST，不执行动态代码",
+    "declarative_ops": [
+      "field",
+      "constant",
+      "add",
+      "subtract",
+      "multiply",
+      "divide",
+      "abs",
+      "lag",
+      "rolling_mean",
+      "rolling_std",
+      "gt",
+      "lt",
+      "and",
+      "or"
+    ],
+    "ast_policy": "拒绝未定义操作、循环、函数调用、导入；限制节点数和窗口；不得用 eval/exec 实现",
+    "window_semantics": "仅使用当前及过去的数据，lag>=0；不足窗口输出 null；rolling_std 使用 ddof=0；除零输出 null 与 diagnostic",
+    "python_mode": {
+      "enabled_by_default": false,
+      "trust_label": "trusted_code_only_not_secure_sandbox",
+      "entrypoint": "compute(bars, params) -> IndicatorResult",
+      "authorization": "用户每次授权，绑定代码哈希、参数和输入数据 revision；AI 不能批准",
+      "warning": "独立进程与资源限制不阻止任意文件或网络访问；未实现可靠 OS 隔离前不得自动执行不可信 Python",
+      "credentials": "不传入 SDK 凭据，不继承不必要环境变量",
+      "cwd": "隔离临时目录，但不得描述为文件访问安全边界"
+    },
+    "immutable_versions": true,
+    "execution_input": "确定性 bars 快照、参数、数据 descriptor；无隐藏全局数据源",
+    "limits": {
+      "max_bars": 100000,
+      "max_series": 16,
+      "max_markers": 2000,
+      "max_regions": 500,
+      "max_ast_nodes": 256
+    },
+    "result": {
+      "series": "array: id, pane, type(line|histogram), points(time_ms,value|null), style",
+      "markers": "array: time_ms, position, label, color",
+      "regions": "array: from_ms,to_ms,label,color",
+      "diagnostics": "array: code,message,severity",
+      "provenance": "code_hash,params_hash,dataset_id,dataset_revision,engine_version"
+    },
+    "output_policy": "只允许结构化数据；禁止 HTML/JS/React/DOM 输出；验证时间、规模、有限数值与样式白名单",
+    "lifecycle": [
+      "draft",
+      "running",
+      "preview",
+      "accepted",
+      "rejected",
+      "failed"
+    ],
+    "preview": "临时图层；失败不得覆盖现有版本；接受后保存不可变版本；支持移除和撤销"
+  },
+  "ai": {
+    "providers_v1": [
+      "deterministic_mock",
+      "用户明确配置后启用的模型适配器"
+    ],
+    "default": "deterministic_mock；不要求云模型凭据才能运行",
+    "context": [
+      "workspace revision",
+      "当前标的和周期",
+      "可见区间",
+      "数据来源、模式、质量",
+      "当前图层",
+      "授权能力",
+      "与任务相关的数据快照"
+    ],
+    "context_policy": "按需最小化；原始全量行情、凭据和账户信息不进入默认上下文；发送云端前用户启用外部 AI provider",
+    "claim_policy": "区分事实、计算、推断、建议与已执行动作；只有 core 成功响应才可声称执行成功",
+    "tool_policy": "只能从 core 提供的工具 schema 选择；每次修改操作绑定 expected_workspace_revision",
+    "loop_limits": {
+      "max_tool_calls_per_task": 12,
+      "task_timeout_ms": 120000
+    },
+    "injection_policy": "行情文本、代码注释、模型输出均为不可信数据；不允许其改变工具权限或确认规则",
+    "task_states": [
+      "queued",
+      "running",
+      "awaiting_confirmation",
+      "completed",
+      "failed",
+      "cancelled"
+    ]
+  },
+  "ui": {
+    "layout": "顶栏标的/周期/来源状态；左侧AI与任务；右侧主图；底部按需诊断",
+    "minimal_controls": [
+      "标的搜索",
+      "周期选择",
+      "K线/折线切换",
+      "图层移除",
+      "任务取消",
+      "撤销",
+      "数据模式与连接状态"
+    ],
+    "chart_adapter": [
+      "setMarketSeries",
+      "updateMarketSeries",
+      "addIndicatorSeries",
+      "addAnnotation",
+      "removeLayer",
+      "setVisibleRange",
+      "getSelection",
+      "dispose"
+    ],
+    "chart_rules": [
+      "无默认指标",
+      "React 组件不持有供应商 SDK",
+      "AI 标记可查看来源和任务",
+      "preview 与 accepted 可辨识",
+      "图表资源卸载清理",
+      "更新合并不得丢失最终 bar 状态"
+    ],
+    "states": [
+      "loading",
+      "ready",
+      "empty",
+      "disconnected",
+      "stale",
+      "error",
+      "awaiting_confirmation"
+    ],
+    "security": "模型文本按纯文本或受限 Markdown 呈现，禁用原始 HTML；禁止动态生成脚本",
+    "licenses": "发布包含第三方许可和 NOTICE；核对图表库 attribution 要求，不默认删除品牌声明"
+  },
+  "persistence": {
+    "owner": "Rust core",
+    "tables": [
+      "schema_migrations",
+      "workspaces",
+      "workspace_layers",
+      "instrument_cache",
+      "dataset_descriptors",
+      "bar_cache",
+      "indicator_drafts",
+      "indicator_versions",
+      "tasks",
+      "operation_log",
+      "idempotency_records",
+      "settings"
+    ],
+    "sqlite": "WAL；外键开启；事务写入；迁移有版本且测试",
+    "credentials": "Windows Credential Manager；DB 仅存引用；mock 不使用凭据",
+    "cache": "可清理，不能与用户指标版本一起删除；不同数据来源和调整口径不得混合",
+    "log": "记录操作、actor、摘要、状态、关联ID；敏感字段脱敏；不做完整事件溯源",
+    "undo": "v1 支持图层添加/移除和周期变更；撤销也是新操作；不宣称所有操作可撤销"
+  },
+  "fixtures": {
+    "instruments": [
+      "SIM.CN.FUTURE.001",
+      "SIM.CN.STOCK.001",
+      "SIM.US.STOCK.001"
+    ],
+    "label": "全部是合成数据，不使用伪装的真实市场报价",
+    "timeframes": [
+      "1m",
+      "5m",
+      "1d"
+    ],
+    "generator": "固定 seed 与固定 UTC 起点，生成并提交 fixture；测试中禁止依赖当前时间",
+    "cases": [
+      "正常连续数据",
+      "缺口",
+      "过期数据",
+      "worker 中断",
+      "未结束 bar 更新",
+      "跨 UTC 日期但同一交易日样本"
+    ]
+  },
+  "delivery": {
+    "installer": "Windows x64 NSIS",
+    "webview2": "明确采用安装器 bootstrapper 策略；首次安装可能联网，README 和安装说明不得承诺完全离线安装",
+    "python": "随安装包分发 worker，不要求用户系统 Python",
+    "build": "Windows 原生构建及验证；锁定依赖并记录构建信息",
+    "platform_interfaces": [
+      "credentialStore",
+      "applicationPaths",
+      "processRestrictions",
+      "desktopIntegration"
+    ],
+    "supply_chain": "安装资源仅从明确来源构建；不得运行模型建议的下载脚本；包含依赖清单和许可",
+    "final_artifacts": [
+      "Windows NSIS installer",
+      "test-report.json",
+      "build-manifest.json",
+      "third-party-licenses",
+      "完整源代码与锁文件"
+    ]
+  },
+  "milestones": [
+    {
+      "id": "M0",
+      "goal": "骨架与协议",
+      "deliver": [
+        "仓库",
+        "ADR",
+        "可运行 schemas",
+        "类型生成",
+        "Windows Tauri 空应用",
+        "worker handshake"
+      ],
+      "gate": [
+        "protocol tests",
+        "Windows build"
+      ]
+    },
+    {
+      "id": "M1",
+      "goal": "模拟行情闭环",
+      "deliver": [
+        "mock provider",
+        "标的搜索",
+        "历史图",
+        "实时 bar 更新",
+        "状态与重连"
+      ],
+      "gate": [
+        "fixture correctness",
+        "worker failure recovery"
+      ]
+    },
+    {
+      "id": "M2",
+      "goal": "操作与持久化",
+      "deliver": [
+        "操作注册表",
+        "权限",
+        "确认",
+        "revision",
+        "SQLite",
+        "undo"
+      ],
+      "gate": [
+        "permission tests",
+        "restart restore",
+        "idempotency tests"
+      ]
+    },
+    {
+      "id": "M3",
+      "goal": "指标闭环",
+      "deliver": [
+        "AST engine",
+        "output validation",
+        "preview",
+        "accept version",
+        "trusted Python opt-in"
+      ],
+      "gate": [
+        "determinism",
+        "timeout",
+        "preview failure isolation",
+        "trust gating"
+      ]
+    },
+    {
+      "id": "M4",
+      "goal": "AI 协作闭环",
+      "deliver": [
+        "mock AI",
+        "tools",
+        "context",
+        "task cancellation",
+        "operation provenance"
+      ],
+      "gate": [
+        "AI cannot bypass authorization",
+        "end-to-end scenario"
+      ]
+    },
+    {
+      "id": "M5",
+      "goal": "安装与稳定性",
+      "deliver": [
+        "NSIS",
+        "sidecar bundle",
+        "clean-machine test",
+        "license notices"
+      ],
+      "gate": [
+        "clean Windows install",
+        "shutdown process cleanup",
+        "soak test"
+      ]
+    }
+  ],
+  "acceptance": {
+    "required": [
+      "未安装 Python/Node 的干净 Windows x64 可安装并运行模拟模式",
+      "打开三种合成标的并切换周期，界面明确显示 simulated",
+      "断开 market worker 后状态可见，有限重试恢复且没有重复订阅",
+      "mock AI 根据用户需求创建声明式异常波动指标，预览、接受、移除、撤销完成",
+      "AI 工具与用户操作调用同一注册表；直接请求未授权操作被拒绝",
+      "参数、代码哈希或 workspace revision 变化后旧确认失效",
+      "指标超时、异常、非法输出不阻断行情，且不覆盖已接受指标",
+      "关闭重开恢复工作区和指标版本，但不重复执行之前 AI 任务",
+      "日志、数据库和 worker 环境不出现明文凭据",
+      "退出应用后没有存活 worker 子进程",
+      "生成类型无未提交差异，schemas 和三语言验证一致"
+    ],
+    "performance": {
+      "profile": "记录 CPU/RAM/Windows/WebView2 版本；release build；10000 bars；单图；mock stream 10 updates/s",
+      "initial_bars_to_chart_p95_ms": 1000,
+      "chart_update_p95_ms": 200,
+      "continuous_run_minutes": 120,
+      "memory_policy": "记录进程总内存时间序列；热身后不得呈现持续无界增长；不宣称未实测的固定内存值"
+    },
+    "test_report": "逐项记录 passed/failed/blocked、命令、环境、实际结果；blocked 不算 passed"
+  },
+  "implementation_instructions": [
+    "先实现 M0，逐个里程碑推进；不得跳过权限与失败路径",
+    "根据本文件生成 contracts/schemas/*.schema.json，全部可执行验证；本文件自身是规范而非已经完成的 JSON Schema",
+    "任何动态操作都先经过 Rust 注册表；不得添加通用 execute/shell/sql 工具",
+    "未确定供应商时保持 mock，不从互联网临时抓取行情以伪装接入",
+    "非目标平台代码只保留接口；禁止花时间实现跨平台发布",
+    "测试先覆盖协议、身份、权限和计算语义，然后覆盖界面",
+    "真实交易类型、按钮和工具不得作为隐藏占位实现",
+    "提交最终报告中明确真实数据和云模型是否配置，不得夸大完成范围"
+  ]
+}

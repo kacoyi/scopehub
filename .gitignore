@@ -1,0 +1,5 @@
+.aws/
+.env
+.env.*
+!.env.example
+*:Zone.Identifier
