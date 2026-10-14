@@ -368,7 +368,7 @@
       "source": "Owner clarification on 2026-10-14",
       "observation": "The owner clarified twice that default absence of data, AI, information and financial service subscriptions must not remove the software capabilities to use them or prevent user-supplied connections and adapters.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-005"
       ],
@@ -376,7 +376,11 @@
         "chart-history",
         "project-state"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The initial service-default typo and its correction could be misread as removing data, AI or information capabilities instead of excluding bundled subscriptions.",
+        "correction": "Record the distinction explicitly in the product contract, contract manifest and contributor guidance. The startup screen states that connections and subscriptions are user supplied; opting into synthetic history remains a separate action. All planned data, AI and information capabilities remain required.",
+        "prevention": "The historical-chart regression verifies zero startup operations and explicit demo entry through the real Rust/Python path; both Linux and Windows CI pass in run 38570391461. Task M1-005 archives native evidence. The product policy explicitly preserves local files, APIs and user-implemented adapters; these integrations are still pending, not removed."
+      },
       "deferral_reason": null
     },
     {

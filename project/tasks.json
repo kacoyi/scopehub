@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-005",
+  "focus_task_id": "M1-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -1607,7 +1607,7 @@
       "id": "M1-005",
       "title": "Connect opt-in synthetic history to the desktop chart",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-002",
         "M0-015"
@@ -1661,8 +1661,13 @@
         "windows-native-build",
         "dependency-review"
       ],
-      "evidence": [],
-      "next_action": "Inspect the repaired checkpoint Linux/Windows CI, archive matching native evidence, close service-scope feedback and resume M1-001.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-005-472023bcc5521645.json",
+          "sha256": "0508149fc7dbef9fa3d275390c3e38a9f7dc550e76315e2373224a9e0345ccf9"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -1754,6 +1759,10 @@
         {
           "path": "project/evidence/M0-015-75a7e9305a0c1a8e.json",
           "sha256": "3bf67e190c53ff2746744c636a024033c9ca107ea048b39deb6dc8978fd0fdbd"
+        },
+        {
+          "path": "project/evidence/M0-015-472023bcc5521645.json",
+          "sha256": "a6020c54c83026843c0508d41e203044b89d3c46b7fe32382ed3c1db2091cf8e"
         }
       ],
       "next_action": null,
