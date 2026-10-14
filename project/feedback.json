@@ -146,7 +146,7 @@
       "source": "contracts/reviews/2026-10-14-long-term-health.json",
       "observation": "Schema-valid indicator.remove requests and AI tool calls decode into ChartRemoveLayer Rust variants because untagged unions ignore inline const discriminators.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-007"
       ],
@@ -155,7 +155,11 @@
         "typescript-contracts",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Generated Rust literals were unconstrained strings and typed integer decoding did not implement schema-valid integral floating-point encodings. The Python decoder returned floats behind integer annotations.",
+        "correction": "Generate literal discriminator types and normalize validated safe integral numbers before Rust/Python typed decoding without changing the wire schema.",
+        "prevention": "Shared vectors assert all 14 human and AI operation identities and numeric values/types including safe boundaries. Failed reproduction: .reports/runs/20261014T060811.082497Z-ba6344d3/test-report.json; passing evidence is archived with M0-007. Serde behavior reference: https://serde.rs/enum-representations.html."
+      },
       "deferral_reason": null
     },
     {
@@ -163,7 +167,7 @@
       "source": "contracts/reviews/2026-10-14-long-term-health.json",
       "observation": "Schema-valid integral timestamp encodings 1.0 and 1e0 are accepted by Python and JavaScript but rejected by the Rust decode_line path.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-007"
       ],
@@ -172,7 +176,11 @@
         "typescript-contracts",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Generated Rust literals were unconstrained strings and typed integer decoding did not implement schema-valid integral floating-point encodings. The Python decoder returned floats behind integer annotations.",
+        "correction": "Generate literal discriminator types and normalize validated safe integral numbers before Rust/Python typed decoding without changing the wire schema.",
+        "prevention": "Shared vectors assert all 14 human and AI operation identities and numeric values/types including safe boundaries. Failed reproduction: .reports/runs/20261014T060811.082497Z-ba6344d3/test-report.json; passing evidence is archived with M0-007. Serde behavior reference: https://serde.rs/enum-representations.html."
+      },
       "deferral_reason": null
     },
     {
@@ -180,7 +188,7 @@
       "source": "contracts/reviews/2026-10-14-long-term-health.json",
       "observation": "Prepending the valid audit task causes 16 failures and 34 errors among 76 Python tests because ProjectFixture mutates ledger.tasks[0] and assumes a historical check list. Appending restores the baseline but does not repair the coupling.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-008"
       ],
@@ -188,7 +196,11 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Repository-control fixtures copied production records, reset historical states and edited tasks by list position.",
+        "correction": "Use a minimal independently constructed task, decision, scenario and check fixture with explicit task lookup and intentionally non-positional ordering.",
+        "prevention": "Existing lifecycle and provenance regressions pass against the synthetic records. New tests reorder and prepend unrelated tasks, assert fixture setup copies only the canonical schema, and validate the actual repository without rewriting its history."
+      },
       "deferral_reason": null
     },
     {

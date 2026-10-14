@@ -36,7 +36,7 @@ async fn rust_starts_python_and_validates_the_handshake() {
     let hello = probe_handshake(&mut worker, "market", Duration::from_secs(5))
         .await
         .unwrap();
-    assert_eq!(hello.protocol_version, "1.0");
+    assert_eq!(hello.protocol_version.as_str(), "1.0");
     assert!(hello.capabilities.is_empty());
 }
 

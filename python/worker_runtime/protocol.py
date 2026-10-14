@@ -29,6 +29,17 @@ def assert_finite(value: object) -> None:
             assert_finite(child)
 
 
+def normalize_integers(value: object) -> object:
+    """JSON Schema integers include 1.0 and 1e0; expose them as typed integers."""
+    if isinstance(value, float) and value.is_integer() and abs(value) <= 9007199254740991:
+        return int(value)
+    if isinstance(value, dict):
+        return {key: normalize_integers(child) for key, child in value.items()}
+    if isinstance(value, list):
+        return [normalize_integers(child) for child in value]
+    return value
+
+
 def decode_line(line: bytes) -> Message:
     if len(line) > MAX_MESSAGE_BYTES:
         raise ProtocolError('RESOURCE_LIMIT')
@@ -42,7 +53,7 @@ def decode_line(line: bytes) -> Message:
             raise ProtocolError('INVALID_ARGUMENT')
     except (ValueError, UnicodeError, RecursionError) as error:
         raise ProtocolError('INVALID_ARGUMENT') from error
-    return cast(Message, value)
+    return cast(Message, normalize_integers(value))
 
 
 def encode_message(message: Message) -> bytes:

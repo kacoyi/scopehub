@@ -18,6 +18,8 @@ from scripts.project import (
     project_definition_hash, read_json, source_identity, task_definition_hash, workfront,
 )
 
+from tests.project.fixtures import records, task_by_id
+
 REPO = Path(__file__).resolve().parents[2]
 
 
@@ -31,26 +33,14 @@ class ProjectFixture(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         subprocess.run(['git', 'init', '--quiet', str(self.root)], check=True, capture_output=True)
-        for relative in ['.gitignore', 'engineering-contract-v1.json', 'contracts/schemas/project.schema.json',
-                         'contracts/contract.json', 'project/tasks.json', 'project/checks.json',
-                         'project/delivery.json', 'project/feedback.json']:
+        schema = self.root / 'contracts/schemas/project.schema.json'
+        schema.parent.mkdir(parents=True)
+        shutil.copyfile(REPO / 'contracts/schemas/project.schema.json', schema)
+        (self.root / '.gitignore').write_text('.reports/\n__pycache__/\n', encoding='utf-8')
+        for relative, value in records().items():
             destination = self.root / relative
             destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(REPO / relative, destination)
-        shutil.copytree(REPO / 'contracts/decisions', self.root / 'contracts/decisions')
-        ledger = self.ledger()
-        for task in ledger['tasks']:
-            task.update(status='planned', evidence=[], next_action='Implement the fixture task.', blocker=None, closure_reason=None)
-        ledger['tasks'][0]['checks'].append('project-state')
-        ledger['tasks'][0]['plan'] = {
-            'outcome': 'Exercise repository controls using synthetic verification records.',
-            'change_types': ['tooling'], 'context': ['engineering-contract-v1.json'], 'hypotheses': [],
-            'risks': [{'failure': 'Unsupported completion.', 'checks': ['project-state']}],
-            'rollback': 'Discard the isolated temporary fixture repository.',
-        }
-        ledger['focus_task_id'] = 'M0-001'
-        self.save_ledger(ledger)
-        (self.root / 'project/feedback.json').write_bytes(json_bytes({'schema_version': '1.0', 'items': []}))
+            destination.write_bytes(json_bytes(value))
         (self.root / 'implementation.py').write_text('value = 1\n', encoding='utf-8')
 
     def ledger(self):
@@ -82,12 +72,27 @@ class ProjectFixture(unittest.TestCase):
 
     def finish_first(self, ref):
         ledger = self.ledger()
-        ledger['tasks'][0].update(status='done', evidence=[ref], next_action=None)
+        task_by_id(ledger, 'M0-001').update(status='done', evidence=[ref], next_action=None)
         ledger['focus_task_id'] = 'M0-002'
         self.save_ledger(ledger)
 
 
 class ContinuityTests(ProjectFixture):
+    def test_reordering_and_prepending_tasks_does_not_change_fixture_identity(self):
+        ledger = self.ledger()
+        unrelated = {**task_by_id(ledger, 'M0-002'), 'id': 'M0-999', 'title': 'Unrelated synthetic task'}
+        ledger['tasks'] = [unrelated, *reversed(ledger['tasks'])]
+        self.save_ledger(ledger)
+        report = self.report()
+        # Reordering alone does not invalidate identity-bound evidence.
+        ledger['tasks'].reverse()
+        self.save_ledger(ledger)
+        self.finish_first(archive_evidence(self.root, 'M0-001', report))
+        state = workfront(self.root)
+        self.assertEqual(['M0-001'], state['completed_task_ids'])
+        self.assertEqual('planned', task_by_id(self.ledger(), 'M0-999')['status'])
+        self.assertTrue(state['verification']['current'])
+
     def test_baseline_records_and_pending_gates_remain_explicit(self):
         project = load_project(self.root)
         milestones, acceptance = product_progress(project, [])
@@ -96,7 +101,7 @@ class ContinuityTests(ProjectFixture):
 
     def test_done_without_evidence_is_rejected(self):
         ledger = self.ledger()
-        ledger['tasks'][0].update(status='done', next_action=None)
+        task_by_id(ledger, 'M0-001').update(status='done', next_action=None)
         ledger['focus_task_id'] = 'M0-002'
         self.save_ledger(ledger)
         with self.assertRaisesRegex(ProjectError, 'lacks passing evidence'):
@@ -104,36 +109,36 @@ class ContinuityTests(ProjectFixture):
 
     def test_dependency_cycles_and_missing_references_are_rejected(self):
         ledger = self.ledger()
-        ledger['tasks'][0]['depends_on'] = ['M0-003']
+        task_by_id(ledger, 'M0-001')['depends_on'] = ['M0-003']
         self.save_ledger(ledger)
         with self.assertRaisesRegex(ProjectError, 'cycle'):
             load_project(self.root)
-        ledger['tasks'][0]['depends_on'] = ['M9-999']
+        task_by_id(ledger, 'M0-001')['depends_on'] = ['M9-999']
         self.save_ledger(ledger)
         with self.assertRaisesRegex(ProjectError, 'unknown references'):
             load_project(self.root)
 
     def test_duplicate_task_identity_is_rejected(self):
         ledger = self.ledger()
-        ledger['tasks'].append(ledger['tasks'][0])
+        ledger['tasks'].append(task_by_id(ledger, 'M0-001'))
         self.save_ledger(ledger)
         with self.assertRaisesRegex(ProjectError, 'Duplicate task'):
             load_project(self.root)
 
     def test_unfinished_dependency_cannot_be_hidden_by_done_status(self):
         ledger = self.ledger()
-        ledger['tasks'][2].update(status='done', next_action=None)
+        task_by_id(ledger, 'M0-003').update(status='done', next_action=None)
         self.save_ledger(ledger)
         with self.assertRaisesRegex(ProjectError, 'unfinished dependencies'):
             load_project(self.root)
 
     def test_blocker_and_next_action_are_required(self):
         ledger = self.ledger()
-        ledger['tasks'][0].update(status='blocked', blocker=None)
+        task_by_id(ledger, 'M0-001').update(status='blocked', blocker=None)
         self.save_ledger(ledger)
         with self.assertRaisesRegex(ProjectError, 'needs a reason'):
             load_project(self.root)
-        ledger['tasks'][0].update(blocker='A fixture dependency is absent.', next_action=None)
+        task_by_id(ledger, 'M0-001').update(blocker='A fixture dependency is absent.', next_action=None)
         self.save_ledger(ledger)
         with self.assertRaisesRegex(ProjectError, 'needs a next action'):
             load_project(self.root)
@@ -169,7 +174,7 @@ class ContinuityTests(ProjectFixture):
     def test_changed_task_definition_requires_new_verification(self):
         report = self.report()
         ledger = self.ledger()
-        ledger['tasks'][0]['acceptance'].append('An additional outcome that was not evaluated.')
+        task_by_id(ledger, 'M0-001')['acceptance'].append('An additional outcome that was not evaluated.')
         self.save_ledger(ledger)
         with self.assertRaisesRegex(ProjectError, 'Task definition changed'):
             archive_evidence(self.root, 'M0-001', report)
@@ -177,7 +182,7 @@ class ContinuityTests(ProjectFixture):
     def test_completed_definition_cannot_be_rewritten_under_old_receipt(self):
         self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
         ledger = self.ledger()
-        ledger['tasks'][0]['acceptance'].append('A retroactive completion claim.')
+        task_by_id(ledger, 'M0-001')['acceptance'].append('A retroactive completion claim.')
         self.save_ledger(ledger)
         with self.assertRaisesRegex(ProjectError, 'lacks passing evidence'):
             load_project(self.root)
@@ -196,7 +201,7 @@ class ContinuityTests(ProjectFixture):
 
     def test_linux_cannot_supply_native_windows_evidence(self):
         ledger = self.ledger()
-        ledger['tasks'][2]['depends_on'] = []
+        task_by_id(ledger, 'M0-003')['depends_on'] = []
         self.save_ledger(ledger)
         with self.assertRaisesRegex(ProjectError, 'Native Windows proof requires Windows'):
             archive_evidence(self.root, 'M0-003', self.report('M0-003'))
@@ -309,6 +314,23 @@ class ContinuityTests(ProjectFixture):
         self.assertFalse(report['source_unchanged'])
         self.assertEqual('failed', report['status'])
         self.assertFalse(report['product_complete'])
+
+
+class FixtureIsolationTests(unittest.TestCase):
+    def test_setup_copies_only_the_canonical_schema(self):
+        fixture = ProjectFixture()
+        try:
+            with patch('tests.project.test_continuity.shutil.copyfile', wraps=shutil.copyfile) as copied:
+                fixture.setUp()
+            self.assertEqual([REPO / 'contracts/schemas/project.schema.json'],
+                             [call.args[0] for call in copied.call_args_list])
+            self.assertEqual(records()['project/tasks.json'], fixture.ledger())
+        finally:
+            fixture.doCleanups()
+
+    def test_actual_repository_records_validate_without_resetting_history(self):
+        actual = load_project(REPO)
+        self.assertEqual(read_json(REPO / 'project/tasks.json'), actual['ledger'])
 
 
 if __name__ == '__main__':

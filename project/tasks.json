@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-007",
+  "focus_task_id": "M0-009",
   "tasks": [
     {
       "id": "M0-001",
@@ -679,7 +679,7 @@
       "id": "M0-007",
       "title": "Preserve operation identity and numeric semantics across generated contracts",
       "milestone": "M0",
-      "status": "planned",
+      "status": "done",
       "depends_on": [
         "M0-006"
       ],
@@ -689,7 +689,12 @@
         "contracts/schemas/protocol.schema.json",
         "tests/fixtures/protocol-cases.json",
         "tests/contracts",
-        "crates/worker-host/tests"
+        "crates/worker-host/tests",
+        "python/worker_runtime/protocol.py",
+        "crates/worker-host/src/lib.rs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
       ],
       "decision_refs": [
         "0001",
@@ -709,24 +714,76 @@
         "python-contracts-workers",
         "typescript-contracts",
         "rust-contracts-workers",
-        "rust-lints"
+        "rust-lints",
+        "project-state"
       ],
-      "evidence": [],
-      "next_action": "Start with H01 and H02 in the health assessment: reproduce indicator.remove selecting ChartRemoveLayerRequest and integral timestamps failing only in Rust; add semantic assertions before repairing generation.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-007-b6ced79df46d1087.json",
+          "sha256": "344d1381599b031968044e3c2b3aa02cc8708d3021807c1e39006f8dad47c0f6"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Every request and AI tool call retains its operation identity after typed decoding, and schema-valid integral numeric encodings agree across all three languages.",
+        "change_types": [
+          "protocol",
+          "tooling"
+        ],
+        "context": [
+          "scripts/generate_contracts.py",
+          "contracts/schemas/protocol.schema.json",
+          "python/worker_runtime/protocol.py",
+          "crates/worker-host/src/lib.rs",
+          "contracts/reviews/2026-10-14-long-term-health.json"
+        ],
+        "hypotheses": [
+          "Generated singleton and inline enum types can constrain discriminators without changing wire schemas.",
+          "Normalizing schema-validated integral numeric values before typed decoding can preserve JSON Schema integer semantics."
+        ],
+        "risks": [
+          {
+            "failure": "Structurally similar operations still select the wrong typed variant.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Numeric normalization accepts fractional or unsafe integer inputs or loses boundary precision.",
+            "checks": [
+              "python-contracts-workers",
+              "typescript-contracts",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Regeneration breaks static types or accepted history.",
+            "checks": [
+              "generated-contracts",
+              "python-types",
+              "rust-lints",
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Retain failing vectors and reports; revert only this task implementation to 39e5b237f002a7053a5c146e3aea1c4223586c80 if needed, preserving the accepted wire schema and previously completed work."
+      }
     },
     {
       "id": "M0-008",
       "title": "Make repository-control fixtures independent of the evolving task ledger",
       "milestone": "M0",
-      "status": "planned",
+      "status": "done",
       "depends_on": [
         "M0-006"
       ],
       "scope": [
         "tests/project",
-        "project/tasks.json"
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
       ],
       "decision_refs": [
         "0001",
@@ -744,10 +801,46 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Reproduce H03 using the retained failed report, then isolate ProjectFixture data and replace positional task references with explicit fixture identities.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-008-895244d286ef105c.json",
+          "sha256": "ebde485de64f253fa0952d33f86373fc024c7b2f87a1eb902b031b676e172ad5"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Repository-control regressions use dedicated synthetic records and explicit task identities, so product ledger changes cannot change their fixture assumptions.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/project/test_continuity.py",
+          "tests/project/test_delivery.py",
+          "tests/project/test_ci.py",
+          "scripts/project.py"
+        ],
+        "hypotheses": [
+          "Minimal independent records can exercise lifecycle and evidence failures without resetting real project history."
+        ],
+        "risks": [
+          {
+            "failure": "Fixture isolation drops existing lifecycle, scenario, native or provenance failure coverage.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Synthetic validation is mistaken for validation of actual project records.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain existing failure cases and compare test behavior with the pre-isolation tests. Revert the fixture extraction without changing real task history if coverage is lost."
+      }
     },
     {
       "id": "M0-009",
@@ -865,7 +958,7 @@
       "id": "M0-012",
       "title": "Enforce reviewed integration with required GitHub checks",
       "milestone": "M0",
-      "status": "blocked",
+      "status": "planned",
       "depends_on": [
         "M0-006"
       ],
@@ -892,8 +985,8 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "H08 records protected=false and an empty ruleset list. Obtain the separate repository-administration decision before preparing any remote settings change; local product work can continue.",
-      "blocker": "Remote repository-administration authorization is outside this assessment and task-branch publication scope.",
+      "next_action": "The owner authorized repair of all audit findings on 2026-10-14, including main protection. Prepare and validate a concrete protection configuration, apply it with the repository account, and retain read-back evidence; merge and release remain outside scope.",
+      "blocker": null,
       "closure_reason": null
     },
     {

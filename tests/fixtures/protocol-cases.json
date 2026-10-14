@@ -363,5 +363,163 @@
     "name": "JSON object required",
     "valid": false,
     "wire": "[]\n"
+  },
+  {
+    "name": "instrument.search AI tool identity",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"event\",\"stream_id\":\"task-1\",\"sequence\":0,\"event\":\"ai.tool_request\",\"payload\":{\"operation\":\"instrument.search\",\"arguments\":{\"query\":\"SIM\",\"limit\":10}}}\n"
+  },
+  {
+    "name": "market.getBars AI tool identity",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"event\",\"stream_id\":\"task-1\",\"sequence\":0,\"event\":\"ai.tool_request\",\"payload\":{\"operation\":\"market.getBars\",\"arguments\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"timeframe\":\"1m\",\"from_ms\":1700000000000,\"to_ms\":1700000060000,\"provider_id\":\"sim\"}}}\n"
+  },
+  {
+    "name": "workspace.openInstrument AI tool identity",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"event\",\"stream_id\":\"task-1\",\"sequence\":0,\"event\":\"ai.tool_request\",\"payload\":{\"operation\":\"workspace.openInstrument\",\"arguments\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"timeframe\":\"1m\",\"expected_workspace_revision\":3}}}\n"
+  },
+  {
+    "name": "chart.setTimeframe AI tool identity",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"event\",\"stream_id\":\"task-1\",\"sequence\":0,\"event\":\"ai.tool_request\",\"payload\":{\"operation\":\"chart.setTimeframe\",\"arguments\":{\"timeframe\":\"5m\",\"expected_workspace_revision\":3}}}\n"
+  },
+  {
+    "name": "chart.setStyle AI tool identity",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"event\",\"stream_id\":\"task-1\",\"sequence\":0,\"event\":\"ai.tool_request\",\"payload\":{\"operation\":\"chart.setStyle\",\"arguments\":{\"style\":\"line\",\"expected_workspace_revision\":3}}}\n"
+  },
+  {
+    "name": "chart.addAnnotation AI tool identity",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"event\",\"stream_id\":\"task-1\",\"sequence\":0,\"event\":\"ai.tool_request\",\"payload\":{\"operation\":\"chart.addAnnotation\",\"arguments\":{\"annotation\":{\"time_ms\":1700000000000,\"position\":\"above\",\"label\":\"Synthetic annotation\",\"color\":\"#ffffff\"},\"expected_workspace_revision\":3}}}\n"
+  },
+  {
+    "name": "chart.removeLayer AI tool identity",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"event\",\"stream_id\":\"task-1\",\"sequence\":0,\"event\":\"ai.tool_request\",\"payload\":{\"operation\":\"chart.removeLayer\",\"arguments\":{\"layer_id\":\"layer-1\",\"expected_workspace_revision\":3}}}\n"
+  },
+  {
+    "name": "indicator.createDraft AI tool identity",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"event\",\"stream_id\":\"task-1\",\"sequence\":0,\"event\":\"ai.tool_request\",\"payload\":{\"operation\":\"indicator.createDraft\",\"arguments\":{\"language\":\"declarative\",\"source\":{\"op\":\"rolling_mean\",\"value\":{\"op\":\"field\",\"field\":\"close\"},\"window\":5},\"params\":{},\"expected_workspace_revision\":3}}}\n"
+  },
+  {
+    "name": "indicator.runPreview AI tool identity",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"event\",\"stream_id\":\"task-1\",\"sequence\":0,\"event\":\"ai.tool_request\",\"payload\":{\"operation\":\"indicator.runPreview\",\"arguments\":{\"draft_id\":\"draft-1\",\"dataset_id\":\"00000000-0000-4000-8000-000000000003\",\"dataset_revision\":\"sample-v1\",\"params\":{},\"expected_workspace_revision\":3}}}\n"
+  },
+  {
+    "name": "indicator.acceptVersion AI tool identity",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"event\",\"stream_id\":\"task-1\",\"sequence\":0,\"event\":\"ai.tool_request\",\"payload\":{\"operation\":\"indicator.acceptVersion\",\"arguments\":{\"preview_id\":\"preview-1\",\"expected_workspace_revision\":3}}}\n"
+  },
+  {
+    "name": "indicator.remove AI tool identity",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"event\",\"stream_id\":\"task-1\",\"sequence\":0,\"event\":\"ai.tool_request\",\"payload\":{\"operation\":\"indicator.remove\",\"arguments\":{\"layer_id\":\"layer-1\",\"expected_workspace_revision\":3}}}\n"
+  },
+  {
+    "name": "workspace.undo AI tool identity",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"event\",\"stream_id\":\"task-1\",\"sequence\":0,\"event\":\"ai.tool_request\",\"payload\":{\"operation\":\"workspace.undo\",\"arguments\":{\"operation_id\":\"operation-1\",\"expected_workspace_revision\":3}}}\n"
+  },
+  {
+    "name": "task.cancel AI tool identity",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"event\",\"stream_id\":\"task-1\",\"sequence\":0,\"event\":\"ai.tool_request\",\"payload\":{\"operation\":\"task.cancel\",\"arguments\":{\"task_id\":\"00000000-0000-4000-8000-000000000002\"}}}\n"
+  },
+  {
+    "name": "workspace.getContext AI tool identity",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"event\",\"stream_id\":\"task-1\",\"sequence\":0,\"event\":\"ai.tool_request\",\"payload\":{\"operation\":\"workspace.getContext\",\"arguments\":{\"workspace_id\":\"workspace-1\"}}}\n"
+  },
+  {
+    "name": "integral timestamp 1.0",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1.0,\"type\":\"heartbeat\"}\n",
+    "expected_timestamp": 1
+  },
+  {
+    "name": "integral timestamp 1e0",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1e0,\"type\":\"heartbeat\"}\n",
+    "expected_timestamp": 1
+  },
+  {
+    "name": "integral timestamp -1.0",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":-1.0,\"type\":\"heartbeat\"}\n",
+    "expected_timestamp": -1
+  },
+  {
+    "name": "integral timestamp -0.0",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":-0.0,\"type\":\"heartbeat\"}\n",
+    "expected_timestamp": 0
+  },
+  {
+    "name": "integral timestamp 9.007199254740991e15",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":9.007199254740991e15,\"type\":\"heartbeat\"}\n",
+    "expected_timestamp": 9007199254740991
+  },
+  {
+    "name": "integral timestamp 9007199254740991.0",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":9007199254740991.0,\"type\":\"heartbeat\"}\n",
+    "expected_timestamp": 9007199254740991
+  },
+  {
+    "name": "integral timestamp -9007199254740991.0",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":-9007199254740991.0,\"type\":\"heartbeat\"}\n",
+    "expected_timestamp": -9007199254740991
+  },
+  {
+    "name": "integral timestamp 9007199254740990.0",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":9007199254740990.0,\"type\":\"heartbeat\"}\n",
+    "expected_timestamp": 9007199254740990
+  },
+  {
+    "name": "invalid timestamp encoding 1.5",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1.5,\"type\":\"heartbeat\"}\n"
+  },
+  {
+    "name": "invalid timestamp encoding -1.5",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":-1.5,\"type\":\"heartbeat\"}\n"
+  },
+  {
+    "name": "invalid timestamp encoding 9007199254740992.0",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":9007199254740992.0,\"type\":\"heartbeat\"}\n"
+  },
+  {
+    "name": "invalid timestamp encoding 9.007199254740992e15",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":9.007199254740992e15,\"type\":\"heartbeat\"}\n"
+  },
+  {
+    "name": "invalid timestamp encoding -9007199254740992.0",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":-9007199254740992.0,\"type\":\"heartbeat\"}\n"
+  },
+  {
+    "name": "invalid timestamp encoding true",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":true,\"type\":\"heartbeat\"}\n"
+  },
+  {
+    "name": "invalid timestamp encoding \"1.0\"",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":\"1.0\",\"type\":\"heartbeat\"}\n"
+  },
+  {
+    "name": "invalid timestamp encoding null",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":null,\"type\":\"heartbeat\"}\n"
   }
 ]

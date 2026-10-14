@@ -12,6 +12,7 @@ from scripts.project import (
     read_json, review_history, task_context, workfront,
 )
 from tests.project.test_continuity import ProjectFixture
+from tests.project.fixtures import task_by_id
 
 
 class DeliveryTests(ProjectFixture):
@@ -62,7 +63,7 @@ class DeliveryTests(ProjectFixture):
     def test_task_change_hides_stale_milestone_results(self):
         self.report()
         ledger = self.ledger()
-        ledger['tasks'][0]['acceptance'].append('New observable outcome.')
+        task_by_id(ledger, 'M0-001')['acceptance'].append('New observable outcome.')
         self.save_ledger(ledger)
         state = workfront(self.root)
         self.assertFalse(state['verification']['current'])
@@ -178,13 +179,13 @@ class DeliveryTests(ProjectFixture):
 
     def test_active_work_needs_a_plan_and_completed_dependencies(self):
         ledger = self.ledger()
-        ledger['tasks'][0]['status'] = 'active'
-        del ledger['tasks'][0]['plan']
+        task_by_id(ledger, 'M0-001')['status'] = 'active'
+        del task_by_id(ledger, 'M0-001')['plan']
         self.save_ledger(ledger)
         with self.assertRaisesRegex(ProjectError, 'needs a delivery plan'):
             load_project(self.root)
-        ledger['tasks'][0]['status'] = 'planned'
-        ledger['tasks'][2]['status'] = 'active'
+        task_by_id(ledger, 'M0-001')['status'] = 'planned'
+        task_by_id(ledger, 'M0-003')['status'] = 'active'
         ledger['focus_task_id'] = 'M0-003'
         self.save_ledger(ledger)
         with self.assertRaisesRegex(ProjectError, 'unfinished dependencies'):
@@ -192,7 +193,7 @@ class DeliveryTests(ProjectFixture):
 
     def test_proposed_decision_cannot_authorize_active_work(self):
         ledger = self.ledger()
-        ledger['tasks'][0]['status'] = 'active'
+        task_by_id(ledger, 'M0-001')['status'] = 'active'
         self.save_ledger(ledger)
         path = self.root / 'contracts/decisions/0003-repository-harness.json'
         decision = read_json(path)
@@ -203,7 +204,7 @@ class DeliveryTests(ProjectFixture):
 
     def test_uncovered_risks_cannot_be_hidden_in_a_task_plan(self):
         ledger = self.ledger()
-        ledger['tasks'][0]['plan']['risks'].append({'failure': 'Unverified installation.', 'checks': ['windows-installation']})
+        task_by_id(ledger, 'M0-001')['plan']['risks'].append({'failure': 'Unverified installation.', 'checks': ['windows-installation']})
         self.save_ledger(ledger)
         with self.assertRaisesRegex(ProjectError, 'uncovered risks'):
             load_project(self.root)
@@ -270,7 +271,7 @@ class DeliveryTests(ProjectFixture):
         subprocess.run(['git', 'restore', 'contracts/decisions/0003-repository-harness.json'],
                        cwd=self.root, check=True, capture_output=True)
         ledger = self.ledger()
-        ledger['tasks'][0].update(status='planned', next_action='Pretend the completed task is new.')
+        task_by_id(ledger, 'M0-001').update(status='planned', next_action='Pretend the completed task is new.')
         self.save_ledger(ledger)
         with self.assertRaisesRegex(ProjectError, 'Accepted task history changed'):
             review_history(self.root, base)

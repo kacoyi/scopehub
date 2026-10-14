@@ -17,6 +17,10 @@ class ProtocolTests(unittest.TestCase):
                 if example['valid']:
                     value = decode_line(example['wire'].encode())
                     self.assertEqual(decode_line(encode_message(value)), value)
+                    self.assertEqual(value, json.loads(example['wire']))
+                    if 'expected_timestamp' in example:
+                        self.assertIs(type(value['timestamp_ms']), int)
+                        self.assertEqual(value['timestamp_ms'], example['expected_timestamp'])
                 else:
                     with self.assertRaises(ProtocolError):
                         decode_line(example['wire'].encode())

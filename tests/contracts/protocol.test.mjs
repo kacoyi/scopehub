@@ -30,7 +30,15 @@ function accepts(wire) {
 }
 
 for (const example of read('../fixtures/protocol-cases.json')) {
-  test(example.name, () => assert.equal(accepts(example.wire), example.valid));
+  test(example.name, () => {
+    assert.equal(accepts(example.wire), example.valid);
+    if ('expected_timestamp' in example) {
+      const value = JSON.parse(example.wire).timestamp_ms;
+      // JSON integer semantics treat negative zero as zero.
+      assert.ok(value === example.expected_timestamp);
+      assert.ok(Number.isSafeInteger(value));
+    }
+  });
 }
 
 test('reject oversized frames before parsing', () => {
