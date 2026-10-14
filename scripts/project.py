@@ -497,7 +497,7 @@ def review_history(root=ROOT, base=None):
     project = load_project(root)
 
     def previous(path):
-        result = subprocess.run(['git', 'show', f'{resolved}:{path}'], cwd=root, capture_output=True, text=True)
+        result = subprocess.run(['git', 'show', f'{resolved}:{path}'], cwd=root, capture_output=True)
         return json.loads(result.stdout) if result.returncode == 0 else None
 
     ledger = previous('project/tasks.json')

@@ -120,6 +120,22 @@
         "prevention": "tests/project/test_delivery.py checks that default runs omit release work explicitly and that selected release gates remain blocked until executed."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "native-foundation-integration",
+      "source": "https://github.com/kacoyi/scopehub/actions/runs/38513138285",
+      "observation": "The first native run found locale-dependent history decoding, an incorrect relative frontend hook, and source changes during Tauri manifest normalization; local Linux checks did not cover those integration paths.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-003"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "windows-native-build"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

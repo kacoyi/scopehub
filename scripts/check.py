@@ -147,6 +147,7 @@ def main():
     report = {
         'report_version': '2.0', 'run_id': run_id, 'generated_at': datetime.now(timezone.utc).isoformat(),
         'environment': environment, 'source': source, 'source_unchanged': source_unchanged,
+        'source_end': final_source,
         'project_definition_sha256': project_hash, 'project_unchanged': project_unchanged,
         'project_state_error': state_error,
         'native_requirement': {'requested': args.require_windows, 'satisfied': not native_blocked},
@@ -168,6 +169,12 @@ def main():
     }
     if ci:
         report['ci'] = ci
+    if not source_unchanged:
+        # Retain changed paths, not file contents, to diagnose unexpected build writes.
+        report['worktree_changes'] = subprocess.run(
+            ['git', 'status', '--short'], cwd=ROOT, capture_output=True, check=True,
+            text=True, encoding='utf-8', errors='replace',
+        ).stdout.splitlines()
     validate_model(ROOT, 'HarnessReport', report)
     contents = json.dumps(report, indent=2) + '\n'
     (run_dir / 'test-report.json').write_text(contents, encoding='utf-8')

@@ -275,6 +275,18 @@ class DeliveryTests(ProjectFixture):
         with self.assertRaisesRegex(ProjectError, 'Accepted task history changed'):
             review_history(self.root, base)
 
+    def test_history_json_is_read_as_utf8_under_a_legacy_windows_locale(self):
+        base = self.commit_fixture()
+        original_run = subprocess.run
+
+        def legacy_locale(argv, **kwargs):
+            if argv[:2] == ['git', 'show'] and kwargs.get('text') and not kwargs.get('encoding'):
+                kwargs['encoding'] = 'cp1252'
+            return original_run(argv, **kwargs)
+
+        with patch('scripts.project.subprocess.run', side_effect=legacy_locale):
+            self.assertEqual('passed', review_history(self.root, base)['status'])
+
     def test_missing_history_base_does_not_claim_comparison(self):
         self.assertEqual('not_applicable', review_history(self.root)['status'])
         with self.assertRaises(subprocess.CalledProcessError):

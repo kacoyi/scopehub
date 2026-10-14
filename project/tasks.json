@@ -103,7 +103,11 @@
         "project/evidence",
         "project/delivery.json",
         "project/tasks.json",
-        "contracts/reviews"
+        "contracts/reviews",
+        "scripts/check.py",
+        "scripts/project.py",
+        "tests/project/test_delivery.py",
+        "project/feedback.json"
       ],
       "decision_refs": [
         "0001",
@@ -131,13 +135,14 @@
         "windows-native-build"
       ],
       "evidence": [],
-      "next_action": "Push the owner-authorized task branch, create its draft PR, repair observed CI failures and archive matching native Windows evidence before completion.",
+      "next_action": "Repair UTF-8 history decoding, Tauri frontend hooks and manifest normalization found in CI run 38513138285; recheck both hosted targets and import the native report.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
         "outcome": "The foundation compiles and passes its checks on the actual Windows x64 target.",
         "change_types": [
-          "packaging"
+          "packaging",
+          "tooling"
         ],
         "context": [
           ".github/workflows/verify.yml",
@@ -152,9 +157,21 @@
             "checks": [
               "windows-native-build"
             ]
+          },
+          {
+            "failure": "Windows locale decoding corrupts non-ASCII accepted-history JSON.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The Tauri CLI resolves a nested UI directory and rewrites the Cargo manifest during verification.",
+            "checks": [
+              "windows-native-build"
+            ]
           }
         ],
-        "rollback": "Repair native build defects in a new task if needed; retain the failing native report and keep the foundation gate blocked."
+        "rollback": "Preserve the failed native reports, correct build configuration and cross-platform tooling within this unfinished task, and rerun both hosted targets before archiving completion."
       }
     },
     {

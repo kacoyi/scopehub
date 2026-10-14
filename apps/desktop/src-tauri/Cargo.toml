@@ -9,7 +9,7 @@ license.workspace = true
 tauri = { version = "2.12.3", default-features = false, features = ["wry", "compression", "common-controls-v6"] }
 
 [target.'cfg(windows)'.build-dependencies]
-tauri-build = "2.7.2"
+tauri-build = { version = "2.7.2", features = [] }
 
 [lints]
 workspace = true
