@@ -281,6 +281,17 @@
         "-v"
       ],
       "timeout_seconds": 900
+    },
+    {
+      "id": "chart-history",
+      "status": "implemented",
+      "purpose": "Exercise opt-in historical chart, real Rust/Python read operations and browser selection/error behavior; excludes live recovery and packaged desktop execution",
+      "platforms": "all",
+      "command": [
+        "{python}",
+        "scripts/check_chart_history.py"
+      ],
+      "timeout_seconds": 900
     }
   ],
   "milestones": [
@@ -440,7 +451,8 @@
     "windows-native-build",
     "dependency-review",
     "market-fixtures",
-    "futures-tick-inspection"
+    "futures-tick-inspection",
+    "chart-history"
   ],
   "gate_changes": []
 }

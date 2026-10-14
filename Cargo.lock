@@ -2772,17 +2772,32 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
+name = "scopehub-application"
+version = "0.1.0"
+dependencies = [
+ "jsonschema",
+ "scopehub-domain",
+ "serde_json",
+]
+
+[[package]]
 name = "scopehub-desktop"
 version = "0.1.0"
 dependencies = [
+ "scopehub-application",
+ "scopehub-domain",
+ "scopehub-worker-host",
+ "serde_json",
  "tauri",
  "tauri-build",
+ "tokio",
 ]
 
 [[package]]
 name = "scopehub-domain"
 version = "0.1.0"
 dependencies = [
+ "jsonschema",
  "serde",
  "serde_json",
 ]
@@ -2792,9 +2807,12 @@ name = "scopehub-worker-host"
 version = "0.1.0"
 dependencies = [
  "jsonschema",
+ "scopehub-application",
  "scopehub-domain",
+ "serde",
  "serde_json",
  "tokio",
+ "uuid",
 ]
 
 [[package]]

@@ -156,6 +156,20 @@
       "checks": [
         "futures-tick-inspection"
       ]
+    },
+    {
+      "id": "chart-history",
+      "triggers": [
+        "Opt-in read-only historical chart integration before live subscriptions, recovery and persistent workspace operations"
+      ],
+      "checks": [
+        "chart-history",
+        "market-fixtures",
+        "architecture",
+        "python-types",
+        "ui-build",
+        "rust-contracts-workers"
+      ]
     }
   ],
   "scenarios": [
@@ -300,6 +314,32 @@
         "dependency-review"
       ],
       "evidence_boundary": "Actual clean-machine and packaged-runtime evidence; a native compilation alone cannot satisfy this scenario."
+    },
+    {
+      "id": "offline-history-preview",
+      "task_ids": [
+        "M1-005"
+      ],
+      "user_goal": "Inspect explicit synthetic examples without configuring or receiving an external service.",
+      "given": "Unconfigured startup, local generated examples and no credentials.",
+      "when": "Explicitly enter offline demo, select each instrument and timeframe, and compare candle, close-price line and volume.",
+      "then": [
+        "No provider or model work starts before user intent.",
+        "Displayed identity and provenance agree with the Rust-validated history.",
+        "Late responses cannot overwrite a later selection and leaving the preview clears its chart."
+      ],
+      "failure_cases": [
+        "Unavailable worker",
+        "Empty history",
+        "Invalid or mismatched provider response",
+        "Rapid selection changes"
+      ],
+      "checks": [
+        "chart-history",
+        "market-fixtures",
+        "windows-native-build"
+      ],
+      "evidence_boundary": "Read-only synthetic history and native compilation; no live-feed, real data, persistent workspace or packaged WebView acceptance claim."
     }
   ],
   "release_policy": {

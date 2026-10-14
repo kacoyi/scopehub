@@ -19,7 +19,8 @@
     {
       "name": "Lightweight Charts",
       "url": "https://github.com/tradingview/lightweight-charts",
-      "use": "Future chart adapter only; preserve NOTICE and attribution; M1"
+      "use": "Pinned 5.2.1 in the replaceable historical chart adapter; attribution is visible and LICENSE/NOTICE are copied into the UI assets.",
+      "docs": "https://tradingview.github.io/lightweight-charts/docs"
     },
     {
       "name": "JSON Schema",
@@ -57,6 +58,11 @@
       "reviewed_revision": "92d8541adb1d76866a831508a0fe3bed0755f988",
       "assessment": "contracts/reviews/2026-10-13-information-channels.json",
       "dependency_status": "candidate_not_integrated"
+    },
+    {
+      "name": "Playwright",
+      "url": "https://playwright.dev/docs/test-intro",
+      "use": "Pinned 1.64.0 development-only Chromium verification; uses a real Rust/Python backend and a substitute WebView transport, without claiming packaged desktop acceptance."
     }
   ]
 }

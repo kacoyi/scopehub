@@ -362,6 +362,22 @@
         "prevention": "Independent missing-versus-zero regressions and hand-calculated OHLC/calendar oracles run in the required market-fixtures gate. Linux and native Windows evidence for M1-002 archives all 16 market tests and the 156-test Python suite; the original failing report is retained at .reports/runs/20261014T081548.880651Z-cb04f032/test-report.json."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "capabilities-versus-service-subscriptions",
+      "source": "Owner clarification on 2026-10-14",
+      "observation": "The owner clarified twice that default absence of data, AI, information and financial service subscriptions must not remove the software capabilities to use them or prevent user-supplied connections and adapters.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-005"
+      ],
+      "regression_checks": [
+        "chart-history",
+        "project-state"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

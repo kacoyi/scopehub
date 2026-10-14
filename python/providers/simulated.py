@@ -90,6 +90,11 @@ _SAMPLES = (
 )
 
 
+def instruments() -> list[Instrument]:
+    """Independent catalog entries for the explicit offline demo."""
+    return [sample.instrument() for sample in _SAMPLES]
+
+
 def _timestamp(value: int) -> bool:
     return type(value) is int and 0 <= value <= 9_007_199_254_740_991
 

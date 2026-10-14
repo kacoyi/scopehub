@@ -64,6 +64,8 @@ jobs:
             ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('rust-toolchain.toml') }}-
       - run: uv sync --locked
       - run: pnpm install --frozen-lockfile
+      - name: Install the pinned chart-test browser
+        run: pnpm exec playwright install --with-deps chromium
       - name: Preserve accepted history
         env:
           SCOPEHUB_REVIEW_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}

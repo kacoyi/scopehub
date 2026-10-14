@@ -1,6 +1,6 @@
 {
   "identifier": "main",
-  "description": "M0 local application window. No file, process, SQL, network or operation commands are exposed.",
+  "description": "Local main window may call only the shared operation registry; no raw file, process, SQL or network capability.",
   "windows": ["main"],
-  "permissions": []
+  "permissions": ["allow-execute-operation"]
 }

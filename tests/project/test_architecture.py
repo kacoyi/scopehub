@@ -1,12 +1,14 @@
 """Prevent dependency aliases from hiding forbidden layer relationships."""
 
 from pathlib import Path
+import json
+import shutil
 import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
 
-from scripts.check_architecture import rust_boundaries
+from scripts.check_architecture import desktop_capability_errors, rust_boundaries
 from scripts.rust_workspace import verification_command, workspace_packages
 
 
@@ -30,6 +32,33 @@ class ArchitectureTests(unittest.TestCase):
 
     def domain(self, dependencies):
         self.crate('crates/domain', 'scopehub-domain', dependencies)
+
+    def test_desktop_registry_acl_rejects_extra_permissions_windows_remote_and_inline_grants(self):
+        source = Path(__file__).resolve().parents[2] / 'apps/desktop/src-tauri'
+        target = self.root / 'apps/desktop/src-tauri'
+        target.mkdir(parents=True)
+        for name in ['build.rs', 'tauri.conf.json']:
+            shutil.copyfile(source / name, target / name)
+        shutil.copytree(source / 'capabilities', target / 'capabilities')
+        self.assertEqual([], desktop_capability_errors(self.root))
+        path = target / 'capabilities/main.json'
+        original = json.loads(path.read_text())
+        for change in [{'permissions':['allow-execute-operation','shell:default']},
+                       {'windows':['*']}, {'remote':{'urls':['https://example.com']}},
+                       {'webviews':['*']}, {'local':False}]:
+            with self.subTest(change=change):
+                path.write_text(json.dumps({**original, **change}))
+                self.assertTrue(desktop_capability_errors(self.root))
+        path.write_text(json.dumps(original))
+        extra = target / 'capabilities/extra.toml'
+        extra.write_text('identifier = "extra"')
+        self.assertTrue(desktop_capability_errors(self.root))
+        extra.unlink()
+        path = target / 'tauri.conf.json'
+        config = json.loads(path.read_text())
+        config['app']['security']['capabilities'].append({'identifier':'extra','permissions':['fs:default']})
+        path.write_text(json.dumps(config))
+        self.assertTrue(desktop_capability_errors(self.root))
 
     def test_workspace_alias_cannot_hide_database_dependency(self):
         self.workspace('[workspace.dependencies]\nstore = { package = "rusqlite", version = "1" }\n')

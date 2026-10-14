@@ -31,6 +31,7 @@
     "project:integration": "uv run python scripts/integration.py"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.0",
     "@tauri-apps/cli": "2.12.2",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1"
