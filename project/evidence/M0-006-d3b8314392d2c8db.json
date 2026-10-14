@@ -1,0 +1,172 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-006",
+  "task_definition_sha256": "7925211458ec1be7fb7324886e4bd6be3a5242ac24e6c5ba6ed3b33d83b529a8",
+  "run_id": "20261014T053034.196342Z-80461f9c",
+  "recorded_at": "2026-10-14T05:31:42.086250+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "8718f51e60e9d8b9f8365c550d1c5aeeb46c20fe2a1826a69898786efc8c1547",
+    "file_count": 94,
+    "git_head": "e01db0777faf4d6930e2e90d48044478f3fd3b31",
+    "working_tree_dirty": true,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "d3b8314392d2c8dbed7dae7a1f72b6a28ff8120ef227e904a528cf668ada519d",
+  "environment": {
+    "system": "Linux",
+    "release": "6.18.33.2-microsoft-standard-WSL2",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/loong/ai-workspace/projects/scopehub/.venv/bin/python",
+    "tools": {
+      "node": "v24.21.0",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "environment",
+      "status": "passed",
+      "command": [
+        "/home/loong/ai-workspace/projects/scopehub/.venv/bin/python",
+        "scripts/doctor.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "0aa14ffd0a10e8fee4cd0af2c1a79e7103dba9f4e29cec9e17529dbe47e97514"
+    },
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/loong/ai-workspace/projects/scopehub/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9bae7724f28cb493b511d62d8d754cf0f63e596c126ae7df1073c5e45db99fc7"
+    },
+    {
+      "id": "generated-contracts",
+      "status": "passed",
+      "command": [
+        "/home/loong/ai-workspace/projects/scopehub/.venv/bin/python",
+        "scripts/generate_contracts.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "613e7895729d6ca3eab1e5936a69b05a87fc03413db9f42730cbb5c0b3d65df8"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/loong/ai-workspace/projects/scopehub/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "97f0454861ce9729d65eebe227ae94e1df2f1ff5eae3d552a233833ce997d9ff"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/loong/ai-workspace/projects/scopehub/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "990ec94c205f2b68cc924082c80b34a5cbe3056b320c776d15c6cab4d1bfaa4f"
+    },
+    {
+      "id": "python-types",
+      "status": "passed",
+      "command": [
+        "/home/loong/ai-workspace/projects/scopehub/.venv/bin/python",
+        "-m",
+        "mypy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "71144743c83babea384888a735db0c4daba3d4d7b7942b6839984bd5c21b52bb"
+    },
+    {
+      "id": "typescript-contracts",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "check:contracts"
+      ],
+      "exit_code": 0,
+      "log_sha256": "4efeb62d455f3d1c20f65d0bf5e2c2ada4516f85c3287bd420f18b2e954befb2"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2d4151f90b8d8c32657bbf3b2c61f866597fc61f221eb6ce9e9167c559e3e0da"
+    },
+    {
+      "id": "rust-format",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "log_sha256": "83ca856a429af493882503e27f5ae7146525a9eff77a83a38e55bbb08c7e750e"
+    },
+    {
+      "id": "rust-lints",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log_sha256": "99f71393b9903dca098310bb446022a4bdee195ea9996f351a787195555210a6"
+    }
+  ],
+  "project_definition_sha256": "5ab9a32e63a0ffa8d52d0b53d23c272d182e0b95aea38d67f2d7e022ba78acea",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

@@ -1,0 +1,669 @@
+{
+  "review_date": "2026-10-14",
+  "kind": "long_term_scaffold_health_assessment",
+  "task_id": "M0-006",
+  "authority": "The owner requested a comprehensive assessment of the current scaffold, sustained iteration, extensibility, implementation quality and avoidable AI-development failure modes.",
+  "reviewed_commit": "e01db0777faf4d6930e2e90d48044478f3fd3b31",
+  "assessment_scope": "Source review, actual local verification, isolated behavioral probes, authenticated read-only GitHub inspection and primary technical references. This assessment records findings and corrective work; it does not implement the proposed runtime or governance fixes.",
+  "verdict": {
+    "retain_foundation": true,
+    "sustained_iteration": "A useful and recoverable M0 foundation with concrete enforcement gaps. Repair semantic contract behavior and integration coverage before relying on it for broader product implementation.",
+    "extensibility": "The Rust ownership and Python/UI adapter boundaries are suitable starting points. Actual provider replacement, persistence evolution, operation authorization and long-lived worker behavior remain unproven because those modules do not yet exist.",
+    "quality": "Builds, types, structural schemas, recorded history and selected failure paths are verified. Green checks currently miss reproducible semantic and coverage defects; they cannot by themselves establish product correctness or usefulness.",
+    "product_readiness": "Not a working market application, packaged product or release candidate. No real market data or cloud models are configured.",
+    "recommended_direction": "Correct the narrow foundation defects, then deliver and observe a small native chart workflow. Grow tests, migrations, authorization and evaluations with their first real use cases instead of expanding the process framework indefinitely."
+  },
+  "method": [
+    "Read the parent and repository guidance; start from project:status and relevant project:context records.",
+    "Inspect the engineering contract, all task/check/delivery/feedback records, accepted decisions, generation, validation, process management, workers, UI and native entry point.",
+    "Run all eleven implemented checks available on Linux through the audit task, retaining both the failed task-order experiment and the passing baseline.",
+    "Link a small Rust probe against the unchanged libraries built by cargo test; compare the same messages with the actual Python decoder and the same Ajv configuration used by the JavaScript contract suite.",
+    "Use temporary repositories or bounded local child processes for architecture, check-selection and cleanup probes. Label stubbed selection experiments separately from real execution.",
+    "Inspect the official gh account marker, verify the active account, and read the actual PR, workflow and main protection state without changing repository settings.",
+    "Cross-check behavior and proposed remedies against Serde, JSON Schema, Cargo, Python, Tauri and GitHub documentation."
+  ],
+  "baseline": {
+    "check_catalog": {
+      "total": 25,
+      "implemented": 12,
+      "planned": 13
+    },
+    "operations": {
+      "total": 14,
+      "implemented": 0
+    },
+    "shared_wire_vectors": {
+      "total": 73,
+      "valid": 40,
+      "invalid": 33
+    },
+    "local_tests": {
+      "python": 76,
+      "javascript": 75,
+      "rust": 6
+    },
+    "local_passing_report": ".reports/runs/20261014T051941.216011Z-94a8b053/test-report.json",
+    "local_check_duration_seconds": 10.5,
+    "toolchain": {
+      "python": "3.12.15",
+      "node": "24.21.0",
+      "pnpm": "11.28.5",
+      "rust": "1.99.0",
+      "uv": "0.12.24"
+    },
+    "workflow_static_validation": {
+      "command": "actionlint -oneline .github/workflows/verify.yml",
+      "status": "passed"
+    },
+    "hosted_observation": {
+      "repository": "kacoyi/scopehub",
+      "pull_request": "https://github.com/kacoyi/scopehub/pull/1",
+      "run": "https://github.com/kacoyi/scopehub/actions/runs/38514667889",
+      "head_sha": "e01db0777faf4d6930e2e90d48044478f3fd3b31",
+      "status": "completed",
+      "conclusion": "success",
+      "checks": [
+        "verify (ubuntu-latest)",
+        "verify (windows-latest)"
+      ],
+      "claim_scope": "Authenticated observation of the reviewed commit's hosted workflow. Existing native receipts establish compilation; this is not new native runtime, installation or product acceptance."
+    },
+    "capability_discovery": "repository.read was unavailable in the shared capability vocabulary. Used the already authorized official gh workflow; no shared service or credential implementation was added.",
+    "local_passing_report_sha256": "83a8da9fcfc9c5fb33a994d163b0e1a4532313908816f7868fcd3a19319f3db6",
+    "task_order_failed_report_sha256": "8dbc916a338ce9b42c1be94e979593d505b7f8467b98e4938586f9f146574dad"
+  },
+  "strengths": [
+    {
+      "area": "Continuity",
+      "assessment": "Validated task dependencies, focus, next actions, plans and archived evidence support work across sessions. Accepted history is compared against an explicit Git base.",
+      "evidence": [
+        "scripts/project.py",
+        "project/tasks.json",
+        "contracts/decisions/0004-project-continuity.json"
+      ]
+    },
+    {
+      "area": "Verification honesty",
+      "assessment": "Planned, omitted, unsupported-platform and failed checks remain explicit. Source, task and decision identities detect stale completion evidence. Local, hosted, native, packaged and release claims are separated.",
+      "evidence": [
+        "scripts/check.py",
+        "scripts/ci.py",
+        "project/checks.json"
+      ]
+    },
+    {
+      "area": "Contract ownership",
+      "assessment": "One canonical schema generates three language projections and operation schemas. Shared negative vectors cover malformed frames, authority fields, invalid values and limits. Preserve this design while correcting the semantic gaps below.",
+      "evidence": [
+        "contracts/schemas/protocol.schema.json",
+        "scripts/generate_contracts.py",
+        "tests/fixtures/protocol-cases.json"
+      ]
+    },
+    {
+      "area": "Runtime authority",
+      "assessment": "M0 exposes no product commands, rejects unsupported work and does not treat schemas or model intent as permission. Provider and model access are not silently configured.",
+      "evidence": [
+        "contracts/contract.json",
+        "python/worker_runtime/__main__.py",
+        "apps/desktop/src-tauri/capabilities/main.json"
+      ]
+    },
+    {
+      "area": "Delivery recovery",
+      "assessment": "Locked package resolution, pinned language tools, retained failure logs, draft PRs and actual Linux/Windows CI are operating. The earlier native failure resulted in preserved corrective evidence.",
+      "evidence": [
+        ".github/workflows/verify.yml",
+        "contracts/reviews/2026-10-14-native-validation.json",
+        "project/evidence"
+      ]
+    },
+    {
+      "area": "Proportional scope",
+      "assessment": "Provider adapters, persistence and computation modules are not empty placeholders. Synthetic data, real-model evaluation, installation and release are explicit future capabilities.",
+      "evidence": [
+        "engineering-contract-v1.json",
+        "project/delivery.json",
+        "project/tasks.json"
+      ]
+    }
+  ],
+  "priority_definitions": {
+    "P1": "Correct before depending on the affected contract or accepting normal integration. It is not a claim of a current production incident.",
+    "P2": "Correct with the next affected scaffold or product slice; keep the gap visible until verified."
+  },
+  "findings": [
+    {
+      "id": "H01",
+      "priority": "P1",
+      "severity": "major",
+      "category": "observed_defect",
+      "title": "Generated Rust unions do not preserve operation identity",
+      "locations": [
+        "scripts/generate_contracts.py:26",
+        "scripts/generate_contracts.py:68",
+        "contracts/generated/protocol.rs:787",
+        "crates/worker-host/src/lib.rs:46",
+        "crates/worker-host/tests/protocol.rs:5"
+      ],
+      "observation": "A schema-valid indicator.remove request decodes as Request::ChartRemoveLayerRequest. The equivalent AI tool event decodes as ChartRemoveLayerToolCall. The operation string survives but the Rust variant is wrong.",
+      "cause": "The generator emits untagged enums and maps inline const string discriminators to String. Serde picks the first structurally compatible variant; validating the original JSON before deserialization does not constrain this later choice.",
+      "impact": "Future Rust dispatch by enum variant can invoke the wrong handler. Current M0 has no implemented operation handlers, so no actual unauthorized or incorrect product execution was observed.",
+      "test_gap": "The existing indicator.remove vector already passes: Rust tests assert acceptance and a valid re-encoding, not exact operation identity.",
+      "reproduction": "Decode the indicator-remove-request and indicator-remove-tool wires retained in probe_evidence. Inspect the returned Rust variants rather than only is_ok().",
+      "recommendation": "Generate discriminated unions or const-enforcing structural types without changing the wire format. Assert exact variants and round-trip semantic identity for every request and tool operation.",
+      "task_id": "M0-007",
+      "feedback_id": "protocol-variant-identity",
+      "reference_ids": [
+        "serde-enums"
+      ]
+    },
+    {
+      "id": "H02",
+      "priority": "P1",
+      "severity": "major",
+      "category": "observed_defect",
+      "title": "Integer wire encodings disagree across languages",
+      "locations": [
+        "scripts/generate_contracts.py:26",
+        "python/worker_runtime/protocol.py:31",
+        "crates/worker-host/src/lib.rs:46",
+        "tests/contracts/protocol.test.mjs:20"
+      ],
+      "observation": "The same heartbeat timestamp encoded as 1 passes all decoders. Encodings 1.0 and 1e0 pass Python and Ajv but fail Rust decode_line with InvalidMessage.",
+      "cause": "JSON Schema treats integral decimal and exponent values as integers, while generated Rust integer fields reject serde_json floating representations. The Python cast also returns a float under an integer type annotation.",
+      "impact": "Providers or model-produced messages can disagree despite satisfying the canonical schema. Regenerating types and rerunning the current vectors does not reveal this mismatch.",
+      "reproduction": "Use the three timestamp wires and recorded results in probe_evidence. They differ only in the numeric representation of the same value.",
+      "recommendation": "Normalize or deserialize schema-valid integers consistently; retain safe-range checks and reject fractional values. Add boundary, decimal and exponent differential vectors. Narrowing the accepted wire language would require a versioned decision.",
+      "task_id": "M0-007",
+      "feedback_id": "protocol-numeric-parity",
+      "reference_ids": [
+        "json-schema-numeric"
+      ]
+    },
+    {
+      "id": "H03",
+      "priority": "P2",
+      "severity": "major",
+      "category": "observed_maintainability_defect",
+      "title": "Control tests depend on production task order",
+      "locations": [
+        "tests/project/test_continuity.py:31",
+        "tests/project/test_continuity.py:41",
+        "tests/project/test_continuity.py:83"
+      ],
+      "observation": "Prepending the valid audit task left project-state passing but caused 16 failures and 34 errors in the 76-test Python suite. Appending the same task restored the passing baseline.",
+      "cause": "ProjectFixture copies the live ledger, resets task states, blindly appends project-state to tasks[0], and later treats positional entries as fixed historical IDs.",
+      "impact": "Routine growth or reordering of workflow records produces unrelated failures and invites unnecessary test edits. Runtime correctness is obscured by fixture maintenance.",
+      "failed_report": ".reports/runs/20261014T051910.600500Z-65cd3bc0/test-report.json",
+      "recommendation": "Create minimal explicit synthetic records for control tests; select fixture tasks by ID. Test actual repository records separately. Add reorder/prepend invariance coverage.",
+      "task_id": "M0-008",
+      "feedback_id": "control-fixture-ledger-coupling"
+    },
+    {
+      "id": "H04",
+      "priority": "P2",
+      "severity": "major",
+      "category": "observed_enforcement_gap",
+      "title": "Architecture checks miss nested workspace members",
+      "locations": [
+        "scripts/check_architecture.py:29"
+      ],
+      "observation": "A scopehub-domain manifest depending on rusqlite is rejected at crates/domain and accepted without errors at crates/nested/domain, even when declared as a workspace member.",
+      "cause": "Member discovery uses crates/*/Cargo.toml plus one hard-coded desktop path instead of the actual workspace graph.",
+      "impact": "A natural module reorganization can silently remove a crate from boundary enforcement. UI text scanning and Python import checks also have narrower coverage than a resolved dependency graph and must not be described as security isolation.",
+      "recommendation": "Enumerate the reviewed local workspace graph, resolve package identities and check every member. Test nested paths, inherited aliases, build/dev/target dependencies and allowed edges. Expand frontend/import resolution only as actual aliases are introduced.",
+      "task_id": "M0-009",
+      "feedback_id": "architecture-member-discovery"
+    },
+    {
+      "id": "H05",
+      "priority": "P2",
+      "severity": "major",
+      "category": "confirmed_coverage_gap",
+      "title": "Desktop and future nondefault crates can escape Rust tests and lints",
+      "locations": [
+        "Cargo.toml:4",
+        "project/checks.json:119",
+        "project/checks.json:131",
+        ".github/workflows/verify.yml:70"
+      ],
+      "observation": "cargo metadata confirms three members but only domain and worker-host are default members. Both cargo test --locked and cargo clippy --all-targets use this default selection on Windows too. The separate desktop command builds without running tests.",
+      "impact": "The current desktop has no unit tests, so this is a coverage gap rather than a known failing desktop test. Adding command handlers or additional crates would not automatically add their tests/lints to CI.",
+      "recommendation": "Use explicit platform-aware workspace selection: cover all eligible crates on Linux and include desktop tests/lints on native Windows. Add a membership-coverage check so --all-targets is not mistaken for --workspace.",
+      "task_id": "M0-009",
+      "feedback_id": "native-rust-check-coverage",
+      "reference_ids": [
+        "cargo-test"
+      ]
+    },
+    {
+      "id": "H06",
+      "priority": "P2",
+      "severity": "minor",
+      "category": "observed_lifecycle_gap",
+      "title": "Successful check roots can leave descendants running",
+      "locations": [
+        "scripts/processes.py:27",
+        "scripts/processes.py:41",
+        "tests/project/test_processes.py:37"
+      ],
+      "observation": "A bounded Linux probe returned exit_code=0 and reason=null before its child created a marker 0.4 seconds later. The child exited after the marker; no probe process was deliberately left running.",
+      "cause": "Process-tree cleanup is reached only on timeout or KeyboardInterrupt. A normal or failed root exit is treated as complete regardless of descendants.",
+      "impact": "Future tests with forgotten workers can leak processes, ports or late log writes between checks. This is a verification-runner finding, not evidence that a packaged ScopeHub worker currently leaks.",
+      "recommendation": "Define check-owned process lifetimes across every exit path and finalize log digests after cleanup. Use actual normal-exit, failure, timeout and interruption regressions on Linux and Windows.",
+      "task_id": "M0-010",
+      "feedback_id": "verification-descendant-normal-exit",
+      "reference_ids": [
+        "python-subprocess"
+      ]
+    },
+    {
+      "id": "H07",
+      "priority": "P1",
+      "severity": "major",
+      "category": "observed_policy_enforcement_gap",
+      "title": "An established check can be demoted while integration still succeeds",
+      "locations": [
+        "scripts/check.py:112",
+        "scripts/check.py:137",
+        "scripts/check.py:187",
+        "scripts/project.py:491",
+        ".github/workflows/verify.yml:70"
+      ],
+      "observation": "In a synthetic selection experiment, demoting rust-contracts-workers from implemented to planned with command=null yields exit 0 and report status passed under --require-windows, while its result and M0 verification are blocked.",
+      "evidence_limit": "Check execution and native availability were stubbed to isolate selection semantics. This was not a real Windows run or a fabricated acceptance receipt.",
+      "cause": "Default CI success requires only currently implemented checks plus the native build. Accepted-history comparison protects tasks and decisions, not the previously required check set.",
+      "impact": "An accidental attempt to defer a difficult existing test can weaken CI while keeping green job status. The detailed report remains honest, but the integration signal is insufficient.",
+      "recommendation": "Separate established integration requirements from future planned product gates. Reject demotion, disappearance or omission of required checks against the reviewed baseline unless a reviewed replacement explicitly maintains coverage.",
+      "task_id": "M0-011",
+      "feedback_id": "integration-gate-demotion"
+    },
+    {
+      "id": "H08",
+      "priority": "P1",
+      "severity": "major",
+      "category": "observed_remote_configuration_gap",
+      "title": "Successful checks are not required by main-branch settings",
+      "locations": [
+        "project/delivery.json",
+        "contracts/reviews/2026-10-14-native-validation.json"
+      ],
+      "observation": "Authenticated GETs returned main.protected=false and an empty repository ruleset list. PR #1 had successful verify (ubuntu-latest) and verify (windows-latest) checks at the reviewed commit.",
+      "impact": "The written integration policy does not prevent direct pushes or integration without the required checks. No unauthorized merge or protection change was performed during this assessment.",
+      "recommendation": "Before normal main integration, obtain the separate administration decision and enforce reviewed PRs, both required contexts and explicitly understood bypass behavior. Preserve a read-only record of effective settings.",
+      "task_id": "M0-012",
+      "feedback_id": "main-integration-enforcement",
+      "reference_ids": [
+        "github-protection"
+      ]
+    },
+    {
+      "id": "H09",
+      "priority": "P2",
+      "severity": "minor",
+      "category": "maintenance_gap",
+      "title": "Dependency maintenance is specified but not executable",
+      "locations": [
+        "project/checks.json",
+        ".github/workflows/verify.yml:33",
+        ".github/workflows/verify.yml:51",
+        "project/delivery.json"
+      ],
+      "observation": "dependency-review is planned and release-cadence. External Actions use mutable tags or stable, and there is no repository dependency-update configuration. Lockfiles exist for all three ecosystems.",
+      "impact": "Locks reproduce package resolution but do not surface future advisories, license changes, action-source movement or toolchain maintenance. This review did not perform a vulnerability scan and makes no claim that a current dependency is vulnerable or clean.",
+      "recommendation": "Implement the existing dependency-review gate at the first affected integration, pin reviewed Actions to immutable commits, and maintain a bounded update process. Inventory and advisory dispositions should be reviewable; unavailable analysis must remain explicit.",
+      "task_id": "M5-002",
+      "feedback_id": "dependency-maintenance-gap",
+      "reference_ids": [
+        "github-secure-use",
+        "github-dependabot"
+      ]
+    }
+  ],
+  "product_delivery_assessment": [
+    {
+      "area": "Market and chart vertical slice",
+      "tasks": [
+        "M1-002",
+        "M1-001",
+        "M1-003"
+      ],
+      "current_state": "No provider, chart adapter, long-lived data session or market semantic check is implemented. This is disclosed M0 scope, not an escaped market bug.",
+      "next_outcome": "One committed synthetic instrument and timeframe travels through the Rust-owned operation boundary and Python provider to the native UI, with observable loading, ready, empty, stale, disconnected and error states.",
+      "quality_evidence": "Independent expected OHLC and trading-day values; bounded reconnect with no duplicate subscriptions; final-bar update preservation; a native launch/navigation/shutdown smoke test and observed owner review.",
+      "avoid": "Generating expected results with the same computation under test, bypassing Rust for an early demo, or waiting until M5 to discover that the UI cannot run correctly in the native shell."
+    },
+    {
+      "area": "Data and information extensibility",
+      "tasks": [
+        "M1-002",
+        "M1-003"
+      ],
+      "current_state": "The contract preserves source, mode, quality, trading calendar, adjustment and dataset identity. Adapter interchangeability has not been exercised.",
+      "next_outcome": "Keep provider capabilities explicit and adapters independently replaceable; use coexistence and replacement tests when a second concrete source is introduced.",
+      "quality_evidence": "No mixing of revisions, sources or price adjustments; explicit missing and partial data; snapshot-based calculations with fixed time and seed.",
+      "avoid": "Making one information provider a mandatory gateway or adding plugin infrastructure before a concrete second provider requires it."
+    },
+    {
+      "area": "Operations and durable state",
+      "tasks": [
+        "M2-001"
+      ],
+      "current_state": "The registry, authorization, confirmation, idempotency, SQLite and migrations are planned. Existing wire schemas grant no authority.",
+      "next_outcome": "Grow the same Rust operation path from the first read-only M1 slice into authorized mutations and versioned persistence.",
+      "quality_evidence": "Stale revision and confirmation rejection; parameter/hash binding; duplicate-request behavior; transactional writes; crash/restart and migration rollback or recovery; backup/restore before an upgrade changes saved data.",
+      "avoid": "Two human/AI execution paths, ad hoc SQL access from workers, happy-path-only state tests or retroactive migration planning after users have saved work."
+    },
+    {
+      "area": "Computation and worker lifecycle",
+      "tasks": [
+        "M1-003",
+        "M3-001"
+      ],
+      "current_state": "The Rust host is explicitly a handshake probe. It is not a long-lived supervisor; Python executes no user indicator code.",
+      "next_outcome": "Implement bounded queues, correlation, cancellation, retries and resource ownership when the first persistent worker is introduced; keep declarative computation independently testable.",
+      "quality_evidence": "Independent numerical oracles and invariant tests; no future data; null-window and division semantics; timeout/exception/output-limit isolation; child cleanup on actual Windows.",
+      "avoid": "Calling process separation a secure sandbox, inheriting unnecessary credentials, treating generic response-schema validity as request/result correlation, or imposing the two-hour soak on every routine edit."
+    },
+    {
+      "area": "AI collaboration quality",
+      "tasks": [
+        "M4-001"
+      ],
+      "current_state": "The product has no real or mock collaboration implementation yet. Scenario definitions and a static conversation panel are not observed AI usability.",
+      "next_outcome": "Replay one real product interaction with deterministic mock context and tools, then evaluate configured real models separately when authorized.",
+      "quality_evidence": "Versioned model/prompt/tool/data inputs; claims tied to actual successful results; cancellation and stale-context cases; external-text injection cases; owner observation of whether the investigation is useful.",
+      "avoid": "Using successful tool invocation as the sole measure of analysis quality, accepting model self-evaluation as the oracle, or equating accepted financial risk with additional runtime permissions."
+    },
+    {
+      "area": "UI and native behavior",
+      "tasks": [
+        "M1-001",
+        "M5-001"
+      ],
+      "current_state": "TypeScript strictness and UI builds are active, but no component, interaction, browser or native UI acceptance check exists.",
+      "next_outcome": "Introduce interaction checks with the first interactive slice and a small Windows application smoke test before broad UI work.",
+      "quality_evidence": "User-observable state transitions, keyboard access, visible source/quality information, chart disposal, native IPC failure and launch/shutdown behavior. Use stable behavior-oriented selectors and observable waits.",
+      "avoid": "Counting compilation or synthetic screenshot text as product acceptance, or adding brittle snapshots for every visual detail. Tauri WebDriver is an available native-testing route to evaluate for concrete fit."
+    },
+    {
+      "area": "Packaging, dependencies and release",
+      "tasks": [
+        "M5-001",
+        "M5-002"
+      ],
+      "current_state": "Native compilation exists; bundling is disabled. Installer, bundled Python workers, clean-machine behavior, stability, credentials, dependency notices and release artifacts remain planned.",
+      "next_outcome": "Retain identified installers and build manifests, verify clean Windows installation and upgrades, and preserve release evidence beyond the current 30-day diagnostic artifact retention.",
+      "quality_evidence": "Installer and worker digests, runtime/tool versions, lockfiles, notices, clean-machine traces, measured performance/memory, shutdown cleanup and recorded owner review.",
+      "avoid": "Claiming installed behavior from cargo/tauri build, claiming full offline installation under the WebView2 bootstrapper policy, or treating source/log hashes as authenticated build attestations."
+    }
+  ],
+  "iteration_recommendations": [
+    "Prioritize M0-007 before routing real operations, M0-011 before trusting integration gates, and M0-012 before normal main integration. M1 fixture work can proceed independently.",
+    "Repair fixture independence and member coverage with M0-008/M0-009 as the task graph and crate structure grow. Complete M0-010 before expanding tests that start persistent workers.",
+    "Refine one demonstrable product slice at a time; keep independent oracles and negative paths close to the implementation that needs them.",
+    "Add owner observation at the end of the first chart slice, the first persisted workflow and the first AI workflow. Final release review alone is too late to discover a product direction mismatch.",
+    "When AI changes both implementation and its tests, review the oracle, removed assertions, disabled checks, changed check scope and fixture updates explicitly. A test name, count or green report does not establish the intended invariant.",
+    "Use focused property or differential tests where invariants matter: protocol equivalence now, market/calendar and indicator arithmetic when implemented, and state transitions when persistence arrives. Do not adopt blanket coverage percentages or mutation testing infrastructure as substitutes for these outcomes.",
+    "Use current check durations and escaped defects to choose further automation. The observed local task checks take about eleven seconds; a distributed task service or more CI fan-out has no demonstrated need yet.",
+    "Keep accepted task/ADR history intact and record superseding work. Retain one canonical fact per responsibility; avoid duplicating product state in skills, prose guides and generated checklists."
+  ],
+  "scope_limits": [
+    "No production runtime, protocol, permission or accepted ADR was changed by this assessment.",
+    "The reproduced defects are open corrective work; a passing audit task verifies the assessment records and baseline, not their repair.",
+    "The main-branch administration task remains blocked on its separate authority. This does not block local fixture or implementation work.",
+    "No live trading, provider scraping, cloud-model calls, credential inspection or untrusted generated-code execution was performed.",
+    "Actual Windows GUI execution, installer acceptance, performance, persistence recovery and product usability were not observed here.",
+    "The probe outputs below preserve actionable evidence in Git; full local logs remain under .reports and hosted diagnostic retention is finite."
+  ],
+  "primary_references": [
+    {
+      "id": "serde-enums",
+      "url": "https://serde.rs/enum-representations.html",
+      "use": "Untagged matching uses the first successfully deserialized variant; tagged representations can preserve discriminators."
+    },
+    {
+      "id": "json-schema-numeric",
+      "url": "https://json-schema.org/understanding-json-schema/reference/numeric",
+      "use": "Integer validation is based on the numerical value, including integral decimal representations."
+    },
+    {
+      "id": "cargo-test",
+      "url": "https://doc.rust-lang.org/cargo/commands/cargo-test.html",
+      "use": "Package selection defaults to workspace default-members; target selection and workspace selection are separate."
+    },
+    {
+      "id": "python-subprocess",
+      "url": "https://docs.python.org/3.12/library/subprocess.html",
+      "use": "Waiting for one process is not proof that all descendants have exited; process ownership and cleanup need explicit handling."
+    },
+    {
+      "id": "github-protection",
+      "url": "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches",
+      "use": "Required reviews, status checks and bypass settings are server-side integration controls."
+    },
+    {
+      "id": "github-secure-use",
+      "url": "https://docs.github.com/en/actions/reference/security/secure-use",
+      "use": "Pin reviewed Actions to full commit hashes and keep workflow permissions limited."
+    },
+    {
+      "id": "github-dependabot",
+      "url": "https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference",
+      "use": "A repository-level update process can define supported ecosystem directories and bounded cadence without a new workflow platform."
+    },
+    {
+      "id": "tauri-webdriver",
+      "url": "https://v2.tauri.app/develop/tests/webdriver/",
+      "use": "Native end-to-end testing is available for Windows and should be evaluated with the first real UI slice."
+    }
+  ],
+  "probe_evidence": {
+    "claim_scope": "Observed local experiments against unchanged implementation unless explicitly marked synthetic. No probe results are registered as passed product checks.",
+    "protocol": {
+      "build_precondition": "pnpm check --task M0-006 builds the actual locked libraries. On Linux, compile the retained probe source using rustc --edition=2024, --extern scopehub_worker_host=<target/debug/deps/libscopehub_worker_host-*.rlib>, -L dependency=target/debug/deps, then feed each wire on stdin.",
+      "rust_probe_source": "use std::io::{self, BufRead};\nuse scopehub_worker_host::decode_line;\nfn main() {\n    for wire in io::stdin().lock().lines() {\n        println!(\"{:?}\", decode_line(wire.unwrap().as_bytes()));\n    }\n}\n",
+      "python_decoder": "worker_runtime.protocol.decode_line(wire.encode()) with repository and python directories on sys.path",
+      "javascript_validator": "Ajv2020({strict:true}) plus addFormats; compile contracts/schemas/protocol.schema.json and validate JSON.parse(wire), matching the existing contract suite.",
+      "vectors": [
+        {
+          "name": "indicator-remove-request",
+          "wire": "{\"protocol_version\": \"1.0\", \"message_id\": \"123e4567-e89b-12d3-a456-426614174000\", \"timestamp_ms\": 1, \"type\": \"request\", \"request_id\": \"123e4567-e89b-12d3-a456-426614174000\", \"task_id\": null, \"operation\": \"indicator.remove\", \"payload\": {\"layer_id\": \"layer-1\", \"expected_workspace_revision\": 0}}",
+          "intended": "IndicatorRemoveRequest"
+        },
+        {
+          "name": "indicator-remove-tool",
+          "wire": "{\"protocol_version\": \"1.0\", \"message_id\": \"123e4567-e89b-12d3-a456-426614174000\", \"timestamp_ms\": 1, \"type\": \"event\", \"stream_id\": \"audit\", \"sequence\": 0, \"event\": \"ai.tool_request\", \"payload\": {\"operation\": \"indicator.remove\", \"arguments\": {\"layer_id\": \"layer-1\", \"expected_workspace_revision\": 0}}}",
+          "intended": "IndicatorRemoveToolCall"
+        },
+        {
+          "name": "timestamp-int",
+          "wire": "{\"protocol_version\": \"1.0\", \"message_id\": \"123e4567-e89b-12d3-a456-426614174000\", \"timestamp_ms\": 1, \"type\": \"heartbeat\"}",
+          "intended": "same integer timestamp"
+        },
+        {
+          "name": "timestamp-decimal",
+          "wire": "{\"protocol_version\": \"1.0\", \"message_id\": \"123e4567-e89b-12d3-a456-426614174000\", \"timestamp_ms\": 1.0, \"type\": \"heartbeat\"}",
+          "intended": "same integer timestamp"
+        },
+        {
+          "name": "timestamp-exponent",
+          "wire": "{\"protocol_version\": \"1.0\", \"message_id\": \"123e4567-e89b-12d3-a456-426614174000\", \"timestamp_ms\": 1e0, \"type\": \"heartbeat\"}",
+          "intended": "same integer timestamp"
+        }
+      ],
+      "python_and_rust_observations": [
+        {
+          "name": "indicator-remove-request",
+          "python": {
+            "accepted": true,
+            "timestamp_type": "int"
+          },
+          "rust": "Ok(Request(ChartRemoveLayerRequest(ChartRemoveLayerRequest { protocol_version: \"1.0\", message_id: \"123e4567-e89b-12d3-a456-426614174000\", timestamp_ms: 1, type: \"request\", request_id: \"123e4567-e89b-12d3-a456-426614174000\", task_id: None, operation: \"indicator.remove\", payload: ChartRemoveLayerInput { layer_id: \"layer-1\", expected_workspace_revision: 0 } })))"
+        },
+        {
+          "name": "indicator-remove-tool",
+          "python": {
+            "accepted": true,
+            "timestamp_type": "int"
+          },
+          "rust": "Ok(AiToolRequestEvent(AiToolRequestEvent { protocol_version: \"1.0\", message_id: \"123e4567-e89b-12d3-a456-426614174000\", timestamp_ms: 1, type: \"event\", stream_id: \"audit\", sequence: 0, event: \"ai.tool_request\", payload: ChartRemoveLayerToolCall(ChartRemoveLayerToolCall { operation: \"indicator.remove\", arguments: ChartRemoveLayerInput { layer_id: \"layer-1\", expected_workspace_revision: 0 } }) }))"
+        },
+        {
+          "name": "timestamp-int",
+          "python": {
+            "accepted": true,
+            "timestamp_type": "int"
+          },
+          "rust": "Ok(Heartbeat(Heartbeat { protocol_version: \"1.0\", message_id: \"123e4567-e89b-12d3-a456-426614174000\", timestamp_ms: 1, type: \"heartbeat\" }))"
+        },
+        {
+          "name": "timestamp-decimal",
+          "python": {
+            "accepted": true,
+            "timestamp_type": "float"
+          },
+          "rust": "Err(InvalidMessage)"
+        },
+        {
+          "name": "timestamp-exponent",
+          "python": {
+            "accepted": true,
+            "timestamp_type": "float"
+          },
+          "rust": "Err(InvalidMessage)"
+        }
+      ],
+      "javascript_observations": [
+        {
+          "name": "indicator-remove-request",
+          "accepted": true
+        },
+        {
+          "name": "indicator-remove-tool",
+          "accepted": true
+        },
+        {
+          "name": "timestamp-int",
+          "accepted": true
+        },
+        {
+          "name": "timestamp-decimal",
+          "accepted": true
+        },
+        {
+          "name": "timestamp-exponent",
+          "accepted": true
+        }
+      ]
+    },
+    "architecture": {
+      "steps": [
+        "Create a temporary Cargo workspace whose members array contains the candidate path.",
+        "At that path write a package named scopehub-domain with a rusqlite dependency.",
+        "Call scripts.check_architecture.rust_boundaries(root). Repeat at crates/domain and crates/nested/domain."
+      ],
+      "observed": {
+        "crates/domain": [
+          "Infrastructure dependency in scopehub-domain: rusqlite"
+        ],
+        "crates/nested/domain": []
+      }
+    },
+    "fixture_order": {
+      "steps": [
+        "In an isolated copy of this revision, move the M0-006 task from the end to the beginning of project/tasks.json without changing its definition.",
+        "Run pnpm check --task M0-006. project-state accepts the ledger; the Python tests fail.",
+        "Restore task order and rerun; all 76 tests pass."
+      ],
+      "observed_failures": 16,
+      "observed_errors": 34,
+      "observed_tests": 76,
+      "worktree_recovery": "The assessment task was appended. The underlying fixture defect remains open.",
+      "diagnostic_excerpt": "TaskLedger/tasks/0/checks has non-unique elements after the fixture blindly appends project-state."
+    },
+    "process_ownership": {
+      "steps": [
+        "Start a trusted Python root through run_logged with timeout=3.",
+        "The root uses subprocess.Popen to launch a child that sleeps 0.4 seconds, writes a marker in a temporary directory and exits; the root exits immediately.",
+        "Record run_logged return values and marker absence, then wait 0.65 seconds and inspect the marker."
+      ],
+      "observed": {
+        "exit_code": 0,
+        "reason": null,
+        "marker_at_return": false,
+        "descendant_wrote_after_return": true,
+        "bounded_probe_duration_seconds": 0.666,
+        "claim_scope": "Linux-only isolated trusted-process lifecycle probe; child exits after writing the temporary marker."
+      }
+    },
+    "integration_selection": {
+      "steps": [
+        "Initialize tests.project.test_delivery.DeliveryTests as an isolated fixture and call setUp().",
+        "In only the temporary fixture catalog, set rust-contracts-workers to status=planned and command=null.",
+        "Use run_harness([\"--require-windows\"]) with scripts.check.windows_x64 patched to return True; run_harness already stubs check execution.",
+        "Inspect exit code, report status, the demoted result and M0 verification, then call doCleanups()."
+      ],
+      "observed": {
+        "mode": "Synthetic check-selection experiment; execution and native availability are stubbed, not native acceptance",
+        "change": "rust-contracts-workers: implemented command -> planned with null command",
+        "harness_exit_code": 0,
+        "report_status": "passed",
+        "native_requirement": {
+          "requested": true,
+          "satisfied": true
+        },
+        "omitted_check": {
+          "id": "rust-contracts-workers",
+          "status": "blocked",
+          "command": [],
+          "reason_code": "not_implemented",
+          "reason": "This planned check has no active implementation."
+        },
+        "m0_verification": "blocked"
+      }
+    },
+    "remote_settings": {
+      "account_precondition": "Inspect HTTPS origin and local github.account, switch with official gh and verify .login before authenticated reads.",
+      "commands": [
+        "gh api repos/kacoyi/scopehub/branches/main --jq '{name,protected,sha:.commit.sha}'",
+        "gh api repos/kacoyi/scopehub/rulesets",
+        "gh pr view 1 --repo kacoyi/scopehub --json statusCheckRollup,headRefOid"
+      ],
+      "observed": {
+        "main_protected": false,
+        "main_sha": "8e16842865464e53224aed422ea764c378d84fa9",
+        "rulesets": []
+      }
+    }
+  },
+  "assessment_verification": {
+    "status": "passed",
+    "command": "pnpm check --task M0-006",
+    "report": ".reports/runs/20261014T053034.196342Z-80461f9c/test-report.json",
+    "report_sha256": "d3b8314392d2c8dbed7dae7a1f72b6a28ff8120ef227e904a528cf668ada519d",
+    "evidence": {
+      "path": "project/evidence/M0-006-d3b8314392d2c8db.json",
+      "sha256": "32e87f82acca3066e30f4b7c38042afdcb463e27db0705cf884c133d58cc1859"
+    },
+    "passed_checks": [
+      "environment",
+      "project-state",
+      "generated-contracts",
+      "architecture",
+      "python-types",
+      "python-contracts-workers",
+      "typescript-contracts",
+      "ui-build",
+      "rust-format",
+      "rust-contracts-workers",
+      "rust-lints"
+    ],
+    "history_base": "e01db0777faf4d6930e2e90d48044478f3fd3b31",
+    "preserved_accepted_tasks": 5,
+    "preserved_accepted_decisions": 6,
+    "assessment_record_checks": "JSON parsing, finding/task/feedback/source-path references and unchanged pre-existing tasks/feedback verified separately.",
+    "claim_scope": "The assessment and baseline verification are complete. H01-H09 remain open; no corrective implementation, native GUI observation or release acceptance is implied."
+  }
+}
