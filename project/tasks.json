@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-010",
+  "focus_task_id": "M5-002",
   "tasks": [
     {
       "id": "M0-001",
@@ -999,7 +999,7 @@
       "id": "M0-011",
       "title": "Prevent established integration checks from silently becoming optional",
       "milestone": "M0",
-      "status": "planned",
+      "status": "done",
       "depends_on": [
         "M0-006"
       ],
@@ -1008,7 +1008,11 @@
         "scripts/project.py",
         "project/checks.json",
         "tests/project",
-        ".github/workflows/verify.yml"
+        ".github/workflows/verify.yml",
+        "contracts/schemas/project.schema.json",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
       ],
       "decision_refs": [
         "0001",
@@ -1026,16 +1030,61 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Use H07 to distinguish required integration coverage from future product readiness, then enforce the maintained gate set against a reviewed baseline.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-011-48f1cf6fc8f8e33b.json",
+          "sha256": "00da2065275c5b28127d358c9b023ce5e59bfce171d1481d423bafad25622598"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Established change checks cannot disappear, be demoted or be omitted while an integration run succeeds; future planned checks remain visible without blocking ordinary implemented work.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/check.py",
+          "scripts/project.py",
+          "project/checks.json",
+          ".github/workflows/verify.yml",
+          "tests/project/test_delivery.py"
+        ],
+        "hypotheses": [
+          "An explicit catalog of required change checks, validated against implemented cadence and actual run results, prevents the observed false green.",
+          "History comparison can require documented, task-bound replacement coverage when an established gate is deliberately retired."
+        ],
+        "risks": [
+          {
+            "failure": "Demotion, removal or selection omission still yields a passing integration result.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          },
+          {
+            "failure": "Future product gates or release-only work accidentally become mandatory on every edit.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Legitimate replacement of an obsolete check becomes impossible or erases accepted history.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Preserve synthetic downgrade and omission regressions. Revert only the gate policy implementation if needed; never restore a passing claim for a missing established gate."
+      }
     },
     {
       "id": "M0-012",
       "title": "Enforce reviewed integration with required GitHub checks",
       "milestone": "M0",
-      "status": "planned",
+      "status": "done",
       "depends_on": [
         "M0-006"
       ],
@@ -1043,7 +1092,14 @@
         ".github/workflows/verify.yml",
         "project/delivery.json",
         "contracts/reviews",
-        "project/checks.json"
+        "project/checks.json",
+        "scripts/protection.py",
+        "tests/project/test_protection.py",
+        "project/branch-protection.json",
+        "package.json",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
       ],
       "decision_refs": [
         "0001",
@@ -1061,16 +1117,52 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "The owner authorized repair of all audit findings on 2026-10-14, including main protection. Prepare and validate a concrete protection configuration, apply it with the repository account, and retain read-back evidence; merge and release remain outside scope.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-012-afb3f7dff0818d5f.json",
+          "sha256": "a5c0f62e6ba4c380e8a9b6d1a0909d83720b81a58e3b3fc670eec7fa704569e1"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The server requires a pull request and successful Linux and Windows Actions checks for main, with verified administrator enforcement and a repeatable read-only drift check.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          ".github/workflows/verify.yml",
+          "project/delivery.json",
+          "scripts/ci.py"
+        ],
+        "hypotheses": [
+          "Existing GitHub branch protection can enforce the observed checks without adding another service.",
+          "A zero external-review count preserves the single-owner workflow while requiring a PR and explicit owner integration authorization."
+        ],
+        "risks": [
+          {
+            "failure": "A protection change accidentally permits bypass or weakens existing settings.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Local policy is mistaken for effective server enforcement.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain before and after settings; correct mismatched constraints without disabling the required checks. Do not merge or release during configuration."
+      }
     },
     {
       "id": "M5-002",
       "title": "Establish dependency and workflow maintenance at integration boundaries",
       "milestone": "M5",
-      "status": "planned",
+      "status": "active",
       "depends_on": [
         "M0-006"
       ],
@@ -1079,7 +1171,15 @@
         "project/checks.json",
         "scripts",
         "tests/project",
-        "project/delivery.json"
+        "project/delivery.json",
+        "pyproject.toml",
+        "uv.lock",
+        "project/dependencies.json",
+        "project/dependency-inventory.json",
+        "THIRD_PARTY_NOTICES",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
       ],
       "decision_refs": [
         "0001",
@@ -1101,9 +1201,51 @@
         "windows-native-build"
       ],
       "evidence": [],
-      "next_action": "Use H09 before integrating additional chart/provider/build dependencies: inventory current locks, implement the planned review check and choose a proportionate update cadence without adding a new service.",
+      "next_action": "Inventory all three lockfiles and Actions, inspect current advisories and license metadata, then implement fail-closed review and bounded update policy.",
       "blocker": null,
-      "closure_reason": null
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Every locked dependency and external workflow action has traceable inventory and license handling; integration checks fail on advisory findings or unavailable scans, and updates follow a bounded reviewed cadence.",
+        "change_types": [
+          "tooling",
+          "dependencies"
+        ],
+        "context": [
+          "Cargo.lock",
+          "uv.lock",
+          "pnpm-lock.yaml",
+          ".github/workflows/verify.yml",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "An OSV batch query over exact locked packages and commit-pinned Actions can provide fresh cross-ecosystem advisory checks without adding an account or service.",
+          "Reviewed version-bound license metadata can be retained and checked offline; new or changed dependencies require explicit inventory refresh."
+        ],
+        "risks": [
+          {
+            "failure": "Incomplete lock parsing or unavailable advisory requests are misreported as clean.",
+            "checks": [
+              "python-contracts-workers",
+              "dependency-review"
+            ]
+          },
+          {
+            "failure": "Dependency changes break native build or hide legal notices.",
+            "checks": [
+              "dependency-review",
+              "windows-native-build"
+            ]
+          },
+          {
+            "failure": "A mutable workflow tag or unsupported updater silently defeats maintenance.",
+            "checks": [
+              "dependency-review",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Retain failed scan and native reports; revert an incompatible dependency or workflow update as a coherent checkpoint. Never turn unavailable scanning or missing metadata into a passing result."
+      }
     },
     {
       "id": "M0-013",

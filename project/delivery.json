@@ -335,7 +335,8 @@
       "Integrate through a reviewed pull request with successful required checks for its current revision. Recheck after base changes, conflicts or consequential new evidence.",
       "Require Linux and Windows verification before normal integration. Keep branch protection settings aligned with actual job names once their first successful runs are observed; repository policy text alone does not enforce GitHub settings.",
       "Keep source integration, packaging and public release separate. A merged pull request is not a released or product-accepted build.",
-      "Retain release artifacts, checksums and acceptance evidence outside ephemeral CI retention when releases are implemented. The current workflow retains diagnostic artifacts for 30 days; task receipts keep digests, not full logs."
+      "Retain release artifacts, checksums and acceptance evidence outside ephemeral CI retention when releases are implemented. The current workflow retains diagnostic artifacts for 30 days; task receipts keep digests, not full logs.",
+      "Run pnpm project:protection before integration and after workflow job-name or repository-setting changes. It compares live main protection with project/branch-protection.json using the owner-pinned official gh account; missing access and drift fail. This local owner check is deliberately outside unprivileged build CI and does not grant merge permission."
     ],
     "failure_recovery": [
       "Keep the failed run and inspect its first actionable error. Record consequential escapes or false assumptions as feedback with a corrective task and regression evidence.",
@@ -354,7 +355,8 @@
       "Routine local commits, tests and fixes are part of authorized implementation. Existing explicit push authorization persists across checkpoints within its agreed repository and branch scope.",
       "On 2026-10-14 the owner authorized the initial public push of codex/continuous-delivery to kacoyi/scopehub, creation and updates of its draft pull request, and routine future task-branch pushes to this repository as the default iteration workflow. Do not ask again within that scope. Merge and release remain separate authorization decisions.",
       "Inspect the HTTPS origin and local github.account marker before authenticated GitHub operations, select the marked account with gh auth switch and verify its login. Never read token files.",
-      "Source-control policy does not grant merge, release, visibility, account administration, destructive history changes or branch-protection weakening permissions. Apply existing owner intent and platform approval requirements to the concrete action."
+      "Source-control policy does not grant merge, release, visibility, account administration, destructive history changes or branch-protection weakening permissions. Apply existing owner intent and platform approval requirements to the concrete action.",
+      "On 2026-10-14 the owner requested repair of all health-assessment findings, authorizing H08 main protection enforcement with required pull requests and observed Linux/Windows checks. Preserve stronger settings and do not weaken protection, merge or release under this maintenance scope."
     ]
   },
   "scaffold_maintenance": {

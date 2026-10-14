@@ -1,0 +1,78 @@
+{
+  "status": "passed",
+  "observed_at": "2026-10-14T06:38:11.022490+00:00",
+  "repository": "kacoyi/scopehub",
+  "branch": "main",
+  "errors": [],
+  "observed": {
+    "url": "https://api.github.com/repos/kacoyi/scopehub/branches/main/protection",
+    "required_status_checks": {
+      "url": "https://api.github.com/repos/kacoyi/scopehub/branches/main/protection/required_status_checks",
+      "strict": true,
+      "contexts": [
+        "verify (ubuntu-latest)",
+        "verify (windows-latest)"
+      ],
+      "contexts_url": "https://api.github.com/repos/kacoyi/scopehub/branches/main/protection/required_status_checks/contexts",
+      "checks": [
+        {
+          "context": "verify (ubuntu-latest)",
+          "app_id": 15368
+        },
+        {
+          "context": "verify (windows-latest)",
+          "app_id": 15368
+        }
+      ]
+    },
+    "required_pull_request_reviews": {
+      "url": "https://api.github.com/repos/kacoyi/scopehub/branches/main/protection/required_pull_request_reviews",
+      "dismiss_stale_reviews": true,
+      "require_code_owner_reviews": false,
+      "require_last_push_approval": false,
+      "required_approving_review_count": 0
+    },
+    "required_signatures": {
+      "url": "https://api.github.com/repos/kacoyi/scopehub/branches/main/protection/required_signatures",
+      "enabled": false
+    },
+    "enforce_admins": {
+      "url": "https://api.github.com/repos/kacoyi/scopehub/branches/main/protection/enforce_admins",
+      "enabled": true
+    },
+    "required_linear_history": {
+      "enabled": false
+    },
+    "allow_force_pushes": {
+      "enabled": false
+    },
+    "allow_deletions": {
+      "enabled": false
+    },
+    "block_creations": {
+      "enabled": false
+    },
+    "required_conversation_resolution": {
+      "enabled": true
+    },
+    "lock_branch": {
+      "enabled": false
+    },
+    "allow_fork_syncing": {
+      "enabled": false
+    }
+  },
+  "claim_scope": "Live read of branch protection at the recorded time, not a merge authorization or permanent guarantee.",
+  "task_id": "M0-012",
+  "authority": "Owner request to repair all assessed findings on 2026-10-14; H08 explicitly identified absent main protection.",
+  "before": {
+    "main_protected": false,
+    "rulesets": []
+  },
+  "configuration": "project/branch-protection.json",
+  "review_boundary": "The single-owner repository requires a pull request and both trusted Actions checks, including for administrators. External approvals are not required; owner review and explicit integration authorization remain separate obligations. An administrator can still change repository settings, which this read-only check detects at the next observation.",
+  "api_adjustment": "The first PUT with both legacy contexts and checks was rejected with HTTP 422 without applying settings. The accepted request uses checks with explicit app_id; response and independent GET were retained.",
+  "references": [
+    "https://docs.github.com/en/rest/branches/branch-protection"
+  ]
+}

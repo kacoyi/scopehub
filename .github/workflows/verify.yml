@@ -67,6 +67,7 @@ jobs:
       - name: Preserve accepted history
         env:
           SCOPEHUB_REVIEW_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          SCOPEHUB_CHECKPOINT_BASE: ${{ github.event.before }}
         run: uv run python scripts/project.py history
       - if: runner.os != 'Windows'
         run: pnpm check

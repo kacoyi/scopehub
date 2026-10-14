@@ -153,6 +153,16 @@ def main():
                                                not any(r['id'] == 'windows-native-build' and r['status'] == 'passed' for r in results))
     if native_blocked:
         passed = False
+    integration_requested = args.require_windows or (not args.task and args.profile in {None, 'release'})
+    required = project['catalog']['required_change_checks']
+    observations = {result['id']: result for result in results}
+    unverified = [key for key in required if observations.get(key, {}).get('status') != 'passed'
+                  or observations.get(key, {}).get('exit_code') != 0]
+    applicable_missing = [key for key in unverified
+                          if project['checks'][key]['platforms'] == 'all' or windows_x64(environment)]
+    integration_blocked = integration_requested and bool(applicable_missing)
+    if integration_blocked:
+        passed = False
     failed = any(result['status'] == 'failed' for result in implemented) or not source_unchanged or not project_unchanged
     milestones, acceptance = product_progress(project, results)
     report = {
@@ -162,6 +172,8 @@ def main():
         'project_definition_sha256': project_hash, 'project_unchanged': project_unchanged,
         'project_state_error': state_error,
         'native_requirement': {'requested': args.require_windows, 'satisfied': not native_blocked},
+        'integration_gates': {'requested': integration_requested, 'required': required, 'unverified': unverified,
+                              'status': ('blocked' if unverified else 'passed') if integration_requested else 'not_requested'},
         'selection': {'profile': args.profile or ('task' if args.task else 'full'), 'task_id': args.task,
                       'checks': sorted(selected)},
         'task_definitions': {task['id']: task_definition_hash(task) for task in project['tasks'].values()},
@@ -197,7 +209,7 @@ def main():
                       'm0_complete': next(item['status'] == 'passed' for item in milestones if item['id'] == 'M0')}), flush=True)
     local_blocked = any(r['status'] == 'blocked' and project['checks'][r['id']]['platforms'] == 'all' for r in implemented)
     selection_blocked = bool(args.task or args.profile) and any(r['status'] != 'passed' for r in results if r['id'] in selected)
-    exit_code = 1 if failed or local_blocked or selection_blocked or native_blocked else 0
+    exit_code = 1 if failed or local_blocked or selection_blocked or native_blocked or integration_blocked else 0
     if exit_code:
         recovery_command = f'pnpm project:recover --task {args.task} --save' if args.task else RECOVERY_COMMAND
         print(json.dumps({'recovery_command': recovery_command,

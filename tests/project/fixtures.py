@@ -65,6 +65,7 @@ def records():
                                          'acceptance': {'required': ['Synthetic installed outcome', 'Synthetic model outcome']}},
         'project/tasks.json': {'schema_version': '1.0', 'focus_task_id': 'M0-001', 'tasks': tasks},
         'project/checks.json': {'schema_version': '1.0', 'checks': checks,
+                                'required_change_checks': implemented, 'gate_changes': [],
                                 'milestones': [{'id': key, 'checks': values} for key, values in milestone_checks.items()],
                                 'acceptance': [{'requirement': 'Synthetic installed outcome', 'checks': ['windows-installation']},
                                                {'requirement': 'Synthetic model outcome', 'checks': ['ai-workflow']}],

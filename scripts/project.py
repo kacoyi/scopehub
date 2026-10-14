@@ -112,8 +112,8 @@ def validate_model(root, name, value):
         raise ProjectError(f'{name}/{location}: {first.message}')
 
 
-def indexed(items, label):
-    result = {item['id']: item for item in items}
+def indexed(items, label, field='id'):
+    result = {item[field]: item for item in items}
     if len(result) != len(items):
         raise ProjectError(f'Duplicate {label} ID')
     return result
@@ -162,6 +162,20 @@ def load_project(root=ROOT):
     for check in checks.values():
         if (check['status'] == 'implemented') != (check['command'] is not None):
             raise ProjectError(f"Check command/status mismatch: {check['id']}")
+    required = set(catalog['required_change_checks'])
+    require_refs(required, checks, 'Required change checks')
+    implemented = {key for key, check in checks.items()
+                   if check['status'] == 'implemented' and check.get('cadence', 'change') == 'change'}
+    if required != implemented:
+        raise ProjectError('Required change checks must equal the implemented change checks')
+    changes = indexed(catalog['gate_changes'], 'gate replacement', field='removed_check')
+    for key, change in changes.items():
+        require_refs([key, *change['replacement_checks']], checks, 'Gate replacement')
+        require_refs([change['task_id']], tasks, 'Gate replacement task')
+        task = tasks[change['task_id']]
+        if (key in change['replacement_checks'] or 'plan' not in task or task['status'] == 'cancelled'
+                or not set(change['replacement_checks']).issubset(task['checks'])):
+            raise ProjectError(f'Gate replacement lacks planned corrective coverage: {key}')
     for gate in gates.values():
         require_refs(gate['checks'], checks, f"Milestone {gate['id']}")
     for name, check_ids in catalog.get('profiles', {}).items():
@@ -504,6 +518,24 @@ def review_history(root=ROOT, base=None):
 
     ledger = previous('project/tasks.json')
     compared = []
+    catalog = previous('project/checks.json')
+    replaced = []
+    if catalog:
+        established = set(catalog.get('required_change_checks', [
+            check['id'] for check in catalog['checks']
+            if check['status'] == 'implemented' and check.get('cadence', 'change') == 'change'
+        ]))
+        current = set(project['catalog']['required_change_checks'])
+        changes = {item['removed_check']: item for item in project['catalog']['gate_changes']}
+        for entry in catalog.get('gate_changes', []):
+            if changes.get(entry['removed_check']) != entry:
+                raise ProjectError(f"Accepted gate replacement changed or disappeared: {entry['removed_check']}")
+        for key in sorted(established - current):
+            replacement = changes.get(key)
+            if (not replacement or not set(replacement['replacement_checks']).issubset(current)
+                    or project['tasks'][replacement['task_id']]['status'] not in {'active', 'done'}):
+                raise ProjectError(f'Established integration gate removed without a reviewed replacement: {key}')
+            replaced.append(replacement)
     for task in ledger['tasks'] if ledger else []:
         if task['status'] in {'done', 'cancelled'}:
             if project['tasks'].get(task['id']) != task:
@@ -519,7 +551,8 @@ def review_history(root=ROOT, base=None):
             if project['decisions'].get(decision['id']) != decision:
                 raise ProjectError(f"Accepted decision history changed or disappeared: {decision['id']}; supersede it")
             compared.append(decision['id'])
-    return {'status': 'passed', 'base_commit': resolved, 'preserved_records': compared}
+    return {'status': 'passed', 'base_commit': resolved, 'preserved_records': compared,
+            'gate_replacements': replaced}
 
 
 def archive_evidence(root, task_id, report_path, artifact_root=None):
@@ -647,6 +680,9 @@ def main():
             result = readiness()
         elif args.command == 'history':
             result = review_history(ROOT, args.base)
+            checkpoint_base = os.environ.get('SCOPEHUB_CHECKPOINT_BASE')
+            if checkpoint_base and checkpoint_base != args.base:
+                result['previous_checkpoint'] = review_history(ROOT, checkpoint_base)
         elif args.command == 'checkpoint':
             result = checkpoint()
         else:

@@ -22,7 +22,7 @@ class DeliveryTests(ProjectFixture):
         decision['decision'] += ' Changed after validation.'
         path.write_bytes(json_bytes(decision))
 
-    def run_harness(self, args=(), before_check=None):
+    def run_harness(self, args=(), before_check=None, system='Linux'):
         def execute(name, command, env, run_dir, timeout):
             if before_check:
                 before_check(name)
@@ -35,7 +35,7 @@ class DeliveryTests(ProjectFixture):
               patch.object(harness, 'REPORTS', self.root / '.reports'),
               patch.object(harness, 'execute', side_effect=execute),
               patch.object(harness, 'tool_version', return_value='fixture'),
-              patch.object(harness.platform, 'system', return_value='Linux'),
+              patch.object(harness.platform, 'system', return_value=system),
               patch.object(harness.platform, 'machine', return_value='x86_64'),
               patch.object(sys, 'argv', ['check.py', *args]), redirect_stdout(StringIO())):
             with self.assertRaises(SystemExit) as stopped:
@@ -155,6 +155,80 @@ class DeliveryTests(ProjectFixture):
         self.assertEqual('blocked', report['status'])
         self.assertFalse(report['native_requirement']['satisfied'])
         self.assertFalse(report['product_complete'])
+
+    def test_required_check_cannot_be_demoted_deleted_or_moved_to_release(self):
+        path = self.root / 'project/checks.json'
+        original = path.read_bytes()
+        for mutation in ['demote', 'delete', 'release']:
+            with self.subTest(mutation=mutation):
+                path.write_bytes(original)
+                catalog = read_json(path)
+                check = next(item for item in catalog['checks'] if item['id'] == 'rust-lints')
+                if mutation == 'demote':
+                    check.update(status='planned', command=None)
+                elif mutation == 'delete':
+                    catalog['checks'].remove(check)
+                else:
+                    check['cadence'] = 'release'
+                path.write_bytes(json_bytes(catalog))
+                with self.assertRaisesRegex(ProjectError, 'Required change checks'):
+                    self.run_harness(['--require-windows'], system='Windows')
+
+    def test_integration_rejects_selection_omission_on_both_platforms(self):
+        project = load_project(self.root)
+        selected = harness.select_checks(project) - {'rust-lints'}
+        for system, args in [('Linux', []), ('Windows', ['--require-windows'])]:
+            with self.subTest(system=system), patch.object(harness, 'select_checks', return_value=selected):
+                code, report = self.run_harness(args, system=system)
+                self.assertEqual(1, code)
+                self.assertEqual('blocked', report['status'])
+                self.assertIn('rust-lints', report['integration_gates']['unverified'])
+
+    def test_future_planned_checks_do_not_block_native_change_integration(self):
+        code, report = self.run_harness(['--require-windows'], system='Windows')
+        self.assertEqual(0, code)
+        self.assertEqual('passed', report['integration_gates']['status'])
+        self.assertFalse(report['product_complete'])
+        code, report = self.run_harness(['--profile', 'fast'], system='Windows')
+        self.assertEqual(0, code)
+        self.assertEqual('not_requested', report['integration_gates']['status'])
+        code, report = self.run_harness(['--profile', 'fast', '--require-windows'], system='Windows')
+        self.assertEqual(1, code)
+
+    def replace_gate(self):
+        path = self.root / 'project/checks.json'
+        catalog = read_json(path)
+        old = next(item for item in catalog['checks'] if item['id'] == 'rust-lints')
+        replacement = dict(old, id='replacement-lints')
+        old.update(status='retired', command=None)
+        catalog['checks'].append(replacement)
+        for ids in [catalog['required_change_checks'], *[gate['checks'] for gate in catalog['milestones']]]:
+            ids[:] = ['replacement-lints' if key == 'rust-lints' else key for key in ids]
+        path.write_bytes(json_bytes(catalog))
+        ledger = self.ledger()
+        task = task_by_id(ledger, 'M0-001')
+        task.update(status='active', checks=['project-state', 'replacement-lints'])
+        self.save_ledger(ledger)
+        return path, catalog
+
+    def test_history_prevents_removing_both_a_gate_and_its_required_binding(self):
+        base = self.commit_fixture()
+        self.replace_gate()
+        with self.assertRaisesRegex(ProjectError, 'Established integration gate removed'):
+            review_history(self.root, base)
+
+    def test_history_allows_task_bound_replacement_and_preserves_its_rationale(self):
+        base = self.commit_fixture()
+        path, catalog = self.replace_gate()
+        catalog['gate_changes'].append({'removed_check': 'rust-lints', 'replacement_checks': ['replacement-lints'],
+                                        'task_id': 'M0-001', 'reason': 'Synthetic replacement exercises the same failure boundary.'})
+        path.write_bytes(json_bytes(catalog))
+        self.assertEqual(1, len(review_history(self.root, base)['gate_replacements']))
+        replaced = self.commit_fixture()
+        catalog['gate_changes'][0]['reason'] = 'Rewrite the accepted rationale.'
+        path.write_bytes(json_bytes(catalog))
+        with self.assertRaisesRegex(ProjectError, 'Accepted gate replacement changed'):
+            review_history(self.root, replaced)
 
     def test_cancelled_history_does_not_prevent_a_delivered_replacement_from_passing(self):
         project = load_project(self.root)

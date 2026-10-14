@@ -401,5 +401,20 @@
       "python-contracts-workers",
       "rust-format"
     ]
-  }
+  },
+  "required_change_checks": [
+    "environment",
+    "project-state",
+    "generated-contracts",
+    "architecture",
+    "python-types",
+    "python-contracts-workers",
+    "typescript-contracts",
+    "ui-build",
+    "rust-format",
+    "rust-contracts-workers",
+    "rust-lints",
+    "windows-native-build"
+  ],
+  "gate_changes": []
 }

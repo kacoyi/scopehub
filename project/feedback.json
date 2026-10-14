@@ -257,7 +257,7 @@
       "source": "contracts/reviews/2026-10-14-long-term-health.json",
       "observation": "In an explicitly synthetic harness-selection probe, changing rust-contracts-workers to planned/null yields exit 0 and report passed under require-windows, although M0 verification is blocked. CI does not enforce a preserved implemented gate set.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-011"
       ],
@@ -265,7 +265,11 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Success was derived only from checks still marked implemented and selected.",
+        "correction": "Validate required change gates and actual result coverage; compare the catalog with review and previous checkpoint history and require task-bound replacement rationale.",
+        "prevention": "M0-011 archives passing regressions for demotion, deletion, cadence changes, selection omission, partial/native runs and preserved replacement history."
+      },
       "deferral_reason": null
     },
     {
@@ -273,7 +277,7 @@
       "source": "contracts/reviews/2026-10-14-long-term-health.json",
       "observation": "Authenticated read-only inspection found main protected=false and no repository rulesets. Both PR verification contexts pass, but server settings do not require them before integration.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-012"
       ],
@@ -281,7 +285,11 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Main had no effective server-side pull-request or check requirements.",
+        "correction": "Applied project/branch-protection.json and independently read back enforced administrator, current-base, pull-request and trusted GitHub Actions check requirements; retained contracts/reviews/2026-10-14-main-protection.json.",
+        "prevention": "pnpm project:protection is a live read-only drift check required before integration and after workflow or protection changes; regressions reject missing checks, wrong App identity and bypass. Single-owner review and merge authorization remain separate."
+      },
       "deferral_reason": null
     },
     {

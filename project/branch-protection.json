@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "repository": "kacoyi/scopehub",
+  "branch": "main",
+  "configuration": {
+    "required_status_checks": {
+      "strict": true,
+      "checks": [
+        {
+          "context": "verify (ubuntu-latest)",
+          "app_id": 15368
+        },
+        {
+          "context": "verify (windows-latest)",
+          "app_id": 15368
+        }
+      ]
+    },
+    "enforce_admins": true,
+    "required_pull_request_reviews": {
+      "dismiss_stale_reviews": true,
+      "require_code_owner_reviews": false,
+      "required_approving_review_count": 0,
+      "require_last_push_approval": false
+    },
+    "restrictions": null,
+    "allow_force_pushes": false,
+    "allow_deletions": false,
+    "required_conversation_resolution": true
+  },
+  "review_boundary": "The single-owner repository requires a pull request and both trusted Actions checks, including for administrators. External approvals are not required; owner review and explicit integration authorization remain separate obligations. An administrator can still change repository settings, which this read-only check detects at the next observation.",
+  "check_command": "pnpm project:protection"
+}
