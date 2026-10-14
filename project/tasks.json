@@ -1356,6 +1356,94 @@
         ],
         "rollback": "Preserve failed runs and uncommitted changes; compare with commit 47f0bd0fed34bc63d60bb4f8b3e311c677c41336 and revert only the recovery implementation if needed. Restore normal validation and backfill repair records before claiming completion; retain the existing audit corrective tasks."
       }
+    },
+    {
+      "id": "M0-014",
+      "title": "Make integration and release decisions explicit and revision-bound",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-006",
+        "M0-011",
+        "M0-012"
+      ],
+      "scope": [
+        "scripts/integration.py",
+        "scripts/project.py",
+        "tests/project",
+        "project/delivery.json",
+        "contracts/schemas/project.schema.json",
+        "package.json",
+        "AGENTS.md",
+        "project/tasks.json",
+        "project/evidence",
+        "contracts/reviews"
+      ],
+      "decision_refs": [
+        "0003",
+        "0004",
+        "0005",
+        "0006"
+      ],
+      "acceptance": [
+        "A read-only integration command identifies the live PR revision and base, observes required hosted jobs and protection, checks preserved task history and completed delivery scope, and reports concrete blockers without granting merge authorization.",
+        "Draft, dirty, stale, conflicting, unverified, incomplete or unavailable observations cannot be reported as ready for integration; planned future product work does not prevent a completed slice from reaching review.",
+        "The delivery policy defines when the active agent proposes integration or a release candidate, binds review and authorization to the relevant revision or artifact, and specifies post-action verification and failure recovery.",
+        "Release readiness remains a technical assessment distinct from publication authorization; the scaffold cannot be presented as a usable product release, and executable regressions cover unsupported readiness claims."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-014-ec729c8d628c65f7.json",
+          "sha256": "65d4cacce9d75c4efd93783228971b1490e4889b37055a24e65952d1d6a714a2"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The owner and a continuing agent can decide when to integrate a completed slice and when to prepare a product release using observed gates and explicit action scope.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/delivery.json",
+          "project/branch-protection.json",
+          "scripts/ci.py",
+          "scripts/protection.py",
+          "scripts/project.py",
+          ".github/workflows/verify.yml"
+        ],
+        "hypotheses": [
+          "Existing hosted verification, branch protection and task evidence can support a focused read-only integration assessment without an unattended merge service.",
+          "A defined release-candidate lifecycle can reuse existing acceptance gates while packaging and publication remain future product work."
+        ],
+        "risks": [
+          {
+            "failure": "A successful workflow or old PR observation is mistaken for current merge eligibility.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Missing review or authorization is inferred from a technical pass or a local boolean.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Future product tasks block ordinary integration, or a scaffold build is mistaken for a releasable application.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Preserve the observed PR and failed checks; revert only the new assessment and lifecycle extension if needed. Keep existing required checks, live branch protection, accepted records and publication boundaries unchanged, and resume M1-002 after validated closure."
+      }
     }
   ]
 }

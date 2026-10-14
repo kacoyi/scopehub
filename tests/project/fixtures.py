@@ -54,7 +54,9 @@ def records():
             'evidence_boundary': 'Synthetic mock evaluation, not real model acceptance.',
         }],
         'release_policy': {'required_milestones': list(milestone_checks), 'required_checks': ['release-artifacts'],
-                           'artifact_requirements': ['Synthetic retained artifact.'], 'product_review': ['Synthetic owner review.']},
+                           'artifact_requirements': ['Synthetic retained artifact.'], 'product_review': ['Synthetic owner review.'],
+                           'lifecycle': {key: ['Synthetic release lifecycle.'] for key in
+                                         ['candidate', 'publication', 'recovery']}},
         'source_control': {key: ['Synthetic source-control policy.'] for key in
                            ['checkpoint', 'push', 'verification', 'integration', 'failure_recovery', 'scaling', 'authorization']},
         'scaffold_maintenance': {key: ['Synthetic maintenance policy.'] for key in

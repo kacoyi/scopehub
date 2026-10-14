@@ -887,13 +887,52 @@
               },
               "minItems": 1,
               "uniqueItems": true
+            },
+            "lifecycle": {
+              "type": "object",
+              "properties": {
+                "candidate": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 1,
+                  "uniqueItems": true
+                },
+                "publication": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 1,
+                  "uniqueItems": true
+                },
+                "recovery": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 1,
+                  "uniqueItems": true
+                }
+              },
+              "required": [
+                "candidate",
+                "publication",
+                "recovery"
+              ],
+              "additionalProperties": false
             }
           },
           "required": [
             "required_milestones",
             "required_checks",
             "artifact_requirements",
-            "product_review"
+            "product_review",
+            "lifecycle"
           ],
           "additionalProperties": false
         },
@@ -1159,6 +1198,50 @@
         },
         "ci": {
           "$ref": "#/$defs/CIProvenance"
+        },
+        "selection": {
+          "type": "object",
+          "properties": {
+            "profile": {
+              "type": "string",
+              "minLength": 1
+            },
+            "task_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "checks": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            }
+          },
+          "required": [
+            "profile",
+            "task_id"
+          ],
+          "additionalProperties": false
+        },
+        "native_requirement": {
+          "type": "object",
+          "properties": {
+            "requested": {
+              "type": "boolean"
+            },
+            "satisfied": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "requested",
+            "satisfied"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [

@@ -27,7 +27,8 @@
     "project:checkpoint": "uv run python scripts/project.py checkpoint",
     "project:ci": "uv run python scripts/ci.py",
     "project:protection": "uv run python scripts/protection.py",
-    "project:dependencies": "uv run python scripts/dependencies.py"
+    "project:dependencies": "uv run python scripts/dependencies.py",
+    "project:integration": "uv run python scripts/integration.py"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.12.2",

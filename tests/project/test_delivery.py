@@ -87,6 +87,66 @@ class DeliveryTests(ProjectFixture):
         self.assertTrue(result['verification']['current'])
         self.assertIn('Release verification must name the same clean committed revision.', result['blockers'])
 
+    def completed_release_fixture(self):
+        # An isolated all-implemented project exercises the eventual release path.
+        # Its synthetic logs and outcomes are never production acceptance evidence.
+        path = self.root / 'project/checks.json'
+        catalog = read_json(path)
+        for check in catalog['checks']:
+            check.update(status='implemented', command=['{python}', '-c', "print('synthetic acceptance')"])
+        catalog['required_change_checks'] = [check['id'] for check in catalog['checks'] if check['cadence'] == 'change']
+        path.write_bytes(json_bytes(catalog))
+        ledger = self.ledger()
+        plan = task_by_id(ledger, 'M0-001')['plan']
+        for task in ledger['tasks']:
+            task['checks'] = [check['id'] for check in catalog['checks']]
+            task['plan'] = plan
+        self.save_ledger(ledger)
+        report_path = self.report(system='Windows')
+        completed = set()
+        while len(completed) < len(ledger['tasks']):
+            task = next(task for task in ledger['tasks'] if task['id'] not in completed
+                        and set(task['depends_on']).issubset(completed))
+            ref = archive_evidence(self.root, task['id'], report_path)
+            task.update(status='done', evidence=[ref], next_action=None)
+            completed.add(task['id'])
+            ledger['focus_task_id'] = next((item['id'] for item in ledger['tasks'] if item['id'] not in completed), None)
+            self.save_ledger(ledger)
+        self.commit_fixture()
+        report_path = self.report(system='Windows')
+        report = read_json(report_path)
+        report.update(selection={'profile': 'release', 'task_id': None},
+                      native_requirement={'requested': True, 'satisfied': True})
+        report_path.write_bytes(json_bytes(report))
+        return report_path, report
+
+    def test_release_technical_pass_does_not_authorize_publication(self):
+        self.completed_release_fixture()
+        result = readiness(self.root)
+        self.assertEqual([], result['blockers'])
+        self.assertTrue(result['technical_ready'])
+        self.assertEqual('not_evaluated', result['authorization'])
+        self.assertEqual('present_release_proposal', result['recommendation'])
+
+    def test_ordinary_or_non_native_report_cannot_become_release_acceptance(self):
+        path, report = self.completed_release_fixture()
+        for update in [
+            {'selection': {'profile': 'full', 'task_id': None}},
+            {'selection': {'profile': 'fast', 'task_id': None}},
+            {'selection': {'profile': 'task', 'task_id': 'M5-001'}},
+            {'selection': None},
+            {'selection': ['release']},
+            {'native_requirement': {'requested': False, 'satisfied': True}},
+            {'native_requirement': {'requested': True, 'satisfied': False}},
+            {'native_requirement': {'requested': 1, 'satisfied': 1}},
+            {'environment': dict(report['environment'], system='Linux')},
+            {'environment': dict(report['environment'], machine='aarch64')},
+            {'status': 'blocked'},
+        ]:
+            with self.subTest(update=update):
+                path.write_bytes(json_bytes(dict(report, **update)))
+                self.assertFalse(readiness(self.root)['release_ready'])
+
     def test_decision_change_during_run_fails_the_report(self):
         code, report = self.run_harness(before_check=lambda name: self.edit_decision() if name == 'project-state' else None)
         self.assertEqual(1, code)

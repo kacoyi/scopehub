@@ -26,7 +26,8 @@
       "Run local fast and affected checks; archive all required task evidence from local or matching hosted verification before marking work done. Do not duplicate expensive hosted checks locally without a debugging need.",
       "Review changed files and accepted history; retain a concrete next action and current focus.",
       "Report tested behavior, unresolved blockers and the difference between mock, native-runtime and release evidence.",
-      "Run release-cadence checks at the actual release boundary or through an affected task; normal changes retain a short deterministic feedback loop."
+      "Run release-cadence checks at the actual release boundary or through an affected task; normal changes retain a short deterministic feedback loop.",
+      "After a coherent delivery is completed and its evidence is archived, assess its PR with project:integration --pr <number> and include the concrete integration recommendation at handoff. Do not wait for future product milestones or for the owner to remember to ask about integration."
     ],
     "adaptation": [
       "Ordinary implementation, local experiments, tests and refactoring within accepted boundaries need no additional owner approval.",
@@ -310,7 +311,28 @@
       "Demonstrate the end-to-end workflow to the owner and record observed usability issues as feedback.",
       "Compare the delivered outcome with the research question, visible source quality and actual operation results.",
       "Use release-artifacts acceptance to verify retained artifacts and the recorded owner review; a checklist alone is not acceptance."
-    ]
+    ],
+    "lifecycle": {
+      "candidate": [
+        "Reassess release readiness after integration of a planned user-visible outcome, a material defect fix or a packaging/dependency change affecting an existing release. A passing ordinary change run or elapsed calendar time alone is not a release trigger.",
+        "The current first product release targets the accepted M0-M5 contract and delivery scenarios. M0 alone is a scaffold checkpoint. A narrower preview or changed product release target needs an explicit scoped requirement and accurately labeled limitations; never silently remove unmet acceptance gates.",
+        "Create a bounded release task naming target version/channel, exact clean main commit, included scenarios, known issues, native acceptance and recovery plan. Confirm successful CI for that actual main revision before spending time on packaging.",
+        "Build the candidate once with pinned inputs; retain installer, bundled-worker manifest, hashes, notices and logs outside the temporary CI retention window. Run the Windows release profile and observe clean-machine installation, use, upgrade, recovery and stability against those exact bytes.",
+        "Have the owner exercise the intended workflow and retain actual feedback. A code-review approval, mock result or checklist does not replace product review. Changed source, build inputs or packaged bytes invalidate the affected candidate acceptance; create and verify a new candidate."
+      ],
+      "publication": [
+        "Use project:readiness as a technical assessment, then present the concrete version/channel, source commit, artifact hashes, retained acceptance, owner product review, known limitations and recovery procedure. A passing result does not grant publication permission.",
+        "Publish only within explicit owner release authorization covering that candidate or an applicable previously granted scope. Authorization to merge does not authorize publication. Keep the release draft while evidence or authorization is pending.",
+        "Before publishing, recheck candidate identity and blockers; bind the version tag to the accepted main commit and publish the tested artifacts without rebuilding. Preserve existing published versions and tags; a correction gets a new version.",
+        "Verify the published tag/commit, downloadable asset hashes and installation smoke result, retain the release record and update the next task. The publisher and executable release-artifacts gate are implemented under packaging work before the first actual release, not claimed present by this policy."
+      ],
+      "recovery": [
+        "A failed candidate remains unpublished. Retain the failing artifacts/logs, open corrective work, repair and repeat affected acceptance on the new candidate.",
+        "After an integration regression, retain the exact main commit and failing CI, then prepare a reviewed repair or revert PR through the same gates. Do not force-rewrite main or treat a previous branch run as validation of the merged revision.",
+        "After a released defect, record affected versions, stop further promotion, tell the owner the observed impact and prepare a fix or withdrawal within applicable authorization. Retain evidence and existing version identity; do not silently replace downloads.",
+        "For stateful upgrades, use the tested backup/restore or forward-repair procedure. Reverting application code does not prove that persisted user data can safely be downgraded."
+      ]
+    }
   },
   "source_control": {
     "checkpoint": [
@@ -338,7 +360,12 @@
       "Require Linux and Windows verification before normal integration. Keep branch protection settings aligned with actual job names once their first successful runs are observed; repository policy text alone does not enforce GitHub settings.",
       "Keep source integration, packaging and public release separate. A merged pull request is not a released or product-accepted build.",
       "Retain release artifacts, checksums and acceptance evidence outside ephemeral CI retention when releases are implemented. The current workflow retains diagnostic artifacts for 30 days; task receipts keep digests, not full logs.",
-      "Run pnpm project:protection before integration and after workflow job-name or repository-setting changes. It compares live main protection with project/branch-protection.json using the owner-pinned official gh account; missing access and drift fail. This local owner check is deliberately outside unprivileged build CI and does not grant merge permission."
+      "Run pnpm project:protection before integration and after workflow job-name or repository-setting changes. It compares live main protection with project/branch-protection.json using the owner-pinned official gh account; missing access and drift fail. This local owner check is deliberately outside unprivileged build CI and does not grant merge permission.",
+      "The integration unit is a coherent completed task or a tightly related group with archived acceptance, a reviewable diff and a recovery direction. Split unfinished behavior into a later task/PR or keep it unreachable; future planned milestones alone do not block integration. Open a fresh task branch from current main after integration.",
+      "Run project:integration --pr <number> after task closure, after CI completion when a delivery is complete, at handoff, and immediately before an authorized merge. It reads live PR head/base, latest workflow jobs, server protection, current local source, completed scope and relevant feedback; unavailable or changing observations remain blocked. A draft can be ready to present for review while still ineligible to merge.",
+      "Present a merge proposal naming the PR, head/base revisions, delivered tasks, verification, material limits and recovery plan. Review the actual diff and unresolved conversations. Owner review may be recorded in the conversation for this single-owner repository; an empty GitHub reviewDecision or zero required external approvals never proves that review occurred.",
+      "Keep technical assessment, observed review and operation authorization separate. Reuse already granted applicable merge scope; otherwise obtain explicit merge authorization for the concrete proposal. A new head/base requires renewed assessment and review of its delta. Do not infer merge or release permission from repair, push, draft-PR or CI authorization.",
+      "For an authorized merge, check the PR head again and use an expected-head guard such as gh pr merge --match-head-commit <sha>; preserve strict server checks and never use an admin bypass. Record the actual main merge commit and inspect its push workflow. A merged PR with failed main CI is an integration incident, not release-ready source."
     ],
     "failure_recovery": [
       "Keep the failed run and inspect its first actionable error. Record consequential escapes or false assumptions as feedback with a corrective task and regression evidence.",

@@ -445,9 +445,12 @@ def task_context(root=ROOT, task_id=None):
         'iteration_policy': project['delivery']['iteration_policy'],
         'scaffold_maintenance': project['delivery']['scaffold_maintenance'],
         'dependency_maintenance': maintenance_status(root),
+        'delivery_decisions': {'integration': project['delivery']['source_control']['integration'],
+                               'authorization': project['delivery']['source_control']['authorization'],
+                               'release': project['delivery']['release_policy']},
         'commands': ['pnpm project:doctor', 'pnpm check:fast', f'pnpm check --task {key}', 'pnpm check',
                      f'pnpm project:recover --task {key} --save',
-                     'pnpm project:checkpoint', 'pnpm project:ci',
+                     'pnpm project:checkpoint', 'pnpm project:ci', 'pnpm project:integration --pr <number>',
                      'pnpm project:history --base <reviewed-commit>', f'pnpm project:record {key} --report <run-report>',
                      'pnpm project:readiness'],
     }
@@ -500,6 +503,13 @@ def readiness(root=ROOT):
         blockers.append('Release source must be preserved in a clean committed revision.')
     if report and (report['source']['working_tree_dirty'] or report['source']['git_head'] != state['source']['git_head']):
         blockers.append('Release verification must name the same clean committed revision.')
+    if report.get('status') != 'passed':
+        blockers.append('The release verification report must pass.')
+    if (report.get('selection', {}).get('profile') != 'release'
+            or report.get('selection', {}).get('task_id') is not None
+            or not windows_x64(report.get('environment', {}))
+            or report.get('native_requirement') != {'requested': True, 'satisfied': True}):
+        blockers.append('Run the release profile with --require-windows on native Windows x64 for the candidate.')
     blockers.extend(f"Milestone {item['id']}: {item['status']}" for item in milestones if item['status'] != 'passed')
     blockers.extend(f"Scenario {item['id']}: {item['verification']}" for item in scenarios if item['verification'] != 'passed')
     blockers.extend(f"Release check {key}: {results.get(key, {}).get('status', 'blocked')}"
@@ -512,9 +522,11 @@ def readiness(root=ROOT):
     if any(item['status'] == 'failed' for item in results.values()):
         blockers.append('The current report contains failed checks.')
     return {'status': 'blocked' if blockers else 'passed', 'release_ready': not blockers,
+            'technical_ready': not blockers, 'authorization': 'not_evaluated',
+            'recommendation': 'complete_release_gates' if blockers else 'present_release_proposal',
             'verification': state['verification'], 'scenarios': scenarios, 'blockers': blockers,
             'release_policy': project['delivery']['release_policy'],
-            'claim_scope': 'Readiness derived from recorded executable checks; scenario text alone is not observed product behavior.'}
+            'claim_scope': 'Technical readiness from recorded release checks; publication authorization and published-artifact verification are separate. Scenario text alone is not observed product behavior.'}
 
 
 def review_history(root=ROOT, base=None):
