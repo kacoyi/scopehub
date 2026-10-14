@@ -15,14 +15,31 @@ from uuid import uuid4
 if __package__:
     from .doctor import tool_version
     from .processes import log_tail, run_logged
-    from .project import ProjectError, file_digest, load_project, project_definition_hash, product_progress, source_identity, task_definition_hash, windows_x64
+    from .project import ProjectError, file_digest, load_project, project_definition_hash, product_progress, source_identity, task_definition_hash, validate_model, windows_x64
 else:
     from doctor import tool_version
     from processes import log_tail, run_logged
-    from project import ProjectError, file_digest, load_project, project_definition_hash, product_progress, source_identity, task_definition_hash, windows_x64
+    from project import ProjectError, file_digest, load_project, project_definition_hash, product_progress, source_identity, task_definition_hash, validate_model, windows_x64
 
 ROOT = Path(__file__).resolve().parents[1]
 REPORTS = ROOT / '.reports'
+
+
+def ci_provenance(source, env, root=ROOT):
+    if env.get('GITHUB_ACTIONS') != 'true':
+        return None
+    repository = env.get('GITHUB_REPOSITORY', '')
+    run_id = env.get('GITHUB_RUN_ID', '')
+    record = {
+        'provider': 'github-actions', 'repository': repository, 'run_id': run_id,
+        'run_attempt': env.get('GITHUB_RUN_ATTEMPT', ''), 'event': env.get('GITHUB_EVENT_NAME', ''),
+        'head_sha': env.get('SCOPEHUB_SOURCE_HEAD', ''), 'checkout_sha': source['git_head'],
+        'run_url': f'https://github.com/{repository}/actions/runs/{run_id}',
+    }
+    validate_model(root, 'CIProvenance', record)
+    if source['working_tree_dirty']:
+        raise ProjectError('Hosted verification requires a clean checkout before running checks')
+    return record
 
 
 def execute(name, argv, env, run_dir, timeout=900):
@@ -72,6 +89,7 @@ def main():
     project = load_project(ROOT)
     selected = select_checks(project, profile=args.profile, task_id=args.task)
     source = source_identity(ROOT)
+    ci = ci_provenance(source, os.environ, ROOT)
     project_hash = project_definition_hash(project)
     run_id = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ') + '-' + uuid4().hex[:8]
     run_dir = REPORTS / 'runs' / run_id
@@ -106,7 +124,10 @@ def main():
             if result.get('reason_code') in {'interrupted', 'cleanup_failed'} or (
                     result['status'] != 'passed' and (args.fail_fast or args.profile == 'fast' or check['id'] == 'environment')):
                 stopped = True
-    source_unchanged = source_identity(ROOT)['sha256'] == source['sha256']
+    final_source = source_identity(ROOT)
+    source_unchanged = final_source['sha256'] == source['sha256']
+    if ci:
+        source_unchanged = source_unchanged and not final_source['working_tree_dirty'] and final_source['git_head'] == source['git_head']
     state_error = None
     try:
         project_unchanged = project_definition_hash(load_project(ROOT)) == project_hash
@@ -145,6 +166,9 @@ def main():
             'A dirty-worktree digest identifies tested inputs but does not independently preserve their source bytes.',
         ],
     }
+    if ci:
+        report['ci'] = ci
+    validate_model(ROOT, 'HarnessReport', report)
     contents = json.dumps(report, indent=2) + '\n'
     (run_dir / 'test-report.json').write_text(contents, encoding='utf-8')
     latest = REPORTS / f'{run_id}.tmp'

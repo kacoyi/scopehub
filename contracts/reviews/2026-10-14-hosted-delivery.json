@@ -1,0 +1,87 @@
+{
+  "review_date": "2026-10-14",
+  "kind": "source_checkpoint_and_hosted_delivery_audit",
+  "corrective_task": "M0-005",
+  "repository_observation": {
+    "origin": "https://github.com/kacoyi/scopehub.git",
+    "visibility": "PUBLIC",
+    "default_branch": "main",
+    "main_protected": false,
+    "actions_enabled": true,
+    "workflow_runs": 0,
+    "remote_revision": "8e16842865464e53224aed422ea764c378d84fa9",
+    "claim_scope": "Read-only GitHub API observations before the first scaffold upload; not a persistent assertion about current remote settings."
+  },
+  "findings": [
+    {
+      "observation": "The complete scaffold was absent from recoverable Git history and hosted validation.",
+      "correction": "Preserve the scaffold in commit 32fbd495bd2cdf3b30347f1f55ff3b02f0526118 and use coherent task-branch checkpoints.",
+      "remaining": "Initial public upload and hosted execution require owner publication authorization."
+    },
+    {
+      "observation": "A local fast pass, branch push or unrelated green workflow could be confused with current delivery.",
+      "correction": "Expose checkpoint and hosted states separately, require latest commit-bound results and preserve original CI evidence provenance.",
+      "remaining": "Metadata and digests do not authenticate fabricated reports; retrieve artifacts using official authenticated gh."
+    },
+    {
+      "observation": "Future long-running acceptance would make every local checkpoint unnecessarily expensive.",
+      "correction": "Keep fast and affected local checks, full Linux/Windows PR checks and manual release-cadence validation; add dependency/build caches and duration feedback.",
+      "remaining": "Split jobs or introduce scheduled/paid capacity only after measured demand."
+    },
+    {
+      "observation": "Main is unprotected; a workflow file alone does not prevent bypass.",
+      "correction": "Record required integration policy and the follow-up in the native-verification task.",
+      "remaining": "Configure GitHub protection using observed successful job names and owner-authorized repository administration."
+    }
+  ],
+  "validation": {
+    "report": ".reports/runs/20261014T044203.212150Z-2a76d713/test-report.json",
+    "source_sha256": "a2590338ff199e87ef25247d74d4957c96d03a21624996fbe5971512f056b54e",
+    "task_evidence": {
+      "path": "project/evidence/M0-005-9088a7d6d5de34db.json",
+      "sha256": "6a80a4eff8a82d1cf826f5b01f509d6a83eddbb5ec2a9c9529a9da4459489f31"
+    },
+    "local_passed_checks": [
+      "environment",
+      "project-state",
+      "generated-contracts",
+      "architecture",
+      "python-types",
+      "python-contracts-workers",
+      "typescript-contracts",
+      "ui-build",
+      "rust-format",
+      "rust-contracts-workers",
+      "rust-lints"
+    ],
+    "python_tests": 75,
+    "duration_seconds": 10.546,
+    "workflow_static_check": "actionlint passed",
+    "history_review_base": "32fbd495bd2cdf3b30347f1f55ff3b02f0526118",
+    "native_windows": "blocked",
+    "hosted_execution": "not_run"
+  },
+  "retained_failure": {
+    "report": ".reports/runs/20261014T044119.848293Z-a4dce590/test-report.json",
+    "cause": "A pre-existing synthetic source-drift test omitted log fields now validated before report emission.",
+    "correction": "Supply a real fixture log and digest without weakening the report schema."
+  },
+  "primary_references": [
+    {
+      "url": "https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows",
+      "use": "Pull-request versus push triggers and merge-checkout provenance."
+    },
+    {
+      "url": "https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching",
+      "use": "Cache scope, keys and restore behavior; cache hits are not verification evidence."
+    },
+    {
+      "url": "https://github.com/astral-sh/setup-uv",
+      "use": "uv dependency-cache configuration."
+    },
+    {
+      "url": "https://github.com/actions/setup-node",
+      "use": "Set up pnpm before enabling its setup-node cache."
+    }
+  ]
+}

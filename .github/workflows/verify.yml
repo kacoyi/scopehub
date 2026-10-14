@@ -27,23 +27,41 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: ${{ inputs.profile == 'release' && 180 || 30 }}
+    env:
+      SCOPEHUB_SOURCE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: false
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - uses: pnpm/action-setup@v4
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
       - uses: astral-sh/setup-uv@v6
         with:
           version: '0.12.24'
           python-version: '3.12'
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            pyproject.toml
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: '1.99.0'
           components: rustfmt, clippy
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('rust-toolchain.toml') }}-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('rust-toolchain.toml') }}-
       - run: uv sync --locked
       - run: pnpm install --frozen-lockfile
       - name: Preserve accepted history

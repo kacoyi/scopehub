@@ -23,6 +23,10 @@ REPO = Path(__file__).resolve().parents[2]
 
 class ProjectFixture(unittest.TestCase):
     def setUp(self):
+        # Synthetic repositories must not inherit provenance from the outer CI job.
+        isolated_env = patch.dict(os.environ, {'GITHUB_ACTIONS': 'false'})
+        isolated_env.start()
+        self.addCleanup(isolated_env.stop)
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
@@ -287,7 +291,10 @@ class ContinuityTests(ProjectFixture):
         changed = {**identity, 'sha256': '0' * 64}
 
         def passed(name, command, env, run_dir, timeout):
-            return {'id': name, 'status': 'passed', 'command': command, 'exit_code': 0}
+            log = run_dir / f'{name}.log'
+            log.write_text('Synthetic source-drift fixture, not acceptance.\n')
+            return {'id': name, 'status': 'passed', 'command': command, 'exit_code': 0,
+                    'log': log.relative_to(self.root).as_posix(), 'log_sha256': digest(log.read_bytes())}
 
         with (patch.object(harness, 'ROOT', self.root),
               patch.object(harness, 'REPORTS', self.root / '.reports'),

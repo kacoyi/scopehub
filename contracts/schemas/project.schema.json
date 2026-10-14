@@ -530,6 +530,9 @@
         "project_definition_sha256": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
+        },
+        "ci": {
+          "$ref": "#/$defs/CIProvenance"
         }
       },
       "required": [
@@ -846,6 +849,9 @@
             "product_review"
           ],
           "additionalProperties": false
+        },
+        "source_control": {
+          "$ref": "#/$defs/SourceControl"
         }
       },
       "required": [
@@ -854,7 +860,8 @@
         "iteration_policy",
         "change_types",
         "scenarios",
-        "release_policy"
+        "release_policy",
+        "source_control"
       ],
       "additionalProperties": false
     },
@@ -1098,6 +1105,9 @@
               }
             ]
           }
+        },
+        "ci": {
+          "$ref": "#/$defs/CIProvenance"
         }
       },
       "required": [
@@ -1112,6 +1122,134 @@
         "environment",
         "checks"
       ]
+    },
+    "SourceControl": {
+      "type": "object",
+      "properties": {
+        "checkpoint": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "push": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "verification": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "integration": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "failure_recovery": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "scaling": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "authorization": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "checkpoint",
+        "push",
+        "verification",
+        "integration",
+        "failure_recovery",
+        "scaling",
+        "authorization"
+      ],
+      "additionalProperties": false
+    },
+    "CIProvenance": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "const": "github-actions"
+        },
+        "repository": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+        },
+        "run_id": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "run_attempt": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "event": {
+          "enum": [
+            "push",
+            "pull_request",
+            "workflow_dispatch"
+          ]
+        },
+        "head_sha": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "checkout_sha": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "run_url": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "provider",
+        "repository",
+        "run_id",
+        "run_attempt",
+        "event",
+        "head_sha",
+        "checkout_sha",
+        "run_url"
+      ],
+      "additionalProperties": false
     }
   }
 }

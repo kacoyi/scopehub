@@ -22,7 +22,9 @@
     "project:context": "uv run python scripts/project.py context",
     "project:history": "uv run python scripts/project.py history",
     "project:readiness": "uv run python scripts/project.py readiness",
-    "project:doctor": "uv run python scripts/doctor.py"
+    "project:doctor": "uv run python scripts/doctor.py",
+    "project:checkpoint": "uv run python scripts/project.py checkpoint",
+    "project:ci": "uv run python scripts/ci.py"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.12.2",

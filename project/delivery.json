@@ -21,7 +21,7 @@
       "Repeat checks after relevant changes, failures or new evidence; avoid retries without a changed hypothesis."
     ],
     "finish": [
-      "Run task checks and the full local harness, inspect logs and archive evidence before marking work done.",
+      "Run local fast and affected checks; archive all required task evidence from local or matching hosted verification before marking work done. Do not duplicate expensive hosted checks locally without a debugging need.",
       "Review changed files and accepted history; retain a concrete next action and current focus.",
       "Report tested behavior, unresolved blockers and the difference between mock, native-runtime and release evidence.",
       "Run release-cadence checks at the actual release boundary or through an affected task; normal changes retain a short deterministic feedback loop."
@@ -308,6 +308,53 @@
       "Demonstrate the end-to-end workflow to the owner and record observed usability issues as feedback.",
       "Compare the delivered outcome with the research question, visible source quality and actual operation results.",
       "Use release-artifacts acceptance to verify retained artifacts and the recorded owner review; a checklist alone is not acceptance."
+    ]
+  },
+  "source_control": {
+    "checkpoint": [
+      "Make a coherent local commit after a meaningful validated outcome, before a risky experiment, and at handoff. Inspect the diff and include only intended project files.",
+      "Use a task branch such as codex/<outcome>. Run check:fast and affected checks before committing; a clearly described recovery checkpoint may retain unresolved failures but cannot count as completed work.",
+      "Use project:checkpoint to inspect the commit, dirty files, locally known upstream distance, current fast checks and slowest checks. It does not fetch or prove remote synchronization.",
+      "A local commit preserves recoverable source; an archived task receipt preserves observed acceptance. Keep both and distinguish them from push, integration and release."
+    ],
+    "push": [
+      "Within owner-authorized publication scope, push meaningful checkpoints and handoffs to the task branch and create or update its draft pull request. Do not push every edit or wait for product completion.",
+      "The current workflow runs on pull requests and main pushes. A branch push without a pull request does not start it; keep pull requests open while iterating.",
+      "Record branch, commit and pull-request URL. A network error, missing upstream or queued run leaves synchronization or verification pending, not complete.",
+      "Run project:ci after pushing, creating a pull request or observing a CI completion. Continue independent work while it runs; recheck the current commit before using the result."
+    ],
+    "verification": [
+      "Keep fast and affected checks local for early feedback. Run the full change harness on hosted Linux and native Windows for pull requests and main.",
+      "Run release-cadence checks on an identified release candidate through the manual release profile or explicitly through an affected task. Do not run multi-hour stability checks after every edit.",
+      "Require the latest matching workflow run for the exact source commit to succeed; missing, queued, cancelled, timed-out and failed runs are not passes. A successful workflow still does not complete unimplemented task or release gates.",
+      "Record both the pull-request head and the actual checked-out merge commit. Archive only evidence with matching execution inputs, task and decision definitions, origin, commit identity and unchanged log digests.",
+      "Download artifacts using the authenticated official gh CLI into .reports/ci/<run-id>/<platform>; pass that directory with project:record --artifact-root. Preserve the original report and never replace local latest reports with downloaded files.",
+      "CI metadata and hashes provide traceability and stale-evidence detection, not cryptographic attestation against a malicious contributor. Retrieve evidence from the observed repository run and review changes to the checks themselves."
+    ],
+    "integration": [
+      "Integrate through a reviewed pull request with successful required checks for its current revision. Recheck after base changes, conflicts or consequential new evidence.",
+      "Require Linux and Windows verification before normal integration. Keep branch protection settings aligned with actual job names once their first successful runs are observed; repository policy text alone does not enforce GitHub settings.",
+      "Keep source integration, packaging and public release separate. A merged pull request is not a released or product-accepted build.",
+      "Retain release artifacts, checksums and acceptance evidence outside ephemeral CI retention when releases are implemented. The current workflow retains diagnostic artifacts for 30 days; task receipts keep digests, not full logs."
+    ],
+    "failure_recovery": [
+      "Keep the failed run and inspect its first actionable error. Record consequential escapes or false assumptions as feedback with a corrective task and regression evidence.",
+      "Reproduce with the smallest relevant local or native check; fix on the branch, commit and rerun the affected checks plus required integration gates.",
+      "Retry a transient infrastructure failure only after recording its cause. Do not retry assertions repeatedly, loosen checks, use stale green runs or hide cancellation to obtain a passing status.",
+      "If a regression reaches main, create a repair or revert commit and reverify. Preserve shared history; do not force-push to erase the failure."
+    ],
+    "scaling": [
+      "Use a five-minute fast-feedback objective and a fifteen-minute change-CI objective as review triggers, not reasons to skip required checks. Current job limits are 30 minutes for changes and 180 minutes for release verification.",
+      "Use recorded check durations and job queue time to find the bottleneck. Cache pnpm, uv and Cargo dependencies and build outputs by platform, toolchain and lockfiles; caches never count as test evidence.",
+      "When repeated runs exceed the objective, split independent checks into jobs, isolate long stability work, and add measured task-specific selection. Preserve a required aggregate result and explicit coverage of omitted checks.",
+      "Keep generated-contract, architecture, task-state and relevant regressions early. Add scheduled validation or paid/self-hosted runners only when an observed need justifies the recurring resource use.",
+      "Capability discovery for ci.run returned UNAVAILABLE on 2026-10-14. Use the existing repository GitHub Actions workflow as the explicit fallback; retry discovery if shared CI requirements change."
+    ],
+    "authorization": [
+      "Routine local commits, tests and fixes are part of authorized implementation. Existing explicit push authorization persists across checkpoints within its agreed repository and branch scope.",
+      "The origin is public. Obtain owner authorization before the first publication of previously local scaffold content if publication is not already authorized; do not create a repeated approval gate after standing scope is granted.",
+      "Inspect the HTTPS origin and local github.account marker before authenticated GitHub operations, select the marked account with gh auth switch and verify its login. Never read token files.",
+      "Source-control policy does not grant merge, release, visibility, account administration, destructive history changes or branch-protection weakening permissions. Apply existing owner intent and platform approval requirements to the concrete action."
     ]
   }
 }

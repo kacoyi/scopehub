@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-005",
+  "focus_task_id": "M0-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -126,7 +126,7 @@
         "windows-native-build"
       ],
       "evidence": [],
-      "next_action": "Run the Windows CI job or the native Windows harness at these execution inputs, repair any failures and archive its report.",
+      "next_action": "With owner authorization for the public upload, push codex/continuous-delivery and open its draft PR. Observe Linux and native Windows CI, repair failures, download the matching Windows artifact into .reports/ci/<run-id>/windows and archive native evidence. Review main protection after the actual check names are observed.",
       "blocker": "No passing native Windows x64 report exists; the current WSL host does not validate the Windows application runtime.",
       "closure_reason": null,
       "plan": {
@@ -487,7 +487,7 @@
       "id": "M0-005",
       "title": "Establish source checkpoints and commit-bound hosted verification",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-004"
       ],
@@ -503,7 +503,8 @@
       ],
       "decision_refs": [
         "0004",
-        "0005"
+        "0005",
+        "0006"
       ],
       "acceptance": [
         "Expose local checkpoint, upstream synchronization and hosted verification as distinct states tied to the actual commit.",
@@ -524,8 +525,13 @@
         "rust-contracts-workers",
         "rust-lints"
       ],
-      "evidence": [],
-      "next_action": "Implement checkpoint and CI provenance tooling, verify the workflow, and prepare reviewable source commits.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-005-9088a7d6d5de34db.json",
+          "sha256": "6a80a4eff8a82d1cf826f5b01f509d6a83eddbb5ec2a9c9529a9da4459489f31"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
