@@ -1,0 +1,17 @@
+{
+  "recorded_at": "2026-10-14",
+  "kind": "owner_publication_authorization",
+  "repository": "https://github.com/kacoyi/scopehub",
+  "visibility": "public",
+  "authority": "The owner explicitly accepted the proposal to publish the prepared task branch, create a draft PR and make future task-branch pushes the default workflow.",
+  "allowed": [
+    "Push codex/continuous-delivery with the prepared scaffold commits.",
+    "Create and update the draft pull request and run its hosted checks.",
+    "Commit and push subsequent authorized task-branch iterations in this repository without repeated publication confirmation."
+  ],
+  "separate_decisions": [
+    "Merge into the default branch.",
+    "Publish a product release."
+  ],
+  "policy": "project/delivery.json#/source_control/authorization"
+}

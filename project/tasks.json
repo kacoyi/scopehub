@@ -92,7 +92,7 @@
       "id": "M0-003",
       "title": "Validate the foundation on native Windows x64",
       "milestone": "M0",
-      "status": "blocked",
+      "status": "active",
       "depends_on": [
         "M0-001",
         "M0-002"
@@ -100,13 +100,18 @@
       "scope": [
         "apps/desktop/src-tauri",
         ".github/workflows/verify.yml",
-        "project/evidence"
+        "project/evidence",
+        "project/delivery.json",
+        "project/tasks.json",
+        "contracts/reviews"
       ],
       "decision_refs": [
         "0001",
         "0002",
         "0003",
-        "0004"
+        "0004",
+        "0005",
+        "0006"
       ],
       "acceptance": [
         "The checked source passes all foundation checks and the native Windows desktop build.",
@@ -126,8 +131,8 @@
         "windows-native-build"
       ],
       "evidence": [],
-      "next_action": "With owner authorization for the public upload, push codex/continuous-delivery and open its draft PR. Observe Linux and native Windows CI, repair failures, download the matching Windows artifact into .reports/ci/<run-id>/windows and archive native evidence. Review main protection after the actual check names are observed.",
-      "blocker": "No passing native Windows x64 report exists; the current WSL host does not validate the Windows application runtime.",
+      "next_action": "Push the owner-authorized task branch, create its draft PR, repair observed CI failures and archive matching native Windows evidence before completion.",
+      "blocker": null,
       "closure_reason": null,
       "plan": {
         "outcome": "The foundation compiles and passes its checks on the actual Windows x64 target.",

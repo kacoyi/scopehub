@@ -352,7 +352,7 @@
     ],
     "authorization": [
       "Routine local commits, tests and fixes are part of authorized implementation. Existing explicit push authorization persists across checkpoints within its agreed repository and branch scope.",
-      "The origin is public. Obtain owner authorization before the first publication of previously local scaffold content if publication is not already authorized; do not create a repeated approval gate after standing scope is granted.",
+      "On 2026-10-14 the owner authorized the initial public push of codex/continuous-delivery to kacoyi/scopehub, creation and updates of its draft pull request, and routine future task-branch pushes to this repository as the default iteration workflow. Do not ask again within that scope. Merge and release remain separate authorization decisions.",
       "Inspect the HTTPS origin and local github.account marker before authenticated GitHub operations, select the marked account with gh auth switch and verify its login. Never read token files.",
       "Source-control policy does not grant merge, release, visibility, account administration, destructive history changes or branch-protection weakening permissions. Apply existing owner intent and platform approval requirements to the concrete action."
     ]
