@@ -10,6 +10,11 @@ check_platform = "windows-x64"
 
 [target.'cfg(windows)'.dependencies]
 tauri = { version = "2.12.3", default-features = false, features = ["wry", "compression", "common-controls-v6"] }
+scopehub-application = { path = "../../../crates/application" }
+scopehub-domain = { path = "../../../crates/domain" }
+scopehub-worker-host = { path = "../../../crates/worker-host" }
+serde_json.workspace = true
+tokio.workspace = true
 
 [target.'cfg(windows)'.build-dependencies]
 tauri-build = { version = "2.7.2", features = [] }

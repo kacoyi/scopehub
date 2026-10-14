@@ -103,7 +103,15 @@
       "Chinese stocks",
       "US stocks"
     ],
-    "real_data_gate": "V1 completes the end-to-end architecture using simulated data; real market data adapters require subsequent verification of sources, permissions, historical coverage, SDKs, and redistribution licenses"
+    "real_data_gate": "V1 completes the end-to-end architecture using simulated data; real market data adapters require subsequent verification of sources, permissions, historical coverage, SDKs, and redistribution licenses",
+    "service_policy": {
+      "default": "Installing ScopeHub does not include market data, AI, information or any other financial service subscription.",
+      "development_samples": "Owner-provided files and generated fixtures are development/test inputs, not a promised production feed or bundled service.",
+      "connections": "Allow users to connect their own local data, APIs, services and independently implemented adapters. Keep sources replaceable and able to coexist.",
+      "commercial_services": "Users obtain needed services separately and bear applicable provider charges; installing ScopeHub does not include a service plan. User-owned local data and independently implemented connections remain supported product requirements. This requirement does not mandate a ScopeHub billing system.",
+      "demo": "Offline synthetic examples are explicitly selected and visibly labeled; never substitute them for an unavailable configured source.",
+      "capabilities": "Implement data access, charts, AI collaboration, information retrieval and service integrations within the product scope. Unconfigured startup is not a reason to omit these capabilities."
+    }
   },
   "stack": {
     "ui": {

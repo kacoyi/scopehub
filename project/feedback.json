@@ -362,6 +362,46 @@
         "prevention": "Independent missing-versus-zero regressions and hand-calculated OHLC/calendar oracles run in the required market-fixtures gate. Linux and native Windows evidence for M1-002 archives all 16 market tests and the 156-test Python suite; the original failing report is retained at .reports/runs/20261014T081548.880651Z-cb04f032/test-report.json."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "capabilities-versus-service-subscriptions",
+      "source": "Owner clarification on 2026-10-14",
+      "observation": "The owner clarified twice that default absence of data, AI, information and financial service subscriptions must not remove the software capabilities to use them or prevent user-supplied connections and adapters.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-005"
+      ],
+      "regression_checks": [
+        "chart-history",
+        "project-state"
+      ],
+      "resolution": {
+        "cause": "The initial service-default typo and its correction could be misread as removing data, AI or information capabilities instead of excluding bundled subscriptions.",
+        "correction": "Record the distinction explicitly in the product contract, contract manifest and contributor guidance. The startup screen states that connections and subscriptions are user supplied; opting into synthetic history remains a separate action. All planned data, AI and information capabilities remain required.",
+        "prevention": "The historical-chart regression verifies zero startup operations and explicit demo entry through the real Rust/Python path; both Linux and Windows CI pass in run 38570391461. Task M1-005 archives native evidence. The product policy explicitly preserves local files, APIs and user-implemented adapters; these integrations are still pending, not removed."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "accepted-history-evidence-append",
+      "source": "GitHub Actions 38569288074, Linux Preserve accepted history; reproduced with project:history --base a0101bad2aeeb5a590706888462c5f8ad5bff152",
+      "observation": "Adding a validated Windows CI receipt to the completed tick assessment preserves its definition and original evidence but fails the whole-task history equality check. The PR-base-only local comparison did not include this already-pushed task, while CI also compared the prior checkpoint.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-015"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "project-state"
+      ],
+      "resolution": {
+        "cause": "The history guard compared entire completed task records, incorrectly treating a new valid native receipt as a definition rewrite. Local PR-base review omitted the newer completed task; CI also inspected the previous pushed checkpoint.",
+        "correction": "Preserve all non-evidence fields and the ordered original evidence prefix. Allow only completed tasks to append receipts that match the accepted task definition and contain every required passing check; retain cancellation and ADR immutability.",
+        "prevention": "Four new regressions cover legitimate supplemental receipts, deletion/reordering/replacement/state changes, wrong-definition/incomplete additions and cancelled-record immutability. The 177-test suite passes; failing CI run 38569288074 and local reports remain retained. Review both base and prior checkpoint."
+      },
+      "deferral_reason": null
     }
   ]
 }

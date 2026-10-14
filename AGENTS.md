@@ -10,7 +10,7 @@ Follow the shared workspace policy in `/home/loong/ai-workspace/AGENTS.md` when 
 
 ## Project status
 
-Follow `engineering-contract-v1.json` and `contracts/contract.json`. The repository contains an M0 scaffold, not a working market application. Keep unimplemented operations and unverified Windows acceptance explicit. Real data and cloud models are not configured.
+Follow `engineering-contract-v1.json` and `contracts/contract.json`. The repository contains an M0 scaffold and an opt-in synthetic historical chart preview; full market workflow acceptance remains pending. Keep unimplemented operations and unverified Windows acceptance explicit. Real data and cloud models are not configured. The product includes no data, AI, information or other financial service subscription by default. Implement the corresponding product capabilities; users can connect their own local data, APIs, paid services and custom adapters. Unconfigured defaults must not be interpreted as removing those capabilities. Owner files are development samples; explicit synthetic demos must remain distinguishable from user-configured local/API sources.
 
 ## Product intent
 

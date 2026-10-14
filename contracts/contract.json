@@ -14,7 +14,8 @@
       ],
       "input": "InstrumentSearchInput",
       "output": "InstrumentSearchOutput",
-      "implementation": "planned"
+      "implementation": "implemented",
+      "implementation_scope": "Opt-in synthetic historical reads through the shared Rust registry; no external source or live subscription."
     },
     {
       "name": "market.getBars",
@@ -27,7 +28,8 @@
       ],
       "input": "MarketGetBarsInput",
       "output": "MarketGetBarsOutput",
-      "implementation": "planned"
+      "implementation": "implemented",
+      "implementation_scope": "Opt-in synthetic historical reads through the shared Rust registry; no external source or live subscription."
     },
     {
       "name": "workspace.openInstrument",
@@ -190,7 +192,8 @@
     "worker hello",
     "heartbeat response",
     "unsupported request error",
-    "cancel terminal response"
+    "cancel terminal response",
+    "Opt-in market worker advertises and implements instrument.search and market.getBars; default workers advertise no operations."
   ],
   "clarifications": [
     "Workspace revisions are non-negative safe integers; dataset revisions are opaque provider-owned strings.",
@@ -215,5 +218,13 @@
     "M3",
     "M4",
     "M5"
-  ]
+  ],
+  "default_services": {
+    "market_data": false,
+    "ai": false,
+    "information": false,
+    "financial_services": false
+  },
+  "development_data": "Explicit synthetic demo and owner-supplied test samples only; local/API adapters remain unimplemented.",
+  "service_capabilities": "Data, AI, information and service integration capabilities remain product requirements. Users supply their own connections and service subscriptions; unconfigured defaults do not remove capabilities."
 }

@@ -51,6 +51,31 @@ def rust_boundaries(root):
     return errors
 
 
+def desktop_capability_errors(root):
+    errors = []
+    directory = root / 'apps/desktop/src-tauri'
+    capabilities = list((directory / 'capabilities').glob('*'))
+    if {path.name for path in capabilities} != {'main.json'}:
+        errors.append('Desktop capabilities must be limited to the reviewed main window')
+    for path in capabilities:
+        if path.suffix != '.json':
+            errors.append(f'Unreviewed capability format: {path.name}')
+            continue
+        capability = json.loads(path.read_text())
+        if (capability.get('remote') is not None or capability.get('windows') != ['main']
+                or capability.get('webviews') or capability.get('local', True) is not True
+                or capability.get('identifier') != 'main'
+                or capability.get('permissions') != ['allow-execute-operation']):
+            errors.append(f'Desktop capability exceeds the local operation registry: {path.name}')
+    config = json.loads((directory / 'tauri.conf.json').read_text())
+    if config['app']['security'].get('capabilities') != ['main']:
+        errors.append('Desktop capability configuration must select only main')
+    build = (directory / 'build.rs').read_text()
+    if 'AppManifest::new().commands(&["execute_operation"])' not in build:
+        errors.append('Desktop commands must use the reviewed application ACL')
+    return errors
+
+
 def main():
     errors = []
     spec = json.loads((ROOT / 'engineering-contract-v1.json').read_text())
@@ -103,12 +128,7 @@ def main():
     errors.extend(f'Tauri configuration: {error.message}' for error in validators.validator_for(tauri_schema)(tauri_schema).iter_errors(tauri))
     if not tauri['app']['security']['csp']:
         errors.append('Release CSP missing')
-    for path in (ROOT / 'apps/desktop/src-tauri/capabilities').glob('*.json'):
-        capability = json.loads(path.read_text())
-        if capability.get('remote'):
-            errors.append(f'Remote Tauri capability: {path.name}')
-        if capability.get('permissions'):
-            errors.append(f'M0 must expose no commands: {path.name}')
+    errors.extend(desktop_capability_errors(ROOT))
     if errors:
         raise SystemExit('\n'.join(errors))
     print(json.dumps({'status': 'passed', 'operations': len(actual), 'boundary_check': 'declared dependencies and source imports'}))

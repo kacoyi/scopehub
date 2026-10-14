@@ -1,0 +1,94 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M1-004",
+  "task_definition_sha256": "a02cad68dc73831e054307d8d69b0a146c037c601b161c9b302409c479eaac33",
+  "run_id": "20261014T123314.779118Z-eb069218",
+  "recorded_at": "2026-10-14T12:42:12.629273+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "1036c42cc9b018ee86f433aa267ec53adde753c7ba350569a9369c1651d59caa",
+    "file_count": 118,
+    "git_head": "48f05cf6b9d0e0d303e72d79efad313cd46c6e05",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "50711c0cac858f9115da2d9ec83eccca4acd35c9c463fd387dd744c9ae12be4c",
+  "environment": {
+    "system": "Windows",
+    "release": "2025Server",
+    "machine": "AMD64",
+    "python": "3.12.10",
+    "python_executable": "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+    "tools": {
+      "node": "v24.21.0",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (5411378eb 2026-10-08 x86_64-pc-windows-msvc)"
+    }
+  },
+  "checks": [
+    {
+      "id": "futures-tick-inspection",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "-m",
+        "unittest",
+        "tests.project.test_futures_ticks",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "59d485d9f5772761d3f941efd1b37cdc1f15f7b7759dab53d050a58b616ddbfd"
+    },
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "0c999fbc5b93677eb8e0544a7fb05459fbb022c1ad0eaf9586f1764299bf4d7e"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "709efec421c9579056e8f9f8ba74e5475ea6d8b2ed39b4cb9b4e9d90a0e2ceb4"
+    }
+  ],
+  "project_definition_sha256": "6cdc888800dc52d725f6471c9470b452eb875f98a96f0c893981af3a69ac707f",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "ci": {
+    "provider": "github-actions",
+    "repository": "kacoyi/scopehub",
+    "run_id": "38564506309",
+    "run_attempt": "1",
+    "event": "pull_request",
+    "head_sha": "a0101bad2aeeb5a590706888462c5f8ad5bff152",
+    "checkout_sha": "48f05cf6b9d0e0d303e72d79efad313cd46c6e05",
+    "run_url": "https://github.com/kacoyi/scopehub/actions/runs/38564506309"
+  }
+}

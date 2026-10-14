@@ -185,7 +185,8 @@
       "milestone": "M1",
       "status": "planned",
       "depends_on": [
-        "M1-002"
+        "M1-002",
+        "M1-005"
       ],
       "scope": [
         "apps/desktop/ui",
@@ -207,7 +208,7 @@
         "market-workflow"
       ],
       "evidence": [],
-      "next_action": "After fixture semantics are verified, connect one instrument through the core to the chart, then expand to the specified instruments and timeframes.",
+      "next_action": "After the opt-in historical chart slice, add live updates, workspace operations and observable connection/quality states. Coordinate recovery with M1-003; keep real local-file adaptation separate.",
       "blocker": null,
       "closure_reason": null
     },
@@ -1508,6 +1509,296 @@
           }
         ],
         "rollback": "Preserve the observed PR and failed checks; revert only the new assessment and lifecycle extension if needed. Keep existing required checks, live branch protection, accepted records and publication boundaries unchanged, and resume M1-002 after validated closure."
+      }
+    },
+    {
+      "id": "M1-004",
+      "title": "Assess supplied futures tick snapshots for chart reconstruction",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M0-003"
+      ],
+      "scope": [
+        "scripts/inspect_futures_ticks.py",
+        "tests/project/test_futures_ticks.py",
+        "project/assessments",
+        "project/checks.json",
+        "project/delivery.json",
+        "project/tasks.json"
+      ],
+      "decision_refs": [
+        "0001",
+        "0004",
+        "0005"
+      ],
+      "acceptance": [
+        "Scan every supplied tick CSV read-only; retain file identities and structural, timestamp, counter, missing-value and duplicate observations locally without uploading supplied quotes.",
+        "Demonstrate minute and daily observed-price aggregation with explicit session-relative ordering, cumulative-volume baselines, invalid-value handling and independently calculated regression cases.",
+        "Record which intraday and candle features the sample supports and which require additional metadata, native bars or historical coverage; make no official-price, complete trade-tape or delivered chart-application claim."
+      ],
+      "checks": [
+        "futures-tick-inspection",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-004-2cd3252954e3dcbf.json",
+          "sha256": "ab21b988fc80fe120c39fb8989c3f874c1454bed9824b974d394c83ae017f498"
+        },
+        {
+          "path": "project/evidence/M1-004-50711c0cac858f91.json",
+          "sha256": "50af749f53ba7b9221867961c11f613d177838a4a5abfd3d9077801fb3cf0533"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "An evidence-backed decision about the supplied tick snapshots, with a reusable local diagnostic and bounded chart-data proof, before committing to a real-data integration.",
+        "change_types": [
+          "offline-data",
+          "tooling"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "project/delivery.json",
+          "project/checks.json",
+          "python/providers/simulated.py"
+        ],
+        "hypotheses": [
+          "The fifteen-column snapshot CSV format contains enough observed prices and cumulative counters for intraday price, volume, open-interest and approximate candle series.",
+          "A trading-day label and time-of-day require explicit night-session ordering; they do not establish an absolute calendar timestamp without a session calendar.",
+          "Counter deltas, sentinel filtering and duplicate detection can be validated locally without source-price verification, provider access or raw-data publication.",
+          "The first full scan found mixed source trading-day labels in 158 files. An explicit one-day assignment based on this delivery folder can test relative continuity while preserving every raw date; it is not an exchange-calendar validation."
+        ],
+        "risks": [
+          {
+            "failure": "Snapshot prices are misrepresented as complete individual trades or exact exchange OHLC.",
+            "checks": [
+              "futures-tick-inspection"
+            ]
+          },
+          {
+            "failure": "Night sessions, counter resets, a nonzero initial counter or invalid prices silently fabricate candles or volume.",
+            "checks": [
+              "futures-tick-inspection"
+            ]
+          },
+          {
+            "failure": "Data files are altered, source quotes are uploaded, or assessment completion is confused with product acceptance.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Continuous aliases are double counted, same-time snapshots are collapsed, or non-monotonic turnover is treated as reliable per-trade cash flow.",
+            "checks": [
+              "futures-tick-inspection"
+            ]
+          }
+        ],
+        "rollback": "Keep the owner files read-only and detailed results in ignored local reports. Preserve failed diagnostic outputs, repair against small synthetic counterexamples and rerun affected inspection. A negative finding limits the supported scope instead of weakening the checks or modifying source data."
+      }
+    },
+    {
+      "id": "M1-005",
+      "title": "Connect opt-in synthetic history to the desktop chart",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-002",
+        "M0-015"
+      ],
+      "scope": [
+        "apps/desktop",
+        "crates",
+        "python/worker_runtime",
+        "python/providers",
+        "tests",
+        "scripts",
+        "project",
+        "contracts/contract.json",
+        "engineering-contract-v1.json",
+        "AGENTS.md",
+        "Cargo.toml",
+        "Cargo.lock",
+        "package.json",
+        "pnpm-lock.yaml",
+        ".github/workflows/verify.yml",
+        "THIRD_PARTY_NOTICES",
+        "contracts/references.json",
+        "pnpm-workspace.yaml",
+        ".gitignore"
+      ],
+      "decision_refs": [
+        "0001",
+        "0003",
+        "0004",
+        "0005",
+        "0006"
+      ],
+      "acceptance": [
+        "Start with no configured data, AI or information service; only an explicit offline-demo action requests synthetic history. Supplied owner files remain development samples and are not bundled or uploaded.",
+        "Read the three specified synthetic instruments and 1m/5m/1d histories through the Rust read-operation registry and a controlled Python market worker; render candles, close-price line and volume with visible provenance, trading day and partial status.",
+        "Validate operation-specific inputs and outputs, actor and worker capabilities, response correlation and market identity; bound frames and deadlines and clean up failed workers.",
+        "Exercise real Python-to-Rust history retrieval and browser chart rendering, selection races, empty/error states and resource cleanup. Keep live updates, reconnect, workspace persistence, local files/API adapters and packaged Windows acceptance explicitly pending."
+      ],
+      "checks": [
+        "chart-history",
+        "market-fixtures",
+        "project-state",
+        "python-contracts-workers",
+        "python-types",
+        "architecture",
+        "ui-build",
+        "typescript-contracts",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "windows-native-build",
+        "dependency-review"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-005-472023bcc5521645.json",
+          "sha256": "0508149fc7dbef9fa3d275390c3e38a9f7dc550e76315e2373224a9e0345ccf9"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A runnable opt-in synthetic history chart with a narrow shared Rust read registry, explicit unconfigured startup and reproducible integration evidence; a prerequisite slice of M1, not completion of live-market acceptance.",
+        "change_types": [
+          "chart-history",
+          "tooling",
+          "dependencies",
+          "packaging"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/contract.json",
+          "project/delivery.json",
+          "project/checks.json",
+          "python/providers/simulated.py",
+          "project/assessments/futures-tick-20260109.json"
+        ],
+        "hypotheses": [
+          "The existing instrument.search and market.getBars request/response contracts suffice for historical exploration without adding streaming protocol or changing accepted language/process/permission boundaries.",
+          "A shared read registry can reject unsupported operations and validate provider output before a chart adapter receives it; native desktop and browser harnesses can use the same Rust/Python path.",
+          "An explicit demo entry keeps generated examples distinct from user-configured data and paid external services; a focused history check can establish this slice while full live workflow and recovery gates remain planned."
+        ],
+        "risks": [
+          {
+            "failure": "Unconfigured startup silently enables data or AI services, or owner samples become a bundled/default feed.",
+            "checks": [
+              "chart-history",
+              "architecture"
+            ]
+          },
+          {
+            "failure": "Wrong provider, operation, response or range is accepted; malformed or duplicate bars silently reach the chart.",
+            "checks": [
+              "chart-history",
+              "rust-contracts-workers",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Slow workers, repeated requests or rapid instrument changes leak processes or render old data under a new identity.",
+            "checks": [
+              "chart-history",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "New chart dependencies, desktop ACL or fixtures undermine existing boundaries or create unsupported acceptance claims.",
+            "checks": [
+              "dependency-review",
+              "architecture",
+              "windows-native-build",
+              "market-fixtures",
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Retain failed harness reports and source checkpoints. Repair using small malformed-response and selection-race regressions. Revert this history slice if needed; preserve the previously passing scaffold and fixtures. Do not label live recovery, actual packaged Windows execution, local import or API integration as completed."
+      }
+    },
+    {
+      "id": "M0-015",
+      "title": "Allow validated append-only evidence on completed tasks",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-014"
+      ],
+      "scope": [
+        "scripts/project.py",
+        "tests/project/test_delivery.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/delivery.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005"
+      ],
+      "acceptance": [
+        "Appending a new validated receipt to a completed task preserves accepted history; the original task definition, state and ordered evidence references remain unchanged.",
+        "Reject deleted, reordered, replaced or mismatched evidence and any completed/cancelled task or accepted ADR rewrite; retain the failing CI observation and resume M1-005."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-015-75a7e9305a0c1a8e.json",
+          "sha256": "3bf67e190c53ff2746744c636a024033c9ca107ea048b39deb6dc8978fd0fdbd"
+        },
+        {
+          "path": "project/evidence/M0-015-472023bcc5521645.json",
+          "sha256": "a6020c54c83026843c0508d41e203044b89d3c46b7fe32382ed3c1db2091cf8e"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Restore CI history verification for legitimate supplementary acceptance evidence without allowing accepted work or original evidence to be rewritten.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "contracts/decisions/0004-project-continuity.json",
+          "project/delivery.json",
+          "scripts/project.py",
+          "tests/project/test_delivery.py"
+        ],
+        "hypotheses": [
+          "The whole-task equality check conflates adding independently validated evidence with changing accepted task meaning.",
+          "Comparing all non-evidence fields exactly, preserving the evidence prefix and validating added receipts against the same task definition retains the existing history guarantee."
+        ],
+        "risks": [
+          {
+            "failure": "A permissive evidence exception also allows definition changes, old evidence removal or cancelled-task rewrites.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Added evidence is for another task definition or omits required successful checks.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Preserve CI run 38569288074 and the recovery snapshot. Restore strict history comparison if the append-only regression fails; retain the supplementary receipt separately until the gate is repaired. Never erase or rewrite accepted evidence to obtain a pass."
       }
     }
   ]

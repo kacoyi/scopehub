@@ -422,6 +422,67 @@ class DeliveryTests(ProjectFixture):
         with patch('scripts.project.subprocess.run', side_effect=legacy_locale):
             self.assertEqual('passed', review_history(self.root, base)['status'])
 
+    def append_native_receipt(self):
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+        base = self.commit_fixture()
+        ref = archive_evidence(self.root, 'M0-001', self.report(system='Windows'))
+        ledger = self.ledger()
+        task_by_id(ledger, 'M0-001')['evidence'].append(ref)
+        self.save_ledger(ledger)
+        return base, ref
+
+    def test_history_allows_validated_append_only_receipts_on_completed_task(self):
+        base, _ = self.append_native_receipt()
+        self.assertEqual('passed', review_history(self.root, base)['status'])
+
+    def test_history_rejects_evidence_removal_reorder_replacement_and_state_changes(self):
+        base, _ = self.append_native_receipt()
+        original = self.ledger()
+        for change in ['remove', 'reorder', 'replace', 'state']:
+            with self.subTest(change=change):
+                ledger = read_json(self.root / 'project/tasks.json')
+                task = task_by_id(ledger, 'M0-001')
+                evidence = task['evidence']
+                if change == 'remove': evidence.pop(0)
+                elif change == 'reorder': evidence.reverse()
+                elif change == 'replace': evidence[0] = evidence[-1]
+                else: task['closure_reason'] = 'Retroactive explanation'
+                self.save_ledger(ledger)
+                with self.assertRaisesRegex(ProjectError, 'Accepted task history'):
+                    review_history(self.root, base)
+                self.save_ledger(original)
+
+    def test_history_rejects_appended_receipt_for_different_definition_or_missing_checks(self):
+        base, ref = self.append_native_receipt()
+        path = self.root / ref['path']
+        original = path.read_bytes()
+        for field in ['task_definition_sha256', 'checks']:
+            with self.subTest(field=field):
+                receipt = read_json(path)
+                receipt[field] = '0' * 64 if field == 'task_definition_sha256' else receipt['checks'][:1]
+                path.write_bytes(json_bytes(receipt))
+                ledger = self.ledger()
+                task_by_id(ledger, 'M0-001')['evidence'][-1]['sha256'] = digest(path.read_bytes())
+                self.save_ledger(ledger)
+                with self.assertRaisesRegex(ProjectError, 'Appended evidence'):
+                    review_history(self.root, base)
+                path.write_bytes(original)
+
+    def test_history_keeps_cancelled_records_immutable(self):
+        ref = archive_evidence(self.root, 'M0-001', self.report())
+        extra = archive_evidence(self.root, 'M0-001', self.report(system='Windows'))
+        ledger = self.ledger()
+        task_by_id(ledger, 'M0-001').update(status='cancelled', evidence=[ref], next_action=None,
+                                         closure_reason='Superseded fixture scope.')
+        ledger['focus_task_id'] = 'M0-002'
+        self.save_ledger(ledger)
+        base = self.commit_fixture()
+        task_by_id(ledger, 'M0-001')['evidence'].append(extra)
+        self.save_ledger(ledger)
+        with self.assertRaisesRegex(ProjectError, 'Accepted task history'):
+            review_history(self.root, base)
+
+
     def test_missing_history_base_does_not_claim_comparison(self):
         self.assertEqual('not_applicable', review_history(self.root)['status'])
         with self.assertRaises(subprocess.CalledProcessError):

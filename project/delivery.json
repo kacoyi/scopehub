@@ -147,6 +147,29 @@
         "architecture",
         "dependency-review"
       ]
+    },
+    {
+      "id": "offline-data",
+      "triggers": [
+        "Local file inspection and chart-data reconstruction diagnostics before provider or runtime integration"
+      ],
+      "checks": [
+        "futures-tick-inspection"
+      ]
+    },
+    {
+      "id": "chart-history",
+      "triggers": [
+        "Opt-in read-only historical chart integration before live subscriptions, recovery and persistent workspace operations"
+      ],
+      "checks": [
+        "chart-history",
+        "market-fixtures",
+        "architecture",
+        "python-types",
+        "ui-build",
+        "rust-contracts-workers"
+      ]
     }
   ],
   "scenarios": [
@@ -291,6 +314,32 @@
         "dependency-review"
       ],
       "evidence_boundary": "Actual clean-machine and packaged-runtime evidence; a native compilation alone cannot satisfy this scenario."
+    },
+    {
+      "id": "offline-history-preview",
+      "task_ids": [
+        "M1-005"
+      ],
+      "user_goal": "Inspect explicit synthetic examples without configuring or receiving an external service.",
+      "given": "Unconfigured startup, local generated examples and no credentials.",
+      "when": "Explicitly enter offline demo, select each instrument and timeframe, and compare candle, close-price line and volume.",
+      "then": [
+        "No provider or model work starts before user intent.",
+        "Displayed identity and provenance agree with the Rust-validated history.",
+        "Late responses cannot overwrite a later selection and leaving the preview clears its chart."
+      ],
+      "failure_cases": [
+        "Unavailable worker",
+        "Empty history",
+        "Invalid or mismatched provider response",
+        "Rapid selection changes"
+      ],
+      "checks": [
+        "chart-history",
+        "market-fixtures",
+        "windows-native-build"
+      ],
+      "evidence_boundary": "Read-only synthetic history and native compilation; no live-feed, real data, persistent workspace or packaged WebView acceptance claim."
     }
   ],
   "release_policy": {
@@ -364,7 +413,8 @@
       "Require the latest matching workflow run for the exact source commit to succeed; missing, queued, cancelled, timed-out and failed runs are not passes. A successful workflow still does not complete unimplemented task or release gates.",
       "Record both the pull-request head and the actual checked-out merge commit. Archive only evidence with matching execution inputs, task and decision definitions, origin, commit identity and unchanged log digests.",
       "Download artifacts using the authenticated official gh CLI into .reports/ci/<run-id>/<platform>; pass that directory with project:record --artifact-root. Preserve the original report and never replace local latest reports with downloaded files.",
-      "CI metadata and hashes provide traceability and stale-evidence detection, not cryptographic attestation against a malicious contributor. Retrieve evidence from the observed repository run and review changes to the checks themselves."
+      "CI metadata and hashes provide traceability and stale-evidence detection, not cryptographic attestation against a malicious contributor. Retrieve evidence from the observed repository run and review changes to the checks themselves.",
+      "Accepted completed tasks may append supplementary validated receipts while preserving every non-evidence field and the original ordered evidence references. Added receipts must match that accepted task definition and pass all its checks. Cancelled tasks and accepted ADRs remain immutable. Compare both the PR base and the previous pushed checkpoint when available."
     ],
     "integration": [
       "Integrate through a reviewed pull request with successful required checks for its current revision. Recheck after base changes, conflicts or consequential new evidence.",
