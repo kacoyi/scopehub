@@ -118,28 +118,24 @@
     {
       "id": "rust-contracts-workers",
       "status": "implemented",
-      "purpose": "Exercise Rust contracts and worker integration",
+      "purpose": "Test every eligible Cargo workspace member, including native desktop tests",
       "platforms": "all",
       "command": [
-        "cargo",
-        "test",
-        "--locked"
+        "{python}",
+        "scripts/rust_workspace.py",
+        "test"
       ],
       "timeout_seconds": 900
     },
     {
       "id": "rust-lints",
       "status": "implemented",
-      "purpose": "Check Rust lints",
+      "purpose": "Lint all targets in every eligible Cargo workspace member, including native desktop targets",
       "platforms": "all",
       "command": [
-        "cargo",
-        "clippy",
-        "--locked",
-        "--all-targets",
-        "--",
-        "-D",
-        "warnings"
+        "{python}",
+        "scripts/rust_workspace.py",
+        "clippy"
       ],
       "timeout_seconds": 900
     },

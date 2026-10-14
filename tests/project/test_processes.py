@@ -3,8 +3,10 @@
 from contextlib import redirect_stdout
 from io import StringIO
 import os
+import hashlib
 from pathlib import Path
 import sys
+import subprocess
 import tempfile
 import time
 import unittest
@@ -12,6 +14,7 @@ from unittest.mock import patch
 
 from scripts import check as harness
 from scripts import doctor
+from scripts import processes
 
 
 class ProcessTests(unittest.TestCase):
@@ -33,6 +36,59 @@ class ProcessTests(unittest.TestCase):
         log = (self.root / result['log']).read_text()
         self.assertIn('diagnostic before timeout', log)
         self.assertIn('Check stopped: timeout', log)
+
+    def descendant_command(self, *, exit_code=0, wait=False):
+        ready = self.root / 'descendant-ready'
+        escaped = self.root / 'escaped-descendant'
+        child = (f"from pathlib import Path; import time; Path({str(ready)!r}).touch(); "
+                 f"time.sleep(1.2); Path({str(escaped)!r}).touch(); print('late descendant output', flush=True)")
+        parent = (f"import subprocess, sys, time; from pathlib import Path; "
+                  f"subprocess.Popen([sys.executable, '-c', {child!r}]); "
+                  f"deadline=time.monotonic()+5\n"
+                  f"while not Path({str(ready)!r}).exists() and time.monotonic()<deadline: time.sleep(.005)\n"
+                  + ('time.sleep(30)\n' if wait else f'raise SystemExit({exit_code})\n'))
+        return parent, ready, escaped
+
+    def test_normal_and_nonzero_exit_stop_descendants_before_log_digest(self):
+        for exit_code in [0, 7]:
+            with self.subTest(exit_code=exit_code):
+                parent, ready, escaped = self.descendant_command(exit_code=exit_code)
+                ready.unlink(missing_ok=True)
+                escaped.unlink(missing_ok=True)
+                result = self.execute(parent, timeout=10)
+                self.assertEqual(exit_code, result['exit_code'])
+                self.assertTrue(ready.exists(), 'The child must start before the root exits.')
+                time.sleep(1.4)
+                self.assertFalse(escaped.exists(), 'A child survived the root exit.')
+                self.assertEqual(result['log_sha256'], hashlib.sha256((self.root / result['log']).read_bytes()).hexdigest())
+
+    def test_interruption_stops_descendants_and_preserves_reason(self):
+        parent, ready, escaped = self.descendant_command(wait=True)
+        original_wait = subprocess.Popen.wait
+        interrupted = False
+
+        def wait(process, *args, **kwargs):
+            nonlocal interrupted
+            if not interrupted:
+                deadline = time.monotonic() + 5
+                while not ready.exists() and time.monotonic() < deadline:
+                    time.sleep(.005)
+                interrupted = True
+                raise KeyboardInterrupt
+            return original_wait(process, *args, **kwargs)
+
+        with patch.object(subprocess.Popen, 'wait', wait):
+            result = self.execute(parent, timeout=10)
+        self.assertEqual('interrupted', result['reason_code'])
+        self.assertTrue(ready.exists())
+        time.sleep(1.4)
+        self.assertFalse(escaped.exists())
+
+    def test_cleanup_failure_cannot_become_a_pass(self):
+        with patch.object(processes, 'stop_tree', side_effect=OSError('cleanup fixture failure')):
+            result = self.execute("print('root completed')")
+        self.assertEqual('failed', result['status'])
+        self.assertEqual('cleanup_failed', result['reason_code'])
 
     def test_timeout_stops_a_descendant_before_it_can_write(self):
         ready = self.root / 'descendant-ready'

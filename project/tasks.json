@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-009",
+  "focus_task_id": "M0-010",
   "tasks": [
     {
       "id": "M0-001",
@@ -846,7 +846,7 @@
       "id": "M0-009",
       "title": "Cover workspace membership in architecture checks and native Rust verification",
       "milestone": "M0",
-      "status": "planned",
+      "status": "active",
       "depends_on": [
         "M0-006"
       ],
@@ -856,7 +856,12 @@
         "project/checks.json",
         "tests/project",
         "Cargo.toml",
-        ".github/workflows/verify.yml"
+        ".github/workflows/verify.yml",
+        "scripts/rust_workspace.py",
+        "apps/desktop/src-tauri/Cargo.toml",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
       ],
       "decision_refs": [
         "0001",
@@ -876,25 +881,66 @@
         "architecture",
         "rust-contracts-workers",
         "rust-lints",
-        "windows-native-build"
+        "windows-native-build",
+        "ui-build"
       ],
       "evidence": [],
-      "next_action": "Use H04 and H05 reproductions to design membership-driven boundary and test selection; register native test/lint checks before claiming desktop coverage.",
+      "next_action": "Workspace discovery and selection regressions pass locally; verify full portable checks and native desktop tests/lints, then archive matching Windows evidence.",
       "blocker": null,
-      "closure_reason": null
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Every Cargo workspace member participates in declared dependency checks and tests/lints on its supported host, including the desktop on native Windows.",
+        "change_types": [
+          "tooling",
+          "packaging"
+        ],
+        "context": [
+          "Cargo.toml",
+          "scripts/check_architecture.py",
+          "project/checks.json",
+          "apps/desktop/src-tauri/Cargo.toml"
+        ],
+        "hypotheses": [
+          "Cargo metadata provides authoritative workspace membership, including nested and implicit path members, without guessing directory layouts.",
+          "A single workspace-aware test/lint entry can include future members and explicitly report platform exclusions."
+        ],
+        "risks": [
+          {
+            "failure": "Nested or aliased local crates bypass architecture boundaries.",
+            "checks": [
+              "architecture",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "New or Windows-only crates are omitted from tests or lints.",
+            "checks": [
+              "rust-contracts-workers",
+              "rust-lints",
+              "windows-native-build",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain discovery and selection regressions and explicit platform results. Revert only this task routing if native checks fail while preserving the known coverage gap and original reports."
+      }
     },
     {
       "id": "M0-010",
       "title": "Close verification subprocess lifetimes on every completion path",
       "milestone": "M0",
-      "status": "planned",
+      "status": "active",
       "depends_on": [
         "M0-006"
       ],
       "scope": [
         "scripts/processes.py",
         "tests/project/test_processes.py",
-        "project/checks.json"
+        "project/checks.json",
+        "scripts/windows_job.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
       ],
       "decision_refs": [
         "0001",
@@ -914,9 +960,40 @@
         "windows-native-build"
       ],
       "evidence": [],
-      "next_action": "Start with H06: a root exits zero while its child writes later; choose process ownership and cleanup that also work when the root has already exited, then obtain native evidence.",
+      "next_action": "Linux process regressions and all portable checks pass; verify Job Object assignment, normal/nonzero exit, timeout and interruption on native Windows before archiving completion.",
       "blocker": null,
-      "closure_reason": null
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A check cannot leave descendants running or writing after root success, failure, timeout or interruption; cleanup failures remain failed verification.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/processes.py",
+          "tests/project/test_processes.py",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "POSIX process-group cleanup can run after normal root exit and wait for surviving members to stop.",
+          "A Windows Job Object assigned before releasing a gated launcher owns descendants even after the command root exits."
+        ],
+        "risks": [
+          {
+            "failure": "Windows children start before job assignment or survive normal parent exit.",
+            "checks": [
+              "python-contracts-workers",
+              "windows-native-build"
+            ]
+          },
+          {
+            "failure": "Cleanup masks the root result or loses timeout/interruption diagnostics.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep failing child-marker regressions and logs. Revert only process ownership code if needed and leave the finding open until Linux and native Windows evidence establishes cleanup; this remains trusted check execution, not a hostile-code sandbox."
+      }
     },
     {
       "id": "M0-011",

@@ -4,9 +4,14 @@ import ast
 import json
 from pathlib import Path
 import re
-import tomllib
+import subprocess
 
 from jsonschema import validators
+
+if __package__:
+    from .rust_workspace import workspace_packages
+else:
+    from rust_workspace import workspace_packages
 
 ROOT = Path(__file__).resolve().parents[1]
 ALLOWED_INTERNAL = {
@@ -19,46 +24,30 @@ ALLOWED_INTERNAL = {
 }
 
 
-def dependency_tables(manifest):
-    for key in ['dependencies', 'dev-dependencies', 'build-dependencies']:
-        yield manifest.get(key, {})
-    for target in manifest.get('target', {}).values():
-        yield from dependency_tables(target)
-
-
 def rust_boundaries(root):
     errors = []
-    workspace = tomllib.loads((root / 'Cargo.toml').read_text()).get('workspace', {}).get('dependencies', {})
-    for path in [*root.glob('crates/*/Cargo.toml'), root / 'apps/desktop/src-tauri/Cargo.toml']:
-        if not path.is_file():
-            continue
-        cargo = tomllib.loads(path.read_text())
-        name = cargo['package']['name']
+    try:
+        packages = workspace_packages(root)
+    except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
+        return [str(error)]
+    members = {Path(package['manifest_path']).resolve().parent for package in packages}
+    for package in packages:
+        name = package['name']
         if name not in ALLOWED_INTERNAL:
             errors.append(f'Unregistered internal layer: {name}')
             continue
-        for table in dependency_tables(cargo):
-            for alias, value in table.items():
-                base = path.parent
-                if isinstance(value, dict) and value.get('workspace'):
-                    if alias not in workspace:
-                        errors.append(f'Missing workspace dependency: {name} -> {alias}')
-                        continue
-                    value, base = workspace[alias], root
-                dependency = value.get('package', alias) if isinstance(value, dict) else alias
-                if isinstance(value, dict) and 'path' in value:
-                    dependency_path = (base / value['path'] / 'Cargo.toml').resolve()
-                    if not dependency_path.is_relative_to(root.resolve()):
-                        errors.append(f'Local dependency outside the reviewed repository: {name} -> {alias}')
-                        continue
-                    if not dependency_path.is_file():
-                        errors.append(f'Missing local dependency: {name} -> {alias}')
-                        continue
-                    dependency = tomllib.loads(dependency_path.read_text())['package']['name']
-                if dependency.startswith('scopehub-') and dependency not in ALLOWED_INTERNAL[name]:
-                    errors.append(f'Forbidden internal dependency: {name} -> {dependency}')
-                if name in {'scopehub-domain', 'scopehub-application'} and dependency in {'tauri', 'rusqlite', 'sqlx'}:
-                    errors.append(f'Infrastructure dependency in {name}: {dependency}')
+        for value in package['dependencies']:
+            dependency = value['name']
+            if 'path' in value:
+                dependency_path = Path(value['path']).resolve()
+                if not dependency_path.is_relative_to(root.resolve()):
+                    errors.append(f'Local dependency outside the reviewed repository: {name} -> {dependency}')
+                elif dependency_path not in members:
+                    errors.append(f'Local dependency is not a reviewed workspace member: {name} -> {dependency}')
+            if dependency.startswith('scopehub-') and dependency not in ALLOWED_INTERNAL[name]:
+                errors.append(f'Forbidden internal dependency: {name} -> {dependency}')
+            if name in {'scopehub-domain', 'scopehub-application'} and dependency in {'tauri', 'rusqlite', 'sqlx'}:
+                errors.append(f'Infrastructure dependency in {name}: {dependency}')
     return errors
 
 
