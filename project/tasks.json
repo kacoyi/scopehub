@@ -934,6 +934,100 @@
       "next_action": "Use H09 before integrating additional chart/provider/build dependencies: inventory current locks, implement the planned review check and choose a proportionate update cadence without adding a new service.",
       "blocker": null,
       "closure_reason": null
+    },
+    {
+      "id": "M0-013",
+      "title": "Make scaffold recovery and evidence-driven improvement resumable",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-006"
+      ],
+      "scope": [
+        "AGENTS.md",
+        "project/delivery.json",
+        "project/feedback.json",
+        "project/tasks.json",
+        "project/evidence",
+        "contracts/schemas/project.schema.json",
+        "package.json",
+        "scripts/recovery.py",
+        "scripts/check.py",
+        "scripts/project.py",
+        "tests/project"
+      ],
+      "decision_refs": [
+        "0001",
+        "0003",
+        "0004",
+        "0005",
+        "0006"
+      ],
+      "acceptance": [
+        "An independent standard-library recovery command retains malformed control files and failure context when normal project imports or validation cannot start; diagnostics never establish acceptance or replace the latest harness report.",
+        "Recovery distinguishes observed failures, task-specific capability gaps, relevant feedback and expected omissions without executing commands from damaged records.",
+        "Contributor policy and task context define when the active agent investigates, repairs or extends the scaffold, how it avoids blind retries and weakened checks, and how it restores the interrupted product task after validated closure.",
+        "Isolated regressions exercise broken bootstrap dependencies, malformed records and preservation of evidence without depending on production task order."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-013-c04fcbe86f9c900c.json",
+          "sha256": "0bd3acf5a784acc2e37e4af2dd125d136a312a97301336a6ef848716aef77d78"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A development agent can preserve and diagnose a broken scaffold, implement a bounded repair or missing capability, validate it and resume delivery using repository records.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "AGENTS.md",
+          "project/delivery.json",
+          "project/feedback.json",
+          "scripts/check.py",
+          "scripts/project.py",
+          "contracts/reviews/2026-10-14-long-term-health.json"
+        ],
+        "hypotheses": [
+          "Existing task, feedback and evidence records can carry the repair lifecycle without introducing a scheduler or autonomous code-writing service.",
+          "A standard-library diagnostic independent of project imports remains usable when the normal control plane is broken."
+        ],
+        "risks": [
+          {
+            "failure": "The recovery command depends on the same broken modules or records as the normal harness.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Historical diagnostics, future planned checks or expected platform omissions are mistaken for current acceptance or repair obligations.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Recovery overwrites original evidence or treats untrusted record commands as instructions to execute.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "New policy invalidates accepted history or allows repair by silently reducing verification.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Preserve failed runs and uncommitted changes; compare with commit 47f0bd0fed34bc63d60bb4f8b3e311c677c41336 and revert only the recovery implementation if needed. Restore normal validation and backfill repair records before claiming completion; retain the existing audit corrective tasks."
+      }
     }
   ]
 }

@@ -287,6 +287,26 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "scaffold-bootstrap-recovery",
+      "source": "Owner follow-up on 2026-10-14 and inspection of scripts/check.py bootstrap",
+      "observation": "Normal status and harness commands import project validation before diagnostics can be retained. A broken validator dependency or malformed task ledger can disable the repair workflow itself; the owner requested a proportional mechanism for repair and concrete capability gaps.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-013"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Normal verification imported project validation before its exception handler and created run reports only after valid project records; there was no independent bootstrap diagnostic or explicit maintenance loop in task context.",
+        "correction": "Added a standard-library recovery entry, isolated raw-control snapshots, harness exception capture, task-specific failure/gap observations and maintenance policy in contributor guidance and task context.",
+        "prevention": "Sixteen isolated recovery regressions in python-contracts-workers exercise malformed inputs, unavailable imports, failure before run creation, explicit interrupted-task identity, snapshot failures and rejection of diagnostics as acceptance. Normal project validation and archived task evidence remain required; the prior audit corrective tasks stay open."
+      },
+      "deferral_reason": null
     }
   ]
 }

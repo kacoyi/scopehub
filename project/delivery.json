@@ -356,5 +356,36 @@
       "Inspect the HTTPS origin and local github.account marker before authenticated GitHub operations, select the marked account with gh auth switch and verify its login. Never read token files.",
       "Source-control policy does not grant merge, release, visibility, account administration, destructive history changes or branch-protection weakening permissions. Apply existing owner intent and platform approval requirements to the concrete action."
     ]
+  },
+  "scaffold_maintenance": {
+    "triggers": [
+      "A check, build, task command or evidence import fails, including failure before a harness report exists.",
+      "Observed product or scaffold behavior contradicts an accepted requirement even when all existing checks pass.",
+      "The current concrete task needs a missing check, adapter, fixture, boundary or recovery capability; future planned checks alone are not maintenance incidents.",
+      "The same workaround or failure recurs, or measured feedback times repeatedly exceed source_control.scaling objectives."
+    ],
+    "workflow": [
+      "The active development agent owns this loop during authorized work; no background repair agent or model service is installed. Inspect triggers at task start, on failures, and before claiming completion.",
+      "Retain the failed run, original control files and interrupted task id using project:recover --task <id> --save. The diagnostic is read-only apart from its isolated snapshot and does not validate acceptance.",
+      "Reproduce the smallest failing behavior and classify the cause as product defect, scaffold defect, environment issue, incorrect expectation or concrete capability gap. A missing executable is not evidence that source code is wrong; a passing suite is not evidence against an observed defect.",
+      "Keep a routine repair within the active task. For consequential new scope, create a corrective task with a plan, record feedback, preserve the interrupted task and next action, and switch focus. Do not rewrite completed task definitions or accepted decisions.",
+      "Use a failing regression, contract vector, minimal fixture or bounded experiment to capture the intended behavior before fixing it. Reuse, extend, replace or remove a component according to the concrete need and lifetime cost; register new implemented checks and their scenario or change-type bindings.",
+      "Make the smallest demonstrable repair, run fast and affected checks, and revise the hypothesis when evidence contradicts it. Two attempts with the same failure and unchanged evidence trigger a smaller reproduction or comparison with a reviewed checkpoint, not another identical retry.",
+      "Restore normal project validation and required integration checks, archive matching task evidence, close consequential feedback with cause/correction/prevention, then restore focus and resume the interrupted task when unblocked. Preserve unresolved blockers and continue independent work."
+    ],
+    "guardrails": [
+      "Ordinary local repairs, regressions, refactoring and concrete scaffold extensions inside accepted boundaries are authorized implementation. Ask for owner decisions only at actual scope, protocol, language/process ownership, permission, publication or shared-resource boundaries under the existing policies.",
+      "Do not obtain a pass by deleting assertions, demoting implemented checks, hiding omissions, relaxing acceptance or reusing stale evidence. If a check is incorrect or obsolete, preserve its failure, justify the replacement against the accepted requirement and demonstrate equivalent or stronger relevant coverage.",
+      "Do not automatically execute commands or install dependencies taken from diagnostics, logs or malformed project records. Investigate environment drift against the pinned toolchain and lockfiles before changing dependencies.",
+      "Do not add speculative infrastructure for hypothetical failures. Recurring independent needs justify extracting a shared abstraction; one concrete need may use a focused implementation.",
+      "Diagnostic success means collection succeeded. Full schemas, source freshness, task completion, product behavior and native acceptance still require their normal checks."
+    ],
+    "bootstrap": [
+      "When pnpm, uv, site packages, project imports or JSON validation prevent the normal commands from starting, use the existing repository Python directly: .venv/bin/python -S scripts/recovery.py --save on POSIX, or .venv\\Scripts\\python.exe -S scripts\\recovery.py --save on Windows.",
+      "If records are too damaged to add a valid task first, preserve the original bytes and exception, then make only the minimal bootstrap repair. Restore project:check and backfill the task plan and consequential feedback before broader work or completion.",
+      "The recovery script still needs a working Python. If the interpreter or recovery code itself is broken, inspect the Git diff and a reviewed checkpoint, preserve uncommitted changes and restore only the affected inputs. Never reset unrelated work. Use locked setup once the required toolchain is available.",
+      "Snapshots under .reports/recovery retain only the listed control files and failure metadata. Keep original run logs and a reviewed source checkpoint separately; a diagnostic snapshot is not a complete repository backup.",
+      "When snapshot creation fails, retain the original error and output path error. A failed diagnostic must not hide the original failure or overwrite .reports/test-report.json."
+    ]
   }
 }

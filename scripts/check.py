@@ -12,17 +12,28 @@ import sys
 import time
 from uuid import uuid4
 
-if __package__:
-    from .doctor import tool_version
-    from .processes import log_tail, run_logged
-    from .project import ProjectError, file_digest, load_project, project_definition_hash, product_progress, source_identity, task_definition_hash, validate_model, windows_x64
-else:
-    from doctor import tool_version
-    from processes import log_tail, run_logged
-    from project import ProjectError, file_digest, load_project, project_definition_hash, product_progress, source_identity, task_definition_hash, validate_model, windows_x64
-
 ROOT = Path(__file__).resolve().parents[1]
 REPORTS = ROOT / '.reports'
+
+if __package__:
+    from .recovery import RECOVERY_COMMAND, capture_failure
+else:
+    from recovery import RECOVERY_COMMAND, capture_failure
+
+try:
+    if __package__:
+        from .doctor import tool_version
+        from .processes import log_tail, run_logged
+        from .project import ProjectError, file_digest, load_project, project_definition_hash, product_progress, source_identity, task_definition_hash, validate_model, windows_x64
+    else:
+        from doctor import tool_version
+        from processes import log_tail, run_logged
+        from project import ProjectError, file_digest, load_project, project_definition_hash, product_progress, source_identity, task_definition_hash, validate_model, windows_x64
+except Exception as error:
+    if __name__ != '__main__':
+        raise
+    capture_failure(ROOT, error, 'imports', argv=sys.argv[1:])
+    raise SystemExit(1) from error
 
 
 def ci_provenance(source, env, root=ROOT):
@@ -186,12 +197,17 @@ def main():
                       'm0_complete': next(item['status'] == 'passed' for item in milestones if item['id'] == 'M0')}), flush=True)
     local_blocked = any(r['status'] == 'blocked' and project['checks'][r['id']]['platforms'] == 'all' for r in implemented)
     selection_blocked = bool(args.task or args.profile) and any(r['status'] != 'passed' for r in results if r['id'] in selected)
-    raise SystemExit(1 if failed or local_blocked or selection_blocked or native_blocked else 0)
+    exit_code = 1 if failed or local_blocked or selection_blocked or native_blocked else 0
+    if exit_code:
+        recovery_command = f'pnpm project:recover --task {args.task} --save' if args.task else RECOVERY_COMMAND
+        print(json.dumps({'recovery_command': recovery_command,
+                          'failed_report': (run_dir / 'test-report.json').relative_to(ROOT).as_posix()}), flush=True)
+    raise SystemExit(exit_code)
 
 
 if __name__ == '__main__':
     try:
         main()
-    except (ProjectError, OSError, subprocess.SubprocessError, KeyError) as error:
-        print(json.dumps({'status': 'failed', 'error': str(error)}), flush=True)
+    except Exception as error:
+        capture_failure(ROOT, error, 'verification', argv=sys.argv[1:])
         raise SystemExit(1) from error

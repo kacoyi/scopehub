@@ -852,6 +852,9 @@
         },
         "source_control": {
           "$ref": "#/$defs/SourceControl"
+        },
+        "scaffold_maintenance": {
+          "$ref": "#/$defs/ScaffoldMaintenance"
         }
       },
       "required": [
@@ -861,7 +864,8 @@
         "change_types",
         "scenarios",
         "release_policy",
-        "source_control"
+        "source_control",
+        "scaffold_maintenance"
       ],
       "additionalProperties": false
     },
@@ -1248,6 +1252,54 @@
         "head_sha",
         "checkout_sha",
         "run_url"
+      ],
+      "additionalProperties": false
+    },
+    "ScaffoldMaintenance": {
+      "type": "object",
+      "properties": {
+        "triggers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "workflow": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "guardrails": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "bootstrap": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "triggers",
+        "workflow",
+        "guardrails",
+        "bootstrap"
       ],
       "additionalProperties": false
     }

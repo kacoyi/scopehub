@@ -23,6 +23,7 @@
     "project:history": "uv run python scripts/project.py history",
     "project:readiness": "uv run python scripts/project.py readiness",
     "project:doctor": "uv run python scripts/doctor.py",
+    "project:recover": "uv run python scripts/recovery.py",
     "project:checkpoint": "uv run python scripts/project.py checkpoint",
     "project:ci": "uv run python scripts/ci.py"
   },
