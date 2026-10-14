@@ -1,0 +1,199 @@
+{
+  "schema_version": "1.0",
+  "actions": [
+    {
+      "repository": "actions/checkout",
+      "sha": "11d5960a326750d5838078e36cf38b85af677262",
+      "reviewed_ref": "v4",
+      "observed_at": "2026-10-14",
+      "source": "https://github.com/actions/checkout/tree/11d5960a326750d5838078e36cf38b85af677262",
+      "review": "Official upstream commit and action manifest inspected. Existing setup/cache/artifact role retained; contents:read only, no product secrets or third-party composite action calls. Native and Linux CI required after change."
+    },
+    {
+      "repository": "actions/setup-node",
+      "sha": "49933ea5288caeca8642d1e84afbd3f7d6820020",
+      "reviewed_ref": "v4",
+      "observed_at": "2026-10-14",
+      "source": "https://github.com/actions/setup-node/tree/49933ea5288caeca8642d1e84afbd3f7d6820020",
+      "review": "Official upstream commit and action manifest inspected. Existing setup/cache/artifact role retained; contents:read only, no product secrets or third-party composite action calls. Native and Linux CI required after change."
+    },
+    {
+      "repository": "astral-sh/setup-uv",
+      "sha": "d0cc045d04ccac9d8b7881df0226f9e82c39688e",
+      "reviewed_ref": "v6",
+      "observed_at": "2026-10-14",
+      "source": "https://github.com/astral-sh/setup-uv/tree/d0cc045d04ccac9d8b7881df0226f9e82c39688e",
+      "review": "Official upstream commit and action manifest inspected. Existing setup/cache/artifact role retained; contents:read only, no product secrets or third-party composite action calls. Native and Linux CI required after change."
+    },
+    {
+      "repository": "pnpm/action-setup",
+      "sha": "b906affcce14559ad1aafd4ab0e942779e9f58b1",
+      "reviewed_ref": "v4",
+      "observed_at": "2026-10-14",
+      "source": "https://github.com/pnpm/action-setup/tree/b906affcce14559ad1aafd4ab0e942779e9f58b1",
+      "review": "Official upstream commit and action manifest inspected. Existing setup/cache/artifact role retained; contents:read only, no product secrets or third-party composite action calls. Native and Linux CI required after change."
+    },
+    {
+      "repository": "dtolnay/rust-toolchain",
+      "sha": "686976e191b89faba57d3206551f0f330d8cb249",
+      "reviewed_ref": "stable",
+      "observed_at": "2026-10-14",
+      "source": "https://github.com/dtolnay/rust-toolchain/tree/686976e191b89faba57d3206551f0f330d8cb249",
+      "review": "Official upstream commit and action manifest inspected. Existing setup/cache/artifact role retained; contents:read only, no product secrets or third-party composite action calls. Native and Linux CI required after change."
+    },
+    {
+      "repository": "actions/cache",
+      "sha": "0057852bfaa89a56745cba8c7296529d2fc39830",
+      "reviewed_ref": "v4",
+      "observed_at": "2026-10-14",
+      "source": "https://github.com/actions/cache/tree/0057852bfaa89a56745cba8c7296529d2fc39830",
+      "review": "Official upstream commit and action manifest inspected. Existing setup/cache/artifact role retained; contents:read only, no product secrets or third-party composite action calls. Native and Linux CI required after change."
+    },
+    {
+      "repository": "actions/upload-artifact",
+      "sha": "ea165f8d65b6e75b540449e92b4886f43607fa02",
+      "reviewed_ref": "v4",
+      "observed_at": "2026-10-14",
+      "source": "https://github.com/actions/upload-artifact/tree/ea165f8d65b6e75b540449e92b4886f43607fa02",
+      "review": "Official upstream commit and action manifest inspected. Existing setup/cache/artifact role retained; contents:read only, no product secrets or third-party composite action calls. Native and Linux CI required after change."
+    }
+  ],
+  "reviewed_license_expressions": [
+    "(MIT OR Apache-2.0) AND Unicode-3.0",
+    "0BSD OR MIT OR Apache-2.0",
+    "Apache-2.0",
+    "Apache-2.0 / MIT",
+    "Apache-2.0 AND MIT",
+    "Apache-2.0 OR MIT",
+    "Apache-2.0 WITH LLVM-exception",
+    "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+    "Apache-2.0/MIT",
+    "BSD-2-Clause OR Apache-2.0 OR MIT",
+    "BSD-3-Clause",
+    "BSD-3-Clause AND MIT",
+    "BSD-3-Clause OR MIT OR Apache-2.0",
+    "BSD-3-Clause/MIT",
+    "CC0-1.0 OR MIT-0 OR Apache-2.0",
+    "ISC",
+    "License :: OSI Approved :: Apache Software License",
+    "License :: OSI Approved :: ISC License (ISCL)",
+    "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+    "MIT",
+    "MIT License",
+    "MIT OR Apache-2.0",
+    "MIT OR Apache-2.0 OR LGPL-2.1-or-later",
+    "MIT OR Apache-2.0 OR Zlib",
+    "MIT OR Zlib OR Apache-2.0",
+    "MIT license",
+    "MIT-0",
+    "MIT/Apache-2.0",
+    "MPL-2.0",
+    "PSF-2.0",
+    "Unicode-3.0",
+    "Unlicense OR MIT",
+    "Unlicense/MIT",
+    "Zlib",
+    "Zlib OR Apache-2.0 OR MIT"
+  ],
+  "advisory_dispositions": [
+    {
+      "ecosystem": "crates.io",
+      "name": "glib",
+      "version": "0.18.5",
+      "advisories": [
+        "RUSTSEC-2024-0429",
+        "GHSA-wrw7-89jp-8q8g"
+      ],
+      "expires": "2027-01-12",
+      "task_id": "M5-002",
+      "scope_guard": "absent-from-supported-builds",
+      "reason": "Upstream reports unsound VariantStrIter behavior below 0.20.0; upgrading that GTK family independently is not compatible with the current Tauri graph. Both dependencies occur only in the unsupported GTK desktop graph. Current Windows workspace and all-target portable crates exclude them. Scope is rechecked on every online review; revisit before adding Linux desktop support or by expiry.",
+      "evidence": [
+        "cargo tree --locked --workspace --target all -i glib",
+        "cargo tree --locked --workspace --target x86_64-pc-windows-msvc -i glib",
+        "https://rustsec.org/advisories/RUSTSEC-2024-0429.html"
+      ]
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "proc-macro-error",
+      "version": "1.0.4",
+      "advisories": [
+        "RUSTSEC-2024-0370"
+      ],
+      "expires": "2027-01-12",
+      "task_id": "M5-002",
+      "scope_guard": "absent-from-supported-builds",
+      "reason": "Upstream reports the macro helper as unmaintained with no patched version. Both dependencies occur only in the unsupported GTK desktop graph. Current Windows workspace and all-target portable crates exclude them. Scope is rechecked on every online review; revisit before adding Linux desktop support or by expiry.",
+      "evidence": [
+        "cargo tree --locked --workspace --target all -i proc-macro-error",
+        "cargo tree --locked --workspace --target x86_64-pc-windows-msvc -i proc-macro-error",
+        "https://rustsec.org/advisories/RUSTSEC-2024-0370.html"
+      ]
+    }
+  ],
+  "license_metadata_overrides": [
+    {
+      "ecosystem": "PyPI",
+      "name": "mypy-extensions",
+      "version": "1.1.0",
+      "license": "MIT",
+      "source": "https://github.com/python/mypy_extensions/blob/1.1.0/LICENSE",
+      "reason": "PyPI JSON omits a license declaration; inspected LICENSE included in the installed locked wheel.",
+      "license_file_sha256": "a50450da1d53cd777b80ced77c58ff96abe0ccd879706bd142c3ec20e245f0b4"
+    },
+    {
+      "ecosystem": "PyPI",
+      "name": "python-dateutil",
+      "version": "2.9.0.post0",
+      "license": "BSD-3-Clause",
+      "source": "https://pypi.org/pypi/python-dateutil/2.9.0.post0/json",
+      "reason": "Inspected the LICENSE included in the locked wheel: three-clause BSD terms; python-dateutil states BSD applies to all code, including contributions also covered by Apache-2.0.",
+      "license_file_sha256": "ba00f51a0d92823b5a1cde27d8b5b9d2321e67ed8da9bc163eff96d5e17e577e"
+    },
+    {
+      "ecosystem": "PyPI",
+      "name": "jsonpointer",
+      "version": "3.2.1",
+      "license": "BSD-3-Clause",
+      "source": "https://pypi.org/pypi/jsonpointer/3.2.1/json",
+      "reason": "Inspected the LICENSE included in the locked wheel: three-clause BSD terms; python-dateutil states BSD applies to all code, including contributions also covered by Apache-2.0.",
+      "license_file_sha256": "d8b24f15d472885f788a2d6e985850f264627b86012a17bb242c83f310d907e5"
+    }
+  ],
+  "license_review": {
+    "scope": "All locked development and target packages. Declarations are retained from exact upstream metadata, not a claim that every dependency is shipped.",
+    "notice_obligations": [
+      "Retain original copyright and license texts for MIT, BSD, ISC, Zlib, PSF, Unicode and other included packages.",
+      "Preserve required Apache NOTICE and attribution; satisfy each conjunctive license obligation and record a chosen permitted branch for alternative licenses when packaging.",
+      "For MPL-covered files in fqdn/pathspec and Mozilla-derived Rust dependencies, retain notices and provide covered source as required when distributed. No covered files are modified in M0.",
+      "release-artifacts remains blocked until actual installer contents, bundled notice texts and any source obligations are verified. THIRD_PARTY_NOTICES is an inventory aid, not that acceptance."
+    ],
+    "format_dependency": "Replaced jsonschema[format] with upstream format-nongpl at the same locked jsonschema version to remove the unnecessary GPL-only rfc3987 dependency while retaining schema format validation.",
+    "references": [
+      "https://python-jsonschema.readthedocs.io/en/stable/validate/",
+      "https://www.mozilla.org/en-US/MPL/2.0/FAQ/",
+      "https://www.apache.org/licenses/LICENSE-2.0"
+    ]
+  },
+  "maintenance": {
+    "reviewed_on": "2026-10-14",
+    "next_review_by": "2026-11-13",
+    "owner": "Repository implementation agent, with owner review for product/permission/boundary decisions.",
+    "automation": "Weekly bounded Dependabot proposals for GitHub Actions and Cargo activate when .github/dependabot.yml reaches the default branch. No auto-merge.",
+    "manual_ecosystems": "The upstream support matrix does not yet list pnpm 11 or uv 0.12. Use the pinned native package managers for monthly Python/npm updates until matching updater support is verified; do not claim those updates are automated.",
+    "procedure": [
+      "On the next active development session, inspect the due date and open a maintenance task when due; newly reported relevant advisories trigger earlier review.",
+      "Check release notes and concrete benefit. Update one coherent dependency family, regenerate locks with the pinned manager, refresh the inventory and inspect its diff. Never automatically approve newly encountered licenses or advisories.",
+      "Actions: resolve the reviewed upstream release to its official full commit, inspect source/inputs/permissions, and update the recorded pin.",
+      "Python/npm: inspect upstream releases; use uv lock --upgrade-package <name> or pnpm update <name> within the intended range. For Cargo use cargo update -p <name>. Major upgrades need an explicit compatibility plan.",
+      "Toolchains: review Python 3.12, Node 24, pinned pnpm, Rust and uv together with doctor expectations, workflow setup, locks and native build compatibility. Revisit the existing node20 Action runtimes as grouped updates; current hosted runners force Node 24 and the pinned implementations are verified on both platforms.",
+      "Run fast/affected checks, fresh dependency-review and Linux/Windows integration. Retain failures, source checkpoints and matching reports. Keep packaging/soak checks at their declared cadence unless the change needs them."
+    ],
+    "references": [
+      "https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories",
+      "https://docs.github.com/en/actions/reference/security/secure-use",
+      "https://google.github.io/osv.dev/post-v1-querybatch/"
+    ]
+  }
+}

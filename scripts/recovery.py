@@ -21,6 +21,9 @@ CONTROL_FILES = (
     'project/delivery.json', 'contracts/schemas/project.schema.json', 'package.json',
     '.reports/test-report.json',
 )
+OPTIONAL_CONTROL_FILES = (
+    'project/dependencies.json', 'project/dependency-inventory.json', 'project/branch-protection.json',
+)
 MAX_FILE_BYTES = 4 * 1024 * 1024
 RECOVERY_COMMAND = 'pnpm project:recover --save'
 BOOTSTRAP_COMMANDS = {
@@ -77,7 +80,7 @@ def diagnose(root=ROOT, *, task_id=None, save=False, failure=None):
     def signal(kind, **details):
         signals.append({'kind': kind, **details})
 
-    for relative in CONTROL_FILES:
+    for relative in (*CONTROL_FILES, *(path for path in OPTIONAL_CONTROL_FILES if (root / path).exists())):
         record, value, raw = read_control(root, relative)
         files.append(record)
         documents[relative] = value or {}

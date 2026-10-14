@@ -6,13 +6,15 @@
     "project/tasks.json",
     "project/checks.json",
     "project/delivery.json",
-    "project/feedback.json"
+    "project/feedback.json",
+    "project/dependencies.json"
   ],
   "iteration_policy": {
     "start": [
       "Read project:status and project:context; inspect existing changes before editing.",
       "Choose one observable slice; state the outcome, relevant hypotheses, failure risks, verification and recovery before activating it.",
-      "Use project:doctor and check:fast to expose environment and contract defects before expensive work."
+      "Use project:doctor and check:fast to expose environment and contract defects before expensive work.",
+      "Inspect project/dependencies.json maintenance.next_review_by and advisory expiry when starting active development. If due, add a bounded maintenance task; fresh known-advisory checks run at every integration. No unattended background repair or automatic merge is implied."
     ],
     "during": [
       "Validate the most consequential unknown first with a fixture, experiment or failing regression.",

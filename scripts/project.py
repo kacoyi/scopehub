@@ -1,7 +1,7 @@
 """Validate project history, show a resumable workfront and preserve check evidence."""
 
 import argparse
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 import hashlib
 import json
 import os
@@ -369,6 +369,17 @@ def product_progress(project, results):
     return milestones, acceptance
 
 
+def maintenance_status(root=ROOT, today=None):
+    path = root / 'project/dependencies.json'
+    if not path.exists():
+        return None
+    maintenance = read_json(path)['maintenance']
+    today = today or datetime.now(timezone.utc).date()
+    return {'reviewed_on': maintenance['reviewed_on'], 'next_review_by': maintenance['next_review_by'],
+            'review_due': date.fromisoformat(maintenance['next_review_by']) <= today,
+            'next_action': 'Open a bounded maintenance task when due; run fresh dependency-review for integration.'}
+
+
 def workfront(root=ROOT):
     project = load_project(root)
     source = source_identity(root)
@@ -399,6 +410,7 @@ def workfront(root=ROOT):
         'completed_task_ids': [task['id'] for task in tasks.values() if task['status'] == 'done'],
         'proposed_decisions': [item['id'] for item in project['decisions'].values() if item['status'] == 'proposed'],
         'decision_replacements': project['replacements'],
+        'dependency_maintenance': maintenance_status(root),
         'verification': {'report_available': report_path.is_file(), 'matches_current_execution_inputs': inputs_current,
                          'matches_current_task_definitions': tasks_current,
                          'matches_current_project_definitions': definitions_current, 'current': current,
@@ -432,6 +444,7 @@ def task_context(root=ROOT, task_id=None):
         'feedback': [item for item in project['feedback']['items'] if key in item['task_ids']],
         'iteration_policy': project['delivery']['iteration_policy'],
         'scaffold_maintenance': project['delivery']['scaffold_maintenance'],
+        'dependency_maintenance': maintenance_status(root),
         'commands': ['pnpm project:doctor', 'pnpm check:fast', f'pnpm check --task {key}', 'pnpm check',
                      f'pnpm project:recover --task {key} --save',
                      'pnpm project:checkpoint', 'pnpm project:ci',

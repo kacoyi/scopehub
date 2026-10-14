@@ -78,6 +78,15 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual(result['recorded_focus_task_id'], 'TEST-001')
         self.assertIn('task_unavailable', self.kinds(recovery.diagnose(self.root, task_id='TEST-999')))
 
+    def test_new_dependency_controls_are_preserved_when_malformed(self):
+        path = self.root / 'project/dependencies.json'
+        broken = b'{"advisory_dispositions": invalid'
+        path.write_bytes(broken)
+        result = recovery.diagnose(self.root, save=True)
+        directory = (self.root / result['snapshot']).parent
+        self.assertEqual(broken, (directory / 'originals/project/dependencies.json').read_bytes())
+        self.assertEqual('attention_required', result['status'])
+
     def test_observed_feedback_survives_passing_checks(self):
         self.write('project/feedback.json', {'items': [
             {'id': 'escape', 'task_ids': ['TEST-001'], 'status': 'open'},

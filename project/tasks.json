@@ -1179,7 +1179,8 @@
         "THIRD_PARTY_NOTICES",
         "project/tasks.json",
         "project/feedback.json",
-        "project/evidence"
+        "project/evidence",
+        "package.json"
       ],
       "decision_refs": [
         "0001",
@@ -1201,7 +1202,7 @@
         "windows-native-build"
       ],
       "evidence": [],
-      "next_action": "Inventory all three lockfiles and Actions, inspect current advisories and license metadata, then implement fail-closed review and bounded update policy.",
+      "next_action": "All local implemented checks pass, including live review of 544 packages and 7 immutable Actions. Verify the final dependency and maintenance changes on native Windows and archive matching evidence for remaining corrective tasks.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
