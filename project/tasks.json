@@ -207,7 +207,7 @@
         "market-workflow"
       ],
       "evidence": [],
-      "next_action": "After fixture semantics are verified, connect one instrument through the core to the chart, then expand to the specified instruments and timeframes.",
+      "next_action": "Connect one synthetic instrument through the core to the chart, then expand to the specified instruments and timeframes. Use the M1-004 assessment when planning a separate local futures-file adapter; inspection does not establish runtime chart acceptance.",
       "blocker": null,
       "closure_reason": null
     },
@@ -1508,6 +1508,94 @@
           }
         ],
         "rollback": "Preserve the observed PR and failed checks; revert only the new assessment and lifecycle extension if needed. Keep existing required checks, live branch protection, accepted records and publication boundaries unchanged, and resume M1-002 after validated closure."
+      }
+    },
+    {
+      "id": "M1-004",
+      "title": "Assess supplied futures tick snapshots for chart reconstruction",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M0-003"
+      ],
+      "scope": [
+        "scripts/inspect_futures_ticks.py",
+        "tests/project/test_futures_ticks.py",
+        "project/assessments",
+        "project/checks.json",
+        "project/delivery.json",
+        "project/tasks.json"
+      ],
+      "decision_refs": [
+        "0001",
+        "0004",
+        "0005"
+      ],
+      "acceptance": [
+        "Scan every supplied tick CSV read-only; retain file identities and structural, timestamp, counter, missing-value and duplicate observations locally without uploading supplied quotes.",
+        "Demonstrate minute and daily observed-price aggregation with explicit session-relative ordering, cumulative-volume baselines, invalid-value handling and independently calculated regression cases.",
+        "Record which intraday and candle features the sample supports and which require additional metadata, native bars or historical coverage; make no official-price, complete trade-tape or delivered chart-application claim."
+      ],
+      "checks": [
+        "futures-tick-inspection",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-004-2cd3252954e3dcbf.json",
+          "sha256": "ab21b988fc80fe120c39fb8989c3f874c1454bed9824b974d394c83ae017f498"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "An evidence-backed decision about the supplied tick snapshots, with a reusable local diagnostic and bounded chart-data proof, before committing to a real-data integration.",
+        "change_types": [
+          "offline-data",
+          "tooling"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "project/delivery.json",
+          "project/checks.json",
+          "python/providers/simulated.py"
+        ],
+        "hypotheses": [
+          "The fifteen-column snapshot CSV format contains enough observed prices and cumulative counters for intraday price, volume, open-interest and approximate candle series.",
+          "A trading-day label and time-of-day require explicit night-session ordering; they do not establish an absolute calendar timestamp without a session calendar.",
+          "Counter deltas, sentinel filtering and duplicate detection can be validated locally without source-price verification, provider access or raw-data publication.",
+          "The first full scan found mixed source trading-day labels in 158 files. An explicit one-day assignment based on this delivery folder can test relative continuity while preserving every raw date; it is not an exchange-calendar validation."
+        ],
+        "risks": [
+          {
+            "failure": "Snapshot prices are misrepresented as complete individual trades or exact exchange OHLC.",
+            "checks": [
+              "futures-tick-inspection"
+            ]
+          },
+          {
+            "failure": "Night sessions, counter resets, a nonzero initial counter or invalid prices silently fabricate candles or volume.",
+            "checks": [
+              "futures-tick-inspection"
+            ]
+          },
+          {
+            "failure": "Data files are altered, source quotes are uploaded, or assessment completion is confused with product acceptance.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Continuous aliases are double counted, same-time snapshots are collapsed, or non-monotonic turnover is treated as reliable per-trade cash flow.",
+            "checks": [
+              "futures-tick-inspection"
+            ]
+          }
+        ],
+        "rollback": "Keep the owner files read-only and detailed results in ignored local reports. Preserve failed diagnostic outputs, repair against small synthetic counterexamples and rerun affected inspection. A negative finding limits the supported scope instead of weakening the checks or modifying source data."
       }
     }
   ]

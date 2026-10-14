@@ -267,6 +267,20 @@
       ],
       "timeout_seconds": 900,
       "cadence": "change"
+    },
+    {
+      "id": "futures-tick-inspection",
+      "status": "implemented",
+      "purpose": "Verify offline snapshot diagnostics and bounded observed-price aggregation using synthetic counterexamples",
+      "platforms": "all",
+      "command": [
+        "{python}",
+        "-m",
+        "unittest",
+        "tests.project.test_futures_ticks",
+        "-v"
+      ],
+      "timeout_seconds": 900
     }
   ],
   "milestones": [
@@ -425,7 +439,8 @@
     "rust-lints",
     "windows-native-build",
     "dependency-review",
-    "market-fixtures"
+    "market-fixtures",
+    "futures-tick-inspection"
   ],
   "gate_changes": []
 }

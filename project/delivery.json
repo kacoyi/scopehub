@@ -147,6 +147,15 @@
         "architecture",
         "dependency-review"
       ]
+    },
+    {
+      "id": "offline-data",
+      "triggers": [
+        "Local file inspection and chart-data reconstruction diagnostics before provider or runtime integration"
+      ],
+      "checks": [
+        "futures-tick-inspection"
+      ]
     }
   ],
   "scenarios": [
