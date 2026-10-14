@@ -1,0 +1,3923 @@
+{
+  "schema_version": "1.0",
+  "generator": "scopehub-synthetic-v1",
+  "label": "All data is synthetic; not real market quotes or exchange calendars.",
+  "regenerate": "uv run python -m python.providers.simulated --write tests/fixtures/market/series.json",
+  "fixtures": [
+    {
+      "scenario": "normal",
+      "instrument": {
+        "id": "SIM.CN.FUTURE.001",
+        "display_symbol": "SIM.CN.FUTURE.001",
+        "name": "Synthetic SIM.CN.FUTURE.001",
+        "asset_class": "future",
+        "venue": "SIMULATED",
+        "currency": "CNY",
+        "calendar_id": "SIM.CN.FUTURE.001.sample-calendar.v1",
+        "timezone": "Asia/Shanghai",
+        "price_tick": "0.2",
+        "quantity_unit": "contracts",
+        "tradability": "non_tradable",
+        "metadata": {
+          "synthetic": true,
+          "calendar_scope": "Fixed sample windows; not an exchange calendar"
+        },
+        "provider_mappings": [
+          {
+            "provider_id": "scopehub.synthetic",
+            "provider_symbol": "SIM.CN.FUTURE.001"
+          }
+        ]
+      },
+      "history": {
+        "dataset": {
+          "id": "836cb0d6-61d3-5d80-8e4d-37da5b308cf1",
+          "instrument_id": "SIM.CN.FUTURE.001",
+          "provider_id": "scopehub.synthetic",
+          "mode": "simulated",
+          "timeframe": "1m",
+          "price_adjustment": "raw",
+          "timezone": "Asia/Shanghai",
+          "calendar_id": "SIM.CN.FUTURE.001.sample-calendar.v1",
+          "quantity_unit": "contracts",
+          "revision": "scopehub-synthetic-v1:20241013:normal",
+          "quality": "fresh",
+          "provenance": {
+            "synthetic": true,
+            "generator": "scopehub-synthetic-v1",
+            "seed": 20241013,
+            "start_ms": 1704200400000,
+            "as_of_ms": 1704330570000,
+            "last_observed_ms": 1704330570000,
+            "missing_minute_starts_ms": [],
+            "calendar_scope": "Only the declared sample windows are represented; not an exchange calendar",
+            "sessions": [
+              {
+                "start_ms": 1704200400000,
+                "end_ms": 1704201000000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704243600000,
+                "end_ms": 1704244200000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704286800000,
+                "end_ms": 1704287400000,
+                "trading_day": "2024-01-04"
+              },
+              {
+                "start_ms": 1704330000000,
+                "end_ms": 1704330600000,
+                "trading_day": "2024-01-04"
+              }
+            ]
+          }
+        },
+        "bars": [
+          {
+            "time_ms": 1704200400000,
+            "trading_day": "2024-01-03",
+            "open": 3500.0,
+            "high": 3500.4,
+            "low": 3498.8,
+            "close": 3499.2,
+            "volume": 120.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704200460000,
+            "trading_day": "2024-01-03",
+            "open": 3499.2,
+            "high": 3500.4,
+            "low": 3498.6,
+            "close": 3499.8,
+            "volume": 80.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704200520000,
+            "trading_day": "2024-01-03",
+            "open": 3499.8,
+            "high": 3500.8,
+            "low": 3499.8,
+            "close": 3500.2,
+            "volume": 80.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704200580000,
+            "trading_day": "2024-01-03",
+            "open": 3500.2,
+            "high": 3500.8,
+            "low": 3499.8,
+            "close": 3500.8,
+            "volume": 70.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704200640000,
+            "trading_day": "2024-01-03",
+            "open": 3500.8,
+            "high": 3501.4,
+            "low": 3500.6,
+            "close": 3500.8,
+            "volume": 80.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704200700000,
+            "trading_day": "2024-01-03",
+            "open": 3500.8,
+            "high": 3501.4,
+            "low": 3500.6,
+            "close": 3501.0,
+            "volume": 170.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704200760000,
+            "trading_day": "2024-01-03",
+            "open": 3501.0,
+            "high": 3501.6,
+            "low": 3500.4,
+            "close": 3500.8,
+            "volume": 90.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704200820000,
+            "trading_day": "2024-01-03",
+            "open": 3500.8,
+            "high": 3501.8,
+            "low": 3500.4,
+            "close": 3501.2,
+            "volume": null,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704200880000,
+            "trading_day": "2024-01-03",
+            "open": 3501.2,
+            "high": 3501.4,
+            "low": 3500.0,
+            "close": 3500.4,
+            "volume": 0.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704200940000,
+            "trading_day": "2024-01-03",
+            "open": 3500.4,
+            "high": 3501.0,
+            "low": 3500.0,
+            "close": 3500.2,
+            "volume": 50.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243600000,
+            "trading_day": "2024-01-03",
+            "open": 3500.2,
+            "high": 3500.8,
+            "low": 3500.2,
+            "close": 3500.8,
+            "volume": 70.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243660000,
+            "trading_day": "2024-01-03",
+            "open": 3500.8,
+            "high": 3501.4,
+            "low": 3500.8,
+            "close": 3501.4,
+            "volume": 170.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243720000,
+            "trading_day": "2024-01-03",
+            "open": 3501.4,
+            "high": 3501.6,
+            "low": 3500.6,
+            "close": 3500.8,
+            "volume": 200.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243780000,
+            "trading_day": "2024-01-03",
+            "open": 3500.8,
+            "high": 3501.4,
+            "low": 3500.4,
+            "close": 3501.4,
+            "volume": 130.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243840000,
+            "trading_day": "2024-01-03",
+            "open": 3501.4,
+            "high": 3502.2,
+            "low": 3500.8,
+            "close": 3502.0,
+            "volume": 160.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243900000,
+            "trading_day": "2024-01-03",
+            "open": 3502.0,
+            "high": 3502.4,
+            "low": 3502.0,
+            "close": 3502.0,
+            "volume": 80.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243960000,
+            "trading_day": "2024-01-03",
+            "open": 3502.0,
+            "high": 3502.4,
+            "low": 3501.2,
+            "close": 3501.6,
+            "volume": 180.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704244020000,
+            "trading_day": "2024-01-03",
+            "open": 3501.6,
+            "high": 3502.0,
+            "low": 3500.8,
+            "close": 3501.0,
+            "volume": 50.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704244080000,
+            "trading_day": "2024-01-03",
+            "open": 3501.0,
+            "high": 3502.4,
+            "low": 3500.4,
+            "close": 3501.8,
+            "volume": 80.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704244140000,
+            "trading_day": "2024-01-03",
+            "open": 3501.8,
+            "high": 3502.0,
+            "low": 3501.4,
+            "close": 3501.4,
+            "volume": 50.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704286800000,
+            "trading_day": "2024-01-04",
+            "open": 3501.4,
+            "high": 3502.0,
+            "low": 3501.0,
+            "close": 3501.2,
+            "volume": 180.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704286860000,
+            "trading_day": "2024-01-04",
+            "open": 3501.2,
+            "high": 3501.6,
+            "low": 3500.8,
+            "close": 3501.6,
+            "volume": 180.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704286920000,
+            "trading_day": "2024-01-04",
+            "open": 3501.6,
+            "high": 3502.4,
+            "low": 3501.4,
+            "close": 3502.2,
+            "volume": 190.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704286980000,
+            "trading_day": "2024-01-04",
+            "open": 3502.2,
+            "high": 3503.2,
+            "low": 3501.6,
+            "close": 3503.0,
+            "volume": 120.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704287040000,
+            "trading_day": "2024-01-04",
+            "open": 3503.0,
+            "high": 3504.0,
+            "low": 3503.0,
+            "close": 3503.8,
+            "volume": 130.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704287100000,
+            "trading_day": "2024-01-04",
+            "open": 3503.8,
+            "high": 3504.2,
+            "low": 3503.8,
+            "close": 3503.8,
+            "volume": 200.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704287160000,
+            "trading_day": "2024-01-04",
+            "open": 3503.8,
+            "high": 3504.2,
+            "low": 3503.2,
+            "close": 3504.0,
+            "volume": 40.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704287220000,
+            "trading_day": "2024-01-04",
+            "open": 3504.0,
+            "high": 3504.0,
+            "low": 3503.2,
+            "close": 3503.2,
+            "volume": 160.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704287280000,
+            "trading_day": "2024-01-04",
+            "open": 3503.2,
+            "high": 3503.6,
+            "low": 3502.6,
+            "close": 3503.6,
+            "volume": 30.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704287340000,
+            "trading_day": "2024-01-04",
+            "open": 3503.6,
+            "high": 3504.0,
+            "low": 3503.0,
+            "close": 3503.0,
+            "volume": 30.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330000000,
+            "trading_day": "2024-01-04",
+            "open": 3503.0,
+            "high": 3503.4,
+            "low": 3502.4,
+            "close": 3503.2,
+            "volume": 100.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330060000,
+            "trading_day": "2024-01-04",
+            "open": 3503.2,
+            "high": 3503.6,
+            "low": 3502.2,
+            "close": 3502.4,
+            "volume": 190.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330120000,
+            "trading_day": "2024-01-04",
+            "open": 3502.4,
+            "high": 3502.4,
+            "low": 3501.6,
+            "close": 3502.0,
+            "volume": 70.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330180000,
+            "trading_day": "2024-01-04",
+            "open": 3502.0,
+            "high": 3502.6,
+            "low": 3501.6,
+            "close": 3502.2,
+            "volume": 130.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330240000,
+            "trading_day": "2024-01-04",
+            "open": 3502.2,
+            "high": 3502.2,
+            "low": 3501.2,
+            "close": 3501.6,
+            "volume": 200.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330300000,
+            "trading_day": "2024-01-04",
+            "open": 3501.6,
+            "high": 3501.8,
+            "low": 3501.6,
+            "close": 3501.8,
+            "volume": 100.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330360000,
+            "trading_day": "2024-01-04",
+            "open": 3501.8,
+            "high": 3502.2,
+            "low": 3501.8,
+            "close": 3502.2,
+            "volume": 20.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330420000,
+            "trading_day": "2024-01-04",
+            "open": 3502.2,
+            "high": 3502.4,
+            "low": 3501.2,
+            "close": 3501.8,
+            "volume": 110.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330480000,
+            "trading_day": "2024-01-04",
+            "open": 3501.8,
+            "high": 3502.0,
+            "low": 3501.6,
+            "close": 3501.6,
+            "volume": 90.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330540000,
+            "trading_day": "2024-01-04",
+            "open": 3501.6,
+            "high": 3502.0,
+            "low": 3500.8,
+            "close": 3500.8,
+            "volume": 110.0,
+            "is_closed": false
+          }
+        ]
+      },
+      "updates": [
+        {
+          "observed_at_ms": 1704330585000,
+          "bar": {
+            "time_ms": 1704330540000,
+            "trading_day": "2024-01-04",
+            "open": 3501.6,
+            "high": 3502.0,
+            "low": 3500.8,
+            "close": 3501.2,
+            "volume": 120.0,
+            "is_closed": false
+          }
+        },
+        {
+          "observed_at_ms": 1704330600000,
+          "bar": {
+            "time_ms": 1704330540000,
+            "trading_day": "2024-01-04",
+            "open": 3501.6,
+            "high": 3502.0,
+            "low": 3500.8,
+            "close": 3501.0,
+            "volume": 130.0,
+            "is_closed": true
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "normal",
+      "instrument": {
+        "id": "SIM.CN.FUTURE.001",
+        "display_symbol": "SIM.CN.FUTURE.001",
+        "name": "Synthetic SIM.CN.FUTURE.001",
+        "asset_class": "future",
+        "venue": "SIMULATED",
+        "currency": "CNY",
+        "calendar_id": "SIM.CN.FUTURE.001.sample-calendar.v1",
+        "timezone": "Asia/Shanghai",
+        "price_tick": "0.2",
+        "quantity_unit": "contracts",
+        "tradability": "non_tradable",
+        "metadata": {
+          "synthetic": true,
+          "calendar_scope": "Fixed sample windows; not an exchange calendar"
+        },
+        "provider_mappings": [
+          {
+            "provider_id": "scopehub.synthetic",
+            "provider_symbol": "SIM.CN.FUTURE.001"
+          }
+        ]
+      },
+      "history": {
+        "dataset": {
+          "id": "fa0871a9-8a0c-5613-bc53-285a64c3b685",
+          "instrument_id": "SIM.CN.FUTURE.001",
+          "provider_id": "scopehub.synthetic",
+          "mode": "simulated",
+          "timeframe": "5m",
+          "price_adjustment": "raw",
+          "timezone": "Asia/Shanghai",
+          "calendar_id": "SIM.CN.FUTURE.001.sample-calendar.v1",
+          "quantity_unit": "contracts",
+          "revision": "scopehub-synthetic-v1:20241013:normal",
+          "quality": "fresh",
+          "provenance": {
+            "synthetic": true,
+            "generator": "scopehub-synthetic-v1",
+            "seed": 20241013,
+            "start_ms": 1704200400000,
+            "as_of_ms": 1704330570000,
+            "last_observed_ms": 1704330570000,
+            "missing_minute_starts_ms": [],
+            "calendar_scope": "Only the declared sample windows are represented; not an exchange calendar",
+            "sessions": [
+              {
+                "start_ms": 1704200400000,
+                "end_ms": 1704201000000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704243600000,
+                "end_ms": 1704244200000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704286800000,
+                "end_ms": 1704287400000,
+                "trading_day": "2024-01-04"
+              },
+              {
+                "start_ms": 1704330000000,
+                "end_ms": 1704330600000,
+                "trading_day": "2024-01-04"
+              }
+            ]
+          }
+        },
+        "bars": [
+          {
+            "time_ms": 1704200400000,
+            "trading_day": "2024-01-03",
+            "open": 3500.0,
+            "high": 3501.4,
+            "low": 3498.6,
+            "close": 3500.8,
+            "volume": 430.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704200700000,
+            "trading_day": "2024-01-03",
+            "open": 3500.8,
+            "high": 3501.8,
+            "low": 3500.0,
+            "close": 3500.2,
+            "volume": null,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243600000,
+            "trading_day": "2024-01-03",
+            "open": 3500.2,
+            "high": 3502.2,
+            "low": 3500.2,
+            "close": 3502.0,
+            "volume": 730.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243900000,
+            "trading_day": "2024-01-03",
+            "open": 3502.0,
+            "high": 3502.4,
+            "low": 3500.4,
+            "close": 3501.4,
+            "volume": 440.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704286800000,
+            "trading_day": "2024-01-04",
+            "open": 3501.4,
+            "high": 3504.0,
+            "low": 3500.8,
+            "close": 3503.8,
+            "volume": 800.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704287100000,
+            "trading_day": "2024-01-04",
+            "open": 3503.8,
+            "high": 3504.2,
+            "low": 3502.6,
+            "close": 3503.0,
+            "volume": 460.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330000000,
+            "trading_day": "2024-01-04",
+            "open": 3503.0,
+            "high": 3503.6,
+            "low": 3501.2,
+            "close": 3501.6,
+            "volume": 690.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330300000,
+            "trading_day": "2024-01-04",
+            "open": 3501.6,
+            "high": 3502.4,
+            "low": 3500.8,
+            "close": 3500.8,
+            "volume": 430.0,
+            "is_closed": false
+          }
+        ]
+      },
+      "updates": [
+        {
+          "observed_at_ms": 1704330585000,
+          "bar": {
+            "time_ms": 1704330300000,
+            "trading_day": "2024-01-04",
+            "open": 3501.6,
+            "high": 3502.4,
+            "low": 3500.8,
+            "close": 3501.2,
+            "volume": 440.0,
+            "is_closed": false
+          }
+        },
+        {
+          "observed_at_ms": 1704330600000,
+          "bar": {
+            "time_ms": 1704330300000,
+            "trading_day": "2024-01-04",
+            "open": 3501.6,
+            "high": 3502.4,
+            "low": 3500.8,
+            "close": 3501.0,
+            "volume": 450.0,
+            "is_closed": true
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "normal",
+      "instrument": {
+        "id": "SIM.CN.FUTURE.001",
+        "display_symbol": "SIM.CN.FUTURE.001",
+        "name": "Synthetic SIM.CN.FUTURE.001",
+        "asset_class": "future",
+        "venue": "SIMULATED",
+        "currency": "CNY",
+        "calendar_id": "SIM.CN.FUTURE.001.sample-calendar.v1",
+        "timezone": "Asia/Shanghai",
+        "price_tick": "0.2",
+        "quantity_unit": "contracts",
+        "tradability": "non_tradable",
+        "metadata": {
+          "synthetic": true,
+          "calendar_scope": "Fixed sample windows; not an exchange calendar"
+        },
+        "provider_mappings": [
+          {
+            "provider_id": "scopehub.synthetic",
+            "provider_symbol": "SIM.CN.FUTURE.001"
+          }
+        ]
+      },
+      "history": {
+        "dataset": {
+          "id": "e8477c33-9ecf-55db-b976-0d0541433da2",
+          "instrument_id": "SIM.CN.FUTURE.001",
+          "provider_id": "scopehub.synthetic",
+          "mode": "simulated",
+          "timeframe": "1d",
+          "price_adjustment": "raw",
+          "timezone": "Asia/Shanghai",
+          "calendar_id": "SIM.CN.FUTURE.001.sample-calendar.v1",
+          "quantity_unit": "contracts",
+          "revision": "scopehub-synthetic-v1:20241013:normal",
+          "quality": "fresh",
+          "provenance": {
+            "synthetic": true,
+            "generator": "scopehub-synthetic-v1",
+            "seed": 20241013,
+            "start_ms": 1704200400000,
+            "as_of_ms": 1704330570000,
+            "last_observed_ms": 1704330570000,
+            "missing_minute_starts_ms": [],
+            "calendar_scope": "Only the declared sample windows are represented; not an exchange calendar",
+            "sessions": [
+              {
+                "start_ms": 1704200400000,
+                "end_ms": 1704201000000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704243600000,
+                "end_ms": 1704244200000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704286800000,
+                "end_ms": 1704287400000,
+                "trading_day": "2024-01-04"
+              },
+              {
+                "start_ms": 1704330000000,
+                "end_ms": 1704330600000,
+                "trading_day": "2024-01-04"
+              }
+            ]
+          }
+        },
+        "bars": [
+          {
+            "time_ms": 1704200400000,
+            "trading_day": "2024-01-03",
+            "open": 3500.0,
+            "high": 3502.4,
+            "low": 3498.6,
+            "close": 3501.4,
+            "volume": null,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704286800000,
+            "trading_day": "2024-01-04",
+            "open": 3501.4,
+            "high": 3504.2,
+            "low": 3500.8,
+            "close": 3500.8,
+            "volume": 2380.0,
+            "is_closed": false
+          }
+        ]
+      },
+      "updates": [
+        {
+          "observed_at_ms": 1704330585000,
+          "bar": {
+            "time_ms": 1704286800000,
+            "trading_day": "2024-01-04",
+            "open": 3501.4,
+            "high": 3504.2,
+            "low": 3500.8,
+            "close": 3501.2,
+            "volume": 2390.0,
+            "is_closed": false
+          }
+        },
+        {
+          "observed_at_ms": 1704330600000,
+          "bar": {
+            "time_ms": 1704286800000,
+            "trading_day": "2024-01-04",
+            "open": 3501.4,
+            "high": 3504.2,
+            "low": 3500.8,
+            "close": 3501.0,
+            "volume": 2400.0,
+            "is_closed": true
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "normal",
+      "instrument": {
+        "id": "SIM.CN.STOCK.001",
+        "display_symbol": "SIM.CN.STOCK.001",
+        "name": "Synthetic SIM.CN.STOCK.001",
+        "asset_class": "stock",
+        "venue": "SIMULATED",
+        "currency": "CNY",
+        "calendar_id": "SIM.CN.STOCK.001.sample-calendar.v1",
+        "timezone": "Asia/Shanghai",
+        "price_tick": "0.01",
+        "quantity_unit": "shares",
+        "tradability": "non_tradable",
+        "metadata": {
+          "synthetic": true,
+          "calendar_scope": "Fixed sample windows; not an exchange calendar"
+        },
+        "provider_mappings": [
+          {
+            "provider_id": "scopehub.synthetic",
+            "provider_symbol": "SIM.CN.STOCK.001"
+          }
+        ]
+      },
+      "history": {
+        "dataset": {
+          "id": "1e5b1966-9a8f-51d1-846a-2ca588be574d",
+          "instrument_id": "SIM.CN.STOCK.001",
+          "provider_id": "scopehub.synthetic",
+          "mode": "simulated",
+          "timeframe": "1m",
+          "price_adjustment": "raw",
+          "timezone": "Asia/Shanghai",
+          "calendar_id": "SIM.CN.STOCK.001.sample-calendar.v1",
+          "quantity_unit": "shares",
+          "revision": "scopehub-synthetic-v1:20241014:normal",
+          "quality": "fresh",
+          "provenance": {
+            "synthetic": true,
+            "generator": "scopehub-synthetic-v1",
+            "seed": 20241014,
+            "start_ms": 1704245400000,
+            "as_of_ms": 1704344970000,
+            "last_observed_ms": 1704344970000,
+            "missing_minute_starts_ms": [],
+            "calendar_scope": "Only the declared sample windows are represented; not an exchange calendar",
+            "sessions": [
+              {
+                "start_ms": 1704245400000,
+                "end_ms": 1704246000000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704258000000,
+                "end_ms": 1704258600000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704331800000,
+                "end_ms": 1704332400000,
+                "trading_day": "2024-01-04"
+              },
+              {
+                "start_ms": 1704344400000,
+                "end_ms": 1704345000000,
+                "trading_day": "2024-01-04"
+              }
+            ]
+          }
+        },
+        "bars": [
+          {
+            "time_ms": 1704245400000,
+            "trading_day": "2024-01-03",
+            "open": 12.0,
+            "high": 12.03,
+            "low": 11.98,
+            "close": 12.0,
+            "volume": 20.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704245460000,
+            "trading_day": "2024-01-03",
+            "open": 12.0,
+            "high": 12.02,
+            "low": 11.94,
+            "close": 11.97,
+            "volume": 130.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704245520000,
+            "trading_day": "2024-01-03",
+            "open": 11.97,
+            "high": 12.0,
+            "low": 11.92,
+            "close": 11.94,
+            "volume": 120.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704245580000,
+            "trading_day": "2024-01-03",
+            "open": 11.94,
+            "high": 11.98,
+            "low": 11.92,
+            "close": 11.97,
+            "volume": 190.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704245640000,
+            "trading_day": "2024-01-03",
+            "open": 11.97,
+            "high": 12.04,
+            "low": 11.95,
+            "close": 12.01,
+            "volume": 100.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704245700000,
+            "trading_day": "2024-01-03",
+            "open": 12.01,
+            "high": 12.07,
+            "low": 12.01,
+            "close": 12.05,
+            "volume": 20.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704245760000,
+            "trading_day": "2024-01-03",
+            "open": 12.05,
+            "high": 12.07,
+            "low": 12.05,
+            "close": 12.07,
+            "volume": 170.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704245820000,
+            "trading_day": "2024-01-03",
+            "open": 12.07,
+            "high": 12.09,
+            "low": 12.05,
+            "close": 12.08,
+            "volume": null,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704245880000,
+            "trading_day": "2024-01-03",
+            "open": 12.08,
+            "high": 12.08,
+            "low": 12.07,
+            "close": 12.08,
+            "volume": 0.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704245940000,
+            "trading_day": "2024-01-03",
+            "open": 12.08,
+            "high": 12.14,
+            "low": 12.08,
+            "close": 12.12,
+            "volume": 100.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704258000000,
+            "trading_day": "2024-01-03",
+            "open": 12.12,
+            "high": 12.19,
+            "low": 12.1,
+            "close": 12.16,
+            "volume": 10.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704258060000,
+            "trading_day": "2024-01-03",
+            "open": 12.16,
+            "high": 12.16,
+            "low": 12.12,
+            "close": 12.14,
+            "volume": 200.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704258120000,
+            "trading_day": "2024-01-03",
+            "open": 12.14,
+            "high": 12.2,
+            "low": 12.14,
+            "close": 12.18,
+            "volume": 100.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704258180000,
+            "trading_day": "2024-01-03",
+            "open": 12.18,
+            "high": 12.21,
+            "low": 12.17,
+            "close": 12.2,
+            "volume": 150.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704258240000,
+            "trading_day": "2024-01-03",
+            "open": 12.2,
+            "high": 12.23,
+            "low": 12.16,
+            "close": 12.17,
+            "volume": 20.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704258300000,
+            "trading_day": "2024-01-03",
+            "open": 12.17,
+            "high": 12.2,
+            "low": 12.13,
+            "close": 12.15,
+            "volume": 190.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704258360000,
+            "trading_day": "2024-01-03",
+            "open": 12.15,
+            "high": 12.21,
+            "low": 12.14,
+            "close": 12.19,
+            "volume": 60.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704258420000,
+            "trading_day": "2024-01-03",
+            "open": 12.19,
+            "high": 12.2,
+            "low": 12.17,
+            "close": 12.17,
+            "volume": 10.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704258480000,
+            "trading_day": "2024-01-03",
+            "open": 12.17,
+            "high": 12.18,
+            "low": 12.14,
+            "close": 12.17,
+            "volume": 100.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704258540000,
+            "trading_day": "2024-01-03",
+            "open": 12.17,
+            "high": 12.2,
+            "low": 12.11,
+            "close": 12.14,
+            "volume": 160.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704331800000,
+            "trading_day": "2024-01-04",
+            "open": 12.14,
+            "high": 12.14,
+            "low": 12.08,
+            "close": 12.11,
+            "volume": 90.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704331860000,
+            "trading_day": "2024-01-04",
+            "open": 12.11,
+            "high": 12.11,
+            "low": 12.08,
+            "close": 12.11,
+            "volume": 90.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704331920000,
+            "trading_day": "2024-01-04",
+            "open": 12.11,
+            "high": 12.13,
+            "low": 12.1,
+            "close": 12.11,
+            "volume": 120.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704331980000,
+            "trading_day": "2024-01-04",
+            "open": 12.11,
+            "high": 12.14,
+            "low": 12.1,
+            "close": 12.12,
+            "volume": 140.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704332040000,
+            "trading_day": "2024-01-04",
+            "open": 12.12,
+            "high": 12.15,
+            "low": 12.08,
+            "close": 12.08,
+            "volume": 180.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704332100000,
+            "trading_day": "2024-01-04",
+            "open": 12.08,
+            "high": 12.11,
+            "low": 12.06,
+            "close": 12.07,
+            "volume": 70.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704332160000,
+            "trading_day": "2024-01-04",
+            "open": 12.07,
+            "high": 12.11,
+            "low": 12.07,
+            "close": 12.08,
+            "volume": 80.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704332220000,
+            "trading_day": "2024-01-04",
+            "open": 12.08,
+            "high": 12.11,
+            "low": 12.05,
+            "close": 12.09,
+            "volume": 200.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704332280000,
+            "trading_day": "2024-01-04",
+            "open": 12.09,
+            "high": 12.09,
+            "low": 12.03,
+            "close": 12.06,
+            "volume": 70.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704332340000,
+            "trading_day": "2024-01-04",
+            "open": 12.06,
+            "high": 12.06,
+            "low": 12.03,
+            "close": 12.06,
+            "volume": 90.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704344400000,
+            "trading_day": "2024-01-04",
+            "open": 12.06,
+            "high": 12.1,
+            "low": 12.04,
+            "close": 12.07,
+            "volume": 60.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704344460000,
+            "trading_day": "2024-01-04",
+            "open": 12.07,
+            "high": 12.11,
+            "low": 12.05,
+            "close": 12.11,
+            "volume": 70.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704344520000,
+            "trading_day": "2024-01-04",
+            "open": 12.11,
+            "high": 12.13,
+            "low": 12.07,
+            "close": 12.07,
+            "volume": 20.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704344580000,
+            "trading_day": "2024-01-04",
+            "open": 12.07,
+            "high": 12.1,
+            "low": 12.07,
+            "close": 12.09,
+            "volume": 180.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704344640000,
+            "trading_day": "2024-01-04",
+            "open": 12.09,
+            "high": 12.1,
+            "low": 12.07,
+            "close": 12.1,
+            "volume": 160.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704344700000,
+            "trading_day": "2024-01-04",
+            "open": 12.1,
+            "high": 12.14,
+            "low": 12.1,
+            "close": 12.14,
+            "volume": 10.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704344760000,
+            "trading_day": "2024-01-04",
+            "open": 12.14,
+            "high": 12.15,
+            "low": 12.1,
+            "close": 12.13,
+            "volume": 120.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704344820000,
+            "trading_day": "2024-01-04",
+            "open": 12.13,
+            "high": 12.14,
+            "low": 12.12,
+            "close": 12.14,
+            "volume": 160.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704344880000,
+            "trading_day": "2024-01-04",
+            "open": 12.14,
+            "high": 12.19,
+            "low": 12.14,
+            "close": 12.18,
+            "volume": 110.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704344940000,
+            "trading_day": "2024-01-04",
+            "open": 12.18,
+            "high": 12.19,
+            "low": 12.15,
+            "close": 12.15,
+            "volume": 110.0,
+            "is_closed": false
+          }
+        ]
+      },
+      "updates": [
+        {
+          "observed_at_ms": 1704344985000,
+          "bar": {
+            "time_ms": 1704344940000,
+            "trading_day": "2024-01-04",
+            "open": 12.18,
+            "high": 12.19,
+            "low": 12.15,
+            "close": 12.17,
+            "volume": 120.0,
+            "is_closed": false
+          }
+        },
+        {
+          "observed_at_ms": 1704345000000,
+          "bar": {
+            "time_ms": 1704344940000,
+            "trading_day": "2024-01-04",
+            "open": 12.18,
+            "high": 12.19,
+            "low": 12.15,
+            "close": 12.16,
+            "volume": 130.0,
+            "is_closed": true
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "normal",
+      "instrument": {
+        "id": "SIM.CN.STOCK.001",
+        "display_symbol": "SIM.CN.STOCK.001",
+        "name": "Synthetic SIM.CN.STOCK.001",
+        "asset_class": "stock",
+        "venue": "SIMULATED",
+        "currency": "CNY",
+        "calendar_id": "SIM.CN.STOCK.001.sample-calendar.v1",
+        "timezone": "Asia/Shanghai",
+        "price_tick": "0.01",
+        "quantity_unit": "shares",
+        "tradability": "non_tradable",
+        "metadata": {
+          "synthetic": true,
+          "calendar_scope": "Fixed sample windows; not an exchange calendar"
+        },
+        "provider_mappings": [
+          {
+            "provider_id": "scopehub.synthetic",
+            "provider_symbol": "SIM.CN.STOCK.001"
+          }
+        ]
+      },
+      "history": {
+        "dataset": {
+          "id": "2309bff0-e5c0-59b9-b528-16091df50584",
+          "instrument_id": "SIM.CN.STOCK.001",
+          "provider_id": "scopehub.synthetic",
+          "mode": "simulated",
+          "timeframe": "5m",
+          "price_adjustment": "raw",
+          "timezone": "Asia/Shanghai",
+          "calendar_id": "SIM.CN.STOCK.001.sample-calendar.v1",
+          "quantity_unit": "shares",
+          "revision": "scopehub-synthetic-v1:20241014:normal",
+          "quality": "fresh",
+          "provenance": {
+            "synthetic": true,
+            "generator": "scopehub-synthetic-v1",
+            "seed": 20241014,
+            "start_ms": 1704245400000,
+            "as_of_ms": 1704344970000,
+            "last_observed_ms": 1704344970000,
+            "missing_minute_starts_ms": [],
+            "calendar_scope": "Only the declared sample windows are represented; not an exchange calendar",
+            "sessions": [
+              {
+                "start_ms": 1704245400000,
+                "end_ms": 1704246000000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704258000000,
+                "end_ms": 1704258600000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704331800000,
+                "end_ms": 1704332400000,
+                "trading_day": "2024-01-04"
+              },
+              {
+                "start_ms": 1704344400000,
+                "end_ms": 1704345000000,
+                "trading_day": "2024-01-04"
+              }
+            ]
+          }
+        },
+        "bars": [
+          {
+            "time_ms": 1704245400000,
+            "trading_day": "2024-01-03",
+            "open": 12.0,
+            "high": 12.04,
+            "low": 11.92,
+            "close": 12.01,
+            "volume": 560.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704245700000,
+            "trading_day": "2024-01-03",
+            "open": 12.01,
+            "high": 12.14,
+            "low": 12.01,
+            "close": 12.12,
+            "volume": null,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704258000000,
+            "trading_day": "2024-01-03",
+            "open": 12.12,
+            "high": 12.23,
+            "low": 12.1,
+            "close": 12.17,
+            "volume": 480.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704258300000,
+            "trading_day": "2024-01-03",
+            "open": 12.17,
+            "high": 12.21,
+            "low": 12.11,
+            "close": 12.14,
+            "volume": 520.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704331800000,
+            "trading_day": "2024-01-04",
+            "open": 12.14,
+            "high": 12.15,
+            "low": 12.08,
+            "close": 12.08,
+            "volume": 620.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704332100000,
+            "trading_day": "2024-01-04",
+            "open": 12.08,
+            "high": 12.11,
+            "low": 12.03,
+            "close": 12.06,
+            "volume": 510.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704344400000,
+            "trading_day": "2024-01-04",
+            "open": 12.06,
+            "high": 12.13,
+            "low": 12.04,
+            "close": 12.1,
+            "volume": 490.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704344700000,
+            "trading_day": "2024-01-04",
+            "open": 12.1,
+            "high": 12.19,
+            "low": 12.1,
+            "close": 12.15,
+            "volume": 510.0,
+            "is_closed": false
+          }
+        ]
+      },
+      "updates": [
+        {
+          "observed_at_ms": 1704344985000,
+          "bar": {
+            "time_ms": 1704344700000,
+            "trading_day": "2024-01-04",
+            "open": 12.1,
+            "high": 12.19,
+            "low": 12.1,
+            "close": 12.17,
+            "volume": 520.0,
+            "is_closed": false
+          }
+        },
+        {
+          "observed_at_ms": 1704345000000,
+          "bar": {
+            "time_ms": 1704344700000,
+            "trading_day": "2024-01-04",
+            "open": 12.1,
+            "high": 12.19,
+            "low": 12.1,
+            "close": 12.16,
+            "volume": 530.0,
+            "is_closed": true
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "normal",
+      "instrument": {
+        "id": "SIM.CN.STOCK.001",
+        "display_symbol": "SIM.CN.STOCK.001",
+        "name": "Synthetic SIM.CN.STOCK.001",
+        "asset_class": "stock",
+        "venue": "SIMULATED",
+        "currency": "CNY",
+        "calendar_id": "SIM.CN.STOCK.001.sample-calendar.v1",
+        "timezone": "Asia/Shanghai",
+        "price_tick": "0.01",
+        "quantity_unit": "shares",
+        "tradability": "non_tradable",
+        "metadata": {
+          "synthetic": true,
+          "calendar_scope": "Fixed sample windows; not an exchange calendar"
+        },
+        "provider_mappings": [
+          {
+            "provider_id": "scopehub.synthetic",
+            "provider_symbol": "SIM.CN.STOCK.001"
+          }
+        ]
+      },
+      "history": {
+        "dataset": {
+          "id": "ca05c763-d326-59df-9516-c4297c35ba30",
+          "instrument_id": "SIM.CN.STOCK.001",
+          "provider_id": "scopehub.synthetic",
+          "mode": "simulated",
+          "timeframe": "1d",
+          "price_adjustment": "raw",
+          "timezone": "Asia/Shanghai",
+          "calendar_id": "SIM.CN.STOCK.001.sample-calendar.v1",
+          "quantity_unit": "shares",
+          "revision": "scopehub-synthetic-v1:20241014:normal",
+          "quality": "fresh",
+          "provenance": {
+            "synthetic": true,
+            "generator": "scopehub-synthetic-v1",
+            "seed": 20241014,
+            "start_ms": 1704245400000,
+            "as_of_ms": 1704344970000,
+            "last_observed_ms": 1704344970000,
+            "missing_minute_starts_ms": [],
+            "calendar_scope": "Only the declared sample windows are represented; not an exchange calendar",
+            "sessions": [
+              {
+                "start_ms": 1704245400000,
+                "end_ms": 1704246000000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704258000000,
+                "end_ms": 1704258600000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704331800000,
+                "end_ms": 1704332400000,
+                "trading_day": "2024-01-04"
+              },
+              {
+                "start_ms": 1704344400000,
+                "end_ms": 1704345000000,
+                "trading_day": "2024-01-04"
+              }
+            ]
+          }
+        },
+        "bars": [
+          {
+            "time_ms": 1704245400000,
+            "trading_day": "2024-01-03",
+            "open": 12.0,
+            "high": 12.23,
+            "low": 11.92,
+            "close": 12.14,
+            "volume": null,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704331800000,
+            "trading_day": "2024-01-04",
+            "open": 12.14,
+            "high": 12.19,
+            "low": 12.03,
+            "close": 12.15,
+            "volume": 2130.0,
+            "is_closed": false
+          }
+        ]
+      },
+      "updates": [
+        {
+          "observed_at_ms": 1704344985000,
+          "bar": {
+            "time_ms": 1704331800000,
+            "trading_day": "2024-01-04",
+            "open": 12.14,
+            "high": 12.19,
+            "low": 12.03,
+            "close": 12.17,
+            "volume": 2140.0,
+            "is_closed": false
+          }
+        },
+        {
+          "observed_at_ms": 1704345000000,
+          "bar": {
+            "time_ms": 1704331800000,
+            "trading_day": "2024-01-04",
+            "open": 12.14,
+            "high": 12.19,
+            "low": 12.03,
+            "close": 12.16,
+            "volume": 2150.0,
+            "is_closed": true
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "normal",
+      "instrument": {
+        "id": "SIM.US.STOCK.001",
+        "display_symbol": "SIM.US.STOCK.001",
+        "name": "Synthetic SIM.US.STOCK.001",
+        "asset_class": "stock",
+        "venue": "SIMULATED",
+        "currency": "USD",
+        "calendar_id": "SIM.US.STOCK.001.sample-calendar.v1",
+        "timezone": "America/New_York",
+        "price_tick": "0.01",
+        "quantity_unit": "shares",
+        "tradability": "non_tradable",
+        "metadata": {
+          "synthetic": true,
+          "calendar_scope": "Fixed sample windows; not an exchange calendar"
+        },
+        "provider_mappings": [
+          {
+            "provider_id": "scopehub.synthetic",
+            "provider_symbol": "SIM.US.STOCK.001"
+          }
+        ]
+      },
+      "history": {
+        "dataset": {
+          "id": "e6fb1e7e-c108-5d42-b382-43dc12610582",
+          "instrument_id": "SIM.US.STOCK.001",
+          "provider_id": "scopehub.synthetic",
+          "mode": "simulated",
+          "timeframe": "1m",
+          "price_adjustment": "raw",
+          "timezone": "America/New_York",
+          "calendar_id": "SIM.US.STOCK.001.sample-calendar.v1",
+          "quantity_unit": "shares",
+          "revision": "scopehub-synthetic-v1:20241015:normal",
+          "quality": "fresh",
+          "provenance": {
+            "synthetic": true,
+            "generator": "scopehub-synthetic-v1",
+            "seed": 20241015,
+            "start_ms": 1704292200000,
+            "as_of_ms": 1704398970000,
+            "last_observed_ms": 1704398970000,
+            "missing_minute_starts_ms": [],
+            "calendar_scope": "Only the declared sample windows are represented; not an exchange calendar",
+            "sessions": [
+              {
+                "start_ms": 1704292200000,
+                "end_ms": 1704292800000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704312000000,
+                "end_ms": 1704312600000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704378600000,
+                "end_ms": 1704379200000,
+                "trading_day": "2024-01-04"
+              },
+              {
+                "start_ms": 1704398400000,
+                "end_ms": 1704399000000,
+                "trading_day": "2024-01-04"
+              }
+            ]
+          }
+        },
+        "bars": [
+          {
+            "time_ms": 1704292200000,
+            "trading_day": "2024-01-03",
+            "open": 175.0,
+            "high": 175.02,
+            "low": 174.96,
+            "close": 174.99,
+            "volume": 170.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704292260000,
+            "trading_day": "2024-01-03",
+            "open": 174.99,
+            "high": 175.0,
+            "low": 174.99,
+            "close": 174.99,
+            "volume": 100.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704292320000,
+            "trading_day": "2024-01-03",
+            "open": 174.99,
+            "high": 175.02,
+            "low": 174.97,
+            "close": 174.98,
+            "volume": 40.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704292380000,
+            "trading_day": "2024-01-03",
+            "open": 174.98,
+            "high": 174.98,
+            "low": 174.95,
+            "close": 174.97,
+            "volume": 130.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704292440000,
+            "trading_day": "2024-01-03",
+            "open": 174.97,
+            "high": 174.97,
+            "low": 174.93,
+            "close": 174.94,
+            "volume": 150.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704292500000,
+            "trading_day": "2024-01-03",
+            "open": 174.94,
+            "high": 174.97,
+            "low": 174.91,
+            "close": 174.91,
+            "volume": 80.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704292560000,
+            "trading_day": "2024-01-03",
+            "open": 174.91,
+            "high": 174.94,
+            "low": 174.88,
+            "close": 174.91,
+            "volume": 140.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704292620000,
+            "trading_day": "2024-01-03",
+            "open": 174.91,
+            "high": 174.92,
+            "low": 174.85,
+            "close": 174.87,
+            "volume": null,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704292680000,
+            "trading_day": "2024-01-03",
+            "open": 174.87,
+            "high": 174.94,
+            "low": 174.84,
+            "close": 174.91,
+            "volume": 0.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704292740000,
+            "trading_day": "2024-01-03",
+            "open": 174.91,
+            "high": 174.97,
+            "low": 174.9,
+            "close": 174.94,
+            "volume": 60.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704312000000,
+            "trading_day": "2024-01-03",
+            "open": 174.94,
+            "high": 174.94,
+            "low": 174.93,
+            "close": 174.93,
+            "volume": 50.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704312060000,
+            "trading_day": "2024-01-03",
+            "open": 174.93,
+            "high": 174.96,
+            "low": 174.91,
+            "close": 174.91,
+            "volume": 150.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704312120000,
+            "trading_day": "2024-01-03",
+            "open": 174.91,
+            "high": 174.93,
+            "low": 174.88,
+            "close": 174.88,
+            "volume": 160.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704312180000,
+            "trading_day": "2024-01-03",
+            "open": 174.88,
+            "high": 174.88,
+            "low": 174.83,
+            "close": 174.86,
+            "volume": 200.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704312240000,
+            "trading_day": "2024-01-03",
+            "open": 174.86,
+            "high": 174.87,
+            "low": 174.82,
+            "close": 174.82,
+            "volume": 200.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704312300000,
+            "trading_day": "2024-01-03",
+            "open": 174.82,
+            "high": 174.86,
+            "low": 174.8,
+            "close": 174.86,
+            "volume": 10.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704312360000,
+            "trading_day": "2024-01-03",
+            "open": 174.86,
+            "high": 174.87,
+            "low": 174.86,
+            "close": 174.86,
+            "volume": 120.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704312420000,
+            "trading_day": "2024-01-03",
+            "open": 174.86,
+            "high": 174.87,
+            "low": 174.85,
+            "close": 174.86,
+            "volume": 30.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704312480000,
+            "trading_day": "2024-01-03",
+            "open": 174.86,
+            "high": 174.86,
+            "low": 174.85,
+            "close": 174.86,
+            "volume": 110.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704312540000,
+            "trading_day": "2024-01-03",
+            "open": 174.86,
+            "high": 174.89,
+            "low": 174.85,
+            "close": 174.85,
+            "volume": 120.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704378600000,
+            "trading_day": "2024-01-04",
+            "open": 174.85,
+            "high": 174.89,
+            "low": 174.82,
+            "close": 174.89,
+            "volume": 150.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704378660000,
+            "trading_day": "2024-01-04",
+            "open": 174.89,
+            "high": 174.91,
+            "low": 174.85,
+            "close": 174.88,
+            "volume": 20.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704378720000,
+            "trading_day": "2024-01-04",
+            "open": 174.88,
+            "high": 174.9,
+            "low": 174.83,
+            "close": 174.84,
+            "volume": 200.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704378780000,
+            "trading_day": "2024-01-04",
+            "open": 174.84,
+            "high": 174.84,
+            "low": 174.79,
+            "close": 174.82,
+            "volume": 160.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704378840000,
+            "trading_day": "2024-01-04",
+            "open": 174.82,
+            "high": 174.83,
+            "low": 174.79,
+            "close": 174.82,
+            "volume": 60.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704378900000,
+            "trading_day": "2024-01-04",
+            "open": 174.82,
+            "high": 174.84,
+            "low": 174.79,
+            "close": 174.79,
+            "volume": 150.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704378960000,
+            "trading_day": "2024-01-04",
+            "open": 174.79,
+            "high": 174.81,
+            "low": 174.73,
+            "close": 174.76,
+            "volume": 160.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704379020000,
+            "trading_day": "2024-01-04",
+            "open": 174.76,
+            "high": 174.8,
+            "low": 174.76,
+            "close": 174.79,
+            "volume": 200.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704379080000,
+            "trading_day": "2024-01-04",
+            "open": 174.79,
+            "high": 174.79,
+            "low": 174.76,
+            "close": 174.77,
+            "volume": 190.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704379140000,
+            "trading_day": "2024-01-04",
+            "open": 174.77,
+            "high": 174.77,
+            "low": 174.73,
+            "close": 174.74,
+            "volume": 60.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704398400000,
+            "trading_day": "2024-01-04",
+            "open": 174.74,
+            "high": 174.77,
+            "low": 174.7,
+            "close": 174.72,
+            "volume": 10.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704398460000,
+            "trading_day": "2024-01-04",
+            "open": 174.72,
+            "high": 174.76,
+            "low": 174.71,
+            "close": 174.73,
+            "volume": 160.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704398520000,
+            "trading_day": "2024-01-04",
+            "open": 174.73,
+            "high": 174.74,
+            "low": 174.71,
+            "close": 174.71,
+            "volume": 60.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704398580000,
+            "trading_day": "2024-01-04",
+            "open": 174.71,
+            "high": 174.74,
+            "low": 174.68,
+            "close": 174.72,
+            "volume": 110.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704398640000,
+            "trading_day": "2024-01-04",
+            "open": 174.72,
+            "high": 174.74,
+            "low": 174.71,
+            "close": 174.73,
+            "volume": 80.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704398700000,
+            "trading_day": "2024-01-04",
+            "open": 174.73,
+            "high": 174.75,
+            "low": 174.69,
+            "close": 174.7,
+            "volume": 150.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704398760000,
+            "trading_day": "2024-01-04",
+            "open": 174.7,
+            "high": 174.73,
+            "low": 174.68,
+            "close": 174.72,
+            "volume": 200.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704398820000,
+            "trading_day": "2024-01-04",
+            "open": 174.72,
+            "high": 174.73,
+            "low": 174.72,
+            "close": 174.72,
+            "volume": 160.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704398880000,
+            "trading_day": "2024-01-04",
+            "open": 174.72,
+            "high": 174.78,
+            "low": 174.7,
+            "close": 174.75,
+            "volume": 180.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704398940000,
+            "trading_day": "2024-01-04",
+            "open": 174.75,
+            "high": 174.76,
+            "low": 174.7,
+            "close": 174.72,
+            "volume": 140.0,
+            "is_closed": false
+          }
+        ]
+      },
+      "updates": [
+        {
+          "observed_at_ms": 1704398985000,
+          "bar": {
+            "time_ms": 1704398940000,
+            "trading_day": "2024-01-04",
+            "open": 174.75,
+            "high": 174.76,
+            "low": 174.7,
+            "close": 174.74,
+            "volume": 150.0,
+            "is_closed": false
+          }
+        },
+        {
+          "observed_at_ms": 1704399000000,
+          "bar": {
+            "time_ms": 1704398940000,
+            "trading_day": "2024-01-04",
+            "open": 174.75,
+            "high": 174.76,
+            "low": 174.7,
+            "close": 174.73,
+            "volume": 160.0,
+            "is_closed": true
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "normal",
+      "instrument": {
+        "id": "SIM.US.STOCK.001",
+        "display_symbol": "SIM.US.STOCK.001",
+        "name": "Synthetic SIM.US.STOCK.001",
+        "asset_class": "stock",
+        "venue": "SIMULATED",
+        "currency": "USD",
+        "calendar_id": "SIM.US.STOCK.001.sample-calendar.v1",
+        "timezone": "America/New_York",
+        "price_tick": "0.01",
+        "quantity_unit": "shares",
+        "tradability": "non_tradable",
+        "metadata": {
+          "synthetic": true,
+          "calendar_scope": "Fixed sample windows; not an exchange calendar"
+        },
+        "provider_mappings": [
+          {
+            "provider_id": "scopehub.synthetic",
+            "provider_symbol": "SIM.US.STOCK.001"
+          }
+        ]
+      },
+      "history": {
+        "dataset": {
+          "id": "cccbe426-b080-5d95-b132-e0eb5a362637",
+          "instrument_id": "SIM.US.STOCK.001",
+          "provider_id": "scopehub.synthetic",
+          "mode": "simulated",
+          "timeframe": "5m",
+          "price_adjustment": "raw",
+          "timezone": "America/New_York",
+          "calendar_id": "SIM.US.STOCK.001.sample-calendar.v1",
+          "quantity_unit": "shares",
+          "revision": "scopehub-synthetic-v1:20241015:normal",
+          "quality": "fresh",
+          "provenance": {
+            "synthetic": true,
+            "generator": "scopehub-synthetic-v1",
+            "seed": 20241015,
+            "start_ms": 1704292200000,
+            "as_of_ms": 1704398970000,
+            "last_observed_ms": 1704398970000,
+            "missing_minute_starts_ms": [],
+            "calendar_scope": "Only the declared sample windows are represented; not an exchange calendar",
+            "sessions": [
+              {
+                "start_ms": 1704292200000,
+                "end_ms": 1704292800000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704312000000,
+                "end_ms": 1704312600000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704378600000,
+                "end_ms": 1704379200000,
+                "trading_day": "2024-01-04"
+              },
+              {
+                "start_ms": 1704398400000,
+                "end_ms": 1704399000000,
+                "trading_day": "2024-01-04"
+              }
+            ]
+          }
+        },
+        "bars": [
+          {
+            "time_ms": 1704292200000,
+            "trading_day": "2024-01-03",
+            "open": 175.0,
+            "high": 175.02,
+            "low": 174.93,
+            "close": 174.94,
+            "volume": 590.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704292500000,
+            "trading_day": "2024-01-03",
+            "open": 174.94,
+            "high": 174.97,
+            "low": 174.84,
+            "close": 174.94,
+            "volume": null,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704312000000,
+            "trading_day": "2024-01-03",
+            "open": 174.94,
+            "high": 174.96,
+            "low": 174.82,
+            "close": 174.82,
+            "volume": 760.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704312300000,
+            "trading_day": "2024-01-03",
+            "open": 174.82,
+            "high": 174.89,
+            "low": 174.8,
+            "close": 174.85,
+            "volume": 390.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704378600000,
+            "trading_day": "2024-01-04",
+            "open": 174.85,
+            "high": 174.91,
+            "low": 174.79,
+            "close": 174.82,
+            "volume": 590.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704378900000,
+            "trading_day": "2024-01-04",
+            "open": 174.82,
+            "high": 174.84,
+            "low": 174.73,
+            "close": 174.74,
+            "volume": 760.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704398400000,
+            "trading_day": "2024-01-04",
+            "open": 174.74,
+            "high": 174.77,
+            "low": 174.68,
+            "close": 174.73,
+            "volume": 420.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704398700000,
+            "trading_day": "2024-01-04",
+            "open": 174.73,
+            "high": 174.78,
+            "low": 174.68,
+            "close": 174.72,
+            "volume": 830.0,
+            "is_closed": false
+          }
+        ]
+      },
+      "updates": [
+        {
+          "observed_at_ms": 1704398985000,
+          "bar": {
+            "time_ms": 1704398700000,
+            "trading_day": "2024-01-04",
+            "open": 174.73,
+            "high": 174.78,
+            "low": 174.68,
+            "close": 174.74,
+            "volume": 840.0,
+            "is_closed": false
+          }
+        },
+        {
+          "observed_at_ms": 1704399000000,
+          "bar": {
+            "time_ms": 1704398700000,
+            "trading_day": "2024-01-04",
+            "open": 174.73,
+            "high": 174.78,
+            "low": 174.68,
+            "close": 174.73,
+            "volume": 850.0,
+            "is_closed": true
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "normal",
+      "instrument": {
+        "id": "SIM.US.STOCK.001",
+        "display_symbol": "SIM.US.STOCK.001",
+        "name": "Synthetic SIM.US.STOCK.001",
+        "asset_class": "stock",
+        "venue": "SIMULATED",
+        "currency": "USD",
+        "calendar_id": "SIM.US.STOCK.001.sample-calendar.v1",
+        "timezone": "America/New_York",
+        "price_tick": "0.01",
+        "quantity_unit": "shares",
+        "tradability": "non_tradable",
+        "metadata": {
+          "synthetic": true,
+          "calendar_scope": "Fixed sample windows; not an exchange calendar"
+        },
+        "provider_mappings": [
+          {
+            "provider_id": "scopehub.synthetic",
+            "provider_symbol": "SIM.US.STOCK.001"
+          }
+        ]
+      },
+      "history": {
+        "dataset": {
+          "id": "639f8939-21b4-53c7-924f-c2d13a949711",
+          "instrument_id": "SIM.US.STOCK.001",
+          "provider_id": "scopehub.synthetic",
+          "mode": "simulated",
+          "timeframe": "1d",
+          "price_adjustment": "raw",
+          "timezone": "America/New_York",
+          "calendar_id": "SIM.US.STOCK.001.sample-calendar.v1",
+          "quantity_unit": "shares",
+          "revision": "scopehub-synthetic-v1:20241015:normal",
+          "quality": "fresh",
+          "provenance": {
+            "synthetic": true,
+            "generator": "scopehub-synthetic-v1",
+            "seed": 20241015,
+            "start_ms": 1704292200000,
+            "as_of_ms": 1704398970000,
+            "last_observed_ms": 1704398970000,
+            "missing_minute_starts_ms": [],
+            "calendar_scope": "Only the declared sample windows are represented; not an exchange calendar",
+            "sessions": [
+              {
+                "start_ms": 1704292200000,
+                "end_ms": 1704292800000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704312000000,
+                "end_ms": 1704312600000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704378600000,
+                "end_ms": 1704379200000,
+                "trading_day": "2024-01-04"
+              },
+              {
+                "start_ms": 1704398400000,
+                "end_ms": 1704399000000,
+                "trading_day": "2024-01-04"
+              }
+            ]
+          }
+        },
+        "bars": [
+          {
+            "time_ms": 1704292200000,
+            "trading_day": "2024-01-03",
+            "open": 175.0,
+            "high": 175.02,
+            "low": 174.8,
+            "close": 174.85,
+            "volume": null,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704378600000,
+            "trading_day": "2024-01-04",
+            "open": 174.85,
+            "high": 174.91,
+            "low": 174.68,
+            "close": 174.72,
+            "volume": 2600.0,
+            "is_closed": false
+          }
+        ]
+      },
+      "updates": [
+        {
+          "observed_at_ms": 1704398985000,
+          "bar": {
+            "time_ms": 1704378600000,
+            "trading_day": "2024-01-04",
+            "open": 174.85,
+            "high": 174.91,
+            "low": 174.68,
+            "close": 174.74,
+            "volume": 2610.0,
+            "is_closed": false
+          }
+        },
+        {
+          "observed_at_ms": 1704399000000,
+          "bar": {
+            "time_ms": 1704378600000,
+            "trading_day": "2024-01-04",
+            "open": 174.85,
+            "high": 174.91,
+            "low": 174.68,
+            "close": 174.73,
+            "volume": 2620.0,
+            "is_closed": true
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "gapped",
+      "instrument": {
+        "id": "SIM.CN.FUTURE.001",
+        "display_symbol": "SIM.CN.FUTURE.001",
+        "name": "Synthetic SIM.CN.FUTURE.001",
+        "asset_class": "future",
+        "venue": "SIMULATED",
+        "currency": "CNY",
+        "calendar_id": "SIM.CN.FUTURE.001.sample-calendar.v1",
+        "timezone": "Asia/Shanghai",
+        "price_tick": "0.2",
+        "quantity_unit": "contracts",
+        "tradability": "non_tradable",
+        "metadata": {
+          "synthetic": true,
+          "calendar_scope": "Fixed sample windows; not an exchange calendar"
+        },
+        "provider_mappings": [
+          {
+            "provider_id": "scopehub.synthetic",
+            "provider_symbol": "SIM.CN.FUTURE.001"
+          }
+        ]
+      },
+      "history": {
+        "dataset": {
+          "id": "77c03d60-0202-5194-b326-f165a3309d7f",
+          "instrument_id": "SIM.CN.FUTURE.001",
+          "provider_id": "scopehub.synthetic",
+          "mode": "simulated",
+          "timeframe": "1m",
+          "price_adjustment": "raw",
+          "timezone": "Asia/Shanghai",
+          "calendar_id": "SIM.CN.FUTURE.001.sample-calendar.v1",
+          "quantity_unit": "contracts",
+          "revision": "scopehub-synthetic-v1:20241013:gapped",
+          "quality": "gapped",
+          "provenance": {
+            "synthetic": true,
+            "generator": "scopehub-synthetic-v1",
+            "seed": 20241013,
+            "start_ms": 1704200400000,
+            "as_of_ms": 1704330570000,
+            "last_observed_ms": 1704330570000,
+            "missing_minute_starts_ms": [
+              1704200520000,
+              1704200700000,
+              1704200760000,
+              1704200820000,
+              1704200880000,
+              1704200940000
+            ],
+            "calendar_scope": "Only the declared sample windows are represented; not an exchange calendar",
+            "sessions": [
+              {
+                "start_ms": 1704200400000,
+                "end_ms": 1704201000000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704243600000,
+                "end_ms": 1704244200000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704286800000,
+                "end_ms": 1704287400000,
+                "trading_day": "2024-01-04"
+              },
+              {
+                "start_ms": 1704330000000,
+                "end_ms": 1704330600000,
+                "trading_day": "2024-01-04"
+              }
+            ]
+          }
+        },
+        "bars": [
+          {
+            "time_ms": 1704200400000,
+            "trading_day": "2024-01-03",
+            "open": 3500.0,
+            "high": 3500.4,
+            "low": 3498.8,
+            "close": 3499.2,
+            "volume": 120.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704200460000,
+            "trading_day": "2024-01-03",
+            "open": 3499.2,
+            "high": 3500.4,
+            "low": 3498.6,
+            "close": 3499.8,
+            "volume": 80.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704200580000,
+            "trading_day": "2024-01-03",
+            "open": 3500.2,
+            "high": 3500.8,
+            "low": 3499.8,
+            "close": 3500.8,
+            "volume": 70.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704200640000,
+            "trading_day": "2024-01-03",
+            "open": 3500.8,
+            "high": 3501.4,
+            "low": 3500.6,
+            "close": 3500.8,
+            "volume": 80.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243600000,
+            "trading_day": "2024-01-03",
+            "open": 3500.2,
+            "high": 3500.8,
+            "low": 3500.2,
+            "close": 3500.8,
+            "volume": 70.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243660000,
+            "trading_day": "2024-01-03",
+            "open": 3500.8,
+            "high": 3501.4,
+            "low": 3500.8,
+            "close": 3501.4,
+            "volume": 170.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243720000,
+            "trading_day": "2024-01-03",
+            "open": 3501.4,
+            "high": 3501.6,
+            "low": 3500.6,
+            "close": 3500.8,
+            "volume": 200.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243780000,
+            "trading_day": "2024-01-03",
+            "open": 3500.8,
+            "high": 3501.4,
+            "low": 3500.4,
+            "close": 3501.4,
+            "volume": 130.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243840000,
+            "trading_day": "2024-01-03",
+            "open": 3501.4,
+            "high": 3502.2,
+            "low": 3500.8,
+            "close": 3502.0,
+            "volume": 160.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243900000,
+            "trading_day": "2024-01-03",
+            "open": 3502.0,
+            "high": 3502.4,
+            "low": 3502.0,
+            "close": 3502.0,
+            "volume": 80.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243960000,
+            "trading_day": "2024-01-03",
+            "open": 3502.0,
+            "high": 3502.4,
+            "low": 3501.2,
+            "close": 3501.6,
+            "volume": 180.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704244020000,
+            "trading_day": "2024-01-03",
+            "open": 3501.6,
+            "high": 3502.0,
+            "low": 3500.8,
+            "close": 3501.0,
+            "volume": 50.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704244080000,
+            "trading_day": "2024-01-03",
+            "open": 3501.0,
+            "high": 3502.4,
+            "low": 3500.4,
+            "close": 3501.8,
+            "volume": 80.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704244140000,
+            "trading_day": "2024-01-03",
+            "open": 3501.8,
+            "high": 3502.0,
+            "low": 3501.4,
+            "close": 3501.4,
+            "volume": 50.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704286800000,
+            "trading_day": "2024-01-04",
+            "open": 3501.4,
+            "high": 3502.0,
+            "low": 3501.0,
+            "close": 3501.2,
+            "volume": 180.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704286860000,
+            "trading_day": "2024-01-04",
+            "open": 3501.2,
+            "high": 3501.6,
+            "low": 3500.8,
+            "close": 3501.6,
+            "volume": 180.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704286920000,
+            "trading_day": "2024-01-04",
+            "open": 3501.6,
+            "high": 3502.4,
+            "low": 3501.4,
+            "close": 3502.2,
+            "volume": 190.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704286980000,
+            "trading_day": "2024-01-04",
+            "open": 3502.2,
+            "high": 3503.2,
+            "low": 3501.6,
+            "close": 3503.0,
+            "volume": 120.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704287040000,
+            "trading_day": "2024-01-04",
+            "open": 3503.0,
+            "high": 3504.0,
+            "low": 3503.0,
+            "close": 3503.8,
+            "volume": 130.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704287100000,
+            "trading_day": "2024-01-04",
+            "open": 3503.8,
+            "high": 3504.2,
+            "low": 3503.8,
+            "close": 3503.8,
+            "volume": 200.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704287160000,
+            "trading_day": "2024-01-04",
+            "open": 3503.8,
+            "high": 3504.2,
+            "low": 3503.2,
+            "close": 3504.0,
+            "volume": 40.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704287220000,
+            "trading_day": "2024-01-04",
+            "open": 3504.0,
+            "high": 3504.0,
+            "low": 3503.2,
+            "close": 3503.2,
+            "volume": 160.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704287280000,
+            "trading_day": "2024-01-04",
+            "open": 3503.2,
+            "high": 3503.6,
+            "low": 3502.6,
+            "close": 3503.6,
+            "volume": 30.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704287340000,
+            "trading_day": "2024-01-04",
+            "open": 3503.6,
+            "high": 3504.0,
+            "low": 3503.0,
+            "close": 3503.0,
+            "volume": 30.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330000000,
+            "trading_day": "2024-01-04",
+            "open": 3503.0,
+            "high": 3503.4,
+            "low": 3502.4,
+            "close": 3503.2,
+            "volume": 100.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330060000,
+            "trading_day": "2024-01-04",
+            "open": 3503.2,
+            "high": 3503.6,
+            "low": 3502.2,
+            "close": 3502.4,
+            "volume": 190.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330120000,
+            "trading_day": "2024-01-04",
+            "open": 3502.4,
+            "high": 3502.4,
+            "low": 3501.6,
+            "close": 3502.0,
+            "volume": 70.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330180000,
+            "trading_day": "2024-01-04",
+            "open": 3502.0,
+            "high": 3502.6,
+            "low": 3501.6,
+            "close": 3502.2,
+            "volume": 130.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330240000,
+            "trading_day": "2024-01-04",
+            "open": 3502.2,
+            "high": 3502.2,
+            "low": 3501.2,
+            "close": 3501.6,
+            "volume": 200.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330300000,
+            "trading_day": "2024-01-04",
+            "open": 3501.6,
+            "high": 3501.8,
+            "low": 3501.6,
+            "close": 3501.8,
+            "volume": 100.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330360000,
+            "trading_day": "2024-01-04",
+            "open": 3501.8,
+            "high": 3502.2,
+            "low": 3501.8,
+            "close": 3502.2,
+            "volume": 20.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330420000,
+            "trading_day": "2024-01-04",
+            "open": 3502.2,
+            "high": 3502.4,
+            "low": 3501.2,
+            "close": 3501.8,
+            "volume": 110.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330480000,
+            "trading_day": "2024-01-04",
+            "open": 3501.8,
+            "high": 3502.0,
+            "low": 3501.6,
+            "close": 3501.6,
+            "volume": 90.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330540000,
+            "trading_day": "2024-01-04",
+            "open": 3501.6,
+            "high": 3502.0,
+            "low": 3500.8,
+            "close": 3500.8,
+            "volume": 110.0,
+            "is_closed": false
+          }
+        ]
+      },
+      "updates": [
+        {
+          "observed_at_ms": 1704330585000,
+          "bar": {
+            "time_ms": 1704330540000,
+            "trading_day": "2024-01-04",
+            "open": 3501.6,
+            "high": 3502.0,
+            "low": 3500.8,
+            "close": 3501.2,
+            "volume": 120.0,
+            "is_closed": false
+          }
+        },
+        {
+          "observed_at_ms": 1704330600000,
+          "bar": {
+            "time_ms": 1704330540000,
+            "trading_day": "2024-01-04",
+            "open": 3501.6,
+            "high": 3502.0,
+            "low": 3500.8,
+            "close": 3501.0,
+            "volume": 130.0,
+            "is_closed": true
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "gapped",
+      "instrument": {
+        "id": "SIM.CN.FUTURE.001",
+        "display_symbol": "SIM.CN.FUTURE.001",
+        "name": "Synthetic SIM.CN.FUTURE.001",
+        "asset_class": "future",
+        "venue": "SIMULATED",
+        "currency": "CNY",
+        "calendar_id": "SIM.CN.FUTURE.001.sample-calendar.v1",
+        "timezone": "Asia/Shanghai",
+        "price_tick": "0.2",
+        "quantity_unit": "contracts",
+        "tradability": "non_tradable",
+        "metadata": {
+          "synthetic": true,
+          "calendar_scope": "Fixed sample windows; not an exchange calendar"
+        },
+        "provider_mappings": [
+          {
+            "provider_id": "scopehub.synthetic",
+            "provider_symbol": "SIM.CN.FUTURE.001"
+          }
+        ]
+      },
+      "history": {
+        "dataset": {
+          "id": "521b842e-cdf0-5d2a-813e-c4aca3ec5f45",
+          "instrument_id": "SIM.CN.FUTURE.001",
+          "provider_id": "scopehub.synthetic",
+          "mode": "simulated",
+          "timeframe": "5m",
+          "price_adjustment": "raw",
+          "timezone": "Asia/Shanghai",
+          "calendar_id": "SIM.CN.FUTURE.001.sample-calendar.v1",
+          "quantity_unit": "contracts",
+          "revision": "scopehub-synthetic-v1:20241013:gapped",
+          "quality": "gapped",
+          "provenance": {
+            "synthetic": true,
+            "generator": "scopehub-synthetic-v1",
+            "seed": 20241013,
+            "start_ms": 1704200400000,
+            "as_of_ms": 1704330570000,
+            "last_observed_ms": 1704330570000,
+            "missing_minute_starts_ms": [
+              1704200520000,
+              1704200700000,
+              1704200760000,
+              1704200820000,
+              1704200880000,
+              1704200940000
+            ],
+            "calendar_scope": "Only the declared sample windows are represented; not an exchange calendar",
+            "sessions": [
+              {
+                "start_ms": 1704200400000,
+                "end_ms": 1704201000000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704243600000,
+                "end_ms": 1704244200000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704286800000,
+                "end_ms": 1704287400000,
+                "trading_day": "2024-01-04"
+              },
+              {
+                "start_ms": 1704330000000,
+                "end_ms": 1704330600000,
+                "trading_day": "2024-01-04"
+              }
+            ]
+          }
+        },
+        "bars": [
+          {
+            "time_ms": 1704200400000,
+            "trading_day": "2024-01-03",
+            "open": 3500.0,
+            "high": 3501.4,
+            "low": 3498.6,
+            "close": 3500.8,
+            "volume": null,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243600000,
+            "trading_day": "2024-01-03",
+            "open": 3500.2,
+            "high": 3502.2,
+            "low": 3500.2,
+            "close": 3502.0,
+            "volume": 730.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243900000,
+            "trading_day": "2024-01-03",
+            "open": 3502.0,
+            "high": 3502.4,
+            "low": 3500.4,
+            "close": 3501.4,
+            "volume": 440.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704286800000,
+            "trading_day": "2024-01-04",
+            "open": 3501.4,
+            "high": 3504.0,
+            "low": 3500.8,
+            "close": 3503.8,
+            "volume": 800.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704287100000,
+            "trading_day": "2024-01-04",
+            "open": 3503.8,
+            "high": 3504.2,
+            "low": 3502.6,
+            "close": 3503.0,
+            "volume": 460.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330000000,
+            "trading_day": "2024-01-04",
+            "open": 3503.0,
+            "high": 3503.6,
+            "low": 3501.2,
+            "close": 3501.6,
+            "volume": 690.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330300000,
+            "trading_day": "2024-01-04",
+            "open": 3501.6,
+            "high": 3502.4,
+            "low": 3500.8,
+            "close": 3500.8,
+            "volume": 430.0,
+            "is_closed": false
+          }
+        ]
+      },
+      "updates": [
+        {
+          "observed_at_ms": 1704330585000,
+          "bar": {
+            "time_ms": 1704330300000,
+            "trading_day": "2024-01-04",
+            "open": 3501.6,
+            "high": 3502.4,
+            "low": 3500.8,
+            "close": 3501.2,
+            "volume": 440.0,
+            "is_closed": false
+          }
+        },
+        {
+          "observed_at_ms": 1704330600000,
+          "bar": {
+            "time_ms": 1704330300000,
+            "trading_day": "2024-01-04",
+            "open": 3501.6,
+            "high": 3502.4,
+            "low": 3500.8,
+            "close": 3501.0,
+            "volume": 450.0,
+            "is_closed": true
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "gapped",
+      "instrument": {
+        "id": "SIM.CN.FUTURE.001",
+        "display_symbol": "SIM.CN.FUTURE.001",
+        "name": "Synthetic SIM.CN.FUTURE.001",
+        "asset_class": "future",
+        "venue": "SIMULATED",
+        "currency": "CNY",
+        "calendar_id": "SIM.CN.FUTURE.001.sample-calendar.v1",
+        "timezone": "Asia/Shanghai",
+        "price_tick": "0.2",
+        "quantity_unit": "contracts",
+        "tradability": "non_tradable",
+        "metadata": {
+          "synthetic": true,
+          "calendar_scope": "Fixed sample windows; not an exchange calendar"
+        },
+        "provider_mappings": [
+          {
+            "provider_id": "scopehub.synthetic",
+            "provider_symbol": "SIM.CN.FUTURE.001"
+          }
+        ]
+      },
+      "history": {
+        "dataset": {
+          "id": "ef46e939-7003-5fc5-8378-1ccf8d779a9c",
+          "instrument_id": "SIM.CN.FUTURE.001",
+          "provider_id": "scopehub.synthetic",
+          "mode": "simulated",
+          "timeframe": "1d",
+          "price_adjustment": "raw",
+          "timezone": "Asia/Shanghai",
+          "calendar_id": "SIM.CN.FUTURE.001.sample-calendar.v1",
+          "quantity_unit": "contracts",
+          "revision": "scopehub-synthetic-v1:20241013:gapped",
+          "quality": "gapped",
+          "provenance": {
+            "synthetic": true,
+            "generator": "scopehub-synthetic-v1",
+            "seed": 20241013,
+            "start_ms": 1704200400000,
+            "as_of_ms": 1704330570000,
+            "last_observed_ms": 1704330570000,
+            "missing_minute_starts_ms": [
+              1704200520000,
+              1704200700000,
+              1704200760000,
+              1704200820000,
+              1704200880000,
+              1704200940000
+            ],
+            "calendar_scope": "Only the declared sample windows are represented; not an exchange calendar",
+            "sessions": [
+              {
+                "start_ms": 1704200400000,
+                "end_ms": 1704201000000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704243600000,
+                "end_ms": 1704244200000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704286800000,
+                "end_ms": 1704287400000,
+                "trading_day": "2024-01-04"
+              },
+              {
+                "start_ms": 1704330000000,
+                "end_ms": 1704330600000,
+                "trading_day": "2024-01-04"
+              }
+            ]
+          }
+        },
+        "bars": [
+          {
+            "time_ms": 1704200400000,
+            "trading_day": "2024-01-03",
+            "open": 3500.0,
+            "high": 3502.4,
+            "low": 3498.6,
+            "close": 3501.4,
+            "volume": null,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704286800000,
+            "trading_day": "2024-01-04",
+            "open": 3501.4,
+            "high": 3504.2,
+            "low": 3500.8,
+            "close": 3500.8,
+            "volume": 2380.0,
+            "is_closed": false
+          }
+        ]
+      },
+      "updates": [
+        {
+          "observed_at_ms": 1704330585000,
+          "bar": {
+            "time_ms": 1704286800000,
+            "trading_day": "2024-01-04",
+            "open": 3501.4,
+            "high": 3504.2,
+            "low": 3500.8,
+            "close": 3501.2,
+            "volume": 2390.0,
+            "is_closed": false
+          }
+        },
+        {
+          "observed_at_ms": 1704330600000,
+          "bar": {
+            "time_ms": 1704286800000,
+            "trading_day": "2024-01-04",
+            "open": 3501.4,
+            "high": 3504.2,
+            "low": 3500.8,
+            "close": 3501.0,
+            "volume": 2400.0,
+            "is_closed": true
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "stale",
+      "instrument": {
+        "id": "SIM.CN.FUTURE.001",
+        "display_symbol": "SIM.CN.FUTURE.001",
+        "name": "Synthetic SIM.CN.FUTURE.001",
+        "asset_class": "future",
+        "venue": "SIMULATED",
+        "currency": "CNY",
+        "calendar_id": "SIM.CN.FUTURE.001.sample-calendar.v1",
+        "timezone": "Asia/Shanghai",
+        "price_tick": "0.2",
+        "quantity_unit": "contracts",
+        "tradability": "non_tradable",
+        "metadata": {
+          "synthetic": true,
+          "calendar_scope": "Fixed sample windows; not an exchange calendar"
+        },
+        "provider_mappings": [
+          {
+            "provider_id": "scopehub.synthetic",
+            "provider_symbol": "SIM.CN.FUTURE.001"
+          }
+        ]
+      },
+      "history": {
+        "dataset": {
+          "id": "4e4d23b7-d2fe-5c67-a070-7de7a648a030",
+          "instrument_id": "SIM.CN.FUTURE.001",
+          "provider_id": "scopehub.synthetic",
+          "mode": "simulated",
+          "timeframe": "1m",
+          "price_adjustment": "raw",
+          "timezone": "Asia/Shanghai",
+          "calendar_id": "SIM.CN.FUTURE.001.sample-calendar.v1",
+          "quantity_unit": "contracts",
+          "revision": "scopehub-synthetic-v1:20241013:stale",
+          "quality": "stale",
+          "provenance": {
+            "synthetic": true,
+            "generator": "scopehub-synthetic-v1",
+            "seed": 20241013,
+            "start_ms": 1704200400000,
+            "as_of_ms": 1704332370000,
+            "last_observed_ms": 1704330570000,
+            "missing_minute_starts_ms": [],
+            "calendar_scope": "Only the declared sample windows are represented; not an exchange calendar",
+            "sessions": [
+              {
+                "start_ms": 1704200400000,
+                "end_ms": 1704201000000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704243600000,
+                "end_ms": 1704244200000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704286800000,
+                "end_ms": 1704287400000,
+                "trading_day": "2024-01-04"
+              },
+              {
+                "start_ms": 1704330000000,
+                "end_ms": 1704330600000,
+                "trading_day": "2024-01-04"
+              }
+            ]
+          }
+        },
+        "bars": [
+          {
+            "time_ms": 1704200400000,
+            "trading_day": "2024-01-03",
+            "open": 3500.0,
+            "high": 3500.4,
+            "low": 3498.8,
+            "close": 3499.2,
+            "volume": 120.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704200460000,
+            "trading_day": "2024-01-03",
+            "open": 3499.2,
+            "high": 3500.4,
+            "low": 3498.6,
+            "close": 3499.8,
+            "volume": 80.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704200520000,
+            "trading_day": "2024-01-03",
+            "open": 3499.8,
+            "high": 3500.8,
+            "low": 3499.8,
+            "close": 3500.2,
+            "volume": 80.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704200580000,
+            "trading_day": "2024-01-03",
+            "open": 3500.2,
+            "high": 3500.8,
+            "low": 3499.8,
+            "close": 3500.8,
+            "volume": 70.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704200640000,
+            "trading_day": "2024-01-03",
+            "open": 3500.8,
+            "high": 3501.4,
+            "low": 3500.6,
+            "close": 3500.8,
+            "volume": 80.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704200700000,
+            "trading_day": "2024-01-03",
+            "open": 3500.8,
+            "high": 3501.4,
+            "low": 3500.6,
+            "close": 3501.0,
+            "volume": 170.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704200760000,
+            "trading_day": "2024-01-03",
+            "open": 3501.0,
+            "high": 3501.6,
+            "low": 3500.4,
+            "close": 3500.8,
+            "volume": 90.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704200820000,
+            "trading_day": "2024-01-03",
+            "open": 3500.8,
+            "high": 3501.8,
+            "low": 3500.4,
+            "close": 3501.2,
+            "volume": null,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704200880000,
+            "trading_day": "2024-01-03",
+            "open": 3501.2,
+            "high": 3501.4,
+            "low": 3500.0,
+            "close": 3500.4,
+            "volume": 0.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704200940000,
+            "trading_day": "2024-01-03",
+            "open": 3500.4,
+            "high": 3501.0,
+            "low": 3500.0,
+            "close": 3500.2,
+            "volume": 50.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243600000,
+            "trading_day": "2024-01-03",
+            "open": 3500.2,
+            "high": 3500.8,
+            "low": 3500.2,
+            "close": 3500.8,
+            "volume": 70.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243660000,
+            "trading_day": "2024-01-03",
+            "open": 3500.8,
+            "high": 3501.4,
+            "low": 3500.8,
+            "close": 3501.4,
+            "volume": 170.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243720000,
+            "trading_day": "2024-01-03",
+            "open": 3501.4,
+            "high": 3501.6,
+            "low": 3500.6,
+            "close": 3500.8,
+            "volume": 200.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243780000,
+            "trading_day": "2024-01-03",
+            "open": 3500.8,
+            "high": 3501.4,
+            "low": 3500.4,
+            "close": 3501.4,
+            "volume": 130.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243840000,
+            "trading_day": "2024-01-03",
+            "open": 3501.4,
+            "high": 3502.2,
+            "low": 3500.8,
+            "close": 3502.0,
+            "volume": 160.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243900000,
+            "trading_day": "2024-01-03",
+            "open": 3502.0,
+            "high": 3502.4,
+            "low": 3502.0,
+            "close": 3502.0,
+            "volume": 80.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243960000,
+            "trading_day": "2024-01-03",
+            "open": 3502.0,
+            "high": 3502.4,
+            "low": 3501.2,
+            "close": 3501.6,
+            "volume": 180.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704244020000,
+            "trading_day": "2024-01-03",
+            "open": 3501.6,
+            "high": 3502.0,
+            "low": 3500.8,
+            "close": 3501.0,
+            "volume": 50.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704244080000,
+            "trading_day": "2024-01-03",
+            "open": 3501.0,
+            "high": 3502.4,
+            "low": 3500.4,
+            "close": 3501.8,
+            "volume": 80.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704244140000,
+            "trading_day": "2024-01-03",
+            "open": 3501.8,
+            "high": 3502.0,
+            "low": 3501.4,
+            "close": 3501.4,
+            "volume": 50.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704286800000,
+            "trading_day": "2024-01-04",
+            "open": 3501.4,
+            "high": 3502.0,
+            "low": 3501.0,
+            "close": 3501.2,
+            "volume": 180.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704286860000,
+            "trading_day": "2024-01-04",
+            "open": 3501.2,
+            "high": 3501.6,
+            "low": 3500.8,
+            "close": 3501.6,
+            "volume": 180.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704286920000,
+            "trading_day": "2024-01-04",
+            "open": 3501.6,
+            "high": 3502.4,
+            "low": 3501.4,
+            "close": 3502.2,
+            "volume": 190.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704286980000,
+            "trading_day": "2024-01-04",
+            "open": 3502.2,
+            "high": 3503.2,
+            "low": 3501.6,
+            "close": 3503.0,
+            "volume": 120.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704287040000,
+            "trading_day": "2024-01-04",
+            "open": 3503.0,
+            "high": 3504.0,
+            "low": 3503.0,
+            "close": 3503.8,
+            "volume": 130.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704287100000,
+            "trading_day": "2024-01-04",
+            "open": 3503.8,
+            "high": 3504.2,
+            "low": 3503.8,
+            "close": 3503.8,
+            "volume": 200.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704287160000,
+            "trading_day": "2024-01-04",
+            "open": 3503.8,
+            "high": 3504.2,
+            "low": 3503.2,
+            "close": 3504.0,
+            "volume": 40.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704287220000,
+            "trading_day": "2024-01-04",
+            "open": 3504.0,
+            "high": 3504.0,
+            "low": 3503.2,
+            "close": 3503.2,
+            "volume": 160.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704287280000,
+            "trading_day": "2024-01-04",
+            "open": 3503.2,
+            "high": 3503.6,
+            "low": 3502.6,
+            "close": 3503.6,
+            "volume": 30.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704287340000,
+            "trading_day": "2024-01-04",
+            "open": 3503.6,
+            "high": 3504.0,
+            "low": 3503.0,
+            "close": 3503.0,
+            "volume": 30.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330000000,
+            "trading_day": "2024-01-04",
+            "open": 3503.0,
+            "high": 3503.4,
+            "low": 3502.4,
+            "close": 3503.2,
+            "volume": 100.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330060000,
+            "trading_day": "2024-01-04",
+            "open": 3503.2,
+            "high": 3503.6,
+            "low": 3502.2,
+            "close": 3502.4,
+            "volume": 190.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330120000,
+            "trading_day": "2024-01-04",
+            "open": 3502.4,
+            "high": 3502.4,
+            "low": 3501.6,
+            "close": 3502.0,
+            "volume": 70.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330180000,
+            "trading_day": "2024-01-04",
+            "open": 3502.0,
+            "high": 3502.6,
+            "low": 3501.6,
+            "close": 3502.2,
+            "volume": 130.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330240000,
+            "trading_day": "2024-01-04",
+            "open": 3502.2,
+            "high": 3502.2,
+            "low": 3501.2,
+            "close": 3501.6,
+            "volume": 200.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330300000,
+            "trading_day": "2024-01-04",
+            "open": 3501.6,
+            "high": 3501.8,
+            "low": 3501.6,
+            "close": 3501.8,
+            "volume": 100.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330360000,
+            "trading_day": "2024-01-04",
+            "open": 3501.8,
+            "high": 3502.2,
+            "low": 3501.8,
+            "close": 3502.2,
+            "volume": 20.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330420000,
+            "trading_day": "2024-01-04",
+            "open": 3502.2,
+            "high": 3502.4,
+            "low": 3501.2,
+            "close": 3501.8,
+            "volume": 110.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330480000,
+            "trading_day": "2024-01-04",
+            "open": 3501.8,
+            "high": 3502.0,
+            "low": 3501.6,
+            "close": 3501.6,
+            "volume": 90.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330540000,
+            "trading_day": "2024-01-04",
+            "open": 3501.6,
+            "high": 3502.0,
+            "low": 3500.8,
+            "close": 3500.8,
+            "volume": 110.0,
+            "is_closed": false
+          }
+        ]
+      },
+      "updates": []
+    },
+    {
+      "scenario": "stale",
+      "instrument": {
+        "id": "SIM.CN.FUTURE.001",
+        "display_symbol": "SIM.CN.FUTURE.001",
+        "name": "Synthetic SIM.CN.FUTURE.001",
+        "asset_class": "future",
+        "venue": "SIMULATED",
+        "currency": "CNY",
+        "calendar_id": "SIM.CN.FUTURE.001.sample-calendar.v1",
+        "timezone": "Asia/Shanghai",
+        "price_tick": "0.2",
+        "quantity_unit": "contracts",
+        "tradability": "non_tradable",
+        "metadata": {
+          "synthetic": true,
+          "calendar_scope": "Fixed sample windows; not an exchange calendar"
+        },
+        "provider_mappings": [
+          {
+            "provider_id": "scopehub.synthetic",
+            "provider_symbol": "SIM.CN.FUTURE.001"
+          }
+        ]
+      },
+      "history": {
+        "dataset": {
+          "id": "c8e475ed-6605-5e4a-9e30-f15a5c98aed8",
+          "instrument_id": "SIM.CN.FUTURE.001",
+          "provider_id": "scopehub.synthetic",
+          "mode": "simulated",
+          "timeframe": "5m",
+          "price_adjustment": "raw",
+          "timezone": "Asia/Shanghai",
+          "calendar_id": "SIM.CN.FUTURE.001.sample-calendar.v1",
+          "quantity_unit": "contracts",
+          "revision": "scopehub-synthetic-v1:20241013:stale",
+          "quality": "stale",
+          "provenance": {
+            "synthetic": true,
+            "generator": "scopehub-synthetic-v1",
+            "seed": 20241013,
+            "start_ms": 1704200400000,
+            "as_of_ms": 1704332370000,
+            "last_observed_ms": 1704330570000,
+            "missing_minute_starts_ms": [],
+            "calendar_scope": "Only the declared sample windows are represented; not an exchange calendar",
+            "sessions": [
+              {
+                "start_ms": 1704200400000,
+                "end_ms": 1704201000000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704243600000,
+                "end_ms": 1704244200000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704286800000,
+                "end_ms": 1704287400000,
+                "trading_day": "2024-01-04"
+              },
+              {
+                "start_ms": 1704330000000,
+                "end_ms": 1704330600000,
+                "trading_day": "2024-01-04"
+              }
+            ]
+          }
+        },
+        "bars": [
+          {
+            "time_ms": 1704200400000,
+            "trading_day": "2024-01-03",
+            "open": 3500.0,
+            "high": 3501.4,
+            "low": 3498.6,
+            "close": 3500.8,
+            "volume": 430.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704200700000,
+            "trading_day": "2024-01-03",
+            "open": 3500.8,
+            "high": 3501.8,
+            "low": 3500.0,
+            "close": 3500.2,
+            "volume": null,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243600000,
+            "trading_day": "2024-01-03",
+            "open": 3500.2,
+            "high": 3502.2,
+            "low": 3500.2,
+            "close": 3502.0,
+            "volume": 730.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704243900000,
+            "trading_day": "2024-01-03",
+            "open": 3502.0,
+            "high": 3502.4,
+            "low": 3500.4,
+            "close": 3501.4,
+            "volume": 440.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704286800000,
+            "trading_day": "2024-01-04",
+            "open": 3501.4,
+            "high": 3504.0,
+            "low": 3500.8,
+            "close": 3503.8,
+            "volume": 800.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704287100000,
+            "trading_day": "2024-01-04",
+            "open": 3503.8,
+            "high": 3504.2,
+            "low": 3502.6,
+            "close": 3503.0,
+            "volume": 460.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330000000,
+            "trading_day": "2024-01-04",
+            "open": 3503.0,
+            "high": 3503.6,
+            "low": 3501.2,
+            "close": 3501.6,
+            "volume": 690.0,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704330300000,
+            "trading_day": "2024-01-04",
+            "open": 3501.6,
+            "high": 3502.4,
+            "low": 3500.8,
+            "close": 3500.8,
+            "volume": 430.0,
+            "is_closed": false
+          }
+        ]
+      },
+      "updates": []
+    },
+    {
+      "scenario": "stale",
+      "instrument": {
+        "id": "SIM.CN.FUTURE.001",
+        "display_symbol": "SIM.CN.FUTURE.001",
+        "name": "Synthetic SIM.CN.FUTURE.001",
+        "asset_class": "future",
+        "venue": "SIMULATED",
+        "currency": "CNY",
+        "calendar_id": "SIM.CN.FUTURE.001.sample-calendar.v1",
+        "timezone": "Asia/Shanghai",
+        "price_tick": "0.2",
+        "quantity_unit": "contracts",
+        "tradability": "non_tradable",
+        "metadata": {
+          "synthetic": true,
+          "calendar_scope": "Fixed sample windows; not an exchange calendar"
+        },
+        "provider_mappings": [
+          {
+            "provider_id": "scopehub.synthetic",
+            "provider_symbol": "SIM.CN.FUTURE.001"
+          }
+        ]
+      },
+      "history": {
+        "dataset": {
+          "id": "da75c786-bfde-57b3-b8c0-d1d2e62b00dc",
+          "instrument_id": "SIM.CN.FUTURE.001",
+          "provider_id": "scopehub.synthetic",
+          "mode": "simulated",
+          "timeframe": "1d",
+          "price_adjustment": "raw",
+          "timezone": "Asia/Shanghai",
+          "calendar_id": "SIM.CN.FUTURE.001.sample-calendar.v1",
+          "quantity_unit": "contracts",
+          "revision": "scopehub-synthetic-v1:20241013:stale",
+          "quality": "stale",
+          "provenance": {
+            "synthetic": true,
+            "generator": "scopehub-synthetic-v1",
+            "seed": 20241013,
+            "start_ms": 1704200400000,
+            "as_of_ms": 1704332370000,
+            "last_observed_ms": 1704330570000,
+            "missing_minute_starts_ms": [],
+            "calendar_scope": "Only the declared sample windows are represented; not an exchange calendar",
+            "sessions": [
+              {
+                "start_ms": 1704200400000,
+                "end_ms": 1704201000000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704243600000,
+                "end_ms": 1704244200000,
+                "trading_day": "2024-01-03"
+              },
+              {
+                "start_ms": 1704286800000,
+                "end_ms": 1704287400000,
+                "trading_day": "2024-01-04"
+              },
+              {
+                "start_ms": 1704330000000,
+                "end_ms": 1704330600000,
+                "trading_day": "2024-01-04"
+              }
+            ]
+          }
+        },
+        "bars": [
+          {
+            "time_ms": 1704200400000,
+            "trading_day": "2024-01-03",
+            "open": 3500.0,
+            "high": 3502.4,
+            "low": 3498.6,
+            "close": 3501.4,
+            "volume": null,
+            "is_closed": true
+          },
+          {
+            "time_ms": 1704286800000,
+            "trading_day": "2024-01-04",
+            "open": 3501.4,
+            "high": 3504.2,
+            "low": 3500.8,
+            "close": 3500.8,
+            "volume": 2380.0,
+            "is_closed": false
+          }
+        ]
+      },
+      "updates": []
+    }
+  ]
+}

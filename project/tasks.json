@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-002",
+  "focus_task_id": "M1-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -450,16 +450,18 @@
       "id": "M1-002",
       "title": "Establish deterministic market fixtures before chart integration",
       "milestone": "M1",
-      "status": "planned",
+      "status": "done",
       "depends_on": [
         "M0-003"
       ],
       "scope": [
         "python/providers",
-        "crates",
-        "apps/desktop/ui",
-        "tests/fixtures",
-        "tests/integration"
+        "tests/fixtures/market",
+        "tests/integration/test_market_fixtures.py",
+        "project/checks.json",
+        "project/delivery.json",
+        "project/tasks.json",
+        "project/feedback.json"
       ],
       "decision_refs": [
         "0001",
@@ -471,12 +473,75 @@
         "Verify OHLC, timestamps, gaps, partial bars and trading-day boundaries against independent expected values."
       ],
       "checks": [
-        "market-fixtures"
+        "market-fixtures",
+        "python-types",
+        "architecture",
+        "project-state",
+        "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Refine the task plan and implement its check when its dependencies are satisfied.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-002-dd972ffe92fdd6e1.json",
+          "sha256": "86197c6b296404704902d734dcf2bc91df416396b82e3c1e2d6362ffa5d7ad98"
+        },
+        {
+          "path": "project/evidence/M1-002-59adc1559cfe440d.json",
+          "sha256": "f8910dcb33b248c6a60b70617e7b7cdd4921f54ce68b655538bed36edfd7d235"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Commit reproducible synthetic histories and partial-bar replay snapshots for all three specified instruments and timeframes, with independent numerical and calendar oracles and an executable market-fixtures gate.",
+        "change_types": [
+          "market-fixtures",
+          "tooling"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/schemas/protocol.schema.json",
+          "contracts/decisions/0001-architecture.json",
+          "contracts/decisions/0005-continuous-delivery.json",
+          "project/delivery.json",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "A pure Python generator using integer price ticks, fixed seeds and explicit UTC sample sessions can supply repeatable inputs to the upcoming chart workflow without extra dependencies or real provider access.",
+          "Explicit synthetic trading-day assignments and session anchors prevent UTC-date grouping and gap filling from corrupting five-minute and daily bars.",
+          "A fixture-only change type can bind this prerequisite to implemented checks while retaining runtime recovery as a separate, visibly unimplemented M1-003 requirement."
+        ],
+        "risks": [
+          {
+            "failure": "Self-confirming generated expectations hide incorrect OHLC, null volume propagation, session alignment or trading-day grouping.",
+            "checks": [
+              "market-fixtures"
+            ]
+          },
+          {
+            "failure": "Missing observations fabricate bars, partial updates create duplicate keys, or a stalled partial bar is silently finalized.",
+            "checks": [
+              "market-fixtures"
+            ]
+          },
+          {
+            "failure": "Host time, timezone, random state or caller mutation changes replay data or its source identity.",
+            "checks": [
+              "market-fixtures",
+              "python-types"
+            ]
+          },
+          {
+            "failure": "Fixture integration changes accepted records, crosses worker boundaries or claims chart/recovery acceptance prematurely.",
+            "checks": [
+              "architecture",
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain failed reports and golden inputs; repair the generator or oracle against independently calculated expectations, never refresh expectations just to make checks pass. Revert this isolated provider/fixture slice if needed and keep M1-001 and M1-003 unverified until their actual workflows are implemented."
+      }
     },
     {
       "id": "M1-003",

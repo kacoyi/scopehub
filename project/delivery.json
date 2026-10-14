@@ -61,9 +61,20 @@
       ]
     },
     {
+      "id": "market-fixtures",
+      "triggers": [
+        "Synthetic fixture generation, bar aggregation and dataset semantics before runtime integration"
+      ],
+      "checks": [
+        "market-fixtures",
+        "python-types",
+        "architecture"
+      ]
+    },
+    {
       "id": "market",
       "triggers": [
-        "Market semantics, fixture generation, subscriptions or provider adaptation"
+        "Live market subscriptions, provider adaptation, recovery or runtime quality transitions"
       ],
       "checks": [
         "market-fixtures",
