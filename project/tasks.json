@@ -1609,7 +1609,8 @@
       "milestone": "M1",
       "status": "active",
       "depends_on": [
-        "M1-002"
+        "M1-002",
+        "M0-015"
       ],
       "scope": [
         "apps/desktop",
@@ -1661,7 +1662,7 @@
         "dependency-review"
       ],
       "evidence": [],
-      "next_action": "Finish regression review and local harness, then publish the checkpoint and inspect native Windows CI before archiving evidence.",
+      "next_action": "Inspect the repaired checkpoint Linux/Windows CI, archive matching native evidence, close service-scope feedback and resume M1-001.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -1720,6 +1721,75 @@
           }
         ],
         "rollback": "Retain failed harness reports and source checkpoints. Repair using small malformed-response and selection-race regressions. Revert this history slice if needed; preserve the previously passing scaffold and fixtures. Do not label live recovery, actual packaged Windows execution, local import or API integration as completed."
+      }
+    },
+    {
+      "id": "M0-015",
+      "title": "Allow validated append-only evidence on completed tasks",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-014"
+      ],
+      "scope": [
+        "scripts/project.py",
+        "tests/project/test_delivery.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/delivery.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005"
+      ],
+      "acceptance": [
+        "Appending a new validated receipt to a completed task preserves accepted history; the original task definition, state and ordered evidence references remain unchanged.",
+        "Reject deleted, reordered, replaced or mismatched evidence and any completed/cancelled task or accepted ADR rewrite; retain the failing CI observation and resume M1-005."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-015-75a7e9305a0c1a8e.json",
+          "sha256": "3bf67e190c53ff2746744c636a024033c9ca107ea048b39deb6dc8978fd0fdbd"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Restore CI history verification for legitimate supplementary acceptance evidence without allowing accepted work or original evidence to be rewritten.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "contracts/decisions/0004-project-continuity.json",
+          "project/delivery.json",
+          "scripts/project.py",
+          "tests/project/test_delivery.py"
+        ],
+        "hypotheses": [
+          "The whole-task equality check conflates adding independently validated evidence with changing accepted task meaning.",
+          "Comparing all non-evidence fields exactly, preserving the evidence prefix and validating added receipts against the same task definition retains the existing history guarantee."
+        ],
+        "risks": [
+          {
+            "failure": "A permissive evidence exception also allows definition changes, old evidence removal or cancelled-task rewrites.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Added evidence is for another task definition or omits required successful checks.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Preserve CI run 38569288074 and the recovery snapshot. Restore strict history comparison if the append-only regression fails; retain the supplementary receipt separately until the gate is repaired. Never erase or rewrite accepted evidence to obtain a pass."
       }
     }
   ]

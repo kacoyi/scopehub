@@ -563,8 +563,26 @@ def review_history(root=ROOT, base=None):
             replaced.append(replacement)
     for task in ledger['tasks'] if ledger else []:
         if task['status'] in {'done', 'cancelled'}:
-            if project['tasks'].get(task['id']) != task:
+            current_task = project['tasks'].get(task['id'])
+            # Supplementary CI acceptance may arrive after local completion.
+            # Preserve every accepted field and the complete ordered evidence
+            # prefix; only done tasks may append independently validated receipts.
+            same_record = current_task == task
+            append_only = (
+                task['status'] == 'done' and current_task is not None
+                and {key: value for key, value in current_task.items() if key != 'evidence'}
+                == {key: value for key, value in task.items() if key != 'evidence'}
+                and current_task['evidence'][:len(task['evidence'])] == task['evidence']
+            )
+            if not same_record and not append_only:
                 raise ProjectError(f"Accepted task history changed or disappeared: {task['id']}; add a successor task")
+            for ref in current_task['evidence'][len(task['evidence']):]:
+                # load_project has already checked file digest, schema, task ID,
+                # passing check status and native platform declarations.
+                receipt = read_json(local_path(root, ref['path']))
+                if (receipt['task_definition_sha256'] != task_definition_hash(task)
+                        or not set(task['checks']).issubset(check['id'] for check in receipt['checks'])):
+                    raise ProjectError(f"Appended evidence does not validate the accepted task: {task['id']}")
             compared.append(task['id'])
     paths = subprocess.run(['git', 'ls-tree', '-r', '--name-only', resolved, '--', 'contracts/decisions'],
                            cwd=root, capture_output=True, text=True, check=True).stdout.splitlines()

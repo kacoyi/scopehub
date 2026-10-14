@@ -413,7 +413,8 @@
       "Require the latest matching workflow run for the exact source commit to succeed; missing, queued, cancelled, timed-out and failed runs are not passes. A successful workflow still does not complete unimplemented task or release gates.",
       "Record both the pull-request head and the actual checked-out merge commit. Archive only evidence with matching execution inputs, task and decision definitions, origin, commit identity and unchanged log digests.",
       "Download artifacts using the authenticated official gh CLI into .reports/ci/<run-id>/<platform>; pass that directory with project:record --artifact-root. Preserve the original report and never replace local latest reports with downloaded files.",
-      "CI metadata and hashes provide traceability and stale-evidence detection, not cryptographic attestation against a malicious contributor. Retrieve evidence from the observed repository run and review changes to the checks themselves."
+      "CI metadata and hashes provide traceability and stale-evidence detection, not cryptographic attestation against a malicious contributor. Retrieve evidence from the observed repository run and review changes to the checks themselves.",
+      "Accepted completed tasks may append supplementary validated receipts while preserving every non-evidence field and the original ordered evidence references. Added receipts must match that accepted task definition and pass all its checks. Cancelled tasks and accepted ADRs remain immutable. Compare both the PR base and the previous pushed checkpoint when available."
     ],
     "integration": [
       "Integrate through a reviewed pull request with successful required checks for its current revision. Recheck after base changes, conflicts or consequential new evidence.",
