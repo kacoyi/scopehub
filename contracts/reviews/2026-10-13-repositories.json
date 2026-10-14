@@ -1,0 +1,206 @@
+{
+  "artifact_type": "repository_assessment",
+  "reviewed_at": "2026-10-13",
+  "status": "recommendation",
+  "scope": "Owner-requested review of three local sandbox repositories for ScopeHub reuse",
+  "method": "Static inspection of source, manifests, licenses, test examples and upstream project pages",
+  "validation_limits": {
+    "upstream_applications_run": false,
+    "upstream_tests_run": false,
+    "live_market_coverage_verified": false,
+    "windows_builds_verified": false,
+    "copied_source_or_added_dependencies": false,
+    "changes_product_contract": false
+  },
+  "recommendation": {
+    "primary_collaboration_reference": "openchart",
+    "primary_selective_code_candidate": "FinRobot/finrobot_desktop",
+    "secondary_interface_reference": "OpenStock",
+    "whole_application_adoption": "Not established by this review. Reconsider if a product trial, license fit and representative workflow demonstrate lower lifetime cost than selective reuse.",
+    "architecture": "Existing language choices are provisional. These sources provide useful patterns and candidates, but static inspection alone does not justify replacing the runtime or authorization contract."
+  },
+  "repositories": [
+    {
+      "id": "openchart",
+      "url": "https://github.com/longsurf-ai/openchart",
+      "local_path": "/home/loong/ai-workspace/sandboxes/openchart",
+      "revision": "e8316158f814cdb34279a0a7fa9602d3e793ae1e",
+      "role": "Primary reference for the first chart-and-AI workflow",
+      "license": {
+        "name": "OpenChart License: modified Apache-2.0 with additional conditions",
+        "evidence": ["LICENSE"],
+        "observations": [
+          "The license conditions multi-tenant operation on written authorization and includes frontend logo and copyright restrictions.",
+          "The tenant definition refers to a workspace. Do not assume that this only concerns a hosted SaaS deployment.",
+          "Do not classify this source as ordinary Apache-2.0 or copy it under ScopeHub's MIT notice alone. Source adoption needs a concrete use-specific license assessment."
+        ]
+      },
+      "candidates": [
+        {
+          "capability": "Research a selected chart interval using bounded factual context and source-linked annotations",
+          "use": "Design reference for M4 context and chart operations",
+          "evidence": [
+            "server/agent/plugin/plugins/chart-explain.ts",
+            "server/agent/plugin/plugins/chart-explain-range.ts",
+            "common/chart-core/src/annotation/types.ts"
+          ]
+        },
+        {
+          "capability": "One resource catalog shared by UI/API operations and AI tools, with revision-aware mutations",
+          "use": "Reference for M2/M4 operation registry and concurrent edits",
+          "evidence": [
+            "server/resources/catalog.ts",
+            "server/agent/tool/registry.ts",
+            "server/agent/tool/tools/resource-mutate.ts"
+          ]
+        },
+        {
+          "capability": "Approval lifecycle, deny precedence, cancellation and persisting a grant before releasing a waiting tool",
+          "use": "Reference for M2/M4 state transitions; retain ScopeHub's operation-specific permission contract",
+          "evidence": [
+            "server/agent/permission/permission.ts",
+            "server/agent/permission/rules.ts",
+            "server/agent/permission/permission.test.ts"
+          ]
+        },
+        {
+          "capability": "Bounded indicator execution returning actual values and diagnostics with scoped resource cleanup",
+          "use": "Reference for M3 preview and M4 AI inspection, without adopting Tea by default",
+          "evidence": ["server/agent/tool/tools/tea-run.ts"]
+        }
+      ],
+      "integration_costs": [
+        "The full product uses an Electron host, a Node/Effect server, tRPC resources, its own chart engine and the Tea language. Reusing the application would be a deliberate architecture choice.",
+        "chart-core imports workspace feed/market packages and Effect. It is not an isolated drop-in replacement for the planned chart adapter.",
+        "Chart Explain filters non-positive OHLC values. Its assumptions must not become universal constraints for future instruments.",
+        "Saved wildcard grants and generic resource writes must not silently replace ScopeHub's version-bound approvals and operation policies."
+      ],
+      "data_evidence": ["server/data/providers/index.ts"],
+      "data_observation": "Registered provider families are Binance, yfinance, OpenChart and local workspace datasets. This review did not validate Chinese futures or A-share service coverage."
+    },
+    {
+      "id": "FinRobot",
+      "url": "https://github.com/AI4Finance-Foundation/FinRobot",
+      "local_path": "/home/loong/ai-workspace/sandboxes/FinRobot",
+      "revision": "2717499b8e30f242640af08c4ad9afd1113c2d45",
+      "role": "Selective financial computation and data-quality candidate",
+      "license": {
+        "name": "Apache-2.0 for the main project and Desktop code",
+        "evidence": ["LICENSE", "finrobot_desktop/LICENSE"],
+        "observations": [
+          "Selected source may be a practical reuse candidate with applicable license, attribution and modification notices preserved; inspect the selected files and their dependency licenses before incorporation.",
+          "Desktop skill attribution reports converted Anthropic material as MIT, while the current upstream financial-services LICENSE is Apache-2.0. The conversion metadata contains no upstream commit. Resolve the historical source and license for any selected skill instead of relying on the parent project's license."
+        ],
+        "skill_evidence": [
+          "finrobot_desktop/skills/ATTRIBUTION.md",
+          "finrobot_desktop/skills/UPSTREAM_VERSION.txt"
+        ],
+        "skill_upstream_current_license": "https://github.com/anthropics/financial-services/blob/main/LICENSE"
+      },
+      "version_observation": "The repository contains Desktop V2 (PydanticAI/FastAPI/React/Tauri), Equity V1 and AutoGen V0. Its README says pip install finrobot installs V0; package-name similarity is not evidence of installing Desktop V2.",
+      "candidates": [
+        {
+          "capability": "Structured data provenance and degradation, separate data time from fetch time, preserve stale-cache and stale-history distinctions",
+          "use": "Reference for M1 data semantics and later real-provider adapters",
+          "evidence": [
+            "finrobot_desktop/finrobot/engine/data/interface.py",
+            "finrobot_desktop/finrobot/engine/data/normalize/contracts.py"
+          ]
+        },
+        {
+          "capability": "Cross-provider numerical checks with explicit field comparability and unavailable-source handling",
+          "use": "Selective adapter/validation candidate when financial research data is introduced",
+          "evidence": [
+            "finrobot_desktop/finrobot/engine/data/validator.py",
+            "finrobot_desktop/finrobot/engine/data/factory.py",
+            "finrobot_desktop/tests/unit/test_price_cross_validate.py"
+          ]
+        },
+        {
+          "capability": "Deterministic valuation operators separated from AI-selected assumptions and narrative",
+          "use": "Candidate for an optional Python research module when a concrete valuation workflow needs it",
+          "evidence": [
+            "finrobot_desktop/finrobot/engine/compute/operators/dcf.py",
+            "finrobot_desktop/finrobot/engine/compute/operators/wacc.py",
+            "finrobot_desktop/tests/unit/test_property_dcf.py"
+          ]
+        }
+      ],
+      "integration_costs": [
+        "The full Desktop runtime includes FastAPI, its own SQLite ownership and agent/pipeline orchestration. Importing the whole package would bring responsibilities that do not match the current worker contract.",
+        "DCF depends on FinRobot financial models and valuation thresholds. Pure arithmetic does not make every operator an independently packaged library.",
+        "NormalizedPrice is built around dated bars and a trailing-year equity research view. Do not adopt it as the universal intraday or futures model.",
+        "The asymmetric beta adjustment and validation tolerances encode financial assumptions. Expose and validate such assumptions instead of inheriting them as market facts.",
+        "The numeric-grounding audit detects surviving digits after simple exclusions; it does not verify that a cited number matches evidence. Deterministic computation and warnings do not establish investment correctness.",
+        "The README describes Desktop as production, while its package classifier is Alpha. Runtime reliability remains unverified in this assessment."
+      ],
+      "integration_evidence": [
+        "finrobot_desktop/pyproject.toml",
+        "finrobot_desktop/finrobot/engine/compute/operators/audit/narrative_numeric_grounding.py"
+      ],
+      "data_observation": "The inspected Desktop chain uses FMP, Finnhub, yfinance, SEC EDGAR, Adanos and a news aggregator as configured. This is not verified Chinese futures or A-share market access."
+    },
+    {
+      "id": "OpenStock",
+      "url": "https://github.com/Open-Dev-Society/OpenStock",
+      "local_path": "/home/loong/ai-workspace/sandboxes/OpenStock",
+      "revision": "d890d910c8746d9794b39520199c6ed6735d2d1e",
+      "role": "Secondary interface reference",
+      "license": {
+        "name": "GNU AGPL version 3",
+        "evidence": ["LICENSE"],
+        "observations": [
+          "This is not an MIT source dependency. Any proposed source incorporation must account for the applicable AGPL obligations; this review adopts no source."
+        ]
+      },
+      "candidates": [
+        {
+          "capability": "Instrument search, watchlist presentation and visible data age",
+          "use": "Interaction reference when these UI needs arise",
+          "evidence": [
+            "components/SearchCommand.tsx",
+            "components/WatchlistButton.tsx",
+            "components/DataFreshness.tsx"
+          ]
+        }
+      ],
+      "integration_costs": [
+        "Its charts load remote TradingView widget scripts. This hook does not provide the application-owned series and indicator-layer interface needed for ScopeHub's initial workflow.",
+        "Next.js, MongoDB, authentication and email jobs serve a web dashboard product. The inspected AI integration generates welcome/news email text, rather than exposing chart operations.",
+        "The Live label is selected by a global polling mode. Poll frequency alone does not verify the timeliness of a particular provider response.",
+        "Watchlist assembly substitutes zero for missing quotes and unknown P/E. Missing data must remain distinguishable from a real zero in ScopeHub."
+      ],
+      "integration_evidence": [
+        "hooks/useTradingViewWidget.tsx",
+        "package.json",
+        "lib/inngest/functions.ts",
+        "lib/market-data.ts",
+        "lib/actions/finnhub.actions.ts"
+      ],
+      "data_evidence": ["lib/markets.ts"],
+      "data_observation": "The market catalog is constrained by Finnhub and TradingView embed support. Its international-market UI does not establish the required Chinese futures or A-share coverage."
+    }
+  ],
+  "follow_up_candidates": [
+    {
+      "milestone": "M1",
+      "action": "Exercise actual data timestamps, cache age, missing values and mixed quote/history freshness in the simulated provider workflow; derive chart status from the data contract."
+    },
+    {
+      "milestone": "M2",
+      "action": "Use the permission and revision lifecycle examples when implementing shared human/AI operations; test cancellation while approval is pending and revisions changing before execution."
+    },
+    {
+      "milestone": "M3-M4",
+      "action": "Complete the selected workflow: chart context, AI-generated indicator draft, bounded preview, inspectable output, authorized acceptance and chart annotation. Use OpenChart's workflow as a comparison target."
+    },
+    {
+      "milestone": "future_research_module",
+      "action": "For a requested valuation or filing workflow, first evaluate a small FinRobot operator or provider adapter against ScopeHub's inputs and expected outputs; compare direct package use with an attributed source extraction."
+    },
+    {
+      "milestone": "future_real_data",
+      "action": "Evaluate provider entitlements, coverage, delay, calendars, sessions and contract/adjustment semantics for Chinese futures, A-shares and US equities. Source-code licensing does not grant market-data rights."
+    }
+  ]
+}

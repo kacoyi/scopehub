@@ -1,0 +1,125 @@
+{
+  "schema_version": "1.0",
+  "items": [
+    {
+      "id": "verification-lifetime",
+      "source": "scripts/check.py",
+      "observation": "Timeout handling discards captured output and subprocess.run does not explicitly terminate the check process group.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-004"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "project-state"
+      ],
+      "resolution": {
+        "cause": "Output was accumulated in memory and discarded on timeout; descendants had no explicit termination path.",
+        "correction": "Stream output to retained logs, terminate timed-out process groups or Windows process trees, and report cleanup or launch failure.",
+        "prevention": "tests/project/test_processes.py exercises partial diagnostics and a real descendant that must not survive timeout."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "verification-freshness",
+      "source": "scripts/project.py",
+      "observation": "Decision metadata is excluded from the execution digest, and current milestone display does not require current task definitions.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-004"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "project-state"
+      ],
+      "resolution": {
+        "cause": "Execution hashing excluded decisions and task definitions; readiness could display old milestone results.",
+        "correction": "Validate report structure, bind task and decision definitions, reject mid-run drift and failed runs, and require matching clean committed release proof.",
+        "prevention": "tests/project/test_delivery.py covers changed decisions, invalid state, malformed reports, partial selection and dirty-build release claims."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "delivery-feedback",
+      "source": "project/tasks.json",
+      "observation": "Milestone-sized tasks lack focused delivery context, observable scenario bindings and a tracked correction loop.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-004"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "project-state"
+      ],
+      "resolution": {
+        "cause": "Tasks described broad phases without a validated link between user outcomes, risks and corrective work.",
+        "correction": "Add focused plans, five product scenarios, change-risk check mappings, task context and evidence-backed feedback resolution; preserve cancelled plans without blocking a delivered replacement.",
+        "prevention": "tests/project/test_delivery.py rejects uncovered risks and premature feedback closure and checks cancellation, selection and release blockers."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "history-enforcement",
+      "source": "contracts/decisions/0004-project-continuity.json",
+      "observation": "Accepted history preservation is specified but has no comparison with the reviewed Git base.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-004"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "project-state"
+      ],
+      "resolution": {
+        "cause": "History preservation relied on instructions without comparing the reviewed revision.",
+        "correction": "Compare accepted tasks and decisions against an explicit Git base in local review and CI; disclose when no comparison is available.",
+        "prevention": "tests/project/test_delivery.py uses isolated commits to reject rewritten decisions and reopened completed tasks."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "architecture-aliases",
+      "source": "scripts/check_architecture.py",
+      "observation": "Inherited Cargo workspace aliases can hide forbidden infrastructure or internal-layer dependencies from the original boundary check.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-004"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "project-state"
+      ],
+      "resolution": {
+        "cause": "The dependency checker inspected child-manifest aliases without resolving workspace definitions.",
+        "correction": "Resolve inherited and local dependency identities before enforcing layer boundaries.",
+        "prevention": "tests/project/test_architecture.py covers inherited database aliases and target-specific internal dependencies."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "verification-cadence",
+      "source": "project/checks.json",
+      "observation": "The original default harness would eventually run packaged and soak checks on every native change, while the stability timeout was shorter than the contractual two-hour workload.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-004"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "project-state"
+      ],
+      "resolution": {
+        "cause": "Daily and release-only checks shared one execution path and the soak deadline could not accommodate the contract workload.",
+        "correction": "Add change versus release cadence, explicit manual release validation, a longer release job budget and a bounded soak deadline.",
+        "prevention": "tests/project/test_delivery.py checks that default runs omit release work explicitly and that selected release gates remain blocked until executed."
+      },
+      "deferral_reason": null
+    }
+  ]
+}

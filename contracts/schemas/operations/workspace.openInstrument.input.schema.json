@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:scopehub:workspace.openInstrument:input:1.0",
+  "$comment": "Generated projection; edit protocol.schema.json.",
+  "$ref": "urn:scopehub:protocol:1.0#/$defs/WorkspaceOpenInstrumentInput"
+}

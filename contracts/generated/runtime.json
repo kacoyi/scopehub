@@ -1,0 +1,13 @@
+{
+  "protocol_version": "1.0",
+  "handshake_timeout_ms": 5000,
+  "heartbeat_interval_ms": 5000,
+  "heartbeat_timeout_ms": 15000,
+  "cancel_grace_ms": 1000,
+  "indicator_timeout_ms": 10000,
+  "indicator_memory_limit_mb": 512,
+  "market_restart_max_attempts": 5,
+  "ui_flush_interval_ms": 100,
+  "max_message_bytes": 4194304,
+  "max_pending_requests": 128
+}

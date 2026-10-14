@@ -1,0 +1,2738 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:scopehub:protocol:1.0",
+  "title": "ScopeHubProtocol",
+  "$ref": "#/$defs/Message",
+  "$defs": {
+    "OpaqueId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "Uuid": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "Revision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "Timestamp": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
+    "Metadata": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "WorkerRole": {
+      "type": "string",
+      "enum": [
+        "market",
+        "ai",
+        "indicator"
+      ]
+    },
+    "ProtocolVersion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "ErrorCode": {
+      "type": "string",
+      "enum": [
+        "INVALID_ARGUMENT",
+        "UNSUPPORTED_CAPABILITY",
+        "PERMISSION_DENIED",
+        "CONFIRMATION_REQUIRED",
+        "CANCELLED",
+        "TIMEOUT",
+        "WORKER_EXITED",
+        "PROTOCOL_MISMATCH",
+        "DATA_UNAVAILABLE",
+        "STALE_CONTEXT",
+        "RESOURCE_LIMIT",
+        "OUTPUT_INVALID",
+        "PROVIDER_NOT_CONFIGURED",
+        "INTERNAL_ERROR"
+      ]
+    },
+    "OperationName": {
+      "type": "string",
+      "enum": [
+        "instrument.search",
+        "market.getBars",
+        "workspace.openInstrument",
+        "chart.setTimeframe",
+        "chart.setStyle",
+        "chart.addAnnotation",
+        "chart.removeLayer",
+        "indicator.createDraft",
+        "indicator.runPreview",
+        "indicator.acceptVersion",
+        "indicator.remove",
+        "workspace.undo",
+        "task.cancel",
+        "workspace.getContext"
+      ]
+    },
+    "ChartStyle": {
+      "type": "string",
+      "enum": [
+        "candlestick",
+        "line"
+      ]
+    },
+    "TaskStatus": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "running",
+        "awaiting_confirmation",
+        "completed",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "Tradability": {
+      "type": "string",
+      "enum": [
+        "non_tradable",
+        "unknown"
+      ]
+    },
+    "DataMode": {
+      "type": "string",
+      "enum": [
+        "simulated",
+        "historical",
+        "delayed",
+        "realtime"
+      ]
+    },
+    "DataQuality": {
+      "type": "string",
+      "enum": [
+        "fresh",
+        "stale",
+        "gapped",
+        "degraded"
+      ]
+    },
+    "ProviderMapping": {
+      "type": "object",
+      "properties": {
+        "provider_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "provider_symbol": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "provider_id",
+        "provider_symbol"
+      ],
+      "additionalProperties": false
+    },
+    "Instrument": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "display_symbol": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "asset_class": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "venue": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "currency": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "calendar_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "timezone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "price_tick": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9]+(\\.[0-9]+)?$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "quantity_unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "tradability": {
+          "$ref": "#/$defs/Tradability"
+        },
+        "metadata": {
+          "$ref": "#/$defs/Metadata"
+        },
+        "provider_mappings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ProviderMapping"
+          },
+          "maxItems": 64
+        }
+      },
+      "required": [
+        "id",
+        "display_symbol",
+        "name",
+        "asset_class",
+        "venue",
+        "currency",
+        "calendar_id",
+        "timezone",
+        "price_tick",
+        "quantity_unit",
+        "tradability",
+        "metadata",
+        "provider_mappings"
+      ],
+      "additionalProperties": false
+    },
+    "DatasetDescriptor": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "instrument_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "provider_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "mode": {
+          "$ref": "#/$defs/DataMode"
+        },
+        "timeframe": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "price_adjustment": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "timezone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "calendar_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "quantity_unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "quality": {
+          "$ref": "#/$defs/DataQuality"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Metadata"
+        }
+      },
+      "required": [
+        "id",
+        "instrument_id",
+        "provider_id",
+        "mode",
+        "timeframe",
+        "price_adjustment",
+        "timezone",
+        "calendar_id",
+        "quantity_unit",
+        "revision",
+        "quality",
+        "provenance"
+      ],
+      "additionalProperties": false
+    },
+    "Bar": {
+      "type": "object",
+      "properties": {
+        "time_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "trading_day": {
+          "type": "string",
+          "format": "date"
+        },
+        "open": {
+          "type": "number"
+        },
+        "high": {
+          "type": "number"
+        },
+        "low": {
+          "type": "number"
+        },
+        "close": {
+          "type": "number"
+        },
+        "volume": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "is_closed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "time_ms",
+        "trading_day",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume",
+        "is_closed"
+      ],
+      "additionalProperties": false
+    },
+    "Error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/ErrorCode"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "details": {
+          "$ref": "#/$defs/Metadata"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "retryable",
+        "details"
+      ],
+      "additionalProperties": false
+    },
+    "Point": {
+      "type": "object",
+      "properties": {
+        "time_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "time_ms",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "Style": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
+        }
+      },
+      "required": [
+        "color",
+        "width"
+      ],
+      "additionalProperties": false
+    },
+    "MarkerPosition": {
+      "type": "string",
+      "enum": [
+        "above",
+        "below",
+        "on"
+      ]
+    },
+    "Marker": {
+      "type": "object",
+      "properties": {
+        "time_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "position": {
+          "$ref": "#/$defs/MarkerPosition"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "color": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        }
+      },
+      "required": [
+        "time_ms",
+        "position",
+        "label",
+        "color"
+      ],
+      "additionalProperties": false
+    },
+    "Region": {
+      "type": "object",
+      "properties": {
+        "from_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "to_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "color": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        }
+      },
+      "required": [
+        "from_ms",
+        "to_ms",
+        "label",
+        "color"
+      ],
+      "additionalProperties": false
+    },
+    "Annotation": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Marker"
+        },
+        {
+          "$ref": "#/$defs/Region"
+        }
+      ]
+    },
+    "SeriesKind": {
+      "type": "string",
+      "enum": [
+        "line",
+        "histogram"
+      ]
+    },
+    "IndicatorSeries": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "pane": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "type": {
+          "$ref": "#/$defs/SeriesKind"
+        },
+        "points": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Point"
+          },
+          "maxItems": 100000
+        },
+        "style": {
+          "$ref": "#/$defs/Style"
+        }
+      },
+      "required": [
+        "id",
+        "pane",
+        "type",
+        "points",
+        "style"
+      ],
+      "additionalProperties": false
+    },
+    "Severity": {
+      "type": "string",
+      "enum": [
+        "info",
+        "warning",
+        "error"
+      ]
+    },
+    "Diagnostic": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "severity"
+      ],
+      "additionalProperties": false
+    },
+    "Hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "IndicatorProvenance": {
+      "type": "object",
+      "properties": {
+        "code_hash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "params_hash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "dataset_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "dataset_revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "engine_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "code_hash",
+        "params_hash",
+        "dataset_id",
+        "dataset_revision",
+        "engine_version"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorResult": {
+      "type": "object",
+      "properties": {
+        "series": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/IndicatorSeries"
+          },
+          "maxItems": 16
+        },
+        "markers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Marker"
+          },
+          "maxItems": 2000
+        },
+        "regions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Region"
+          },
+          "maxItems": 500
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          },
+          "maxItems": 256
+        },
+        "provenance": {
+          "$ref": "#/$defs/IndicatorProvenance"
+        }
+      },
+      "required": [
+        "series",
+        "markers",
+        "regions",
+        "diagnostics",
+        "provenance"
+      ],
+      "additionalProperties": false
+    },
+    "LayerState": {
+      "type": "string",
+      "enum": [
+        "preview",
+        "accepted"
+      ]
+    },
+    "Layer": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "state": {
+          "$ref": "#/$defs/LayerState"
+        },
+        "source_task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "indicator_version_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OpaqueId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "metadata": {
+          "$ref": "#/$defs/Metadata"
+        }
+      },
+      "required": [
+        "id",
+        "state",
+        "source_task_id",
+        "indicator_version_id",
+        "metadata"
+      ],
+      "additionalProperties": false
+    },
+    "VisibleRange": {
+      "type": "object",
+      "properties": {
+        "from_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "to_ms": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "from_ms",
+        "to_ms"
+      ],
+      "additionalProperties": false
+    },
+    "Workspace": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "instrument_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OpaqueId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "timeframe": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "style": {
+          "$ref": "#/$defs/ChartStyle"
+        },
+        "dataset": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DatasetDescriptor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "visible_range": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VisibleRange"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "layers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Layer"
+          },
+          "maxItems": 256
+        }
+      },
+      "required": [
+        "id",
+        "revision",
+        "instrument_id",
+        "timeframe",
+        "style",
+        "dataset",
+        "visible_range",
+        "layers"
+      ],
+      "additionalProperties": false
+    },
+    "Context": {
+      "type": "object",
+      "properties": {
+        "workspace": {
+          "$ref": "#/$defs/Workspace"
+        },
+        "authorized_operations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OperationName"
+          },
+          "maxItems": 64
+        },
+        "bars": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Bar"
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "workspace",
+        "authorized_operations",
+        "bars"
+      ],
+      "additionalProperties": false
+    },
+    "FieldExpression": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "const": "field",
+          "type": "string"
+        },
+        "field": {
+          "type": "string",
+          "enum": [
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume"
+          ]
+        }
+      },
+      "required": [
+        "op",
+        "field"
+      ],
+      "additionalProperties": false
+    },
+    "ConstantExpression": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "const": "constant",
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "op",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "BinaryExpression": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "enum": [
+            "add",
+            "subtract",
+            "multiply",
+            "divide",
+            "gt",
+            "lt",
+            "and",
+            "or"
+          ]
+        },
+        "left": {
+          "$ref": "#/$defs/Expression"
+        },
+        "right": {
+          "$ref": "#/$defs/Expression"
+        }
+      },
+      "required": [
+        "op",
+        "left",
+        "right"
+      ],
+      "additionalProperties": false
+    },
+    "AbsExpression": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "const": "abs",
+          "type": "string"
+        },
+        "value": {
+          "$ref": "#/$defs/Expression"
+        }
+      },
+      "required": [
+        "op",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "LagExpression": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "const": "lag",
+          "type": "string"
+        },
+        "value": {
+          "$ref": "#/$defs/Expression"
+        },
+        "periods": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        }
+      },
+      "required": [
+        "op",
+        "value",
+        "periods"
+      ],
+      "additionalProperties": false
+    },
+    "WindowExpression": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "enum": [
+            "rolling_mean",
+            "rolling_std"
+          ]
+        },
+        "value": {
+          "$ref": "#/$defs/Expression"
+        },
+        "window": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        }
+      },
+      "required": [
+        "op",
+        "value",
+        "window"
+      ],
+      "additionalProperties": false
+    },
+    "Expression": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/FieldExpression"
+        },
+        {
+          "$ref": "#/$defs/ConstantExpression"
+        },
+        {
+          "$ref": "#/$defs/BinaryExpression"
+        },
+        {
+          "$ref": "#/$defs/AbsExpression"
+        },
+        {
+          "$ref": "#/$defs/LagExpression"
+        },
+        {
+          "$ref": "#/$defs/WindowExpression"
+        }
+      ]
+    },
+    "DeclarativeDraftInput": {
+      "type": "object",
+      "properties": {
+        "language": {
+          "type": "string",
+          "const": "declarative"
+        },
+        "source": {
+          "$ref": "#/$defs/Expression"
+        },
+        "params": {
+          "$ref": "#/$defs/Metadata"
+        },
+        "expected_workspace_revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "language",
+        "source",
+        "params",
+        "expected_workspace_revision"
+      ],
+      "additionalProperties": false
+    },
+    "PythonDraftInput": {
+      "type": "object",
+      "properties": {
+        "language": {
+          "type": "string",
+          "const": "python"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 262144
+        },
+        "params": {
+          "$ref": "#/$defs/Metadata"
+        },
+        "expected_workspace_revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "language",
+        "source",
+        "params",
+        "expected_workspace_revision"
+      ],
+      "additionalProperties": false
+    },
+    "InstrumentSearchInput": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        }
+      },
+      "required": [
+        "query",
+        "limit"
+      ],
+      "additionalProperties": false
+    },
+    "InstrumentSearchOutput": {
+      "type": "object",
+      "properties": {
+        "instruments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Instrument"
+          },
+          "maxItems": 50
+        }
+      },
+      "required": [
+        "instruments"
+      ],
+      "additionalProperties": false
+    },
+    "InstrumentSearchRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "instrument.search"
+        },
+        "payload": {
+          "$ref": "#/$defs/InstrumentSearchInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "InstrumentSearchToolCall": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "instrument.search"
+        },
+        "arguments": {
+          "$ref": "#/$defs/InstrumentSearchInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "MarketGetBarsInput": {
+      "type": "object",
+      "properties": {
+        "instrument_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "timeframe": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "from_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "to_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "provider_id": {
+          "$ref": "#/$defs/OpaqueId"
+        }
+      },
+      "required": [
+        "instrument_id",
+        "timeframe",
+        "from_ms",
+        "to_ms",
+        "provider_id"
+      ],
+      "additionalProperties": false
+    },
+    "MarketGetBarsOutput": {
+      "type": "object",
+      "properties": {
+        "dataset": {
+          "$ref": "#/$defs/DatasetDescriptor"
+        },
+        "bars": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Bar"
+          },
+          "maxItems": 100000
+        }
+      },
+      "required": [
+        "dataset",
+        "bars"
+      ],
+      "additionalProperties": false
+    },
+    "MarketGetBarsRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.getBars"
+        },
+        "payload": {
+          "$ref": "#/$defs/MarketGetBarsInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "MarketGetBarsToolCall": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "market.getBars"
+        },
+        "arguments": {
+          "$ref": "#/$defs/MarketGetBarsInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceOpenInstrumentInput": {
+      "type": "object",
+      "properties": {
+        "instrument_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "timeframe": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "expected_workspace_revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "instrument_id",
+        "timeframe",
+        "expected_workspace_revision"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceOpenInstrumentOutput": {
+      "$ref": "#/$defs/Workspace"
+    },
+    "WorkspaceOpenInstrumentRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "workspace.openInstrument"
+        },
+        "payload": {
+          "$ref": "#/$defs/WorkspaceOpenInstrumentInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceOpenInstrumentToolCall": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "workspace.openInstrument"
+        },
+        "arguments": {
+          "$ref": "#/$defs/WorkspaceOpenInstrumentInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "ChartSetTimeframeInput": {
+      "type": "object",
+      "properties": {
+        "timeframe": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "expected_workspace_revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "timeframe",
+        "expected_workspace_revision"
+      ],
+      "additionalProperties": false
+    },
+    "ChartSetTimeframeOutput": {
+      "$ref": "#/$defs/Workspace"
+    },
+    "ChartSetTimeframeRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "chart.setTimeframe"
+        },
+        "payload": {
+          "$ref": "#/$defs/ChartSetTimeframeInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "ChartSetTimeframeToolCall": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "chart.setTimeframe"
+        },
+        "arguments": {
+          "$ref": "#/$defs/ChartSetTimeframeInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "ChartSetStyleInput": {
+      "type": "object",
+      "properties": {
+        "style": {
+          "$ref": "#/$defs/ChartStyle"
+        },
+        "expected_workspace_revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "style",
+        "expected_workspace_revision"
+      ],
+      "additionalProperties": false
+    },
+    "ChartSetStyleOutput": {
+      "$ref": "#/$defs/Workspace"
+    },
+    "ChartSetStyleRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "chart.setStyle"
+        },
+        "payload": {
+          "$ref": "#/$defs/ChartSetStyleInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "ChartSetStyleToolCall": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "chart.setStyle"
+        },
+        "arguments": {
+          "$ref": "#/$defs/ChartSetStyleInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "ChartAddAnnotationInput": {
+      "type": "object",
+      "properties": {
+        "annotation": {
+          "$ref": "#/$defs/Annotation"
+        },
+        "expected_workspace_revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "annotation",
+        "expected_workspace_revision"
+      ],
+      "additionalProperties": false
+    },
+    "ChartAddAnnotationOutput": {
+      "type": "object",
+      "properties": {
+        "layer_id": {
+          "$ref": "#/$defs/OpaqueId"
+        }
+      },
+      "required": [
+        "layer_id"
+      ],
+      "additionalProperties": false
+    },
+    "ChartAddAnnotationRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "chart.addAnnotation"
+        },
+        "payload": {
+          "$ref": "#/$defs/ChartAddAnnotationInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "ChartAddAnnotationToolCall": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "chart.addAnnotation"
+        },
+        "arguments": {
+          "$ref": "#/$defs/ChartAddAnnotationInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "ChartRemoveLayerInput": {
+      "type": "object",
+      "properties": {
+        "layer_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "expected_workspace_revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "layer_id",
+        "expected_workspace_revision"
+      ],
+      "additionalProperties": false
+    },
+    "ChartRemoveLayerOutput": {
+      "type": "object",
+      "properties": {
+        "operation_id": {
+          "$ref": "#/$defs/OpaqueId"
+        }
+      },
+      "required": [
+        "operation_id"
+      ],
+      "additionalProperties": false
+    },
+    "ChartRemoveLayerRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "chart.removeLayer"
+        },
+        "payload": {
+          "$ref": "#/$defs/ChartRemoveLayerInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "ChartRemoveLayerToolCall": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "chart.removeLayer"
+        },
+        "arguments": {
+          "$ref": "#/$defs/ChartRemoveLayerInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorCreateDraftInput": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/DeclarativeDraftInput"
+        },
+        {
+          "$ref": "#/$defs/PythonDraftInput"
+        }
+      ]
+    },
+    "IndicatorCreateDraftOutput": {
+      "type": "object",
+      "properties": {
+        "draft_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "code_hash": {
+          "$ref": "#/$defs/Hash"
+        }
+      },
+      "required": [
+        "draft_id",
+        "code_hash"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorCreateDraftRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "indicator.createDraft"
+        },
+        "payload": {
+          "$ref": "#/$defs/IndicatorCreateDraftInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorCreateDraftToolCall": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "indicator.createDraft"
+        },
+        "arguments": {
+          "$ref": "#/$defs/IndicatorCreateDraftInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorRunPreviewInput": {
+      "type": "object",
+      "properties": {
+        "draft_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "dataset_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "dataset_revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "params": {
+          "$ref": "#/$defs/Metadata"
+        },
+        "expected_workspace_revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "draft_id",
+        "dataset_id",
+        "dataset_revision",
+        "params",
+        "expected_workspace_revision"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorRunPreviewOutput": {
+      "type": "object",
+      "properties": {
+        "task_id": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "task_id"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorRunPreviewRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "indicator.runPreview"
+        },
+        "payload": {
+          "$ref": "#/$defs/IndicatorRunPreviewInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorRunPreviewToolCall": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "indicator.runPreview"
+        },
+        "arguments": {
+          "$ref": "#/$defs/IndicatorRunPreviewInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorAcceptVersionInput": {
+      "type": "object",
+      "properties": {
+        "preview_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "expected_workspace_revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "preview_id",
+        "expected_workspace_revision"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorAcceptVersionOutput": {
+      "type": "object",
+      "properties": {
+        "version_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "layer_id": {
+          "$ref": "#/$defs/OpaqueId"
+        }
+      },
+      "required": [
+        "version_id",
+        "layer_id"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorAcceptVersionRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "indicator.acceptVersion"
+        },
+        "payload": {
+          "$ref": "#/$defs/IndicatorAcceptVersionInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorAcceptVersionToolCall": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "indicator.acceptVersion"
+        },
+        "arguments": {
+          "$ref": "#/$defs/IndicatorAcceptVersionInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorRemoveInput": {
+      "type": "object",
+      "properties": {
+        "layer_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "expected_workspace_revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "layer_id",
+        "expected_workspace_revision"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorRemoveOutput": {
+      "type": "object",
+      "properties": {
+        "operation_id": {
+          "$ref": "#/$defs/OpaqueId"
+        }
+      },
+      "required": [
+        "operation_id"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorRemoveRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "indicator.remove"
+        },
+        "payload": {
+          "$ref": "#/$defs/IndicatorRemoveInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorRemoveToolCall": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "indicator.remove"
+        },
+        "arguments": {
+          "$ref": "#/$defs/IndicatorRemoveInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceUndoInput": {
+      "type": "object",
+      "properties": {
+        "operation_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "expected_workspace_revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "operation_id",
+        "expected_workspace_revision"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceUndoOutput": {
+      "$ref": "#/$defs/Workspace"
+    },
+    "WorkspaceUndoRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "workspace.undo"
+        },
+        "payload": {
+          "$ref": "#/$defs/WorkspaceUndoInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceUndoToolCall": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "workspace.undo"
+        },
+        "arguments": {
+          "$ref": "#/$defs/WorkspaceUndoInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "TaskCancelInput": {
+      "type": "object",
+      "properties": {
+        "task_id": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "task_id"
+      ],
+      "additionalProperties": false
+    },
+    "TaskCancelOutput": {
+      "type": "object",
+      "properties": {
+        "task_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "completed",
+            "failed",
+            "cancelled"
+          ]
+        }
+      },
+      "required": [
+        "task_id",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "TaskCancelRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "task.cancel"
+        },
+        "payload": {
+          "$ref": "#/$defs/TaskCancelInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "TaskCancelToolCall": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "task.cancel"
+        },
+        "arguments": {
+          "$ref": "#/$defs/TaskCancelInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceGetContextInput": {
+      "type": "object",
+      "properties": {
+        "workspace_id": {
+          "$ref": "#/$defs/OpaqueId"
+        }
+      },
+      "required": [
+        "workspace_id"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceGetContextOutput": {
+      "$ref": "#/$defs/Context"
+    },
+    "WorkspaceGetContextRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "workspace.getContext"
+        },
+        "payload": {
+          "$ref": "#/$defs/WorkspaceGetContextInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceGetContextToolCall": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "workspace.getContext"
+        },
+        "arguments": {
+          "$ref": "#/$defs/WorkspaceGetContextInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "Request": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/InstrumentSearchRequest"
+        },
+        {
+          "$ref": "#/$defs/MarketGetBarsRequest"
+        },
+        {
+          "$ref": "#/$defs/WorkspaceOpenInstrumentRequest"
+        },
+        {
+          "$ref": "#/$defs/ChartSetTimeframeRequest"
+        },
+        {
+          "$ref": "#/$defs/ChartSetStyleRequest"
+        },
+        {
+          "$ref": "#/$defs/ChartAddAnnotationRequest"
+        },
+        {
+          "$ref": "#/$defs/ChartRemoveLayerRequest"
+        },
+        {
+          "$ref": "#/$defs/IndicatorCreateDraftRequest"
+        },
+        {
+          "$ref": "#/$defs/IndicatorRunPreviewRequest"
+        },
+        {
+          "$ref": "#/$defs/IndicatorAcceptVersionRequest"
+        },
+        {
+          "$ref": "#/$defs/IndicatorRemoveRequest"
+        },
+        {
+          "$ref": "#/$defs/WorkspaceUndoRequest"
+        },
+        {
+          "$ref": "#/$defs/TaskCancelRequest"
+        },
+        {
+          "$ref": "#/$defs/WorkspaceGetContextRequest"
+        }
+      ]
+    },
+    "ToolCall": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/InstrumentSearchToolCall"
+        },
+        {
+          "$ref": "#/$defs/MarketGetBarsToolCall"
+        },
+        {
+          "$ref": "#/$defs/WorkspaceOpenInstrumentToolCall"
+        },
+        {
+          "$ref": "#/$defs/ChartSetTimeframeToolCall"
+        },
+        {
+          "$ref": "#/$defs/ChartSetStyleToolCall"
+        },
+        {
+          "$ref": "#/$defs/ChartAddAnnotationToolCall"
+        },
+        {
+          "$ref": "#/$defs/ChartRemoveLayerToolCall"
+        },
+        {
+          "$ref": "#/$defs/IndicatorCreateDraftToolCall"
+        },
+        {
+          "$ref": "#/$defs/IndicatorRunPreviewToolCall"
+        },
+        {
+          "$ref": "#/$defs/IndicatorAcceptVersionToolCall"
+        },
+        {
+          "$ref": "#/$defs/IndicatorRemoveToolCall"
+        },
+        {
+          "$ref": "#/$defs/WorkspaceUndoToolCall"
+        },
+        {
+          "$ref": "#/$defs/TaskCancelToolCall"
+        },
+        {
+          "$ref": "#/$defs/WorkspaceGetContextToolCall"
+        }
+      ]
+    },
+    "Hello": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "hello"
+        },
+        "role": {
+          "$ref": "#/$defs/WorkerRole"
+        },
+        "worker_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "supported_protocols": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16
+          },
+          "maxItems": 16
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OperationName"
+          },
+          "maxItems": 64
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "role",
+        "worker_version",
+        "supported_protocols",
+        "capabilities"
+      ],
+      "additionalProperties": false
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": false
+        },
+        "result": {
+          "type": "null"
+        },
+        "error": {
+          "$ref": "#/$defs/Error"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "OperationResult": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/InstrumentSearchOutput"
+        },
+        {
+          "$ref": "#/$defs/MarketGetBarsOutput"
+        },
+        {
+          "$ref": "#/$defs/WorkspaceOpenInstrumentOutput"
+        },
+        {
+          "$ref": "#/$defs/ChartSetTimeframeOutput"
+        },
+        {
+          "$ref": "#/$defs/ChartSetStyleOutput"
+        },
+        {
+          "$ref": "#/$defs/ChartAddAnnotationOutput"
+        },
+        {
+          "$ref": "#/$defs/ChartRemoveLayerOutput"
+        },
+        {
+          "$ref": "#/$defs/IndicatorCreateDraftOutput"
+        },
+        {
+          "$ref": "#/$defs/IndicatorRunPreviewOutput"
+        },
+        {
+          "$ref": "#/$defs/IndicatorAcceptVersionOutput"
+        },
+        {
+          "$ref": "#/$defs/IndicatorRemoveOutput"
+        },
+        {
+          "$ref": "#/$defs/WorkspaceUndoOutput"
+        },
+        {
+          "$ref": "#/$defs/TaskCancelOutput"
+        },
+        {
+          "$ref": "#/$defs/WorkspaceGetContextOutput"
+        }
+      ]
+    },
+    "SuccessResponse": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": true
+        },
+        "result": {
+          "$ref": "#/$defs/OperationResult"
+        },
+        "error": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "Response": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/SuccessResponse"
+        },
+        {
+          "$ref": "#/$defs/ErrorResponse"
+        }
+      ]
+    },
+    "AiToolRequestEvent": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "event"
+        },
+        "stream_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "event": {
+          "type": "string",
+          "const": "ai.tool_request"
+        },
+        "payload": {
+          "$ref": "#/$defs/ToolCall"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "stream_id",
+        "sequence",
+        "event",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "Cancel": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "cancel"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id"
+      ],
+      "additionalProperties": false
+    },
+    "Heartbeat": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "heartbeat"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "Message": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Hello"
+        },
+        {
+          "$ref": "#/$defs/Request"
+        },
+        {
+          "$ref": "#/$defs/Response"
+        },
+        {
+          "$ref": "#/$defs/AiToolRequestEvent"
+        },
+        {
+          "$ref": "#/$defs/Cancel"
+        },
+        {
+          "$ref": "#/$defs/Heartbeat"
+        }
+      ]
+    }
+  }
+}

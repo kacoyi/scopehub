@@ -1,0 +1,166 @@
+{
+  "review_date": "2026-10-14",
+  "kind": "repository_scaffold_and_delivery_audit",
+  "authority": "Owner requested detailed review and implementation of a sustainable AI-assisted product delivery scaffold.",
+  "scope": [
+    "Engineering contract and accepted decisions",
+    "Task definitions, evidence archive and source identity",
+    "Harness execution, toolchain checks and CI workflow",
+    "Architecture boundaries and regression coverage",
+    "Product scenarios, feedback, context and release readiness"
+  ],
+  "strengths": [
+    {
+      "finding": "Cross-language protocol types and operation projections have one canonical schema and shared test vectors.",
+      "evidence": [
+        "contracts/schemas/protocol.schema.json",
+        "scripts/generate_contracts.py",
+        "tests/fixtures/protocol-cases.json"
+      ]
+    },
+    {
+      "finding": "Historical task evidence records actual commands, environment, source and log digests.",
+      "evidence": [
+        "scripts/project.py",
+        "project/evidence",
+        "contracts/decisions/0004-project-continuity.json"
+      ]
+    },
+    {
+      "finding": "Unimplemented operations, simulated data, native Windows acceptance and real-service boundaries are explicit.",
+      "evidence": [
+        "engineering-contract-v1.json",
+        "contracts/contract.json",
+        "project/checks.json"
+      ]
+    },
+    {
+      "finding": "The existing architecture keeps domain ownership, runtime authorization and external integration replaceable.",
+      "evidence": [
+        "contracts/decisions/0001-architecture.json",
+        "contracts/decisions/0002-python-trust.json"
+      ]
+    }
+  ],
+  "corrective_task": "M0-004",
+  "findings": [
+    {
+      "id": "verification-lifetime",
+      "severity": "major",
+      "observation": "Timeout handling discards captured output and subprocess.run does not explicitly terminate the check process group.",
+      "source": "scripts/check.py",
+      "tracking": "project/feedback.json"
+    },
+    {
+      "id": "verification-freshness",
+      "severity": "major",
+      "observation": "Decision metadata is excluded from the execution digest, and current milestone display does not require current task definitions.",
+      "source": "scripts/project.py",
+      "tracking": "project/feedback.json"
+    },
+    {
+      "id": "delivery-feedback",
+      "severity": "major",
+      "observation": "Milestone-sized tasks lack focused delivery context, observable scenario bindings and a tracked correction loop.",
+      "source": "project/tasks.json",
+      "tracking": "project/feedback.json"
+    },
+    {
+      "id": "history-enforcement",
+      "severity": "major",
+      "observation": "Accepted history preservation is specified but has no comparison with the reviewed Git base.",
+      "source": "contracts/decisions/0004-project-continuity.json",
+      "tracking": "project/feedback.json"
+    },
+    {
+      "id": "architecture-aliases",
+      "severity": "major",
+      "observation": "Inherited Cargo workspace aliases can hide forbidden infrastructure or internal-layer dependencies from the original boundary check.",
+      "source": "scripts/check_architecture.py",
+      "tracking": "project/feedback.json"
+    },
+    {
+      "id": "verification-cadence",
+      "severity": "major",
+      "observation": "The original default harness would eventually run packaged and soak checks on every native change, while the stability timeout was shorter than the contractual two-hour workload.",
+      "source": "project/checks.json",
+      "tracking": "project/feedback.json"
+    }
+  ],
+  "remaining_delivery_gaps": [
+    {
+      "task": "M0-003",
+      "gap": "No current passing native Windows x64 report; CI definition and Linux tests cannot establish it."
+    },
+    {
+      "task": "M1-002",
+      "gap": "Actual market fixtures and their financial/time semantics are not implemented; establish independent expected values before chart integration."
+    },
+    {
+      "task": "M2-001",
+      "gap": "Persistence, operation authorization, idempotency, undo, migrations and recovery need executable end-to-end behavior."
+    },
+    {
+      "task": "M4-001",
+      "gap": "Versioned replay evaluation and observed owner collaboration feedback are needed before claiming useful AI product behavior; mock acceptance does not establish real-model quality."
+    },
+    {
+      "task": "M5-001",
+      "gap": "Installer, packaged workers, clean-machine behavior, artifact identity, dependency/license review, backup/restore and stability evidence remain unimplemented."
+    }
+  ],
+  "governance_limits": [
+    "Schema checks validate record consistency; they cannot prove semantic correctness or replace product observation.",
+    "Source and log hashes detect drift but do not authenticate forged evidence or preserve uncommitted source bytes.",
+    "Accepted-history checks need an available Git base; the pre-existing uncommitted scaffold cannot supply earlier committed history.",
+    "Import and dependency checks enforce declared boundaries, not a security sandbox for hostile code.",
+    "The timeout cleanup regression runs on each available host; Windows behavior requires an actual native run."
+  ],
+  "workflow_choice": "Keep one repository-local operating loop in AGENTS, validated JSON and executable commands. Extract a skill only when a demonstrated repeated procedure needs it; avoid duplicating rules or introducing an external workflow dependency without a concrete need.",
+  "validation": {
+    "status": "local_checks_passed_native_acceptance_blocked",
+    "report": ".reports/runs/20261014T041937.909744Z-7e29342d/test-report.json",
+    "report_sha256": "e5e29fe7ccd744415fefa3a31b2f01715320769d7ae56826e3dc58899828bcc5",
+    "task_evidence": {
+      "path": "project/evidence/M0-004-e5e29fe7ccd74441.json",
+      "sha256": "c7bafb0aa4f1bd4c55117a0a8b34d63f764f774b54c514df9a709a92793d5f7a"
+    },
+    "host": "Linux",
+    "passed_checks": [
+      "environment",
+      "project-state",
+      "generated-contracts",
+      "architecture",
+      "python-types",
+      "python-contracts-workers",
+      "typescript-contracts",
+      "ui-build",
+      "rust-format",
+      "rust-contracts-workers",
+      "rust-lints"
+    ],
+    "python_tests": 61,
+    "workflow_static_check": {
+      "command": "actionlint -oneline .github/workflows/verify.yml",
+      "status": "passed"
+    },
+    "historical_baseline": "Pre-existing accepted tasks and decision records match the local start-of-review snapshot. HEAD predates those uncommitted records; Git history comparison preserved zero existing records at that base.",
+    "native_windows": "blocked",
+    "real_market_data": "not_configured",
+    "cloud_models": "not_configured"
+  },
+  "primary_references": [
+    {
+      "url": "https://docs.python.org/3.12/library/subprocess.html",
+      "use": "Process timeout, output handling and process-group behavior."
+    },
+    {
+      "url": "https://docs.github.com/en/actions/reference/workflows-and-actions/contexts",
+      "use": "Select the actual review base and manually requested validation profile."
+    },
+    {
+      "url": "https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts",
+      "use": "Retain per-run artifacts while keeping historical receipts and release evidence responsibilities explicit."
+    }
+  ]
+}

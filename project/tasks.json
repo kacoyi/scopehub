@@ -1,0 +1,558 @@
+{
+  "schema_version": "1.0",
+  "focus_task_id": "M0-005",
+  "tasks": [
+    {
+      "id": "M0-001",
+      "title": "Establish executable contracts and the local application scaffold",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [],
+      "scope": [
+        "contracts",
+        "apps/desktop",
+        "crates",
+        "python/worker_runtime",
+        "tests"
+      ],
+      "decision_refs": [
+        "0001",
+        "0002",
+        "0003",
+        "0004"
+      ],
+      "acceptance": [
+        "Generate and validate the same wire contracts in TypeScript, Rust and Python.",
+        "Build the empty UI and verify the worker handshake and bounded protocol failure cases.",
+        "Retain explicit unsupported-operation behavior; do not report product operations as implemented."
+      ],
+      "checks": [
+        "generated-contracts",
+        "architecture",
+        "python-types",
+        "python-contracts-workers",
+        "typescript-contracts",
+        "ui-build",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-001-10a4581ed6122644.json",
+          "sha256": "ac1c9f4a0f08a4c2bf45ea87039d739204bbb3084122cbf17e9525b51030d50c"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M0-002",
+      "title": "Establish task continuity, decision history and version-bound verification",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [],
+      "scope": [
+        "project",
+        "contracts/decisions",
+        "contracts/schemas/project.schema.json",
+        "scripts",
+        "tests/project",
+        ".github/workflows",
+        "AGENTS.md"
+      ],
+      "decision_refs": [
+        "0001",
+        "0002",
+        "0003",
+        "0004"
+      ],
+      "acceptance": [
+        "A new agent can locate the current task, dependencies, blockers and next action from validated records.",
+        "Completed tasks cite preserved passing evidence for their recorded definitions; accepted decisions can be superseded without erasing their rationale.",
+        "The harness derives readiness from declared checks, binds results to execution inputs and retains separate run logs.",
+        "Regressions reject invalid dependency graphs, unsupported completion claims, stale proof recording and invalid decision relationships."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-002-10a4581ed6122644.json",
+          "sha256": "7ba79b5a944bc2fc8ae9e2235fe0bad5ae77c3e6fcb8130fcaf3a2a0c3e5ca5f"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M0-003",
+      "title": "Validate the foundation on native Windows x64",
+      "milestone": "M0",
+      "status": "blocked",
+      "depends_on": [
+        "M0-001",
+        "M0-002"
+      ],
+      "scope": [
+        "apps/desktop/src-tauri",
+        ".github/workflows/verify.yml",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0001",
+        "0002",
+        "0003",
+        "0004"
+      ],
+      "acceptance": [
+        "The checked source passes all foundation checks and the native Windows desktop build.",
+        "Preserve the native report as evidence; a Linux UI build does not fulfill this task."
+      ],
+      "checks": [
+        "project-state",
+        "generated-contracts",
+        "architecture",
+        "python-types",
+        "python-contracts-workers",
+        "typescript-contracts",
+        "ui-build",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "windows-native-build"
+      ],
+      "evidence": [],
+      "next_action": "Run the Windows CI job or the native Windows harness at these execution inputs, repair any failures and archive its report.",
+      "blocker": "No passing native Windows x64 report exists; the current WSL host does not validate the Windows application runtime.",
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The foundation compiles and passes its checks on the actual Windows x64 target.",
+        "change_types": [
+          "packaging"
+        ],
+        "context": [
+          ".github/workflows/verify.yml",
+          "apps/desktop/src-tauri/tauri.conf.json"
+        ],
+        "hypotheses": [
+          "The pinned build tools and empty desktop entry point are compatible on native Windows."
+        ],
+        "risks": [
+          {
+            "failure": "Local Linux success is mistaken for native Windows acceptance.",
+            "checks": [
+              "windows-native-build"
+            ]
+          }
+        ],
+        "rollback": "Repair native build defects in a new task if needed; retain the failing native report and keep the foundation gate blocked."
+      }
+    },
+    {
+      "id": "M1-001",
+      "title": "Deliver the simulated chart workflow",
+      "milestone": "M1",
+      "status": "planned",
+      "depends_on": [
+        "M1-002"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "crates",
+        "python/providers",
+        "tests"
+      ],
+      "decision_refs": [
+        "0001",
+        "0002",
+        "0003",
+        "0004"
+      ],
+      "acceptance": [
+        "Open the three specified synthetic instruments, switch timeframes and receive live bar updates with visible simulated status.",
+        "Loading, ready, empty, stale, disconnected and error states have observable UI behavior."
+      ],
+      "checks": [
+        "market-workflow"
+      ],
+      "evidence": [],
+      "next_action": "After fixture semantics are verified, connect one instrument through the core to the chart, then expand to the specified instruments and timeframes.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M2-001",
+      "title": "Deliver shared operations and durable workspace state",
+      "milestone": "M2",
+      "status": "planned",
+      "depends_on": [
+        "M1-001"
+      ],
+      "scope": [
+        "crates/application",
+        "crates/persistence",
+        "apps/desktop",
+        "tests"
+      ],
+      "decision_refs": [
+        "0001",
+        "0002",
+        "0003",
+        "0004"
+      ],
+      "acceptance": [
+        "Human and AI actions use the same registry, permissions, confirmations, revisions and idempotency semantics.",
+        "Workspace restoration and undo preserve accepted state; restart does not replay prior AI operations.",
+        "Introduce versioned database migrations and recovery tests when persistent state is first introduced."
+      ],
+      "checks": [
+        "operations-workflow",
+        "state-migrations"
+      ],
+      "evidence": [],
+      "next_action": "Implement operation ownership, persistence and failure-oriented tests.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M3-001",
+      "title": "Deliver reproducible indicator previews and accepted versions",
+      "milestone": "M3",
+      "status": "planned",
+      "depends_on": [
+        "M2-001"
+      ],
+      "scope": [
+        "python/indicators",
+        "crates",
+        "apps/desktop/ui",
+        "tests"
+      ],
+      "decision_refs": [
+        "0001",
+        "0002",
+        "0003",
+        "0004"
+      ],
+      "acceptance": [
+        "Declarative previews have deterministic results, bounded execution and validated output.",
+        "A failed preview leaves accepted indicators and market data usable.",
+        "Trusted Python remains opt-in with operation-specific authorization and accurately described isolation."
+      ],
+      "checks": [
+        "indicator-workflow"
+      ],
+      "evidence": [],
+      "next_action": "Implement the indicator engine and preview-to-acceptance workflow.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M4-001",
+      "title": "Deliver the first human-AI chart collaboration workflow",
+      "milestone": "M4",
+      "status": "planned",
+      "depends_on": [
+        "M3-001"
+      ],
+      "scope": [
+        "python/ai",
+        "crates/application",
+        "apps/desktop/ui",
+        "tests"
+      ],
+      "decision_refs": [
+        "0001",
+        "0002",
+        "0003",
+        "0004"
+      ],
+      "acceptance": [
+        "Mock AI uses actual chart context and core tools to create, inspect and revise an indicator draft.",
+        "Cancellation and authorization apply to every tool execution, and claims refer to actual results.",
+        "Record model, prompt, tool and input versions when they first affect reproducibility; preserve replayable evaluation scenarios.",
+        "Mock acceptance is separate from later real-model and real-data usability validation."
+      ],
+      "checks": [
+        "ai-workflow",
+        "ai-replay-evaluations"
+      ],
+      "evidence": [],
+      "next_action": "Implement the chosen collaboration scenario with deterministic tool and context evaluations.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M5-001",
+      "title": "Deliver installation, recovery and release evidence",
+      "milestone": "M5",
+      "status": "planned",
+      "depends_on": [
+        "M4-001"
+      ],
+      "scope": [
+        "apps/desktop/src-tauri",
+        "scripts",
+        "tests",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0001",
+        "0002",
+        "0003",
+        "0004"
+      ],
+      "acceptance": [
+        "A clean Windows machine can install and run without Python or Node, with the stated WebView2 installation behavior.",
+        "Verify packaged worker cleanup, stability, credential boundaries and dependency notices.",
+        "Bind release artifacts to a committed source revision, lockfiles, build environment and actual acceptance evidence.",
+        "Validate user-data backup/restore and upgrade migration before distributing an upgrade that changes persisted data; define recovery when downgrade is unsupported."
+      ],
+      "checks": [
+        "windows-installation",
+        "runtime-stability",
+        "credential-boundaries",
+        "release-artifacts",
+        "dependency-review",
+        "state-migrations"
+      ],
+      "evidence": [],
+      "next_action": "Implement packaging and execute clean-machine, stability and release acceptance checks.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M0-004",
+      "title": "Make continuous delivery observable, failure-oriented and resumable",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-001",
+        "M0-002"
+      ],
+      "scope": [
+        "AGENTS.md",
+        "project",
+        "contracts/schemas/project.schema.json",
+        "contracts/decisions",
+        "scripts",
+        "tests/project",
+        ".github/workflows",
+        "package.json"
+      ],
+      "decision_refs": [
+        "0003",
+        "0004",
+        "0005"
+      ],
+      "acceptance": [
+        "Provide bounded early verification with retained failure output, process cleanup, explicit selection and unchanged source and decision identities.",
+        "Reject stale or failed completion evidence, invalid active work, and rewrites of accepted history against a Git base.",
+        "Connect delivery scenarios, task risks, observed feedback and release gaps through validated records and focused context commands.",
+        "Preserve historical completion and native Windows blockers; keep routine implementation autonomous and product acceptance explicit.",
+        "Resolve workspace dependency aliases before checking architecture, and separate routine checks from costly native release acceptance."
+      ],
+      "checks": [
+        "environment",
+        "project-state",
+        "generated-contracts",
+        "architecture",
+        "python-contracts-workers",
+        "python-types",
+        "typescript-contracts",
+        "ui-build",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-004-e5e29fe7ccd74441.json",
+          "sha256": "c7bafb0aa4f1bd4c55117a0a8b34d63f764f774b54c514df9a709a92793d5f7a"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A future implementation session can identify its smallest useful outcome, expose defects early, retain valid evidence and respond to product feedback.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "AGENTS.md",
+          "scripts/project.py",
+          "scripts/check.py",
+          "tests/project/test_continuity.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "Git-versioned local records are sufficient for the current team size.",
+          "No additional skill or external task platform is needed to make the workflow executable."
+        ],
+        "risks": [
+          {
+            "failure": "Stale, incomplete or failed runs support an incorrect completion claim.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          },
+          {
+            "failure": "A hung check loses diagnostics or leaves child processes running.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An inherited dependency alias hides a forbidden architecture edge.",
+            "checks": [
+              "architecture",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert this task implementation as a coherent change; retain historical receipts and ADRs and preserve all pre-existing working-tree changes."
+      }
+    },
+    {
+      "id": "M1-002",
+      "title": "Establish deterministic market fixtures before chart integration",
+      "milestone": "M1",
+      "status": "planned",
+      "depends_on": [
+        "M0-003"
+      ],
+      "scope": [
+        "python/providers",
+        "crates",
+        "apps/desktop/ui",
+        "tests/fixtures",
+        "tests/integration"
+      ],
+      "decision_refs": [
+        "0001",
+        "0004",
+        "0005"
+      ],
+      "acceptance": [
+        "Commit synthetic fixtures with fixed time and seed for the three specified instruments and timeframes.",
+        "Verify OHLC, timestamps, gaps, partial bars and trading-day boundaries against independent expected values."
+      ],
+      "checks": [
+        "market-fixtures"
+      ],
+      "evidence": [],
+      "next_action": "Refine the task plan and implement its check when its dependencies are satisfied.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M1-003",
+      "title": "Verify market interruption and recovery through the chart",
+      "milestone": "M1",
+      "status": "planned",
+      "depends_on": [
+        "M1-001"
+      ],
+      "scope": [
+        "python/providers",
+        "crates",
+        "apps/desktop/ui",
+        "tests/fixtures",
+        "tests/integration"
+      ],
+      "decision_refs": [
+        "0001",
+        "0004",
+        "0005"
+      ],
+      "acceptance": [
+        "Make interruption, staleness and bounded recovery visible.",
+        "Reconnect without duplicate subscriptions and preserve final bar state under update coalescing."
+      ],
+      "checks": [
+        "market-recovery"
+      ],
+      "evidence": [],
+      "next_action": "Refine the task plan and implement its check when its dependencies are satisfied.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M0-005",
+      "title": "Establish source checkpoints and commit-bound hosted verification",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-004"
+      ],
+      "scope": [
+        "AGENTS.md",
+        "project",
+        "scripts",
+        "tests/project",
+        "contracts/schemas/project.schema.json",
+        "contracts/decisions",
+        ".github/workflows",
+        "package.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005"
+      ],
+      "acceptance": [
+        "Expose local checkpoint, upstream synchronization and hosted verification as distinct states tied to the actual commit.",
+        "Retain fast local feedback and move target-platform and expensive validation to explicit hosted jobs with caches and bounded runtime.",
+        "Import native CI evidence without overwriting local reports or trusting a run from another commit.",
+        "Preserve accepted history and document commit, branch push, integration and release responsibilities without granting new publication or administration permissions."
+      ],
+      "checks": [
+        "environment",
+        "project-state",
+        "generated-contracts",
+        "architecture",
+        "python-contracts-workers",
+        "python-types",
+        "typescript-contracts",
+        "ui-build",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints"
+      ],
+      "evidence": [],
+      "next_action": "Implement checkpoint and CI provenance tooling, verify the workflow, and prepare reviewable source commits.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A completed iteration is recoverable as a Git commit and can be verified on the hosted target without confusing queued, stale, pushed, merged or released states.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          ".github/workflows/verify.yml",
+          "scripts/check.py",
+          "scripts/project.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The existing GitHub repository and Actions runners are operationally suitable for remote verification; no separate CI service is needed."
+        ],
+        "risks": [
+          {
+            "failure": "An unrelated green CI run or an unpushed local change is mistaken for verified delivery.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Revert the new workflow tooling while preserving checkpoints, accepted records and per-run evidence; repair hosted failures before advancing integration."
+      }
+    }
+  ]
+}

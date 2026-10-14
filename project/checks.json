@@ -1,0 +1,409 @@
+{
+  "schema_version": "1.0",
+  "checks": [
+    {
+      "id": "environment",
+      "status": "implemented",
+      "purpose": "Detect incompatible tools and missing locked build inputs before expensive checks",
+      "platforms": "all",
+      "command": [
+        "{python}",
+        "scripts/doctor.py"
+      ],
+      "timeout_seconds": 90
+    },
+    {
+      "id": "project-state",
+      "status": "implemented",
+      "purpose": "Validate tasks, decisions, check bindings and archived evidence",
+      "platforms": "all",
+      "command": [
+        "{python}",
+        "scripts/project.py",
+        "check"
+      ],
+      "timeout_seconds": 900
+    },
+    {
+      "id": "generated-contracts",
+      "status": "implemented",
+      "purpose": "Detect generated protocol drift",
+      "platforms": "all",
+      "command": [
+        "{python}",
+        "scripts/generate_contracts.py",
+        "--check"
+      ],
+      "timeout_seconds": 900
+    },
+    {
+      "id": "architecture",
+      "status": "implemented",
+      "purpose": "Validate application boundaries and policy/schema consistency",
+      "platforms": "all",
+      "command": [
+        "{python}",
+        "scripts/check_architecture.py"
+      ],
+      "timeout_seconds": 900
+    },
+    {
+      "id": "python-types",
+      "status": "implemented",
+      "purpose": "Check worker and generated Python types",
+      "platforms": "all",
+      "command": [
+        "{python}",
+        "-m",
+        "mypy"
+      ],
+      "timeout_seconds": 900
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "implemented",
+      "purpose": "Exercise protocol, worker and repository-control failure behavior",
+      "platforms": "all",
+      "command": [
+        "{python}",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "timeout_seconds": 900
+    },
+    {
+      "id": "typescript-contracts",
+      "status": "implemented",
+      "purpose": "Validate shared wire fixtures in TypeScript",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "check:contracts"
+      ],
+      "timeout_seconds": 900
+    },
+    {
+      "id": "ui-build",
+      "status": "implemented",
+      "purpose": "Typecheck and build the UI",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "timeout_seconds": 900
+    },
+    {
+      "id": "rust-format",
+      "status": "implemented",
+      "purpose": "Verify Rust formatting",
+      "platforms": "all",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "timeout_seconds": 900
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "implemented",
+      "purpose": "Exercise Rust contracts and worker integration",
+      "platforms": "all",
+      "command": [
+        "cargo",
+        "test",
+        "--locked"
+      ],
+      "timeout_seconds": 900
+    },
+    {
+      "id": "rust-lints",
+      "status": "implemented",
+      "purpose": "Check Rust lints",
+      "platforms": "all",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "timeout_seconds": 900
+    },
+    {
+      "id": "windows-native-build",
+      "status": "implemented",
+      "purpose": "Build the desktop application natively on Windows x64",
+      "platforms": "windows-x64",
+      "command": [
+        "pnpm",
+        "desktop:build"
+      ],
+      "timeout_seconds": 1800
+    },
+    {
+      "id": "market-workflow",
+      "status": "planned",
+      "purpose": "Verify the M1 market and chart acceptance flow",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 1800
+    },
+    {
+      "id": "operations-workflow",
+      "status": "planned",
+      "purpose": "Verify permissions, persistence, revisions, undo and restart",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 1800
+    },
+    {
+      "id": "indicator-workflow",
+      "status": "planned",
+      "purpose": "Verify deterministic indicators, output validation and failure isolation",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 1800
+    },
+    {
+      "id": "ai-workflow",
+      "status": "planned",
+      "purpose": "Verify the human-AI tool workflow and its authorization boundaries",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 1800
+    },
+    {
+      "id": "windows-installation",
+      "status": "planned",
+      "purpose": "Verify a packaged clean-machine Windows installation",
+      "platforms": "windows-x64",
+      "command": null,
+      "timeout_seconds": 1800,
+      "cadence": "release"
+    },
+    {
+      "id": "runtime-stability",
+      "status": "planned",
+      "purpose": "Verify performance, bounded memory and process cleanup",
+      "platforms": "windows-x64",
+      "command": null,
+      "timeout_seconds": 9000,
+      "cadence": "release"
+    },
+    {
+      "id": "credential-boundaries",
+      "status": "planned",
+      "purpose": "Verify configured secret storage, redaction and worker exposure boundaries",
+      "platforms": "windows-x64",
+      "command": null,
+      "timeout_seconds": 1800,
+      "cadence": "release"
+    },
+    {
+      "id": "market-fixtures",
+      "status": "planned",
+      "purpose": "Validate fixed synthetic market data semantics and expected bars",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 900
+    },
+    {
+      "id": "market-recovery",
+      "status": "planned",
+      "purpose": "Validate bounded reconnect, subscriptions and data quality transitions",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 900
+    },
+    {
+      "id": "state-migrations",
+      "status": "planned",
+      "purpose": "Validate versioned migration, backup/restore and interruption recovery",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 900
+    },
+    {
+      "id": "ai-replay-evaluations",
+      "status": "planned",
+      "purpose": "Replay context, authorization, cancellation and claim-grounding scenarios with versioned inputs",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 900
+    },
+    {
+      "id": "release-artifacts",
+      "status": "planned",
+      "purpose": "Validate installer identity, retained native evidence, notices and observed owner product review",
+      "platforms": "windows-x64",
+      "command": null,
+      "timeout_seconds": 900,
+      "cadence": "release"
+    },
+    {
+      "id": "dependency-review",
+      "status": "planned",
+      "purpose": "Validate the actual dependency inventory, applicable licenses and documented vulnerability disposition",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 900,
+      "cadence": "release"
+    }
+  ],
+  "milestones": [
+    {
+      "id": "M0",
+      "checks": [
+        "project-state",
+        "generated-contracts",
+        "architecture",
+        "python-types",
+        "python-contracts-workers",
+        "typescript-contracts",
+        "ui-build",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "windows-native-build",
+        "environment"
+      ]
+    },
+    {
+      "id": "M1",
+      "checks": [
+        "market-workflow",
+        "market-fixtures",
+        "market-recovery"
+      ]
+    },
+    {
+      "id": "M2",
+      "checks": [
+        "operations-workflow",
+        "state-migrations"
+      ]
+    },
+    {
+      "id": "M3",
+      "checks": [
+        "indicator-workflow"
+      ]
+    },
+    {
+      "id": "M4",
+      "checks": [
+        "ai-workflow",
+        "ai-replay-evaluations"
+      ]
+    },
+    {
+      "id": "M5",
+      "checks": [
+        "windows-installation",
+        "runtime-stability",
+        "credential-boundaries",
+        "release-artifacts",
+        "dependency-review"
+      ]
+    }
+  ],
+  "acceptance": [
+    {
+      "requirement": "A clean Windows x64 system without Python/Node can install and run simulated mode",
+      "checks": [
+        "windows-installation"
+      ]
+    },
+    {
+      "requirement": "Open all three synthetic instruments and switch timeframes; the UI explicitly displays simulated",
+      "checks": [
+        "market-workflow"
+      ]
+    },
+    {
+      "requirement": "After disconnecting the market worker, its status is visible and recovery uses bounded retries without duplicate subscriptions",
+      "checks": [
+        "market-workflow"
+      ]
+    },
+    {
+      "requirement": "Mock AI creates a declarative abnormal-volatility indicator based on user requirements; preview, acceptance, removal, and undo all complete",
+      "checks": [
+        "ai-workflow",
+        "indicator-workflow",
+        "operations-workflow"
+      ]
+    },
+    {
+      "requirement": "AI tools and user operations use the same registry; direct requests for unauthorized operations are rejected",
+      "checks": [
+        "operations-workflow",
+        "ai-workflow"
+      ]
+    },
+    {
+      "requirement": "Existing confirmations become invalid when parameters, the code hash, or workspace revision change",
+      "checks": [
+        "operations-workflow"
+      ]
+    },
+    {
+      "requirement": "Indicator timeouts, exceptions, and invalid output neither interrupt market data nor overwrite accepted indicators",
+      "checks": [
+        "indicator-workflow"
+      ]
+    },
+    {
+      "requirement": "Closing and reopening restores the workspace and indicator versions without re-executing previous AI tasks",
+      "checks": [
+        "operations-workflow"
+      ]
+    },
+    {
+      "requirement": "Logs, the database, and worker environments contain no plaintext credentials",
+      "checks": [
+        "credential-boundaries"
+      ]
+    },
+    {
+      "requirement": "No worker child processes remain alive after application shutdown",
+      "checks": [
+        "runtime-stability"
+      ]
+    },
+    {
+      "requirement": "Generated types have no uncommitted differences; schemas and validation in all three languages are consistent",
+      "checks": [
+        "generated-contracts",
+        "architecture",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers"
+      ]
+    }
+  ],
+  "profiles": {
+    "fast": [
+      "environment",
+      "project-state",
+      "generated-contracts",
+      "architecture",
+      "python-contracts-workers",
+      "rust-format"
+    ]
+  }
+}

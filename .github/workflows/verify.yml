@@ -1,0 +1,65 @@
+name: Verify delivery
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Validation scope; release includes packaged acceptance and the soak test
+        type: choice
+        options: [full, release]
+        default: full
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: ${{ inputs.profile == 'release' && 180 || 30 }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.12.24'
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: '1.99.0'
+          components: rustfmt, clippy
+      - run: uv sync --locked
+      - run: pnpm install --frozen-lockfile
+      - name: Preserve accepted history
+        env:
+          SCOPEHUB_REVIEW_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: uv run python scripts/project.py history
+      - if: runner.os != 'Windows'
+        run: pnpm check
+      - if: runner.os == 'Windows' && inputs.profile != 'release'
+        run: uv run python scripts/check.py --require-windows
+      - if: runner.os == 'Windows' && inputs.profile == 'release'
+        run: uv run python scripts/check.py --profile release --require-windows
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-${{ matrix.os }}
+          path: .reports/
+          include-hidden-files: true
+          retention-days: 30

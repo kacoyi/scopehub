@@ -1,0 +1,367 @@
+[
+  {
+    "name": "market worker hello",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"hello\",\"role\":\"market\",\"worker_version\":\"0.1.0\",\"supported_protocols\":[\"1.0\"],\"capabilities\":[]}\n"
+  },
+  {
+    "name": "ai worker hello",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"hello\",\"role\":\"ai\",\"worker_version\":\"0.1.0\",\"supported_protocols\":[\"1.0\"],\"capabilities\":[]}\n"
+  },
+  {
+    "name": "indicator worker hello",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"hello\",\"role\":\"indicator\",\"worker_version\":\"0.1.0\",\"supported_protocols\":[\"1.0\"],\"capabilities\":[]}\n"
+  },
+  {
+    "name": "heartbeat",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"heartbeat\"}\n"
+  },
+  {
+    "name": "cancel by request id",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"cancel\",\"request_id\":\"00000000-0000-4000-8000-000000000002\"}\n"
+  },
+  {
+    "name": "unknown protocol major",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"2.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"hello\",\"role\":\"market\",\"worker_version\":\"0.1.0\",\"supported_protocols\":[\"1.0\"],\"capabilities\":[]}\n"
+  },
+  {
+    "name": "unknown role",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"hello\",\"role\":\"broker\",\"worker_version\":\"0.1.0\",\"supported_protocols\":[\"1.0\"],\"capabilities\":[]}\n"
+  },
+  {
+    "name": "forged authority field",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"hello\",\"role\":\"market\",\"worker_version\":\"0.1.0\",\"supported_protocols\":[\"1.0\"],\"capabilities\":[],\"approved\":true}\n"
+  },
+  {
+    "name": "invalid message UUID",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"display-symbol\",\"timestamp_ms\":1700000000000,\"type\":\"hello\",\"role\":\"market\",\"worker_version\":\"0.1.0\",\"supported_protocols\":[\"1.0\"],\"capabilities\":[]}\n"
+  },
+  {
+    "name": "fractional timestamp",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1.5,\"type\":\"hello\",\"role\":\"market\",\"worker_version\":\"0.1.0\",\"supported_protocols\":[\"1.0\"],\"capabilities\":[]}\n"
+  },
+  {
+    "name": "pre-epoch timestamps remain representable",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":-1,\"type\":\"hello\",\"role\":\"market\",\"worker_version\":\"0.1.0\",\"supported_protocols\":[\"1.0\"],\"capabilities\":[]}\n"
+  },
+  {
+    "name": "unsafe integer timestamp",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":9007199254740992,\"type\":\"hello\",\"role\":\"market\",\"worker_version\":\"0.1.0\",\"supported_protocols\":[\"1.0\"],\"capabilities\":[]}\n"
+  },
+  {
+    "name": "unknown capability",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"hello\",\"role\":\"market\",\"worker_version\":\"0.1.0\",\"supported_protocols\":[\"1.0\"],\"capabilities\":[\"shell.exec\"]}\n"
+  },
+  {
+    "name": "unsupported message kind",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"exec\"}\n"
+  },
+  {
+    "name": "instrument.search input",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"instrument.search\",\"payload\":{\"query\":\"SIM\",\"limit\":10}}\n"
+  },
+  {
+    "name": "instrument.search output",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"ok\":true,\"result\":{\"instruments\":[{\"id\":\"SIM.CN.FUTURE.001\",\"display_symbol\":\"SYNTH\",\"name\":\"Synthetic fixture\",\"asset_class\":\"future-asset-class\",\"venue\":\"SIM\",\"currency\":\"CNY\",\"calendar_id\":\"synthetic-calendar\",\"timezone\":\"Asia/Shanghai\",\"price_tick\":\"0.01\",\"quantity_unit\":\"contracts\",\"tradability\":\"non_tradable\",\"metadata\":{\"synthetic\":true},\"provider_mappings\":[{\"provider_id\":\"sim\",\"provider_symbol\":\"LOCAL-1\"}]}]},\"error\":null}\n"
+  },
+  {
+    "name": "market.getBars input",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.getBars\",\"payload\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"timeframe\":\"1m\",\"from_ms\":1700000000000,\"to_ms\":1700000060000,\"provider_id\":\"sim\"}}\n"
+  },
+  {
+    "name": "market.getBars output",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"ok\":true,\"result\":{\"dataset\":{\"id\":\"00000000-0000-4000-8000-000000000003\",\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"sim\",\"mode\":\"simulated\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"timezone\":\"Asia/Shanghai\",\"calendar_id\":\"synthetic-calendar\",\"quantity_unit\":\"contracts\",\"revision\":\"sample-v1\",\"quality\":\"fresh\",\"provenance\":{\"synthetic\":true}},\"bars\":[{\"time_ms\":1700000000000,\"trading_day\":\"2023-11-15\",\"open\":10.0,\"high\":12.0,\"low\":9.0,\"close\":11.0,\"volume\":null,\"is_closed\":true}]},\"error\":null}\n"
+  },
+  {
+    "name": "workspace.openInstrument input",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"workspace.openInstrument\",\"payload\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"timeframe\":\"1m\",\"expected_workspace_revision\":3}}\n"
+  },
+  {
+    "name": "workspace.openInstrument output",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"ok\":true,\"result\":{\"id\":\"workspace-1\",\"revision\":3,\"instrument_id\":\"SIM.CN.FUTURE.001\",\"timeframe\":\"1m\",\"style\":\"candlestick\",\"dataset\":{\"id\":\"00000000-0000-4000-8000-000000000003\",\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"sim\",\"mode\":\"simulated\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"timezone\":\"Asia/Shanghai\",\"calendar_id\":\"synthetic-calendar\",\"quantity_unit\":\"contracts\",\"revision\":\"sample-v1\",\"quality\":\"fresh\",\"provenance\":{\"synthetic\":true}},\"visible_range\":null,\"layers\":[]},\"error\":null}\n"
+  },
+  {
+    "name": "chart.setTimeframe input",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"chart.setTimeframe\",\"payload\":{\"timeframe\":\"5m\",\"expected_workspace_revision\":3}}\n"
+  },
+  {
+    "name": "chart.setTimeframe output",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"ok\":true,\"result\":{\"id\":\"workspace-1\",\"revision\":3,\"instrument_id\":\"SIM.CN.FUTURE.001\",\"timeframe\":\"1m\",\"style\":\"candlestick\",\"dataset\":{\"id\":\"00000000-0000-4000-8000-000000000003\",\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"sim\",\"mode\":\"simulated\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"timezone\":\"Asia/Shanghai\",\"calendar_id\":\"synthetic-calendar\",\"quantity_unit\":\"contracts\",\"revision\":\"sample-v1\",\"quality\":\"fresh\",\"provenance\":{\"synthetic\":true}},\"visible_range\":null,\"layers\":[]},\"error\":null}\n"
+  },
+  {
+    "name": "chart.setStyle input",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"chart.setStyle\",\"payload\":{\"style\":\"line\",\"expected_workspace_revision\":3}}\n"
+  },
+  {
+    "name": "chart.setStyle output",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"ok\":true,\"result\":{\"id\":\"workspace-1\",\"revision\":3,\"instrument_id\":\"SIM.CN.FUTURE.001\",\"timeframe\":\"1m\",\"style\":\"candlestick\",\"dataset\":{\"id\":\"00000000-0000-4000-8000-000000000003\",\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"sim\",\"mode\":\"simulated\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"timezone\":\"Asia/Shanghai\",\"calendar_id\":\"synthetic-calendar\",\"quantity_unit\":\"contracts\",\"revision\":\"sample-v1\",\"quality\":\"fresh\",\"provenance\":{\"synthetic\":true}},\"visible_range\":null,\"layers\":[]},\"error\":null}\n"
+  },
+  {
+    "name": "chart.addAnnotation input",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"chart.addAnnotation\",\"payload\":{\"annotation\":{\"time_ms\":1700000000000,\"position\":\"above\",\"label\":\"Synthetic annotation\",\"color\":\"#ffffff\"},\"expected_workspace_revision\":3}}\n"
+  },
+  {
+    "name": "chart.addAnnotation output",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"ok\":true,\"result\":{\"layer_id\":\"layer-1\"},\"error\":null}\n"
+  },
+  {
+    "name": "chart.removeLayer input",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"chart.removeLayer\",\"payload\":{\"layer_id\":\"layer-1\",\"expected_workspace_revision\":3}}\n"
+  },
+  {
+    "name": "chart.removeLayer output",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"ok\":true,\"result\":{\"operation_id\":\"operation-1\"},\"error\":null}\n"
+  },
+  {
+    "name": "indicator.createDraft input",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"indicator.createDraft\",\"payload\":{\"language\":\"declarative\",\"source\":{\"op\":\"rolling_mean\",\"value\":{\"op\":\"field\",\"field\":\"close\"},\"window\":5},\"params\":{},\"expected_workspace_revision\":3}}\n"
+  },
+  {
+    "name": "indicator.createDraft output",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"ok\":true,\"result\":{\"draft_id\":\"draft-1\",\"code_hash\":\"0000000000000000000000000000000000000000000000000000000000000000\"},\"error\":null}\n"
+  },
+  {
+    "name": "indicator.runPreview input",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"indicator.runPreview\",\"payload\":{\"draft_id\":\"draft-1\",\"dataset_id\":\"00000000-0000-4000-8000-000000000003\",\"dataset_revision\":\"sample-v1\",\"params\":{},\"expected_workspace_revision\":3}}\n"
+  },
+  {
+    "name": "indicator.runPreview output",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"ok\":true,\"result\":{\"task_id\":\"00000000-0000-4000-8000-000000000002\"},\"error\":null}\n"
+  },
+  {
+    "name": "indicator.acceptVersion input",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"indicator.acceptVersion\",\"payload\":{\"preview_id\":\"preview-1\",\"expected_workspace_revision\":3}}\n"
+  },
+  {
+    "name": "indicator.acceptVersion output",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"ok\":true,\"result\":{\"version_id\":\"version-1\",\"layer_id\":\"layer-1\"},\"error\":null}\n"
+  },
+  {
+    "name": "indicator.remove input",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"indicator.remove\",\"payload\":{\"layer_id\":\"layer-1\",\"expected_workspace_revision\":3}}\n"
+  },
+  {
+    "name": "indicator.remove output",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"ok\":true,\"result\":{\"operation_id\":\"operation-1\"},\"error\":null}\n"
+  },
+  {
+    "name": "workspace.undo input",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"workspace.undo\",\"payload\":{\"operation_id\":\"operation-1\",\"expected_workspace_revision\":3}}\n"
+  },
+  {
+    "name": "workspace.undo output",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"ok\":true,\"result\":{\"id\":\"workspace-1\",\"revision\":3,\"instrument_id\":\"SIM.CN.FUTURE.001\",\"timeframe\":\"1m\",\"style\":\"candlestick\",\"dataset\":{\"id\":\"00000000-0000-4000-8000-000000000003\",\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"sim\",\"mode\":\"simulated\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"timezone\":\"Asia/Shanghai\",\"calendar_id\":\"synthetic-calendar\",\"quantity_unit\":\"contracts\",\"revision\":\"sample-v1\",\"quality\":\"fresh\",\"provenance\":{\"synthetic\":true}},\"visible_range\":null,\"layers\":[]},\"error\":null}\n"
+  },
+  {
+    "name": "task.cancel input",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"task.cancel\",\"payload\":{\"task_id\":\"00000000-0000-4000-8000-000000000002\"}}\n"
+  },
+  {
+    "name": "task.cancel output",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"ok\":true,\"result\":{\"task_id\":\"00000000-0000-4000-8000-000000000002\",\"status\":\"cancelled\"},\"error\":null}\n"
+  },
+  {
+    "name": "workspace.getContext input",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"workspace.getContext\",\"payload\":{\"workspace_id\":\"workspace-1\"}}\n"
+  },
+  {
+    "name": "workspace.getContext output",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"ok\":true,\"result\":{\"workspace\":{\"id\":\"workspace-1\",\"revision\":3,\"instrument_id\":\"SIM.CN.FUTURE.001\",\"timeframe\":\"1m\",\"style\":\"candlestick\",\"dataset\":{\"id\":\"00000000-0000-4000-8000-000000000003\",\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"sim\",\"mode\":\"simulated\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"timezone\":\"Asia/Shanghai\",\"calendar_id\":\"synthetic-calendar\",\"quantity_unit\":\"contracts\",\"revision\":\"sample-v1\",\"quality\":\"fresh\",\"provenance\":{\"synthetic\":true}},\"visible_range\":null,\"layers\":[]},\"authorized_operations\":[\"instrument.search\"],\"bars\":[{\"time_ms\":1700000000000,\"trading_day\":\"2023-11-15\",\"open\":10.0,\"high\":12.0,\"low\":9.0,\"close\":11.0,\"volume\":null,\"is_closed\":true}]},\"error\":null}\n"
+  },
+  {
+    "name": "python is source data only",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"indicator.createDraft\",\"payload\":{\"language\":\"python\",\"source\":\"def compute(bars, params):\\n    return {}\",\"params\":{},\"expected_workspace_revision\":3}}\n"
+  },
+  {
+    "name": "AI tool request carries intent without authority",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"event\",\"stream_id\":\"task-1\",\"sequence\":0,\"event\":\"ai.tool_request\",\"payload\":{\"operation\":\"chart.setStyle\",\"arguments\":{\"style\":\"line\",\"expected_workspace_revision\":3}}}\n"
+  },
+  {
+    "name": "negative event sequence",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"event\",\"stream_id\":\"task-1\",\"sequence\":-1,\"event\":\"ai.tool_request\",\"payload\":{\"operation\":\"chart.setStyle\",\"arguments\":{\"style\":\"line\",\"expected_workspace_revision\":3}}}\n"
+  },
+  {
+    "name": "unknown event name",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"event\",\"stream_id\":\"task-1\",\"sequence\":0,\"event\":\"ai.execute\",\"payload\":{\"operation\":\"chart.setStyle\",\"arguments\":{\"style\":\"line\",\"expected_workspace_revision\":3}}}\n"
+  },
+  {
+    "name": "unknown operation",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"order.place\",\"payload\":{}}\n"
+  },
+  {
+    "name": "revision required on workspace mutations",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"chart.setStyle\",\"payload\":{\"style\":\"line\"}}\n"
+  },
+  {
+    "name": "revision must be an integer",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"chart.setStyle\",\"payload\":{\"style\":\"line\",\"expected_workspace_revision\":\"3\"}}\n"
+  },
+  {
+    "name": "negative revision",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"chart.setStyle\",\"payload\":{\"style\":\"line\",\"expected_workspace_revision\":-1}}\n"
+  },
+  {
+    "name": "AI cannot pass an approval flag",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"chart.setStyle\",\"payload\":{\"style\":\"line\",\"expected_workspace_revision\":3,\"approved\":true}}\n"
+  },
+  {
+    "name": "search limit capped",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"instrument.search\",\"payload\":{\"query\":\"SIM\",\"limit\":51}}\n"
+  },
+  {
+    "name": "search limit positive",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"instrument.search\",\"payload\":{\"query\":\"SIM\",\"limit\":0}}\n"
+  },
+  {
+    "name": "dataset revision stays opaque",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"indicator.runPreview\",\"payload\":{\"draft_id\":\"draft-1\",\"dataset_id\":\"00000000-0000-4000-8000-000000000003\",\"dataset_revision\":1,\"params\":{},\"expected_workspace_revision\":3}}\n"
+  },
+  {
+    "name": "AST excludes arbitrary calls",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"indicator.createDraft\",\"payload\":{\"language\":\"declarative\",\"source\":{\"op\":\"eval\",\"value\":\"1+1\"},\"params\":{},\"expected_workspace_revision\":3}}\n"
+  },
+  {
+    "name": "AST forbids future lag",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"indicator.createDraft\",\"payload\":{\"language\":\"declarative\",\"source\":{\"op\":\"lag\",\"value\":{\"op\":\"field\",\"field\":\"close\"},\"periods\":-1},\"params\":{},\"expected_workspace_revision\":3}}\n"
+  },
+  {
+    "name": "declarative source cannot be code",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"indicator.createDraft\",\"payload\":{\"language\":\"declarative\",\"source\":\"def compute(bars, params):\\n    return {}\",\"params\":{},\"expected_workspace_revision\":3}}\n"
+  },
+  {
+    "name": "annotation cannot emit HTML",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"chart.addAnnotation\",\"payload\":{\"annotation\":{\"html\":\"<script>bad()</script>\"},\"expected_workspace_revision\":3}}\n"
+  },
+  {
+    "name": "structured failure",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"ok\":false,\"result\":null,\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"Operation denied.\",\"retryable\":false,\"details\":{}}}\n"
+  },
+  {
+    "name": "failure requires an error",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"ok\":false,\"result\":null,\"error\":null}\n"
+  },
+  {
+    "name": "success cannot carry an error",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"ok\":true,\"result\":{\"instruments\":[{\"id\":\"SIM.CN.FUTURE.001\",\"display_symbol\":\"SYNTH\",\"name\":\"Synthetic fixture\",\"asset_class\":\"future-asset-class\",\"venue\":\"SIM\",\"currency\":\"CNY\",\"calendar_id\":\"synthetic-calendar\",\"timezone\":\"Asia/Shanghai\",\"price_tick\":\"0.01\",\"quantity_unit\":\"contracts\",\"tradability\":\"non_tradable\",\"metadata\":{\"synthetic\":true},\"provider_mappings\":[{\"provider_id\":\"sim\",\"provider_symbol\":\"LOCAL-1\"}]}]},\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"Operation denied.\",\"retryable\":false,\"details\":{}}}\n"
+  },
+  {
+    "name": "unknown error code",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"ok\":false,\"result\":null,\"error\":{\"code\":\"GUESS\",\"message\":\"Operation denied.\",\"retryable\":false,\"details\":{}}}\n"
+  },
+  {
+    "name": "v1 has no tradable instruments",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"ok\":true,\"result\":{\"instruments\":[{\"id\":\"SIM.CN.FUTURE.001\",\"display_symbol\":\"SYNTH\",\"name\":\"Synthetic fixture\",\"asset_class\":\"future-asset-class\",\"venue\":\"SIM\",\"currency\":\"CNY\",\"calendar_id\":\"synthetic-calendar\",\"timezone\":\"Asia/Shanghai\",\"price_tick\":\"0.01\",\"quantity_unit\":\"contracts\",\"tradability\":\"tradable\",\"metadata\":{\"synthetic\":true},\"provider_mappings\":[{\"provider_id\":\"sim\",\"provider_symbol\":\"LOCAL-1\"}]}]},\"error\":null}\n"
+  },
+  {
+    "name": "unknown volume is null",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"ok\":true,\"result\":{\"dataset\":{\"id\":\"00000000-0000-4000-8000-000000000003\",\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"sim\",\"mode\":\"simulated\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"timezone\":\"Asia/Shanghai\",\"calendar_id\":\"synthetic-calendar\",\"quantity_unit\":\"contracts\",\"revision\":\"sample-v1\",\"quality\":\"fresh\",\"provenance\":{\"synthetic\":true}},\"bars\":[{\"time_ms\":1700000000000,\"trading_day\":\"2023-11-15\",\"open\":10.0,\"high\":12.0,\"low\":9.0,\"close\":11.0,\"volume\":null,\"is_closed\":true}]},\"error\":null}\n"
+  },
+  {
+    "name": "invalid trading date",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"ok\":true,\"result\":{\"dataset\":{\"id\":\"00000000-0000-4000-8000-000000000003\",\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"sim\",\"mode\":\"simulated\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"timezone\":\"Asia/Shanghai\",\"calendar_id\":\"synthetic-calendar\",\"quantity_unit\":\"contracts\",\"revision\":\"sample-v1\",\"quality\":\"fresh\",\"provenance\":{\"synthetic\":true}},\"bars\":[{\"time_ms\":1700000000000,\"trading_day\":\"2023-02-31\",\"open\":10.0,\"high\":12.0,\"low\":9.0,\"close\":11.0,\"volume\":null,\"is_closed\":true}]},\"error\":null}\n"
+  },
+  {
+    "name": "non-finite numeric value",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"ok\":true,\"result\":{\"dataset\":{\"id\":\"00000000-0000-4000-8000-000000000003\",\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"sim\",\"mode\":\"simulated\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"timezone\":\"Asia/Shanghai\",\"calendar_id\":\"synthetic-calendar\",\"quantity_unit\":\"contracts\",\"revision\":\"sample-v1\",\"quality\":\"fresh\",\"provenance\":{\"synthetic\":true}},\"bars\":[{\"time_ms\":1700000000000,\"trading_day\":\"2023-11-15\",\"open\":10.0,\"high\":12.0,\"low\":9.0,\"close\":Infinity,\"volume\":null,\"is_closed\":true}]},\"error\":null}\n"
+  },
+  {
+    "name": "non-finite value nested in explicit metadata",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"ok\":true,\"result\":{\"instruments\":[{\"id\":\"SIM.CN.FUTURE.001\",\"display_symbol\":\"SYNTH\",\"name\":\"Synthetic fixture\",\"asset_class\":\"future-asset-class\",\"venue\":\"SIM\",\"currency\":\"CNY\",\"calendar_id\":\"synthetic-calendar\",\"timezone\":\"Asia/Shanghai\",\"price_tick\":\"0.01\",\"quantity_unit\":\"contracts\",\"tradability\":\"non_tradable\",\"metadata\":{\"nested\":[NaN]},\"provider_mappings\":[{\"provider_id\":\"sim\",\"provider_symbol\":\"LOCAL-1\"}]}]},\"error\":null}\n"
+  },
+  {
+    "name": "multiple frames are not one message",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"hello\",\"role\":\"market\",\"worker_version\":\"0.1.0\",\"supported_protocols\":[\"1.0\"],\"capabilities\":[]}\n{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"hello\",\"role\":\"market\",\"worker_version\":\"0.1.0\",\"supported_protocols\":[\"1.0\"],\"capabilities\":[]}\n"
+  },
+  {
+    "name": "pretty JSON is not NDJSON",
+    "valid": false,
+    "wire": "{\n  \"protocol_version\": \"1.0\",\n  \"message_id\": \"00000000-0000-4000-8000-000000000001\",\n  \"timestamp_ms\": 1700000000000,\n  \"type\": \"hello\",\n  \"role\": \"market\",\n  \"worker_version\": \"0.1.0\",\n  \"supported_protocols\": [\n    \"1.0\"\n  ],\n  \"capabilities\": []\n}\n"
+  },
+  {
+    "name": "CRLF framing",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"hello\",\"role\":\"market\",\"worker_version\":\"0.1.0\",\"supported_protocols\":[\"1.0\"],\"capabilities\":[]}\r\n"
+  },
+  {
+    "name": "unterminated decoder input is allowed for in-memory validation",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"hello\",\"role\":\"market\",\"worker_version\":\"0.1.0\",\"supported_protocols\":[\"1.0\"],\"capabilities\":[]}"
+  },
+  {
+    "name": "number overflow",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1e999,\"type\":\"hello\",\"role\":\"market\",\"worker_version\":\"0.1.0\",\"supported_protocols\":[\"1.0\"],\"capabilities\":[]}\n"
+  },
+  {
+    "name": "JSON object required",
+    "valid": false,
+    "wire": "[]\n"
+  }
+]

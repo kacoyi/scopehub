@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "id": "0002",
+  "title": "Declarative indicators by default and explicit trust for Python",
+  "status": "accepted",
+  "recorded_at": "2026-10-13",
+  "context": "AI-authored indicators need inspectable behavior and bounded execution without claiming a child process is a secure sandbox.",
+  "decision": "Use validated declarative indicators by default; trusted Python execution remains an explicitly authorized capability.",
+  "authority": "The owner's engineering contract.",
+  "alternatives": [],
+  "consequences": [
+    "Indicator previews require validation, resource limits and isolation from accepted state.",
+    "Every trusted Python execution needs the existing operation-specific confirmation."
+  ],
+  "supersedes": [],
+  "history_note": "Common record metadata was added when repository continuity was established. The existing trust boundary is preserved.",
+  "basis": "engineering-contract-v1.json",
+  "default": "declarative AST, validated structured output, no eval or exec",
+  "python": "Disabled by default. Every trusted-code execution needs user authorization bound to code, inputs and revision.",
+  "isolation_claim": "A child process and resource limits are not a secure sandbox.",
+  "m0": "Protocol runtime only. No indicator source execution or SDK credentials.",
+  "revisit_when": "Reliable OS isolation has been implemented and independently validated."
+}

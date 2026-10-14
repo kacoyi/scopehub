@@ -1,0 +1,219 @@
+{
+  "contract_id": "market-ai-workbench.v1",
+  "protocol_version": "1.0",
+  "schema": "contracts/schemas/protocol.schema.json",
+  "operations": [
+    {
+      "name": "instrument.search",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "input": "InstrumentSearchInput",
+      "output": "InstrumentSearchOutput",
+      "implementation": "planned"
+    },
+    {
+      "name": "market.getBars",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "input": "MarketGetBarsInput",
+      "output": "MarketGetBarsOutput",
+      "implementation": "planned"
+    },
+    {
+      "name": "workspace.openInstrument",
+      "effect": "workspace",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "input": "WorkspaceOpenInstrumentInput",
+      "output": "WorkspaceOpenInstrumentOutput",
+      "implementation": "planned"
+    },
+    {
+      "name": "chart.setTimeframe",
+      "effect": "workspace",
+      "confirmation": false,
+      "undoable": true,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "input": "ChartSetTimeframeInput",
+      "output": "ChartSetTimeframeOutput",
+      "implementation": "planned"
+    },
+    {
+      "name": "chart.setStyle",
+      "effect": "workspace",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "input": "ChartSetStyleInput",
+      "output": "ChartSetStyleOutput",
+      "implementation": "planned"
+    },
+    {
+      "name": "chart.addAnnotation",
+      "effect": "workspace",
+      "confirmation": false,
+      "undoable": true,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "input": "ChartAddAnnotationInput",
+      "output": "ChartAddAnnotationOutput",
+      "implementation": "planned"
+    },
+    {
+      "name": "chart.removeLayer",
+      "effect": "workspace",
+      "confirmation": false,
+      "undoable": true,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "input": "ChartRemoveLayerInput",
+      "output": "ChartRemoveLayerOutput",
+      "implementation": "planned"
+    },
+    {
+      "name": "indicator.createDraft",
+      "effect": "draft",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "input": "IndicatorCreateDraftInput",
+      "output": "IndicatorCreateDraftOutput",
+      "implementation": "planned"
+    },
+    {
+      "name": "indicator.runPreview",
+      "effect": "compute",
+      "confirmation": "python_only",
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "input": "IndicatorRunPreviewInput",
+      "output": "IndicatorRunPreviewOutput",
+      "implementation": "planned"
+    },
+    {
+      "name": "indicator.acceptVersion",
+      "effect": "persist",
+      "confirmation": true,
+      "undoable": true,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "input": "IndicatorAcceptVersionInput",
+      "output": "IndicatorAcceptVersionOutput",
+      "implementation": "planned"
+    },
+    {
+      "name": "indicator.remove",
+      "effect": "workspace",
+      "confirmation": false,
+      "undoable": true,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "input": "IndicatorRemoveInput",
+      "output": "IndicatorRemoveOutput",
+      "implementation": "planned"
+    },
+    {
+      "name": "workspace.undo",
+      "effect": "workspace",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "input": "WorkspaceUndoInput",
+      "output": "WorkspaceUndoOutput",
+      "implementation": "planned"
+    },
+    {
+      "name": "task.cancel",
+      "effect": "control",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "input": "TaskCancelInput",
+      "output": "TaskCancelOutput",
+      "implementation": "planned"
+    },
+    {
+      "name": "workspace.getContext",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "input": "WorkspaceGetContextInput",
+      "output": "WorkspaceGetContextOutput",
+      "implementation": "planned"
+    }
+  ],
+  "implemented_wire_behaviors": [
+    "worker hello",
+    "heartbeat response",
+    "unsupported request error",
+    "cancel terminal response"
+  ],
+  "clarifications": [
+    "Workspace revisions are non-negative safe integers; dataset revisions are opaque provider-owned strings.",
+    "Operation outputs are objects. instrument.search wraps its array in instruments.",
+    "Worker hello is unsolicited; the host validates the exact negotiated protocol and expected role before sending work.",
+    "Cancel references request_id; heartbeat has only common envelope fields.",
+    "Schema definitions are canonical. Small per-operation schemas and all language types are generated from them.",
+    "Metadata, params, provenance and error details are explicit data bags; they never confer authority.",
+    "Schema validation is structural. Cross-field market invariants, AST budgets, role authorization and response correlation require application validation.",
+    "Specifying a payload does not expose or implement that operation. Unsupported operations fail closed."
+  ],
+  "entrypoint": "pnpm check",
+  "report": ".reports/test-report.json",
+  "external_services": [],
+  "real_market_data_configured": false,
+  "cloud_models_configured": false,
+  "first_product_scenario": "View the current chart, ask AI for analysis and an indicator, preview it, then explicitly accept an immutable version.",
+  "milestone_order": [
+    "M0",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5"
+  ]
+}
