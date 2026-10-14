@@ -126,7 +126,7 @@
       "source": "https://github.com/kacoyi/scopehub/actions/runs/38513138285",
       "observation": "The first native run found locale-dependent history decoding, an incorrect relative frontend hook, and source changes during Tauri manifest normalization; local Linux checks did not cover those integration paths.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-003"
       ],
@@ -134,7 +134,11 @@
         "python-contracts-workers",
         "windows-native-build"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Git history JSON used locale-dependent subprocess text decoding; Tauri discovered the nested UI package and normalized a shorthand build dependency during startup.",
+        "correction": "Parse Git JSON from UTF-8 bytes, execute frontend hooks within the discovered UI package, and declare the normalized build dependency explicitly. Retain end-of-run source identity and changed paths for future build-write diagnostics.",
+        "prevention": "A regression simulates legacy Windows text decoding, and actual Windows CI passes all 76 Python tests and the desktop release build with unchanged source inputs."
+      },
       "deferral_reason": null
     }
   ]

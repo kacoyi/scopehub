@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-003",
+  "focus_task_id": "M1-002",
   "tasks": [
     {
       "id": "M0-001",
@@ -92,7 +92,7 @@
       "id": "M0-003",
       "title": "Validate the foundation on native Windows x64",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-001",
         "M0-002"
@@ -134,8 +134,13 @@
         "rust-lints",
         "windows-native-build"
       ],
-      "evidence": [],
-      "next_action": "Repair UTF-8 history decoding, Tauri frontend hooks and manifest normalization found in CI run 38513138285; recheck both hosted targets and import the native report.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-003-d102fcb3efd6d5b4.json",
+          "sha256": "c05ae902cf39a2a7772abae44e32b5e74eafe2894c2ab0ad7be580bfb44b26a1"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {

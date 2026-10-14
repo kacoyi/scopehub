@@ -1,0 +1,116 @@
+{
+  "recorded_at": "2026-10-14",
+  "kind": "first_hosted_native_foundation_acceptance",
+  "pull_request": "https://github.com/kacoyi/scopehub/pull/1",
+  "branch": "codex/continuous-delivery",
+  "task_id": "M0-003",
+  "task_evidence": {
+    "path": "project/evidence/M0-003-d102fcb3efd6d5b4.json",
+    "sha256": "c05ae902cf39a2a7772abae44e32b5e74eafe2894c2ab0ad7be580bfb44b26a1"
+  },
+  "failed_run": {
+    "url": "https://github.com/kacoyi/scopehub/actions/runs/38513138285",
+    "feedback": "native-foundation-integration"
+  },
+  "successful_run": {
+    "url": "https://github.com/kacoyi/scopehub/actions/runs/38513779065",
+    "head_sha": "914c755b70267a443c69c364750a21a8f64bc8ba",
+    "checkout_sha": "ec4904fa434579311b80063f8e94f04b62c94bbf",
+    "attempt": "1"
+  },
+  "verification": {
+    "linux": {
+      "system": "Linux",
+      "machine": "x86_64",
+      "report_sha256": "0bc4321e3bc4474f189db6ea8880951f88ab7971a930d3cb5c64874d1e0db9e1",
+      "source_sha256": "8718f51e60e9d8b9f8365c550d1c5aeeb46c20fe2a1826a69898786efc8c1547",
+      "source_unchanged": true,
+      "project_unchanged": true,
+      "passed_checks": [
+        "environment",
+        "project-state",
+        "generated-contracts",
+        "architecture",
+        "python-types",
+        "python-contracts-workers",
+        "typescript-contracts",
+        "ui-build",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints"
+      ],
+      "check_duration_seconds": 14.894
+    },
+    "windows": {
+      "system": "Windows",
+      "machine": "AMD64",
+      "report_sha256": "d102fcb3efd6d5b4b50c6b21b9af87122d5aca3fbe5e6455d9063b810990e598",
+      "source_sha256": "8718f51e60e9d8b9f8365c550d1c5aeeb46c20fe2a1826a69898786efc8c1547",
+      "source_unchanged": true,
+      "project_unchanged": true,
+      "passed_checks": [
+        "environment",
+        "project-state",
+        "generated-contracts",
+        "architecture",
+        "python-types",
+        "python-contracts-workers",
+        "typescript-contracts",
+        "ui-build",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "windows-native-build"
+      ],
+      "check_duration_seconds": 387.094
+    }
+  },
+  "native_build": {
+    "status": "passed",
+    "profile": "release",
+    "bundle": false,
+    "duration_seconds": 275.328,
+    "output": "target/release/scopehub-desktop.exe",
+    "artifact_scope": "Reports and logs are retained in CI; no installer or product release was published."
+  },
+  "claim_scope": "The M0 foundation checks and native Windows x64 compilation passed. This does not establish installed-application usability, packaging, market workflows, real providers, cloud models or release acceptance.",
+  "follow_up": [
+    {
+      "topic": "main protection",
+      "status": "not_configured",
+      "observed_required_contexts": [
+        "verify (ubuntu-latest)",
+        "verify (windows-latest)"
+      ],
+      "next_action": "Configure protection when repository administration is authorized; source-branch push permission does not imply merging or publishing a release."
+    },
+    {
+      "topic": "runner maintenance",
+      "status": "observed_nonblocking_warnings",
+      "observations": [
+        "GitHub forced actions targeting Node.js 20 to Node.js 24; both jobs passed.",
+        "GitHub announced an ubuntu-latest image migration beginning 2026-10-19."
+      ],
+      "next_action": "Review action runtime upgrades and runner-image pinning in the next CI maintenance change; preserve target-specific validation."
+    },
+    {
+      "topic": "product delivery",
+      "task_id": "M1-002",
+      "next_action": "Establish deterministic market fixtures before implementing chart integration."
+    }
+  ],
+  "primary_references": [
+    {
+      "url": "https://v2.tauri.app/reference/config/#buildconfig",
+      "use": "Frontend build and development hook configuration."
+    },
+    {
+      "url": "https://github.com/tauri-apps/tauri/blob/tauri-cli-v2.12.2/crates/tauri-cli/src/helpers/app_paths.rs",
+      "use": "Frontend discovery locates the nested UI package."
+    },
+    {
+      "url": "https://github.com/tauri-apps/tauri/blob/tauri-cli-v2.12.2/crates/tauri-cli/src/interface/rust/manifest.rs",
+      "use": "The CLI normalizes dependency feature declarations before building."
+    }
+  ]
+}
