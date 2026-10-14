@@ -208,7 +208,7 @@
       "source": "contracts/reviews/2026-10-14-long-term-health.json",
       "observation": "rust_boundaries rejects a rusqlite dependency in crates/domain but returns no errors for the same scopehub-domain package at crates/nested/domain.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-009"
       ],
@@ -216,7 +216,11 @@
         "architecture",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Directory globbing missed valid nested or implicit Cargo members.",
+        "correction": "Use locked Cargo metadata to discover every workspace member and normalize actual dependency identities before applying architecture rules.",
+        "prevention": "Regression workspaces exercise nested, globbed, implicit and aliased dependencies, invalid metadata and unregistered layers."
+      },
       "deferral_reason": null
     },
     {
@@ -224,7 +228,7 @@
       "source": "contracts/reviews/2026-10-14-long-term-health.json",
       "observation": "Cargo default-members includes only domain and worker-host. Both hosted test and Clippy commands use defaults; desktop:build compiles the Windows application without executing its tests.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-009"
       ],
@@ -233,7 +237,11 @@
         "rust-lints",
         "windows-native-build"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Cargo default-members excluded desktop and could omit future crates.",
+        "correction": "Run explicit --workspace tests and all-target Clippy, with reviewed package platform metadata for exclusions. Native reports include the desktop test target and lint compilation.",
+        "prevention": "An actual newly added nondefault crate with a failing test makes workspace verification fail. Native Windows run 38525575017 and archived M0-009 evidence verify the final command routing."
+      },
       "deferral_reason": null
     },
     {
@@ -241,7 +249,7 @@
       "source": "contracts/reviews/2026-10-14-long-term-health.json",
       "observation": "An isolated Linux probe shows run_logged returns exit_code=0 and reason=null while a spawned child remains alive and writes a marker afterward. Timeout cleanup does not cover normal root exit.",
       "severity": "minor",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-010"
       ],
@@ -249,7 +257,11 @@
         "python-contracts-workers",
         "windows-native-build"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Cleanup covered timeout but not normal or nonzero root exits, and Windows parent-PID traversal could lose descendants.",
+        "correction": "Always stop the owned POSIX process group or gated Windows Job Object, await cleanup and then digest the final log; cleanup failure cannot pass.",
+        "prevention": "Actual bounded descendants are tested after root success, error, timeout and interruption on Linux and Windows; M0-010 archives run 38525575017. This is trusted check process ownership, not a hostile-code sandbox."
+      },
       "deferral_reason": null
     },
     {
@@ -297,7 +309,7 @@
       "source": "contracts/reviews/2026-10-14-long-term-health.json",
       "observation": "Dependency review remains planned and release-cadence; external Actions use mutable tags or stable. Locks support reproducible package resolution but do not establish advisory, notice or workflow-source review.",
       "severity": "minor",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M5-002"
       ],
@@ -305,7 +317,11 @@
         "dependency-review",
         "architecture"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Locked resolution had no executable advisory or notice review and external workflow sources used mutable refs.",
+        "correction": "Implement change-cadence review of 544 locked packages and seven immutable Action commits, retain upstream license inventory and metadata clarifications, remove the unnecessary GPL-only format extra, and document exact expiring advisory dispositions with executable build-scope guards.",
+        "prevention": "Regression tests reject stale or incomplete inventory, missing notices, unreviewed pins, malformed/unavailable/partial/paginated scans, unsupported lock sources, offline acceptance and expired or invalidated dispositions. Native run 38525575017 passes all 13 implemented gates. Bounded update policy, due-date visibility and supported Dependabot ecosystems are recorded; release notices remain a distinct planned gate."
+      },
       "deferral_reason": null
     },
     {

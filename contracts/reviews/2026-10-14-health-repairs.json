@@ -1,0 +1,273 @@
+{
+  "review_date": "2026-10-14",
+  "kind": "scaffold_health_repairs",
+  "assessment": "contracts/reviews/2026-10-14-long-term-health.json",
+  "authority": "Owner request to repair all assessed findings, including server-side main integration enforcement.",
+  "verified_commit": "c0868910fd4f6afeb60633515eb148362de16cb0",
+  "execution_input_sha256": "a7a3f4fe42341358332957a9eefae69814607f4859b33be9bc3f3e946c3963e6",
+  "findings": [
+    {
+      "id": "H01",
+      "title": "Generated Rust unions do not preserve operation identity",
+      "status": "addressed",
+      "task_id": "M0-007",
+      "feedback_id": "protocol-variant-identity",
+      "resolution": {
+        "cause": "Generated Rust literals were unconstrained strings and typed integer decoding did not implement schema-valid integral floating-point encodings. The Python decoder returned floats behind integer annotations.",
+        "correction": "Generate literal discriminator types and normalize validated safe integral numbers before Rust/Python typed decoding without changing the wire schema.",
+        "prevention": "Shared vectors assert all 14 human and AI operation identities and numeric values/types including safe boundaries. Failed reproduction: .reports/runs/20261014T060811.082497Z-ba6344d3/test-report.json; passing evidence is archived with M0-007. Serde behavior reference: https://serde.rs/enum-representations.html."
+      },
+      "evidence": [
+        {
+          "path": "project/evidence/M0-007-b6ced79df46d1087.json",
+          "sha256": "344d1381599b031968044e3c2b3aa02cc8708d3021807c1e39006f8dad47c0f6"
+        }
+      ]
+    },
+    {
+      "id": "H02",
+      "title": "Integer wire encodings disagree across languages",
+      "status": "addressed",
+      "task_id": "M0-007",
+      "feedback_id": "protocol-numeric-parity",
+      "resolution": {
+        "cause": "Generated Rust literals were unconstrained strings and typed integer decoding did not implement schema-valid integral floating-point encodings. The Python decoder returned floats behind integer annotations.",
+        "correction": "Generate literal discriminator types and normalize validated safe integral numbers before Rust/Python typed decoding without changing the wire schema.",
+        "prevention": "Shared vectors assert all 14 human and AI operation identities and numeric values/types including safe boundaries. Failed reproduction: .reports/runs/20261014T060811.082497Z-ba6344d3/test-report.json; passing evidence is archived with M0-007. Serde behavior reference: https://serde.rs/enum-representations.html."
+      },
+      "evidence": [
+        {
+          "path": "project/evidence/M0-007-b6ced79df46d1087.json",
+          "sha256": "344d1381599b031968044e3c2b3aa02cc8708d3021807c1e39006f8dad47c0f6"
+        }
+      ]
+    },
+    {
+      "id": "H03",
+      "title": "Control tests depend on production task order",
+      "status": "addressed",
+      "task_id": "M0-008",
+      "feedback_id": "control-fixture-ledger-coupling",
+      "resolution": {
+        "cause": "Repository-control fixtures copied production records, reset historical states and edited tasks by list position.",
+        "correction": "Use a minimal independently constructed task, decision, scenario and check fixture with explicit task lookup and intentionally non-positional ordering.",
+        "prevention": "Existing lifecycle and provenance regressions pass against the synthetic records. New tests reorder and prepend unrelated tasks, assert fixture setup copies only the canonical schema, and validate the actual repository without rewriting its history."
+      },
+      "evidence": [
+        {
+          "path": "project/evidence/M0-008-895244d286ef105c.json",
+          "sha256": "ebde485de64f253fa0952d33f86373fc024c7b2f87a1eb902b031b676e172ad5"
+        }
+      ]
+    },
+    {
+      "id": "H04",
+      "title": "Architecture checks miss nested workspace members",
+      "status": "addressed",
+      "task_id": "M0-009",
+      "feedback_id": "architecture-member-discovery",
+      "resolution": {
+        "cause": "Directory globbing missed valid nested or implicit Cargo members.",
+        "correction": "Use locked Cargo metadata to discover every workspace member and normalize actual dependency identities before applying architecture rules.",
+        "prevention": "Regression workspaces exercise nested, globbed, implicit and aliased dependencies, invalid metadata and unregistered layers."
+      },
+      "evidence": [
+        {
+          "path": "project/evidence/M0-009-3cb0d2fe98a780df.json",
+          "sha256": "93567ff8695718706eb51799e69693fdb0776d2aa3d2cadf9e724449dea5be60"
+        }
+      ]
+    },
+    {
+      "id": "H05",
+      "title": "Desktop and future nondefault crates can escape Rust tests and lints",
+      "status": "addressed",
+      "task_id": "M0-009",
+      "feedback_id": "native-rust-check-coverage",
+      "resolution": {
+        "cause": "Cargo default-members excluded desktop and could omit future crates.",
+        "correction": "Run explicit --workspace tests and all-target Clippy, with reviewed package platform metadata for exclusions. Native reports include the desktop test target and lint compilation.",
+        "prevention": "An actual newly added nondefault crate with a failing test makes workspace verification fail. Native Windows run 38525575017 and archived M0-009 evidence verify the final command routing."
+      },
+      "evidence": [
+        {
+          "path": "project/evidence/M0-009-3cb0d2fe98a780df.json",
+          "sha256": "93567ff8695718706eb51799e69693fdb0776d2aa3d2cadf9e724449dea5be60"
+        }
+      ]
+    },
+    {
+      "id": "H06",
+      "title": "Successful check roots can leave descendants running",
+      "status": "addressed",
+      "task_id": "M0-010",
+      "feedback_id": "verification-descendant-normal-exit",
+      "resolution": {
+        "cause": "Cleanup covered timeout but not normal or nonzero root exits, and Windows parent-PID traversal could lose descendants.",
+        "correction": "Always stop the owned POSIX process group or gated Windows Job Object, await cleanup and then digest the final log; cleanup failure cannot pass.",
+        "prevention": "Actual bounded descendants are tested after root success, error, timeout and interruption on Linux and Windows; M0-010 archives run 38525575017. This is trusted check process ownership, not a hostile-code sandbox."
+      },
+      "evidence": [
+        {
+          "path": "project/evidence/M0-010-3cb0d2fe98a780df.json",
+          "sha256": "ee20a00e160dd831cb105299a4055ad08988aebd66934e34ae190182f79a98ad"
+        }
+      ]
+    },
+    {
+      "id": "H07",
+      "title": "An established check can be demoted while integration still succeeds",
+      "status": "addressed",
+      "task_id": "M0-011",
+      "feedback_id": "integration-gate-demotion",
+      "resolution": {
+        "cause": "Success was derived only from checks still marked implemented and selected.",
+        "correction": "Validate required change gates and actual result coverage; compare the catalog with review and previous checkpoint history and require task-bound replacement rationale.",
+        "prevention": "M0-011 archives passing regressions for demotion, deletion, cadence changes, selection omission, partial/native runs and preserved replacement history."
+      },
+      "evidence": [
+        {
+          "path": "project/evidence/M0-011-48f1cf6fc8f8e33b.json",
+          "sha256": "00da2065275c5b28127d358c9b023ce5e59bfce171d1481d423bafad25622598"
+        }
+      ]
+    },
+    {
+      "id": "H08",
+      "title": "Successful checks are not required by main-branch settings",
+      "status": "addressed",
+      "task_id": "M0-012",
+      "feedback_id": "main-integration-enforcement",
+      "resolution": {
+        "cause": "Main had no effective server-side pull-request or check requirements.",
+        "correction": "Applied project/branch-protection.json and independently read back enforced administrator, current-base, pull-request and trusted GitHub Actions check requirements; retained contracts/reviews/2026-10-14-main-protection.json.",
+        "prevention": "pnpm project:protection is a live read-only drift check required before integration and after workflow or protection changes; regressions reject missing checks, wrong App identity and bypass. Single-owner review and merge authorization remain separate."
+      },
+      "evidence": [
+        {
+          "path": "project/evidence/M0-012-afb3f7dff0818d5f.json",
+          "sha256": "a5c0f62e6ba4c380e8a9b6d1a0909d83720b81a58e3b3fc670eec7fa704569e1"
+        }
+      ]
+    },
+    {
+      "id": "H09",
+      "title": "Dependency maintenance is specified but not executable",
+      "status": "addressed",
+      "task_id": "M5-002",
+      "feedback_id": "dependency-maintenance-gap",
+      "resolution": {
+        "cause": "Locked resolution had no executable advisory or notice review and external workflow sources used mutable refs.",
+        "correction": "Implement change-cadence review of 544 locked packages and seven immutable Action commits, retain upstream license inventory and metadata clarifications, remove the unnecessary GPL-only format extra, and document exact expiring advisory dispositions with executable build-scope guards.",
+        "prevention": "Regression tests reject stale or incomplete inventory, missing notices, unreviewed pins, malformed/unavailable/partial/paginated scans, unsupported lock sources, offline acceptance and expired or invalidated dispositions. Native run 38525575017 passes all 13 implemented gates. Bounded update policy, due-date visibility and supported Dependabot ecosystems are recorded; release notices remain a distinct planned gate."
+      },
+      "evidence": [
+        {
+          "path": "project/evidence/M5-002-3cb0d2fe98a780df.json",
+          "sha256": "80cd0ae7ea510109b6f54489df5186bc9057f3b366102dc0b887d1fdb69b308e"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "workflow": "https://github.com/kacoyi/scopehub/actions/runs/38525575017",
+    "linux": {
+      "passed_checks": 12,
+      "unverified_platform_check": "windows-native-build",
+      "report_sha256": "0d577ffd3d732718d29aea576c06e124dbbef047dd0e00be153311227c5f08a3"
+    },
+    "windows": {
+      "passed_checks": 13,
+      "required_integration_gates": "passed",
+      "report_sha256": "3cb0d2fe98a780df6ec10987e6dc00b2157bac49d81aff86c422887e54120e0f"
+    },
+    "tests": {
+      "python_per_platform": 124,
+      "javascript_per_platform": 105,
+      "rust_behavior_tests_per_platform": 6,
+      "desktop_test_target": "Executed on Windows; the M0 empty application currently contains zero product-specific Rust tests."
+    },
+    "history": "Accepted tasks and all six accepted ADRs were compared against 39e5b237f002a7053a5c146e3aea1c4223586c80 and subsequent checkpoints without rewriting them."
+  },
+  "enforcement": "contracts/reviews/2026-10-14-main-protection.json",
+  "maintenance": {
+    "recovery": "pnpm project:recover --task <id> --save; standard-library bootstrap remains available with the repository Python -S.",
+    "loop": "Detect, preserve failure, create a bounded corrective plan, demonstrate the defect, repair or extend, verify affected/native gates, archive evidence and resume the interrupted task.",
+    "integrity": "Required gates cannot silently disappear or be demoted; historical replacement rationale and accepted task/ADR records are preserved.",
+    "dependencies": "project/dependencies.json",
+    "known_upstream_findings": [
+      {
+        "ecosystem": "crates.io",
+        "name": "glib",
+        "version": "0.18.5",
+        "advisories": [
+          "RUSTSEC-2024-0429",
+          "GHSA-wrw7-89jp-8q8g"
+        ],
+        "expires": "2027-01-12",
+        "task_id": "M5-002",
+        "scope_guard": "absent-from-supported-builds",
+        "reason": "Upstream reports unsound VariantStrIter behavior below 0.20.0; upgrading that GTK family independently is not compatible with the current Tauri graph. Both dependencies occur only in the unsupported GTK desktop graph. Current Windows workspace and all-target portable crates exclude them. Scope is rechecked on every online review; revisit before adding Linux desktop support or by expiry.",
+        "evidence": [
+          "cargo tree --locked --workspace --target all -i glib",
+          "cargo tree --locked --workspace --target x86_64-pc-windows-msvc -i glib",
+          "https://rustsec.org/advisories/RUSTSEC-2024-0429.html"
+        ]
+      },
+      {
+        "ecosystem": "crates.io",
+        "name": "proc-macro-error",
+        "version": "1.0.4",
+        "advisories": [
+          "RUSTSEC-2024-0370"
+        ],
+        "expires": "2027-01-12",
+        "task_id": "M5-002",
+        "scope_guard": "absent-from-supported-builds",
+        "reason": "Upstream reports the macro helper as unmaintained with no patched version. Both dependencies occur only in the unsupported GTK desktop graph. Current Windows workspace and all-target portable crates exclude them. Scope is rechecked on every online review; revisit before adding Linux desktop support or by expiry.",
+        "evidence": [
+          "cargo tree --locked --workspace --target all -i proc-macro-error",
+          "cargo tree --locked --workspace --target x86_64-pc-windows-msvc -i proc-macro-error",
+          "https://rustsec.org/advisories/RUSTSEC-2024-0370.html"
+        ]
+      }
+    ],
+    "automation_boundary": "OSV and target-scope validation execute in the change harness. Weekly Actions/Cargo Dependabot proposals activate after integration of configuration into main. Python/npm/toolchain updates follow the recorded bounded maintenance procedure; task context exposes due dates. No autonomous background repair or automatic integration is claimed."
+  },
+  "remaining_product_boundaries": [
+    "All 14 product operations remain planned; schema availability does not establish implementation or permission.",
+    "No real market provider or cloud model is configured.",
+    "Native compilation and test-target inclusion do not establish GUI correctness or clean-machine installation.",
+    "Packaged worker/installer acceptance, actual bundled notices, soak/performance, state migrations and real-model evaluation remain their tracked future product/release gates.",
+    "Merge and release were not performed."
+  ],
+  "next_product_task": "M1-002",
+  "effective_pull_request_rule": [
+    {
+      "pattern": "main",
+      "requiresApprovingReviews": true,
+      "requiredApprovingReviewCount": 0,
+      "requiresStatusChecks": true,
+      "requiresStrictStatusChecks": true,
+      "requiredStatusChecks": [
+        {
+          "context": "verify (ubuntu-latest)",
+          "app": {
+            "databaseId": 15368,
+            "slug": "github-actions"
+          }
+        },
+        {
+          "context": "verify (windows-latest)",
+          "app": {
+            "databaseId": 15368,
+            "slug": "github-actions"
+          }
+        }
+      ],
+      "isAdminEnforced": true,
+      "allowsForcePushes": false,
+      "allowsDeletions": false
+    }
+  ]
+}

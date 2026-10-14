@@ -1,0 +1,91 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-010",
+  "task_definition_sha256": "cba5f091b2f97d6b2ad102c5488c90e233968164c5489385f53fe41b3d5e2eee",
+  "run_id": "20261014T070128.037536Z-21cd1ca9",
+  "recorded_at": "2026-10-14T07:05:13.397871+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "a7a3f4fe42341358332957a9eefae69814607f4859b33be9bc3f3e946c3963e6",
+    "file_count": 108,
+    "git_head": "4fddc9cd552cf2f43b1aa0d030c5b7b942130f4b",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "3cb0d2fe98a780df6ec10987e6dc00b2157bac49d81aff86c422887e54120e0f",
+  "environment": {
+    "system": "Windows",
+    "release": "2025Server",
+    "machine": "AMD64",
+    "python": "3.12.10",
+    "python_executable": "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+    "tools": {
+      "node": "v24.21.0",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (5411378eb 2026-10-08 x86_64-pc-windows-msvc)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "b6831ecdd797a88742c8dcb041e7f1b6b85dd892d39efd9fd6fa41c65e58852f"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "1de15673354c84b22864066addfd9bd7107c85da3712c3c135c72f74b50844cf"
+    },
+    {
+      "id": "windows-native-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "desktop:build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "0f8c09bc39d16dffaba7ab49a8944e1ac6f1f16f7f66b8137e6edebc53ca04ea"
+    }
+  ],
+  "project_definition_sha256": "ea6f1df14cc4bf9adeaa9427987b1299df74619d8901b506a95f7adbafd77c49",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "ci": {
+    "provider": "github-actions",
+    "repository": "kacoyi/scopehub",
+    "run_id": "38525575017",
+    "run_attempt": "1",
+    "event": "pull_request",
+    "head_sha": "c0868910fd4f6afeb60633515eb148362de16cb0",
+    "checkout_sha": "4fddc9cd552cf2f43b1aa0d030c5b7b942130f4b",
+    "run_url": "https://github.com/kacoyi/scopehub/actions/runs/38525575017"
+  }
+}

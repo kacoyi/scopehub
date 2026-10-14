@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M5-002",
+  "focus_task_id": "M1-002",
   "tasks": [
     {
       "id": "M0-001",
@@ -846,7 +846,7 @@
       "id": "M0-009",
       "title": "Cover workspace membership in architecture checks and native Rust verification",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-006"
       ],
@@ -884,8 +884,13 @@
         "windows-native-build",
         "ui-build"
       ],
-      "evidence": [],
-      "next_action": "Workspace discovery and selection regressions pass locally; verify full portable checks and native desktop tests/lints, then archive matching Windows evidence.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-009-3cb0d2fe98a780df.json",
+          "sha256": "93567ff8695718706eb51799e69693fdb0776d2aa3d2cadf9e724449dea5be60"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -929,7 +934,7 @@
       "id": "M0-010",
       "title": "Close verification subprocess lifetimes on every completion path",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-006"
       ],
@@ -959,8 +964,13 @@
         "python-contracts-workers",
         "windows-native-build"
       ],
-      "evidence": [],
-      "next_action": "Linux process regressions and all portable checks pass; verify Job Object assignment, normal/nonzero exit, timeout and interruption on native Windows before archiving completion.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-010-3cb0d2fe98a780df.json",
+          "sha256": "ee20a00e160dd831cb105299a4055ad08988aebd66934e34ae190182f79a98ad"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -1162,7 +1172,7 @@
       "id": "M5-002",
       "title": "Establish dependency and workflow maintenance at integration boundaries",
       "milestone": "M5",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-006"
       ],
@@ -1201,8 +1211,13 @@
         "dependency-review",
         "windows-native-build"
       ],
-      "evidence": [],
-      "next_action": "All local implemented checks pass, including live review of 544 packages and 7 immutable Actions. Verify the final dependency and maintenance changes on native Windows and archive matching evidence for remaining corrective tasks.",
+      "evidence": [
+        {
+          "path": "project/evidence/M5-002-3cb0d2fe98a780df.json",
+          "sha256": "80cd0ae7ea510109b6f54489df5186bc9057f3b366102dc0b887d1fdb69b308e"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
