@@ -343,6 +343,21 @@
         "prevention": "Sixteen isolated recovery regressions in python-contracts-workers exercise malformed inputs, unavailable imports, failure before run creation, explicit interrupted-task identity, snapshot failures and rejection of diagnostics as acceptance. Normal project validation and archived task evidence remain required; the prior audit corrective tasks stay open."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "synthetic-incomplete-volume",
+      "source": ".reports/runs/20261014T081548.880651Z-cb04f032/test-report.json",
+      "observation": "Pre-integration review of M1-002 found that a gapped aggregate summed only received volume. Independent regressions reproduced 350.0 and 0.0 where a missing elapsed minute makes total volume unknown. This was detected before chart integration or release.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-002"
+      ],
+      "regression_checks": [
+        "market-fixtures"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

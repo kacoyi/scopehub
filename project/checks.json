@@ -211,10 +211,16 @@
     },
     {
       "id": "market-fixtures",
-      "status": "planned",
+      "status": "implemented",
       "purpose": "Validate fixed synthetic market data semantics and expected bars",
       "platforms": "all",
-      "command": null,
+      "command": [
+        "{python}",
+        "-m",
+        "unittest",
+        "tests.integration.test_market_fixtures",
+        "-v"
+      ],
       "timeout_seconds": 900
     },
     {
@@ -418,7 +424,8 @@
     "rust-contracts-workers",
     "rust-lints",
     "windows-native-build",
-    "dependency-review"
+    "dependency-review",
+    "market-fixtures"
   ],
   "gate_changes": []
 }

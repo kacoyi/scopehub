@@ -1,0 +1,33 @@
+{
+  "basis": "Hand-calculated OHLC examples with null volume when elapsed sample minutes are missing; independent of the seeded generator. Do not regenerate these expectations from implementation output.",
+  "sessions": [
+    {"start_ms": 1704200400000, "minutes": 6, "trading_day": "2024-01-03"},
+    {"start_ms": 1704243600000, "minutes": 6, "trading_day": "2024-01-03"},
+    {"start_ms": 1704286800000, "minutes": 6, "trading_day": "2024-01-04"}
+  ],
+  "as_of_ms": 1704287130000,
+  "minutes": [
+    {"time_ms": 1704200400000, "trading_day": "2024-01-03", "open": 10, "high": 13, "low": 9, "close": 12, "volume": 100, "is_closed": true},
+    {"time_ms": 1704200460000, "trading_day": "2024-01-03", "open": 12, "high": 15, "low": 11, "close": 14, "volume": 200, "is_closed": true},
+    {"time_ms": 1704200580000, "trading_day": "2024-01-03", "open": 14, "high": 14, "low": 8, "close": 9, "volume": null, "is_closed": true},
+    {"time_ms": 1704200640000, "trading_day": "2024-01-03", "open": 9, "high": 11, "low": 7, "close": 10, "volume": 0, "is_closed": true},
+    {"time_ms": 1704200700000, "trading_day": "2024-01-03", "open": 10, "high": 12, "low": 9, "close": 11, "volume": 50, "is_closed": true},
+    {"time_ms": 1704243660000, "trading_day": "2024-01-03", "open": 20, "high": 23, "low": 19, "close": 22, "volume": 10, "is_closed": true},
+    {"time_ms": 1704243840000, "trading_day": "2024-01-03", "open": 22, "high": 22, "low": 17, "close": 18, "volume": 20, "is_closed": true},
+    {"time_ms": 1704286800000, "trading_day": "2024-01-04", "open": 30, "high": 33, "low": 29, "close": 32, "volume": 0, "is_closed": true},
+    {"time_ms": 1704287100000, "trading_day": "2024-01-04", "open": 32, "high": 34, "low": 31, "close": 33, "volume": 5, "is_closed": false}
+  ],
+  "expected": {
+    "5m": [
+      {"time_ms": 1704200400000, "trading_day": "2024-01-03", "open": 10, "high": 15, "low": 7, "close": 10, "volume": null, "is_closed": true},
+      {"time_ms": 1704200700000, "trading_day": "2024-01-03", "open": 10, "high": 12, "low": 9, "close": 11, "volume": 50, "is_closed": true},
+      {"time_ms": 1704243600000, "trading_day": "2024-01-03", "open": 20, "high": 23, "low": 17, "close": 18, "volume": null, "is_closed": true},
+      {"time_ms": 1704286800000, "trading_day": "2024-01-04", "open": 30, "high": 33, "low": 29, "close": 32, "volume": null, "is_closed": true},
+      {"time_ms": 1704287100000, "trading_day": "2024-01-04", "open": 32, "high": 34, "low": 31, "close": 33, "volume": 5, "is_closed": false}
+    ],
+    "1d": [
+      {"time_ms": 1704200400000, "trading_day": "2024-01-03", "open": 10, "high": 23, "low": 7, "close": 18, "volume": null, "is_closed": true},
+      {"time_ms": 1704286800000, "trading_day": "2024-01-04", "open": 30, "high": 34, "low": 29, "close": 33, "volume": null, "is_closed": false}
+    ]
+  }
+}
