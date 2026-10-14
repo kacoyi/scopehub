@@ -1,0 +1,38 @@
+{
+  "name": "scopehub",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@11.28.5",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "generate": "uv run python scripts/generate_contracts.py",
+    "check": "uv run python scripts/check.py",
+    "project:status": "uv run python scripts/project.py status",
+    "project:check": "uv run python scripts/project.py check",
+    "project:record": "uv run python scripts/project.py record",
+    "check:contracts": "node --test tests/contracts/protocol.test.mjs",
+    "typecheck": "pnpm --filter @scopehub/ui typecheck",
+    "build": "pnpm --filter @scopehub/ui build",
+    "dev": "pnpm --filter @scopehub/ui dev",
+    "desktop:dev": "cd apps/desktop && tauri dev",
+    "desktop:build": "cd apps/desktop && tauri build --no-bundle",
+    "check:fast": "uv run python scripts/check.py --profile fast",
+    "project:context": "uv run python scripts/project.py context",
+    "project:history": "uv run python scripts/project.py history",
+    "project:readiness": "uv run python scripts/project.py readiness",
+    "project:doctor": "uv run python scripts/doctor.py",
+    "project:recover": "uv run python scripts/recovery.py",
+    "project:checkpoint": "uv run python scripts/project.py checkpoint",
+    "project:ci": "uv run python scripts/ci.py",
+    "project:protection": "uv run python scripts/protection.py",
+    "project:dependencies": "uv run python scripts/dependencies.py",
+    "project:integration": "uv run python scripts/integration.py"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.2",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1"
+  }
+}

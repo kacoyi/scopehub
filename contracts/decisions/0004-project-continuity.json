@@ -1,0 +1,55 @@
+{
+  "schema_version": "1.0",
+  "id": "0004",
+  "title": "Durable task continuity, decision history and verification evidence",
+  "status": "accepted",
+  "recorded_at": "2026-10-13",
+  "context": "ScopeHub is a long-lived product maintained with substantial AI participation. Conversation memory, milestone labels and an overwritten local test report do not provide sufficient continuity or evidence for future changes.",
+  "decision": "Use a Git-versioned JSON task ledger and check catalog, validated ADR relationships, per-run harness reports and selectively archived task evidence. Keep one source of truth for each responsibility and make the next executable action visible to a new agent.",
+  "authority": "The owner explicitly requests task, ADR, harness and scaffold foundations for sustained product development. This changes repository workflow without changing product runtime, permissions or wire protocols.",
+  "alternatives": [
+    {
+      "option": "Rely on conversation history and the last local report",
+      "reason": "It loses task dependencies, rationale and the identity of previously verified code across sessions and machines."
+    },
+    {
+      "option": "Introduce an external task service or a custom workflow platform immediately",
+      "reason": "Current work can be represented and checked locally; accounts, synchronization and another runtime are not yet justified."
+    }
+  ],
+  "consequences": [
+    "Agents maintain meaningful work items with outcomes, scope, dependencies, acceptance, verification and a next action. Small edits can remain inside an existing task.",
+    "Task completion is historical: it names the task definition and tested execution inputs. Current readiness requires current checks as well.",
+    "Reports retain run IDs, environment, commands, log digests and source identities. Compact task receipts are tracked; full local logs remain under .reports and CI uploads them.",
+    "A dirty-worktree digest identifies tested bytes but does not independently preserve them. Release artifacts require a committed source revision and retained build/acceptance evidence.",
+    "The check catalog drives the harness and acceptance mapping. A planned or unsupported-platform check remains blocked, never passed.",
+    "Accepted ADR rationale is preserved. A changed decision gets a new record with supersedes links; current interpretation is derived rather than rewriting an old choice as though it had always been current.",
+    "Repository controls verify record consistency and observed execution, not semantic correctness by themselves. Tests and review must substantiate the stated acceptance criteria."
+  ],
+  "supersedes": [],
+  "related_decisions": ["0001", "0002", "0003"],
+  "decision_triggers": [
+    "Changes to language ownership, process boundaries, permissions or protocols follow the existing owner-approval rule.",
+    "Record durable choices with material migration, replacement, data-ownership or operating consequences, including reversals.",
+    "Routine implementation inside accepted boundaries uses task records and checks without an additional approval ceremony."
+  ],
+  "history_policy": {
+    "tasks": "Keep completed and cancelled IDs and their evidence/reasons. Introduce a new task for a changed outcome instead of rewriting the definition of completed work.",
+    "decisions": "Use proposed, accepted or rejected records. An accepted successor may supersede an accepted predecessor; preserve both records and their rationale.",
+    "source": "Git commits preserve implementation history; task evidence binds a completion claim to the tested content and available Git revision.",
+    "verification": "Execution snapshots exclude task state, evidence receipts and decision/review metadata to avoid self-reference; the project validator checks that metadata independently on every check and status call.",
+    "release": "Retain installer/build identity, dependency versions, notices and actual acceptance results with a release. Local or mock checks do not grant real-data, model, installation or release acceptance."
+  },
+  "lifecycle_requirements": [
+    "Version protocol and persisted formats; add migration and recovery checks when persistent state is introduced.",
+    "Capture model, prompt, tool and dataset versions when they influence a result, and maintain replayable collaboration evaluations.",
+    "Treat product incidents and escaped defects as tasks with regression evidence when the failure warrants a check.",
+    "Validate backup/restore and upgrade behavior before shipping a persisted-data change; define a recovery route for unsupported downgrades.",
+    "Review dependencies and licenses at integration and release boundaries; select additional automation when it serves an actual maintenance need."
+  ],
+  "revisit_when": [
+    "Concurrent work requires coordination that Git and explicit task dependencies cannot represent adequately.",
+    "Task lookup or selective evidence retention becomes costly enough to justify indexed tooling.",
+    "Actual release and incident workflows reveal missing traceability or verification."
+  ]
+}

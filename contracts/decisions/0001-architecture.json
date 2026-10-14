@@ -1,0 +1,44 @@
+{
+  "schema_version": "1.0",
+  "id": "0001",
+  "title": "Replaceable desktop, core and worker boundaries",
+  "status": "accepted",
+  "recorded_at": "2026-10-13",
+  "context": "The workbench needs close human-AI collaboration with independently replaceable UI, core and computation responsibilities.",
+  "authority": "The owner's engineering contract and subsequent product clarifications.",
+  "alternatives": [],
+  "consequences": [
+    "Cross-language contracts and failure handling require executable checks.",
+    "Runtime boundary changes follow the engineering contract's decision policy."
+  ],
+  "supersedes": [],
+  "history_note": "Common record metadata was added when repository continuity was established. No unrecorded historical alternative evaluation is inferred.",
+  "basis": "engineering-contract-v1.json and project owner request",
+  "decision": "Keep the specified React/TypeScript, Rust/Tauri 2, controlled Python worker architecture.",
+  "selection_policy": "Evaluate architecture by human–AI financial collaboration needs, replaceability, and operational fit. Complexity must serve a concrete need; minimizing resource footprint is not a mandatory objective. Reuse suitable external or shared capabilities, and build focused local implementations when requirements or lifetime costs justify them.",
+  "boundaries": {
+    "ui": "display and user intent",
+    "core": "authorization, operations, persistence, lifecycle",
+    "workers": "data, model and computation adapters"
+  },
+  "evolution": [
+    "Each adapter can be replaced or removed behind a small versioned contract.",
+    "Add abstract ports when the first use case needs them; do not create unused framework layers.",
+    "New asset classes are data, not closed enums.",
+    "Version external protocols and persistent formats; internal code may be rewritten.",
+    "Use migration and contract fixtures as rewrite checks, not implementation-specific tests.",
+    "Current stack choices are revisable decisions, not permanent product requirements."
+  ],
+  "deferred": [
+    "provider and model SDKs",
+    "plugin framework",
+    "distributed services",
+    "trading",
+    "default indicators",
+    "persistent event sourcing"
+  ],
+  "revisit_when": [
+    "Measured UI or process costs fail the performance target.",
+    "A provider requires a different isolation or integration boundary."
+  ]
+}

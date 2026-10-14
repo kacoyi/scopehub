@@ -1,0 +1,422 @@
+{
+  "schema_version": "1.0",
+  "context": [
+    "engineering-contract-v1.json",
+    "contracts/contract.json",
+    "project/tasks.json",
+    "project/checks.json",
+    "project/delivery.json",
+    "project/feedback.json",
+    "project/dependencies.json"
+  ],
+  "iteration_policy": {
+    "start": [
+      "Read project:status and project:context; inspect existing changes before editing.",
+      "Choose one observable slice; state the outcome, relevant hypotheses, failure risks, verification and recovery before activating it.",
+      "Use project:doctor and check:fast to expose environment and contract defects before expensive work.",
+      "Inspect project/dependencies.json maintenance.next_review_by and advisory expiry when starting active development. If due, add a bounded maintenance task; fresh known-advisory checks run at every integration. No unattended background repair or automatic merge is implied."
+    ],
+    "during": [
+      "Validate the most consequential unknown first with a fixture, experiment or failing regression.",
+      "Inspect actual behavior against the intended outcome; passing builds do not establish usability.",
+      "When new evidence contradicts a plan, record feedback and adjust unfinished work or add a successor task.",
+      "Repeat checks after relevant changes, failures or new evidence; avoid retries without a changed hypothesis."
+    ],
+    "finish": [
+      "Run local fast and affected checks; archive all required task evidence from local or matching hosted verification before marking work done. Do not duplicate expensive hosted checks locally without a debugging need.",
+      "Review changed files and accepted history; retain a concrete next action and current focus.",
+      "Report tested behavior, unresolved blockers and the difference between mock, native-runtime and release evidence.",
+      "Run release-cadence checks at the actual release boundary or through an affected task; normal changes retain a short deterministic feedback loop.",
+      "After a coherent delivery is completed and its evidence is archived, assess its PR with project:integration --pr <number> and include the concrete integration recommendation at handoff. Do not wait for future product milestones or for the owner to remember to ask about integration."
+    ],
+    "adaptation": [
+      "Ordinary implementation, local experiments, tests and refactoring within accepted boundaries need no additional owner approval.",
+      "Keep investment judgments, runtime permissions and engineering correctness separate.",
+      "Change language ownership, process boundaries, permissions or protocols through the existing owner-approved ADR process.",
+      "Use skills only for demonstrated repeatable procedures; keep repository facts in canonical records and executable commands.",
+      "Split future milestone tasks into observable slices when work approaches; remove speculative work through explicit cancellation and preserve history."
+    ]
+  },
+  "change_types": [
+    {
+      "id": "tooling",
+      "triggers": [
+        "Repository checks, task lifecycle, CI or local build environment"
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ]
+    },
+    {
+      "id": "protocol",
+      "triggers": [
+        "Wire messages, generated types or operation schema semantics"
+      ],
+      "checks": [
+        "generated-contracts",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers"
+      ]
+    },
+    {
+      "id": "market",
+      "triggers": [
+        "Market semantics, fixture generation, subscriptions or provider adaptation"
+      ],
+      "checks": [
+        "market-fixtures",
+        "market-recovery"
+      ]
+    },
+    {
+      "id": "ui",
+      "triggers": [
+        "Interactive chart behavior, visible states or accessibility"
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow"
+      ]
+    },
+    {
+      "id": "permissions",
+      "triggers": [
+        "Operation authorization, confirmation, revision or idempotency"
+      ],
+      "checks": [
+        "operations-workflow"
+      ]
+    },
+    {
+      "id": "persistence",
+      "triggers": [
+        "Persisted formats, migrations, restoration or cache ownership"
+      ],
+      "checks": [
+        "operations-workflow",
+        "state-migrations"
+      ]
+    },
+    {
+      "id": "indicators",
+      "triggers": [
+        "Computation, preview lifecycle or trusted Python execution"
+      ],
+      "checks": [
+        "indicator-workflow"
+      ]
+    },
+    {
+      "id": "ai",
+      "triggers": [
+        "Model, prompt, context, tool policy or collaboration behavior"
+      ],
+      "checks": [
+        "ai-workflow",
+        "ai-replay-evaluations"
+      ]
+    },
+    {
+      "id": "packaging",
+      "triggers": [
+        "Installer, bundled workers, startup or target-platform build"
+      ],
+      "checks": [
+        "windows-native-build"
+      ]
+    },
+    {
+      "id": "dependencies",
+      "triggers": [
+        "Dependency integration, upgrade, removal or license obligations"
+      ],
+      "checks": [
+        "architecture",
+        "dependency-review"
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "chart-exploration",
+      "task_ids": [
+        "M1-002",
+        "M1-001",
+        "M1-003"
+      ],
+      "user_goal": "Inspect a known instrument and understand the source, age and quality of the displayed bars.",
+      "given": "Offline mode, committed synthetic fixtures, one workspace and no credentials.",
+      "when": "Search for each specified instrument, switch timeframes and chart style, and receive bar updates.",
+      "then": [
+        "Selected instrument and timeframe match displayed data.",
+        "Synthetic source and connection state remain visible.",
+        "The final update is rendered without duplicate subscriptions."
+      ],
+      "failure_cases": [
+        "Empty history",
+        "Missing and stale bars",
+        "Worker interruption and bounded reconnect",
+        "UTC versus trading-day boundaries"
+      ],
+      "checks": [
+        "market-fixtures",
+        "market-workflow",
+        "market-recovery"
+      ],
+      "evidence_boundary": "Synthetic data correctness and chart integration; no real-provider coverage claim."
+    },
+    {
+      "id": "workspace-recovery",
+      "task_ids": [
+        "M2-001"
+      ],
+      "user_goal": "Make an authorized change, undo it and recover accepted work after restarting.",
+      "given": "A persisted workspace with a known revision and operation history.",
+      "when": "Apply a human or AI operation, retry it, undo supported changes, then restart or upgrade.",
+      "then": [
+        "Both actors use the same registry.",
+        "Accepted state restores without replaying AI actions.",
+        "Migration failure leaves a documented recovery route and retained user data."
+      ],
+      "failure_cases": [
+        "Stale confirmation",
+        "Duplicate request",
+        "Permission denial",
+        "Interrupted write or migration",
+        "Unsupported downgrade"
+      ],
+      "checks": [
+        "operations-workflow",
+        "state-migrations"
+      ],
+      "evidence_boundary": "Versioned local state and recovery; no order execution or account integration."
+    },
+    {
+      "id": "indicator-preview",
+      "task_ids": [
+        "M3-001"
+      ],
+      "user_goal": "Experiment with an indicator while retaining accepted results.",
+      "given": "A fixed dataset and an accepted indicator version.",
+      "when": "Create, preview, revise, accept and remove a draft.",
+      "then": [
+        "The same inputs produce the same declarative result.",
+        "Preview and accepted layers are distinguishable.",
+        "Provenance identifies dataset, engine, code and parameters."
+      ],
+      "failure_cases": [
+        "Timeout",
+        "Nonfinite output",
+        "Oversized output",
+        "Exception",
+        "Unapproved Python execution"
+      ],
+      "checks": [
+        "indicator-workflow"
+      ],
+      "evidence_boundary": "Calculation and failure isolation; no financial-performance claim."
+    },
+    {
+      "id": "ai-collaboration",
+      "task_ids": [
+        "M4-001",
+        "M2-001",
+        "M3-001"
+      ],
+      "user_goal": "Investigate a chart with AI, inspect its evidence and revise the result together.",
+      "given": "Known workspace context, a versioned mock provider and an explicit research question.",
+      "when": "Request an abnormal-volatility indicator, inspect competing explanations, preview, accept or cancel.",
+      "then": [
+        "Claims distinguish observations, calculations and inferences.",
+        "Execution claims reference actual successful core results.",
+        "Context, tool, prompt, model and dataset identities support replay."
+      ],
+      "failure_cases": [
+        "Prompt injection in external text",
+        "Stale context",
+        "Malformed tool output",
+        "Cancelled task",
+        "Denied authorization",
+        "Tool or time limit reached"
+      ],
+      "checks": [
+        "ai-workflow",
+        "ai-replay-evaluations",
+        "operations-workflow",
+        "indicator-workflow"
+      ],
+      "evidence_boundary": "Deterministic mock evaluation; a configured real model needs separate versioned evaluation and owner usability feedback."
+    },
+    {
+      "id": "installed-product",
+      "task_ids": [
+        "M5-001"
+      ],
+      "user_goal": "Install, use, upgrade and recover the workbench on the supported Windows target.",
+      "given": "A clean Windows x64 environment without Node or Python and an identified release candidate.",
+      "when": "Install, launch offline mode, complete the collaboration scenario, upgrade and close the application.",
+      "then": [
+        "The installed application runs its bundled workers.",
+        "Installation explains the WebView2 bootstrapper requirement.",
+        "Artifacts, source revision, lockfiles, notices and observed acceptance are retained.",
+        "No worker processes remain after shutdown."
+      ],
+      "failure_cases": [
+        "Missing runtime prerequisites",
+        "Interrupted installation",
+        "User-data migration failure",
+        "Worker crash",
+        "Credential leakage",
+        "Unbounded memory growth"
+      ],
+      "checks": [
+        "windows-installation",
+        "runtime-stability",
+        "credential-boundaries",
+        "state-migrations",
+        "release-artifacts",
+        "dependency-review"
+      ],
+      "evidence_boundary": "Actual clean-machine and packaged-runtime evidence; a native compilation alone cannot satisfy this scenario."
+    }
+  ],
+  "release_policy": {
+    "required_milestones": [
+      "M0",
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5"
+    ],
+    "required_checks": [
+      "windows-installation",
+      "runtime-stability",
+      "credential-boundaries",
+      "state-migrations",
+      "release-artifacts",
+      "dependency-review"
+    ],
+    "artifact_requirements": [
+      "Committed source revision and execution-input digest",
+      "Windows NSIS installer and SHA-256",
+      "Bundled workers and build-manifest.json",
+      "Pinned dependencies and third-party licenses",
+      "Native acceptance logs and environment",
+      "Upgrade, backup/restore and recovery evidence"
+    ],
+    "product_review": [
+      "Demonstrate the end-to-end workflow to the owner and record observed usability issues as feedback.",
+      "Compare the delivered outcome with the research question, visible source quality and actual operation results.",
+      "Use release-artifacts acceptance to verify retained artifacts and the recorded owner review; a checklist alone is not acceptance."
+    ],
+    "lifecycle": {
+      "candidate": [
+        "Reassess release readiness after integration of a planned user-visible outcome, a material defect fix or a packaging/dependency change affecting an existing release. A passing ordinary change run or elapsed calendar time alone is not a release trigger.",
+        "The current first product release targets the accepted M0-M5 contract and delivery scenarios. M0 alone is a scaffold checkpoint. A narrower preview or changed product release target needs an explicit scoped requirement and accurately labeled limitations; never silently remove unmet acceptance gates.",
+        "Create a bounded release task naming target version/channel, exact clean main commit, included scenarios, known issues, native acceptance and recovery plan. Confirm successful CI for that actual main revision before spending time on packaging.",
+        "Build the candidate once with pinned inputs; retain installer, bundled-worker manifest, hashes, notices and logs outside the temporary CI retention window. Run the Windows release profile and observe clean-machine installation, use, upgrade, recovery and stability against those exact bytes.",
+        "Have the owner exercise the intended workflow and retain actual feedback. A code-review approval, mock result or checklist does not replace product review. Changed source, build inputs or packaged bytes invalidate the affected candidate acceptance; create and verify a new candidate."
+      ],
+      "publication": [
+        "Use project:readiness as a technical assessment, then present the concrete version/channel, source commit, artifact hashes, retained acceptance, owner product review, known limitations and recovery procedure. A passing result does not grant publication permission.",
+        "Publish only within explicit owner release authorization covering that candidate or an applicable previously granted scope. Authorization to merge does not authorize publication. Keep the release draft while evidence or authorization is pending.",
+        "Before publishing, recheck candidate identity and blockers; bind the version tag to the accepted main commit and publish the tested artifacts without rebuilding. Preserve existing published versions and tags; a correction gets a new version.",
+        "Verify the published tag/commit, downloadable asset hashes and installation smoke result, retain the release record and update the next task. The publisher and executable release-artifacts gate are implemented under packaging work before the first actual release, not claimed present by this policy."
+      ],
+      "recovery": [
+        "A failed candidate remains unpublished. Retain the failing artifacts/logs, open corrective work, repair and repeat affected acceptance on the new candidate.",
+        "After an integration regression, retain the exact main commit and failing CI, then prepare a reviewed repair or revert PR through the same gates. Do not force-rewrite main or treat a previous branch run as validation of the merged revision.",
+        "After a released defect, record affected versions, stop further promotion, tell the owner the observed impact and prepare a fix or withdrawal within applicable authorization. Retain evidence and existing version identity; do not silently replace downloads.",
+        "For stateful upgrades, use the tested backup/restore or forward-repair procedure. Reverting application code does not prove that persisted user data can safely be downgraded."
+      ]
+    }
+  },
+  "source_control": {
+    "checkpoint": [
+      "Make a coherent local commit after a meaningful validated outcome, before a risky experiment, and at handoff. Inspect the diff and include only intended project files.",
+      "Use a task branch such as codex/<outcome>. Run check:fast and affected checks before committing; a clearly described recovery checkpoint may retain unresolved failures but cannot count as completed work.",
+      "Use project:checkpoint to inspect the commit, dirty files, locally known upstream distance, current fast checks and slowest checks. It does not fetch or prove remote synchronization.",
+      "A local commit preserves recoverable source; an archived task receipt preserves observed acceptance. Keep both and distinguish them from push, integration and release."
+    ],
+    "push": [
+      "Within owner-authorized publication scope, push meaningful checkpoints and handoffs to the task branch and create or update its draft pull request. Do not push every edit or wait for product completion.",
+      "The current workflow runs on pull requests and main pushes. A branch push without a pull request does not start it; keep pull requests open while iterating.",
+      "Record branch, commit and pull-request URL. A network error, missing upstream or queued run leaves synchronization or verification pending, not complete.",
+      "Run project:ci after pushing, creating a pull request or observing a CI completion. Continue independent work while it runs; recheck the current commit before using the result."
+    ],
+    "verification": [
+      "Keep fast and affected checks local for early feedback. Run the full change harness on hosted Linux and native Windows for pull requests and main.",
+      "Run release-cadence checks on an identified release candidate through the manual release profile or explicitly through an affected task. Do not run multi-hour stability checks after every edit.",
+      "Require the latest matching workflow run for the exact source commit to succeed; missing, queued, cancelled, timed-out and failed runs are not passes. A successful workflow still does not complete unimplemented task or release gates.",
+      "Record both the pull-request head and the actual checked-out merge commit. Archive only evidence with matching execution inputs, task and decision definitions, origin, commit identity and unchanged log digests.",
+      "Download artifacts using the authenticated official gh CLI into .reports/ci/<run-id>/<platform>; pass that directory with project:record --artifact-root. Preserve the original report and never replace local latest reports with downloaded files.",
+      "CI metadata and hashes provide traceability and stale-evidence detection, not cryptographic attestation against a malicious contributor. Retrieve evidence from the observed repository run and review changes to the checks themselves."
+    ],
+    "integration": [
+      "Integrate through a reviewed pull request with successful required checks for its current revision. Recheck after base changes, conflicts or consequential new evidence.",
+      "Require Linux and Windows verification before normal integration. Keep branch protection settings aligned with actual job names once their first successful runs are observed; repository policy text alone does not enforce GitHub settings.",
+      "Keep source integration, packaging and public release separate. A merged pull request is not a released or product-accepted build.",
+      "Retain release artifacts, checksums and acceptance evidence outside ephemeral CI retention when releases are implemented. The current workflow retains diagnostic artifacts for 30 days; task receipts keep digests, not full logs.",
+      "Run pnpm project:protection before integration and after workflow job-name or repository-setting changes. It compares live main protection with project/branch-protection.json using the owner-pinned official gh account; missing access and drift fail. This local owner check is deliberately outside unprivileged build CI and does not grant merge permission.",
+      "The integration unit is a coherent completed task or a tightly related group with archived acceptance, a reviewable diff and a recovery direction. Split unfinished behavior into a later task/PR or keep it unreachable; future planned milestones alone do not block integration. Open a fresh task branch from current main after integration.",
+      "Run project:integration --pr <number> after task closure, after CI completion when a delivery is complete, at handoff, and immediately before an authorized merge. It reads live PR head/base, latest workflow jobs, server protection, current local source, completed scope and relevant feedback; unavailable or changing observations remain blocked. A draft can be ready to present for review while still ineligible to merge.",
+      "Present a merge proposal naming the PR, head/base revisions, delivered tasks, verification, material limits and recovery plan. Review the actual diff and unresolved conversations. Owner review may be recorded in the conversation for this single-owner repository; an empty GitHub reviewDecision or zero required external approvals never proves that review occurred.",
+      "Keep technical assessment, observed review and operation authorization separate. Reuse already granted applicable merge scope; otherwise obtain explicit merge authorization for the concrete proposal. A new head/base requires renewed assessment and review of its delta. Do not infer merge or release permission from repair, push, draft-PR or CI authorization.",
+      "For an authorized merge, check the PR head again and use an expected-head guard such as gh pr merge --match-head-commit <sha>; preserve strict server checks and never use an admin bypass. Record the actual main merge commit and inspect its push workflow. A merged PR with failed main CI is an integration incident, not release-ready source."
+    ],
+    "failure_recovery": [
+      "Keep the failed run and inspect its first actionable error. Record consequential escapes or false assumptions as feedback with a corrective task and regression evidence.",
+      "Reproduce with the smallest relevant local or native check; fix on the branch, commit and rerun the affected checks plus required integration gates.",
+      "Retry a transient infrastructure failure only after recording its cause. Do not retry assertions repeatedly, loosen checks, use stale green runs or hide cancellation to obtain a passing status.",
+      "If a regression reaches main, create a repair or revert commit and reverify. Preserve shared history; do not force-push to erase the failure."
+    ],
+    "scaling": [
+      "Use a five-minute fast-feedback objective and a fifteen-minute change-CI objective as review triggers, not reasons to skip required checks. Current job limits are 30 minutes for changes and 180 minutes for release verification.",
+      "Use recorded check durations and job queue time to find the bottleneck. Cache pnpm, uv and Cargo dependencies and build outputs by platform, toolchain and lockfiles; caches never count as test evidence.",
+      "When repeated runs exceed the objective, split independent checks into jobs, isolate long stability work, and add measured task-specific selection. Preserve a required aggregate result and explicit coverage of omitted checks.",
+      "Keep generated-contract, architecture, task-state and relevant regressions early. Add scheduled validation or paid/self-hosted runners only when an observed need justifies the recurring resource use.",
+      "Capability discovery for ci.run returned UNAVAILABLE on 2026-10-14. Use the existing repository GitHub Actions workflow as the explicit fallback; retry discovery if shared CI requirements change."
+    ],
+    "authorization": [
+      "Routine local commits, tests and fixes are part of authorized implementation. Existing explicit push authorization persists across checkpoints within its agreed repository and branch scope.",
+      "On 2026-10-14 the owner authorized the initial public push of codex/continuous-delivery to kacoyi/scopehub, creation and updates of its draft pull request, and routine future task-branch pushes to this repository as the default iteration workflow. Do not ask again within that scope. Merge and release remain separate authorization decisions.",
+      "Inspect the HTTPS origin and local github.account marker before authenticated GitHub operations, select the marked account with gh auth switch and verify its login. Never read token files.",
+      "Source-control policy does not grant merge, release, visibility, account administration, destructive history changes or branch-protection weakening permissions. Apply existing owner intent and platform approval requirements to the concrete action.",
+      "On 2026-10-14 the owner requested repair of all health-assessment findings, authorizing H08 main protection enforcement with required pull requests and observed Linux/Windows checks. Preserve stronger settings and do not weaken protection, merge or release under this maintenance scope."
+    ]
+  },
+  "scaffold_maintenance": {
+    "triggers": [
+      "A check, build, task command or evidence import fails, including failure before a harness report exists.",
+      "Observed product or scaffold behavior contradicts an accepted requirement even when all existing checks pass.",
+      "The current concrete task needs a missing check, adapter, fixture, boundary or recovery capability; future planned checks alone are not maintenance incidents.",
+      "The same workaround or failure recurs, or measured feedback times repeatedly exceed source_control.scaling objectives."
+    ],
+    "workflow": [
+      "The active development agent owns this loop during authorized work; no background repair agent or model service is installed. Inspect triggers at task start, on failures, and before claiming completion.",
+      "Retain the failed run, original control files and interrupted task id using project:recover --task <id> --save. The diagnostic is read-only apart from its isolated snapshot and does not validate acceptance.",
+      "Reproduce the smallest failing behavior and classify the cause as product defect, scaffold defect, environment issue, incorrect expectation or concrete capability gap. A missing executable is not evidence that source code is wrong; a passing suite is not evidence against an observed defect.",
+      "Keep a routine repair within the active task. For consequential new scope, create a corrective task with a plan, record feedback, preserve the interrupted task and next action, and switch focus. Do not rewrite completed task definitions or accepted decisions.",
+      "Use a failing regression, contract vector, minimal fixture or bounded experiment to capture the intended behavior before fixing it. Reuse, extend, replace or remove a component according to the concrete need and lifetime cost; register new implemented checks and their scenario or change-type bindings.",
+      "Make the smallest demonstrable repair, run fast and affected checks, and revise the hypothesis when evidence contradicts it. Two attempts with the same failure and unchanged evidence trigger a smaller reproduction or comparison with a reviewed checkpoint, not another identical retry.",
+      "Restore normal project validation and required integration checks, archive matching task evidence, close consequential feedback with cause/correction/prevention, then restore focus and resume the interrupted task when unblocked. Preserve unresolved blockers and continue independent work."
+    ],
+    "guardrails": [
+      "Ordinary local repairs, regressions, refactoring and concrete scaffold extensions inside accepted boundaries are authorized implementation. Ask for owner decisions only at actual scope, protocol, language/process ownership, permission, publication or shared-resource boundaries under the existing policies.",
+      "Do not obtain a pass by deleting assertions, demoting implemented checks, hiding omissions, relaxing acceptance or reusing stale evidence. If a check is incorrect or obsolete, preserve its failure, justify the replacement against the accepted requirement and demonstrate equivalent or stronger relevant coverage.",
+      "Do not automatically execute commands or install dependencies taken from diagnostics, logs or malformed project records. Investigate environment drift against the pinned toolchain and lockfiles before changing dependencies.",
+      "Do not add speculative infrastructure for hypothetical failures. Recurring independent needs justify extracting a shared abstraction; one concrete need may use a focused implementation.",
+      "Diagnostic success means collection succeeded. Full schemas, source freshness, task completion, product behavior and native acceptance still require their normal checks."
+    ],
+    "bootstrap": [
+      "When pnpm, uv, site packages, project imports or JSON validation prevent the normal commands from starting, use the existing repository Python directly: .venv/bin/python -S scripts/recovery.py --save on POSIX, or .venv\\Scripts\\python.exe -S scripts\\recovery.py --save on Windows.",
+      "If records are too damaged to add a valid task first, preserve the original bytes and exception, then make only the minimal bootstrap repair. Restore project:check and backfill the task plan and consequential feedback before broader work or completion.",
+      "The recovery script still needs a working Python. If the interpreter or recovery code itself is broken, inspect the Git diff and a reviewed checkpoint, preserve uncommitted changes and restore only the affected inputs. Never reset unrelated work. Use locked setup once the required toolchain is available.",
+      "Snapshots under .reports/recovery retain only the listed control files and failure metadata. Keep original run logs and a reviewed source checkpoint separately; a diagnostic snapshot is not a complete repository backup.",
+      "When snapshot creation fails, retain the original error and output path error. A failed diagnostic must not hide the original failure or overwrite .reports/test-report.json."
+    ]
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0",
+  "id": "0006",
+  "title": "Recoverable source checkpoints and commit-bound hosted verification",
+  "status": "accepted",
+  "recorded_at": "2026-10-14",
+  "context": "The owner asks how key changes should be committed and pushed, and how increasing validation time should move to hosted execution. The existing public repository has no CI runs and its main branch is unprotected at inspection.",
+  "decision": "Use coherent local checkpoints and owner-authorized task-branch pull requests, fast local feedback and hosted Linux/Windows change verification. Bind hosted reports to their head and checkout revisions, retain isolated artifacts and verify task evidence before completion. Scale using measured durations while retaining release-specific gates.",
+  "authority": "The owner authorizes improving the long-term delivery scaffold. This decision defines the workflow; it does not itself authorize initial public upload, integration, releases or repository administration.",
+  "alternatives": [
+    {
+      "option": "Keep all work uncommitted until an entire milestone is complete",
+      "reason": "Loses durable recovery points and prevents hosted feedback on intermediate outcomes."
+    },
+    {
+      "option": "Push every edit or run all release checks for every checkpoint",
+      "reason": "Consumes attention and runner time without improving the initial failure signal."
+    },
+    {
+      "option": "Create another CI platform before using the existing workflow",
+      "reason": "Existing GitHub Actions provides the required native runner and artifacts. Capability discovery has no registered ci.run provider."
+    }
+  ],
+  "consequences": [
+    "Local commit, remote synchronization, workflow success, task completion, integration and release are separate claims.",
+    "A branch needs an open pull request to start the current change workflow; no duplicate branch-push workflow is added.",
+    "Hosted success is inspected against the current clean commit and latest run. Downloaded reports retain original bytes and log digests.",
+    "A pull request tests a merge checkout; head and checkout identifiers are recorded separately and evidence import also checks actual input digests.",
+    "Cache reuse accelerates setup but does not establish correctness. Long acceptance remains explicit and native Windows evidence is still required.",
+    "Main protection requires actual repository configuration after observed check names; this local change does not claim that it is enabled."
+  ],
+  "supersedes": [],
+  "related_decisions": [
+    "0004",
+    "0005"
+  ],
+  "revisit_when": [
+    "Repeated check durations exceed the feedback objectives.",
+    "Runner cost, concurrent work or release retention requires a different hosting arrangement.",
+    "Repository publication and integration authorization changes."
+  ]
+}

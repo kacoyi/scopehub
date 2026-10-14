@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0",
+  "id": "0003",
+  "title": "Machine-readable project records and executable verification",
+  "status": "accepted",
+  "recorded_at": "2026-10-13",
+  "context": "The owner participates in product decisions and validation rather than implementation, and requests no human-facing repository guides.",
+  "authority": "The owner's repository documentation preference and implementation request.",
+  "alternatives": [],
+  "consequences": [
+    "Agents need a compact entry point into maintained machine records.",
+    "Required license notices remain part of the repository and distribution."
+  ],
+  "supersedes": [],
+  "revisit_when": ["A concrete repeated workflow cannot be served effectively by the current records and checks."],
+  "history_note": "Common record metadata was added when repository continuity was established; the earlier decision remains applicable.",
+  "basis": "Project owner requests no human-facing repository documentation.",
+  "decision": "Use executable checks, JSON decisions, a JSON contract manifest and generated JSON reports.",
+  "retained_text": [
+    "AGENTS.md: instructions for coding agents",
+    "LICENSE and required third-party notices"
+  ],
+  "skills": "Do not duplicate repository rules in a new skill before a repeatable workflow exists.",
+  "references": "Consult relevant upstream documentation or reference implementations for a concrete need. Reuse or adapt useful components while keeping unrelated architecture out of the product; record primary sources for adopted dependencies.",
+  "completion": "Linux protocol tests do not satisfy a native Windows build or clean-machine acceptance.",
+  "m0_scope": "Empty desktop shell, executable wire schemas, generated types, worker handshake, local harness and CI definition."
+}

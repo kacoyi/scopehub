@@ -1,7 +1,7 @@
 {
   "artifact_type": "engineering_contract",
   "contract_id": "market-ai-workbench.v1",
-  "contract_version": "1.0.0",
+  "contract_version": "1.0.6",
   "language": "en-US",
   "normative_terms": {
     "MUST": "MUST be implemented",
@@ -19,10 +19,49 @@
     "unknowns": "Do not guess credentials, provider permissions, commercial licenses, or security capabilities; use an explicit blocked status or a simulated implementation",
     "changes": "Changes to programming language responsibilities, process boundaries, the permission model, or protocols require a new ADR and project owner approval",
     "dependencies": "Choose compatible stable versions during implementation and commit all lockfiles; do not automatically upgrade major versions or add dependencies for placeholder modules",
+    "build_or_reuse": {
+      "principle": "Choose reuse, integration, adaptation, or local implementation by concrete product needs and lifetime maintenance cost. External data channels, products, services, libraries, and SDKs are valid options.",
+      "evaluation": [
+        "Workflow fit, required capabilities, and data semantics or quality",
+        "Reliability, latency, and operational suitability",
+        "Licensing, data boundaries, and applicable usage permissions",
+        "Integration effort, ongoing cost, maintenance burden, and replacement effort"
+      ],
+      "reuse_when": "An existing capability meets the need and offers a better overall fit than maintaining an equivalent implementation.",
+      "build_when": "Available options do not meet a concrete requirement, impose disproportionate integration or operating costs, or a focused local implementation is simpler to maintain.",
+      "ownership": "ScopeHub owns its collaboration workflows, domain semantics, authorization decisions, and user state. Suitable existing components may support these responsibilities within the established architecture.",
+      "integration": "Confine external dependencies to the relevant adapter or module, preserve data provenance and capability differences, and make replacement or removal practical. Add abstraction only as concrete integrations require it.",
+      "information_channels": {
+        "selection": "Support independently integrated information channels that can coexist, be combined, replaced or removed. Select channels by task needs, coverage, evidence quality, freshness, applicable rights and cost; no named provider is mandatory or exclusive.",
+        "boundary": "Keep provider-specific acquisition behind adapters and preserve provenance, time, uncertainty and capability differences in results. Common semantics must not require all information to pass through one external service or force every source into identical capabilities.",
+        "omniscience": "An optional candidate alongside direct providers, search tools, local documents and other future channels. Its availability or completion must not gate unrelated ScopeHub development or use.",
+        "delivery": "This is a design requirement, not a claim of implemented integrations. Add concrete interfaces and adapters when a workflow needs them, within the existing authorization and versioned contract process."
+      },
+      "decision_effort": "Keep comparison and rationale proportional to the dependency's impact; routine library use does not require a new governance workflow. Apply existing shared-capability and provider onboarding rules when relevant."
+    },
     "completion": "Mark work complete only after tests have actually run and passed; do not report simulated market data acceptance as real market data acceptance"
   },
   "product": {
-    "purpose": "A lightweight market workbench for human–AI collaboration",
+    "purpose": "A financial workbench for close human–AI collaboration in understanding markets, analysis, decision-making, and authorized operations",
+    "design_principles": [
+      "AI is an active participant in financial workflows, with capabilities exposed through explicit application operations.",
+      "Stocks and futures are the initial asset classes; additional asset classes can be introduced as needs emerge.",
+      "Choose features and architectural complexity for demonstrated collaboration needs; avoid unnecessary features and speculative infrastructure.",
+      "Keep workflows, modules, and implementation choices open to revision, replacement, and removal.",
+      "Chart analysis and indicator previews are the first delivery scenario, not the permanent boundary of the product."
+    ],
+    "resource_policy": "Responsiveness and stability are quality goals. Evaluate memory, package size, and runtime cost against useful capabilities and actual workloads; a lightweight footprint is not a mandatory product objective.",
+    "collaboration_model": {
+      "status": "product_requirements_not_implemented",
+      "human_role": "Set objectives, contribute and challenge hypotheses, decide which investment judgments to adopt, and control the scope of authorized actions.",
+      "ai_role": "Participate actively in research, analysis, alternative explanations, indicator creation, and authorized operations; report uncertainty and challenge unsupported assumptions, including its own.",
+      "shared_context": "Ground collaboration in the current workspace, selected instrument and range, data provenance and freshness, explicit research questions, and actual operation results.",
+      "interaction": "Support an iterative cycle of question, evidence, competing hypotheses, computation or preview, human feedback, and revision; keep facts, calculations, inferences, suggestions, and executed actions distinguishable.",
+      "decision_ownership": "The human retains ownership of adopted investment judgments and the resulting market exposure. AI assistance and workflow automation do not guarantee profitable outcomes or constitute an independent mandate to manage capital.",
+      "authorization_principle": "Treat investment risk acceptance and action authorization as separate concerns. A general statement that the human bears market risk grants no additional capability and does not satisfy operation-specific confirmations.",
+      "system_quality": "Distinguish adverse market outcomes from incorrect data, calculation errors, execution defects, and unauthorized actions. The latter require prevention, diagnosis, and correction; human ownership of investment decisions does not relax system correctness requirements.",
+      "delivery": "Apply these principles through the existing milestone sequence and operation permissions; broader collaboration capabilities require concrete use cases before implementation."
+    },
     "platform": {
       "v1": "Windows 10/11 x64",
       "later": [
@@ -115,8 +154,9 @@
       "tests/fixtures": "Deterministic market data and expected outputs",
       "tests/contracts": "Cross-language protocol consistency",
       "tests/integration": "End-to-end process and application integration",
-      "docs/decisions": "ADR",
-      "scripts": "Build, generation, test, and packaging entry points"
+      "scripts": "Build, generation, test, and packaging entry points",
+      "contracts/decisions": "Machine-readable architecture decision records",
+      "project": "Task continuity, executable check bindings and selected verification evidence"
     },
     "dependency_rules": [
       "domain does not depend on other internal layers",
@@ -130,14 +170,26 @@
       "Model SDKs are confined to ai/providers"
     ],
     "required_files": [
-      "README.md",
       "Cargo.lock",
       "pnpm-lock.yaml",
       "uv.lock",
-      "docs/decisions/0001-architecture.md",
-      "docs/decisions/0002-python-trust.md",
-      "contracts/contract.json"
-    ]
+      "contracts/decisions/0001-architecture.json",
+      "contracts/decisions/0002-python-trust.json",
+      "contracts/decisions/0004-project-continuity.json",
+      "contracts/contract.json",
+      "contracts/schemas/project.schema.json",
+      "project/tasks.json",
+      "project/checks.json"
+    ],
+    "continuity": {
+      "task_source": "project/tasks.json",
+      "check_source": "project/checks.json",
+      "decision_source": "contracts/decisions",
+      "evidence_source": "project/evidence",
+      "entry_command": "pnpm project:status",
+      "policy": "Follow ADR 0004 for durable tasks, decision supersession, execution-bound verification and release history. Keep meaningful outcomes and next actions current across AI sessions; completed tasks do not substitute for current product validation."
+    },
+    "documentation": "No human-facing guides; maintain agent instructions, executable schemas, JSON decisions, machine-readable verification reports, and legally required notices."
   },
   "runtime": {
     "processes": {
@@ -319,7 +371,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "market.getBars",
@@ -332,7 +384,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "workspace.openInstrument",
@@ -345,7 +397,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "chart.setTimeframe",
@@ -358,7 +410,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "chart.setStyle",
@@ -371,7 +423,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "chart.addAnnotation",
@@ -384,7 +436,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "chart.removeLayer",
@@ -397,7 +449,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "indicator.createDraft",
@@ -410,7 +462,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "indicator.runPreview",
@@ -423,7 +475,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "indicator.acceptVersion",
@@ -436,7 +488,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "indicator.remove",
@@ -449,7 +501,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "workspace.undo",
@@ -462,7 +514,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "task.cancel",
@@ -475,7 +527,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "workspace.getContext",
@@ -488,7 +540,7 @@
         "user",
         "ai"
       ],
-      "schema_requirement": "Generate separate input/output JSON Schemas; id is an opaque string; revision is a non-negative integer"
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     }
   ],
   "authorization": {
@@ -687,7 +739,7 @@
   },
   "delivery": {
     "installer": "Windows x64 NSIS",
-    "webview2": "Explicitly use the installer bootstrapper strategy; first installation may require internet access; the README and installation instructions must not promise a fully offline installation",
+    "webview2": "Explicitly use the installer bootstrapper strategy; first installation may require internet access. Record this in build-manifest.json and installer messaging; do not promise fully offline installation.",
     "python": "Distribute workers with the installer; do not require Python on the user system",
     "build": "Build and validate natively on Windows; lock dependencies and record build information",
     "platform_interfaces": [

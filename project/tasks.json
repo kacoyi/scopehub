@@ -1,0 +1,1449 @@
+{
+  "schema_version": "1.0",
+  "focus_task_id": "M1-002",
+  "tasks": [
+    {
+      "id": "M0-001",
+      "title": "Establish executable contracts and the local application scaffold",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [],
+      "scope": [
+        "contracts",
+        "apps/desktop",
+        "crates",
+        "python/worker_runtime",
+        "tests"
+      ],
+      "decision_refs": [
+        "0001",
+        "0002",
+        "0003",
+        "0004"
+      ],
+      "acceptance": [
+        "Generate and validate the same wire contracts in TypeScript, Rust and Python.",
+        "Build the empty UI and verify the worker handshake and bounded protocol failure cases.",
+        "Retain explicit unsupported-operation behavior; do not report product operations as implemented."
+      ],
+      "checks": [
+        "generated-contracts",
+        "architecture",
+        "python-types",
+        "python-contracts-workers",
+        "typescript-contracts",
+        "ui-build",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-001-10a4581ed6122644.json",
+          "sha256": "ac1c9f4a0f08a4c2bf45ea87039d739204bbb3084122cbf17e9525b51030d50c"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M0-002",
+      "title": "Establish task continuity, decision history and version-bound verification",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [],
+      "scope": [
+        "project",
+        "contracts/decisions",
+        "contracts/schemas/project.schema.json",
+        "scripts",
+        "tests/project",
+        ".github/workflows",
+        "AGENTS.md"
+      ],
+      "decision_refs": [
+        "0001",
+        "0002",
+        "0003",
+        "0004"
+      ],
+      "acceptance": [
+        "A new agent can locate the current task, dependencies, blockers and next action from validated records.",
+        "Completed tasks cite preserved passing evidence for their recorded definitions; accepted decisions can be superseded without erasing their rationale.",
+        "The harness derives readiness from declared checks, binds results to execution inputs and retains separate run logs.",
+        "Regressions reject invalid dependency graphs, unsupported completion claims, stale proof recording and invalid decision relationships."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-002-10a4581ed6122644.json",
+          "sha256": "7ba79b5a944bc2fc8ae9e2235fe0bad5ae77c3e6fcb8130fcaf3a2a0c3e5ca5f"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M0-003",
+      "title": "Validate the foundation on native Windows x64",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-001",
+        "M0-002"
+      ],
+      "scope": [
+        "apps/desktop/src-tauri",
+        ".github/workflows/verify.yml",
+        "project/evidence",
+        "project/delivery.json",
+        "project/tasks.json",
+        "contracts/reviews",
+        "scripts/check.py",
+        "scripts/project.py",
+        "tests/project/test_delivery.py",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0001",
+        "0002",
+        "0003",
+        "0004",
+        "0005",
+        "0006"
+      ],
+      "acceptance": [
+        "The checked source passes all foundation checks and the native Windows desktop build.",
+        "Preserve the native report as evidence; a Linux UI build does not fulfill this task."
+      ],
+      "checks": [
+        "project-state",
+        "generated-contracts",
+        "architecture",
+        "python-types",
+        "python-contracts-workers",
+        "typescript-contracts",
+        "ui-build",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "windows-native-build"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-003-d102fcb3efd6d5b4.json",
+          "sha256": "c05ae902cf39a2a7772abae44e32b5e74eafe2894c2ab0ad7be580bfb44b26a1"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The foundation compiles and passes its checks on the actual Windows x64 target.",
+        "change_types": [
+          "packaging",
+          "tooling"
+        ],
+        "context": [
+          ".github/workflows/verify.yml",
+          "apps/desktop/src-tauri/tauri.conf.json"
+        ],
+        "hypotheses": [
+          "The pinned build tools and empty desktop entry point are compatible on native Windows."
+        ],
+        "risks": [
+          {
+            "failure": "Local Linux success is mistaken for native Windows acceptance.",
+            "checks": [
+              "windows-native-build"
+            ]
+          },
+          {
+            "failure": "Windows locale decoding corrupts non-ASCII accepted-history JSON.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The Tauri CLI resolves a nested UI directory and rewrites the Cargo manifest during verification.",
+            "checks": [
+              "windows-native-build"
+            ]
+          }
+        ],
+        "rollback": "Preserve the failed native reports, correct build configuration and cross-platform tooling within this unfinished task, and rerun both hosted targets before archiving completion."
+      }
+    },
+    {
+      "id": "M1-001",
+      "title": "Deliver the simulated chart workflow",
+      "milestone": "M1",
+      "status": "planned",
+      "depends_on": [
+        "M1-002"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "crates",
+        "python/providers",
+        "tests"
+      ],
+      "decision_refs": [
+        "0001",
+        "0002",
+        "0003",
+        "0004"
+      ],
+      "acceptance": [
+        "Open the three specified synthetic instruments, switch timeframes and receive live bar updates with visible simulated status.",
+        "Loading, ready, empty, stale, disconnected and error states have observable UI behavior."
+      ],
+      "checks": [
+        "market-workflow"
+      ],
+      "evidence": [],
+      "next_action": "After fixture semantics are verified, connect one instrument through the core to the chart, then expand to the specified instruments and timeframes.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M2-001",
+      "title": "Deliver shared operations and durable workspace state",
+      "milestone": "M2",
+      "status": "planned",
+      "depends_on": [
+        "M1-001"
+      ],
+      "scope": [
+        "crates/application",
+        "crates/persistence",
+        "apps/desktop",
+        "tests"
+      ],
+      "decision_refs": [
+        "0001",
+        "0002",
+        "0003",
+        "0004"
+      ],
+      "acceptance": [
+        "Human and AI actions use the same registry, permissions, confirmations, revisions and idempotency semantics.",
+        "Workspace restoration and undo preserve accepted state; restart does not replay prior AI operations.",
+        "Introduce versioned database migrations and recovery tests when persistent state is first introduced."
+      ],
+      "checks": [
+        "operations-workflow",
+        "state-migrations"
+      ],
+      "evidence": [],
+      "next_action": "Implement operation ownership, persistence and failure-oriented tests.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M3-001",
+      "title": "Deliver reproducible indicator previews and accepted versions",
+      "milestone": "M3",
+      "status": "planned",
+      "depends_on": [
+        "M2-001"
+      ],
+      "scope": [
+        "python/indicators",
+        "crates",
+        "apps/desktop/ui",
+        "tests"
+      ],
+      "decision_refs": [
+        "0001",
+        "0002",
+        "0003",
+        "0004"
+      ],
+      "acceptance": [
+        "Declarative previews have deterministic results, bounded execution and validated output.",
+        "A failed preview leaves accepted indicators and market data usable.",
+        "Trusted Python remains opt-in with operation-specific authorization and accurately described isolation."
+      ],
+      "checks": [
+        "indicator-workflow"
+      ],
+      "evidence": [],
+      "next_action": "Implement the indicator engine and preview-to-acceptance workflow.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M4-001",
+      "title": "Deliver the first human-AI chart collaboration workflow",
+      "milestone": "M4",
+      "status": "planned",
+      "depends_on": [
+        "M3-001"
+      ],
+      "scope": [
+        "python/ai",
+        "crates/application",
+        "apps/desktop/ui",
+        "tests"
+      ],
+      "decision_refs": [
+        "0001",
+        "0002",
+        "0003",
+        "0004"
+      ],
+      "acceptance": [
+        "Mock AI uses actual chart context and core tools to create, inspect and revise an indicator draft.",
+        "Cancellation and authorization apply to every tool execution, and claims refer to actual results.",
+        "Record model, prompt, tool and input versions when they first affect reproducibility; preserve replayable evaluation scenarios.",
+        "Mock acceptance is separate from later real-model and real-data usability validation."
+      ],
+      "checks": [
+        "ai-workflow",
+        "ai-replay-evaluations"
+      ],
+      "evidence": [],
+      "next_action": "Implement the chosen collaboration scenario with deterministic tool and context evaluations.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M5-001",
+      "title": "Deliver installation, recovery and release evidence",
+      "milestone": "M5",
+      "status": "planned",
+      "depends_on": [
+        "M4-001"
+      ],
+      "scope": [
+        "apps/desktop/src-tauri",
+        "scripts",
+        "tests",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0001",
+        "0002",
+        "0003",
+        "0004"
+      ],
+      "acceptance": [
+        "A clean Windows machine can install and run without Python or Node, with the stated WebView2 installation behavior.",
+        "Verify packaged worker cleanup, stability, credential boundaries and dependency notices.",
+        "Bind release artifacts to a committed source revision, lockfiles, build environment and actual acceptance evidence.",
+        "Validate user-data backup/restore and upgrade migration before distributing an upgrade that changes persisted data; define recovery when downgrade is unsupported."
+      ],
+      "checks": [
+        "windows-installation",
+        "runtime-stability",
+        "credential-boundaries",
+        "release-artifacts",
+        "dependency-review",
+        "state-migrations"
+      ],
+      "evidence": [],
+      "next_action": "Implement packaging and execute clean-machine, stability and release acceptance checks.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M0-004",
+      "title": "Make continuous delivery observable, failure-oriented and resumable",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-001",
+        "M0-002"
+      ],
+      "scope": [
+        "AGENTS.md",
+        "project",
+        "contracts/schemas/project.schema.json",
+        "contracts/decisions",
+        "scripts",
+        "tests/project",
+        ".github/workflows",
+        "package.json"
+      ],
+      "decision_refs": [
+        "0003",
+        "0004",
+        "0005"
+      ],
+      "acceptance": [
+        "Provide bounded early verification with retained failure output, process cleanup, explicit selection and unchanged source and decision identities.",
+        "Reject stale or failed completion evidence, invalid active work, and rewrites of accepted history against a Git base.",
+        "Connect delivery scenarios, task risks, observed feedback and release gaps through validated records and focused context commands.",
+        "Preserve historical completion and native Windows blockers; keep routine implementation autonomous and product acceptance explicit.",
+        "Resolve workspace dependency aliases before checking architecture, and separate routine checks from costly native release acceptance."
+      ],
+      "checks": [
+        "environment",
+        "project-state",
+        "generated-contracts",
+        "architecture",
+        "python-contracts-workers",
+        "python-types",
+        "typescript-contracts",
+        "ui-build",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-004-e5e29fe7ccd74441.json",
+          "sha256": "c7bafb0aa4f1bd4c55117a0a8b34d63f764f774b54c514df9a709a92793d5f7a"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A future implementation session can identify its smallest useful outcome, expose defects early, retain valid evidence and respond to product feedback.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "AGENTS.md",
+          "scripts/project.py",
+          "scripts/check.py",
+          "tests/project/test_continuity.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "Git-versioned local records are sufficient for the current team size.",
+          "No additional skill or external task platform is needed to make the workflow executable."
+        ],
+        "risks": [
+          {
+            "failure": "Stale, incomplete or failed runs support an incorrect completion claim.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          },
+          {
+            "failure": "A hung check loses diagnostics or leaves child processes running.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An inherited dependency alias hides a forbidden architecture edge.",
+            "checks": [
+              "architecture",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert this task implementation as a coherent change; retain historical receipts and ADRs and preserve all pre-existing working-tree changes."
+      }
+    },
+    {
+      "id": "M1-002",
+      "title": "Establish deterministic market fixtures before chart integration",
+      "milestone": "M1",
+      "status": "planned",
+      "depends_on": [
+        "M0-003"
+      ],
+      "scope": [
+        "python/providers",
+        "crates",
+        "apps/desktop/ui",
+        "tests/fixtures",
+        "tests/integration"
+      ],
+      "decision_refs": [
+        "0001",
+        "0004",
+        "0005"
+      ],
+      "acceptance": [
+        "Commit synthetic fixtures with fixed time and seed for the three specified instruments and timeframes.",
+        "Verify OHLC, timestamps, gaps, partial bars and trading-day boundaries against independent expected values."
+      ],
+      "checks": [
+        "market-fixtures"
+      ],
+      "evidence": [],
+      "next_action": "Refine the task plan and implement its check when its dependencies are satisfied.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M1-003",
+      "title": "Verify market interruption and recovery through the chart",
+      "milestone": "M1",
+      "status": "planned",
+      "depends_on": [
+        "M1-001"
+      ],
+      "scope": [
+        "python/providers",
+        "crates",
+        "apps/desktop/ui",
+        "tests/fixtures",
+        "tests/integration"
+      ],
+      "decision_refs": [
+        "0001",
+        "0004",
+        "0005"
+      ],
+      "acceptance": [
+        "Make interruption, staleness and bounded recovery visible.",
+        "Reconnect without duplicate subscriptions and preserve final bar state under update coalescing."
+      ],
+      "checks": [
+        "market-recovery"
+      ],
+      "evidence": [],
+      "next_action": "Refine the task plan and implement its check when its dependencies are satisfied.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M0-005",
+      "title": "Establish source checkpoints and commit-bound hosted verification",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-004"
+      ],
+      "scope": [
+        "AGENTS.md",
+        "project",
+        "scripts",
+        "tests/project",
+        "contracts/schemas/project.schema.json",
+        "contracts/decisions",
+        ".github/workflows",
+        "package.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0006"
+      ],
+      "acceptance": [
+        "Expose local checkpoint, upstream synchronization and hosted verification as distinct states tied to the actual commit.",
+        "Retain fast local feedback and move target-platform and expensive validation to explicit hosted jobs with caches and bounded runtime.",
+        "Import native CI evidence without overwriting local reports or trusting a run from another commit.",
+        "Preserve accepted history and document commit, branch push, integration and release responsibilities without granting new publication or administration permissions."
+      ],
+      "checks": [
+        "environment",
+        "project-state",
+        "generated-contracts",
+        "architecture",
+        "python-contracts-workers",
+        "python-types",
+        "typescript-contracts",
+        "ui-build",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-005-9088a7d6d5de34db.json",
+          "sha256": "6a80a4eff8a82d1cf826f5b01f509d6a83eddbb5ec2a9c9529a9da4459489f31"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A completed iteration is recoverable as a Git commit and can be verified on the hosted target without confusing queued, stale, pushed, merged or released states.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          ".github/workflows/verify.yml",
+          "scripts/check.py",
+          "scripts/project.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The existing GitHub repository and Actions runners are operationally suitable for remote verification; no separate CI service is needed."
+        ],
+        "risks": [
+          {
+            "failure": "An unrelated green CI run or an unpushed local change is mistaken for verified delivery.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Revert the new workflow tooling while preserving checkpoints, accepted records and per-run evidence; repair hosted failures before advancing integration."
+      }
+    },
+    {
+      "id": "M0-006",
+      "title": "Audit the scaffold for sustained product delivery and extensibility",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-003",
+        "M0-005"
+      ],
+      "scope": [
+        "contracts/reviews",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0001",
+        "0002",
+        "0003",
+        "0004",
+        "0005",
+        "0006"
+      ],
+      "acceptance": [
+        "Assess implementation boundaries, protocol evolution, verification quality, evidence integrity, task continuity, hosted delivery, dependencies and product acceptance against inspected source and observed checks.",
+        "Retain reproducible evidence for consequential findings, distinguish present defects from planned capabilities, and compare applicable recommendations with primary sources.",
+        "Record prioritized corrective tasks and explicit limits without changing accepted history or claiming unobserved product, native runtime or release behavior."
+      ],
+      "checks": [
+        "environment",
+        "project-state",
+        "generated-contracts",
+        "architecture",
+        "python-contracts-workers",
+        "python-types",
+        "typescript-contracts",
+        "ui-build",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-006-d3b8314392d2c8db.json",
+          "sha256": "32e87f82acca3066e30f4b7c38042afdcb463e27db0705cf884c133d58cc1859"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The owner can judge scaffold readiness and choose the next product slice from an evidence-backed assessment and actionable correction backlog.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/contract.json",
+          "scripts/project.py",
+          "scripts/check.py",
+          "scripts/check_architecture.py",
+          ".github/workflows/verify.yml",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "Existing local records and checks are a useful foundation, but consistency checks alone cannot establish behavioral correctness.",
+          "Targeted correction and early vertical product slices are preferable to adding speculative workflow infrastructure."
+        ],
+        "risks": [
+          {
+            "failure": "A green scaffold check is mistaken for product or target-runtime acceptance.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Audit probes contaminate working source or historical evidence.",
+            "checks": [
+              "project-state",
+              "generated-contracts",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Keep probes isolated and retain their outputs; revert only new audit records if needed, preserving accepted tasks, decisions and existing verification artifacts."
+      }
+    },
+    {
+      "id": "M0-007",
+      "title": "Preserve operation identity and numeric semantics across generated contracts",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-006"
+      ],
+      "scope": [
+        "scripts/generate_contracts.py",
+        "contracts/generated",
+        "contracts/schemas/protocol.schema.json",
+        "tests/fixtures/protocol-cases.json",
+        "tests/contracts",
+        "crates/worker-host/tests",
+        "python/worker_runtime/protocol.py",
+        "crates/worker-host/src/lib.rs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0001",
+        "0003",
+        "0004",
+        "0005",
+        "0006"
+      ],
+      "acceptance": [
+        "For every operation and AI tool call, assert the exact decoded Rust variant and preserve the operation discriminator across serialization.",
+        "Accept schema-valid integral decimal and exponent encodings consistently across Python, JavaScript and Rust while rejecting fractional and out-of-range values.",
+        "Keep the accepted wire contract unchanged; any decision to narrow or revise it requires the existing versioned decision process."
+      ],
+      "checks": [
+        "generated-contracts",
+        "python-types",
+        "python-contracts-workers",
+        "typescript-contracts",
+        "rust-contracts-workers",
+        "rust-lints",
+        "project-state"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-007-b6ced79df46d1087.json",
+          "sha256": "344d1381599b031968044e3c2b3aa02cc8708d3021807c1e39006f8dad47c0f6"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Every request and AI tool call retains its operation identity after typed decoding, and schema-valid integral numeric encodings agree across all three languages.",
+        "change_types": [
+          "protocol",
+          "tooling"
+        ],
+        "context": [
+          "scripts/generate_contracts.py",
+          "contracts/schemas/protocol.schema.json",
+          "python/worker_runtime/protocol.py",
+          "crates/worker-host/src/lib.rs",
+          "contracts/reviews/2026-10-14-long-term-health.json"
+        ],
+        "hypotheses": [
+          "Generated singleton and inline enum types can constrain discriminators without changing wire schemas.",
+          "Normalizing schema-validated integral numeric values before typed decoding can preserve JSON Schema integer semantics."
+        ],
+        "risks": [
+          {
+            "failure": "Structurally similar operations still select the wrong typed variant.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Numeric normalization accepts fractional or unsafe integer inputs or loses boundary precision.",
+            "checks": [
+              "python-contracts-workers",
+              "typescript-contracts",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Regeneration breaks static types or accepted history.",
+            "checks": [
+              "generated-contracts",
+              "python-types",
+              "rust-lints",
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Retain failing vectors and reports; revert only this task implementation to 39e5b237f002a7053a5c146e3aea1c4223586c80 if needed, preserving the accepted wire schema and previously completed work."
+      }
+    },
+    {
+      "id": "M0-008",
+      "title": "Make repository-control fixtures independent of the evolving task ledger",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-006"
+      ],
+      "scope": [
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0001",
+        "0003",
+        "0004",
+        "0005",
+        "0006"
+      ],
+      "acceptance": [
+        "Use dedicated minimal synthetic task, decision and check records rather than relying on production task positions.",
+        "Reordering or prepending a valid unrelated task leaves repository-control regression behavior unchanged.",
+        "Keep a separate test validating the actual repository records without resetting their history into synthetic states."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-008-895244d286ef105c.json",
+          "sha256": "ebde485de64f253fa0952d33f86373fc024c7b2f87a1eb902b031b676e172ad5"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Repository-control regressions use dedicated synthetic records and explicit task identities, so product ledger changes cannot change their fixture assumptions.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/project/test_continuity.py",
+          "tests/project/test_delivery.py",
+          "tests/project/test_ci.py",
+          "scripts/project.py"
+        ],
+        "hypotheses": [
+          "Minimal independent records can exercise lifecycle and evidence failures without resetting real project history."
+        ],
+        "risks": [
+          {
+            "failure": "Fixture isolation drops existing lifecycle, scenario, native or provenance failure coverage.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Synthetic validation is mistaken for validation of actual project records.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain existing failure cases and compare test behavior with the pre-isolation tests. Revert the fixture extraction without changing real task history if coverage is lost."
+      }
+    },
+    {
+      "id": "M0-009",
+      "title": "Cover workspace membership in architecture checks and native Rust verification",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-006"
+      ],
+      "scope": [
+        "scripts/check_architecture.py",
+        "scripts/check.py",
+        "project/checks.json",
+        "tests/project",
+        "Cargo.toml",
+        ".github/workflows/verify.yml",
+        "scripts/rust_workspace.py",
+        "apps/desktop/src-tauri/Cargo.toml",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0001",
+        "0003",
+        "0004",
+        "0005",
+        "0006"
+      ],
+      "acceptance": [
+        "Discover all reviewed local Cargo workspace members regardless of directory depth and reject forbidden dependency edges in every member.",
+        "Run tests and Clippy for all eligible crates on each supported host, including the desktop crate on native Windows.",
+        "Verify that adding a new member cannot silently omit its tests; retain explicit Linux exclusion of the Windows-only desktop."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture",
+        "rust-contracts-workers",
+        "rust-lints",
+        "windows-native-build",
+        "ui-build"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-009-3cb0d2fe98a780df.json",
+          "sha256": "93567ff8695718706eb51799e69693fdb0776d2aa3d2cadf9e724449dea5be60"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Every Cargo workspace member participates in declared dependency checks and tests/lints on its supported host, including the desktop on native Windows.",
+        "change_types": [
+          "tooling",
+          "packaging"
+        ],
+        "context": [
+          "Cargo.toml",
+          "scripts/check_architecture.py",
+          "project/checks.json",
+          "apps/desktop/src-tauri/Cargo.toml"
+        ],
+        "hypotheses": [
+          "Cargo metadata provides authoritative workspace membership, including nested and implicit path members, without guessing directory layouts.",
+          "A single workspace-aware test/lint entry can include future members and explicitly report platform exclusions."
+        ],
+        "risks": [
+          {
+            "failure": "Nested or aliased local crates bypass architecture boundaries.",
+            "checks": [
+              "architecture",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "New or Windows-only crates are omitted from tests or lints.",
+            "checks": [
+              "rust-contracts-workers",
+              "rust-lints",
+              "windows-native-build",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain discovery and selection regressions and explicit platform results. Revert only this task routing if native checks fail while preserving the known coverage gap and original reports."
+      }
+    },
+    {
+      "id": "M0-010",
+      "title": "Close verification subprocess lifetimes on every completion path",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-006"
+      ],
+      "scope": [
+        "scripts/processes.py",
+        "tests/project/test_processes.py",
+        "project/checks.json",
+        "scripts/windows_job.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0001",
+        "0003",
+        "0004",
+        "0005",
+        "0006"
+      ],
+      "acceptance": [
+        "Successful and nonzero root exits cannot leave check-owned descendants running or writing after the final log digest is recorded.",
+        "Timeout and interruption diagnostics remain retained; verify cleanup with actual bounded child processes on Linux and Windows.",
+        "Document the trusted-process boundary without claiming a hostile-code sandbox."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "windows-native-build"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-010-3cb0d2fe98a780df.json",
+          "sha256": "ee20a00e160dd831cb105299a4055ad08988aebd66934e34ae190182f79a98ad"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A check cannot leave descendants running or writing after root success, failure, timeout or interruption; cleanup failures remain failed verification.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/processes.py",
+          "tests/project/test_processes.py",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "POSIX process-group cleanup can run after normal root exit and wait for surviving members to stop.",
+          "A Windows Job Object assigned before releasing a gated launcher owns descendants even after the command root exits."
+        ],
+        "risks": [
+          {
+            "failure": "Windows children start before job assignment or survive normal parent exit.",
+            "checks": [
+              "python-contracts-workers",
+              "windows-native-build"
+            ]
+          },
+          {
+            "failure": "Cleanup masks the root result or loses timeout/interruption diagnostics.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep failing child-marker regressions and logs. Revert only process ownership code if needed and leave the finding open until Linux and native Windows evidence establishes cleanup; this remains trusted check execution, not a hostile-code sandbox."
+      }
+    },
+    {
+      "id": "M0-011",
+      "title": "Prevent established integration checks from silently becoming optional",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-006"
+      ],
+      "scope": [
+        "scripts/check.py",
+        "scripts/project.py",
+        "project/checks.json",
+        "tests/project",
+        ".github/workflows/verify.yml",
+        "contracts/schemas/project.schema.json",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0001",
+        "0003",
+        "0004",
+        "0005",
+        "0006"
+      ],
+      "acceptance": [
+        "An established required check changed from implemented to planned, removed or omitted cannot yield a successful integration result without an explicit reviewed replacement.",
+        "Future planned product gates remain visible without blocking unrelated M0 development.",
+        "Regression tests cover full and require-windows selection, accepted check-history comparison and intentional check replacement."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-011-48f1cf6fc8f8e33b.json",
+          "sha256": "00da2065275c5b28127d358c9b023ce5e59bfce171d1481d423bafad25622598"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Established change checks cannot disappear, be demoted or be omitted while an integration run succeeds; future planned checks remain visible without blocking ordinary implemented work.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/check.py",
+          "scripts/project.py",
+          "project/checks.json",
+          ".github/workflows/verify.yml",
+          "tests/project/test_delivery.py"
+        ],
+        "hypotheses": [
+          "An explicit catalog of required change checks, validated against implemented cadence and actual run results, prevents the observed false green.",
+          "History comparison can require documented, task-bound replacement coverage when an established gate is deliberately retired."
+        ],
+        "risks": [
+          {
+            "failure": "Demotion, removal or selection omission still yields a passing integration result.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          },
+          {
+            "failure": "Future product gates or release-only work accidentally become mandatory on every edit.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Legitimate replacement of an obsolete check becomes impossible or erases accepted history.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Preserve synthetic downgrade and omission regressions. Revert only the gate policy implementation if needed; never restore a passing claim for a missing established gate."
+      }
+    },
+    {
+      "id": "M0-012",
+      "title": "Enforce reviewed integration with required GitHub checks",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-006"
+      ],
+      "scope": [
+        ".github/workflows/verify.yml",
+        "project/delivery.json",
+        "contracts/reviews",
+        "project/checks.json",
+        "scripts/protection.py",
+        "tests/project/test_protection.py",
+        "project/branch-protection.json",
+        "package.json",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0001",
+        "0003",
+        "0004",
+        "0005",
+        "0006"
+      ],
+      "acceptance": [
+        "After owner authorization, inspect and configure effective main-branch rules requiring reviewed pull requests and both observed Linux and Windows verification contexts.",
+        "Record effective bypass behavior and observed server settings; a policy paragraph alone does not satisfy the task.",
+        "Register a read-only configuration check before completion, preserve existing protections and do not merge or release as part of configuration."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-012-afb3f7dff0818d5f.json",
+          "sha256": "a5c0f62e6ba4c380e8a9b6d1a0909d83720b81a58e3b3fc670eec7fa704569e1"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The server requires a pull request and successful Linux and Windows Actions checks for main, with verified administrator enforcement and a repeatable read-only drift check.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          ".github/workflows/verify.yml",
+          "project/delivery.json",
+          "scripts/ci.py"
+        ],
+        "hypotheses": [
+          "Existing GitHub branch protection can enforce the observed checks without adding another service.",
+          "A zero external-review count preserves the single-owner workflow while requiring a PR and explicit owner integration authorization."
+        ],
+        "risks": [
+          {
+            "failure": "A protection change accidentally permits bypass or weakens existing settings.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Local policy is mistaken for effective server enforcement.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain before and after settings; correct mismatched constraints without disabling the required checks. Do not merge or release during configuration."
+      }
+    },
+    {
+      "id": "M5-002",
+      "title": "Establish dependency and workflow maintenance at integration boundaries",
+      "milestone": "M5",
+      "status": "done",
+      "depends_on": [
+        "M0-006"
+      ],
+      "scope": [
+        ".github",
+        "project/checks.json",
+        "scripts",
+        "tests/project",
+        "project/delivery.json",
+        "pyproject.toml",
+        "uv.lock",
+        "project/dependencies.json",
+        "project/dependency-inventory.json",
+        "THIRD_PARTY_NOTICES",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence",
+        "package.json"
+      ],
+      "decision_refs": [
+        "0001",
+        "0003",
+        "0004",
+        "0005",
+        "0006"
+      ],
+      "acceptance": [
+        "Implement dependency-review with an actual lockfile inventory, applicable notices and documented advisory disposition; unavailable scans do not count as clean.",
+        "Pin reviewed external Actions to immutable commits and define a bounded update process for Actions, toolchains and the three package ecosystems.",
+        "Keep routine dependency-change verification separate from packaged release and soak acceptance, and preserve explicit native validation when build inputs change."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture",
+        "dependency-review",
+        "windows-native-build"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M5-002-3cb0d2fe98a780df.json",
+          "sha256": "80cd0ae7ea510109b6f54489df5186bc9057f3b366102dc0b887d1fdb69b308e"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Every locked dependency and external workflow action has traceable inventory and license handling; integration checks fail on advisory findings or unavailable scans, and updates follow a bounded reviewed cadence.",
+        "change_types": [
+          "tooling",
+          "dependencies"
+        ],
+        "context": [
+          "Cargo.lock",
+          "uv.lock",
+          "pnpm-lock.yaml",
+          ".github/workflows/verify.yml",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "An OSV batch query over exact locked packages and commit-pinned Actions can provide fresh cross-ecosystem advisory checks without adding an account or service.",
+          "Reviewed version-bound license metadata can be retained and checked offline; new or changed dependencies require explicit inventory refresh."
+        ],
+        "risks": [
+          {
+            "failure": "Incomplete lock parsing or unavailable advisory requests are misreported as clean.",
+            "checks": [
+              "python-contracts-workers",
+              "dependency-review"
+            ]
+          },
+          {
+            "failure": "Dependency changes break native build or hide legal notices.",
+            "checks": [
+              "dependency-review",
+              "windows-native-build"
+            ]
+          },
+          {
+            "failure": "A mutable workflow tag or unsupported updater silently defeats maintenance.",
+            "checks": [
+              "dependency-review",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Retain failed scan and native reports; revert an incompatible dependency or workflow update as a coherent checkpoint. Never turn unavailable scanning or missing metadata into a passing result."
+      }
+    },
+    {
+      "id": "M0-013",
+      "title": "Make scaffold recovery and evidence-driven improvement resumable",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-006"
+      ],
+      "scope": [
+        "AGENTS.md",
+        "project/delivery.json",
+        "project/feedback.json",
+        "project/tasks.json",
+        "project/evidence",
+        "contracts/schemas/project.schema.json",
+        "package.json",
+        "scripts/recovery.py",
+        "scripts/check.py",
+        "scripts/project.py",
+        "tests/project"
+      ],
+      "decision_refs": [
+        "0001",
+        "0003",
+        "0004",
+        "0005",
+        "0006"
+      ],
+      "acceptance": [
+        "An independent standard-library recovery command retains malformed control files and failure context when normal project imports or validation cannot start; diagnostics never establish acceptance or replace the latest harness report.",
+        "Recovery distinguishes observed failures, task-specific capability gaps, relevant feedback and expected omissions without executing commands from damaged records.",
+        "Contributor policy and task context define when the active agent investigates, repairs or extends the scaffold, how it avoids blind retries and weakened checks, and how it restores the interrupted product task after validated closure.",
+        "Isolated regressions exercise broken bootstrap dependencies, malformed records and preservation of evidence without depending on production task order."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-013-c04fcbe86f9c900c.json",
+          "sha256": "0bd3acf5a784acc2e37e4af2dd125d136a312a97301336a6ef848716aef77d78"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A development agent can preserve and diagnose a broken scaffold, implement a bounded repair or missing capability, validate it and resume delivery using repository records.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "AGENTS.md",
+          "project/delivery.json",
+          "project/feedback.json",
+          "scripts/check.py",
+          "scripts/project.py",
+          "contracts/reviews/2026-10-14-long-term-health.json"
+        ],
+        "hypotheses": [
+          "Existing task, feedback and evidence records can carry the repair lifecycle without introducing a scheduler or autonomous code-writing service.",
+          "A standard-library diagnostic independent of project imports remains usable when the normal control plane is broken."
+        ],
+        "risks": [
+          {
+            "failure": "The recovery command depends on the same broken modules or records as the normal harness.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Historical diagnostics, future planned checks or expected platform omissions are mistaken for current acceptance or repair obligations.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Recovery overwrites original evidence or treats untrusted record commands as instructions to execute.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "New policy invalidates accepted history or allows repair by silently reducing verification.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Preserve failed runs and uncommitted changes; compare with commit 47f0bd0fed34bc63d60bb4f8b3e311c677c41336 and revert only the recovery implementation if needed. Restore normal validation and backfill repair records before claiming completion; retain the existing audit corrective tasks."
+      }
+    },
+    {
+      "id": "M0-014",
+      "title": "Make integration and release decisions explicit and revision-bound",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-006",
+        "M0-011",
+        "M0-012"
+      ],
+      "scope": [
+        "scripts/integration.py",
+        "scripts/project.py",
+        "tests/project",
+        "project/delivery.json",
+        "contracts/schemas/project.schema.json",
+        "package.json",
+        "AGENTS.md",
+        "project/tasks.json",
+        "project/evidence",
+        "contracts/reviews"
+      ],
+      "decision_refs": [
+        "0003",
+        "0004",
+        "0005",
+        "0006"
+      ],
+      "acceptance": [
+        "A read-only integration command identifies the live PR revision and base, observes required hosted jobs and protection, checks preserved task history and completed delivery scope, and reports concrete blockers without granting merge authorization.",
+        "Draft, dirty, stale, conflicting, unverified, incomplete or unavailable observations cannot be reported as ready for integration; planned future product work does not prevent a completed slice from reaching review.",
+        "The delivery policy defines when the active agent proposes integration or a release candidate, binds review and authorization to the relevant revision or artifact, and specifies post-action verification and failure recovery.",
+        "Release readiness remains a technical assessment distinct from publication authorization; the scaffold cannot be presented as a usable product release, and executable regressions cover unsupported readiness claims."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-014-ec729c8d628c65f7.json",
+          "sha256": "65d4cacce9d75c4efd93783228971b1490e4889b37055a24e65952d1d6a714a2"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The owner and a continuing agent can decide when to integrate a completed slice and when to prepare a product release using observed gates and explicit action scope.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/delivery.json",
+          "project/branch-protection.json",
+          "scripts/ci.py",
+          "scripts/protection.py",
+          "scripts/project.py",
+          ".github/workflows/verify.yml"
+        ],
+        "hypotheses": [
+          "Existing hosted verification, branch protection and task evidence can support a focused read-only integration assessment without an unattended merge service.",
+          "A defined release-candidate lifecycle can reuse existing acceptance gates while packaging and publication remain future product work."
+        ],
+        "risks": [
+          {
+            "failure": "A successful workflow or old PR observation is mistaken for current merge eligibility.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Missing review or authorization is inferred from a technical pass or a local boolean.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Future product tasks block ordinary integration, or a scaffold build is mistaken for a releasable application.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Preserve the observed PR and failed checks; revert only the new assessment and lifecycle extension if needed. Keep existing required checks, live branch protection, accepted records and publication boundaries unchanged, and resume M1-002 after validated closure."
+      }
+    }
+  ]
+}

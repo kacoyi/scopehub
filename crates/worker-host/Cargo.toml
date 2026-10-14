@@ -1,0 +1,15 @@
+[package]
+name = "scopehub-worker-host"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+scopehub-domain = { path = "../domain" }
+serde_json.workspace = true
+jsonschema.workspace = true
+tokio.workspace = true
+
+[lints]
+workspace = true

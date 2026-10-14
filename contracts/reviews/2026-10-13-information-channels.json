@@ -1,0 +1,122 @@
+{
+  "artifact_type": "integration_assessment",
+  "reviewed_at": "2026-10-13",
+  "status": "recommendation_not_implemented",
+  "question": "What information-access foundations should ScopeHub establish now, and where could the unfinished Omniscience project help later?",
+  "recommendation": "Preserve evidence semantics and replaceable acquisition boundaries now. Implement a small information workflow when a concrete collaboration task needs it; integrate Omniscience only for the capability and domain coverage it can demonstrate. Neither project's completion should block the other's local development.",
+  "scope": {
+    "method": "Read-only review of the owner-named project's capability declaration, machine state, active profile and product contracts, plus platform capability discovery without probes",
+    "upstream_source_implementation_audited": false,
+    "upstream_tests_run": false,
+    "service_health_probed": false,
+    "new_runtime_dependencies": false,
+    "changes_product_or_wire_contract": false,
+    "upstream_modified": false
+  },
+  "omniscience": {
+    "local_path": "/home/loong/ai-workspace/projects/omniscience",
+    "revision": "92d8541adb1d76866a831508a0fe3bed0755f988",
+    "active_profile": "ai",
+    "status_record_date": "2026-09-04",
+    "recorded_state": "Reconstruction serving and durable audit complete; WP-R1-RR-006 end-to-end qualification ready; trial deferred; Release 1 incomplete",
+    "status_qualification": "This is recorded upstream state, not a fresh execution or release-readiness verification. All seven generated-workfront input hashes matched the reviewed local files.",
+    "potential_fit": [
+      "Source acquisition and an attributable evidence foundation",
+      "Subject-centered reconstruction with explicit competing claims, unknowns and coverage gaps",
+      "Queries distinguishing valid time from system knowledge time",
+      "Versioned corrections, lineage and authorized machine/export access"
+    ],
+    "unestablished_fit": [
+      "Coverage of Chinese futures, A-shares, US equities and their required research facets",
+      "Exchange-grade market feeds, instrument mapping, corporate actions and futures contract semantics",
+      "Currently published and healthy service access for ScopeHub",
+      "Latency, information quality and cost for a representative financial research task"
+    ],
+    "boundary": "Omniscience describes downstream-application-agnostic evidence and reconstruction. Investment hypotheses, suitability for a ScopeHub question, chart interaction, authorization and execution remain ScopeHub responsibilities. An upstream supported assessment remains attributable and fallible.",
+    "evidence": [
+      "capabilities.yaml",
+      "docs/ai/agent-entry.yaml",
+      "docs/ai/product-north-star.yaml",
+      "docs/ai/current-workfront.yaml",
+      "docs/ai/current-state.yaml",
+      "registry/active-profile.v2.json",
+      "specs/active-spec.yaml",
+      "specs/reality-reconstruction.v2.yaml"
+    ]
+  },
+  "platform_discovery": {
+    "probe": false,
+    "checks": [
+      {"capability": "intel.claim-verify", "status": "UNAVAILABLE", "published_providers": 0},
+      {"capability": "search.fulltext", "status": "UNAVAILABLE", "published_providers": 0},
+      {"capability": "scrape.web", "status": "UNAVAILABLE", "published_providers": 0}
+    ],
+    "interpretation": "Legacy declarations exist but these lookups expose no published provider. This does not prove that local implementations are absent or that a running service is unhealthy.",
+    "dependency_record": "No ai-cap use or offer was created because there is no actual shared-service integration."
+  },
+  "proposed_responsibilities": [
+    {
+      "area": "Market data",
+      "role": "Feed instrument prices and series with source, timing, session and contract semantics. Keep this path independent from research-information availability."
+    },
+    {
+      "area": "Research information",
+      "role": "Retrieve and inspect task-relevant announcements, filings, macro or industry observations, documents and upstream assessments. Omniscience, direct data products, search tools and user-supplied material are candidate sources."
+    },
+    {
+      "area": "ScopeHub collaboration",
+      "role": "Frame the question, identify missing information, request authorized evidence, compare explanations, compute, present uncertainty and act through application operations."
+    }
+  ],
+  "foundation_to_preserve": [
+    {
+      "concern": "Evidence provenance",
+      "intent": "Keep a resolvable source/document locator, version and the evidence supporting each material external claim. Distinguish original source assertions, upstream assessments, calculations and model inferences; a search snippet or URL alone is not verified evidence."
+    },
+    {
+      "concern": "Time",
+      "intent": "Distinguish event/valid time, publication time, retrieval time and the system's knowledge cutoff where the source supports them. Keep unknown times explicit. Historical explanations must not silently include evidence learned after the selected cutoff."
+    },
+    {
+      "concern": "Identity and coverage",
+      "intent": "Map evidence subjects to the correct issuer, listing, contract or underlying with ambiguity preserved. Return source scope, partial coverage, conflicts and unknowns; do not turn absence of retrieved evidence into proof of absence."
+    },
+    {
+      "concern": "Corrections and reproducibility",
+      "intent": "Reference the evidence versions used by an analysis. A correction may prompt reassessment without silently rewriting what was known or concluded earlier. Retain original content only within applicable access and retention rights."
+    },
+    {
+      "concern": "Availability",
+      "intent": "Distinguish unavailable, unsupported, stale, partial and empty results. Keep chart and indicator work usable during research-provider failures while visibly limiting claims that require missing evidence."
+    },
+    {
+      "concern": "Authorized retrieval",
+      "intent": "Use the existing core authorization and task limits for future information tools. External content supplies data, not instructions or permissions. Retrieval rights do not automatically authorize cloud-model disclosure, retention or new spending."
+    },
+    {
+      "concern": "Replaceability",
+      "intent": "Keep concrete providers behind the relevant adapter when implemented. Do not import another application's database, internal model catalog or entire runtime into ScopeHub merely to consume a query result."
+    }
+  ],
+  "delivery_recommendation": {
+    "now": "Keep this assessment as a design reference and continue the existing chart, operation and indicator milestones. No unused research service, generalized retrieval framework or empty adapter is needed for the current scaffold.",
+    "first_information_workflow": "When a question actually requires external evidence, choose one bounded task such as investigating an event within a selected chart interval. Start with replayable local evidence to validate citation, time, uncertainty and failure behavior, then measure a real provider on the same task. Mock evidence proves software behavior only.",
+    "interface_timing": "Define the smallest typed request/result and explicit tool operations together with that workflow. The current market-only Context schema does not implement a research-evidence interface; evolve it through the existing versioned contract process when needed rather than hiding new semantics in free-form metadata.",
+    "omniscience_integration_trigger": "A needed domain/profile and stable consumable capability exist, current access is authorized, and representative queries satisfy evidence, time, quality and operational needs. A bounded integration need not wait for all Omniscience product capabilities to be finished.",
+    "integration_route": "Recheck the platform capability registry at integration time and record actual shared consumption. Use an authorized versioned query or export adapter; source-specific alternatives remain valid when they fit the task better.",
+    "later_only_if_needed": [
+      "Continuous source monitoring and push subscriptions",
+      "Large-scale document ingestion or full-market information collection",
+      "Dedicated graph/vector infrastructure in ScopeHub",
+      "A finance profile in Omniscience beyond its currently active AI profile"
+    ]
+  },
+  "future_acceptance_examples": [
+    "No relevant retrieved material produces an explicit evidence gap, not a fabricated price-move explanation.",
+    "A post-event article cannot become information the system claims was known before publication or acquisition; hindsight and contemporaneous views stay distinguishable.",
+    "Several articles derived from one announcement are not counted as independent corroboration.",
+    "Provider timeout or unavailable coverage limits the research claim while chart operations remain usable.",
+    "Conflicting or corrected evidence remains attributable, with the prior analysis linked to the versions it actually consumed.",
+    "Text embedded in a retrieved document cannot grant tool permission or change an approved operation."
+  ]
+}

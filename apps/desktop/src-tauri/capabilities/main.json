@@ -1,0 +1,6 @@
+{
+  "identifier": "main",
+  "description": "M0 local application window. No file, process, SQL, network or operation commands are exposed.",
+  "windows": ["main"],
+  "permissions": []
+}

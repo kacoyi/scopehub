@@ -3,3 +3,16 @@
 .env.*
 !.env.example
 *:Zone.Identifier
+
+node_modules/
+.venv/
+__pycache__/
+*.py[cod]
+target/
+dist/
+.reports/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+apps/desktop/src-tauri/gen/
+apps/desktop/src-tauri/binaries/

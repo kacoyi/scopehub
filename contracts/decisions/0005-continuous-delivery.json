@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0",
+  "id": "0005",
+  "title": "Early failure detection and scenario-driven continuous delivery",
+  "status": "accepted",
+  "recorded_at": "2026-10-14",
+  "context": "The owner requests a durable scaffold for reliable, controllable and verifiable AI-led product delivery, early error detection and course correction without unnecessary limits on implementation ability.",
+  "decision": "Extend the existing local task and verification system with focused task plans, selected fast checks, decision-bound evidence, accepted-history review, product scenarios and evidence-backed feedback. Derive readiness from observed checks and preserve explicit native and release gates.",
+  "authority": "The owner explicitly authorizes auditing and implementing the long-term delivery scaffold. Product languages, runtime permissions, process boundaries and wire protocols are unchanged.",
+  "alternatives": [
+    {
+      "option": "Add more prose rules and skills without executable checks",
+      "reason": "Duplicated instructions do not expose stale evidence or provide a repeatable correction loop."
+    },
+    {
+      "option": "Introduce a remote workflow platform and speculative runtime infrastructure",
+      "reason": "The current workflow fits repository-local records and commands; no external coordination need has been demonstrated."
+    }
+  ],
+  "consequences": [
+    "Active tasks have a bounded observable outcome, risks with checks, relevant context and recovery direction.",
+    "Fast or selected checks expose omitted gates explicitly and cannot establish whole-product readiness.",
+    "Tooling checks retain partial output and terminate timed-out process groups; native Windows behavior still requires actual target execution.",
+    "Feedback resolution requires completed corrective work with matching checks; a deferred issue keeps its reason visible.",
+    "The history check compares with a Git base and cannot authenticate fabricated evidence or recover never-committed history.",
+    "Routine implementation remains autonomous; preserve the existing decision triggers and avoid mechanical approvals or tests for trivial edits.",
+    "Scenario definitions organize acceptance but do not demonstrate behavior until their checks actually execute."
+  ],
+  "supersedes": [],
+  "related_decisions": [
+    "0003",
+    "0004"
+  ],
+  "revisit_when": [
+    "Actual concurrent delivery exceeds repository-local coordination.",
+    "Product reviews or escaped defects reveal missing scenarios.",
+    "A repeatable multi-step procedure justifies extracting a skill."
+  ]
+}

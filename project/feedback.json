@@ -1,0 +1,348 @@
+{
+  "schema_version": "1.0",
+  "items": [
+    {
+      "id": "verification-lifetime",
+      "source": "scripts/check.py",
+      "observation": "Timeout handling discards captured output and subprocess.run does not explicitly terminate the check process group.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-004"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "project-state"
+      ],
+      "resolution": {
+        "cause": "Output was accumulated in memory and discarded on timeout; descendants had no explicit termination path.",
+        "correction": "Stream output to retained logs, terminate timed-out process groups or Windows process trees, and report cleanup or launch failure.",
+        "prevention": "tests/project/test_processes.py exercises partial diagnostics and a real descendant that must not survive timeout."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "verification-freshness",
+      "source": "scripts/project.py",
+      "observation": "Decision metadata is excluded from the execution digest, and current milestone display does not require current task definitions.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-004"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "project-state"
+      ],
+      "resolution": {
+        "cause": "Execution hashing excluded decisions and task definitions; readiness could display old milestone results.",
+        "correction": "Validate report structure, bind task and decision definitions, reject mid-run drift and failed runs, and require matching clean committed release proof.",
+        "prevention": "tests/project/test_delivery.py covers changed decisions, invalid state, malformed reports, partial selection and dirty-build release claims."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "delivery-feedback",
+      "source": "project/tasks.json",
+      "observation": "Milestone-sized tasks lack focused delivery context, observable scenario bindings and a tracked correction loop.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-004"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "project-state"
+      ],
+      "resolution": {
+        "cause": "Tasks described broad phases without a validated link between user outcomes, risks and corrective work.",
+        "correction": "Add focused plans, five product scenarios, change-risk check mappings, task context and evidence-backed feedback resolution; preserve cancelled plans without blocking a delivered replacement.",
+        "prevention": "tests/project/test_delivery.py rejects uncovered risks and premature feedback closure and checks cancellation, selection and release blockers."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "history-enforcement",
+      "source": "contracts/decisions/0004-project-continuity.json",
+      "observation": "Accepted history preservation is specified but has no comparison with the reviewed Git base.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-004"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "project-state"
+      ],
+      "resolution": {
+        "cause": "History preservation relied on instructions without comparing the reviewed revision.",
+        "correction": "Compare accepted tasks and decisions against an explicit Git base in local review and CI; disclose when no comparison is available.",
+        "prevention": "tests/project/test_delivery.py uses isolated commits to reject rewritten decisions and reopened completed tasks."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "architecture-aliases",
+      "source": "scripts/check_architecture.py",
+      "observation": "Inherited Cargo workspace aliases can hide forbidden infrastructure or internal-layer dependencies from the original boundary check.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-004"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "project-state"
+      ],
+      "resolution": {
+        "cause": "The dependency checker inspected child-manifest aliases without resolving workspace definitions.",
+        "correction": "Resolve inherited and local dependency identities before enforcing layer boundaries.",
+        "prevention": "tests/project/test_architecture.py covers inherited database aliases and target-specific internal dependencies."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "verification-cadence",
+      "source": "project/checks.json",
+      "observation": "The original default harness would eventually run packaged and soak checks on every native change, while the stability timeout was shorter than the contractual two-hour workload.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-004"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "project-state"
+      ],
+      "resolution": {
+        "cause": "Daily and release-only checks shared one execution path and the soak deadline could not accommodate the contract workload.",
+        "correction": "Add change versus release cadence, explicit manual release validation, a longer release job budget and a bounded soak deadline.",
+        "prevention": "tests/project/test_delivery.py checks that default runs omit release work explicitly and that selected release gates remain blocked until executed."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "native-foundation-integration",
+      "source": "https://github.com/kacoyi/scopehub/actions/runs/38513138285",
+      "observation": "The first native run found locale-dependent history decoding, an incorrect relative frontend hook, and source changes during Tauri manifest normalization; local Linux checks did not cover those integration paths.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-003"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "windows-native-build"
+      ],
+      "resolution": {
+        "cause": "Git history JSON used locale-dependent subprocess text decoding; Tauri discovered the nested UI package and normalized a shorthand build dependency during startup.",
+        "correction": "Parse Git JSON from UTF-8 bytes, execute frontend hooks within the discovered UI package, and declare the normalized build dependency explicitly. Retain end-of-run source identity and changed paths for future build-write diagnostics.",
+        "prevention": "A regression simulates legacy Windows text decoding, and actual Windows CI passes all 76 Python tests and the desktop release build with unchanged source inputs."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "protocol-variant-identity",
+      "source": "contracts/reviews/2026-10-14-long-term-health.json",
+      "observation": "Schema-valid indicator.remove requests and AI tool calls decode into ChartRemoveLayer Rust variants because untagged unions ignore inline const discriminators.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-007"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "typescript-contracts",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Generated Rust literals were unconstrained strings and typed integer decoding did not implement schema-valid integral floating-point encodings. The Python decoder returned floats behind integer annotations.",
+        "correction": "Generate literal discriminator types and normalize validated safe integral numbers before Rust/Python typed decoding without changing the wire schema.",
+        "prevention": "Shared vectors assert all 14 human and AI operation identities and numeric values/types including safe boundaries. Failed reproduction: .reports/runs/20261014T060811.082497Z-ba6344d3/test-report.json; passing evidence is archived with M0-007. Serde behavior reference: https://serde.rs/enum-representations.html."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "protocol-numeric-parity",
+      "source": "contracts/reviews/2026-10-14-long-term-health.json",
+      "observation": "Schema-valid integral timestamp encodings 1.0 and 1e0 are accepted by Python and JavaScript but rejected by the Rust decode_line path.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-007"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "typescript-contracts",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Generated Rust literals were unconstrained strings and typed integer decoding did not implement schema-valid integral floating-point encodings. The Python decoder returned floats behind integer annotations.",
+        "correction": "Generate literal discriminator types and normalize validated safe integral numbers before Rust/Python typed decoding without changing the wire schema.",
+        "prevention": "Shared vectors assert all 14 human and AI operation identities and numeric values/types including safe boundaries. Failed reproduction: .reports/runs/20261014T060811.082497Z-ba6344d3/test-report.json; passing evidence is archived with M0-007. Serde behavior reference: https://serde.rs/enum-representations.html."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "control-fixture-ledger-coupling",
+      "source": "contracts/reviews/2026-10-14-long-term-health.json",
+      "observation": "Prepending the valid audit task causes 16 failures and 34 errors among 76 Python tests because ProjectFixture mutates ledger.tasks[0] and assumes a historical check list. Appending restores the baseline but does not repair the coupling.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-008"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Repository-control fixtures copied production records, reset historical states and edited tasks by list position.",
+        "correction": "Use a minimal independently constructed task, decision, scenario and check fixture with explicit task lookup and intentionally non-positional ordering.",
+        "prevention": "Existing lifecycle and provenance regressions pass against the synthetic records. New tests reorder and prepend unrelated tasks, assert fixture setup copies only the canonical schema, and validate the actual repository without rewriting its history."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "architecture-member-discovery",
+      "source": "contracts/reviews/2026-10-14-long-term-health.json",
+      "observation": "rust_boundaries rejects a rusqlite dependency in crates/domain but returns no errors for the same scopehub-domain package at crates/nested/domain.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-009"
+      ],
+      "regression_checks": [
+        "architecture",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Directory globbing missed valid nested or implicit Cargo members.",
+        "correction": "Use locked Cargo metadata to discover every workspace member and normalize actual dependency identities before applying architecture rules.",
+        "prevention": "Regression workspaces exercise nested, globbed, implicit and aliased dependencies, invalid metadata and unregistered layers."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "native-rust-check-coverage",
+      "source": "contracts/reviews/2026-10-14-long-term-health.json",
+      "observation": "Cargo default-members includes only domain and worker-host. Both hosted test and Clippy commands use defaults; desktop:build compiles the Windows application without executing its tests.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-009"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "rust-lints",
+        "windows-native-build"
+      ],
+      "resolution": {
+        "cause": "Cargo default-members excluded desktop and could omit future crates.",
+        "correction": "Run explicit --workspace tests and all-target Clippy, with reviewed package platform metadata for exclusions. Native reports include the desktop test target and lint compilation.",
+        "prevention": "An actual newly added nondefault crate with a failing test makes workspace verification fail. Native Windows run 38525575017 and archived M0-009 evidence verify the final command routing."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "verification-descendant-normal-exit",
+      "source": "contracts/reviews/2026-10-14-long-term-health.json",
+      "observation": "An isolated Linux probe shows run_logged returns exit_code=0 and reason=null while a spawned child remains alive and writes a marker afterward. Timeout cleanup does not cover normal root exit.",
+      "severity": "minor",
+      "status": "addressed",
+      "task_ids": [
+        "M0-010"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "windows-native-build"
+      ],
+      "resolution": {
+        "cause": "Cleanup covered timeout but not normal or nonzero root exits, and Windows parent-PID traversal could lose descendants.",
+        "correction": "Always stop the owned POSIX process group or gated Windows Job Object, await cleanup and then digest the final log; cleanup failure cannot pass.",
+        "prevention": "Actual bounded descendants are tested after root success, error, timeout and interruption on Linux and Windows; M0-010 archives run 38525575017. This is trusted check process ownership, not a hostile-code sandbox."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "integration-gate-demotion",
+      "source": "contracts/reviews/2026-10-14-long-term-health.json",
+      "observation": "In an explicitly synthetic harness-selection probe, changing rust-contracts-workers to planned/null yields exit 0 and report passed under require-windows, although M0 verification is blocked. CI does not enforce a preserved implemented gate set.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-011"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Success was derived only from checks still marked implemented and selected.",
+        "correction": "Validate required change gates and actual result coverage; compare the catalog with review and previous checkpoint history and require task-bound replacement rationale.",
+        "prevention": "M0-011 archives passing regressions for demotion, deletion, cadence changes, selection omission, partial/native runs and preserved replacement history."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "main-integration-enforcement",
+      "source": "contracts/reviews/2026-10-14-long-term-health.json",
+      "observation": "Authenticated read-only inspection found main protected=false and no repository rulesets. Both PR verification contexts pass, but server settings do not require them before integration.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-012"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Main had no effective server-side pull-request or check requirements.",
+        "correction": "Applied project/branch-protection.json and independently read back enforced administrator, current-base, pull-request and trusted GitHub Actions check requirements; retained contracts/reviews/2026-10-14-main-protection.json.",
+        "prevention": "pnpm project:protection is a live read-only drift check required before integration and after workflow or protection changes; regressions reject missing checks, wrong App identity and bypass. Single-owner review and merge authorization remain separate."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "dependency-maintenance-gap",
+      "source": "contracts/reviews/2026-10-14-long-term-health.json",
+      "observation": "Dependency review remains planned and release-cadence; external Actions use mutable tags or stable. Locks support reproducible package resolution but do not establish advisory, notice or workflow-source review.",
+      "severity": "minor",
+      "status": "addressed",
+      "task_ids": [
+        "M5-002"
+      ],
+      "regression_checks": [
+        "dependency-review",
+        "architecture"
+      ],
+      "resolution": {
+        "cause": "Locked resolution had no executable advisory or notice review and external workflow sources used mutable refs.",
+        "correction": "Implement change-cadence review of 544 locked packages and seven immutable Action commits, retain upstream license inventory and metadata clarifications, remove the unnecessary GPL-only format extra, and document exact expiring advisory dispositions with executable build-scope guards.",
+        "prevention": "Regression tests reject stale or incomplete inventory, missing notices, unreviewed pins, malformed/unavailable/partial/paginated scans, unsupported lock sources, offline acceptance and expired or invalidated dispositions. Native run 38525575017 passes all 13 implemented gates. Bounded update policy, due-date visibility and supported Dependabot ecosystems are recorded; release notices remain a distinct planned gate."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "scaffold-bootstrap-recovery",
+      "source": "Owner follow-up on 2026-10-14 and inspection of scripts/check.py bootstrap",
+      "observation": "Normal status and harness commands import project validation before diagnostics can be retained. A broken validator dependency or malformed task ledger can disable the repair workflow itself; the owner requested a proportional mechanism for repair and concrete capability gaps.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-013"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Normal verification imported project validation before its exception handler and created run reports only after valid project records; there was no independent bootstrap diagnostic or explicit maintenance loop in task context.",
+        "correction": "Added a standard-library recovery entry, isolated raw-control snapshots, harness exception capture, task-specific failure/gap observations and maintenance policy in contributor guidance and task context.",
+        "prevention": "Sixteen isolated recovery regressions in python-contracts-workers exercise malformed inputs, unavailable imports, failure before run creation, explicit interrupted-task identity, snapshot failures and rejection of diagnostics as acceptance. Normal project validation and archived task evidence remain required; the prior audit corrective tasks stay open."
+      },
+      "deferral_reason": null
+    }
+  ]
+}

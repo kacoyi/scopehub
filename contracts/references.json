@@ -1,0 +1,62 @@
+{
+  "references": [
+    {
+      "name": "Tauri",
+      "url": "https://github.com/tauri-apps/tauri",
+      "use": "Desktop process, capabilities and packaging boundaries",
+      "docs": "https://v2.tauri.app/security/capabilities/"
+    },
+    {
+      "name": "Tauri sidecars",
+      "url": "https://v2.tauri.app/develop/sidecar/",
+      "use": "Package native Python workers without a user-installed interpreter; M5"
+    },
+    {
+      "name": "Tauri Windows installer",
+      "url": "https://v2.tauri.app/distribute/windows-installer/",
+      "use": "NSIS and WebView2 bootstrapper; native Windows verification required"
+    },
+    {
+      "name": "Lightweight Charts",
+      "url": "https://github.com/tradingview/lightweight-charts",
+      "use": "Future chart adapter only; preserve NOTICE and attribution; M1"
+    },
+    {
+      "name": "JSON Schema",
+      "url": "https://json-schema.org/draft/2020-12",
+      "use": "Cross-language executable wire contracts"
+    },
+    {
+      "name": "OpenChart",
+      "url": "https://github.com/longsurf-ai/openchart",
+      "use": "Chart-context research, indicator execution, shared operation catalog and permission lifecycle reference; M1-M4",
+      "reviewed_revision": "e8316158f814cdb34279a0a7fa9602d3e793ae1e",
+      "assessment": "contracts/reviews/2026-10-13-repositories.json",
+      "dependency_status": "not_adopted"
+    },
+    {
+      "name": "FinRobot Desktop",
+      "url": "https://github.com/AI4Finance-Foundation/FinRobot/tree/2717499b8e30f242640af08c4ad9afd1113c2d45/finrobot_desktop",
+      "use": "Data provenance, stale-cache semantics and financial computation candidates; distinguish Desktop V2 from the PyPI V0 package",
+      "reviewed_revision": "2717499b8e30f242640af08c4ad9afd1113c2d45",
+      "assessment": "contracts/reviews/2026-10-13-repositories.json",
+      "dependency_status": "not_adopted"
+    },
+    {
+      "name": "OpenStock",
+      "url": "https://github.com/Open-Dev-Society/OpenStock",
+      "use": "Watchlist, instrument search and data-age presentation reference",
+      "reviewed_revision": "d890d910c8746d9794b39520199c6ed6735d2d1e",
+      "assessment": "contracts/reviews/2026-10-13-repositories.json",
+      "dependency_status": "not_adopted"
+    },
+    {
+      "name": "Omniscience",
+      "local_path": "/home/loong/ai-workspace/projects/omniscience",
+      "use": "Candidate upstream for evidence-grounded research, temporal queries, disagreements and corrections; current active profile is AI, not general financial coverage",
+      "reviewed_revision": "92d8541adb1d76866a831508a0fe3bed0755f988",
+      "assessment": "contracts/reviews/2026-10-13-information-channels.json",
+      "dependency_status": "candidate_not_integrated"
+    }
+  ]
+}

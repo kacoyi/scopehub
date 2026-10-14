@@ -1,0 +1,69 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-002",
+  "task_definition_sha256": "8360dee5f6a693260723c2b7693a190188f4404d949da0958341e287f2aa2c8e",
+  "run_id": "20261013T144655.651411Z-7636d530",
+  "recorded_at": "2026-10-13T14:47:58.934103+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "60633c0132f2919c91148fa2440d257bee467c1641fe010acba620418c9d1966",
+    "file_count": 86,
+    "git_head": "8e16842865464e53224aed422ea764c378d84fa9",
+    "working_tree_dirty": true,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json"
+    ]
+  },
+  "report_sha256": "10a4581ed6122644a42a282ed0d25a2c12ff5083542cd1ba15eb8a0c94db2223",
+  "environment": {
+    "system": "Linux",
+    "release": "6.18.33.2-microsoft-standard-WSL2",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/loong/ai-workspace/projects/scopehub/.venv/bin/python",
+    "tools": {
+      "node": "v24.21.0",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/loong/ai-workspace/projects/scopehub/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "b54b7d6d474cf6e9a52b7797e825dac40f9f3a4b8f895dabccf49f515207f1be"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/loong/ai-workspace/projects/scopehub/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "70b710452b575719a5d75fbc469d25896fefff37ce4577c9f5628e170e297b11"
+    }
+  ],
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}
