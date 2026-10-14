@@ -349,14 +349,18 @@
       "source": ".reports/runs/20261014T081548.880651Z-cb04f032/test-report.json",
       "observation": "Pre-integration review of M1-002 found that a gapped aggregate summed only received volume. Independent regressions reproduced 350.0 and 0.0 where a missing elapsed minute makes total volume unknown. This was detected before chart integration or release.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-002"
       ],
       "regression_checks": [
         "market-fixtures"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Aggregation summed received volumes without checking whether every elapsed sample minute had been observed.",
+        "correction": "Count expected elapsed minutes from the explicit sample calendar and emit null volume for incomplete buckets, while retaining valid zero volume, interval closure and the dataset gap declaration.",
+        "prevention": "Independent missing-versus-zero regressions and hand-calculated OHLC/calendar oracles run in the required market-fixtures gate. Linux and native Windows evidence for M1-002 archives all 16 market tests and the 156-test Python suite; the original failing report is retained at .reports/runs/20261014T081548.880651Z-cb04f032/test-report.json."
+      },
       "deferral_reason": null
     }
   ]

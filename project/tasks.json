@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-002",
+  "focus_task_id": "M1-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -450,7 +450,7 @@
       "id": "M1-002",
       "title": "Establish deterministic market fixtures before chart integration",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-003"
       ],
@@ -479,8 +479,17 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Implement fixed synthetic sessions and histories, verify independent bar oracles, register market-fixtures, then archive evidence and hand off chart integration.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-002-dd972ffe92fdd6e1.json",
+          "sha256": "86197c6b296404704902d734dcf2bc91df416396b82e3c1e2d6362ffa5d7ad98"
+        },
+        {
+          "path": "project/evidence/M1-002-59adc1559cfe440d.json",
+          "sha256": "f8910dcb33b248c6a60b70617e7b7cdd4921f54ce68b655538bed36edfd7d235"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
