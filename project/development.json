@@ -12,7 +12,8 @@
     "ask_owner_when": [
       "User-visible behavior, product scope or a meaningful experience tradeoff is unresolved and cannot be inferred from accepted requirements.",
       "A change affects user-data retention or irreversible handling, external transmission, costs, runtime authority or an existing explicit permission boundary.",
-      "Publication, merge, release or shared-resource use needs authorization not already granted; preserve existing applicable authorization."
+      "Publication, merge, release or shared-resource use needs authorization not already granted; preserve existing applicable authorization.",
+      "Current publication restriction: the development-foundation iteration stays local under contracts/reviews/2026-10-29-local-only.json. Wait for owner direction to change it; do not repeatedly request publication during local work."
     ],
     "question_protocol": [
       "Ask concrete questions about observable behavior and consequences; include a recommended option and the impact of alternatives when useful.",

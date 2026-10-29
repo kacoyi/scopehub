@@ -730,7 +730,8 @@ def main():
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest='command', required=True)
     sub.add_parser('check')
-    sub.add_parser('status')
+    status = sub.add_parser('status')
+    status.add_argument('--detail', action='store_true', help='Expand focus plans and individual evidence receipts')
     context = sub.add_parser('context')
     context.add_argument('task_id', nargs='?')
     context.add_argument('--detail', action='store_true', help='Expand full policies, decisions and historical dependencies')
@@ -754,7 +755,11 @@ def main():
             result = {'status': 'passed', 'tasks': len(project['tasks']), 'decisions': len(project['decisions']),
                       'checks': len(project['checks'])}
         elif args.command == 'status':
-            result = workfront()
+            if __package__:
+                from .development import status_view
+            else:
+                from development import status_view
+            result = status_view(workfront(), detail=args.detail)
         elif args.command == 'context':
             result = task_context(ROOT, args.task_id, detail=args.detail, phase=args.phase)
         elif args.command == 'brief':

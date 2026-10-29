@@ -9,7 +9,7 @@
   "baseline_commit": "3efd7669292935bf5422d43dfe3f1c8d568e7395",
   "context_measurement": {
     "baseline_M1_001_characters": 41156,
-    "current_M1_001_characters": 14432,
+    "current_M1_001_characters": 14669,
     "method": "Indented JSON character count; this measures context volume, not model accuracy."
   },
   "reviewed_changes": [
@@ -32,5 +32,18 @@
     "Real data, cloud models, live updates, persistence and installed Windows acceptance remain pending.",
     "Local validation selected the already installed Rust 1.99.0 explicitly; no global toolchain configuration was changed."
   ],
-  "next_task_id": "M1-006"
+  "next_task_id": "M1-006",
+  "publication": "Local only under contracts/reviews/2026-10-29-local-only.json; no remote changes or new CI.",
+  "status_measurement": {
+    "default_characters": 9383,
+    "detailed_characters": 27312
+  },
+  "current_handoff": {
+    "focus_task_id": "M1-006",
+    "blocked_task_ids": [
+      "M0-016",
+      "M0-017"
+    ],
+    "reason": "Required native Windows verification is unavailable under the owner local-only direction; independent local work can continue."
+  }
 }

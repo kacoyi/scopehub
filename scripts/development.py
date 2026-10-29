@@ -226,3 +226,30 @@ def evidence_view(root, project, source, latest, current, *, report_error=None):
     return {'latest_selection': (latest or {}).get('selection'), 'checks': checks,
             'historical_task_evidence': historical,
             'claim_scope': 'Explanatory view only. Readiness and current verification still use their original strict gates.'}
+
+
+def status_view(state, *, detail=False):
+    """Keep the opening view short while preserving every omission in detail."""
+    if detail:
+        return state
+    result = dict(state)
+    focus = state.get('focus')
+    if focus:
+        result['focus'] = {key: focus[key] for key in
+                           ['id', 'title', 'milestone', 'status', 'depends_on', 'next_action', 'blocker']}
+        result['context_command'] = f'pnpm project:context {focus["id"]}'
+    evidence = state['evidence_overview']
+    groups = {}
+    for item in evidence['checks']:
+        groups.setdefault(item['explanation'], []).append(item['id'])
+    historical = evidence['historical_task_evidence']
+    result['evidence_overview'] = {
+        'latest_selection': evidence['latest_selection'],
+        'check_groups': groups,
+        'historical': {'task_count': len({item['task_id'] for item in historical}),
+                       'receipt_count': len(historical),
+                       'systems': sorted({item['system'] for item in historical if item['system']}),
+                       'scope': 'Historical task evidence, not current or release acceptance.'},
+        'detail_command': 'pnpm project:status --detail',
+    }
+    return result

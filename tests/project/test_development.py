@@ -4,7 +4,7 @@ import copy
 import json
 
 from scripts.check_architecture import declared_source_boundaries
-from scripts.development import product_brief, resolve_source
+from scripts.development import product_brief, resolve_source, status_view
 from scripts.project import (
     ProjectError, archive_evidence, json_bytes, load_project, product_progress,
     read_json, task_context, task_definition_hash, workfront,
@@ -211,6 +211,11 @@ class DevelopmentTests(ProjectFixture):
         self.assertEqual('not_selected', checks['project-state']['explanation'])
         self.assertEqual('not_implemented', checks['ai-workflow']['explanation'])
         self.assertEqual('fast', state['evidence_overview']['latest_selection']['profile'])
+        compact = status_view(state)
+        self.assertIn('project-state', compact['evidence_overview']['check_groups']['not_selected'])
+        self.assertNotIn('plan', compact['focus'])
+        self.assertIn('plan', state['focus'])
+        self.assertIs(state, status_view(state, detail=True))
 
     def test_malformed_latest_report_is_explained_without_crashing_status(self):
         path = self.report()

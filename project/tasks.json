@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-017",
+  "focus_task_id": "M1-006",
   "tasks": [
     {
       "id": "M0-001",
@@ -1881,7 +1881,7 @@
       "id": "M0-016",
       "title": "Make AI-led development navigable, evolvable and evidence-driven",
       "milestone": "M0",
-      "status": "active",
+      "status": "blocked",
       "depends_on": [
         "M0-015"
       ],
@@ -1926,8 +1926,8 @@
         "market-fixtures"
       ],
       "evidence": [],
-      "next_action": "Implement the development contract, focused views, module checks and lifecycle encapsulation; verify Linux and Windows and archive exact task evidence.",
-      "blocker": null,
+      "next_action": "Retain local validation and commits. Resume native verification and archive task evidence only when an authorized Windows path is available; do not repeat the publication request.",
+      "blocker": "Local implementation is complete, but required native Windows verification is unavailable. The owner selected local-only delivery for this iteration; no push or hosted CI is authorized.",
       "closure_reason": null,
       "plan": {
         "outcome": "A working, tested development loop in which an incoming agent can identify product scope, code ownership, next slice, checks and evidence limits, while ordinary technical choices stay autonomous.",
@@ -2022,8 +2022,7 @@
       "milestone": "M1",
       "status": "planned",
       "depends_on": [
-        "M1-005",
-        "M0-016"
+        "M1-005"
       ],
       "scope": [
         "crates",
@@ -2329,7 +2328,7 @@
       "id": "M0-017",
       "title": "Repair newly observed dependency advisories",
       "milestone": "M0",
-      "status": "active",
+      "status": "blocked",
       "depends_on": [
         "M0-015"
       ],
@@ -2369,8 +2368,8 @@
         "dependency-review"
       ],
       "evidence": [],
-      "next_action": "Inspect exact upstream affected ranges, update only compatible affected packages, refresh reviewed inventory, validate and resume M0-016.",
-      "blocker": null,
+      "next_action": "Retain local validation and commits. Resume native verification and archive task evidence only when an authorized Windows path is available; do not repeat the publication request.",
+      "blocker": "Local implementation is complete, but required native Windows verification is unavailable. The owner selected local-only delivery for this iteration; no push or hosted CI is authorized.",
       "closure_reason": null,
       "plan": {
         "outcome": "Restore actual dependency review and build acceptance without suppressing new findings.",

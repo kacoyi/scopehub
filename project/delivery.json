@@ -448,7 +448,8 @@
       "On 2026-10-14 the owner authorized the initial public push of codex/continuous-delivery to kacoyi/scopehub, creation and updates of its draft pull request, and routine future task-branch pushes to this repository as the default iteration workflow. Do not ask again within that scope. Merge and release remain separate authorization decisions.",
       "Inspect the HTTPS origin and local github.account marker before authenticated GitHub operations, select the marked account with gh auth switch and verify its login. Never read token files.",
       "Source-control policy does not grant merge, release, visibility, account administration, destructive history changes or branch-protection weakening permissions. Apply existing owner intent and platform approval requirements to the concrete action.",
-      "On 2026-10-14 the owner requested repair of all health-assessment findings, authorizing H08 main protection enforcement with required pull requests and observed Linux/Windows checks. Preserve stronger settings and do not weaken protection, merge or release under this maintenance scope."
+      "On 2026-10-14 the owner requested repair of all health-assessment findings, authorizing H08 main protection enforcement with required pull requests and observed Linux/Windows checks. Preserve stronger settings and do not weaken protection, merge or release under this maintenance scope.",
+      "For the 2026-10-29 development-foundation iteration, the owner selected local-only delivery: contracts/reviews/2026-10-29-local-only.json. Keep its commits local; do not push, write its PR updates or trigger hosted CI until the owner changes that direction. Independent local work can continue."
     ]
   },
   "scaffold_maintenance": {

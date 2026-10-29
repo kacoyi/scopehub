@@ -1,0 +1,22 @@
+{
+  "recorded_at": "2026-10-29",
+  "kind": "owner_publication_restriction",
+  "repository": "https://github.com/kacoyi/scopehub",
+  "task_ids": [
+    "M0-016",
+    "M0-017"
+  ],
+  "authority": "The owner explicitly selected keeping local commits only in response to the concrete publication question for this iteration.",
+  "scope": "This development-foundation iteration and its dependency repair remain local until the owner changes this direction. This takes precedence over earlier default task-branch publication authorization for this work.",
+  "allowed": [
+    "Local implementation, verification, review and recoverable commits.",
+    "Read-only inspection of existing remote state."
+  ],
+  "not_authorized": [
+    "Push these iteration commits to any remote.",
+    "Write the iteration changes to a remote PR or trigger hosted CI for them.",
+    "Merge or publish a release."
+  ],
+  "resume_condition": "Explicit owner authorization changing the local-only direction; do not ask repeatedly during local work.",
+  "verification_boundary": "Local applicable checks passed; native Windows evidence for these inputs is unavailable. Do not mark tasks complete without their required checks."
+}
