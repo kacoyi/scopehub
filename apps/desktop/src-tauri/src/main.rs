@@ -37,7 +37,7 @@ fn main() {
             if let tauri::RunEvent::Exit = event {
                 let state = app.state::<bridge::State>();
                 tauri::async_runtime::block_on(async {
-                    state.lock().await.port_mut().shutdown().await;
+                    state.lock().await.shutdown().await;
                 });
             }
         });

@@ -1,5 +1,5 @@
 import { CandlestickSeries, ColorType, HistogramSeries, LineSeries, createChart, type Time, type UTCTimestamp } from 'lightweight-charts';
-import type { Bar, Instrument, MarketGetBarsOutput } from '../market';
+import type { Bar, Instrument, MarketGetBarsOutput } from '../../../../../contracts/generated/protocol';
 
 export type ChartStyle = 'candlestick' | 'line';
 

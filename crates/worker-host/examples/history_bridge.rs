@@ -52,5 +52,5 @@ async fn main() {
             break;
         }
     }
-    registry.port_mut().shutdown().await;
+    registry.shutdown().await;
 }

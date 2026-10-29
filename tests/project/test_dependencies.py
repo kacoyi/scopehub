@@ -134,16 +134,39 @@ class DependencyTests(unittest.TestCase):
         self.assertEqual([item], review.dispositions([item], {'advisory_dispositions': []})[1])
 
     def test_target_scope_change_or_failed_graph_cannot_keep_an_exception(self):
+        # Isolate target-absence guards from independently tested primary ranges.
+        policy = {**self.policy, 'advisory_dispositions': [item for item in self.policy['advisory_dispositions']
+                                                        if item['scope_guard'] == 'absent-from-supported-builds']}
         success = subprocess.CompletedProcess([], 0, stdout='fixture v1.0.0\n', stderr='')
         with patch.object(review.subprocess, 'run', return_value=success):
-            review.validate_advisory_scope(self.root, self.policy)
+            review.validate_advisory_scope(self.root, policy)
         success.stdout = 'glib v0.18.5 (*)\n'
         with patch.object(review.subprocess, 'run', return_value=success):
             with self.assertRaisesRegex(ValueError, 'no longer applies'):
-                review.validate_advisory_scope(self.root, self.policy)
+                review.validate_advisory_scope(self.root, policy)
         with patch.object(review.subprocess, 'run', side_effect=subprocess.CalledProcessError(1, ['cargo'])):
             with self.assertRaises(subprocess.CalledProcessError):
-                review.validate_advisory_scope(self.root, self.policy)
+                review.validate_advisory_scope(self.root, policy)
+
+    def test_primary_range_discrepancy_is_exact_live_and_fail_closed(self):
+        item = {'ecosystem': 'crates.io', 'name': 'fixture-buffer', 'version': '0.10.4',
+                'advisories': ['GHSA-fixture'],
+                'upstream_source': 'https://api.github.com/repos/fixture/upstream/security-advisories/GHSA-fixture',
+                'reviewed_upstream_range': '>=0.11.0,<0.12.1'}
+        primary = {'ghsa_id': 'GHSA-fixture', 'withdrawn_at': None, 'vulnerabilities': [
+            {'package': {'ecosystem': 'rust', 'name': 'fixture_buffer'},
+             'vulnerable_version_range': '>=0.11.0,<0.12.1'}]}
+        review.validate_upstream_range(item, Mock(return_value=primary))
+        with self.assertRaisesRegex(ValueError, 'Locked version is affected'):
+            review.validate_upstream_range({**item, 'version': '0.11.0'}, Mock(return_value=primary))
+        changed = {**primary, 'vulnerabilities': [
+            {**primary['vulnerabilities'][0], 'vulnerable_version_range': '>=0.10.0,<0.12.1'}]}
+        for response in [changed, {}, [], {**primary, 'ghsa_id': 'GHSA-other'},
+                         {**primary, 'vulnerabilities': None}]:
+            with self.subTest(response=response), self.assertRaises(ValueError):
+                review.validate_upstream_range(item, Mock(return_value=response))
+        with self.assertRaises(OSError):
+            review.validate_upstream_range(item, Mock(side_effect=OSError('unavailable')))
 
     def test_declared_schema_formats_remain_active_with_selected_dependencies(self):
         checker = FormatChecker()

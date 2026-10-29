@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
-  "observed_at": "2026-10-14T13:02:49.788020+00:00",
+  "observed_at": "2026-10-29T04:15:08.225818+00:00",
   "lock_sha256": {
-    "Cargo.lock": "d7decb3cd31c5ccadde56b79bae37f3c7c58ee769d41169abf1bec2e894e75e7",
+    "Cargo.lock": "5b3e8c18c029becf7f755c8cc9b894eb239253054c59c156574432963f8fe10c",
     "uv.lock": "1eabda828953130061f49ac7928853066b4d87440e229ad07e7d9bdce1550eeb",
-    "pnpm-lock.yaml": "bd8812215dbc641ffcb1bd95d768498e73c866c143e440acf184a248f6449f8a"
+    "pnpm-lock.yaml": "c04074b07832a9c5dae04b56abb0149f5603cb3aed19d60161e0e1e2434e9270"
   },
   "packages": [
     {
@@ -2537,9 +2537,9 @@
     {
       "ecosystem": "crates.io",
       "name": "tokio",
-      "version": "1.53.2",
+      "version": "1.53.3",
       "license": "MIT",
-      "metadata_url": "https://crates.io/crates/tokio/1.53.2"
+      "metadata_url": "https://crates.io/crates/tokio/1.53.3"
     },
     {
       "ecosystem": "crates.io",
@@ -3636,9 +3636,9 @@
     {
       "ecosystem": "npm",
       "name": "fast-uri",
-      "version": "3.1.8",
+      "version": "3.1.9",
       "license": "BSD-3-Clause",
-      "metadata_url": "https://registry.npmjs.org/fast-uri/3.1.8"
+      "metadata_url": "https://registry.npmjs.org/fast-uri/3.1.9"
     },
     {
       "ecosystem": "npm",

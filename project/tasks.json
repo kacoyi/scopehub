@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-001",
+  "focus_task_id": "M0-017",
   "tasks": [
     {
       "id": "M0-001",
@@ -185,8 +185,7 @@
       "milestone": "M1",
       "status": "planned",
       "depends_on": [
-        "M1-002",
-        "M1-005"
+        "M1-007"
       ],
       "scope": [
         "apps/desktop/ui",
@@ -205,12 +204,89 @@
         "Loading, ready, empty, stale, disconnected and error states have observable UI behavior."
       ],
       "checks": [
-        "market-workflow"
+        "market-workflow",
+        "ui-build",
+        "market-fixtures",
+        "python-types",
+        "architecture"
       ],
       "evidence": [],
-      "next_action": "After the opt-in historical chart slice, add live updates, workspace operations and observable connection/quality states. Coordinate recovery with M1-003; keep real local-file adaptation separate.",
+      "next_action": "After M1-006 and M1-007, verify the complete simulated chart slice; M1-003 separately establishes interruption/recovery. Local import remains M1-008.",
       "blocker": null,
-      "closure_reason": null
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Complete simulated chart interaction with live data identity and explicit quality states.",
+        "change_types": [
+          "ui",
+          "market-fixtures"
+        ],
+        "context": [
+          "project/development.json",
+          "apps/desktop/ui/src/main.tsx",
+          "crates/application/src/lib.rs",
+          "crates/worker-host/src/market.rs"
+        ],
+        "hypotheses": [
+          "Separate streaming and state slices expose event identity and failure uncertainty before full workflow closure."
+        ],
+        "risks": [
+          {
+            "failure": "A later selection renders a delayed old update or loses the final bar.",
+            "checks": [
+              "market-workflow"
+            ]
+          }
+        ],
+        "rollback": "Retain failed event sequences; revert the affected streaming slice without removing historical preview.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "chart-adapter",
+            "application",
+            "worker-host",
+            "providers"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/market.ts",
+            "apps/desktop/ui/src/chart-adapter/history.ts",
+            "crates/application/src/lib.rs",
+            "crates/worker-host/src/market.rs",
+            "python/providers/history.py"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/runtime"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/domain"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui"
+            }
+          ],
+          "non_goals": [
+            "No real feed, local import, persistence or packaged Windows acceptance."
+          ],
+          "open_questions": [
+            "Refine visible connection and staleness presentation while implementing the state slice."
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Explicit synthetic entry and history semantics",
+            "Selection-race and cleanup guarantees"
+          ],
+          "change": [
+            "Streaming and visible quality states"
+          ],
+          "data_plan": "No durable user format change.",
+          "cleanup": "Keep one active subscription per selection; remove temporary stream harness paths after integrated acceptance."
+        }
+      }
     },
     {
       "id": "M2-001",
@@ -1800,6 +1876,599 @@
         ],
         "rollback": "Preserve CI run 38569288074 and the recovery snapshot. Restore strict history comparison if the append-only regression fails; retain the supplementary receipt separately until the gate is repaired. Never erase or rewrite accepted evidence to obtain a pass."
       }
+    },
+    {
+      "id": "M0-016",
+      "title": "Make AI-led development navigable, evolvable and evidence-driven",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-015"
+      ],
+      "scope": [
+        "AGENTS.md",
+        "engineering-contract-v1.json",
+        "contracts",
+        "project",
+        "scripts",
+        "tests",
+        "crates/application",
+        "crates/worker-host",
+        "apps/desktop/src-tauri",
+        "package.json"
+      ],
+      "decision_refs": [
+        "0007",
+        "0004",
+        "0005",
+        "0006"
+      ],
+      "acceptance": [
+        "Separate owner/development-AI responsibilities from product-AI behavior, delegate technical planning, and preserve product, permission and publication decisions.",
+        "Provide validated module ownership, public entrypoints, capability delivery mapping and task-local change/transition plans without rewriting accepted history.",
+        "Default task context is bounded, navigates implementation and authoritative rules, and supports detailed and phase-specific views.",
+        "Explain latest verification omissions and historical task evidence without promoting historical receipts to current or release acceptance.",
+        "Protect the workflow with independent regressions and replace mutable worker-port exposure with explicit lifecycle access."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture",
+        "generated-contracts",
+        "python-types",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "typescript-contracts",
+        "ui-build",
+        "windows-native-build",
+        "chart-history",
+        "market-fixtures"
+      ],
+      "evidence": [],
+      "next_action": "Implement the development contract, focused views, module checks and lifecycle encapsulation; verify Linux and Windows and archive exact task evidence.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A working, tested development loop in which an incoming agent can identify product scope, code ownership, next slice, checks and evidence limits, while ordinary technical choices stay autonomous.",
+        "change_types": [
+          "tooling",
+          "chart-history"
+        ],
+        "context": [
+          "AGENTS.md",
+          "engineering-contract-v1.json",
+          "project/delivery.json",
+          "scripts/project.py",
+          "scripts/check_architecture.py",
+          "tests/project/fixtures.py",
+          "project/development.json"
+        ],
+        "hypotheses": [
+          "Existing JSON records and commands can support this need without an external knowledge system.",
+          "Historical verification can be displayed independently without weakening current release gates."
+        ],
+        "risks": [
+          {
+            "failure": "Large summaries hide constraints or stale receipts appear current.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          },
+          {
+            "failure": "Module records drift or public interfaces leak implementation.",
+            "checks": [
+              "architecture",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Workflow changes rewrite accepted history or weaken runtime boundaries.",
+            "checks": [
+              "project-state",
+              "generated-contracts",
+              "typescript-contracts"
+            ]
+          }
+        ],
+        "rollback": "Preserve the reviewed baseline and failed reports; revert this coherent tooling/interface change if necessary. No persistent user formats or wire protocol change is included.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "application",
+            "worker-host",
+            "desktop"
+          ],
+          "entrypoints": [
+            "scripts/project.py",
+            "scripts/development.py",
+            "scripts/check_architecture.py",
+            "crates/application/src/lib.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/collaboration"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality"
+            }
+          ],
+          "non_goals": [
+            "No new runtime permissions, wire messages, data adapters or embedded-AI interaction policy."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Accepted task and ADR history",
+            "Runtime authorization and release gates"
+          ],
+          "change": [
+            "Default context and evidence explanations",
+            "Registry lifecycle encapsulation"
+          ],
+          "data_plan": "No persisted application data change. Existing report and receipt formats remain readable.",
+          "cleanup": "Keep --detail for expanded context; remove mutable port access and retain explicit lifecycle tests."
+        }
+      }
+    },
+    {
+      "id": "M1-006",
+      "title": "Deliver identity-safe synthetic live updates",
+      "milestone": "M1",
+      "status": "planned",
+      "depends_on": [
+        "M1-005",
+        "M0-016"
+      ],
+      "scope": [
+        "crates",
+        "python",
+        "apps/desktop",
+        "tests"
+      ],
+      "decision_refs": [
+        "0007",
+        "0004",
+        "0005"
+      ],
+      "acceptance": [
+        "Add a bounded live-update contract and one rendered stream; reject delayed events after selection changes and preserve final bar state. Record protocol evolution before implementation."
+      ],
+      "checks": [
+        "market-workflow",
+        "market-fixtures",
+        "ui-build",
+        "python-types",
+        "architecture"
+      ],
+      "evidence": [],
+      "next_action": "Add a bounded live-update contract and one rendered stream; reject delayed events after selection changes and preserve final bar state. Record protocol evolution before implementation.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Add a bounded live-update contract and one rendered stream; reject delayed events after selection changes and preserve final bar state. Record protocol evolution before implementation.",
+        "change_types": [
+          "ui",
+          "market-fixtures"
+        ],
+        "context": [
+          "project/development.json",
+          "apps/desktop/ui/src/main.tsx",
+          "crates/application/src/lib.rs",
+          "crates/worker-host/src/market.rs"
+        ],
+        "hypotheses": [
+          "Separate streaming and state slices expose event identity and failure uncertainty before full workflow closure."
+        ],
+        "risks": [
+          {
+            "failure": "A later selection renders a delayed old update or loses the final bar.",
+            "checks": [
+              "market-workflow"
+            ]
+          }
+        ],
+        "rollback": "Retain failed event sequences; revert the affected streaming slice without removing historical preview.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "chart-adapter",
+            "application",
+            "worker-host",
+            "providers"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/market.ts",
+            "apps/desktop/ui/src/chart-adapter/history.ts",
+            "crates/application/src/lib.rs",
+            "crates/worker-host/src/market.rs",
+            "python/providers/history.py"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/runtime"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/domain"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui"
+            }
+          ],
+          "non_goals": [
+            "No real feed, local import, persistence or packaged Windows acceptance."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Explicit synthetic entry and history semantics",
+            "Selection-race and cleanup guarantees"
+          ],
+          "change": [
+            "Streaming and visible quality states"
+          ],
+          "data_plan": "No durable user format change.",
+          "cleanup": "Keep one active subscription per selection; remove temporary stream harness paths after integrated acceptance."
+        }
+      }
+    },
+    {
+      "id": "M1-007",
+      "title": "Expose market quality and connection states",
+      "milestone": "M1",
+      "status": "planned",
+      "depends_on": [
+        "M1-006"
+      ],
+      "scope": [
+        "crates",
+        "python",
+        "apps/desktop",
+        "tests"
+      ],
+      "decision_refs": [
+        "0007",
+        "0004",
+        "0005"
+      ],
+      "acceptance": [
+        "Exercise observable loading, ready, empty, stale, disconnected and error states against deterministic event sequences."
+      ],
+      "checks": [
+        "market-workflow",
+        "ui-build",
+        "market-fixtures",
+        "python-types",
+        "architecture"
+      ],
+      "evidence": [],
+      "next_action": "Exercise observable loading, ready, empty, stale, disconnected and error states against deterministic event sequences.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Exercise observable loading, ready, empty, stale, disconnected and error states against deterministic event sequences.",
+        "change_types": [
+          "ui",
+          "market-fixtures"
+        ],
+        "context": [
+          "project/development.json",
+          "apps/desktop/ui/src/main.tsx",
+          "crates/application/src/lib.rs",
+          "crates/worker-host/src/market.rs"
+        ],
+        "hypotheses": [
+          "Separate streaming and state slices expose event identity and failure uncertainty before full workflow closure."
+        ],
+        "risks": [
+          {
+            "failure": "A later selection renders a delayed old update or loses the final bar.",
+            "checks": [
+              "market-workflow"
+            ]
+          }
+        ],
+        "rollback": "Retain failed event sequences; revert the affected streaming slice without removing historical preview.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "chart-adapter",
+            "application",
+            "worker-host",
+            "providers"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/market.ts",
+            "apps/desktop/ui/src/chart-adapter/history.ts",
+            "crates/application/src/lib.rs",
+            "crates/worker-host/src/market.rs",
+            "python/providers/history.py"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/runtime"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/domain"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui"
+            }
+          ],
+          "non_goals": [
+            "No real feed, local import, persistence or packaged Windows acceptance."
+          ],
+          "open_questions": [
+            "Refine concrete state presentation before implementation."
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Explicit synthetic entry and history semantics",
+            "Selection-race and cleanup guarantees"
+          ],
+          "change": [
+            "Streaming and visible quality states"
+          ],
+          "data_plan": "No durable user format change.",
+          "cleanup": "Keep one active subscription per selection; remove temporary stream harness paths after integrated acceptance."
+        }
+      }
+    },
+    {
+      "id": "M1-008",
+      "title": "Connect user-owned local historical data",
+      "milestone": "M1",
+      "status": "planned",
+      "depends_on": [
+        "M1-001",
+        "M1-003"
+      ],
+      "scope": [
+        "crates",
+        "python",
+        "apps/desktop",
+        "tests"
+      ],
+      "decision_refs": [
+        "0007",
+        "0004",
+        "0005"
+      ],
+      "acceptance": [
+        "Refine a concrete local import format and experience with the owner, preserve provenance and calendar semantics, and verify no synthetic fallback. No external provider credentials or scraping."
+      ],
+      "checks": [
+        "market-fixtures",
+        "chart-history"
+      ],
+      "evidence": [],
+      "next_action": "Refine a concrete local import format and experience with the owner, preserve provenance and calendar semantics, and verify no synthetic fallback. No external provider credentials or scraping.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M4-002",
+      "title": "Evaluate an explicitly configured model connection",
+      "milestone": "M4",
+      "status": "planned",
+      "depends_on": [
+        "M4-001"
+      ],
+      "scope": [
+        "crates",
+        "python",
+        "apps/desktop",
+        "tests"
+      ],
+      "decision_refs": [
+        "0007",
+        "0004",
+        "0005"
+      ],
+      "acceptance": [
+        "Refine connection and data-transmission experience, then evaluate a configured adapter separately from deterministic mock acceptance. Shared resources and credentials need the existing authorization checks."
+      ],
+      "checks": [
+        "ai-workflow",
+        "ai-replay-evaluations",
+        "credential-boundaries"
+      ],
+      "evidence": [],
+      "next_action": "Refine connection and data-transmission experience, then evaluate a configured adapter separately from deterministic mock acceptance. Shared resources and credentials need the existing authorization checks.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M4-003",
+      "title": "Refine and deliver the first information-channel workflow",
+      "milestone": "M4",
+      "status": "planned",
+      "depends_on": [
+        "M4-001"
+      ],
+      "scope": [
+        "crates",
+        "python",
+        "apps/desktop",
+        "tests"
+      ],
+      "decision_refs": [
+        "0007",
+        "0004",
+        "0005"
+      ],
+      "acceptance": [
+        "Select an owner-relevant research workflow before choosing independent information adapters; preserve source, time and uncertainty. No provider is a mandatory gateway."
+      ],
+      "checks": [
+        "ai-workflow",
+        "ai-replay-evaluations"
+      ],
+      "evidence": [],
+      "next_action": "Select an owner-relevant research workflow before choosing independent information adapters; preserve source, time and uncertainty. No provider is a mandatory gateway.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "later"
+    },
+    {
+      "id": "M0-017",
+      "title": "Repair newly observed dependency advisories",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-015"
+      ],
+      "scope": [
+        "Cargo.lock",
+        "pnpm-lock.yaml",
+        "pnpm-workspace.yaml",
+        "package.json",
+        "project",
+        "THIRD_PARTY_NOTICES",
+        "tests"
+      ],
+      "decision_refs": [
+        "0007",
+        "0004",
+        "0005",
+        "0006"
+      ],
+      "acceptance": [
+        "Repair Tokio and fast-uri findings with compatible patches; verify the block-buffer aggregator discrepancy against the exact live publisher range with an expiring fail-closed guard.",
+        "Verify portable and Windows build/runtime checks and retain the interrupted M0-016 failure and recovery direction."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture",
+        "generated-contracts",
+        "python-types",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "typescript-contracts",
+        "ui-build",
+        "windows-native-build",
+        "chart-history",
+        "market-fixtures",
+        "dependency-review"
+      ],
+      "evidence": [],
+      "next_action": "Inspect exact upstream affected ranges, update only compatible affected packages, refresh reviewed inventory, validate and resume M0-016.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Restore actual dependency review and build acceptance without suppressing new findings.",
+        "change_types": [
+          "tooling",
+          "dependencies",
+          "chart-history",
+          "packaging"
+        ],
+        "context": [
+          "project/dependencies.json",
+          "scripts/dependencies.py",
+          "Cargo.lock",
+          "pnpm-lock.yaml"
+        ],
+        "hypotheses": [
+          "Compatible patches resolve Tokio and fast-uri; the publisher excludes locked block-buffer 0.10.4 and its live affected range must be checked on every online review."
+        ],
+        "risks": [
+          {
+            "failure": "An update breaks wire, runtime, browser or packaged native compatibility.",
+            "checks": [
+              "rust-contracts-workers",
+              "chart-history",
+              "windows-native-build"
+            ]
+          },
+          {
+            "failure": "Inventory is stale or findings are suppressed instead of repaired.",
+            "checks": [
+              "dependency-review"
+            ]
+          }
+        ],
+        "rollback": "Retain the failing report .reports/runs/20261029T041122.487082Z-579a3a18/test-report.json and exact prior locks. Revert incompatible candidates, investigate supported patches and keep the task blocked rather than demoting checks.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/dependencies.py"
+          ],
+          "rules": [
+            {
+              "path": "project/dependencies.json",
+              "pointer": "/maintenance"
+            }
+          ],
+          "non_goals": [
+            "No major dependency migration, runtime permission or release-scope change."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "replacement",
+          "preserve": [
+            "Current protocol and user behavior",
+            "Dependency and license checks"
+          ],
+          "change": [
+            "Affected transitive package patch versions"
+          ],
+          "data_plan": "No user storage format change.",
+          "cleanup": "Regenerate locks and notices, retain matching inventory and remove no checks."
+        }
+      }
+    },
+    {
+      "id": "M1-009",
+      "title": "Evaluate a user-configured market API adapter",
+      "milestone": "M1",
+      "status": "planned",
+      "depends_on": [
+        "M1-008"
+      ],
+      "scope": [
+        "crates",
+        "python",
+        "apps/desktop",
+        "tests"
+      ],
+      "decision_refs": [
+        "0007",
+        "0004",
+        "0005"
+      ],
+      "acceptance": [
+        "Refine the first required external market source, verify its permissions, coverage and semantics, then implement a replaceable adapter without silent fallback."
+      ],
+      "checks": [
+        "market-fixtures",
+        "chart-history"
+      ],
+      "evidence": [],
+      "next_action": "After local-source delivery, refine the required external-source experience and verify provider fit and authorization before using any service.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "later"
     }
   ]
 }

@@ -1,4 +1,11 @@
-use std::{path::PathBuf, time::Duration};
+use std::{
+    path::PathBuf,
+    sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    },
+    time::Duration,
+};
 
 use scopehub_application::{Actor, MarketFuture, MarketPort, MarketRegistry};
 use scopehub_domain::protocol::ErrorCode;
@@ -16,17 +23,18 @@ fn fixture() -> Value {
         serde_json::from_str(include_str!("../../../tests/fixtures/market/series.json")).unwrap();
     bundle["fixtures"][0]["history"].clone()
 }
-struct Fixed(Value, usize);
+struct Fixed(Value, Arc<AtomicUsize>);
 impl MarketPort for Fixed {
     fn request<'a>(&'a mut self, _: &'a str, _: &'a Value) -> MarketFuture<'a> {
-        self.1 += 1;
+        self.1.fetch_add(1, Ordering::SeqCst);
         Box::pin(std::future::ready(Ok(self.0.clone())))
     }
 }
 
 #[tokio::test]
 async fn trusted_actor_schema_and_implemented_allowlist_precede_worker_access() {
-    let mut core = MarketRegistry::new(Fixed(fixture(), 0));
+    let calls = Arc::new(AtomicUsize::new(0));
+    let mut core = MarketRegistry::new(Fixed(fixture(), calls.clone()));
     for (actor, operation, payload, expected) in [
         (
             Actor::System,
@@ -94,7 +102,7 @@ async fn trusted_actor_schema_and_implemented_allowlist_precede_worker_access() 
             .code,
         ErrorCode::INVALIDARGUMENT
     );
-    assert_eq!(core.port_mut().1, 0);
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
     for actor in [Actor::User, Actor::Ai] {
         assert_eq!(
             core.execute(actor, "market.getBars", input())
@@ -142,7 +150,7 @@ async fn rejects_wrong_operation_identity_duplicate_order_ohlc_and_partial_outpu
     changed["bars"][0]["trading_day"] = json!("2024-02-30");
     cases.push(changed);
     for output in cases {
-        let mut core = MarketRegistry::new(Fixed(output, 0));
+        let mut core = MarketRegistry::new(Fixed(output, Arc::default()));
         assert_eq!(
             core.execute(Actor::User, "market.getBars", input())
                 .await
@@ -151,7 +159,7 @@ async fn rejects_wrong_operation_identity_duplicate_order_ohlc_and_partial_outpu
             ErrorCode::OUTPUTINVALID
         );
     }
-    let mut core = MarketRegistry::new(Fixed(base.clone(), 0));
+    let mut core = MarketRegistry::new(Fixed(base.clone(), Arc::default()));
     let mut args = input();
     args["from_ms"] = base["bars"][1]["time_ms"].clone();
     assert_eq!(
@@ -177,7 +185,10 @@ async fn catalog_limits_identity_and_integer_wire_equivalence_are_enforced() {
     let bundle: Value =
         serde_json::from_str(include_str!("../../../tests/fixtures/market/series.json")).unwrap();
     let instrument = bundle["fixtures"][0]["instrument"].clone();
-    let mut core = MarketRegistry::new(Fixed(json!({"instruments":[instrument.clone()]}), 0));
+    let mut core = MarketRegistry::new(Fixed(
+        json!({"instruments":[instrument.clone()]}),
+        Arc::default(),
+    ));
     assert!(
         core.execute(
             Actor::User,
@@ -195,7 +206,7 @@ async fn catalog_limits_identity_and_integer_wire_equivalence_are_enforced() {
             json!({"instruments":[instrument]})
         },
     ] {
-        let mut core = MarketRegistry::new(Fixed(output, 0));
+        let mut core = MarketRegistry::new(Fixed(output, Arc::default()));
         assert_eq!(
             core.execute(
                 Actor::User,
@@ -211,7 +222,7 @@ async fn catalog_limits_identity_and_integer_wire_equivalence_are_enforced() {
     let mut args = input();
     args["from_ms"] = json!(0.0);
     assert!(
-        MarketRegistry::new(Fixed(fixture(), 0))
+        MarketRegistry::new(Fixed(fixture(), Arc::default()))
             .execute(Actor::User, "market.getBars", args)
             .await
             .is_ok()
@@ -221,7 +232,7 @@ async fn catalog_limits_identity_and_integer_wire_equivalence_are_enforced() {
 #[tokio::test]
 async fn real_worker_is_lazy_reused_matches_all_golden_histories_and_closes() {
     let mut core = MarketRegistry::new(MarketWorker::new(Some(WorkerConfig::development(&root()))));
-    assert_eq!(core.port_mut().process_id(), None);
+    assert_eq!(core.status().process_id, None);
     let catalog = core
         .execute(
             Actor::User,
@@ -231,7 +242,7 @@ async fn real_worker_is_lazy_reused_matches_all_golden_histories_and_closes() {
         .await
         .unwrap();
     assert_eq!(catalog["instruments"].as_array().unwrap().len(), 3);
-    let pid = core.port_mut().process_id().unwrap();
+    let pid = core.status().process_id.unwrap();
     let bundle: Value =
         serde_json::from_str(include_str!("../../../tests/fixtures/market/series.json")).unwrap();
     for item in &bundle["fixtures"].as_array().unwrap()[..9] {
@@ -244,10 +255,12 @@ async fn real_worker_is_lazy_reused_matches_all_golden_histories_and_closes() {
                 .unwrap(),
             item["history"]
         );
-        assert_eq!(core.port_mut().process_id(), Some(pid));
+        assert_eq!(core.status().process_id, Some(pid));
     }
-    core.port_mut().shutdown().await;
-    assert_eq!(core.port_mut().process_id(), None);
+    core.shutdown().await;
+    assert_eq!(core.status().process_id, None);
+    core.shutdown().await;
+    assert_eq!(core.status().process_id, None);
     #[cfg(target_os = "linux")]
     assert!(!PathBuf::from(format!("/proc/{pid}")).exists());
     let mut core = MarketRegistry::new(MarketWorker::new(None));

@@ -402,6 +402,84 @@
         "prevention": "Four new regressions cover legitimate supplemental receipts, deletion/reordering/replacement/state changes, wrong-definition/incomplete additions and cancelled-record immutability. The 177-test suite passes; failing CI run 38569288074 and local reports remain retained. Review both base and prior checkpoint."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "development-product-role-confusion",
+      "source": "Owner development discussion on 2026-10-29 and repository inspection",
+      "observation": "Owner corrected conflation of development-AI responsibilities with embedded-product interaction requirements.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-016"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "development-navigation-and-evidence",
+      "source": "Owner development discussion on 2026-10-29 and repository inspection",
+      "observation": "Current task context expands historical records and release policy but does not navigate implementation; latest fast omissions obscure separately archived native evidence.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-016"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "long-term-code-evolution",
+      "source": "Owner development discussion on 2026-10-29 and repository inspection",
+      "observation": "Owner requires clear responsibilities, hidden internals, bounded dependencies, data ownership and verified staged evolution for long-lived AI-authored code.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-016"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "dependency-advisories-20261029",
+      "source": "Observed local validation on 2026-10-29",
+      "observation": "Fresh full validation found unresolved block-buffer 0.10.4, Tokio 1.53.2 and fast-uri 3.1.8 advisories; retain failed run 20261029T041122.487082Z-579a3a18.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-017"
+      ],
+      "regression_checks": [
+        "dependency-review"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "development-invalid-report-view",
+      "source": "Observed local validation on 2026-10-29",
+      "observation": "An independent malformed-report probe raised TypeError in the new evidence explanation rather than reporting invalid input.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-016"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

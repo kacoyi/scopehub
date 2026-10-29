@@ -52,9 +52,21 @@ pub fn failure(code: ErrorCode) -> Error {
 }
 
 pub type MarketFuture<'a> = Pin<Box<dyn Future<Output = Result<Value, Error>> + Send + 'a>>;
+pub type ShutdownFuture<'a> = Pin<Box<dyn Future<Output = ()> + Send + 'a>>;
 
 pub trait MarketPort: Send {
     fn request<'a>(&'a mut self, operation: &'a str, payload: &'a Value) -> MarketFuture<'a>;
+}
+
+/// Lifecycle access is explicit; callers cannot mutate the underlying adapter.
+pub trait MarketLifecycle: Send {
+    fn status(&self) -> MarketStatus;
+    fn shutdown(&mut self) -> ShutdownFuture<'_>;
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct MarketStatus {
+    pub process_id: Option<u32>,
 }
 
 struct Operation {
@@ -93,6 +105,14 @@ static OPERATIONS: LazyLock<Vec<Operation>> = LazyLock::new(|| {
         .collect()
 });
 
+/// Authorized operations and explicit lifecycle, without mutable adapter access.
+///
+/// ```compile_fail
+/// use scopehub_application::{MarketPort, MarketRegistry};
+/// fn bypass<P: MarketPort>(registry: &mut MarketRegistry<P>) {
+///     registry.port_mut();
+/// }
+/// ```
 pub struct MarketRegistry<P> {
     port: P,
 }
@@ -100,10 +120,6 @@ pub struct MarketRegistry<P> {
 impl<P: MarketPort> MarketRegistry<P> {
     pub fn new(port: P) -> Self {
         Self { port }
-    }
-
-    pub fn port_mut(&mut self) -> &mut P {
-        &mut self.port
     }
 
     pub async fn execute(
@@ -142,6 +158,16 @@ impl<P: MarketPort> MarketRegistry<P> {
         normalize_integers(&mut checked);
         validate_market(name, &payload, &checked)?;
         Ok(output)
+    }
+}
+
+impl<P: MarketPort + MarketLifecycle> MarketRegistry<P> {
+    pub fn status(&self) -> MarketStatus {
+        self.port.status()
+    }
+
+    pub async fn shutdown(&mut self) {
+        self.port.shutdown().await;
     }
 }
 

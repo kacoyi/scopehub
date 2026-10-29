@@ -49,6 +49,8 @@ def file_digest(path):
 
 def task_definition_hash(task):
     definition = {key: task[key] for key in TASK_DEFINITION_FIELDS}
+    if 'delivery' in task:
+        definition['delivery'] = task['delivery']
     if 'plan' in task:
         definition['plan'] = task['plan']
     return digest(json.dumps(definition, sort_keys=True, separators=(',', ':')).encode('utf-8'))
@@ -192,12 +194,14 @@ def load_project(root=ROOT):
     for binding in catalog['acceptance']:
         require_refs(binding['checks'], checks, 'Product acceptance')
     decisions = []
+    decision_paths = {}
     for path in sorted((root / 'contracts/decisions').glob('*.json')):
         decision = read_json(path)
         validate_model(root, 'Decision', decision)
         if not path.name.startswith(decision['id'] + '-'):
             raise ProjectError(f'Decision ID does not match filename: {path.name}')
         decisions.append(decision)
+        decision_paths[decision['id']] = path.relative_to(root).as_posix()
     decisions = indexed(decisions, 'decision')
     validate_graph(decisions, 'supersedes', 'Decision supersession')
     replacements = {}
@@ -275,8 +279,23 @@ def load_project(root=ROOT):
     if active and focus not in active:
         raise ProjectError('The focus must identify active work when active tasks exist')
     project = {'spec': spec, 'ledger': ledger, 'catalog': catalog, 'tasks': tasks, 'checks': checks,
-               'decisions': decisions, 'replacements': replacements}
+               'decisions': decisions, 'decision_paths': decision_paths, 'replacements': replacements}
     validate_delivery(root, project)
+    development_path = spec.get('repository', {}).get('development')
+    if development_path:
+        if __package__:
+            from .development import validate_record
+        else:
+            from development import validate_record
+        record = read_json(local_path(root, development_path))
+        validate_model(root, 'Development', record)
+        try:
+            validate_record(root, project, record)
+        except (ValueError, OSError) as error:
+            raise ProjectError(str(error)) from error
+        project['development'] = record
+    manifest_path = root / 'contracts/contract.json'
+    project['manifest'] = read_json(manifest_path) if manifest_path.is_file() else {}
     return project
 
 
@@ -347,7 +366,8 @@ def product_progress(project, results):
     milestones = []
     for gate in project['catalog']['milestones']:
         tasks = [task for task in project['tasks'].values() if task['milestone'] == gate['id']]
-        current_tasks = [task for task in tasks if task['status'] != 'cancelled']
+        current_tasks = [task for task in tasks if task['status'] != 'cancelled'
+                         and task.get('delivery', 'current-contract') == 'current-contract']
         validation = summarize_verification(gate['checks'], by_id)
         if not current_tasks:
             status = 'blocked'
@@ -361,6 +381,7 @@ def product_progress(project, results):
             status = 'in_progress'
         milestones.append({'id': gate['id'], 'status': status, 'verification': validation,
                            'checks': gate['checks'], 'tasks': [task['id'] for task in tasks],
+                           'later_task_ids': [task['id'] for task in tasks if task.get('delivery') == 'later'],
                            'cancelled_task_ids': [task['id'] for task in tasks if task['status'] == 'cancelled']})
     acceptance = [
         {**binding, 'status': summarize_verification(binding['checks'], by_id)}
@@ -381,17 +402,21 @@ def maintenance_status(root=ROOT, today=None):
 
 
 def workfront(root=ROOT):
+    if __package__:
+        from .development import evidence_view
+    else:
+        from development import evidence_view
     project = load_project(root)
     source = source_identity(root)
     report_path = root / '.reports/test-report.json'
-    report = read_json(report_path) if report_path.is_file() else None
     report_error = None
-    if report is not None:
-        try:
+    report = None
+    try:
+        if report_path.is_file():
+            report = read_json(report_path)
             validate_model(root, 'HarnessReport', report)
-        except ProjectError as error:
-            report_error = str(error)
-    if not isinstance(report, dict):
+    except ProjectError as error:
+        report_error = str(error)
         report = None
     inputs_current = bool(report and report.get('source_unchanged')
                           and report.get('source', {}).get('sha256') == source['sha256'])
@@ -403,6 +428,7 @@ def workfront(root=ROOT):
     current = inputs_current and tasks_current and definitions_current and report_error is None
     return {
         'status': 'passed', 'focus': tasks.get(project['ledger']['focus_task_id']),
+        'status_scope': 'Project-record consistency only; inspect verification, evidence_overview and release readiness separately.',
         'active_task_ids': [task['id'] for task in tasks.values() if task['status'] == 'active'],
         'ready_task_ids': [task['id'] for task in tasks.values() if task['status'] == 'planned'
                            and all(tasks[key]['status'] == 'done' for key in task['depends_on'])],
@@ -418,24 +444,30 @@ def workfront(root=ROOT):
                          'run_id': report.get('run_id') if report else None,
                          'recorded_status': report.get('status') if report else None},
         'milestones': product_progress(project, report['checks'])[0] if current else None,
+        'evidence_overview': evidence_view(root, project, source, report, current, report_error=report_error),
         'unresolved_feedback': [item for item in project['feedback']['items'] if item['status'] != 'addressed'],
         'source': source,
     }
 
 
-def task_context(root=ROOT, task_id=None):
+def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
+    if __package__:
+        from .development import effective_decisions, focused_context
+    else:
+        from development import effective_decisions, focused_context
     project = load_project(root)
     key = task_id or project['ledger']['focus_task_id']
     if key not in project['tasks']:
         raise ProjectError(f'Unknown task: {key}')
     task = project['tasks'][key]
-    decision_ids = set(task['decision_refs'])
-    for decision_id in list(decision_ids):
-        while decision_id in project['replacements']:
-            decision_id = project['replacements'][decision_id]
-            decision_ids.add(decision_id)
+    if phase not in {'implement', 'verify', 'handoff'}:
+        raise ProjectError(f'Unknown context phase: {phase}')
+    if not detail:
+        return focused_context(project, key, phase)
+    decision_ids = effective_decisions(project, task)
     return {
         'task': task,
+        'development': project.get('development'),
         'context_paths': list(dict.fromkeys([*project['delivery']['context'], *task.get('plan', {}).get('context', [])])),
         'dependencies': [project['tasks'][item] for item in task['depends_on']],
         'decisions': [project['decisions'][item] for item in sorted(decision_ids)],
@@ -701,6 +733,12 @@ def main():
     sub.add_parser('status')
     context = sub.add_parser('context')
     context.add_argument('task_id', nargs='?')
+    context.add_argument('--detail', action='store_true', help='Expand full policies, decisions and historical dependencies')
+    context.add_argument('--phase', choices=['implement', 'verify', 'handoff'], default='implement')
+    sub.add_parser('brief')
+    source = sub.add_parser('source', help='Read one authoritative JSON section without expanding unrelated records')
+    source.add_argument('path')
+    source.add_argument('pointer', nargs='?', default='')
     sub.add_parser('readiness')
     sub.add_parser('checkpoint')
     history = sub.add_parser('history')
@@ -718,7 +756,23 @@ def main():
         elif args.command == 'status':
             result = workfront()
         elif args.command == 'context':
-            result = task_context(ROOT, args.task_id)
+            result = task_context(ROOT, args.task_id, detail=args.detail, phase=args.phase)
+        elif args.command == 'brief':
+            if __package__:
+                from .development import product_brief
+            else:
+                from development import product_brief
+            result = product_brief(load_project())
+        elif args.command == 'source':
+            if __package__:
+                from .development import resolve_source
+            else:
+                from development import resolve_source
+            reference = {'path': args.path, 'pointer': args.pointer}
+            try:
+                result = {'source': reference, 'value': resolve_source(ROOT, reference)}
+            except ValueError as error:
+                raise ProjectError(str(error)) from error
         elif args.command == 'readiness':
             result = readiness()
         elif args.command == 'history':

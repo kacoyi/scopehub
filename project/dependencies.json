@@ -130,6 +130,25 @@
         "cargo tree --locked --workspace --target x86_64-pc-windows-msvc -i proc-macro-error",
         "https://rustsec.org/advisories/RUSTSEC-2024-0370.html"
       ]
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "block-buffer",
+      "version": "0.10.4",
+      "advisories": [
+        "GHSA-qwgh-2vcv-g2f7"
+      ],
+      "expires": "2026-11-28",
+      "task_id": "M0-017",
+      "scope_guard": "upstream-excludes-locked-version",
+      "upstream_source": "https://api.github.com/repos/RustCrypto/utils/security-advisories/GHSA-qwgh-2vcv-g2f7",
+      "reviewed_upstream_range": ">=0.11.0,<0.12.1",
+      "reason": "OSV currently starts at zero, while the publisher primary advisory explicitly affects >=0.11.0,<0.12.1. Locked 0.10.4 is outside that primary range. Every online review fetches and verifies the exact primary identity and reviewed range; changed/unavailable metadata fails. This is an exact version discrepancy disposition, not a broad severity waiver.",
+      "evidence": [
+        "https://github.com/RustCrypto/utils/security/advisories/GHSA-qwgh-2vcv-g2f7",
+        "https://api.osv.dev/v1/vulns/GHSA-qwgh-2vcv-g2f7",
+        "cargo tree --locked --workspace --target all -i block-buffer"
+      ]
     }
   ],
   "license_metadata_overrides": [
@@ -177,8 +196,8 @@
     ]
   },
   "maintenance": {
-    "reviewed_on": "2026-10-14",
-    "next_review_by": "2026-11-13",
+    "reviewed_on": "2026-10-29",
+    "next_review_by": "2026-11-28",
     "owner": "Repository implementation agent, with owner review for product/permission/boundary decisions.",
     "automation": "Weekly bounded Dependabot proposals for GitHub Actions and Cargo activate when .github/dependabot.yml reaches the default branch. No auto-merge.",
     "manual_ecosystems": "The upstream support matrix does not yet list pnpm 11 or uv 0.12. Use the pinned native package managers for monthly Python/npm updates until matching updater support is verified; do not claim those updates are automated.",

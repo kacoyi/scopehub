@@ -1450,9 +1450,9 @@ crates.io: tinyvec 1.13.3
 Declared license: Zlib OR Apache-2.0 OR MIT
 Upstream metadata: https://crates.io/crates/tinyvec/1.13.3
 
-crates.io: tokio 1.53.2
+crates.io: tokio 1.53.3
 Declared license: MIT
-Upstream metadata: https://crates.io/crates/tokio/1.53.2
+Upstream metadata: https://crates.io/crates/tokio/1.53.3
 
 crates.io: tokio-macros 2.7.2
 Declared license: MIT
@@ -2078,9 +2078,9 @@ npm: fast-deep-equal 3.1.3
 Declared license: MIT
 Upstream metadata: https://registry.npmjs.org/fast-deep-equal/3.1.3
 
-npm: fast-uri 3.1.8
+npm: fast-uri 3.1.9
 Declared license: BSD-3-Clause
-Upstream metadata: https://registry.npmjs.org/fast-uri/3.1.8
+Upstream metadata: https://registry.npmjs.org/fast-uri/3.1.9
 
 npm: fdir 6.5.0
 Declared license: MIT

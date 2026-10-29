@@ -76,6 +76,17 @@ class ArchitectureTests(unittest.TestCase):
         self.domain('[dependencies]\nserde = { workspace = true }\n')
         self.assertEqual([], rust_boundaries(self.root))
 
+    def test_development_catalog_controls_actual_rust_dependencies(self):
+        self.crate('crates/application', 'scopehub-application')
+        self.domain('[dependencies]\napp = { package = "scopehub-application", path = "../application" }\n')
+        directory = self.root / 'project'
+        directory.mkdir()
+        (directory / 'development.json').write_text(json.dumps({'modules': [
+            {'id': 'domain', 'paths': ['crates/domain'], 'dependencies': []},
+            {'id': 'application', 'paths': ['crates/application'], 'dependencies': ['domain']},
+        ]}))
+        self.assertIn('Forbidden internal dependency: scopehub-domain -> scopehub-application', rust_boundaries(self.root))
+
     def test_nested_glob_members_cannot_hide_forbidden_dependencies(self):
         self.workspace(members='["crates/nested/*"]')
         self.crate('crates/nested/domain', 'scopehub-domain', '[dependencies]\nrusqlite = "1"\n')

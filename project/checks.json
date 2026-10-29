@@ -367,7 +367,8 @@
     {
       "requirement": "After disconnecting the market worker, its status is visible and recovery uses bounded retries without duplicate subscriptions",
       "checks": [
-        "market-workflow"
+        "market-workflow",
+        "market-recovery"
       ]
     },
     {

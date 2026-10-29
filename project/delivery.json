@@ -7,7 +7,8 @@
     "project/checks.json",
     "project/delivery.json",
     "project/feedback.json",
-    "project/dependencies.json"
+    "project/dependencies.json",
+    "project/development.json"
   ],
   "iteration_policy": {
     "start": [
@@ -27,12 +28,13 @@
       "Review changed files and accepted history; retain a concrete next action and current focus.",
       "Report tested behavior, unresolved blockers and the difference between mock, native-runtime and release evidence.",
       "Run release-cadence checks at the actual release boundary or through an affected task; normal changes retain a short deterministic feedback loop.",
-      "After a coherent delivery is completed and its evidence is archived, assess its PR with project:integration --pr <number> and include the concrete integration recommendation at handoff. Do not wait for future product milestones or for the owner to remember to ask about integration."
+      "After a coherent delivery is completed and its evidence is archived, assess its PR with project:integration --pr <number> and include the concrete integration recommendation at handoff. Do not wait for future product milestones or for the owner to remember to ask about integration.",
+      "Review responsibility cohesion, public boundaries, data ownership and transition cleanup using project/development.json; distinguish engineering evidence from actual owner product feedback."
     ],
     "adaptation": [
       "Ordinary implementation, local experiments, tests and refactoring within accepted boundaries need no additional owner approval.",
       "Keep investment judgments, runtime permissions and engineering correctness separate.",
-      "Change language ownership, process boundaries, permissions or protocols through the existing owner-approved ADR process.",
+      "The development AI records consequential technical changes in ADRs; consult the owner on product experience, data, permission, cost or publication consequences according to project/development.json.",
       "Use skills only for demonstrated repeatable procedures; keep repository facts in canonical records and executable commands.",
       "Split future milestone tasks into observable slices when work approaches; remove speculative work through explicit cancellation and preserve history."
     ]

@@ -9,7 +9,7 @@
     "SHOULD": "Any deviation MUST have a documented rationale"
   },
   "implementation_policy": {
-    "mode": "implement_not_redesign",
+    "mode": "implement_product_with_evolvable_design",
     "priority": [
       "security_invariants",
       "contract",
@@ -17,7 +17,7 @@
       "local_conventions"
     ],
     "unknowns": "Do not guess credentials, provider permissions, commercial licenses, or security capabilities; use an explicit blocked status or a simulated implementation",
-    "changes": "Changes to programming language responsibilities, process boundaries, the permission model, or protocols require a new ADR and project owner approval",
+    "changes": "The development AI owns technical planning and implementation. Record consequential language, process, protocol or architecture changes in an ADR. Consult the owner for unresolved product behavior/scope, user-data consequences, costs, external transmission or permission changes; reuse existing authorization. Technical choices preserving these commitments do not require the owner to select an implementation.",
     "dependencies": "Choose compatible stable versions during implementation and commit all lockfiles; do not automatically upgrade major versions or add dependencies for placeholder modules",
     "build_or_reuse": {
       "principle": "Choose reuse, integration, adaptation, or local implementation by concrete product needs and lifetime maintenance cost. External data channels, products, services, libraries, and SDKs are valid options.",
@@ -42,7 +42,7 @@
     "completion": "Mark work complete only after tests have actually run and passed; do not report simulated market data acceptance as real market data acceptance"
   },
   "product": {
-    "purpose": "A financial workbench for close human–AI collaboration in understanding markets, analysis, decision-making, and authorized operations",
+    "purpose": "A financial workbench for close human\u2013AI collaboration in understanding markets, analysis, decision-making, and authorized operations",
     "design_principles": [
       "AI is an active participant in financial workflows, with capabilities exposed through explicit application operations.",
       "Stocks and futures are the initial asset classes; additional asset classes can be introduced as needs emerge.",
@@ -60,7 +60,8 @@
       "decision_ownership": "The human retains ownership of adopted investment judgments and the resulting market exposure. AI assistance and workflow automation do not guarantee profitable outcomes or constitute an independent mandate to manage capital.",
       "authorization_principle": "Treat investment risk acceptance and action authorization as separate concerns. A general statement that the human bears market risk grants no additional capability and does not satisfy operation-specific confirmations.",
       "system_quality": "Distinguish adverse market outcomes from incorrect data, calculation errors, execution defects, and unauthorized actions. The latter require prevention, diagnosis, and correction; human ownership of investment decisions does not relax system correctness requirements.",
-      "delivery": "Apply these principles through the existing milestone sequence and operation permissions; broader collaboration capabilities require concrete use cases before implementation."
+      "delivery": "Apply these principles through the existing milestone sequence and operation permissions; broader collaboration capabilities require concrete use cases before implementation.",
+      "capability_direction": "The embedded AI should be able to perform user manual work and competently participate in cognitive work across the financial workbench. Refine concrete operations and interaction behavior through delivery; this is separate from owner/development-AI responsibilities."
     },
     "platform": {
       "v1": "Windows 10/11 x64",
@@ -197,7 +198,8 @@
       "entry_command": "pnpm project:status",
       "policy": "Follow ADR 0004 for durable tasks, decision supersession, execution-bound verification and release history. Keep meaningful outcomes and next actions current across AI sessions; completed tasks do not substitute for current product validation."
     },
-    "documentation": "No human-facing guides; maintain agent instructions, executable schemas, JSON decisions, machine-readable verification reports, and legally required notices."
+    "documentation": "No human-facing guides; maintain agent instructions, executable schemas, JSON decisions, machine-readable verification reports, and legally required notices.",
+    "development": "project/development.json"
   },
   "runtime": {
     "processes": {
@@ -887,7 +889,7 @@
   },
   "implementation_instructions": [
     "Implement M0 first and proceed milestone by milestone; do not skip permissions or failure paths",
-    "Generate contracts/schemas/*.schema.json from this file, all executable for validation; this file is a specification, not a completed JSON Schema",
+    "Edit canonical wire schemas in contracts/schemas/protocol.schema.json; generate language types and operation schema projections with pnpm generate. This engineering file defines product and engineering requirements, not generated schemas.",
     "All dynamic operations must pass through the Rust registry first; do not add generic execute/shell/sql tools",
     "Keep mock implementations until a provider is confirmed; do not temporarily scrape market data from the internet to pretend that integration exists",
     "Keep only interfaces for non-target platforms; do not spend time implementing cross-platform releases",

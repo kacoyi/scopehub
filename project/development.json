@@ -1,0 +1,541 @@
+{
+  "schema_version": "1.0",
+  "collaboration": {
+    "owner": [
+      "Define product needs, user experience preferences and product tradeoffs; evaluate demonstrated outcomes."
+    ],
+    "development_ai": [
+      "Own requirement synthesis, technical planning, implementation, code quality, verification, maintenance and an evidence-backed handoff.",
+      "Choose algorithms, libraries, internal boundaries and technical architecture autonomously within authorized product, resource and safety constraints; record consequential decisions and inspect existing code.",
+      "Convert nearby requirements into observable slices; investigate consequential uncertainty early and keep independent work moving while questions are pending."
+    ],
+    "ask_owner_when": [
+      "User-visible behavior, product scope or a meaningful experience tradeoff is unresolved and cannot be inferred from accepted requirements.",
+      "A change affects user-data retention or irreversible handling, external transmission, costs, runtime authority or an existing explicit permission boundary.",
+      "Publication, merge, release or shared-resource use needs authorization not already granted; preserve existing applicable authorization."
+    ],
+    "question_protocol": [
+      "Ask concrete questions about observable behavior and consequences; include a recommended option and the impact of alternatives when useful.",
+      "Do not ask the owner to select implementation mechanisms. State technical decisions and their material consequences in proportion to impact.",
+      "Clarify the next deliverable, not an exhaustive distant feature inventory. Use examples or a small demonstrable slice when words are insufficient.",
+      "Distinguish confirmed requirements, temporary assumptions and unresolved questions. Elapsed time is not an answer or approval."
+    ],
+    "product_ai_separation": [
+      "This record governs the project owner and the AI developing ScopeHub. It does not define the behavior of product users or the embedded product AI.",
+      "Product AI aims to perform user manual work and competently assist with cognitive work in the financial workbench; concrete capabilities and interactions are refined through delivery.",
+      "Development delegation does not grant the embedded AI runtime permissions. Product interaction choices remain unspecified until requirements establish them."
+    ]
+  },
+  "quality": {
+    "module_design": [
+      "Group logic by responsibility and reason to change. Keep unrelated capabilities independent; do not introduce an abstraction or service without a concrete use.",
+      "Expose narrow operations and stable data contracts. Hide internal classes, vendor SDKs, storage layout and processing details; review every new public entry.",
+      "Declare allowed dependencies and avoid cycles. Composition roots assemble implementations; callers use public entries instead of implementation internals."
+    ],
+    "state_ownership": [
+      "Assign one logical owner to each mutable business state and invariant; distinguish business authorization from storage execution.",
+      "Application use cases authorize and coordinate mutations; domain logic owns domain invariants; persistence executes transactional storage through the core single-writer path.",
+      "UI and workers do not write the application database. Cache disposal must preserve accepted user work.",
+      "Validate structure at ingress, business preconditions in the owning use case and integrity in storage. Multiple defenses must not create divergent copies of the same business rule."
+    ],
+    "verification": [
+      "Protect domain rules with independent examples, module collaboration with contract tests and critical user journeys with actual integrated behavior.",
+      "Test boundary, failure, cancellation and recovery behavior proportional to risk. Builds and schema validation establish only their own scope.",
+      "Keep expected values independent of implementation; do not refresh golden outputs merely to pass. Changed requirements need explicit rationale and revised relevant assertions.",
+      "Architecture checks enforce declared imports and dependencies, not complete design quality; inspect the actual diff and behavior."
+    ],
+    "evolution": [
+      "For a refactor, replacement, migration or requirement reset, identify preserved and intentionally changed behavior, affected callers, data handling and cleanup before activation.",
+      "Use direct refactoring for small changes and staged replacement when justified. Each stage stays reviewable and has an exit condition; remove obsolete paths after verified cutover.",
+      "Version persistent formats and test migrations against representative old data before use. Retain failed evidence and verify backup/restore or forward repair; an application rollback does not prove data downgrade safety.",
+      "Requirement changes supersede current decisions and create successor tasks; never rewrite completed task definitions or accepted ADR rationale."
+    ],
+    "review": [
+      "Before completion inspect responsibility cohesion, dependency direction, public surface, business/data ownership, failure cleanup, protected behavior and transition removal.",
+      "Review tests for independent expectations and real failure detection. Explain remaining limits and actual owner feedback without inventing product acceptance.",
+      "Address concrete debt in the current slice or attach a bounded successor task with a trigger; avoid unrelated cleanup and speculative frameworks."
+    ],
+    "feedback_loop": [
+      "Read status and focused context; inspect implementation; define one observable result and expose the highest-impact uncertainty.",
+      "Implement, run fast and affected checks, inspect behavior, correct consequential failures and archive matching evidence.",
+      "Separate engineering verification, ready-for-owner-review, observed owner acceptance, integration and release. Report each honestly.",
+      "Keep focus, next action and meaningful feedback current. Turn recurring failures into proportionate regressions; remove obsolete rules through reviewed decisions."
+    ]
+  },
+  "modules": [
+    {
+      "id": "domain",
+      "status": "implemented",
+      "paths": [
+        "crates/domain"
+      ],
+      "responsibility": "Cross-language domain types and structural wire validation.",
+      "public_entries": [
+        "crates/domain/src/lib.rs",
+        "crates/domain/src/wire.rs"
+      ],
+      "dependencies": [],
+      "owns": [
+        "Domain vocabulary and wire decoding invariants"
+      ],
+      "invariants": [
+        "No UI, database or adapter dependencies"
+      ],
+      "checks": [
+        "generated-contracts",
+        "rust-contracts-workers"
+      ]
+    },
+    {
+      "id": "application",
+      "status": "implemented",
+      "paths": [
+        "crates/application"
+      ],
+      "responsibility": "Use cases, authorized operation dispatch and market semantic validation.",
+      "public_entries": [
+        "crates/application/src/lib.rs"
+      ],
+      "dependencies": [
+        "domain"
+      ],
+      "owns": [
+        "Operation authorization and cross-field market invariants"
+      ],
+      "invariants": [
+        "Reject unsupported operations; actor identity comes from trusted transports",
+        "Current history registry is synthetic-only; generalize source policy before real adapters"
+      ],
+      "checks": [
+        "rust-contracts-workers"
+      ]
+    },
+    {
+      "id": "worker-host",
+      "status": "implemented",
+      "paths": [
+        "crates/worker-host"
+      ],
+      "responsibility": "Controlled worker lifecycle and correlated, bounded transport.",
+      "public_entries": [
+        "crates/worker-host/src/lib.rs",
+        "crates/worker-host/src/market.rs"
+      ],
+      "dependencies": [
+        "domain",
+        "application"
+      ],
+      "owns": [
+        "Owned child processes and request lifecycle"
+      ],
+      "invariants": [
+        "No mutable adapter escape through the application registry",
+        "Shutdown releases owned workers"
+      ],
+      "checks": [
+        "rust-contracts-workers"
+      ]
+    },
+    {
+      "id": "desktop",
+      "status": "implemented",
+      "paths": [
+        "apps/desktop/src-tauri"
+      ],
+      "responsibility": "Windows composition root and allowlisted UI transport.",
+      "public_entries": [
+        "apps/desktop/src-tauri/src/bridge.rs",
+        "apps/desktop/src-tauri/src/main.rs"
+      ],
+      "dependencies": [
+        "domain",
+        "application",
+        "worker-host",
+        "persistence",
+        "platform"
+      ],
+      "owns": [
+        "Window identity and application assembly"
+      ],
+      "invariants": [
+        "Bind user actor at the transport; no general file/process/SQL command"
+      ],
+      "checks": [
+        "architecture",
+        "windows-native-build"
+      ]
+    },
+    {
+      "id": "ui",
+      "status": "implemented",
+      "paths": [
+        "apps/desktop/ui/src"
+      ],
+      "responsibility": "User intent and presentation of verified operation results.",
+      "public_entries": [
+        "apps/desktop/ui/src/main.tsx",
+        "apps/desktop/ui/src/market.ts"
+      ],
+      "dependencies": [
+        "domain",
+        "chart-adapter"
+      ],
+      "owns": [
+        "Presentation and current selection"
+      ],
+      "invariants": [
+        "No provider SDK or database access",
+        "Late responses cannot replace newer selections"
+      ],
+      "checks": [
+        "chart-history",
+        "ui-build"
+      ]
+    },
+    {
+      "id": "chart-adapter",
+      "status": "implemented",
+      "paths": [
+        "apps/desktop/ui/src/chart-adapter"
+      ],
+      "responsibility": "Hide chart SDK and canvas lifecycle behind chart operations.",
+      "public_entries": [
+        "apps/desktop/ui/src/chart-adapter/history.ts"
+      ],
+      "dependencies": [
+        "domain"
+      ],
+      "owns": [
+        "Chart resources and rendering"
+      ],
+      "invariants": [
+        "Dispose resources; preserve market identity and units"
+      ],
+      "checks": [
+        "chart-history"
+      ]
+    },
+    {
+      "id": "worker-runtime",
+      "status": "implemented",
+      "paths": [
+        "python/worker_runtime"
+      ],
+      "responsibility": "Validated protocol dispatch for controlled worker roles.",
+      "public_entries": [
+        "python/worker_runtime/__main__.py",
+        "python/worker_runtime/protocol.py"
+      ],
+      "dependencies": [
+        "domain",
+        "providers"
+      ],
+      "owns": [
+        "Protocol role and dispatch state"
+      ],
+      "invariants": [
+        "Protocol-only stdout; no database writes"
+      ],
+      "checks": [
+        "python-contracts-workers"
+      ]
+    },
+    {
+      "id": "providers",
+      "status": "implemented",
+      "paths": [
+        "python/providers"
+      ],
+      "responsibility": "Synthetic market acquisition and future replaceable data adapters.",
+      "public_entries": [
+        "python/providers/history.py",
+        "python/providers/simulated.py"
+      ],
+      "dependencies": [
+        "domain"
+      ],
+      "owns": [
+        "Source-specific data and aggregation semantics"
+      ],
+      "invariants": [
+        "Preserve provenance, trading day and unknown volume",
+        "No silent source fallback or application database writes"
+      ],
+      "checks": [
+        "market-fixtures",
+        "python-contracts-workers"
+      ]
+    },
+    {
+      "id": "persistence",
+      "status": "planned",
+      "paths": [
+        "crates/persistence"
+      ],
+      "responsibility": "Transactional SQLite storage and versioned migrations.",
+      "public_entries": [],
+      "dependencies": [
+        "domain",
+        "application"
+      ],
+      "owns": [
+        "Physical storage and migrations"
+      ],
+      "invariants": [
+        "Core single-writer path; preserve accepted versions"
+      ],
+      "checks": [
+        "state-migrations"
+      ]
+    },
+    {
+      "id": "platform",
+      "status": "planned",
+      "paths": [
+        "crates/platform"
+      ],
+      "responsibility": "Windows credentials, paths and process limits.",
+      "public_entries": [],
+      "dependencies": [
+        "domain",
+        "application"
+      ],
+      "owns": [
+        "OS-specific resources"
+      ],
+      "invariants": [
+        "Credentials remain outside database and logs"
+      ],
+      "checks": [
+        "credential-boundaries"
+      ]
+    },
+    {
+      "id": "product-ai",
+      "status": "planned",
+      "paths": [
+        "python/ai"
+      ],
+      "responsibility": "Configured model adapters and product collaboration execution.",
+      "public_entries": [],
+      "dependencies": [
+        "domain"
+      ],
+      "owns": [
+        "Model interaction and task-local reasoning state"
+      ],
+      "invariants": [
+        "Use core-provided operations; cannot self-authorize"
+      ],
+      "checks": [
+        "ai-workflow",
+        "ai-replay-evaluations"
+      ]
+    },
+    {
+      "id": "indicators",
+      "status": "planned",
+      "paths": [
+        "python/indicators"
+      ],
+      "responsibility": "Declarative computation and explicitly authorized trusted Python.",
+      "public_entries": [],
+      "dependencies": [
+        "domain"
+      ],
+      "owns": [
+        "Calculation state and output semantics"
+      ],
+      "invariants": [
+        "Failed preview cannot overwrite accepted results"
+      ],
+      "checks": [
+        "indicator-workflow"
+      ]
+    },
+    {
+      "id": "development-tooling",
+      "status": "implemented",
+      "paths": [
+        "scripts",
+        "tests/project"
+      ],
+      "responsibility": "Repository validation, views, evidence and recovery.",
+      "public_entries": [
+        "scripts/project.py",
+        "scripts/development.py",
+        "scripts/check_architecture.py",
+        "scripts/check.py",
+        "scripts/recovery.py"
+      ],
+      "dependencies": [],
+      "owns": [
+        "Development records and verification provenance"
+      ],
+      "invariants": [
+        "Historical evidence is not current or release acceptance",
+        "Control checks remain independently testable"
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ]
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "market-workflow",
+      "source": {
+        "path": "engineering-contract-v1.json",
+        "pointer": "/product/v1_scope"
+      },
+      "task_ids": [
+        "M1-001",
+        "M1-003",
+        "M1-005"
+      ],
+      "delivery": "current-contract",
+      "boundary": "Synthetic history is implemented; streaming and recovery remain pending."
+    },
+    {
+      "id": "durable-workspace",
+      "source": {
+        "path": "engineering-contract-v1.json",
+        "pointer": "/persistence"
+      },
+      "task_ids": [
+        "M2-001"
+      ],
+      "delivery": "current-contract",
+      "boundary": "Operations, restoration and migration need integrated acceptance."
+    },
+    {
+      "id": "indicator-workflow",
+      "source": {
+        "path": "engineering-contract-v1.json",
+        "pointer": "/indicators"
+      },
+      "task_ids": [
+        "M3-001"
+      ],
+      "delivery": "current-contract",
+      "boundary": "Declarative and trusted-Python gates are unimplemented."
+    },
+    {
+      "id": "product-ai-collaboration",
+      "source": {
+        "path": "engineering-contract-v1.json",
+        "pointer": "/product/collaboration_model"
+      },
+      "task_ids": [
+        "M4-001"
+      ],
+      "delivery": "current-contract",
+      "boundary": "Manual and cognitive capability coverage is a product direction, not current runtime capability."
+    },
+    {
+      "id": "installation",
+      "source": {
+        "path": "engineering-contract-v1.json",
+        "pointer": "/product/release_unit"
+      },
+      "task_ids": [
+        "M5-001"
+      ],
+      "delivery": "current-contract",
+      "boundary": "Native compilation is not packaged clean-machine acceptance."
+    },
+    {
+      "id": "user-connections",
+      "source": {
+        "path": "engineering-contract-v1.json",
+        "pointer": "/product/service_policy"
+      },
+      "task_ids": [
+        "M1-008",
+        "M4-002"
+      ],
+      "delivery": "current-contract",
+      "boundary": "Local data and explicitly configured model connections need scoped delivery; installing includes no subscription."
+    },
+    {
+      "id": "information-channels",
+      "source": {
+        "path": "engineering-contract-v1.json",
+        "pointer": "/implementation_policy/build_or_reuse/information_channels"
+      },
+      "task_ids": [
+        "M4-003"
+      ],
+      "delivery": "later",
+      "boundary": "Independent channels remain required; refine the first use case before choosing an adapter."
+    },
+    {
+      "id": "external-market-api",
+      "source": {
+        "path": "engineering-contract-v1.json",
+        "pointer": "/product/real_data_gate"
+      },
+      "task_ids": [
+        "M1-009"
+      ],
+      "delivery": "later",
+      "boundary": "Real provider verification follows the simulated first-version workflow; do not silently expand current release scope."
+    }
+  ],
+  "improvement_metrics": [
+    "Measure context characters and relevant source lookups for representative tasks before and after changes.",
+    "Track consequential clarification, rework and escaped-defect observations; do not infer accuracy gains from smaller prompts alone."
+  ],
+  "data_ownership": [
+    {
+      "id": "workspace",
+      "owner": "application",
+      "writer": "persistence",
+      "status": "planned",
+      "rule": "Authorized, revision-bound mutations through the Rust core single-writer queue."
+    },
+    {
+      "id": "accepted-indicator-versions",
+      "owner": "application",
+      "writer": "persistence",
+      "status": "planned",
+      "rule": "Acceptance creates immutable versions; previews and cache disposal do not overwrite accepted work."
+    },
+    {
+      "id": "source-data",
+      "owner": "providers",
+      "writer": "providers",
+      "status": "implemented",
+      "rule": "Source adapters own source semantics and provenance, not application database writes."
+    },
+    {
+      "id": "worker-session",
+      "owner": "worker-host",
+      "writer": "worker-host",
+      "status": "implemented",
+      "rule": "Own process and correlated request lifecycle; expose explicit shutdown and read-only status."
+    },
+    {
+      "id": "ui-selection",
+      "owner": "ui",
+      "writer": "ui",
+      "status": "implemented",
+      "rule": "Current selection controls presentation; delayed responses cannot change newer intent."
+    },
+    {
+      "id": "chart-resources",
+      "owner": "chart-adapter",
+      "writer": "chart-adapter",
+      "status": "implemented",
+      "rule": "Adapter creates and disposes chart SDK resources."
+    },
+    {
+      "id": "development-records",
+      "owner": "development-tooling",
+      "writer": "development-tooling",
+      "status": "implemented",
+      "rule": "Validate definitions and archive observed evidence; preserve accepted history."
+    }
+  ]
+}

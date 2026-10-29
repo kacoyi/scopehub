@@ -6,7 +6,10 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use scopehub_application::{MarketFuture, MarketPort, READ_OPERATIONS, failure};
+use scopehub_application::{
+    MarketFuture, MarketLifecycle, MarketPort, MarketStatus, READ_OPERATIONS, ShutdownFuture,
+    failure,
+};
 use scopehub_domain::protocol::{Error, ErrorCode, Message, Response};
 use serde_json::{Value, json};
 use tokio::{
@@ -209,5 +212,17 @@ impl MarketWorker {
 impl MarketPort for MarketWorker {
     fn request<'a>(&'a mut self, operation: &'a str, payload: &'a Value) -> MarketFuture<'a> {
         Box::pin(self.exchange(operation, payload))
+    }
+}
+
+impl MarketLifecycle for MarketWorker {
+    fn status(&self) -> MarketStatus {
+        MarketStatus {
+            process_id: self.process_id(),
+        }
+    }
+
+    fn shutdown(&mut self) -> ShutdownFuture<'_> {
+        Box::pin(MarketWorker::shutdown(self))
     }
 }
