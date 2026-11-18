@@ -486,7 +486,7 @@
       "source": "Local reproduction on 2026-11-18 after the owner copied the checkout to Linux",
       "observation": "The opening project status command failed because pnpm was missing. The copied virtual environment referenced the previous user's home and its zero-byte Python launcher exited with status 0 for code that explicitly requested status 41. The copied report described the previous host. After installing the pinned tools, project status also failed when uv attempted to lock its cache in the read-only home directory.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-018"
       ],
@@ -494,7 +494,11 @@
         "environment",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The copy flattened interpreter and package links, retained the previous host paths and added execute bits to all 180 tracked files. The current shell lacked the pinned development tools.",
+        "correction": "Preserved the incoming diagnostic, restored Git file modes, rebuilt local dependencies and enabled the pinned tools. Project commands use a writable checkout-local uv cache and pnpm uses Node 24. The Linux developer server and synthetic chart both ran on the new host.",
+        "prevention": "Recovery instructions and tests exercise an isolated host interpreter with a broken copied virtual environment and verify the saved bytes. Locked setup and the M0-018 receipt cover the rebuilt Python, Rust, UI and browser paths."
+      },
       "deferral_reason": null
     },
     {

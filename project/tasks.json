@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-019",
+  "focus_task_id": "M1-006",
   "tasks": [
     {
       "id": "M0-001",
@@ -2473,7 +2473,7 @@
       "id": "M0-018",
       "title": "Restore local development after copying the checkout to Linux",
       "milestone": "M0",
-      "status": "planned",
+      "status": "done",
       "depends_on": [
         "M0-013"
       ],
@@ -2510,8 +2510,13 @@
         "rust-lints",
         "chart-history"
       ],
-      "evidence": [],
-      "next_action": "Resume local verification on the repaired checkout, including project status with a read-only home. Archive the task's Linux checks and return focus to M1-006 independently of the native dependency verification in M0-019.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-018-310101b8e82c6c63.json",
+          "sha256": "a958a286346d08533c0657aa27758d5bbe3165819abcd98b2e3e211201ef4a40"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -2601,7 +2606,7 @@
       "id": "M0-019",
       "title": "Repair the chrono and picomatch advisories found during checkout recovery",
       "milestone": "M0",
-      "status": "active",
+      "status": "blocked",
       "depends_on": [
         "M5-002"
       ],
@@ -2645,8 +2650,8 @@
         "dependency-review"
       ],
       "evidence": [],
-      "next_action": "Extend the existing Cargo graph guard to chrono and bind the picomatch mitigation to the frozen pnpm install. Run the online review and regression checks. Retain any pending native verification while the local checkout repair resumes.",
-      "blocker": null,
+      "next_action": "Retain the Linux report .reports/runs/20261118T104251.221831Z-efb55494/test-report.json. Run the required native checks when an authorized Windows x64 environment is available. Reassess the picomatch patch on a new upstream release or by 2026-11-28.",
+      "blocker": "All 15 applicable Linux change checks passed on 4b92fd2, including the online advisory review and Chromium chart. The native Windows x64 build on the same inputs is pending under local-only delivery.",
       "closure_reason": null,
       "plan": {
         "outcome": "Every dependency review confirms chrono's absence from supported builds and the effective picomatch mitigation in Vite. The supported development and native build paths retain compatibility.",
