@@ -53,7 +53,7 @@
     },
     {
       "name": "Omniscience",
-      "local_path": "/home/loong/ai-workspace/projects/omniscience",
+      "local_path": "../omniscience",
       "use": "Candidate upstream for evidence-grounded research, temporal queries, disagreements and corrections; current active profile is AI, not general financial coverage",
       "reviewed_revision": "92d8541adb1d76866a831508a0fe3bed0755f988",
       "assessment": "contracts/reviews/2026-10-13-information-channels.json",

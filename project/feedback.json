@@ -480,6 +480,39 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "copied-checkout-bootstrap",
+      "source": "Local reproduction on 2026-11-18 after the owner copied the checkout to Linux",
+      "observation": "The opening project status command failed because pnpm was missing. The copied virtual environment referenced the previous user's home and its zero-byte Python launcher exited with status 0 for code that explicitly requested status 41. The copied report described the previous host. After installing the pinned tools, project status also failed when uv attempted to lock its cache in the read-only home directory.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-018"
+      ],
+      "regression_checks": [
+        "environment",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "chrono-picomatch-advisories-20261118",
+      "source": "Local dependency audit, build graphs and publisher release records reviewed on 2026-11-18",
+      "observation": "The online audit reported RUSTSEC-2026-0543 for chrono 0.4.45 and GHSA-fc5q-39xc-vjpf for picomatch 4.0.7. Neither publisher had released a fix. Chrono appeared in Cargo.lock but was absent from both supported graphs. Vite used the affected matcher during the UI build. The original audit is .reports/dependencies/20261118T103433.352167Z.json.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-019"
+      ],
+      "regression_checks": [
+        "dependency-review",
+        "python-contracts-workers",
+        "ui-build"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

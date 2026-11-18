@@ -476,7 +476,8 @@
       "Diagnostic success means collection succeeded. Full schemas, source freshness, task completion, product behavior and native acceptance still require their normal checks."
     ],
     "bootstrap": [
-      "When pnpm, uv, site packages, project imports or JSON validation prevent the normal commands from starting, use the existing repository Python directly: .venv/bin/python -S scripts/recovery.py --save on POSIX, or .venv\\Scripts\\python.exe -S scripts\\recovery.py --save on Windows.",
+      "When pnpm, uv, site packages, project imports or JSON validation prevent the normal commands from starting, run .venv/bin/python -S scripts/recovery.py --save on POSIX or .venv\\Scripts\\python.exe -S scripts\\recovery.py --save on Windows.",
+      "If the virtual environment is missing or the command produces no JSON snapshot path, open a shell outside it and use a working host Python 3.9 or newer. Run python3 -I -S scripts/recovery.py --save on POSIX or python -I -S scripts\\recovery.py --save on Windows. Use the pinned environment for normal verification.",
       "If records are too damaged to add a valid task first, preserve the original bytes and exception, then make only the minimal bootstrap repair. Restore project:check and backfill the task plan and consequential feedback before broader work or completion.",
       "The recovery script still needs a working Python. If the interpreter or recovery code itself is broken, inspect the Git diff and a reviewed checkpoint, preserve uncommitted changes and restore only the affected inputs. Never reset unrelated work. Use locked setup once the required toolchain is available.",
       "Snapshots under .reports/recovery retain only the listed control files and failure metadata. Keep original run logs and a reviewed source checkpoint separately; a diagnostic snapshot is not a complete repository backup.",

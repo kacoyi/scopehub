@@ -198,6 +198,27 @@ class RecoveryTests(unittest.TestCase):
         self.assertTrue((self.root / result['snapshot']).exists())
         self.assertEqual(result['acceptance'], 'not_evaluated')
 
+    def test_host_python_recovers_with_a_broken_copied_virtual_environment(self):
+        self.scripts('recovery.py')
+        windows = os.name == 'nt'
+        copied_python = self.root / '.venv' / ('Scripts/python.exe' if windows else 'bin/python')
+        copied_python.parent.mkdir(parents=True)
+        copied_python.touch()
+        (self.root / 'scripts/json.py').write_text('raise RuntimeError("copied module")\n', encoding='utf-8')
+        original = (self.root / 'project/tasks.json').read_bytes()
+        base_bin = Path(sys.base_prefix) if windows else Path(sys.base_prefix) / 'bin'
+        env = {**os.environ, 'PATH': str(base_bin) + os.pathsep + os.environ['PATH'],
+               'PYTHONPATH': str(self.root / 'scripts')}
+        command = recovery.BOOTSTRAP_COMMANDS['windows_system' if windows else 'posix_system']
+        process = subprocess.run([*command.split(), '--task', 'TEST-002'], cwd=self.root, env=env,
+                                 timeout=20, capture_output=True, text=True, encoding='utf-8')
+        self.assertEqual(process.returncode, 0, process.stderr)
+        result = json.loads(process.stdout)
+        self.assertEqual(result['resume_task_id'], 'TEST-002')
+        self.assertEqual(result['acceptance'], 'not_evaluated')
+        snapshot = self.root / result['snapshot']
+        self.assertEqual(original, (snapshot.parent / 'originals/project/tasks.json').read_bytes())
+
     def test_harness_import_failures_preserve_original_error_and_old_report(self):
         self.scripts('check.py', 'recovery.py', 'doctor.py', 'processes.py')
         latest = (self.root / '.reports/test-report.json').read_bytes()

@@ -1,7 +1,7 @@
 """Preserve scaffold diagnostics without importing project validation or dependencies.
 
-This is an observation tool, not a repair executor or an acceptance check. It can
-run with the repository Python and -S when uv, pnpm or site packages are broken.
+It runs with the repository Python and -S or an isolated host Python when the
+virtual environment is unavailable. A snapshot preserves inputs for diagnosis.
 """
 
 import argparse
@@ -29,6 +29,8 @@ RECOVERY_COMMAND = 'pnpm project:recover --save'
 BOOTSTRAP_COMMANDS = {
     'posix': '.venv/bin/python -S scripts/recovery.py --save',
     'windows': '.venv\\Scripts\\python.exe -S scripts\\recovery.py --save',
+    'posix_system': 'python3 -I -S scripts/recovery.py --save',
+    'windows_system': 'python -I -S scripts\\recovery.py --save',
 }
 
 

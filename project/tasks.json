@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-006",
+  "focus_task_id": "M0-019",
   "tasks": [
     {
       "id": "M0-001",
@@ -2468,6 +2468,264 @@
       "blocker": null,
       "closure_reason": null,
       "delivery": "later"
+    },
+    {
+      "id": "M0-018",
+      "title": "Restore local development after copying the checkout to Linux",
+      "milestone": "M0",
+      "status": "planned",
+      "depends_on": [
+        "M0-013"
+      ],
+      "scope": [
+        "AGENTS.md",
+        ".gitignore",
+        "contracts/references.json",
+        "pyproject.toml",
+        "project",
+        "scripts",
+        "tests/project"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0007"
+      ],
+      "acceptance": [
+        "Preserve the original control files and latest report with a working host Python when the copied environment cannot execute the recovery script.",
+        "Restore tracked file permissions and rebuild machine-specific dependencies from the repository's pinned toolchains and lockfiles. Ordinary project status and diagnostics must run from the relocated checkout.",
+        "Verify Python workers, Rust code, the UI build and the synthetic chart in Chromium on this host. Retain a fresh report for these inputs and a regression for the copied interpreter failure."
+      ],
+      "checks": [
+        "environment",
+        "project-state",
+        "generated-contracts",
+        "architecture",
+        "python-types",
+        "python-contracts-workers",
+        "typescript-contracts",
+        "ui-build",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "chart-history"
+      ],
+      "evidence": [],
+      "next_action": "Resume local verification on the repaired checkout, including project status with a read-only home. Archive the task's Linux checks and return focus to M1-006 independently of the native dependency verification in M0-019.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A developer in the copied Linux checkout can inspect project state, build, test and run the existing synthetic chart workflow.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "AGENTS.md",
+          "package.json",
+          "pyproject.toml",
+          "rust-toolchain.toml",
+          "project/delivery.json",
+          "scripts/recovery.py",
+          "scripts/doctor.py",
+          "tests/project/test_recovery.py"
+        ],
+        "hypotheses": [
+          "The copy lost executable link targets and introduced file mode changes. Source contents and accepted records can be preserved while rebuilding host-specific products.",
+          "A separately installed Python can collect the original diagnostics even when the project's interpreter exits successfully without executing code."
+        ],
+        "risks": [
+          {
+            "failure": "A copied launcher exits successfully without producing a diagnostic or running the intended code.",
+            "checks": [
+              "environment",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "uv run cannot open its default cache with a read-only home, so project commands fail before running.",
+            "checks": [
+              "environment",
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Stale native products or broken package links survive setup and fail when the worker, UI or browser is first used.",
+            "checks": [
+              "rust-contracts-workers",
+              "ui-build",
+              "chart-history"
+            ]
+          }
+        ],
+        "rollback": "Keep the M1-006 recovery snapshot and prior evidence. Compare file contents and execute bits with the local Git checkpoint before repairing metadata. Retain failed logs and repeat the affected check after correcting its cause.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/recovery.py",
+            "scripts/doctor.py",
+            "scripts/check.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "package.json",
+              "pointer": "/packageManager"
+            }
+          ],
+          "non_goals": [
+            "Product features, native Windows acceptance and publication."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "replacement",
+          "preserve": [
+            "Source content, accepted task evidence and local commits",
+            "Existing toolchain pins and lockfiles"
+          ],
+          "change": [
+            "Host-specific dependencies and recovery instructions for relocated checkouts"
+          ],
+          "data_plan": "The repair affects development tools and build products. Historical reports remain available for comparison.",
+          "cleanup": "Remove inactive copied artifacts from the active tool paths after identifying them. Verify replacement tooling from a fresh shell and restore the interrupted focus."
+        }
+      }
+    },
+    {
+      "id": "M0-019",
+      "title": "Repair the chrono and picomatch advisories found during checkout recovery",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M5-002"
+      ],
+      "scope": [
+        "patches",
+        "pnpm-lock.yaml",
+        "pnpm-workspace.yaml",
+        "project/dependencies.json",
+        "project/dependency-inventory.json",
+        "project/tasks.json",
+        "project/feedback.json",
+        "scripts/dependencies.py",
+        "tests/project"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0006",
+        "0007"
+      ],
+      "acceptance": [
+        "For RUSTSEC-2026-0543, verify on every dependency review that locked chrono 0.4.45 remains absent from the supported Windows desktop graph and the all-target portable workspace graph.",
+        "For GHSA-fc5q-39xc-vjpf, apply a version-specific pnpm patch to the picomatch 4.0.7 used by Vite. Disable the two repetition forms of extended glob syntax and verify that ordinary glob matching continues to work.",
+        "Require the online audit to verify the exact installed patch binding, affected version, ordinary and restricted matching behavior, disposition expiry and current OSV findings. Exercise the portable Rust and UI paths, synthetic chart and native Windows build."
+      ],
+      "checks": [
+        "environment",
+        "project-state",
+        "generated-contracts",
+        "architecture",
+        "python-types",
+        "python-contracts-workers",
+        "typescript-contracts",
+        "ui-build",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "windows-native-build",
+        "market-fixtures",
+        "chart-history",
+        "dependency-review"
+      ],
+      "evidence": [],
+      "next_action": "Extend the existing Cargo graph guard to chrono and bind the picomatch mitigation to the frozen pnpm install. Run the online review and regression checks. Retain any pending native verification while the local checkout repair resumes.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Every dependency review confirms chrono's absence from supported builds and the effective picomatch mitigation in Vite. The supported development and native build paths retain compatibility.",
+        "change_types": [
+          "dependencies",
+          "tooling"
+        ],
+        "context": [
+          "project/dependencies.json",
+          "project/dependency-inventory.json",
+          "scripts/dependencies.py",
+          "Cargo.lock",
+          "pnpm-workspace.yaml",
+          "pnpm-lock.yaml",
+          "tests/project/test_dependencies.py"
+        ],
+        "hypotheses": [
+          "The publishers have no released fix for either advisory at this review. The existing Cargo graph check can verify that optional chrono is absent from both supported build configurations.",
+          "Vite can build this project using ordinary glob patterns with the two repeating extended-glob forms disabled. A patch selected by exact package version makes this behavior reproducible after frozen installation."
+        ],
+        "risks": [
+          {
+            "failure": "A Cargo feature brings chrono into a supported build, the installed matcher loses its patch, or an outdated disposition hides a new finding.",
+            "checks": [
+              "dependency-review",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The restricted matcher changes ordinary glob selection or disrupts a supported build.",
+            "checks": [
+              "rust-contracts-workers",
+              "ui-build",
+              "chart-history",
+              "windows-native-build"
+            ]
+          }
+        ],
+        "rollback": "Preserve .reports/dependencies/20261118T103433.352167Z.json and the previous lockfiles. If either guard fails or the patch breaks the build, retain the failure, reopen the affected finding and reassess its mitigation.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/dependencies.py",
+            "scripts/check.py"
+          ],
+          "rules": [
+            {
+              "path": "project/dependencies.json",
+              "pointer": "/advisory_dispositions"
+            },
+            {
+              "path": "project/dependencies.json",
+              "pointer": "/maintenance"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Product behavior changes, publication and release packaging."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "replacement",
+          "preserve": [
+            "Runtime contracts, toolchain versions, advisory checks and license obligations"
+          ],
+          "change": [
+            "Cargo graph coverage for optional chrono and a version-bound patch for the Vite build matcher",
+            "pnpm patch metadata, its lock binding and dependency inventory digests as required"
+          ],
+          "data_plan": "This update changes build dependencies and their distribution metadata. User data formats are unaffected.",
+          "cleanup": "Reassess both dispositions at expiry or when a supported graph, installed patch or upstream version changes. Remove a temporary guard or patch after verifying a replacement against the online audit and supported builds."
+        }
+      }
     }
   ]
 }

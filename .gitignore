@@ -3,9 +3,12 @@
 .env.*
 !.env.example
 *:Zone.Identifier
+# Some Windows file copies encode the ADS separator as U+F03A.
+*Zone.Identifier
 
 node_modules/
 .venv/
+/.uv-cache/
 __pycache__/
 *.py[cod]
 target/
