@@ -13,7 +13,7 @@
       "User-visible behavior, product scope or a meaningful experience tradeoff is unresolved and cannot be inferred from accepted requirements.",
       "A change affects user-data retention or irreversible handling, external transmission, costs, runtime authority or an existing explicit permission boundary.",
       "Publication, merge, release or shared-resource use needs authorization not already granted; preserve existing applicable authorization.",
-      "Current publication restriction: the development-foundation iteration stays local under contracts/reviews/2026-10-29-local-only.json. Wait for owner direction to change it; do not repeatedly request publication during local work."
+      "Apply the current task-branch and hosted verification authority in contracts/reviews/2026-11-18-hosted-ux.json. Record the owner's subjective product feedback when they actually exercise the program."
     ],
     "question_protocol": [
       "Ask concrete questions about observable behavior and consequences; include a recommended option and the impact of alternatives when useful.",
@@ -190,6 +190,7 @@
       ],
       "checks": [
         "chart-history",
+        "ubuntu-preview",
         "ui-build"
       ]
     },
@@ -379,7 +380,8 @@
       ],
       "checks": [
         "project-state",
-        "python-contracts-workers"
+        "python-contracts-workers",
+        "ubuntu-preview"
       ]
     }
   ],
@@ -393,10 +395,11 @@
       "task_ids": [
         "M1-001",
         "M1-003",
-        "M1-005"
+        "M1-005",
+        "M1-010"
       ],
       "delivery": "current-contract",
-      "boundary": "Synthetic history is implemented; streaming and recovery remain pending."
+      "boundary": "Synthetic history is implemented. M1-010 covers local browser access for development. Streaming and recovery remain pending."
     },
     {
       "id": "durable-workspace",

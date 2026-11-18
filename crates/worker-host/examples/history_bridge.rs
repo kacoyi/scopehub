@@ -1,5 +1,5 @@
-//! Test-only stdio bridge. Browser tests exercise the production registry/worker
-//! without claiming native WebView or packaged desktop execution.
+//! Local development stdio bridge for the browser preview and chart checks.
+//! Requests use the desktop registry and development market worker.
 use std::io::{BufRead, Read, Write};
 
 use scopehub_application::{Actor, MarketRegistry, failure};

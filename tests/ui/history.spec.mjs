@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { painted } from './chart-pixels.mjs';
 
 const fixtures = JSON.parse(await readFile('tests/fixtures/market/series.json', 'utf8')).fixtures;
 const instruments = [fixtures[0].instrument, fixtures[3].instrument, fixtures[6].instrument];
@@ -10,7 +11,7 @@ const instruments = [fixtures[0].instrument, fixtures[3].instrument, fixtures[6]
 // Only the native WebView transport is replaced. Normal requests run through
 // the actual Rust registry, child-process host and Python provider.
 const test = base.extend({
-  backend: async ({ page }, use) => {
+  backend: async ({ page, baseURL }, use) => {
     const executable = resolve(`target/debug/examples/history_bridge${process.platform === 'win32' ? '.exe' : ''}`);
     const child = spawn(executable, [], { stdio: ['pipe', 'pipe', 'pipe'] });
     const exited = new Promise(resolve => child.once('close', resolve));
@@ -32,7 +33,7 @@ const test = base.extend({
       child.stdin.write(JSON.stringify(args) + '\n');
     });
     page.on('pageerror', error => errors.push(String(error)));
-    page.on('request', request => { if (!request.url().startsWith('http://127.0.0.1:1420/')) network.push(request.url()); });
+    page.on('request', request => { if (new URL(request.url()).origin !== baseURL) network.push(request.url()); });
     await page.exposeBinding('nativeOperation', async (_, command, args) => {
       expect(command).toBe('execute_operation');
       calls.push(structuredClone(args));
@@ -65,23 +66,6 @@ async function enter(page) {
   await page.goto('/');
   await page.getByRole('button', { name: 'Explore offline demo' }).click();
   await expect(page.locator('.history')).toHaveAttribute('data-bars', '40');
-}
-
-async function painted(page, style) {
-  // Verify actual canvas marks, not just an element or a fixture label.
-  return page.locator('.chart canvas').evaluateAll((canvases, style) => {
-    let found = 0;
-    const colors = style === 'line' ? [[115,184,246]] : [[67,212,172],[241,125,133]];
-    for (const canvas of canvases) {
-      const context = canvas.getContext('2d');
-      if (!context) continue;
-      const values = context.getImageData(0,0,canvas.width,canvas.height).data;
-      for (let i = 0; i < values.length; i += 4) {
-        if (colors.some(rgb => rgb.every((v,k) => Math.abs(values[i+k]-v) < 5))) found++;
-      }
-    }
-    return found;
-  }, style);
 }
 
 test('startup makes no calls; all nine histories render both chart styles and retain sample semantics', async ({ page, backend }, testInfo) => {

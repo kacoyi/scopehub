@@ -23,7 +23,11 @@ export function mountHistoryChart(
     layout: { background: { type: ColorType.Solid, color: '#101a23' }, textColor: '#a9b9c7', attributionLogo: true },
     grid: { vertLines: { color: '#1b2a36' }, horzLines: { color: '#1b2a36' } },
     rightPriceScale: { borderColor: '#2a3b49' },
-    timeScale: { timeVisible: true, secondsVisible: false, borderColor: '#2a3b49', tickMarkFormatter: formatTime },
+    timeScale: {
+      timeVisible: true, secondsVisible: false, borderColor: '#2a3b49', tickMarkFormatter: formatTime,
+      fixLeftEdge: true, fixRightEdge: true,
+      tickMarkMaxCharacterLength: history.dataset.timeframe === '1d' ? 10 : 13,
+    },
     localization: { locale: 'en-GB', timeFormatter: formatTime },
   });
   try {

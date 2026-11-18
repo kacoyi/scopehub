@@ -16,6 +16,7 @@
     "typecheck": "pnpm --filter @scopehub/ui typecheck",
     "build": "pnpm --filter @scopehub/ui build",
     "dev": "pnpm --filter @scopehub/ui dev",
+    "dev:ubuntu": "cargo build --locked -p scopehub-worker-host --example history_bridge --target-dir target && pnpm --filter @scopehub/ui exec vite --mode ubuntu-preview",
     "desktop:dev": "cd apps/desktop && tauri dev",
     "desktop:build": "cd apps/desktop && tauri build --no-bundle",
     "check:fast": "uv run python scripts/check.py --profile fast",

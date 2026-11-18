@@ -517,6 +517,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "history-axis-edge-labels",
+      "source": "Visual inspection of the 1366 by 900 Chromium futures screenshot on 2026-11-18.",
+      "observation": "In the one-minute futures view the first time label started midword and the last ended after a single hour digit at the price-scale boundary.",
+      "severity": "minor",
+      "status": "open",
+      "task_ids": [
+        "M1-010"
+      ],
+      "regression_checks": [
+        "ubuntu-preview"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

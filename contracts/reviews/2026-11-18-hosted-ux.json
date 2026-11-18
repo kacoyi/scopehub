@@ -1,0 +1,36 @@
+{
+  "recorded_at": "2026-11-18",
+  "kind": "owner_hosted_verification_and_experience_request",
+  "repository": "https://github.com/kacoyi/scopehub",
+  "supersedes": "contracts/reviews/2026-10-29-local-only.json",
+  "task_ids": [
+    "M0-016",
+    "M0-017",
+    "M0-018",
+    "M0-019",
+    "M1-010",
+    "M1-011"
+  ],
+  "authority": "The owner requested GitHub Actions for the current iteration, followed by actual use on Ubuntu and then on the Windows installation of the dual-boot computer.",
+  "publication_scope": "Push the relevant task branch, create or update its draft pull request, run the repository verification workflow and retrieve the corresponding artifacts. This replaces the October local-only direction for the commits in this iteration.",
+  "verification_sequence": [
+    {
+      "stage": "hosted-verification",
+      "action": "Observe the current task-branch revision and both GitHub Actions jobs. Retain the Linux and Windows reports with their source identity and logs."
+    },
+    {
+      "stage": "ubuntu-experience",
+      "action": "After hosted verification passes, use pnpm dev:ubuntu in an Ubuntu graphical session. Exercise the explicit offline demo through the local Rust registry and Python worker. Record the revision, actions, observations and screenshots."
+    },
+    {
+      "stage": "windows-experience",
+      "action": "After the Ubuntu interaction, boot the computer into Windows and use pnpm desktop:dev in the native WebView2 GUI. Record the revision, actions, observations and screenshots from that Windows session."
+    }
+  ],
+  "product_scope": "The Ubuntu browser preview is a loopback-only development tool for the two existing synthetic history reads. Windows 10/11 x64 remains the v1 desktop release target.",
+  "separate_decisions": [
+    "The owner records subjective product feedback after actually using the program.",
+    "Merge into the default branch and publish a release under their applicable authorizations."
+  ],
+  "policy": "project/delivery.json#/source_control/authorization"
+}

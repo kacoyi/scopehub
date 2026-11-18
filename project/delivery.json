@@ -320,7 +320,8 @@
     {
       "id": "offline-history-preview",
       "task_ids": [
-        "M1-005"
+        "M1-005",
+        "M1-010"
       ],
       "user_goal": "Inspect explicit synthetic examples without configuring or receiving an external service.",
       "given": "Unconfigured startup, local generated examples and no credentials.",
@@ -339,9 +340,10 @@
       "checks": [
         "chart-history",
         "market-fixtures",
+        "ubuntu-preview",
         "windows-native-build"
       ],
-      "evidence_boundary": "Read-only synthetic history and native compilation; no live-feed, real data, persistent workspace or packaged WebView acceptance claim."
+      "evidence_boundary": "The chart and development transport checks cover read-only synthetic history. Record observations from an Ubuntu graphical session and the native Windows WebView2 session separately from build results and owner feedback."
     }
   ],
   "release_policy": {
@@ -449,7 +451,8 @@
       "Inspect the HTTPS origin and local github.account marker before authenticated GitHub operations, select the marked account with gh auth switch and verify its login. Never read token files.",
       "Source-control policy does not grant merge, release, visibility, account administration, destructive history changes or branch-protection weakening permissions. Apply existing owner intent and platform approval requirements to the concrete action.",
       "On 2026-10-14 the owner requested repair of all health-assessment findings, authorizing H08 main protection enforcement with required pull requests and observed Linux/Windows checks. Preserve stronger settings and do not weaken protection, merge or release under this maintenance scope.",
-      "For the 2026-10-29 development-foundation iteration, the owner selected local-only delivery: contracts/reviews/2026-10-29-local-only.json. Keep its commits local; do not push, write its PR updates or trigger hosted CI until the owner changes that direction. Independent local work can continue."
+      "For the 2026-10-29 development-foundation iteration, the owner selected local-only delivery: contracts/reviews/2026-10-29-local-only.json. Keep its commits local; do not push, write its PR updates or trigger hosted CI until the owner changes that direction. Independent local work can continue.",
+      "On 2026-11-18 the owner requested GitHub Actions for the task branch containing these commits. The updated scope and the subsequent Ubuntu and Windows experience sequence are recorded in contracts/reviews/2026-11-18-hosted-ux.json."
     ]
   },
   "scaffold_maintenance": {

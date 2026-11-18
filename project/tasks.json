@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-006",
+  "focus_task_id": "M1-010",
   "tasks": [
     {
       "id": "M0-001",
@@ -1926,8 +1926,8 @@
         "market-fixtures"
       ],
       "evidence": [],
-      "next_action": "Retain local validation and commits. Resume native verification and archive task evidence only when an authorized Windows path is available; do not repeat the publication request.",
-      "blocker": "Local implementation is complete, but required native Windows verification is unavailable. The owner selected local-only delivery for this iteration; no push or hosted CI is authorized.",
+      "next_action": "Use the authorized Actions run for the current task branch. Archive the matching Windows artifact after every required task check passes.",
+      "blocker": "Matching native Windows verification for the development-foundation changes is pending.",
       "closure_reason": null,
       "plan": {
         "outcome": "A working, tested development loop in which an incoming agent can identify product scope, code ownership, next slice, checks and evidence limits, while ordinary technical choices stay autonomous.",
@@ -2368,8 +2368,8 @@
         "dependency-review"
       ],
       "evidence": [],
-      "next_action": "Retain local validation and commits. Resume native verification and archive task evidence only when an authorized Windows path is available; do not repeat the publication request.",
-      "blocker": "Local implementation is complete, but required native Windows verification is unavailable. The owner selected local-only delivery for this iteration; no push or hosted CI is authorized.",
+      "next_action": "Use the authorized Actions run for the current task branch. Verify the advisory review and archive the matching Windows artifact.",
+      "blocker": "Matching native Windows verification for the October dependency repairs is pending.",
       "closure_reason": null,
       "plan": {
         "outcome": "Restore actual dependency review and build acceptance without suppressing new findings.",
@@ -2650,8 +2650,8 @@
         "dependency-review"
       ],
       "evidence": [],
-      "next_action": "Retain the Linux report .reports/runs/20261118T104251.221831Z-efb55494/test-report.json. Run the required native checks when an authorized Windows x64 environment is available. Reassess the picomatch patch on a new upstream release or by 2026-11-28.",
-      "blocker": "All 15 applicable Linux change checks passed on 4b92fd2, including the online advisory review and Chromium chart. The native Windows x64 build on the same inputs is pending under local-only delivery.",
+      "next_action": "Retain the Linux report .reports/runs/20261118T104251.221831Z-efb55494/test-report.json. Archive the matching Windows Actions report after the current dependency guards and native build pass. Reassess the picomatch patch on a new upstream release or by 2026-11-28.",
+      "blocker": "The 15 applicable Linux change checks passed on 4b92fd2. Matching native Windows verification for the November dependency guards is pending.",
       "closure_reason": null,
       "plan": {
         "outcome": "Every dependency review confirms chrono's absence from supported builds and the effective picomatch mitigation in Vite. The supported development and native build paths retain compatibility.",
@@ -2731,6 +2731,173 @@
           "cleanup": "Reassess both dispositions at expiry or when a supported graph, installed patch or upstream version changes. Remove a temporary guard or patch after verifying a replacement against the online audit and supported builds."
         }
       }
+    },
+    {
+      "id": "M1-010",
+      "title": "Expose the synthetic chart through a local Ubuntu development preview",
+      "milestone": "M1",
+      "status": "active",
+      "depends_on": [
+        "M1-005",
+        "M0-018"
+      ],
+      "scope": [
+        "package.json",
+        "apps/desktop/ui",
+        "crates/worker-host/examples/history_bridge.rs",
+        "scripts",
+        "tests",
+        "project",
+        "contracts/reviews/2026-11-18-hosted-ux.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0007"
+      ],
+      "acceptance": [
+        "The explicit pnpm dev:ubuntu entry starts a loopback-only Vite development preview. The existing UI can open the offline demo and read synthetic instrument and bar data from the Rust operation registry and Python worker.",
+        "Only instrument.search and market.getBars are available through the development transport for the synthetic source. Verify request boundaries, failure cleanup and the existing native desktop invocation path.",
+        "Exercise the preview through its normal entry on the hosted Linux and Windows development environments. After Actions passes, retain the actual Ubuntu graphical interaction with source revision, observed selections and screenshots."
+      ],
+      "checks": [
+        "environment",
+        "project-state",
+        "ubuntu-preview",
+        "chart-history",
+        "market-fixtures",
+        "architecture",
+        "python-types",
+        "python-contracts-workers",
+        "typescript-contracts",
+        "ui-build",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints"
+      ],
+      "evidence": [],
+      "next_action": "Implement and verify the explicit development entry, run the GitHub Actions matrix and record the Ubuntu interaction. The follow-up Windows GUI experience and actual owner feedback are tracked in the dated review.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The current Ubuntu checkout can display the synthetic history chart through its real local stack. Verification identifies the observed platform and distinguishes the browser preview from the Windows desktop experience.",
+        "change_types": [
+          "tooling",
+          "chart-history"
+        ],
+        "context": [
+          "apps/desktop/ui/vite.config.ts",
+          "apps/desktop/ui/src/market.ts",
+          "crates/worker-host/examples/history_bridge.rs",
+          "apps/desktop/src-tauri/src/bridge.rs",
+          "apps/desktop/ui/src/chart-adapter/history.ts",
+          "tests/ui/history.spec.mjs",
+          "contracts/reviews/2026-11-18-hosted-ux.json"
+        ],
+        "hypotheses": [
+          "A development-only Vite transport can reuse the existing chart UI, operation registry and synthetic worker without adding a service to the packaged application."
+        ],
+        "risks": [
+          {
+            "failure": "The development server accepts requests beyond the loopback session or exposes extra operations or sources.",
+            "checks": [
+              "ubuntu-preview"
+            ]
+          },
+          {
+            "failure": "The UI bypasses the registry, displays stale selections or breaks the established native invocation path.",
+            "checks": [
+              "ubuntu-preview",
+              "chart-history",
+              "rust-contracts-workers",
+              "ui-build"
+            ]
+          },
+          {
+            "failure": "Chart ticks paint outside the time axis and leave the first or last timestamp unreadable.",
+            "checks": [
+              "ubuntu-preview"
+            ]
+          }
+        ],
+        "rollback": "Stop the preview and its worker, retain failed checks and observed screenshots, and revert the development transport if it affects the desktop path.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "ui",
+            "application",
+            "worker-host"
+          ],
+          "entrypoints": [
+            "package.json",
+            "apps/desktop/ui/vite.config.ts",
+            "apps/desktop/ui/src/market.ts",
+            "crates/worker-host/examples/history_bridge.rs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/product/platform"
+            },
+            {
+              "path": "contracts/contract.json",
+              "pointer": "/operations"
+            },
+            {
+              "path": "contracts/reviews/2026-11-18-hosted-ux.json",
+              "pointer": "/verification_sequence"
+            }
+          ],
+          "non_goals": [
+            "Linux distribution, packaging, new market operations, real providers, model calls and release sign-off."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Unconfigured startup and explicit synthetic demo selection",
+            "Windows WebView2 invocation and Rust registry ownership"
+          ],
+          "change": [
+            "An explicit local browser entry for Ubuntu development and a portable check for that entry"
+          ],
+          "data_plan": "This workflow uses the existing synthetic examples and creates no persisted application data.",
+          "cleanup": "On exit release the local listener and its child processes. Check both the opt-in development entry and the existing chart path before handing off for Windows use."
+        }
+      }
+    },
+    {
+      "id": "M1-011",
+      "title": "Exercise the chart on the owner's dual-boot Windows desktop",
+      "milestone": "M1",
+      "status": "planned",
+      "depends_on": [
+        "M1-010"
+      ],
+      "scope": [
+        "apps/desktop",
+        "contracts/reviews",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0007"
+      ],
+      "acceptance": [
+        "Open the Ubuntu-reviewed revision using pnpm desktop:dev on the physical Windows 10/11 x64 desktop and observe the native WebView2 window.",
+        "Exercise the unconfigured entry, synthetic chart, selection, timeframe, chart style, resizing, crosshair, table and exit. Retain the revision, Windows runtime and on-screen observations with screenshots.",
+        "Record any experience feedback supplied by the owner in their own terms and retain any engineering defects for correction."
+      ],
+      "checks": [
+        "windows-native-build",
+        "chart-history"
+      ],
+      "evidence": [],
+      "next_action": "After the Ubuntu trial, open the matching checkout in the dual-boot Windows session, launch pnpm desktop:dev, and record the actual experience in the review.",
+      "blocker": null,
+      "closure_reason": null
     }
   ]
 }

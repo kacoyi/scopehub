@@ -292,6 +292,21 @@
         "scripts/check_chart_history.py"
       ],
       "timeout_seconds": 900
+    },
+    {
+      "id": "ubuntu-preview",
+      "status": "implemented",
+      "purpose": "Exercise the local development entry in a clean Chromium session, verify synthetic history through the loopback endpoint and enforce its read-only scope",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/playwright.config.mjs"
+      ],
+      "timeout_seconds": 900
     }
   ],
   "milestones": [
@@ -453,7 +468,8 @@
     "dependency-review",
     "market-fixtures",
     "futures-tick-inspection",
-    "chart-history"
+    "chart-history",
+    "ubuntu-preview"
   ],
   "gate_changes": []
 }

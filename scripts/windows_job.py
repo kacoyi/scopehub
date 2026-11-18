@@ -90,3 +90,16 @@ class WindowsJob:
         if self.handle is not None:
             self.require(self.api.CloseHandle(self.handle))
             self.handle = None
+
+
+if __name__ == '__main__':
+    # The preview server owns this launcher. Closing its process closes the sole
+    # job handle, including when an outstanding stdio request is interrupted.
+    import os
+    import subprocess
+    import sys
+
+    job = WindowsJob()
+    job.assign(os.getpid())
+    raise SystemExit(subprocess.call(sys.argv[1:], stdin=sys.stdin.buffer,
+                                     stdout=sys.stdout.buffer, stderr=sys.stderr.buffer))

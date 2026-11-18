@@ -10,8 +10,20 @@ type Job = {
 };
 const aborted = () => new DOMException('Selection changed', 'AbortError');
 
-// One native request plus one latest intent; superseded selections cannot build
-// an unbounded native queue. The core validates every executed operation.
+async function readOperation(operation: keyof Inputs, payload: Inputs[keyof Inputs]): Promise<unknown> {
+  if (import.meta.env.SCOPEHUB_UBUNTU_PREVIEW) {
+    const response = await fetch('/__scopehub/operation', {
+      method: 'POST', mode: 'same-origin', credentials: 'omit', redirect: 'error',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ operation, payload }),
+    });
+    const reply = await response.json();
+    if (!response.ok || !reply.ok) throw reply.error;
+    return reply.result;
+  }
+  return invoke('execute_operation', { operation, payload });
+}
+
+// One in-flight read plus one latest intent. The core validates every executed operation.
 class HistoryReader {
   private running = false;
   private pending: Job | undefined;
@@ -34,7 +46,7 @@ class HistoryReader {
         this.pending = undefined;
         if (job.signal.aborted) { job.reject(aborted()); continue; }
         try {
-          const result = await invoke('execute_operation', { operation: job.operation, payload: job.payload });
+          const result = await readOperation(job.operation, job.payload);
           if (job.signal.aborted) job.reject(aborted());
           else job.resolve(result);
         } catch (error) { job.reject(job.signal.aborted ? aborted() : error); }
@@ -56,6 +68,8 @@ export function errorText(error: unknown): string {
     case 'OUTPUT_INVALID': case 'PROTOCOL_MISMATCH': return 'The data response failed validation. No chart was loaded.';
     case 'RESOURCE_LIMIT': return 'The market worker is busy. Please retry.';
     case 'DATA_UNAVAILABLE': return 'No history is available for this instrument.';
-    default: return 'Unable to load the preview. Open the desktop development app and retry.';
+    default: return import.meta.env.SCOPEHUB_UBUNTU_PREVIEW
+      ? 'Unable to load the local preview. Restart pnpm dev:ubuntu and retry.'
+      : 'Unable to load the preview. Open the desktop development app and retry.';
   }
 }
