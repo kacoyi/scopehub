@@ -587,14 +587,18 @@
       "source": "Separate graphical Chrome session on Ubuntu, revision 2ca63cba675d8bd7d0173f9d2d28531f76df9c65. Observations in .reports/ux/ubuntu-interruption-2ca63cba675d/observations.json.",
       "observation": "Temporarily disconnecting the browser made catalog and history errors advise restarting the development server. The server stayed running. Restoring the browser connection, using the retry controls and rapidly changing the selection displayed the intended final instrument and timeframe.",
       "severity": "minor",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-013"
       ],
       "regression_checks": [
         "ubuntu-preview"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The generic fallback assumed the local server required a restart after a browser transport failure.",
+        "correction": "The local preview now explains when to retry after the connection returns. The running service and the selected history can be reused.",
+        "prevention": "A clean browser session loses its local connection while loading the catalog and again while changing timeframe, then retries each path on the same server. It checks the data after quick subsequent selections."
+      },
       "deferral_reason": null
     }
   ]

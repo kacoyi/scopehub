@@ -10,7 +10,8 @@
     "M0-019",
     "M1-010",
     "M1-011",
-    "M1-012"
+    "M1-012",
+    "M1-013"
   ],
   "authority": "The owner requested GitHub Actions for the current iteration, followed by actual use on Ubuntu and then on the Windows installation of the dual-boot computer.",
   "owner_steering": {
@@ -93,6 +94,32 @@
       "status": "deferred_until_ubuntu_complete",
       "task": "M1-011",
       "command": "pnpm desktop:dev"
+    },
+    "ubuntu_retry": {
+      "commit": "74b957e35c03512ac499b24ab5e6e82efd8b52e2",
+      "report": ".reports/ux/ubuntu-interruption-74b957e35c03/observations.json",
+      "sha256": "0b306ef04907062b436c9ff68461500f8b518831aaed9227310f2a014e51b649",
+      "observations": [
+        {
+          "action": "Start the demo while this browser is offline",
+          "message": "Cannot reach the local preview. Retry when the connection is restored."
+        },
+        {
+          "action": "Change timeframe while disconnected",
+          "message": "Cannot reach the local preview. Retry when the connection is restored.",
+          "old_chart_visible": false
+        },
+        {
+          "action": "Reconnect, retry, rapidly change chart selection and open the table at 150% display scaling",
+          "instrument": "SIM.CN.STOCK.001",
+          "timeframe": "1d",
+          "rows": 2
+        }
+      ],
+      "screenshots": {
+        "offline-history.png": "360e90aee182851c1381115797ff46d4e08cfc97cd061e582362857e3b3c37e8",
+        "recovered.png": "87608ef10e753bbfdffec5fb6b8c62c3f3623416babdfab8c90a6ca611f578a3"
+      }
     }
   }
 }

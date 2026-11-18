@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-013",
+  "focus_task_id": "M1-006",
   "tasks": [
     {
       "id": "M0-001",
@@ -2033,7 +2033,10 @@
         "crates",
         "python",
         "apps/desktop",
-        "tests"
+        "tests",
+        "contracts",
+        "project/checks.json",
+        "project/delivery.json"
       ],
       "decision_refs": [
         "0007",
@@ -2051,7 +2054,7 @@
         "architecture"
       ],
       "evidence": [],
-      "next_action": "Add a bounded live-update contract and one rendered stream; reject delayed events after selection changes and preserve final bar state. Record protocol evolution before implementation.",
+      "next_action": "Define the synthetic bar event and cross-language fixtures, then pass the worker updates through the shared Rust core into a cancellable Ubuntu chart session. Exercise selection changes during an update and the final closed bar.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -2064,10 +2067,15 @@
           "project/development.json",
           "apps/desktop/ui/src/main.tsx",
           "crates/application/src/lib.rs",
-          "crates/worker-host/src/market.rs"
+          "crates/worker-host/src/market.rs",
+          "contracts/schemas/protocol.schema.json",
+          "python/providers/simulated.py",
+          "python/worker_runtime/__main__.py",
+          "apps/desktop/ui/ubuntu-preview.mjs"
         ],
         "hypotheses": [
-          "Separate streaming and state slices expose event identity and failure uncertainty before full workflow closure."
+          "Separate streaming and state slices expose event identity and failure uncertainty before full workflow closure.",
+          "The existing synthetic provider supplies an interim update and a final update for the same bar. The one-request browser bridge and single-response worker host need a bounded stream lifecycle to deliver them to the chart."
         ],
         "risks": [
           {
@@ -3082,7 +3090,7 @@
       "id": "M1-013",
       "title": "Make retry guidance match recoverable Ubuntu preview interruptions",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-010"
       ],
@@ -3111,8 +3119,13 @@
         "ui-build",
         "rust-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Correct the Ubuntu transport error guidance and add browser regressions for retry and rapid reselection on the normal development entry. Archive the task evidence, then return focus to M1-006.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-013-e7c91e735afe9222.json",
+          "sha256": "7f405c70130cf07f6f967381a68a4e49a2079ee0640d9ca0a07c707075d00bef"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
