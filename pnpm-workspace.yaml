@@ -1,2 +1,4 @@
 packages:
   - apps/desktop/ui
+patchedDependencies:
+  picomatch@4.0.7: patches/picomatch@4.0.7.patch

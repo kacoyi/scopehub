@@ -168,6 +168,40 @@ class DependencyTests(unittest.TestCase):
         with self.assertRaises(OSError):
             review.validate_upstream_range(item, Mock(side_effect=OSError('unavailable')))
 
+    def test_picomatch_disposition_requires_the_reviewed_patch_for_every_resolution(self):
+        identifier = 'picomatch@4.0.7'
+        relative = f'patches/{identifier}.patch'
+        local_patch = self.root / relative
+        local_patch.parent.mkdir()
+        shutil.copyfile(ROOT / relative, local_patch)
+        shutil.copyfile(ROOT / 'pnpm-workspace.yaml', self.root / 'pnpm-workspace.yaml')
+        item = next(d for d in self.policy['advisory_dispositions'] if d['scope_guard'] == 'picomatch-build-patch')
+        release = Mock(return_value={'name': 'picomatch', 'version': '4.0.7'})
+        probe = subprocess.CompletedProcess([], 0, stdout='', stderr='')
+        with patch.object(review.subprocess, 'run', return_value=probe) as installed:
+            review.validate_picomatch_patch(self.root, item, release)
+            self.assertEqual(installed.call_args.args[0], ['node', '--test', 'tests/project/picomatch.test.mjs'])
+            release.assert_called_once_with('https://registry.npmjs.org/picomatch/latest')
+            with self.assertRaisesRegex(ValueError, 'Unexpected package'):
+                review.validate_picomatch_patch(self.root, {**item, 'version': '4.0.6'}, release)
+            with self.assertRaisesRegex(ValueError, 'latest npm release'):
+                review.validate_picomatch_patch(self.root, item, Mock(return_value={'name': 'picomatch', 'version': '5.0.0'}))
+            probe.returncode = 1
+            with self.assertRaisesRegex(ValueError, 'behavior check failed'):
+                review.validate_picomatch_patch(self.root, item, release)
+
+        lock = self.root / 'pnpm-lock.yaml'
+        original = lock.read_bytes()
+        data = yaml.safe_load(original)
+        data['snapshots'][identifier] = {}
+        lock.write_text(yaml.safe_dump(data), encoding='utf-8')
+        with self.assertRaisesRegex(ValueError, 'reviewed picomatch patch'):
+            review.validate_picomatch_patch(self.root, item, release)
+        lock.write_bytes(original)
+        local_patch.write_bytes(b'Altered patch\n')
+        with self.assertRaisesRegex(ValueError, 'reviewed picomatch patch'):
+            review.validate_picomatch_patch(self.root, item, release)
+
     def test_declared_schema_formats_remain_active_with_selected_dependencies(self):
         checker = FormatChecker()
         examples = {'uuid': ('123e4567-e89b-12d3-a456-426614174000', 'invalid'),

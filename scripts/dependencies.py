@@ -174,6 +174,30 @@ def validate_upstream_range(item, request=fetch_json):
         raise ValueError('Locked version is affected by the primary advisory')
 
 
+def validate_picomatch_patch(root, item, request=fetch_json):
+    """Recheck the reviewed build-tool patch until upstream publishes a replacement."""
+    if key(item) != ('npm', 'picomatch', '4.0.7') or item['advisories'] != ['GHSA-fc5q-39xc-vjpf']:
+        raise ValueError('Unexpected package or advisory for the picomatch patch')
+    identifier = 'picomatch@4.0.7'
+    patch_path = f'patches/{identifier}.patch'
+    workspace = yaml.safe_load((root / 'pnpm-workspace.yaml').read_text(encoding='utf-8'))
+    lock = yaml.safe_load((root / 'pnpm-lock.yaml').read_text(encoding='utf-8'))
+    digest = hashlib.sha256((root / patch_path).read_bytes()).hexdigest()
+    snapshots = {name for name in lock['snapshots'] if name.partition('(')[0] == identifier}
+    if (workspace.get('patchedDependencies', {}).get(identifier) != patch_path
+            or digest != item['patch_sha256'] or lock.get('patchedDependencies', {}).get(identifier) != digest
+            or snapshots != {f'{identifier}(patch_hash={digest})'}):
+        raise ValueError('The reviewed picomatch patch must match the workspace, lockfile and installed resolution')
+    # The lock alone cannot establish which matcher the build tools actually load.
+    probe = subprocess.run(['node', '--test', 'tests/project/picomatch.test.mjs'], cwd=root, timeout=30,
+                           capture_output=True, text=True, encoding='utf-8', errors='replace')
+    if probe.returncode:
+        raise ValueError(f'Installed picomatch behavior check failed:\n{(probe.stdout + probe.stderr)[-2000:]}')
+    release = request('https://registry.npmjs.org/picomatch/latest')
+    if not isinstance(release, dict) or (release.get('name'), release.get('version')) != (item['name'], item['version']):
+        raise ValueError('Reassess the local picomatch patch against the latest npm release')
+
+
 def validate_advisory_scope(root, policy, request=fetch_json):
     if not policy['advisory_dispositions']:
         return
@@ -188,6 +212,9 @@ def validate_advisory_scope(root, policy, request=fetch_json):
                                 cwd=root, capture_output=True, text=True, encoding='utf-8', check=True, timeout=180)
         graphs.extend(result.stdout.splitlines())
     for item in policy['advisory_dispositions']:
+        if item.get('scope_guard') == 'picomatch-build-patch':
+            validate_picomatch_patch(root, item, request)
+            continue
         if item.get('scope_guard') == 'upstream-excludes-locked-version':
             validate_upstream_range(item, request)
             continue
