@@ -408,7 +408,7 @@
       "source": "Owner development discussion on 2026-10-29 and repository inspection",
       "observation": "Owner corrected conflation of development-AI responsibilities with embedded-product interaction requirements.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-016"
       ],
@@ -416,7 +416,11 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The records used descriptions of development responsibilities to imply requirements for the embedded AI.",
+        "correction": "Product collaboration and development responsibilities now have distinct records and navigation.",
+        "prevention": "Project-state and development-role regression checks passed in the native verification run."
+      },
       "deferral_reason": null
     },
     {
@@ -424,7 +428,7 @@
       "source": "Owner development discussion on 2026-10-29 and repository inspection",
       "observation": "Current task context expands historical records and release policy but does not navigate implementation; latest fast omissions obscure separately archived native evidence.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-016"
       ],
@@ -432,7 +436,11 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The default task view expanded historical policy and did not identify implementation entries or explain omitted checks.",
+        "correction": "Focused context now resolves modules and public entrypoints. Status explains the current selection and archived receipts.",
+        "prevention": "Focused-context and evidence-view tests run with the project-state and Python checks."
+      },
       "deferral_reason": null
     },
     {
@@ -440,7 +448,7 @@
       "source": "Owner development discussion on 2026-10-29 and repository inspection",
       "observation": "Owner requires clear responsibilities, hidden internals, bounded dependencies, data ownership and verified staged evolution for long-lived AI-authored code.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-016"
       ],
@@ -448,7 +456,11 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Task activation and module navigation previously lacked explicit ownership and transition requirements.",
+        "correction": "Project records now bind active plans to module responsibilities, data ownership and compatibility checks. The worker registry exposes lifecycle operations.",
+        "prevention": "Project-state and Python regressions validate ownership and transition records. The Rust workspace and native build passed."
+      },
       "deferral_reason": null
     },
     {
@@ -456,14 +468,18 @@
       "source": "Observed local validation on 2026-10-29",
       "observation": "Fresh full validation found unresolved block-buffer 0.10.4, Tokio 1.53.2 and fast-uri 3.1.8 advisories; retain failed run 20261029T041122.487082Z-579a3a18.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-017"
       ],
       "regression_checks": [
         "dependency-review"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The locked Tokio and fast-uri versions were affected. The reported block-buffer match differed from the publisher range.",
+        "correction": "Compatible patches update the affected dependencies. Dependency review verifies the exact block-buffer publisher range and expires its recorded disposition.",
+        "prevention": "Fresh dependency review passed in the hosted Linux and Windows jobs, alongside the affected application checks."
+      },
       "deferral_reason": null
     },
     {
@@ -471,14 +487,18 @@
       "source": "Observed local validation on 2026-10-29",
       "observation": "An independent malformed-report probe raised TypeError in the new evidence explanation rather than reporting invalid input.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-016"
       ],
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The evidence view accessed malformed report fields before validating their structure.",
+        "correction": "The evidence view validates report input and explains invalid reports.",
+        "prevention": "The Python project regression checks include malformed-report cases."
+      },
       "deferral_reason": null
     },
     {
@@ -506,7 +526,7 @@
       "source": "Local dependency audit, build graphs and publisher release records reviewed on 2026-11-18",
       "observation": "The online audit reported RUSTSEC-2026-0543 for chrono 0.4.45 and GHSA-fc5q-39xc-vjpf for picomatch 4.0.7. Neither publisher had released a fix. Chrono appeared in Cargo.lock but was absent from both supported graphs. Vite used the affected matcher during the UI build. The original audit is .reports/dependencies/20261118T103433.352167Z.json.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-019"
       ],
@@ -515,7 +535,11 @@
         "python-contracts-workers",
         "ui-build"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The lockfiles included the affected chrono release and Vite used the affected picomatch version.",
+        "correction": "Dependency review checks the supported Cargo graphs and runs ordinary and restricted match cases against the version-specific Vite dependency patch.",
+        "prevention": "Both hosted jobs passed dependency review, Python regressions and the UI build. The audit retains its publisher and expiry checks."
+      },
       "deferral_reason": null
     },
     {
@@ -523,14 +547,18 @@
       "source": "Visual inspection of the 1366 by 900 Chromium futures screenshot on 2026-11-18.",
       "observation": "In the one-minute futures view the first time label started midword and the last ended after a single hour digit at the price-scale boundary.",
       "severity": "minor",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-010"
       ],
       "regression_checks": [
         "ubuntu-preview"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Centered intraday labels at the sample bounds extended beyond the canvas by 24 and 21 pixels in the observed desktop view.",
+        "correction": "The time scale now aligns labels at both sample boundaries and reserves width for the displayed minute and daily formats.",
+        "prevention": "Browser checks measure rendered glyphs at desktop and narrow widths and exercise zoom, pan, crosshair and daily labels."
+      },
       "deferral_reason": null
     },
     {
@@ -538,7 +566,7 @@
       "source": "Native Windows Actions run 44293250894 for head 2b65c0b1d1e20dd0b9594e9ef7487967501d085b",
       "observation": "The declared dependency and private-entry regression raised ValueError before checking a valid import. The resolved target used the runneradmin profile directory while the temporary repository root used its RUNNER~1 alias. The Windows artifact is .reports/ci/44293250894/windows/test-report.json.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-020"
       ],
@@ -547,7 +575,11 @@
         "python-contracts-workers",
         "windows-native-build"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The architecture checker resolved a TypeScript import path but kept the short spelling of the Windows temporary workspace root for its relative path calculation.",
+        "correction": "The checker now uses a single canonical checkout root for ownership, containment and diagnostics.",
+        "prevention": "The path-alias regression exercises allowed public entries and forbidden module crossings, and the Windows Python suite runs on the native hosted runner."
+      },
       "deferral_reason": null
     }
   ]

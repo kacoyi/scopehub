@@ -285,4 +285,3 @@ class DevelopmentTests(ProjectFixture):
         self.assertTrue(any('Private module entry' in item for item in declared_source_boundaries(self.root)))
         caller.write_text('from ..adapter.private import value\n')
         self.assertTrue(any('Private module entry' in item for item in declared_source_boundaries(self.root)))
-

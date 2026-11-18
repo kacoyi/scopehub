@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-020",
+  "focus_task_id": "M1-011",
   "tasks": [
     {
       "id": "M0-001",
@@ -1881,7 +1881,7 @@
       "id": "M0-016",
       "title": "Make AI-led development navigable, evolvable and evidence-driven",
       "milestone": "M0",
-      "status": "blocked",
+      "status": "done",
       "depends_on": [
         "M0-015"
       ],
@@ -1925,9 +1925,14 @@
         "chart-history",
         "market-fixtures"
       ],
-      "evidence": [],
-      "next_action": "Use the authorized Actions run for the current task branch. Archive the matching Windows artifact after every required task check passes.",
-      "blocker": "Matching native Windows verification for the development-foundation changes is pending.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-016-25cab197f2948446.json",
+          "sha256": "da6ef63e13e0e4039c7418a9fce8ef66ffcf9c1f24e4ffea0cc43b97aa84b242"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
       "closure_reason": null,
       "plan": {
         "outcome": "A working, tested development loop in which an incoming agent can identify product scope, code ownership, next slice, checks and evidence limits, while ordinary technical choices stay autonomous.",
@@ -2328,7 +2333,7 @@
       "id": "M0-017",
       "title": "Repair newly observed dependency advisories",
       "milestone": "M0",
-      "status": "blocked",
+      "status": "done",
       "depends_on": [
         "M0-015"
       ],
@@ -2367,9 +2372,14 @@
         "market-fixtures",
         "dependency-review"
       ],
-      "evidence": [],
-      "next_action": "Use the authorized Actions run for the current task branch. Verify the advisory review and archive the matching Windows artifact.",
-      "blocker": "Matching native Windows verification for the October dependency repairs is pending.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-017-25cab197f2948446.json",
+          "sha256": "40cf15c45d024c661f118c5440c84e4799b32cf7da842932adc79ce81aa2c966"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
       "closure_reason": null,
       "plan": {
         "outcome": "Restore actual dependency review and build acceptance without suppressing new findings.",
@@ -2606,7 +2616,7 @@
       "id": "M0-019",
       "title": "Repair the chrono and picomatch advisories found during checkout recovery",
       "milestone": "M0",
-      "status": "blocked",
+      "status": "done",
       "depends_on": [
         "M5-002"
       ],
@@ -2649,9 +2659,14 @@
         "chart-history",
         "dependency-review"
       ],
-      "evidence": [],
-      "next_action": "Retain the Linux report .reports/runs/20261118T104251.221831Z-efb55494/test-report.json. Archive the matching Windows Actions report after the current dependency guards and native build pass. Reassess the picomatch patch on a new upstream release or by 2026-11-28.",
-      "blocker": "The 15 applicable Linux change checks passed on 4b92fd2. Matching native Windows verification for the November dependency guards is pending.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-019-25cab197f2948446.json",
+          "sha256": "068965e18797f5e2bc8a61c3ae03289d54a46264ff652ac1f332124e94fc212a"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
       "closure_reason": null,
       "plan": {
         "outcome": "Every dependency review confirms chrono's absence from supported builds and the effective picomatch mitigation in Vite. The supported development and native build paths retain compatibility.",
@@ -2736,7 +2751,7 @@
       "id": "M1-010",
       "title": "Expose the synthetic chart through a local Ubuntu development preview",
       "milestone": "M1",
-      "status": "planned",
+      "status": "done",
       "depends_on": [
         "M1-005",
         "M0-018"
@@ -2775,8 +2790,17 @@
         "rust-contracts-workers",
         "rust-lints"
       ],
-      "evidence": [],
-      "next_action": "Resume from the M0-020 Windows verification repair. Observe the matching Actions matrix, exercise the Ubuntu preview in a graphical session and retain screenshots before the Windows experience in M1-011.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-010-c0ffc3d539275688.json",
+          "sha256": "137be1baec1faa1ee3bb8638c8f9899e379b16d5656037e5a4b9cd09e5c40cd6"
+        },
+        {
+          "path": "project/evidence/M1-010-25cab197f2948446.json",
+          "sha256": "b2cfa749f3404bf49828b1127b8fdce608b4f68228b0c122c0aac68997bb16ad"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -2903,7 +2927,7 @@
       "id": "M0-020",
       "title": "Preserve module boundary checks across Windows path aliases",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-009",
         "M0-013"
@@ -2930,8 +2954,13 @@
         "python-contracts-workers",
         "windows-native-build"
       ],
-      "evidence": [],
-      "next_action": "Reproduce the short and long path mismatch, repair the boundary check, run the local regression and monitor both Actions jobs on the corrected commit. Archive the matching Windows report before restoring focus to M1-010.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-020-25cab197f2948446.json",
+          "sha256": "b13b149b8fb47cc9523c3e8b7a3615d9e993c8eaa04c613cdaf0c87ef66fc072"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {

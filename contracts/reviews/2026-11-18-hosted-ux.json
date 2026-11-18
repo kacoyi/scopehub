@@ -32,5 +32,56 @@
     "The owner records subjective product feedback after actually using the program.",
     "Merge into the default branch and publish a release under their applicable authorizations."
   ],
-  "policy": "project/delivery.json#/source_control/authorization"
+  "policy": "project/delivery.json#/source_control/authorization",
+  "observed": {
+    "hosted": {
+      "commit": "672b1d8a38d2b5cbc04e742b85cd51b27679bab0",
+      "run": "https://github.com/kacoyi/scopehub/actions/runs/44296742718",
+      "jobs": {
+        "linux": {
+          "report_sha256": "c0ffc3d53927568805ebf913c5c11ca1419c4c351300c0ed93e69de2a2a63f5f",
+          "passed_checks": 16
+        },
+        "windows": {
+          "report_sha256": "25cab197f294844629d52028d95c8be33580567675d8c3bca8563088d8309948",
+          "passed_checks": 17
+        }
+      }
+    },
+    "ubuntu": {
+      "commit": "672b1d8a38d2b5cbc04e742b85cd51b27679bab0",
+      "completed_at": "2026-11-18T12:04:34.805Z",
+      "operator": "development agent",
+      "session": "wayland",
+      "browser": "Google Chrome 158.0.8127.36",
+      "histories_checked": 9,
+      "chart_views_checked": 18,
+      "table_rows_checked": 150,
+      "desktop_window": "A separate Chrome application window titled ScopeHub was observed in the Ubuntu desktop session and left open for the owner.",
+      "report": ".reports/ux/ubuntu-672b1d8a38d2/observations.json",
+      "sha256": "37b27d17c259040e425f44effa132656cb58cca7a4afebac2943ce8eb83359cf",
+      "screenshots": {
+        "01-workspace.png": "18c49f1e31868265fc2c4d7e0f69815ea6e63e84abd262a2a53baa8c092d5f51",
+        "02-futures-crosshair.png": "48137bf68fbfa3578c522914abc5be7dee1d3645a3e9d5eafa07af46b9265e30",
+        "03-daily-table.png": "3a8e3f561fdfdfacf18066b4aecf678a4b2ef94836acb35cff3fd4f7e429efc5",
+        "04-narrow-table.png": "3fd54faf686ec340eb28be1107b1e7d25ea7d898b2acbf637cc0554016f6e86a",
+        "05-compact-chart.png": "cf3d5cf690686124c9bf1e73cfda91468d253495833fccadf8511ff1bf19d95e"
+      },
+      "actions": [
+        "Opened the unconfigured workspace, entered by keyboard and recovered from an empty search.",
+        "Exercised all nine synthetic histories in both chart styles, compared all displayed table rows, and moved the crosshair between bars.",
+        "Checked the desktop, 800-pixel and 390-pixel layouts, scrolled the narrow table, left the demo and reopened it."
+      ],
+      "page_errors": [],
+      "external_origins": []
+    },
+    "owner_feedback": {
+      "status": "awaiting_owner_trial"
+    },
+    "native_windows_experience": {
+      "status": "awaiting_dual_boot_session",
+      "task": "M1-011",
+      "command": "pnpm desktop:dev"
+    }
+  }
 }
