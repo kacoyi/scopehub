@@ -532,6 +532,23 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-short-temp-path-boundary",
+      "source": "Native Windows Actions run 44293250894 for head 2b65c0b1d1e20dd0b9594e9ef7487967501d085b",
+      "observation": "The declared dependency and private-entry regression raised ValueError before checking a valid import. The resolved target used the runneradmin profile directory while the temporary repository root used its RUNNER~1 alias. The Windows artifact is .reports/ci/44293250894/windows/test-report.json.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-020"
+      ],
+      "regression_checks": [
+        "architecture",
+        "python-contracts-workers",
+        "windows-native-build"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

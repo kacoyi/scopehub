@@ -256,6 +256,17 @@ class DevelopmentTests(ProjectFixture):
         self.save_record()
         self.assertTrue(any('Forbidden module dependency' in item for item in declared_source_boundaries(self.root)))
 
+    def test_equivalent_checkout_root_preserves_import_boundaries(self):
+        caller = self.source_fixture()
+        alias = self.root / '..' / self.root.name
+        caller.write_text("import './adapter/public';\n")
+        self.assertEqual([], declared_source_boundaries(alias))
+        caller.write_text("import './adapter/private';\nimport '../../../../../outside';\n")
+        self.assertEqual([
+            'Private module entry: ui -> apps/desktop/ui/src/adapter/private.ts',
+            f'Import outside repository: {caller.relative_to(self.root)}',
+        ], declared_source_boundaries(alias))
+
     def test_python_import_crossing_uses_declared_public_entry(self):
         base = self.record['modules'][0]
         for name in ['caller/main.py', 'adapter/public.py', 'adapter/private.py']:

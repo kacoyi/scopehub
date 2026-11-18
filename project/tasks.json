@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-010",
+  "focus_task_id": "M0-020",
   "tasks": [
     {
       "id": "M0-001",
@@ -2736,7 +2736,7 @@
       "id": "M1-010",
       "title": "Expose the synthetic chart through a local Ubuntu development preview",
       "milestone": "M1",
-      "status": "active",
+      "status": "planned",
       "depends_on": [
         "M1-005",
         "M0-018"
@@ -2776,7 +2776,7 @@
         "rust-lints"
       ],
       "evidence": [],
-      "next_action": "Implement and verify the explicit development entry, run the GitHub Actions matrix and record the Ubuntu interaction. The follow-up Windows GUI experience and actual owner feedback are tracked in the dated review.",
+      "next_action": "Resume from the M0-020 Windows verification repair. Observe the matching Actions matrix, exercise the Ubuntu preview in a graphical session and retain screenshots before the Windows experience in M1-011.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -2898,6 +2898,108 @@
       "next_action": "After the Ubuntu trial, open the matching checkout in the dual-boot Windows session, launch pnpm desktop:dev, and record the actual experience in the review.",
       "blocker": null,
       "closure_reason": null
+    },
+    {
+      "id": "M0-020",
+      "title": "Preserve module boundary checks across Windows path aliases",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-009",
+        "M0-013"
+      ],
+      "scope": [
+        "scripts/check_architecture.py",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0007"
+      ],
+      "acceptance": [
+        "The architecture checker accepts the same declared public import through a canonical checkout path and through an alias. Private, undeclared and outside-repository imports continue to produce the expected diagnostics.",
+        "A regression exercises a repository root with a different spelling from its resolved source path. Verify the Python test suite, architecture check and native Windows build on a matching Windows x64 Actions revision."
+      ],
+      "checks": [
+        "environment",
+        "project-state",
+        "architecture",
+        "python-contracts-workers",
+        "windows-native-build"
+      ],
+      "evidence": [],
+      "next_action": "Reproduce the short and long path mismatch, repair the boundary check, run the local regression and monitor both Actions jobs on the corrected commit. Archive the matching Windows report before restoring focus to M1-010.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The module boundary regression completes on the native Windows runner when its temporary directory uses an 8.3 alias, while preserving the same import decisions on Linux.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/check_architecture.py",
+          "tests/project/test_development.py",
+          "project/development.json",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The checker compares a resolved import target against an unresolved checkout root. Canonicalizing both sides before computing the repository-relative path should make alias spelling immaterial."
+        ],
+        "risks": [
+          {
+            "failure": "Changing path normalization would allow a private or escaping import.",
+            "checks": [
+              "architecture",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The regression passes on Linux but the original native Windows test still fails.",
+            "checks": [
+              "python-contracts-workers",
+              "windows-native-build"
+            ]
+          }
+        ],
+        "rollback": "Retain both platform artifacts from Actions run 44293250894 and .reports/recovery/20261118T113732.826641Z-55640a1d/diagnostic.json for interrupted M1-010. Compare later failures against the original Windows log before changing the implementation again.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check_architecture.py",
+            "tests/project/test_development.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/module_design"
+            }
+          ],
+          "non_goals": [
+            "Product behavior changes and changes to module ownership or public entry policy."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Declared ownership, permitted dependencies, public entries and outside-repository checks"
+          ],
+          "change": [
+            "How the architecture checker derives a repository-relative path when the root has an alias"
+          ],
+          "data_plan": "This repair affects only the development checker and its fixtures.",
+          "cleanup": "Retain the native failure and passing regression evidence. Resume the hosted and interactive verification steps for M1-010."
+        }
+      }
     }
   ]
 }

@@ -65,6 +65,7 @@ def declared_source_boundaries(root):
     This intentionally does not claim to detect dynamic imports or all semantic
     coupling. Existing capability checks and code review remain necessary.
     """
+    root = root.resolve()
     record = root / 'project/development.json'
     if not record.is_file():
         return []  # Small synthetic workspaces exercise independent Rust rules.
@@ -72,13 +73,14 @@ def declared_source_boundaries(root):
     errors = []
 
     def owner(path):
-        relative = path.resolve().relative_to(root.resolve())
+        relative = path.resolve().relative_to(root)
         candidates = [(len(Path(base).parts), item) for item in modules for base in item['paths']
                       if relative.is_relative_to(Path(base))]
         return max(candidates, key=lambda item: item[0])[1] if candidates else None
 
     def crossing(source, target):
-        if not target.resolve().is_relative_to(root.resolve()):
+        target = target.resolve()
+        if not target.is_relative_to(root):
             errors.append(f'Import outside repository: {source.relative_to(root)}')
             return
         caller = owner(source)
