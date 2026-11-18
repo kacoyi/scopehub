@@ -581,6 +581,21 @@
         "prevention": "The path-alias regression exercises allowed public entries and forbidden module crossings, and the Windows Python suite runs on the native hosted runner."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "ubuntu-preview-interruption-retry-guidance",
+      "source": "Separate graphical Chrome session on Ubuntu, revision 2ca63cba675d8bd7d0173f9d2d28531f76df9c65. Observations in .reports/ux/ubuntu-interruption-2ca63cba675d/observations.json.",
+      "observation": "Temporarily disconnecting the browser made catalog and history errors advise restarting the development server. The server stayed running. Restoring the browser connection, using the retry controls and rapidly changing the selection displayed the intended final instrument and timeframe.",
+      "severity": "minor",
+      "status": "open",
+      "task_ids": [
+        "M1-013"
+      ],
+      "regression_checks": [
+        "ubuntu-preview"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

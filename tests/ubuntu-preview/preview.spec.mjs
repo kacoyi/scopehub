@@ -90,6 +90,47 @@ test('open the unconfigured workspace and inspect three synthetic histories', as
   expect(outside).toEqual([]);
 });
 
+test('retry the catalog and current history after the browser loses its local connection', async ({ page, context }) => {
+  const alert = page.getByRole('alert');
+  const chart = page.locator('.chart canvas');
+  async function expectRetryGuidance() {
+    await expect(alert).toContainText(/local preview.*retry/i);
+    await expect(alert).not.toContainText(/restart/i);
+  }
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Explore offline demo' })).toBeVisible();
+  await context.setOffline(true);
+  await page.getByRole('button', { name: 'Explore offline demo' }).click();
+  await expectRetryGuidance();
+  await expect(chart).toHaveCount(0);
+
+  await context.setOffline(false);
+  await page.getByRole('button', { name: 'Retry demo' }).click();
+  await expectSeries(page, 'SIM.CN.FUTURE.001', '1m', 40);
+  await context.setOffline(true);
+  await page.getByRole('button', { name: '5m', exact: true }).click();
+  await expectRetryGuidance();
+  await expect(chart).toHaveCount(0);
+  await expect(page.locator('.history')).toHaveCount(0);
+
+  await context.setOffline(false);
+  await page.getByRole('button', { name: 'Retry history' }).click();
+  await expectSeries(page, 'SIM.CN.FUTURE.001', '5m', 8);
+  await expect(alert).toHaveCount(0);
+  await expect.poll(() => painted(page, 'candlestick')).toBeGreaterThan(20);
+
+  await page.getByRole('button', { name: /CN\.STOCK\.001/ }).click();
+  await page.getByRole('button', { name: '1d', exact: true }).click();
+  await page.getByRole('button', { name: /US\.STOCK\.001/ }).click();
+  await expectSeries(page, 'SIM.US.STOCK.001', '1d', 2);
+  await page.getByText('Inspect 2 bars', { exact: true }).click();
+  const rows = page.getByRole('table').locator('tbody tr');
+  await expect(rows).toHaveCount(2);
+  await expect(rows.last().getByRole('cell')).toHaveText([
+    '2024-01-04T14:30:00.000Z', '2024-01-04', '174.85', '174.91', '174.68', '174.72', '2600', 'Partial',
+  ]);
+});
+
 test('time axis labels fit the chart and the intraday plot can zoom and pan', async ({ page }, testInfo) => {
   await page.addInitScript(observeTimeLabels);
   await page.goto('/');

@@ -69,7 +69,7 @@ export function errorText(error: unknown): string {
     case 'RESOURCE_LIMIT': return 'The market worker is busy. Please retry.';
     case 'DATA_UNAVAILABLE': return 'No history is available for this instrument.';
     default: return import.meta.env.SCOPEHUB_UBUNTU_PREVIEW
-      ? 'Unable to load the local preview. Restart pnpm dev:ubuntu and retry.'
+      ? 'Cannot reach the local preview. Retry when the connection is restored.'
       : 'Unable to load the preview. Open the desktop development app and retry.';
   }
 }

@@ -9,9 +9,16 @@
     "M0-018",
     "M0-019",
     "M1-010",
-    "M1-011"
+    "M1-011",
+    "M1-012"
   ],
   "authority": "The owner requested GitHub Actions for the current iteration, followed by actual use on Ubuntu and then on the Windows installation of the dual-boot computer.",
+  "owner_steering": {
+    "recorded_at": "2026-11-18",
+    "direction": "Complete the overall Ubuntu experience before performing the physical Windows trial. The completed Ubuntu observation covers the offline synthetic history preview.",
+    "ubuntu_work": "Repair the observed interruption guidance in M1-013, then continue from M1-006. Overall Ubuntu completion in M1-012 covers the applicable current-contract market, local-data, workspace, indicator and AI journeys. An external model connection requires explicit configuration and authorized transmission. Windows packaging and expressly later capabilities have separate delivery scope.",
+    "windows_work": "Keep M1-011 planned until M1-012 completes. The hosted Windows build remains part of ordinary automated verification."
+  },
   "publication_scope": "Push the relevant task branch, create or update its draft pull request, run the repository verification workflow and retrieve the corresponding artifacts. This replaces the October local-only direction for the commits in this iteration.",
   "verification_sequence": [
     {
@@ -23,8 +30,12 @@
       "action": "After hosted verification passes, use pnpm dev:ubuntu in an Ubuntu graphical session. Exercise the explicit offline demo through the local Rust registry and Python worker. Record the revision, actions, observations and screenshots."
     },
     {
+      "stage": "ubuntu-completion",
+      "action": "Complete the in-scope Ubuntu workflows, address outstanding defects and retain integrated Ubuntu observations for M1-012."
+    },
+    {
       "stage": "windows-experience",
-      "action": "After the Ubuntu interaction, boot the computer into Windows and use pnpm desktop:dev in the native WebView2 GUI. Record the revision, actions, observations and screenshots from that Windows session."
+      "action": "After overall Ubuntu completion is recorded in M1-012, use the matching revision on the dual-boot Windows desktop and record the native WebView2 GUI interaction."
     }
   ],
   "product_scope": "The Ubuntu browser preview is a loopback-only development tool for the two existing synthetic history reads. Windows 10/11 x64 remains the v1 desktop release target.",
@@ -79,7 +90,7 @@
       "status": "awaiting_owner_trial"
     },
     "native_windows_experience": {
-      "status": "awaiting_dual_boot_session",
+      "status": "deferred_until_ubuntu_complete",
       "task": "M1-011",
       "command": "pnpm desktop:dev"
     }

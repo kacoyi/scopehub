@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-011",
+  "focus_task_id": "M1-013",
   "tasks": [
     {
       "id": "M0-001",
@@ -2897,7 +2897,8 @@
       "milestone": "M1",
       "status": "planned",
       "depends_on": [
-        "M1-010"
+        "M1-010",
+        "M1-012"
       ],
       "scope": [
         "apps/desktop",
@@ -2919,7 +2920,7 @@
         "chart-history"
       ],
       "evidence": [],
-      "next_action": "After the Ubuntu trial, open the matching checkout in the dual-boot Windows session, launch pnpm desktop:dev, and record the actual experience in the review.",
+      "next_action": "Wait for M1-012 to establish completion of the overall Ubuntu experience. Then use the Ubuntu-reviewed revision on the physical Windows desktop and record the native GUI trial.",
       "blocker": null,
       "closure_reason": null
     },
@@ -3027,6 +3028,160 @@
           ],
           "data_plan": "This repair affects only the development checker and its fixtures.",
           "cleanup": "Retain the native failure and passing regression evidence. Resume the hosted and interactive verification steps for M1-010."
+        }
+      }
+    },
+    {
+      "id": "M1-012",
+      "title": "Verify completion of the overall Ubuntu experience before the Windows trial",
+      "milestone": "M1",
+      "status": "planned",
+      "depends_on": [
+        "M1-010",
+        "M1-003",
+        "M1-008",
+        "M2-001",
+        "M3-001",
+        "M4-001",
+        "M4-002",
+        "M1-013"
+      ],
+      "scope": [
+        "project/tasks.json",
+        "project/feedback.json",
+        "contracts/reviews"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0007"
+      ],
+      "acceptance": [
+        "Exercise the current contract's live and historical chart journeys on Ubuntu, including interruption and recovery, user-owned local data, shared operations, durable workspace recovery, reproducible indicators and human-AI chart collaboration.",
+        "Distinguish deterministic AI execution from an explicitly configured model connection. Follow the owner's authorization for the configured service, credentials and any external transmission. Record outstanding real-connection evidence when configuration or authorization is unavailable.",
+        "Verify the complete applicable Ubuntu experience on a recorded revision and retain end-to-end observations and regression results. Track Windows installation, packaging and native credential evidence on their designated platform. Explicitly later capabilities remain outside this review unless their delivery scope changes."
+      ],
+      "checks": [
+        "ubuntu-preview",
+        "chart-history",
+        "market-fixtures",
+        "market-workflow",
+        "market-recovery",
+        "operations-workflow",
+        "state-migrations",
+        "indicator-workflow",
+        "ai-workflow",
+        "ai-replay-evaluations"
+      ],
+      "evidence": [],
+      "next_action": "After the observed retry repair, resume M1-006 and the existing Ubuntu-capable contract tasks. Track each required capability and record the integrated Ubuntu experience before scheduling M1-011.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M1-013",
+      "title": "Make retry guidance match recoverable Ubuntu preview interruptions",
+      "milestone": "M1",
+      "status": "active",
+      "depends_on": [
+        "M1-010"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/market.ts",
+        "tests/ubuntu-preview",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0007"
+      ],
+      "acceptance": [
+        "When the Ubuntu browser loses its loopback connection, the error message guides the user to restore connectivity and use the existing retry control. The running development server can serve the next request.",
+        "Exercise Retry demo and Retry history through pnpm dev:ubuntu after interrupting only the browser connection. Verify that a failed history request clears the old chart and a rapid selection after reconnection displays the final instrument and timeframe."
+      ],
+      "checks": [
+        "project-state",
+        "ubuntu-preview",
+        "chart-history",
+        "market-fixtures",
+        "architecture",
+        "python-types",
+        "ui-build",
+        "rust-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Correct the Ubuntu transport error guidance and add browser regressions for retry and rapid reselection on the normal development entry. Archive the task evidence, then return focus to M1-006.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A user can recover the existing Ubuntu preview from a temporary browser disconnect using its visible retry actions.",
+        "change_types": [
+          "chart-history"
+        ],
+        "context": [
+          "apps/desktop/ui/src/market.ts",
+          "apps/desktop/ui/src/main.tsx",
+          "tests/ubuntu-preview/preview.spec.mjs",
+          "contracts/reviews/2026-11-18-hosted-ux.json"
+        ],
+        "hypotheses": [
+          "The transport and retry controls already recover after reconnection. The fallback guidance needs to describe that successful path."
+        ],
+        "risks": [
+          {
+            "failure": "A test hides the actual transport failure or allows stale history to remain after a failed or superseded selection.",
+            "checks": [
+              "ubuntu-preview",
+              "chart-history"
+            ]
+          },
+          {
+            "failure": "The shared error wording or UI build changes the native desktop experience.",
+            "checks": [
+              "chart-history",
+              "ui-build"
+            ]
+          }
+        ],
+        "rollback": "Retain the original graphical observation at .reports/ux/ubuntu-interruption-2ca63cba675d/observations.json. Restore the prior wording if the replacement misdirects users and reproduce the specific failure on the development entry.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/market.ts",
+            "apps/desktop/ui/src/main.tsx",
+            "tests/ubuntu-preview/preview.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "contracts/reviews/2026-11-18-hosted-ux.json",
+              "pointer": "/owner_steering"
+            }
+          ],
+          "non_goals": [
+            "Live market reconnect, automatic retries, new providers and Windows manual testing."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Explicit manual retry, synthetic provenance and identity-safe chart selection",
+            "Native desktop transport and error handling"
+          ],
+          "change": [
+            "Ubuntu browser transport error guidance and its integrated regression coverage"
+          ],
+          "data_plan": "The repair changes displayed guidance and tests. It creates no persisted user data.",
+          "cleanup": "Run the normal preview, preserve the reproduction and archive the verified correction."
         }
       }
     }
