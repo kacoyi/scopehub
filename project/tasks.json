@@ -5342,7 +5342,12 @@
         "market-fixtures",
         "python-types"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-019-9b158d1aa2e3299c.json",
+          "sha256": "ccfe770fa2f4d38ecb4797143c98dfe0b8811f394d1da1e773872ff60b7c969f"
+        }
+      ],
       "next_action": "Repair the process ownership and observable timing failures from Windows run 44517364634, then verify the complete affected checks on both hosts.",
       "blocker": null,
       "closure_reason": null,
