@@ -149,6 +149,39 @@ mod platform {
     }
 }
 
+#[cfg(any(windows, test))]
+pub(super) fn encoded_powershell_script(script: &str) -> String {
+    const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let utf16: Vec<u8> = script.encode_utf16().flat_map(u16::to_le_bytes).collect();
+    let mut encoded = String::with_capacity(utf16.len().div_ceil(3) * 4);
+    for group in utf16.chunks(3) {
+        let first = group[0];
+        let second = group.get(1).copied().unwrap_or(0);
+        let third = group.get(2).copied().unwrap_or(0);
+        encoded.push(ALPHABET[usize::from(first >> 2)] as char);
+        encoded.push(ALPHABET[usize::from((first & 3) << 4 | second >> 4)] as char);
+        encoded.push(if group.len() > 1 {
+            ALPHABET[usize::from((second & 15) << 2 | third >> 6)] as char
+        } else {
+            '='
+        });
+        encoded.push(if group.len() > 2 {
+            ALPHABET[usize::from(third & 63)] as char
+        } else {
+            '='
+        });
+    }
+    encoded
+}
+
+#[cfg(test)]
+#[test]
+fn powershell_script_uses_utf16le_base64() {
+    assert_eq!(encoded_powershell_script("A"), "QQA=");
+    assert_eq!(encoded_powershell_script("Aé🌍"), "QQDpADzYDd8=");
+    assert!(encoded_powershell_script(include_str!("storage_acl.ps1")).len() < 30_000);
+}
+
 #[cfg(windows)]
 mod platform {
     use std::{
@@ -162,15 +195,46 @@ mod platform {
 
     use super::*;
 
-    fn check_acl(path: &Path, action: &str) -> io::Result<()> {
-        let system = PathBuf::from(env::var_os("SystemRoot").ok_or_else(denied)?);
-        if !system.is_absolute() {
-            return Err(denied());
+    fn refusal_stage(exit: Option<i32>) -> &'static str {
+        match exit {
+            Some(20) => "account",
+            Some(21) => "local-path",
+            Some(22) => "local-ntfs",
+            Some(23) => "action",
+            Some(24) => "metadata",
+            Some(25) => "path-type",
+            Some(26) => "acl-read",
+            Some(27) => "acl-entry",
+            Some(28) => "ancestor-owner",
+            Some(29) => "replaceable-ancestor",
+            Some(30) => "shared-access",
+            Some(31) => "owner-or-inheritance",
+            Some(32) => "private-creation",
+            Some(33) => "missing-directory",
+            Some(34) => "profile-or-file-owner",
+            _ => "powershell-execution",
         }
+    }
+
+    fn report_refusal(action: &str, stage: &str) {
+        eprintln!("Workspace storage ACL check refused ({action}, {stage}).");
+    }
+
+    fn check_acl(path: &Path, action: &str) -> io::Result<()> {
+        let system = env::var_os("SystemRoot").map(PathBuf::from);
+        let Some(system) = system.filter(|path| path.is_absolute()) else {
+            report_refusal(action, "powershell-location");
+            return Err(denied());
+        };
         let powershell = system.join("System32/WindowsPowerShell/v1.0/powershell.exe");
         let mut child = Command::new(powershell)
-            .args(["-NoProfile", "-NonInteractive", "-NoLogo", "-Command"])
-            .arg(include_str!("storage_acl.ps1"))
+            .args([
+                "-NoProfile",
+                "-NonInteractive",
+                "-NoLogo",
+                "-EncodedCommand",
+            ])
+            .arg(encoded_powershell_script(include_str!("storage_acl.ps1")))
             .env("SCOPEHUB_STORAGE_PATH", path)
             .env("SCOPEHUB_STORAGE_ACTION", action)
             .env("SCOPEHUB_STORAGE_FILES", FILES.join(";"))
@@ -178,17 +242,28 @@ mod platform {
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
-            .spawn()?;
+            .spawn()
+            .inspect_err(|_| report_refusal(action, "powershell-spawn"))?;
         let deadline = Instant::now() + Duration::from_secs(10);
         let error = loop {
             match child.try_wait() {
                 Ok(Some(status)) if status.success() => return Ok(()),
-                Ok(Some(_)) => return Err(denied()),
+                Ok(Some(status)) => {
+                    let stage = refusal_stage(status.code());
+                    report_refusal(action, stage);
+                    return Err(io::Error::new(io::ErrorKind::PermissionDenied, stage));
+                }
                 Ok(None) if Instant::now() < deadline => thread::sleep(Duration::from_millis(20)),
                 Ok(None) => break io::ErrorKind::TimedOut.into(),
                 Err(error) => break error,
             }
         };
+        let stage = if error.kind() == io::ErrorKind::TimedOut {
+            "powershell-timeout"
+        } else {
+            "powershell-wait"
+        };
+        report_refusal(action, stage);
         let _ = child.kill();
         let _ = child.wait();
         Err(error)

@@ -137,7 +137,7 @@ mod os_privacy {
 
 #[cfg(windows)]
 #[test]
-fn new_windows_files_inherit_private_acl_and_shared_sidecar_is_refused() {
+fn windows_private_acl_inheritance_rejects_shared_roots_and_sidecars() {
     use std::os::windows::process::CommandExt;
 
     let profile = Profile::new();
@@ -180,7 +180,7 @@ fn new_windows_files_inherit_private_acl_and_shared_sidecar_is_refused() {
     assert_eq!(fs::read(profile.db()).unwrap(), before);
     assert_eq!(fs::read(&wal).unwrap(), wal_bytes);
 
-    let status = std::process::Command::new(icacls)
+    let status = std::process::Command::new(&icacls)
         .arg(&wal)
         .args(["/remove:g", "*S-1-1-0"])
         .creation_flags(0x0800_0000)
@@ -192,6 +192,111 @@ fn new_windows_files_inherit_private_acl_and_shared_sidecar_is_refused() {
         profile.open().unwrap().snapshot(None).unwrap().0.revision,
         17
     );
+
+    let before = fs::read(profile.db()).unwrap();
+    let status = std::process::Command::new(&icacls)
+        .arg(&profile.0)
+        .args(["/grant", "*S-1-1-0:(RX)"])
+        .creation_flags(0x0800_0000)
+        .output()
+        .unwrap()
+        .status;
+    assert!(status.success());
+    assert!(SqliteWorkspace::prepare_profile_root(&profile.0).is_err());
+    assert!(profile.open().is_err());
+    assert_eq!(fs::read(profile.db()).unwrap(), before);
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_ancestor_acl_allows_reading_and_refuses_replaceable_entries() {
+    use std::os::windows::process::CommandExt;
+
+    let parent = Profile::new();
+    let profile_root = parent.0.join("workspace-dev");
+    let icacls = PathBuf::from(std::env::var_os("SystemRoot").unwrap()).join("System32/icacls.exe");
+    let grant = |ace| {
+        assert!(
+            std::process::Command::new(&icacls)
+                .arg(&parent.0)
+                .args(["/grant:r", ace])
+                .creation_flags(0x0800_0000)
+                .output()
+                .unwrap()
+                .status
+                .success()
+        );
+    };
+
+    grant("*S-1-1-0:(RX)");
+    SqliteWorkspace::prepare_profile_root(&profile_root).unwrap();
+    let writer = SqliteWorkspace::open(&profile_root, Profile::binding()).unwrap();
+    writer
+        .connection
+        .execute("UPDATE workspaces SET revision = 19", [])
+        .unwrap();
+    drop(writer);
+    let file = profile_root.join(DATABASE_NAME);
+    let durable = fs::read(&file).unwrap();
+
+    grant("*S-1-1-0:(DC)");
+    let refusal = storage::open_path(&profile_root).unwrap_err();
+    assert_eq!(refusal.to_string(), "replaceable-ancestor");
+    assert_eq!(fs::read(&file).unwrap(), durable);
+    grant("*S-1-1-0:(RX)");
+    let writer = SqliteWorkspace::open(&profile_root, Profile::binding()).unwrap();
+    assert_eq!(writer.snapshot(None).unwrap().0.revision, 19);
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_temp_alias_and_full_path_open_the_same_durable_profile() {
+    use std::os::windows::process::CommandExt;
+
+    let profile = Profile::new();
+    let full = profile.0.canonicalize().unwrap();
+    let dos_path = Path::new(full.to_str().unwrap().strip_prefix(r"\\?\").unwrap());
+    let powershell = PathBuf::from(std::env::var_os("SystemRoot").unwrap())
+        .join("System32/WindowsPowerShell/v1.0/powershell.exe");
+    // The filesystem supplies the short alias when 8.3 names are enabled.
+    // On hosted Windows the incoming TEMP path can already contain one.
+    let alias = std::process::Command::new(powershell)
+        .args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-NoLogo",
+            "-EncodedCommand",
+        ])
+        .arg(storage::encoded_powershell_script(
+            r"
+            $ErrorActionPreference = 'Stop'
+            [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+            $filesystem = New-Object -ComObject Scripting.FileSystemObject
+            [Console]::WriteLine($filesystem.GetFolder($env:SCOPEHUB_ACL_TEST_PATH).ShortPath)
+        ",
+        ))
+        .env("SCOPEHUB_ACL_TEST_PATH", dos_path)
+        .creation_flags(0x0800_0000)
+        .output()
+        .unwrap();
+    assert!(alias.status.success(), "short-path lookup failed");
+    let alias = PathBuf::from(std::str::from_utf8(&alias.stdout).unwrap().trim());
+    assert!(alias.is_absolute());
+    assert!(
+        alias.canonicalize().unwrap() == full,
+        "temporary path forms must resolve to the same private directory"
+    );
+
+    let writer = SqliteWorkspace::open(dos_path, Profile::binding()).unwrap();
+    writer
+        .connection
+        .execute("UPDATE workspaces SET revision = 23", [])
+        .unwrap();
+    drop(writer);
+    for path in [&profile.0, &alias] {
+        let writer = SqliteWorkspace::open(path, Profile::binding()).unwrap();
+        assert_eq!(writer.snapshot(None).unwrap().0.revision, 23);
+    }
 }
 
 struct Profile(PathBuf);

@@ -170,6 +170,53 @@ mod tests {
 
     use super::*;
 
+    #[cfg(windows)]
+    #[tokio::test]
+    async fn native_workspace_provisions_an_absent_local_app_data_directory() {
+        use std::{
+            fs,
+            path::PathBuf,
+            time::{SystemTime, UNIX_EPOCH},
+        };
+
+        struct SyntheticAppData(PathBuf);
+        impl Drop for SyntheticAppData {
+            fn drop(&mut self) {
+                if self.0.is_dir() {
+                    fs::remove_dir_all(&self.0).unwrap();
+                }
+            }
+        }
+
+        let stamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let app_data = SyntheticAppData(
+            PathBuf::from(std::env::var_os("LOCALAPPDATA").unwrap()).join(format!(
+                "ScopeHub ACL fixture {}-{stamp}",
+                std::process::id()
+            )),
+        );
+        assert!(!app_data.0.exists());
+        for _ in 0..2 {
+            let bridge = WorkspaceBridge::development(Some(&app_data.0));
+            let snapshot = bridge
+                .dispatch(None, json!({"type": "snapshot"}))
+                .await
+                .unwrap();
+            assert_eq!(snapshot["workspace"]["timeframe"], "1m");
+            assert!(
+                app_data
+                    .0
+                    .join("workspace-dev")
+                    .join("workspace.sqlite3")
+                    .is_file()
+            );
+            bridge.shutdown().await;
+        }
+    }
+
     #[tokio::test]
     async fn shutdown_waits_for_the_admitted_slot_and_closes_the_lane() {
         let bridge = WorkspaceBridge::disabled();

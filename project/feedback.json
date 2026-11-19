@@ -921,6 +921,38 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "workspace-interrupt-handoff-cleanup",
+      "source": "Independent foreground terminal and same-port relaunch review of 081c59b.",
+      "observation": "A terminal interrupt stopped both Vite and its writer. The private handoff file remained on disk even though the replacement launcher correctly denied its old authority. The Windows regular-file assertion also required a user SID even when a private inheriting ACL permits the elevated token default owner.",
+      "severity": "minor",
+      "status": "open",
+      "task_ids": [
+        "M2-007"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-private-workspace-startup",
+      "source": "Hosted Windows run 44520641312 at 081c59b and the same native storage admission on a clean Windows 11 Enterprise 26H2 guest under a standard local account.",
+      "observation": "All five hosted browser workspace cases and three native desktop tests failed while preparing the private profile. On Windows 11 build 26300.9457, both AppLocalData and the real 8.3 TEMP alias failed. Native ACL APIs returned the owner and DACL at every ancestor. The helper instead raised an InvalidCastException while evaluating an ancestor ACE. Five of six native storage library tests failed at ccb9f81.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-007"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
