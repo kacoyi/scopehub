@@ -381,3 +381,104 @@ fn private_record_cleanup_survives_a_blocked_checkpoint_and_restarts_without_old
     }
     restored.finish();
 }
+
+#[test]
+fn private_record_backup_does_not_restore_approval_or_authorize_outbound_access() {
+    const ID: &str = "10000000-aaaa-4aaa-aaaa-000000000021";
+    const BODY: &str = "synthetic saved excerpt candidate 06c82c74";
+    const DRAFT: &str = "synthetic unapproved correction 846cda75";
+    let source = Profile::new();
+    let recovered = Profile::new();
+    let mut bridge = LiveBridge::open(&source, PROFILE_ID);
+    bridge.reply();
+    commit(&mut bridge, &change(0, memory(ID, None, BODY)), 1, Some(ID));
+    let pending = change(1, memory(ID, Some(1), DRAFT));
+    let preview = bridge.send(&pending);
+    let old_approval = approval(&pending, &preview);
+    let backup = archive(&mut bridge);
+    assert_eq!(backup.as_object().unwrap().len(), 5);
+    assert_eq!(backup["records"][0]["content"]["text"], BODY);
+    assert!(!backup.to_string().contains(DRAFT));
+    assert!(
+        !backup
+            .to_string()
+            .contains(preview["outcome"]["challenge_id"].as_str().unwrap())
+    );
+    bridge.finish();
+
+    let mut host = LiveBridge::open(&recovered, PROFILE_ID);
+    host.reply();
+    commit(
+        &mut host,
+        &change(0, json!({"action":"restore", "backup":backup.clone()})),
+        1,
+        None,
+    );
+    host.finish();
+
+    let mut registry = OperationRegistry::new(store(&recovered.0));
+    let mut local = WorkspaceAccess {
+        actor: Actor::User,
+        profile_id: PROFILE_ID,
+        principal_id: PROFILE_ID,
+        paired_client_id: None,
+        workspace_id: WORKSPACE_ID,
+        operations: &PRIVATE_RECORD_OPERATIONS,
+        disclose_workspace_state: true,
+    };
+    let mut forged = backup;
+    forged["excerpt_grant"] = json!({
+        "recipient": "synthetic-model", "request_id": Uuid::new_v4().to_string(), "excerpt": BODY,
+    });
+    let error = registry
+        .execute_workspace(
+            &local,
+            change(1, json!({"action":"restore", "backup":forged})),
+        )
+        .unwrap_err();
+    assert_eq!(
+        error.code,
+        scopehub_domain::protocol::ErrorCode::INVALIDARGUMENT
+    );
+
+    // The original approval refers to the same logical profile and revision.
+    // A backup must still carry neither that stage nor any disclosure right.
+    assert_failed(
+        &registry.execute_workspace(&local, old_approval).unwrap(),
+        "CONFIRMATION_REQUIRED",
+    );
+    let export = note_request(
+        PRIVATE_RECORD_EXPORT,
+        json!({"workspace_id": WORKSPACE_ID}),
+        json!({}),
+    );
+    local.actor = Actor::Ai;
+    for request in [read(Some(ID)), export.clone()] {
+        assert_failed(
+            &registry.execute_workspace(&local, request).unwrap(),
+            "PERMISSION_DENIED",
+        );
+    }
+    local.actor = Actor::User;
+    local.paired_client_id = Some("synthetic-external-client");
+    for request in [read(Some(ID)), export] {
+        assert_failed(
+            &registry.execute_workspace(&local, request).unwrap(),
+            "PERMISSION_DENIED",
+        );
+    }
+    local.paired_client_id = None;
+    assert_eq!(
+        registry.execute_workspace(&local, read(Some(ID))).unwrap()["outcome"]["result"]["record"]
+            ["content"]["text"],
+        BODY,
+    );
+    assert_eq!(
+        registry
+            .workspace_snapshot(&local)
+            .unwrap()
+            .workspace
+            .revision,
+        1
+    );
+}

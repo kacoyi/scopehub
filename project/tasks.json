@@ -389,7 +389,7 @@
         "local-import-publication"
       ],
       "evidence": [],
-      "next_action": "Verify the profile-local typed conversation, memory and strategy slice on schema v8 after the genuine folder v7 migration. Carry its local evidence into M2-001 integration alongside the selected chart and native CSV checks.",
+      "next_action": "Carry the profile-local v8 evidence and the runnable state-migrations gate into M2-001 integration alongside the selected chart and native CSV checks. Combine with the separate source-matched Windows validation before handoff.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -428,7 +428,7 @@
           "Native publication browsing can use stored v5 revision summaries while v6 selection and projected chart reads continue through scoped workspace permissions. Opening a library row follows the same revocation checks as opening by revision ID.",
           "A private records panel reachable from the native and enabled Ubuntu workspace serves all three types through one typed read and write contract. Manual capture keeps existing transient conversation and speech flows independent.",
           "A bounded logical private-record archive can merge missing records and the union of known tombstones without retaining prior bodies, outbound grants or a secondary search index.",
-          "Use the workspace revision and the selected record revision for correction and deletion. A revision-bound local approval stages only the pending changes. Committing and replaying use a random challenge with no private body or fingerprint in the approval request, log or receipt."
+          "Use the workspace revision and the selected record revision for correction and deletion. A revision-bound local approval stages only the pending changes. Committing and replaying use a random challenge with no private body or fingerprint in the approval request, log or receipt. The state-migrations gate runs the persistence suite without a name filter. It covers genuine v1–v7 fixtures, rollback and reopen, private archive recovery, deletion cleanup and refusal of restored approval or outbound access."
         ],
         "risks": [
           {
