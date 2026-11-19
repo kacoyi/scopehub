@@ -912,6 +912,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "fs-id"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f1648c1b89e98d042d61b5c1ed0fbcd9dbd7815163864d20f8e7976a9b3af938"
+dependencies = [
+ "libc",
+ "wasi",
+ "winapi",
+]
+
+[[package]]
 name = "futures-channel"
 version = "0.3.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2883,6 +2894,7 @@ dependencies = [
 name = "scopehub-platform"
 version = "0.1.0"
 dependencies = [
+ "fs-id",
  "libc",
  "sha2",
  "uuid",

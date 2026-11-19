@@ -1322,6 +1322,23 @@
       "deferral_reason": null
     },
     {
+      "id": "windows-idle-local-source-sharing",
+      "source": "Hosted Windows run 44563163301 rust-contracts-workers and independent standard-user Win11 MSVC measurements in .reports/windows-source-sharing/measured/CHANGES.JSON and PINS.JSON.",
+      "observation": "The native bridge replay tests failed at bridge_tests.rs:523 and :608 with Win32 error 32. The independent desktop matrix reproduced error 32 for direct-child rename and atomic replacement after selection, preview and publication. Both succeeded before selection and after exit. The isolated handle matrix reproduced the failure with read-only sharing on the selected directory and distinguished that from the expected protection of a file currently being verified.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "local-folder-import",
+        "local-import-publication"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
       "id": "workspace-browser-navigation-observer-lifetime",
       "source": "Authenticated hosted Windows PR #13 run 44548543796 at e960fd1, workspace-timeframe log and source snapshot.",
       "observation": "Chromium reported ERR_NO_BUFFER_SPACE on the initial document of the wrong-profile backup visit. The workspace test had already created a response waiter and had not installed a rejection handler. Context teardown also reported that the response waiter rejected when its page closed. Eight browser cases passed and the POSIX signal case skipped.",

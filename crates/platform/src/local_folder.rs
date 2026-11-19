@@ -18,7 +18,9 @@ use std::{
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
-use platform_fs::{Directory, is_redirect, same_version};
+use platform_fs::{
+    Directory, FileIdentity, SelectedDirectory, file_identity, is_redirect, same_version,
+};
 
 /// Maximum complete source bytes kept for the current Python CSV preview.
 /// Larger files still get a whole-file digest and byte count.
@@ -129,6 +131,7 @@ impl Cancellation {
 
 struct FileEntry {
     relative: PathBuf,
+    parents: Arc<[FileIdentity]>,
     metadata: FileMetadata,
 }
 
@@ -136,7 +139,7 @@ struct Selection {
     id: FolderId,
     source_namespace: [u8; 32],
     display_name: String,
-    directory: Directory,
+    directory: SelectedDirectory,
     files: Vec<FileEntry>,
     revoked: Cancellation,
 }
@@ -172,6 +175,16 @@ impl Selection {
             return Err(FolderError::SelectionUnavailable);
         }
         Ok(())
+    }
+
+    fn open_directory(&self, cancel: &Cancellation) -> Result<Directory, FolderError> {
+        self.check_live(cancel)?;
+        self.directory.pin().map_err(|error| match error.kind() {
+            io::ErrorKind::NotFound | io::ErrorKind::NotADirectory | io::ErrorKind::InvalidData => {
+                FolderError::SelectionUnavailable
+            }
+            _ => FolderError::Io,
+        })
     }
 }
 
@@ -237,7 +250,8 @@ impl LocalFolderHost {
             self.check_open()?;
             cancel.check()
         };
-        let directory = Directory::open_root(path).map_err(|_| FolderError::InvalidSelection)?;
+        let (selected_directory, directory) =
+            SelectedDirectory::adopt(path).map_err(|_| FolderError::InvalidSelection)?;
         let association = directory
             .association_path(path)
             .map_err(|_| FolderError::InvalidSelection)?;
@@ -247,7 +261,7 @@ impl LocalFolderHost {
         scan(
             &directory,
             Path::new(""),
-            0,
+            Arc::from([]),
             &check,
             &mut visited,
             &mut files,
@@ -260,7 +274,7 @@ impl LocalFolderHost {
                 || "Selected folder".into(),
                 |name| name.to_string_lossy().into_owned(),
             ),
-            directory,
+            directory: selected_directory,
             files,
             revoked: Cancellation::default(),
         });
@@ -384,7 +398,7 @@ impl LocalFolderHost {
             expected_sha256,
             cancel,
             mode,
-            |file, _| Ok(file),
+            |file, _, _| Ok(file),
         )?;
         let _active = self.active.lock().map_err(|_| FolderError::Io)?;
         selection.check_live(cancel)?;
@@ -411,10 +425,16 @@ impl LocalFolderHost {
             Some(expected_sha256),
             cancel,
             ReadMode::Commit,
-            |_, checked| {
+            |_, checked_file, checked_metadata| {
                 self.with_current(folder_id, || {
                     let (current, _pins) = open_entry(&selection, entry, cancel)?;
-                    if !same_version(checked, &current.metadata().map_err(|_| FolderError::Io)?) {
+                    if file_identity(checked_file).map_err(|_| FolderError::Io)?
+                        != file_identity(&current).map_err(|_| FolderError::Io)?
+                        || !same_version(
+                            checked_metadata,
+                            &current.metadata().map_err(|_| FolderError::Io)?,
+                        )
+                    {
                         return Err(FolderError::ContentChanged);
                     }
                     cancel.check()?;
@@ -476,7 +496,7 @@ fn admit(slot: &Mutex<()>) -> Result<MutexGuard<'_, ()>, FolderError> {
 fn scan(
     directory: &Directory,
     parent: &Path,
-    depth: usize,
+    parents: Arc<[FileIdentity]>,
     check: &impl Fn() -> Result<(), FolderError>,
     visited: &mut usize,
     files: &mut Vec<FileEntry>,
@@ -496,13 +516,22 @@ fn scan(
         let kind = if redirect || name.to_str().is_none() {
             FileKind::UnsupportedEntry
         } else if metadata.is_dir() {
-            if depth == MAX_DIRECTORY_DEPTH {
+            if parents.len() == MAX_DIRECTORY_DEPTH {
                 return Err(FolderError::CatalogLimit);
             }
             let child = directory
                 .open_directory(&name)
                 .map_err(|_| FolderError::Io)?;
-            scan(&child, &relative, depth + 1, check, visited, files)?;
+            let mut child_parents = parents.to_vec();
+            child_parents.push(child.identity().map_err(|_| FolderError::Io)?);
+            scan(
+                &child,
+                &relative,
+                child_parents.into(),
+                check,
+                visited,
+                files,
+            )?;
             continue;
         } else if !metadata.is_file() {
             FileKind::UnsupportedEntry
@@ -532,6 +561,7 @@ fn scan(
                 kind,
             },
             relative,
+            parents: Arc::clone(&parents),
         });
     }
     Ok(())
@@ -541,24 +571,28 @@ fn open_entry(
     selection: &Selection,
     entry: &FileEntry,
     cancel: &Cancellation,
-) -> Result<(File, Option<Directory>), FolderError> {
-    selection.check_live(cancel)?;
+) -> Result<(File, Directory), FolderError> {
+    let mut directory = selection.open_directory(cancel)?;
     let mut components = entry.relative.components();
     let Some(Component::Normal(name)) = components.next_back() else {
         return Err(FolderError::UnsupportedFile);
     };
-    let mut parent = None;
-    for component in components {
+    if components.clone().count() != entry.parents.len() {
+        return Err(FolderError::UnsupportedFile);
+    }
+    for (component, expected) in components.zip(entry.parents.iter()) {
         selection.check_live(cancel)?;
         let Component::Normal(part) = component else {
             return Err(FolderError::UnsupportedFile);
         };
-        let directory = parent.as_ref().unwrap_or(&selection.directory);
-        parent = Some(directory.open_directory(part).map_err(open_error)?);
+        directory = directory.open_directory(part).map_err(open_error)?;
+        if directory.identity().map_err(|_| FolderError::Io)? != *expected {
+            return Err(FolderError::ContentChanged);
+        }
     }
-    let directory = parent.as_ref().unwrap_or(&selection.directory);
+    selection.check_live(cancel)?;
     let file = directory.open_file(name).map_err(open_error)?;
-    Ok((file, parent))
+    Ok((file, directory))
 }
 
 fn read_entry<T>(
@@ -567,7 +601,7 @@ fn read_entry<T>(
     expected_sha256: Option<&str>,
     cancel: &Cancellation,
     mode: ReadMode,
-    finish: impl FnOnce(FrozenFile, &Metadata) -> Result<T, FolderError>,
+    finish: impl FnOnce(FrozenFile, &File, &Metadata) -> Result<T, FolderError>,
 ) -> Result<T, FolderError> {
     let (mut file, _parent_pins) = open_entry(selection, entry, cancel)?;
     let before = file.metadata().map_err(|_| FolderError::Io)?;
@@ -614,6 +648,7 @@ fn read_entry<T>(
             sha256,
             content: content.map(Arc::from),
         },
+        &file,
         &after,
     )
 }

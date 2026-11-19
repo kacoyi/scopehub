@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0",
+  "id": "0012",
+  "title": "Bind local folder operations to the selected directory identity",
+  "status": "accepted",
+  "recorded_at": "2026-11-19",
+  "context": "A Windows selection kept an entire read-only shared directory chain alive. On standard-user Win11, atomic replacements of direct child CSVs failed while the application was idle. Source operations still require the original selected root, catalogued parents, validated bytes and an active grant.",
+  "decision": "Retain a handle to the selected root for identity, using metadata-only access with full sharing on Windows. At each source operation, reopen from the filesystem root one component at a time without following reparse points, and compare the selected root and catalogued parent identities. Keep the Windows chain and verified file handles through source I/O and final commit. Compare identities of open handles, using Windows volume serial numbers and 128-bit file IDs. Reject replacements of directories under the old scope and allow files at existing catalog paths to be reread and reviewed by digest.",
+  "authority": "ADR 0007 delegates engineering choices. M1-008 calls for ordinary external saves between reads, preservation of native scope and independent standard-user Windows verification.",
+  "alternatives": [
+    {
+      "option": "Continue to pin all ancestors while a selection is live.",
+      "reason": "The observed Windows sharing rules prevent common atomic saves under the selected root."
+    },
+    {
+      "option": "Store an absolute path and open it directly for later reads.",
+      "reason": "Path spelling alone cannot distinguish a replacement directory or a reparse-point redirection."
+    }
+  ],
+  "consequences": [
+    "The reviewed mapping association remains canonical and path-based. Native object identity is session-scoped. Previously accepted frozen bytes are independent of the external folder.",
+    "ScopeHub releases the strict handles between filesystem operations. A conflicting mutation during Windows source verification can fail, and a filesystem that cannot supply the required object identity fails closed.",
+    "Folder refresh must enumerate through a verified root and revalidate the reviewed membership and digests against the live source. Directory pins alone do not freeze child membership."
+  ],
+  "supersedes": [],
+  "related_decisions": ["0007", "0008"],
+  "revisit_when": "A supported filesystem needs a different reliable identity mechanism, or a source workflow requires snapshot semantics for an entire directory."
+}
