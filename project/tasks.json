@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-023",
+  "focus_task_id": "M1-006",
   "tasks": [
     {
       "id": "M0-001",
@@ -3733,7 +3733,7 @@
       "id": "M1-014",
       "title": "Open directly into the chart workspace",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-013"
       ],
@@ -3770,8 +3770,21 @@
         "ui-build",
         "rust-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Replace the separate start screen with the chart workspace and keep sample activation explicit. Test the normal entry and #demo through the registry, inspect both viewport sizes on Ubuntu and retain observations.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-014-ccadcdae2e2952e4.json",
+          "sha256": "e288ba20213d84fbd82ea77bf791ca09a566d845b56c144ec7890d6f4c710fd2"
+        },
+        {
+          "path": "project/evidence/M1-014-e4c5216a170f176d.json",
+          "sha256": "0aee95bd8677ac7c0a456605fa412436b4352655fad69beedd729faaa97b72ff"
+        },
+        {
+          "path": "project/evidence/M1-014-2aa025302c423693.json",
+          "sha256": "d9fbc79c95a1050e6d580ad8f41b22e0e9f0f01d3aab65e65d92056ebc0a5d5f"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -3857,7 +3870,7 @@
       "id": "M0-023",
       "title": "Repair market, operation and acceptance contracts from the full review",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-022",
         "M1-013"
@@ -3901,8 +3914,21 @@
         "ubuntu-preview",
         "dependency-review"
       ],
-      "evidence": [],
-      "next_action": "Apply the four owner decisions, repair canonical definitions and current paths, then verify all cross-language, runtime and governance regressions.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-023-ccadcdae2e2952e4.json",
+          "sha256": "eb90d67f09a1281800222235106b3145fec06a31f6bc4110719a21165f79d1ec"
+        },
+        {
+          "path": "project/evidence/M0-023-e4c5216a170f176d.json",
+          "sha256": "c66f8e142833b42cd42ac91afd572e01049315804b98a52ef096639a7bcdc48f"
+        },
+        {
+          "path": "project/evidence/M0-023-2aa025302c423693.json",
+          "sha256": "b05942c19f1925f46168eb86f6f0a220af70c63161a0593664fb81b580fa777a"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {

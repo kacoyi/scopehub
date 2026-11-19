@@ -606,7 +606,7 @@
       "source": "Owner review of the workspace discussion sketch on 2026-11-18.",
       "observation": "The owner found the sketch far from the intended product and selected TradingView Supercharts as the reference for the first-screen layout and chart interactions. Include icons according to ScopeHub's actual actions.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-014"
       ],
@@ -614,7 +614,11 @@
         "ubuntu-preview",
         "chart-history"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The previous entry opened a separate welcome screen and did not expose the chosen workspace layout or history inspection controls.",
+        "correction": "The implemented workspace opens directly, restores an opted-in labeled sample and its presentation, and supports chart tools, keyboard symbol selection and source/data panels at both reviewed sizes.",
+        "prevention": "The chart-history and ubuntu-preview regressions, matching Linux and Windows CI and the separately retained Ubuntu graphical observation cover the engineering outcome. Further owner usability feedback remains independent."
+      },
       "deferral_reason": null
     },
     {
@@ -622,7 +626,7 @@
       "source": "Complete contract audit and four owner decisions on 2026-11-18.",
       "observation": "The active chart failed to compile; catalog and history validation disagreed, and hard limits appeared retryable. Market and operation contracts could not identify exact inputs, approvals and outputs, while the verification pipeline could attribute partial or stale results to a qualified product.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-023"
       ],
@@ -635,7 +639,11 @@
         "chart-history",
         "ubuntu-preview"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Legacy payloads, unqualified metadata and aggregate status did not uniquely identify calculation inputs, authorized outcomes or qualifying evidence.",
+        "correction": "Contract 1.3 and protocol 1.1 resolve the 27 review items. Current sample startup, registry validation, bounded versioned history and retry behavior are repaired. The new procedure binds independent observations to real sessions, a named candidate, installation bytes and supported client systems.",
+        "prevention": "The review record links every finding to a canonical rule, delivery task and check. Cross-language vectors, actual worker reads, browser journeys and independent delivery fixtures must pass. Future product flows keep their own gates."
+      },
       "deferral_reason": null
     }
   ]

@@ -14,189 +14,216 @@
       "repair": "Select and reread an exact market series",
       "rule": "engineering-contract-v1.json#/domain/series_identity",
       "task": "M1-008",
-      "check": "chart-history"
+      "check": "chart-history",
+      "verified_scope": "The current implementation exercises synthetic history, frozen identities, bounded transport and independently asserted market data. Licensed providers, import, live recovery and user-owned persistence qualify in their named product tasks."
     },
     {
       "id": "F02",
       "repair": "Freeze analysis and its observable input",
       "rule": "engineering-contract-v1.json#/domain/history_snapshots",
       "task": "M3-001",
-      "check": "market-fixtures"
+      "check": "market-fixtures",
+      "verified_scope": "The current implementation exercises synthetic history, frozen identities, bounded transport and independently asserted market data. Licensed providers, import, live recovery and user-owned persistence qualify in their named product tasks."
     },
     {
       "id": "F03",
       "repair": "Resolve overlapping imports, corrections and withdrawal",
       "rule": "engineering-contract-v1.json#/product/data_onboarding/refresh_conflicts",
       "task": "M1-008",
-      "check": "local-folder-import"
+      "check": "local-folder-import",
+      "verified_scope": "Canonical rules and observable success and failure cases are recorded. The named product workflow remains independently gated."
     },
     {
       "id": "F04",
       "repair": "Specify financial units, aggregation eligibility and source fields",
       "rule": "engineering-contract-v1.json#/product/data_onboarding/csv_v1_capabilities",
       "task": "M1-008",
-      "check": "local-folder-import"
+      "check": "local-folder-import",
+      "verified_scope": "Canonical rules and observable success and failure cases are recorded. The named product workflow remains independently gated."
     },
     {
       "id": "F05",
       "repair": "Separate freshness, clock, gaps, session and connection",
       "rule": "engineering-contract-v1.json#/domain/market_quality",
       "task": "M1-007",
-      "check": "market-quality-states"
+      "check": "market-quality-states",
+      "verified_scope": "The current implementation exercises synthetic history, frozen identities, bounded transport and independently asserted market data. Licensed providers, import, live recovery and user-owned persistence qualify in their named product tasks."
     },
     {
       "id": "F06",
       "repair": "Detect a lost update at the history-to-stream boundary",
       "rule": "engineering-contract-v1.json#/domain/stream_handoff",
       "task": "M1-006",
-      "check": "market-live-stream"
+      "check": "market-live-stream",
+      "verified_scope": "Canonical rules and observable success and failure cases are recorded. The named product workflow remains independently gated."
     },
     {
       "id": "F07",
       "repair": "Page large reads within the actual encoded frame limit",
       "rule": "engineering-contract-v1.json#/domain/history_snapshots/pagination",
       "task": "M0-023",
-      "check": "rust-contracts-workers"
+      "check": "rust-contracts-workers",
+      "verified_scope": "The current implementation exercises synthetic history, frozen identities, bounded transport and independently asserted market data. Licensed providers, import, live recovery and user-owned persistence qualify in their named product tasks."
     },
     {
       "id": "F08",
       "repair": "Deliver the asynchronous preview and bind its acceptance",
       "rule": "engineering-contract-v1.json#/indicators/preview",
       "task": "M3-001",
-      "check": "indicator-workflow"
+      "check": "indicator-workflow",
+      "verified_scope": "The versioned protocol, generated types and positive and negative vectors are checked. Product execution and authorization against durable user state require the named workflow check."
     },
     {
       "id": "F09",
       "repair": "Return a private correlated tool outcome",
       "rule": "engineering-contract-v1.json#/protocol/ai_channel",
       "task": "M4-001",
-      "check": "ai-workflow"
+      "check": "ai-workflow",
+      "verified_scope": "The versioned protocol, generated types and positive and negative vectors are checked. Product execution and authorization against durable user state require the named workflow check."
     },
     {
       "id": "F10",
       "repair": "Replay a committed write and undo by receipt",
       "rule": "engineering-contract-v1.json#/authorization/durable_operations",
       "task": "M2-001",
-      "check": "operations-workflow"
+      "check": "operations-workflow",
+      "verified_scope": "The versioned protocol, generated types and positive and negative vectors are checked. Product execution and authorization against durable user state require the named workflow check."
     },
     {
       "id": "F11",
       "repair": "Enforce client- and purpose-specific field projection",
       "rule": "engineering-contract-v1.json#/authorization/data_purposes",
       "task": "M4-004",
-      "check": "external-ai-bridge"
+      "check": "external-ai-bridge",
+      "verified_scope": "The versioned protocol, generated types and positive and negative vectors are checked. Product execution and authorization against durable user state require the named workflow check."
     },
     {
       "id": "F12",
       "repair": "Define cancellation scope, human wait and committed effects",
       "rule": "engineering-contract-v1.json#/runtime/cancellation",
       "task": "M2-001",
-      "check": "operations-workflow"
+      "check": "operations-workflow",
+      "verified_scope": "The versioned protocol, generated types and positive and negative vectors are checked. Product execution and authorization against durable user state require the named workflow check."
     },
     {
       "id": "F13",
       "repair": "Bind typed indicator parameters and define window and null semantics",
       "rule": "engineering-contract-v1.json#/indicators/parameter_and_output",
       "task": "M3-001",
-      "check": "indicator-workflow"
+      "check": "indicator-workflow",
+      "verified_scope": "The versioned protocol, generated types and positive and negative vectors are checked. Product execution and authorization against durable user state require the named workflow check."
     },
     {
       "id": "F14",
       "repair": "Require eligible data and separate approval on every trusted run",
       "rule": "engineering-contract-v1.json#/indicators/python_mode",
       "task": "M3-001",
-      "check": "indicator-workflow"
+      "check": "indicator-workflow",
+      "verified_scope": "The versioned protocol, generated types and positive and negative vectors are checked. Product execution and authorization against durable user state require the named workflow check."
     },
     {
       "id": "F15",
       "repair": "Delete decision content and honor known deletions on restore",
       "rule": "engineering-contract-v1.json#/persistence/notes_and_restore",
       "task": "M2-001",
-      "check": "state-migrations"
+      "check": "state-migrations",
+      "verified_scope": "Canonical rules and observable success and failure cases are recorded. The named product workflow remains independently gated."
     },
     {
       "id": "F16",
       "repair": "Bind a shared selection independently of presentation and stored revision",
       "rule": "engineering-contract-v1.json#/ui/shared_evidence/selection_ownership",
       "task": "M4-004",
-      "check": "external-ai-bridge"
+      "check": "external-ai-bridge",
+      "verified_scope": "The versioned protocol, generated types and positive and negative vectors are checked. Product execution and authorization against durable user state require the named workflow check."
     },
     {
       "id": "F17",
       "repair": "Restore an explicit sample and recover unavailable sources",
       "rule": "engineering-contract-v1.json#/ui/workspace_entry",
       "task": "M1-014",
-      "check": "ubuntu-preview"
+      "check": "ubuntu-preview",
+      "verified_scope": "Ubuntu exercises first launch, explicit opt-in, simulated labeling, restoring the same symbol, timeframe, style and panel and leaving it. Durable workspaces, accepted indicators and revoked real-source grants have M2 and M3 checks."
     },
     {
       "id": "F18",
       "repair": "Require measured and independently scored text and voice outcomes",
       "rule": "engineering-contract-v1.json#/ai/qualified_session_acceptance",
       "task": "M4-002",
-      "check": "configured-voice-session"
+      "check": "configured-voice-session",
+      "verified_scope": "Independent numeric fixture and modality scoring tests passed. The configured real text and duplex sessions remain release gates."
     },
     {
       "id": "F19",
       "repair": "Follow dependencies across milestone groups",
       "rule": "engineering-contract-v1.json#/implementation_instructions/0",
       "task": "M0-023",
-      "check": "project-state"
+      "check": "project-state",
+      "verified_scope": "Repository checks exercise the evidence rules with isolated fixtures and reject incomplete, misleading or mismatched evidence. Actual platform, packaged performance and external-service claims require their corresponding observed runs."
     },
     {
       "id": "F20",
       "repair": "Decouple Ubuntu-local experience and authorized real-session release gates",
       "rule": "engineering-contract-v1.json#/delivery/verification_evidence",
       "task": "M1-012",
-      "check": "ubuntu-workspace-observation"
+      "check": "ubuntu-workspace-observation",
+      "verified_scope": "Repository checks exercise the evidence rules with isolated fixtures and reject incomplete, misleading or mismatched evidence. Actual platform, packaged performance and external-service claims require their corresponding observed runs."
     },
     {
       "id": "F21",
       "repair": "Keep stream and quality slices independent of full market acceptance",
       "rule": "engineering-contract-v1.json#/implementation_policy/verification_slices",
       "task": "M1-001",
-      "check": "market-workflow"
+      "check": "market-workflow",
+      "verified_scope": "Repository checks exercise the evidence rules with isolated fixtures and reject incomplete, misleading or mismatched evidence. Actual platform, packaged performance and external-service claims require their corresponding observed runs."
     },
     {
       "id": "F22",
       "repair": "Bind physical WebView2 and packaged client environments to observed evidence",
       "rule": "engineering-contract-v1.json#/delivery/verification_evidence/field_input",
       "task": "M1-011",
-      "check": "physical-windows-workspace"
+      "check": "physical-windows-workspace",
+      "verified_scope": "Repository checks exercise the evidence rules with isolated fixtures and reject incomplete, misleading or mismatched evidence. Actual platform, packaged performance and external-service claims require their corresponding observed runs."
     },
     {
       "id": "F23",
       "repair": "Verify an isolated release report against the actual main candidate and packaged bytes",
       "rule": "engineering-contract-v1.json#/delivery/verification_evidence/candidate_input",
       "task": "M5-001",
-      "check": "release-artifacts"
+      "check": "release-artifacts",
+      "verified_scope": "Repository checks exercise the evidence rules with isolated fixtures and reject incomplete, misleading or mismatched evidence. Actual platform, packaged performance and external-service claims require their corresponding observed runs."
     },
     {
       "id": "F24",
       "repair": "Score cold and warm frame timings and process-tree memory",
       "rule": "engineering-contract-v1.json#/acceptance/performance",
       "task": "M5-001",
-      "check": "runtime-stability"
+      "check": "runtime-stability",
+      "verified_scope": "Repository checks exercise the evidence rules with isolated fixtures and reject incomplete, misleading or mismatched evidence. Actual platform, packaged performance and external-service claims require their corresponding observed runs."
     },
     {
       "id": "F25",
       "repair": "Bind effective owner decisions while allowing independent observation updates",
       "rule": "engineering-contract-v1.json#/repository/owner_decision_inputs",
       "task": "M0-023",
-      "check": "project-state"
+      "check": "project-state",
+      "verified_scope": "Repository checks exercise the evidence rules with isolated fixtures and reject incomplete, misleading or mismatched evidence. Actual platform, packaged performance and external-service claims require their corresponding observed runs."
     },
     {
       "id": "F26",
       "repair": "Derive real integration status only from the observed modality and revision",
       "rule": "engineering-contract-v1.json#/delivery/verification_evidence/session_input",
       "task": "M0-023",
-      "check": "python-contracts-workers"
+      "check": "python-contracts-workers",
+      "verified_scope": "Repository checks exercise the evidence rules with isolated fixtures and reject incomplete, misleading or mismatched evidence. Actual platform, packaged performance and external-service claims require their corresponding observed runs."
     },
     {
       "id": "F27",
       "repair": "Negotiate worker role, minor version and actual capabilities",
       "rule": "engineering-contract-v1.json#/protocol/compatibility",
       "task": "M0-023",
-      "check": "rust-contracts-workers"
+      "check": "rust-contracts-workers",
+      "verified_scope": "Old and new worker handshake lanes and rejection of unsupported capabilities passed. External client acceptance uses its own observed integration task."
     }
   ],
   "current_defects": [
@@ -213,5 +240,42 @@
       "check": "chart-history"
     }
   ],
-  "evidence_boundary": "The rules and negotiated schemas resolve the reviewed contract gaps. A product scenario obtains its own verification only through its implemented task and retained evidence. The raw reports and screenshots remain separately attributable."
+  "evidence_boundary": "The rules and negotiated schemas resolve the reviewed contract gaps. A product scenario obtains its own verification only through its implemented task and retained evidence. The raw reports and screenshots remain separately attributable.",
+  "observed_repair": {
+    "source_commit": "b6eea0eac89a43734060f9a8bb402c9a11441c97",
+    "local_report": ".reports/runs/20261119T071035.726608Z-1e073b98/test-report.json",
+    "local_report_sha256": "ccadcdae2e2952e4b0ff4289e918a199bc4a3a24d38cce18e5094ee81414cf63",
+    "hosted_verification": "https://github.com/kacoyi/scopehub/actions/runs/44477570028",
+    "tasks": {
+      "M0-023": [
+        {
+          "path": "project/evidence/M0-023-ccadcdae2e2952e4.json",
+          "sha256": "eb90d67f09a1281800222235106b3145fec06a31f6bc4110719a21165f79d1ec"
+        },
+        {
+          "path": "project/evidence/M0-023-e4c5216a170f176d.json",
+          "sha256": "c66f8e142833b42cd42ac91afd572e01049315804b98a52ef096639a7bcdc48f"
+        },
+        {
+          "path": "project/evidence/M0-023-2aa025302c423693.json",
+          "sha256": "b05942c19f1925f46168eb86f6f0a220af70c63161a0593664fb81b580fa777a"
+        }
+      ],
+      "M1-014": [
+        {
+          "path": "project/evidence/M1-014-ccadcdae2e2952e4.json",
+          "sha256": "e288ba20213d84fbd82ea77bf791ca09a566d845b56c144ec7890d6f4c710fd2"
+        },
+        {
+          "path": "project/evidence/M1-014-e4c5216a170f176d.json",
+          "sha256": "0aee95bd8677ac7c0a456605fa412436b4352655fad69beedd729faaa97b72ff"
+        },
+        {
+          "path": "project/evidence/M1-014-2aa025302c423693.json",
+          "sha256": "d9fbc79c95a1050e6d580ad8f41b22e0e9f0f01d3aab65e65d92056ebc0a5d5f"
+        }
+      ]
+    },
+    "graphical_observation": "contracts/reviews/2026-11-18-chart-workspace.json#/engineering_observation"
+  }
 }
