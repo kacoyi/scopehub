@@ -96,7 +96,7 @@ function App() {
       </main>
     </div>}
     {openingRevision && <OpenLocalRevisionDialog onClose={() => setOpeningRevision(false)} revisionAccess={revisionAccess}
-      workspace={workspace} canRevoke={hasLocalCsvPicker()} />}
+      workspace={workspace} nativeLocalImport={hasLocalCsvPicker()} />}
   </>;
 }
 

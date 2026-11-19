@@ -1,10 +1,13 @@
-use scopehub_domain::protocol::{
-    DecisionNoteAppendOutcomeCommand11, DecisionNoteAppendOutcomeReply11,
-    DecisionNoteDeleteCommand11, DecisionNoteDeleteReply11, DecisionNoteExportBackupCommand11,
-    DecisionNoteExportBackupReply11, DecisionNotePreviewRestoreCommand11,
-    DecisionNotePreviewRestoreReply11, DecisionNoteReadCommand11, DecisionNoteReadReply11,
-    DecisionNoteRestoreBackupCommand11, DecisionNoteRestoreBackupReply11,
-    DecisionNoteSaveCommand11, DecisionNoteSaveReply11, Message, Request, ToolCall,
+use scopehub_domain::{
+    protocol::{
+        DecisionNoteAppendOutcomeCommand11, DecisionNoteAppendOutcomeReply11,
+        DecisionNoteDeleteCommand11, DecisionNoteDeleteReply11, DecisionNoteExportBackupCommand11,
+        DecisionNoteExportBackupReply11, DecisionNotePreviewRestoreCommand11,
+        DecisionNotePreviewRestoreReply11, DecisionNoteReadCommand11, DecisionNoteReadReply11,
+        DecisionNoteRestoreBackupCommand11, DecisionNoteRestoreBackupReply11,
+        DecisionNoteSaveCommand11, DecisionNoteSaveReply11, Message, Request, ToolCall,
+    },
+    wire::normalize_integers,
 };
 use scopehub_worker_host::{SCHEMA, decode_line, max_message_bytes};
 use serde_json::Value;
@@ -95,6 +98,9 @@ fn shared_vectors_and_generated_types_agree() {
                 Message::PublishLocalImportRequest(_) => {
                     requests.insert("market.publishLocalImport");
                 }
+                Message::ListLocalImportRevisionsRequest(_) => {
+                    requests.insert("market.listLocalImportRevisions");
+                }
                 Message::ReadLocalImportRevisionRequest(_) => {
                     requests.insert("market.readLocalImportRevision");
                 }
@@ -153,9 +159,21 @@ fn shared_vectors_and_generated_types_agree() {
             }
             if matches!(
                 original["operation"].as_str(),
-                Some("market.saveLocalImportMapping" | "market.loadLocalImportMapping")
+                Some(
+                    "market.saveLocalImportMapping"
+                        | "market.loadLocalImportMapping"
+                        | "market.publishLocalImport"
+                        | "market.listLocalImportRevisions"
+                        | "market.readLocalImportRevision"
+                        | "market.revokeLocalImportRevision"
+                )
             ) {
-                assert_eq!(serialized, original);
+                let mut actual = serialized.clone();
+                let mut expected = original.clone();
+                // Native OHLC prices are floats even when the wire value is a whole number.
+                normalize_integers(&mut actual);
+                normalize_integers(&mut expected);
+                assert_eq!(actual, expected, "{}", example["name"]);
             }
             if original.get("operation").is_some() {
                 assert_eq!(serialized["operation"], original["operation"]);

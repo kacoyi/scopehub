@@ -1,9 +1,10 @@
-//! Authorize immutable publication and frozen reads of reviewed local CSV bars.
+//! Authorize immutable publication, discovery and frozen reads of reviewed local CSV bars.
 
 use scopehub_domain::{
     protocol::{
-        CsvMappingV1, Error, ErrorCode, PublishLocalImportInput, ReadLocalImportRevisionInput,
-        RevokeLocalImportRevisionInput,
+        CsvMappingV1, Error, ErrorCode, ListLocalImportRevisionsInput,
+        ListLocalImportRevisionsOutput, LocalImportRevisionListEntry, PublishLocalImportInput,
+        ReadLocalImportRevisionInput, RevokeLocalImportRevisionInput,
     },
     wire::{max_message_bytes, normalize_integers},
 };
@@ -17,6 +18,7 @@ use crate::{
 };
 
 pub const PUBLISH_LOCAL_IMPORT: &str = "market.publishLocalImport";
+pub const LIST_LOCAL_IMPORT_REVISIONS: &str = "market.listLocalImportRevisions";
 pub const READ_LOCAL_IMPORT_REVISION: &str = "market.readLocalImportRevision";
 pub const REVOKE_LOCAL_IMPORT_REVISION: &str = "market.revokeLocalImportRevision";
 const MAX_RECORDS: u64 = 10_000;
@@ -47,6 +49,12 @@ pub trait LocalDatasetStore: ReviewedMappingStore {
         candidate: &LocalDatasetPublication<'_>,
         guard: &impl MappingCommitGuard,
     ) -> Result<String, Error>;
+    fn list_local_datasets(
+        &self,
+        after_revision_id: Option<&str>,
+        limit: usize,
+        include_bar_summary: bool,
+    ) -> Result<Vec<LocalImportRevisionListEntry>, Error>;
     fn read_local_dataset(&self, revision_id: &str) -> Result<Option<StoredLocalDataset>, Error>;
     fn revoke_local_dataset(&mut self, revision_id: &str) -> Result<bool, Error>;
 }
@@ -65,6 +73,18 @@ pub fn read_local_import_revision_input(
 ) -> Result<ReadLocalImportRevisionInput, Error> {
     serde_json::from_value(validated_input(actor, READ_LOCAL_IMPORT_REVISION, payload)?)
         .map_err(|_| failure(ErrorCode::INVALIDARGUMENT))
+}
+
+pub fn list_local_import_revisions_input(
+    actor: Actor,
+    payload: Value,
+) -> Result<ListLocalImportRevisionsInput, Error> {
+    serde_json::from_value(validated_input(
+        actor,
+        LIST_LOCAL_IMPORT_REVISIONS,
+        payload,
+    )?)
+    .map_err(|_| failure(ErrorCode::INVALIDARGUMENT))
 }
 
 pub fn revoke_local_import_revision_input(
@@ -180,9 +200,8 @@ impl<S: LocalDatasetStore> OperationRegistry<S> {
         access: &WorkspaceAccess<'_>,
         candidate: &LocalDatasetPublication<'_>,
         guard: &impl MappingCommitGuard,
-    ) -> Result<Value, Error> {
+    ) -> Result<String, Error> {
         self.authorize_local_import(access, PUBLISH_LOCAL_IMPORT)?;
-        let operation = authorized_operation(access.actor, PUBLISH_LOCAL_IMPORT)?;
         let mapping = &candidate.reviewed_mapping.mapping;
         let content = candidate.content;
         if candidate.source_sha256 != format!("{:x}", Sha256::digest(candidate.original))
@@ -213,10 +232,19 @@ impl<S: LocalDatasetStore> OperationRegistry<S> {
             content,
         );
         frozen_output(access.actor, &candidate_revision, &content["bars"])?;
-        let id = self.port.publish_local_dataset(candidate, guard)?;
+        self.port.publish_local_dataset(candidate, guard)
+    }
+
+    pub fn local_dataset_publication_receipt(
+        &self,
+        access: &WorkspaceAccess<'_>,
+        id: &str,
+    ) -> Result<Value, Error> {
+        self.authorize_local_import(access, PUBLISH_LOCAL_IMPORT)?;
+        let operation = authorized_operation(access.actor, PUBLISH_LOCAL_IMPORT)?;
         let stored = self
             .port
-            .read_local_dataset(&id)?
+            .read_local_dataset(id)?
             .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))?;
         let revision = stored.summary();
         let output = json!({ "version": 1, "revision": revision });
@@ -238,6 +266,45 @@ impl<S: LocalDatasetStore> OperationRegistry<S> {
             .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))?;
         let revision = stored.summary();
         frozen_output(access.actor, &revision, &stored.content["bars"])
+    }
+
+    pub fn list_frozen_local_datasets(
+        &self,
+        access: &WorkspaceAccess<'_>,
+        input: &ListLocalImportRevisionsInput,
+    ) -> Result<Value, Error> {
+        self.authorize_local_import(access, LIST_LOCAL_IMPORT_REVISIONS)?;
+        let operation = authorized_operation(access.actor, LIST_LOCAL_IMPORT_REVISIONS)?;
+        // Bound work even for trusted Rust callers that bypass input decoding.
+        let limit = usize::try_from(input.limit)
+            .ok()
+            .filter(|limit| (1..=20).contains(limit))
+            .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
+        let mut revisions = self.port.list_local_datasets(
+            input.after_revision_id.as_deref(),
+            limit + 1,
+            input.include_bar_summary.unwrap_or_default(),
+        )?;
+        let has_more = revisions.len() > limit;
+        revisions.truncate(limit);
+        let next_after_revision_id = if has_more {
+            revisions.last().map(|entry| entry.revision_id.clone())
+        } else {
+            None
+        };
+        let output = serde_json::to_value(ListLocalImportRevisionsOutput {
+            version: 1,
+            revisions,
+            next_after_revision_id,
+        })
+        .map_err(|_| failure(ErrorCode::INTERNALERROR))?;
+        if !operation.output.is_valid(&output) {
+            return Err(failure(ErrorCode::OUTPUTINVALID));
+        }
+        if output.to_string().len() >= max_message_bytes() {
+            return Err(failure(ErrorCode::RESOURCELIMIT));
+        }
+        Ok(output)
     }
 
     pub fn revoke_frozen_local_dataset(

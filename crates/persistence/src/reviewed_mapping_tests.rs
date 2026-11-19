@@ -71,6 +71,52 @@ fn mapping_versions(writer: &SqliteWorkspace) -> Vec<i64> {
 }
 
 #[test]
+fn equivalent_concurrent_saves_reuse_the_latest_version_and_keep_review_history() {
+    let profile = Profile::new();
+    let mut writer = profile.open().unwrap();
+    let mut peer = profile.open().unwrap();
+    let original = test_mapping("same");
+    let start = Barrier::new(2);
+    let current = thread::scope(|scope| {
+        let other = scope.spawn(|| {
+            start.wait();
+            peer.save_mapping(SOURCE_KEY, FIRST_HEADER, &original, &CommitMapping)
+                .unwrap()
+        });
+        start.wait();
+        let current = writer
+            .save_mapping(SOURCE_KEY, FIRST_HEADER, &original, &CommitMapping)
+            .unwrap();
+        assert_eq!(other.join().unwrap(), current);
+        current
+    });
+    assert_eq!(current.review_revision, 1);
+    assert_eq!(mapping_versions(&writer), [1]);
+    assert_eq!(
+        writer
+            .save_mapping(SOURCE_KEY, FIRST_HEADER, &original, &CancelMapping)
+            .unwrap_err()
+            .code,
+        ErrorCode::CANCELLED,
+    );
+
+    // A changed ordered header is a different review even with the same mapping.
+    let second = writer
+        .save_mapping(SOURCE_KEY, SECOND_HEADER, &original, &CommitMapping)
+        .unwrap();
+    assert_eq!(second.review_revision, 2);
+    let returned = writer
+        .save_mapping(SOURCE_KEY, FIRST_HEADER, &original, &CommitMapping)
+        .unwrap();
+    assert_eq!(returned.review_revision, 3);
+    assert_eq!(mapping_versions(&writer), [1, 2, 3]);
+    assert_eq!(
+        writer.load_mapping_version(SOURCE_KEY, 1).unwrap(),
+        Some(current)
+    );
+}
+
+#[test]
 fn reviewed_mapping_survives_restart_and_a_cancelled_new_version() {
     let profile = Profile::new();
     let first = test_mapping("reviewed-1");

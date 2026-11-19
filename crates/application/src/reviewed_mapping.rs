@@ -27,6 +27,11 @@ pub trait MappingCommitGuard {
 
 pub trait ReviewedMappingStore: WorkspaceStore {
     fn load_mapping(&self, source_key: &str) -> Result<Option<ReviewedImportMapping>, Error>;
+    fn load_mapping_version(
+        &self,
+        source_key: &str,
+        review_revision: u64,
+    ) -> Result<Option<ReviewedImportMapping>, Error>;
     fn save_mapping(
         &mut self,
         source_key: &str,
@@ -177,7 +182,7 @@ impl<S: ReviewedMappingStore> OperationRegistry<S> {
         header_sha256: &str,
         mapping: &CsvMappingV1,
         guard: &impl MappingCommitGuard,
-    ) -> Result<Value, Error> {
+    ) -> Result<ReviewedImportMapping, Error> {
         self.authorize_local_import(access, SAVE_LOCAL_IMPORT_MAPPING)?;
         let op = authorized_operation(access.actor, SAVE_LOCAL_IMPORT_MAPPING)?;
         if !op.output.is_valid(&json!({"version":1,"record":{
@@ -185,9 +190,20 @@ impl<S: ReviewedMappingStore> OperationRegistry<S> {
         }})) {
             return Err(failure(ErrorCode::INVALIDARGUMENT));
         }
-        let record = self
-            .port
-            .save_mapping(source_key, header_sha256, mapping, guard)?;
-        Ok(json!({"version":1,"record":record}))
+        self.port
+            .save_mapping(source_key, header_sha256, mapping, guard)
+    }
+
+    /// Replay a committed native review without applying it as the latest mapping.
+    pub fn replay_reviewed_mapping(
+        &self,
+        access: &WorkspaceAccess<'_>,
+        source_key: &str,
+        review_revision: u64,
+    ) -> Result<ReviewedImportMapping, Error> {
+        self.authorize_local_import(access, SAVE_LOCAL_IMPORT_MAPPING)?;
+        self.port
+            .load_mapping_version(source_key, review_revision)?
+            .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
     }
 }

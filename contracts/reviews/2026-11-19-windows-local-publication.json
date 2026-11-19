@@ -1,0 +1,78 @@
+{
+  "recorded_at": "2026-11-19",
+  "kind": "native_single_csv_publication_observation",
+  "task_id": "M1-008",
+  "source_commit": "45713533c0f8e6f9ff837d3c5e60666635a4f321",
+  "platform": {
+    "system": "Windows 11 Enterprise Evaluation 26H2",
+    "build": "26300.9457",
+    "hardware": "x64 KVM guest",
+    "webview": "Edg/157.0.4341.60"
+  },
+  "native_executable": {
+    "build": "MSVC development executable with the built frontend embedded. An ordinary standard-user session selected a synthetic CSV through the native folder picker.",
+    "sha256": "5b0d0e3a05dfc927a8db4cf40daef2739a1d5a93c8aa2b080bc151f10b91aba7",
+    "archive_sha256": "287ef86c1a8e35f7ddcfbbb423cab655f6b1cbe94839587c10901d90c2cb963a"
+  },
+  "input": {
+    "type": "Synthetic daily equity CSV",
+    "symbol": "000731",
+    "source_bytes": 26182,
+    "source_records": 502,
+    "reviewed_sample_records": 1,
+    "original_sha256": "304845bce9168fdcfc655bf6b365ea0c2f8410be79f866b2b1ebd16632092e75",
+    "updated_sha256": "3fb64d635cc8826dc94fb6724fb827244beeee486706c27601675ac34ae5756c"
+  },
+  "observed": {
+    "publication": "The one-row preview showed a close of 38. After explicit review and save, the full publication displayed 502 bars. The first source row mapped to line 2.",
+    "replacement": "Changing the final close from 305 to 304 caused publication with the previous digest to return a changed-file error. Explicitly loading the mapping, previewing and publishing the current bytes created a distinct revision.",
+    "restart": "The first desktop process closed. The fixture directory was renamed before the second process started. Entering the original revision in the new session reopened the original 502 bars and their provenance.",
+    "terminal_source_rows": [
+      {
+        "record_number": 502,
+        "line": 503,
+        "close": 305,
+        "trading_day": "2025-05-16"
+      },
+      {
+        "record_number": 502,
+        "line": 503,
+        "close": 304,
+        "trading_day": "2025-05-16"
+      }
+    ],
+    "display_right": "Keeping access preserved the original chart. Revoking access to that revision removed it and its next read was denied. The revised dataset remained readable from the same profile.",
+    "chart_observation": "The test moved the pointer outside the plot before reading the latest candle. It separately traversed the source rows to verify both final closes."
+  },
+  "artifacts": [
+    {
+      "file": ".reports/guest/4571353-local-publication/PUBGUI.JSON",
+      "sha256": "cc070a1b731f778135d488a55a4caa6f09b8d5d4cf8e77c5d85b5739e537bf14"
+    },
+    {
+      "file": ".reports/guest/4571353-local-publication/MAPEXE.JSON",
+      "sha256": "1df198df3e8384f54a0fc2579c00636761bc6bd29dceed6c31135d730b317184"
+    },
+    {
+      "file": ".reports/guest/4571353-local-publication/PUBOPEN.PNG",
+      "sha256": "ffb1294f77e531ad020db201ec4c3db08738f20bb146757be425c8c65ec7e55d"
+    },
+    {
+      "file": ".reports/guest/4571353-local-publication/PUBBACK.PNG",
+      "sha256": "c177c56ccdb3945fb66d863755205dfb06de6f479c9cac8bba16c997d2b4c066"
+    },
+    {
+      "file": ".reports/guest/4571353-local-publication/NATIVE.PY",
+      "sha256": "e2ddeea2ed90718ebe7a7960bb9163a2ad79b43891b402647412b1b1e16979ac"
+    },
+    {
+      "file": ".reports/guest/4571353-local-publication/DIALOG.PS1",
+      "sha256": "ee663e634f47156c9912f606282fde912a380f751d76edd2c6568bfef5b7b0db"
+    }
+  ],
+  "pending": [
+    "Exact retries of reviewed-mapping saves followed by publication after a lost reply",
+    "Full folder refresh, duplicate files, overlaps and source withdrawal",
+    "Packaged and physical Windows product acceptance"
+  ]
+}

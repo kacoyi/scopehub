@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0",
+  "id": "0012",
+  "title": "Own Windows local CSV workers through interpreter exit",
+  "status": "accepted",
+  "recorded_at": "2026-11-19",
+  "context": "A native local CSV preview reached its five-second worker deadline. The failing exchange phase is unknown. An independent standard-user Win11 probe established that waiting for the venv launcher can finish while its interpreter is still alive. A local preview needs real process cleanup before it may retry.",
+  "decision": "Place the Windows local CSV launcher in a private Job Object while its initial thread is suspended. Resume only the initial thread verified against the owned process. Keep kill-on-close without breakaway, and require both the direct child wait and a zero active-process count before releasing admission or permitting preview retry. Permit the already locked windows-sys calls only in the private worker-host Windows boundary. Retain the workspace unsafe-code prohibition and deny unsafe code elsewhere in worker-host.",
+  "authority": "The technical owner explicitly approved the private Windows-only FFI boundary in the M1-008 review under ADR 0007. This decision covers local worker ownership and enables one bounded retry of the read-only preview.",
+  "alternatives": [
+    {
+      "option": "Wait only on the venv launcher or depend on its internal Job Object",
+      "reason": "The native process handles show that launcher exit does not establish interpreter exit. Starting the launcher before assigning it also leaves a window for descendants to escape containment."
+    },
+    {
+      "option": "Delegate ownership proof to process-wrap 10.0.1",
+      "reason": "Its wait can cache the launcher exit before the Job wait finishes. A cancelled wait followed by another wait can therefore succeed without confirming that the Job has no active processes."
+    },
+    {
+      "option": "Extend the deadline or wrap every launch in another interpreter",
+      "reason": "A larger clock cannot establish process cleanup. Another interpreter adds startup work and needs its own containment and exit proof."
+    }
+  ],
+  "consequences": [
+    "Validate non-null or non-sentinel handles before taking ownership. OwnedHandle closes every Job, snapshot and thread handle. Only the exact suspended process handle enters the Job. Verify the thread owner before resuming it.",
+    "Pass initialized, correctly sized Win32 structures and keep underlying handles valid across calls. The anonymous Job is non-inheritable. If assigning or resuming fails, keep the child and its admission permit in the existing reaper.",
+    "An expired reaper wait retains the same ownership and admission permit in the background. The caller can return the existing error but may only launch a replacement after confirmed cleanup.",
+    "The pure preview may retry one elapsed exchange on the same frozen content and mapping with new private request correlation. Recheck the native selection and cancellation, respect existing caller clocks, and stop on a second timeout or a known rejection.",
+    "Use the same ownership mechanism during complete-file analysis. Publication and market replay keep their existing retry and deadline semantics."
+  ],
+  "supersedes": [],
+  "revisit_when": "A maintained safe API can bind the initial child before execution and attest that the job has no active processes after a cancelled wait.",
+  "related_decisions": [
+    "0007",
+    "0008"
+  ]
+}
