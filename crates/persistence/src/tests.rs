@@ -249,7 +249,7 @@ fn initial_ddl_and_version_are_atomic_and_the_reopened_writer_enforces_wal_and_f
         let transaction = connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .unwrap();
-        migrate_initial(&transaction, &Profile::binding()).unwrap();
+        migrate(&transaction, &Profile::binding()).unwrap();
         assert_eq!(integer_pragma(&transaction, "user_version"), SCHEMA_VERSION);
         assert_eq!(
             integer_pragma(&transaction, "application_id"),
@@ -358,4 +358,294 @@ fn future_version_in_the_wal_is_rejected_before_checkpointing_or_migrating() {
     ));
     assert_eq!(fs::read(profile.db()).unwrap(), before);
     assert_eq!(fs::read(wal_path).unwrap(), wal);
+}
+
+#[test]
+fn decision_note_migration_rolls_back_and_preserves_v1_timeframe_and_replay() {
+    let profile = Profile::new();
+    let mut database = profile.raw_connection();
+    let transaction = database.transaction().unwrap();
+    migrate_initial(&transaction, &Profile::binding()).unwrap();
+    transaction
+        .execute_batch(
+            "UPDATE workspaces SET revision = 1, timeframe = '5m';
+             INSERT INTO operation_log VALUES
+               ('chart-op', 'workspace', 'chart.setTimeframe', 'user', 'principal', '',
+                'chart-request', 300, 1, 1, '1m', '5m', NULL);
+             INSERT INTO idempotency_records VALUES
+               ('workspace', 'principal', '', 'chart.setTimeframe', 'chart-key', zeroblob(32), 'chart-op');",
+        )
+        .unwrap();
+    transaction.commit().unwrap();
+
+    // An interrupted upgrade rolls back the v2 DDL and ledger together.
+    let transaction = database.transaction().unwrap();
+    migrate(&transaction, &Profile::binding()).unwrap();
+    assert_eq!(integer_pragma(&transaction, "user_version"), 2);
+    drop(transaction);
+    assert_eq!(integer_pragma(&database, "user_version"), 1);
+    assert!(database.prepare("SELECT * FROM decision_notes").is_err());
+    assert!(
+        database
+            .prepare("SELECT decision_note_id FROM operation_log")
+            .is_err()
+    );
+    drop(database);
+
+    let mut migrated = profile.open().unwrap();
+    assert_eq!(integer_pragma(&migrated.connection, "user_version"), 2);
+    assert_eq!(integer_pragma(&migrated.connection, "secure_delete"), 1);
+    let (chart, undo) = migrated
+        .snapshot(Some(WorkspaceUndoAccess {
+            actor: Actor::User,
+            principal_id: "principal",
+            paired_client_id: None,
+        }))
+        .unwrap();
+    assert_eq!(
+        (chart.revision, chart.timeframe),
+        (1, Timeframe::FiveMinutes)
+    );
+    assert_eq!(undo.unwrap().operation_id, "chart-op");
+    let chart_replay = migrated
+        .transact(|tx| tx.replay(&key(SET_TIMEFRAME, "chart-key")))
+        .unwrap()
+        .unwrap();
+    assert_eq!(chart_replay.receipt.operation_id, "chart-op");
+    assert_eq!(chart_replay.digest, [0; 32]);
+    assert!(migrated.read_notes(None, 0).unwrap().notes.is_empty());
+}
+
+mod decision_note_storage {
+    use scopehub_application::{
+        DECISION_NOTE_APPEND_OUTCOME, DECISION_NOTE_DELETE, DECISION_NOTE_SAVE,
+        DecisionNoteMutation, DecisionNoteReceipt,
+    };
+    use scopehub_domain::protocol::{DecisionNoteEvidenceRef, DecisionNoteOutcome};
+
+    use super::*;
+
+    const NOTE_ID: &str = "9ff11b8d-dd93-41a1-8d37-5dd7ece8be41";
+    const OUTCOME_ID: &str = "9813b947-cfbf-44da-a8cc-9d98386ecf53";
+    const THESIS: &str = "synthetic-thesis-deletion-sentinel-b6a641";
+    const LOCATOR: &str = "synthetic-locator-deletion-sentinel-f995e2";
+    const CHOICE: &str = "synthetic-choice-deletion-sentinel-c7b8d9";
+    const OUTCOME: &str = "synthetic-outcome-deletion-sentinel-42b464";
+
+    fn record_note(
+        store: &mut SqliteWorkspace,
+        operation: &str,
+        mutation: DecisionNoteMutation,
+    ) -> Result<(), Error> {
+        store.transact(|tx| {
+            tx.record_note(&DecisionNoteChange {
+                key: key(operation, "stable-note-key"),
+                digest: [98; 32],
+                receipt: DecisionNoteReceipt {
+                    operation_id: Uuid::new_v4().to_string(),
+                    note_id: NOTE_ID.into(),
+                    revision: tx.state()?.revision + 1,
+                },
+                request_id: "storage-tests",
+                committed_at_ms: 7_500,
+                mutation,
+            })
+        })
+    }
+
+    fn save_note(store: &mut SqliteWorkspace) {
+        record_note(
+            store,
+            DECISION_NOTE_SAVE,
+            DecisionNoteMutation::Save(DecisionNoteOriginal {
+                note_id: NOTE_ID.into(),
+                decided_on: "2024-01-03".into(),
+                thesis: THESIS.into(),
+                evidence_refs: vec![DecisionNoteEvidenceRef {
+                    source_id: "synthetic-source".into(),
+                    source_revision: "synthetic-revision".into(),
+                    locator: LOCATOR.into(),
+                }],
+                choice: CHOICE.into(),
+            }),
+        )
+        .unwrap();
+    }
+
+    fn append_outcome(store: &mut SqliteWorkspace) {
+        record_note(
+            store,
+            DECISION_NOTE_APPEND_OUTCOME,
+            DecisionNoteMutation::Append(DecisionNoteOutcome {
+                outcome_id: OUTCOME_ID.into(),
+                observed_on: "2024-02-03".into(),
+                outcome: OUTCOME.into(),
+            }),
+        )
+        .unwrap();
+    }
+
+    fn delete_note(store: &mut SqliteWorkspace) -> Result<(), Error> {
+        record_note(store, DECISION_NOTE_DELETE, DecisionNoteMutation::Delete)
+    }
+
+    fn assert_live_files_body_free(profile: &Profile) {
+        for file in fs::read_dir(&profile.0).unwrap() {
+            let file = file.unwrap();
+            let bytes = fs::read(file.path()).unwrap();
+            for sentinel in [THESIS, LOCATOR, CHOICE, OUTCOME] {
+                assert!(
+                    !bytes
+                        .windows(sentinel.len())
+                        .any(|candidate| candidate == sentinel.as_bytes()),
+                    "synthetic sentinel remained in {}",
+                    file.file_name().display()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn decision_note_deletion_rolls_back_on_marker_failure_and_scrubs_live_database_and_wal() {
+        let profile = Profile::new();
+        let mut store = profile.open().unwrap();
+        save_note(&mut store);
+        // Put the original body in the main database, with its later outcome
+        // still in older WAL frames when the delete commits.
+        store
+            .connection
+            .execute_batch("PRAGMA wal_checkpoint(TRUNCATE)")
+            .unwrap();
+        append_outcome(&mut store);
+        store
+            .connection
+            .execute_batch(
+                "CREATE TEMP TRIGGER reject_marker BEFORE INSERT ON decision_note_deletions
+             BEGIN SELECT raise(ABORT, 'synthetic marker failure'); END;",
+            )
+            .unwrap();
+        assert_eq!(
+            delete_note(&mut store).unwrap_err().code,
+            ErrorCode::INTERNALERROR
+        );
+        assert_eq!(store.snapshot(None).unwrap().0.revision, 2);
+        let before = store.read_notes(Some(NOTE_ID), 0).unwrap();
+        assert_eq!(before.note.unwrap().evidence_refs[0].locator, LOCATOR);
+        assert_eq!(before.outcomes[0].outcome, OUTCOME);
+        assert!(
+            store
+                .transact(|tx| tx.note_replay(&key(DECISION_NOTE_DELETE, "stable-note-key")))
+                .unwrap()
+                .is_none()
+        );
+        store
+            .connection
+            .execute_batch("DROP TRIGGER reject_marker")
+            .unwrap();
+
+        delete_note(&mut store).unwrap();
+        store.clean_deleted_note().unwrap();
+        assert_eq!(store.snapshot(None).unwrap().0.revision, 3);
+        assert_eq!(
+            store.read_notes(Some(NOTE_ID), 0).unwrap_err().code,
+            ErrorCode::DATAUNAVAILABLE
+        );
+        assert!(store.read_notes(None, 0).unwrap().notes.is_empty());
+        let marker: (String, i64, bool) = store.connection.query_row(
+            "SELECT profile_id, revision, cleanup_pending FROM decision_note_deletions WHERE note_id = ?1",
+            [NOTE_ID],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        ).unwrap();
+        assert_eq!(marker, (Profile::binding().profile_id, 3, false));
+        for operation in [
+            DECISION_NOTE_SAVE,
+            DECISION_NOTE_APPEND_OUTCOME,
+            DECISION_NOTE_DELETE,
+        ] {
+            let replay_key = key(operation, "stable-note-key");
+            let replay = store
+                .transact(|tx| tx.note_replay(&replay_key))
+                .unwrap()
+                .unwrap();
+            assert_eq!(replay.receipt.note_id, NOTE_ID);
+            assert_eq!(
+                replay.digest,
+                (operation == DECISION_NOTE_DELETE).then_some([98; 32])
+            );
+            let stored_digest: [u8; 32] = store
+                .connection
+                .query_row(
+                    "SELECT digest FROM idempotency_records WHERE operation = ?1",
+                    [operation],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(stored_digest, replay.digest.unwrap_or([0; 32]));
+        }
+        let outcomes: i64 = store
+            .connection
+            .query_row("SELECT count(*) FROM decision_note_outcomes", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(outcomes, 0);
+        assert_live_files_body_free(&profile);
+    }
+
+    #[test]
+    fn decision_note_reopen_finishes_a_checkpoint_blocked_by_an_older_reader() {
+        let profile = Profile::new();
+        let mut store = profile.open().unwrap();
+        save_note(&mut store);
+        let reader = profile.raw_connection();
+        let snapshot = reader.unchecked_transaction().unwrap();
+        assert_eq!(
+            snapshot
+                .query_row("SELECT thesis FROM decision_notes", [], |row| row
+                    .get::<_, String>(0))
+                .unwrap(),
+            THESIS
+        );
+
+        delete_note(&mut store).unwrap();
+        store.connection.busy_timeout(Duration::ZERO).unwrap();
+        assert_eq!(
+            store.clean_deleted_note().unwrap_err().code,
+            ErrorCode::BUSY
+        );
+        assert!(store.transact(|tx| tx.note_is_deleted(NOTE_ID)).unwrap());
+        assert!(store.read_notes(None, 0).unwrap().notes.is_empty());
+        store
+            .connection
+            .set_db_config(DbConfig::SQLITE_DBCONFIG_NO_CKPT_ON_CLOSE, true)
+            .unwrap();
+        reader
+            .set_db_config(DbConfig::SQLITE_DBCONFIG_NO_CKPT_ON_CLOSE, true)
+            .unwrap();
+        drop(snapshot);
+        drop(reader);
+        drop(store);
+
+        let mut reopened = profile.open().unwrap();
+        assert!(reopened.transact(|tx| tx.note_is_deleted(NOTE_ID)).unwrap());
+        let pending: bool = reopened
+            .connection
+            .query_row(
+                "SELECT cleanup_pending FROM decision_note_deletions",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(!pending);
+        assert_live_files_body_free(&profile);
+    }
+}
+
+fn key<'a>(operation: &'a str, idempotency_key: &'a str) -> WorkspaceReplayKey<'a> {
+    WorkspaceReplayKey {
+        principal_id: "principal",
+        paired_client_id: None,
+        operation,
+        idempotency_key,
+    }
 }

@@ -339,6 +339,90 @@
           "output": "SelectEvidenceReply11"
         }
       }
+    },
+    {
+      "name": "decisionNote.save",
+      "effect": "persist",
+      "confirmation": true,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input": "DecisionNoteSaveInput",
+      "output": "DecisionNoteReceipt11",
+      "implementation": "implemented",
+      "implementation_scope": "Explicitly enabled local workspace and bound profile. Local human action through the Rust registry.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "DecisionNoteSaveCommand11",
+          "output": "DecisionNoteSaveReply11"
+        }
+      }
+    },
+    {
+      "name": "decisionNote.read",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input": "DecisionNoteReadInput",
+      "output": "DecisionNoteReadOutput",
+      "implementation": "implemented",
+      "implementation_scope": "Explicitly enabled local workspace and bound profile. Local human action through the Rust registry.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "DecisionNoteReadCommand11",
+          "output": "DecisionNoteReadReply11"
+        }
+      }
+    },
+    {
+      "name": "decisionNote.appendOutcome",
+      "effect": "persist",
+      "confirmation": true,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input": "DecisionNoteAppendOutcomeInput",
+      "output": "DecisionNoteReceipt11",
+      "implementation": "implemented",
+      "implementation_scope": "Explicitly enabled local workspace and bound profile. Local human action through the Rust registry.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "DecisionNoteAppendOutcomeCommand11",
+          "output": "DecisionNoteAppendOutcomeReply11"
+        }
+      }
+    },
+    {
+      "name": "decisionNote.delete",
+      "effect": "persist",
+      "confirmation": true,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input": "DecisionNoteDeleteInput",
+      "output": "DecisionNoteReceipt11",
+      "implementation": "implemented",
+      "implementation_scope": "Explicitly enabled local workspace and bound profile. Local human action through the Rust registry.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "DecisionNoteDeleteCommand11",
+          "output": "DecisionNoteDeleteReply11"
+        }
+      }
     }
   ],
   "implemented_wire_behaviors": [
@@ -356,7 +440,8 @@
     "Schema definitions are canonical. Small per-operation schemas and all language types are generated from them.",
     "Metadata, params, provenance and error details are explicit data bags; they never confer authority.",
     "Schema validation is structural. Cross-field market invariants, AST budgets, role authorization and response correlation require application validation.",
-    "Specifying a payload does not expose or implement that operation. Unsupported operations fail closed."
+    "Specifying a payload does not expose or implement that operation. Unsupported operations fail closed.",
+    "Decision-note commands and operation-specific replies use the private local workspace transport. The core checks current profile access and issues short-lived confirmations for writes."
   ],
   "entrypoint": "pnpm check",
   "report": ".reports/test-report.json",

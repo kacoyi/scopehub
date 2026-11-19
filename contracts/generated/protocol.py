@@ -1,4 +1,4 @@
-# Generated from contracts/schemas/protocol.schema.json; sha256=00d5588197a5635a218a3f20f558086ee5336b4d0663fe40557e3abe3a6b950a. Do not edit.
+# Generated from contracts/schemas/protocol.schema.json; sha256=f524b758444ac5635cee2b49ac8bbb5151daad0735c4c8150690ef66f21da960. Do not edit.
 from __future__ import annotations
 from typing import Literal, NotRequired, TypedDict
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
@@ -10,7 +10,7 @@ Metadata = dict[str, JsonValue]
 WorkerRole = Literal['market', 'ai', 'indicator']
 ProtocolVersion = Literal['1.0']
 ErrorCode = Literal['INVALID_ARGUMENT', 'UNSUPPORTED_CAPABILITY', 'PERMISSION_DENIED', 'CONFIRMATION_REQUIRED', 'CANCELLED', 'TIMEOUT', 'WORKER_EXITED', 'PROTOCOL_MISMATCH', 'DATA_UNAVAILABLE', 'STALE_CONTEXT', 'RESOURCE_LIMIT', 'OUTPUT_INVALID', 'PROVIDER_NOT_CONFIGURED', 'INTERNAL_ERROR', 'BUSY', 'SNAPSHOT_UNAVAILABLE']
-OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'market.subscribe', 'workspace.readChartProjection', 'workspace.selectEvidence']
+OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'market.subscribe', 'workspace.readChartProjection', 'workspace.selectEvidence', 'decisionNote.save', 'decisionNote.read', 'decisionNote.appendOutcome', 'decisionNote.delete']
 ChartStyle = Literal['candlestick', 'line']
 TaskStatus = Literal['queued', 'running', 'awaiting_confirmation', 'completed', 'failed', 'cancelled']
 Tradability = Literal['non_tradable', 'unknown']
@@ -1410,3 +1410,169 @@ class WorkspaceUndoReply11(TypedDict):
     request_id: Uuid
     outcome: WorkspaceUndoOutcome11
 HistoryPageReply11 = MarketHistoryPageResponse | MarketHistoryPageError
+DecisionNoteUuid11 = str
+DecisionNoteDate = str
+class DecisionNoteEvidenceRef(TypedDict):
+    source_id: str
+    source_revision: str
+    locator: str
+class DecisionNoteOriginal(TypedDict):
+    note_id: DecisionNoteUuid11
+    decided_on: DecisionNoteDate
+    thesis: str
+    evidence_refs: list[DecisionNoteEvidenceRef]
+    choice: str
+class DecisionNoteSummary(TypedDict):
+    note_id: DecisionNoteUuid11
+    decided_on: DecisionNoteDate
+class DecisionNoteOutcome(TypedDict):
+    outcome_id: DecisionNoteUuid11
+    observed_on: DecisionNoteDate
+    outcome: str
+class DecisionNoteReadOutput(TypedDict):
+    note: DecisionNoteOriginal | None
+    notes: list[DecisionNoteSummary]
+    outcomes: list[DecisionNoteOutcome]
+    next_offset: Revision | None
+class DecisionNoteTarget(TypedDict):
+    kind: Literal['decision_note']
+    object_id: DecisionNoteUuid11
+class DecisionNoteReceipt11(TypedDict):
+    operation_id: DecisionNoteUuid11
+    workspace_id: OpaqueId
+    target: DecisionNoteTarget
+    committed_workspace_revision: Revision
+    undoable: Literal[False]
+class DecisionNoteReadScope11(TypedDict):
+    workspace_id: OpaqueId
+class DecisionNoteWriteScope11(TypedDict):
+    workspace_id: OpaqueId
+    target: DecisionNoteTarget
+    expected_workspace_revision: Revision
+    idempotency_key: DecisionNoteUuid11
+class DecisionNoteConfirmation11(TypedDict):
+    challenge_id: DecisionNoteUuid11
+    decision: Literal['approve', 'decline']
+class DecisionNoteSaveInput(TypedDict):
+    decided_on: DecisionNoteDate
+    thesis: str
+    evidence_refs: list[DecisionNoteEvidenceRef]
+    choice: str
+class DecisionNoteSaveIntent11(TypedDict):
+    operation: Literal['decisionNote.save']
+    arguments: DecisionNoteSaveInput
+class DecisionNoteSaveCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: DecisionNoteUuid11
+    scope: DecisionNoteWriteScope11
+    intent: DecisionNoteSaveIntent11
+    confirmation: DecisionNoteConfirmation11 | None
+class DecisionNoteSaveCommitted11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['decisionNote.save']
+    receipt: DecisionNoteReceipt11
+class DecisionNoteSaveConfirmationRequired11(TypedDict):
+    state: Literal['confirmation_required']
+    operation: Literal['decisionNote.save']
+    challenge_id: DecisionNoteUuid11
+    expires_at_ms: Timestamp
+DecisionNoteSaveOutcome11 = DecisionNoteSaveCommitted11 | DecisionNoteSaveConfirmationRequired11 | ScopedFailure11
+class DecisionNoteSaveReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: DecisionNoteUuid11
+    outcome: DecisionNoteSaveOutcome11
+class DecisionNoteReadInput(TypedDict):
+    note_id: DecisionNoteUuid11 | None
+    offset: Revision
+class DecisionNoteReadIntent11(TypedDict):
+    operation: Literal['decisionNote.read']
+    arguments: DecisionNoteReadInput
+class DecisionNoteReadCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: DecisionNoteUuid11
+    scope: DecisionNoteReadScope11
+    intent: DecisionNoteReadIntent11
+class DecisionNoteReadCompleted11(TypedDict):
+    state: Literal['completed']
+    operation: Literal['decisionNote.read']
+    result: DecisionNoteReadOutput
+DecisionNoteReadOutcome11 = DecisionNoteReadCompleted11 | ScopedFailure11
+class DecisionNoteReadReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: DecisionNoteUuid11
+    outcome: DecisionNoteReadOutcome11
+class DecisionNoteAppendOutcomeInput(TypedDict):
+    observed_on: DecisionNoteDate
+    outcome: str
+class DecisionNoteAppendOutcomeIntent11(TypedDict):
+    operation: Literal['decisionNote.appendOutcome']
+    arguments: DecisionNoteAppendOutcomeInput
+class DecisionNoteAppendOutcomeCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: DecisionNoteUuid11
+    scope: DecisionNoteWriteScope11
+    intent: DecisionNoteAppendOutcomeIntent11
+    confirmation: DecisionNoteConfirmation11 | None
+class DecisionNoteAppendOutcomeCommitted11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['decisionNote.appendOutcome']
+    receipt: DecisionNoteReceipt11
+class DecisionNoteAppendOutcomeConfirmationRequired11(TypedDict):
+    state: Literal['confirmation_required']
+    operation: Literal['decisionNote.appendOutcome']
+    challenge_id: DecisionNoteUuid11
+    expires_at_ms: Timestamp
+DecisionNoteAppendOutcomeOutcome11 = DecisionNoteAppendOutcomeCommitted11 | DecisionNoteAppendOutcomeConfirmationRequired11 | ScopedFailure11
+class DecisionNoteAppendOutcomeReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: DecisionNoteUuid11
+    outcome: DecisionNoteAppendOutcomeOutcome11
+class DecisionNoteDeleteInput(TypedDict):
+    pass
+class DecisionNoteDeleteIntent11(TypedDict):
+    operation: Literal['decisionNote.delete']
+    arguments: DecisionNoteDeleteInput
+class DecisionNoteDeleteCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: DecisionNoteUuid11
+    scope: DecisionNoteWriteScope11
+    intent: DecisionNoteDeleteIntent11
+    confirmation: DecisionNoteConfirmation11 | None
+class DecisionNoteDeleteCommitted11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['decisionNote.delete']
+    receipt: DecisionNoteReceipt11
+class DecisionNoteDeleteConfirmationRequired11(TypedDict):
+    state: Literal['confirmation_required']
+    operation: Literal['decisionNote.delete']
+    challenge_id: DecisionNoteUuid11
+    expires_at_ms: Timestamp
+DecisionNoteDeleteOutcome11 = DecisionNoteDeleteCommitted11 | DecisionNoteDeleteConfirmationRequired11 | ScopedFailure11
+class DecisionNoteDeleteReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: DecisionNoteUuid11
+    outcome: DecisionNoteDeleteOutcome11

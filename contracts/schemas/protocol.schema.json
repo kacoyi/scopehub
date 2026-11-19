@@ -80,7 +80,11 @@
         "market.readHistoryPage",
         "market.subscribe",
         "workspace.readChartProjection",
-        "workspace.selectEvidence"
+        "workspace.selectEvidence",
+        "decisionNote.save",
+        "decisionNote.read",
+        "decisionNote.appendOutcome",
+        "decisionNote.delete"
       ]
     },
     "ChartStyle": {
@@ -8625,6 +8629,952 @@
           "$ref": "#/$defs/MarketHistoryPageError"
         }
       ]
+    },
+    "DecisionNoteUuid11": {
+      "type": "string",
+      "format": "uuid",
+      "minLength": 36,
+      "maxLength": 36,
+      "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$"
+    },
+    "DecisionNoteDate": {
+      "type": "string",
+      "format": "date",
+      "minLength": 10,
+      "maxLength": 10,
+      "pattern": "^(?!0000)[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "DecisionNoteEvidenceRef": {
+      "type": "object",
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 96
+        },
+        "source_revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 96
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "source_id",
+        "source_revision",
+        "locator"
+      ],
+      "additionalProperties": false,
+      "description": "A local, attributed evidence reference as it was known when the user made the decision."
+    },
+    "DecisionNoteOriginal": {
+      "type": "object",
+      "properties": {
+        "note_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "decided_on": {
+          "$ref": "#/$defs/DecisionNoteDate"
+        },
+        "thesis": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DecisionNoteEvidenceRef"
+          },
+          "maxItems": 4
+        },
+        "choice": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      },
+      "required": [
+        "note_id",
+        "decided_on",
+        "thesis",
+        "evidence_refs",
+        "choice"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteSummary": {
+      "type": "object",
+      "properties": {
+        "note_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "decided_on": {
+          "$ref": "#/$defs/DecisionNoteDate"
+        }
+      },
+      "required": [
+        "note_id",
+        "decided_on"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteOutcome": {
+      "type": "object",
+      "properties": {
+        "outcome_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "observed_on": {
+          "$ref": "#/$defs/DecisionNoteDate"
+        },
+        "outcome": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        }
+      },
+      "required": [
+        "outcome_id",
+        "observed_on",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteReadOutput": {
+      "type": "object",
+      "properties": {
+        "note": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DecisionNoteOriginal"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DecisionNoteSummary"
+          },
+          "maxItems": 50
+        },
+        "outcomes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DecisionNoteOutcome"
+          },
+          "maxItems": 10
+        },
+        "next_offset": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Revision"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "note",
+        "notes",
+        "outcomes",
+        "next_offset"
+      ],
+      "additionalProperties": false,
+      "description": "A page of summaries when no note ID was requested, or the original and a page of separately dated outcomes for the requested note."
+    },
+    "DecisionNoteTarget": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "decision_note"
+        },
+        "object_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        }
+      },
+      "required": [
+        "kind",
+        "object_id"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteReceipt11": {
+      "type": "object",
+      "properties": {
+        "operation_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "workspace_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "target": {
+          "$ref": "#/$defs/DecisionNoteTarget"
+        },
+        "committed_workspace_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "undoable": {
+          "type": "boolean",
+          "const": false
+        }
+      },
+      "required": [
+        "operation_id",
+        "workspace_id",
+        "target",
+        "committed_workspace_revision",
+        "undoable"
+      ],
+      "additionalProperties": false,
+      "description": "A body-free receipt. Deletion and the other decision-note changes carry no workspace undo payload."
+    },
+    "DecisionNoteReadScope11": {
+      "type": "object",
+      "properties": {
+        "workspace_id": {
+          "$ref": "#/$defs/OpaqueId"
+        }
+      },
+      "required": [
+        "workspace_id"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteWriteScope11": {
+      "type": "object",
+      "properties": {
+        "workspace_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "target": {
+          "$ref": "#/$defs/DecisionNoteTarget"
+        },
+        "expected_workspace_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "idempotency_key": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "target",
+        "expected_workspace_revision",
+        "idempotency_key"
+      ],
+      "additionalProperties": false,
+      "description": "The profile and principal are supplied by the local host. A decision note is selected independently of shared chart evidence."
+    },
+    "DecisionNoteConfirmation11": {
+      "type": "object",
+      "properties": {
+        "challenge_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "approve",
+            "decline"
+          ]
+        }
+      },
+      "required": [
+        "challenge_id",
+        "decision"
+      ],
+      "additionalProperties": false,
+      "description": "A decision submitted through the trusted local human interface for an exact pending request."
+    },
+    "DecisionNoteSaveInput": {
+      "type": "object",
+      "properties": {
+        "decided_on": {
+          "$ref": "#/$defs/DecisionNoteDate"
+        },
+        "thesis": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DecisionNoteEvidenceRef"
+          },
+          "maxItems": 4
+        },
+        "choice": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      },
+      "required": [
+        "decided_on",
+        "thesis",
+        "evidence_refs",
+        "choice"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteSaveIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "decisionNote.save"
+        },
+        "arguments": {
+          "$ref": "#/$defs/DecisionNoteSaveInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteSaveCommand11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "scope": {
+          "$ref": "#/$defs/DecisionNoteWriteScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/DecisionNoteSaveIntent11"
+        },
+        "confirmation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DecisionNoteConfirmation11"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "scope",
+        "intent",
+        "confirmation"
+      ],
+      "additionalProperties": false,
+      "description": "Private local workspace request. The worker protocol cannot carry it."
+    },
+    "DecisionNoteSaveCommitted11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "committed"
+        },
+        "operation": {
+          "type": "string",
+          "const": "decisionNote.save"
+        },
+        "receipt": {
+          "$ref": "#/$defs/DecisionNoteReceipt11"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "receipt"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteSaveConfirmationRequired11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "confirmation_required"
+        },
+        "operation": {
+          "type": "string",
+          "const": "decisionNote.save"
+        },
+        "challenge_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "expires_at_ms": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "challenge_id",
+        "expires_at_ms"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteSaveOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/DecisionNoteSaveCommitted11"
+        },
+        {
+          "$ref": "#/$defs/DecisionNoteSaveConfirmationRequired11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
+    },
+    "DecisionNoteSaveReply11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "outcome": {
+          "$ref": "#/$defs/DecisionNoteSaveOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteReadInput": {
+      "type": "object",
+      "properties": {
+        "note_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DecisionNoteUuid11"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "offset": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "note_id",
+        "offset"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteReadIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "decisionNote.read"
+        },
+        "arguments": {
+          "$ref": "#/$defs/DecisionNoteReadInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteReadCommand11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "scope": {
+          "$ref": "#/$defs/DecisionNoteReadScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/DecisionNoteReadIntent11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "scope",
+        "intent"
+      ],
+      "additionalProperties": false,
+      "description": "Private local workspace request. The worker protocol cannot carry it."
+    },
+    "DecisionNoteReadCompleted11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "completed"
+        },
+        "operation": {
+          "type": "string",
+          "const": "decisionNote.read"
+        },
+        "result": {
+          "$ref": "#/$defs/DecisionNoteReadOutput"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteReadOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/DecisionNoteReadCompleted11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
+    },
+    "DecisionNoteReadReply11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "outcome": {
+          "$ref": "#/$defs/DecisionNoteReadOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteAppendOutcomeInput": {
+      "type": "object",
+      "properties": {
+        "observed_on": {
+          "$ref": "#/$defs/DecisionNoteDate"
+        },
+        "outcome": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        }
+      },
+      "required": [
+        "observed_on",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteAppendOutcomeIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "decisionNote.appendOutcome"
+        },
+        "arguments": {
+          "$ref": "#/$defs/DecisionNoteAppendOutcomeInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteAppendOutcomeCommand11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "scope": {
+          "$ref": "#/$defs/DecisionNoteWriteScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/DecisionNoteAppendOutcomeIntent11"
+        },
+        "confirmation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DecisionNoteConfirmation11"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "scope",
+        "intent",
+        "confirmation"
+      ],
+      "additionalProperties": false,
+      "description": "Private local workspace request. The worker protocol cannot carry it."
+    },
+    "DecisionNoteAppendOutcomeCommitted11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "committed"
+        },
+        "operation": {
+          "type": "string",
+          "const": "decisionNote.appendOutcome"
+        },
+        "receipt": {
+          "$ref": "#/$defs/DecisionNoteReceipt11"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "receipt"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteAppendOutcomeConfirmationRequired11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "confirmation_required"
+        },
+        "operation": {
+          "type": "string",
+          "const": "decisionNote.appendOutcome"
+        },
+        "challenge_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "expires_at_ms": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "challenge_id",
+        "expires_at_ms"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteAppendOutcomeOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/DecisionNoteAppendOutcomeCommitted11"
+        },
+        {
+          "$ref": "#/$defs/DecisionNoteAppendOutcomeConfirmationRequired11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
+    },
+    "DecisionNoteAppendOutcomeReply11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "outcome": {
+          "$ref": "#/$defs/DecisionNoteAppendOutcomeOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteDeleteInput": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "DecisionNoteDeleteIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "decisionNote.delete"
+        },
+        "arguments": {
+          "$ref": "#/$defs/DecisionNoteDeleteInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteDeleteCommand11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "scope": {
+          "$ref": "#/$defs/DecisionNoteWriteScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/DecisionNoteDeleteIntent11"
+        },
+        "confirmation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DecisionNoteConfirmation11"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "scope",
+        "intent",
+        "confirmation"
+      ],
+      "additionalProperties": false,
+      "description": "Private local workspace request. The worker protocol cannot carry it."
+    },
+    "DecisionNoteDeleteCommitted11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "committed"
+        },
+        "operation": {
+          "type": "string",
+          "const": "decisionNote.delete"
+        },
+        "receipt": {
+          "$ref": "#/$defs/DecisionNoteReceipt11"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "receipt"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteDeleteConfirmationRequired11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "confirmation_required"
+        },
+        "operation": {
+          "type": "string",
+          "const": "decisionNote.delete"
+        },
+        "challenge_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "expires_at_ms": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "challenge_id",
+        "expires_at_ms"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteDeleteOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/DecisionNoteDeleteCommitted11"
+        },
+        {
+          "$ref": "#/$defs/DecisionNoteDeleteConfirmationRequired11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
+    },
+    "DecisionNoteDeleteReply11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "outcome": {
+          "$ref": "#/$defs/DecisionNoteDeleteOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
+      ],
+      "additionalProperties": false
     }
   }
 }

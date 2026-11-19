@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { ChartCursorMode, ChartStyle, HistoryChartHandle } from './chart-adapter/history';
+import { DecisionNotes } from './decision-notes';
 import { symbol } from './instrument-display';
 import { sampleRevisionInstrument, type ChartHistory, type Instrument, type SampleRevision } from './market';
 import { ReplayGapDetails, replayGapReason } from './market-quality';
@@ -61,6 +62,7 @@ export function ChartWorkspace({ sample, leaveSample, workspace }: {
   });
   const [focusChart, setFocusChart] = useState(saved?.chartOnly ?? false);
   const [searchQuery, setSearchQuery] = useState<string | null>(null);
+  const [notesOpen, setNotesOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
   const chart = useRef<HistoryChartHandle | null>(null);
   const dock = useRef<HTMLElement>(null);
@@ -113,7 +115,7 @@ export function ChartWorkspace({ sample, leaveSample, workspace }: {
   }, []);
   useEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.isComposing || searchQuery !== null) return;
+      if (event.defaultPrevented || event.isComposing || searchQuery !== null || notesOpen) return;
       if (event.key === 'Escape') {
         if (focusChart) setFocusChart(false);
         else if (visiblePanel) closePanel();
@@ -128,7 +130,7 @@ export function ChartWorkspace({ sample, leaveSample, workspace }: {
     };
     window.addEventListener('keydown', keyboard);
     return () => window.removeEventListener('keydown', keyboard);
-  }, [searchQuery, focusChart, visiblePanel, closePanel]);
+  }, [searchQuery, notesOpen, focusChart, visiblePanel, closePanel]);
   const openSample = () => { window.location.hash = 'demo'; };
 
   let plot: ReactNode;
@@ -168,6 +170,8 @@ export function ChartWorkspace({ sample, leaveSample, workspace }: {
         <Tool name="Candles" icon="candles" active={style === 'candlestick'} onClick={() => setStyle('candlestick')} />
         <Tool name="Close-price line" icon="line" active={style === 'line'} onClick={() => setStyle('line')} />
       </div>
+      {workspace && <div className="toolbar-group"><button type="button" className="period notes-trigger"
+        aria-haspopup="dialog" disabled={timeframeBlocked} onClick={() => setNotesOpen(true)}>Decision notes</button></div>}
       <span className={'connection' + (sample ? ' sample' : '')} role="status"><i aria-hidden="true" />{sample ? <><span>Offline sample</span><b>Simulated</b></> : 'No data source'}</span>
       <Tool name={focusChart ? 'Exit chart-only view' : 'Chart-only view'} icon={focusChart ? 'collapse' : 'expand'} active={focusChart} onClick={() => setFocusChart(!focusChart)} />
     </header>
@@ -216,5 +220,6 @@ export function ChartWorkspace({ sample, leaveSample, workspace }: {
     </div>
     {searchQuery !== null && <SymbolSearch instruments={instruments} initialQuery={searchQuery} sample={sample}
       onChoose={choose} onClose={closeSearch} openSample={openSample} />}
+    {notesOpen && workspace?.snapshot && <DecisionNotes workspace={workspace} onClose={() => setNotesOpen(false)} />}
   </main>;
 }

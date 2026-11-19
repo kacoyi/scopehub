@@ -716,6 +716,58 @@
       "input_spec": "SharedSelectionRequest11",
       "output_spec": "SelectEvidenceReply11",
       "schema_requirement": "Use the registered 1.1 schema and session-bound permissions."
+    },
+    {
+      "name": "decisionNote.save",
+      "effect": "persist",
+      "confirmation": true,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "DecisionNoteSaveCommand11",
+      "output_spec": "DecisionNoteSaveReply11",
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. No worker or external client access."
+    },
+    {
+      "name": "decisionNote.read",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "DecisionNoteReadCommand11",
+      "output_spec": "DecisionNoteReadReply11",
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. No worker or external client access."
+    },
+    {
+      "name": "decisionNote.appendOutcome",
+      "effect": "persist",
+      "confirmation": true,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "DecisionNoteAppendOutcomeCommand11",
+      "output_spec": "DecisionNoteAppendOutcomeReply11",
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. No worker or external client access."
+    },
+    {
+      "name": "decisionNote.delete",
+      "effect": "persist",
+      "confirmation": true,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "DecisionNoteDeleteCommand11",
+      "output_spec": "DecisionNoteDeleteReply11",
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. No worker or external client access."
     }
   ],
   "authorization": {

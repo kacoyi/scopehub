@@ -336,6 +336,8 @@
         "crates/application",
         "crates/persistence",
         "apps/desktop",
+        "contracts",
+        "engineering-contract-v1.json",
         "tests",
         "Cargo.toml",
         "Cargo.lock",
@@ -369,6 +371,7 @@
       "checks": [
         "operations-workflow",
         "state-migrations",
+        "decision-note-lifecycle",
         "architecture",
         "dependency-review",
         "rust-contracts-workers",
@@ -381,7 +384,7 @@
         "desktop-workspace-transport"
       ],
       "evidence": [],
-      "next_action": "Deliver an explicit local decision-note save, dated review and separate later outcome through the Rust registry. Exercise decline, restart, deletion, profile isolation and body-free audit records. Follow with staged recovery using known deletion markers and the independent-backup warning.",
+      "next_action": "Implement staged local backup restoration with preview, profile validation, same-transaction application of known decision-note deletion markers and the independent older-copy warning. Exercise cancellation and interruption before cutover and retain the existing local decision-note lifecycle checks.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -411,7 +414,8 @@
           {
             "failure": "A lost response, concurrent duplicate or stale selected target applies a change twice or reveals a result after grants change.",
             "checks": [
-              "operations-workflow"
+              "operations-workflow",
+              "decision-note-lifecycle"
             ]
           },
           {
@@ -461,7 +465,10 @@
             "contracts/schemas/protocol.schema.json",
             "project/development.json",
             "crates/application/src/workspace.rs",
-            "crates/persistence/src/lib.rs"
+            "crates/application/src/workspace/notes.rs",
+            "crates/persistence/src/lib.rs",
+            "crates/persistence/src/decision_notes.sql",
+            "apps/desktop/ui/src/decision-notes.tsx"
           ],
           "rules": [
             {
@@ -500,10 +507,11 @@
             "Synthetic read-only development grant, existing 1.1 reads, explicitly selected sample preferences, established confirmation and private excerpt rules."
           ],
           "change": [
-            "Add the profile-local transaction owner and versioned storage, then scoped replay and confirmation, explicit private saves and deletes, and staged backup recovery."
+            "The private hosts dispatch decisionNote.save, decisionNote.read, decisionNote.appendOutcome and decisionNote.delete through the Rust registry. Explicit local confirmation authorizes new writes. Reads and redacted receipt replay use current disclosure access.",
+            "Add staged backup recovery with profile-scoped deletion markers and a warning for independent older copies."
           ],
-          "data_plan": "Keep application state inside the bound OS-user profile. Use WAL and foreign keys, a versioned migration, redacted receipts and profile-scoped deletion markers. Validate the original database on failure, independent older backup warnings and cross-profile isolation.",
-          "cleanup": "Keep a single write path. Remove provisional adapters once both hosts reach the same application core. Recover without replaying past AI work or reusing external disclosure grants."
+          "data_plan": "Keep application state inside the bound OS-user profile. The v1 to v2 migration retains chart state, undo and replay and adds immutable originals, separate outcomes and profile-scoped deletion markers. Exercise staged backup recovery against the original database and independent older copies.",
+          "cleanup": "Delete original and outcome bodies, clear body-derived replay fingerprints, and durably resume SQLite WAL cleanup if a reader blocks it. Restore without replaying past AI work or reusing external disclosure grants."
         }
       }
     },

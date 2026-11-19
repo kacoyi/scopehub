@@ -520,9 +520,10 @@
         "ai-workflow",
         "ai-replay-evaluations",
         "state-migrations",
+        "decision-note-lifecycle",
         "configured-model-session"
       ],
-      "evidence_boundary": "Replay verifies permissions, provenance and which information was available. Observe the quality of dialogue separately with an authorized configured model. A simulated or realized return is not an acceptance metric."
+      "evidence_boundary": "Local decision-note checks cover explicit retention, dated review, later outcomes and deletion. Backup restoration and configured dialogue have their own verification. A simulated or realized return is not an acceptance metric."
     },
     {
       "id": "external-ai-on-the-open-chart",

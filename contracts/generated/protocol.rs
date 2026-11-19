@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=00d5588197a5635a218a3f20f558086ee5336b4d0663fe40557e3abe3a6b950a. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=f524b758444ac5635cee2b49ac8bbb5151daad0735c4c8150690ef66f21da960. Do not edit.
 // Structural types and literal discriminators: validate schema refinements before deserializing.
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -157,6 +157,14 @@ pub enum OperationName {
     WorkspaceReadChartProjection,
     #[serde(rename = "workspace.selectEvidence")]
     WorkspaceSelectEvidence,
+    #[serde(rename = "decisionNote.save")]
+    DecisionNoteSave,
+    #[serde(rename = "decisionNote.read")]
+    DecisionNoteRead,
+    #[serde(rename = "decisionNote.appendOutcome")]
+    DecisionNoteAppendOutcome,
+    #[serde(rename = "decisionNote.delete")]
+    DecisionNoteDelete,
 }
 impl OperationName {
     pub fn as_str(&self) -> &'static str {
@@ -179,6 +187,10 @@ impl OperationName {
             Self::MarketSubscribe => "market.subscribe",
             Self::WorkspaceReadChartProjection => "workspace.readChartProjection",
             Self::WorkspaceSelectEvidence => "workspace.selectEvidence",
+            Self::DecisionNoteSave => "decisionNote.save",
+            Self::DecisionNoteRead => "decisionNote.read",
+            Self::DecisionNoteAppendOutcome => "decisionNote.appendOutcome",
+            Self::DecisionNoteDelete => "decisionNote.delete",
         }
     }
 }
@@ -2880,6 +2892,294 @@ pub struct WorkspaceUndoReply11 {
 pub enum HistoryPageReply11 {
     MarketHistoryPageResponse(Box<MarketHistoryPageResponse>),
     MarketHistoryPageError(Box<MarketHistoryPageError>),
+}
+pub type DecisionNoteUuid11 = String;
+pub type DecisionNoteDate = String;
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteEvidenceRef {
+    pub source_id: String,
+    pub source_revision: String,
+    pub locator: String,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteOriginal {
+    pub note_id: DecisionNoteUuid11,
+    pub decided_on: DecisionNoteDate,
+    pub thesis: String,
+    pub evidence_refs: Vec<DecisionNoteEvidenceRef>,
+    pub choice: String,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteSummary {
+    pub note_id: DecisionNoteUuid11,
+    pub decided_on: DecisionNoteDate,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteOutcome {
+    pub outcome_id: DecisionNoteUuid11,
+    pub observed_on: DecisionNoteDate,
+    pub outcome: String,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteReadOutput {
+    pub note: Option<DecisionNoteOriginal>,
+    pub notes: Vec<DecisionNoteSummary>,
+    pub outcomes: Vec<DecisionNoteOutcome>,
+    pub next_offset: Option<Revision>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteTarget {
+    pub kind: DecisionNoteTargetKind,
+    pub object_id: DecisionNoteUuid11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteReceipt11 {
+    pub operation_id: DecisionNoteUuid11,
+    pub workspace_id: OpaqueId,
+    pub target: DecisionNoteTarget,
+    pub committed_workspace_revision: Revision,
+    pub undoable: ConstBool<false>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteReadScope11 {
+    pub workspace_id: OpaqueId,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteWriteScope11 {
+    pub workspace_id: OpaqueId,
+    pub target: DecisionNoteTarget,
+    pub expected_workspace_revision: Revision,
+    pub idempotency_key: DecisionNoteUuid11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteConfirmation11 {
+    pub challenge_id: DecisionNoteUuid11,
+    pub decision: DecisionNoteConfirmation11Decision,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteSaveInput {
+    pub decided_on: DecisionNoteDate,
+    pub thesis: String,
+    pub evidence_refs: Vec<DecisionNoteEvidenceRef>,
+    pub choice: String,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteSaveIntent11 {
+    pub operation: DecisionNoteSaveIntent11Operation,
+    pub arguments: DecisionNoteSaveInput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteSaveCommand11 {
+    pub protocol_version: ProtocolVersion11,
+    pub message_id: DecisionNoteUuid11,
+    pub timestamp_ms: Timestamp,
+    pub r#type: DecisionNoteSaveCommand11Type,
+    pub request_id: DecisionNoteUuid11,
+    pub scope: DecisionNoteWriteScope11,
+    pub intent: DecisionNoteSaveIntent11,
+    pub confirmation: Option<DecisionNoteConfirmation11>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteSaveCommitted11 {
+    pub state: DecisionNoteSaveCommitted11State,
+    pub operation: DecisionNoteSaveCommitted11Operation,
+    pub receipt: DecisionNoteReceipt11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteSaveConfirmationRequired11 {
+    pub state: DecisionNoteSaveConfirmationRequired11State,
+    pub operation: DecisionNoteSaveConfirmationRequired11Operation,
+    pub challenge_id: DecisionNoteUuid11,
+    pub expires_at_ms: Timestamp,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum DecisionNoteSaveOutcome11 {
+    DecisionNoteSaveCommitted11(Box<DecisionNoteSaveCommitted11>),
+    DecisionNoteSaveConfirmationRequired11(Box<DecisionNoteSaveConfirmationRequired11>),
+    ScopedFailure11(Box<ScopedFailure11>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteSaveReply11 {
+    pub protocol_version: ProtocolVersion11,
+    pub message_id: DecisionNoteUuid11,
+    pub timestamp_ms: Timestamp,
+    pub r#type: DecisionNoteSaveReply11Type,
+    pub request_id: DecisionNoteUuid11,
+    pub outcome: DecisionNoteSaveOutcome11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteReadInput {
+    pub note_id: Option<DecisionNoteUuid11>,
+    pub offset: Revision,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteReadIntent11 {
+    pub operation: DecisionNoteReadIntent11Operation,
+    pub arguments: DecisionNoteReadInput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteReadCommand11 {
+    pub protocol_version: ProtocolVersion11,
+    pub message_id: DecisionNoteUuid11,
+    pub timestamp_ms: Timestamp,
+    pub r#type: DecisionNoteReadCommand11Type,
+    pub request_id: DecisionNoteUuid11,
+    pub scope: DecisionNoteReadScope11,
+    pub intent: DecisionNoteReadIntent11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteReadCompleted11 {
+    pub state: DecisionNoteReadCompleted11State,
+    pub operation: DecisionNoteReadCompleted11Operation,
+    pub result: DecisionNoteReadOutput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum DecisionNoteReadOutcome11 {
+    DecisionNoteReadCompleted11(Box<DecisionNoteReadCompleted11>),
+    ScopedFailure11(Box<ScopedFailure11>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteReadReply11 {
+    pub protocol_version: ProtocolVersion11,
+    pub message_id: DecisionNoteUuid11,
+    pub timestamp_ms: Timestamp,
+    pub r#type: DecisionNoteReadReply11Type,
+    pub request_id: DecisionNoteUuid11,
+    pub outcome: DecisionNoteReadOutcome11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteAppendOutcomeInput {
+    pub observed_on: DecisionNoteDate,
+    pub outcome: String,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteAppendOutcomeIntent11 {
+    pub operation: DecisionNoteAppendOutcomeIntent11Operation,
+    pub arguments: DecisionNoteAppendOutcomeInput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteAppendOutcomeCommand11 {
+    pub protocol_version: ProtocolVersion11,
+    pub message_id: DecisionNoteUuid11,
+    pub timestamp_ms: Timestamp,
+    pub r#type: DecisionNoteAppendOutcomeCommand11Type,
+    pub request_id: DecisionNoteUuid11,
+    pub scope: DecisionNoteWriteScope11,
+    pub intent: DecisionNoteAppendOutcomeIntent11,
+    pub confirmation: Option<DecisionNoteConfirmation11>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteAppendOutcomeCommitted11 {
+    pub state: DecisionNoteAppendOutcomeCommitted11State,
+    pub operation: DecisionNoteAppendOutcomeCommitted11Operation,
+    pub receipt: DecisionNoteReceipt11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteAppendOutcomeConfirmationRequired11 {
+    pub state: DecisionNoteAppendOutcomeConfirmationRequired11State,
+    pub operation: DecisionNoteAppendOutcomeConfirmationRequired11Operation,
+    pub challenge_id: DecisionNoteUuid11,
+    pub expires_at_ms: Timestamp,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum DecisionNoteAppendOutcomeOutcome11 {
+    DecisionNoteAppendOutcomeCommitted11(Box<DecisionNoteAppendOutcomeCommitted11>),
+    DecisionNoteAppendOutcomeConfirmationRequired11(
+        Box<DecisionNoteAppendOutcomeConfirmationRequired11>,
+    ),
+    ScopedFailure11(Box<ScopedFailure11>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteAppendOutcomeReply11 {
+    pub protocol_version: ProtocolVersion11,
+    pub message_id: DecisionNoteUuid11,
+    pub timestamp_ms: Timestamp,
+    pub r#type: DecisionNoteAppendOutcomeReply11Type,
+    pub request_id: DecisionNoteUuid11,
+    pub outcome: DecisionNoteAppendOutcomeOutcome11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteDeleteInput {}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteDeleteIntent11 {
+    pub operation: DecisionNoteDeleteIntent11Operation,
+    pub arguments: DecisionNoteDeleteInput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteDeleteCommand11 {
+    pub protocol_version: ProtocolVersion11,
+    pub message_id: DecisionNoteUuid11,
+    pub timestamp_ms: Timestamp,
+    pub r#type: DecisionNoteDeleteCommand11Type,
+    pub request_id: DecisionNoteUuid11,
+    pub scope: DecisionNoteWriteScope11,
+    pub intent: DecisionNoteDeleteIntent11,
+    pub confirmation: Option<DecisionNoteConfirmation11>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteDeleteCommitted11 {
+    pub state: DecisionNoteDeleteCommitted11State,
+    pub operation: DecisionNoteDeleteCommitted11Operation,
+    pub receipt: DecisionNoteReceipt11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteDeleteConfirmationRequired11 {
+    pub state: DecisionNoteDeleteConfirmationRequired11State,
+    pub operation: DecisionNoteDeleteConfirmationRequired11Operation,
+    pub challenge_id: DecisionNoteUuid11,
+    pub expires_at_ms: Timestamp,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum DecisionNoteDeleteOutcome11 {
+    DecisionNoteDeleteCommitted11(Box<DecisionNoteDeleteCommitted11>),
+    DecisionNoteDeleteConfirmationRequired11(Box<DecisionNoteDeleteConfirmationRequired11>),
+    ScopedFailure11(Box<ScopedFailure11>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionNoteDeleteReply11 {
+    pub protocol_version: ProtocolVersion11,
+    pub message_id: DecisionNoteUuid11,
+    pub timestamp_ms: Timestamp,
+    pub r#type: DecisionNoteDeleteReply11Type,
+    pub request_id: DecisionNoteUuid11,
+    pub outcome: DecisionNoteDeleteOutcome11,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum FieldExpressionOp {
@@ -5827,6 +6127,345 @@ pub enum WorkspaceUndoReply11Type {
     Value,
 }
 impl WorkspaceUndoReply11Type {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteTargetKind {
+    #[serde(rename = "decision_note")]
+    Value,
+}
+impl DecisionNoteTargetKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "decision_note",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteConfirmation11Decision {
+    #[serde(rename = "approve")]
+    Approve,
+    #[serde(rename = "decline")]
+    Decline,
+}
+impl DecisionNoteConfirmation11Decision {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Approve => "approve",
+            Self::Decline => "decline",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteSaveIntent11Operation {
+    #[serde(rename = "decisionNote.save")]
+    Value,
+}
+impl DecisionNoteSaveIntent11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "decisionNote.save",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteSaveCommand11Type {
+    #[serde(rename = "request")]
+    Value,
+}
+impl DecisionNoteSaveCommand11Type {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteSaveCommitted11State {
+    #[serde(rename = "committed")]
+    Value,
+}
+impl DecisionNoteSaveCommitted11State {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "committed",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteSaveCommitted11Operation {
+    #[serde(rename = "decisionNote.save")]
+    Value,
+}
+impl DecisionNoteSaveCommitted11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "decisionNote.save",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteSaveConfirmationRequired11State {
+    #[serde(rename = "confirmation_required")]
+    Value,
+}
+impl DecisionNoteSaveConfirmationRequired11State {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "confirmation_required",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteSaveConfirmationRequired11Operation {
+    #[serde(rename = "decisionNote.save")]
+    Value,
+}
+impl DecisionNoteSaveConfirmationRequired11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "decisionNote.save",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteSaveReply11Type {
+    #[serde(rename = "response")]
+    Value,
+}
+impl DecisionNoteSaveReply11Type {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteReadIntent11Operation {
+    #[serde(rename = "decisionNote.read")]
+    Value,
+}
+impl DecisionNoteReadIntent11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "decisionNote.read",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteReadCommand11Type {
+    #[serde(rename = "request")]
+    Value,
+}
+impl DecisionNoteReadCommand11Type {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteReadCompleted11State {
+    #[serde(rename = "completed")]
+    Value,
+}
+impl DecisionNoteReadCompleted11State {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "completed",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteReadCompleted11Operation {
+    #[serde(rename = "decisionNote.read")]
+    Value,
+}
+impl DecisionNoteReadCompleted11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "decisionNote.read",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteReadReply11Type {
+    #[serde(rename = "response")]
+    Value,
+}
+impl DecisionNoteReadReply11Type {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteAppendOutcomeIntent11Operation {
+    #[serde(rename = "decisionNote.appendOutcome")]
+    Value,
+}
+impl DecisionNoteAppendOutcomeIntent11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "decisionNote.appendOutcome",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteAppendOutcomeCommand11Type {
+    #[serde(rename = "request")]
+    Value,
+}
+impl DecisionNoteAppendOutcomeCommand11Type {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteAppendOutcomeCommitted11State {
+    #[serde(rename = "committed")]
+    Value,
+}
+impl DecisionNoteAppendOutcomeCommitted11State {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "committed",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteAppendOutcomeCommitted11Operation {
+    #[serde(rename = "decisionNote.appendOutcome")]
+    Value,
+}
+impl DecisionNoteAppendOutcomeCommitted11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "decisionNote.appendOutcome",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteAppendOutcomeConfirmationRequired11State {
+    #[serde(rename = "confirmation_required")]
+    Value,
+}
+impl DecisionNoteAppendOutcomeConfirmationRequired11State {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "confirmation_required",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteAppendOutcomeConfirmationRequired11Operation {
+    #[serde(rename = "decisionNote.appendOutcome")]
+    Value,
+}
+impl DecisionNoteAppendOutcomeConfirmationRequired11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "decisionNote.appendOutcome",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteAppendOutcomeReply11Type {
+    #[serde(rename = "response")]
+    Value,
+}
+impl DecisionNoteAppendOutcomeReply11Type {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteDeleteIntent11Operation {
+    #[serde(rename = "decisionNote.delete")]
+    Value,
+}
+impl DecisionNoteDeleteIntent11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "decisionNote.delete",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteDeleteCommand11Type {
+    #[serde(rename = "request")]
+    Value,
+}
+impl DecisionNoteDeleteCommand11Type {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteDeleteCommitted11State {
+    #[serde(rename = "committed")]
+    Value,
+}
+impl DecisionNoteDeleteCommitted11State {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "committed",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteDeleteCommitted11Operation {
+    #[serde(rename = "decisionNote.delete")]
+    Value,
+}
+impl DecisionNoteDeleteCommitted11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "decisionNote.delete",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteDeleteConfirmationRequired11State {
+    #[serde(rename = "confirmation_required")]
+    Value,
+}
+impl DecisionNoteDeleteConfirmationRequired11State {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "confirmation_required",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteDeleteConfirmationRequired11Operation {
+    #[serde(rename = "decisionNote.delete")]
+    Value,
+}
+impl DecisionNoteDeleteConfirmationRequired11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "decisionNote.delete",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecisionNoteDeleteReply11Type {
+    #[serde(rename = "response")]
+    Value,
+}
+impl DecisionNoteDeleteReply11Type {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Value => "response",

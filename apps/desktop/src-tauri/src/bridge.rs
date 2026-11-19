@@ -1,7 +1,7 @@
 use std::{path::Path, sync::Mutex as SyncMutex, time::Duration};
 
 use scopehub_application::{
-    Actor, MarketLifecycle, MarketPort, MarketRegistry, SET_TIMEFRAME, UNDO, failure,
+    Actor, LOCAL_WORKSPACE_OPERATIONS, MarketLifecycle, MarketPort, MarketRegistry, failure,
 };
 use scopehub_domain::protocol::{Error, ErrorCode};
 use scopehub_worker_host::market::{MarketWorker, WorkerConfig};
@@ -81,7 +81,10 @@ impl State {
     ) -> Result<Value, Error> {
         authorize_window(window_label)?;
         match operation {
-            None | Some(SET_TIMEFRAME | UNDO) => self.workspace.dispatch(operation, payload).await,
+            None => self.workspace.dispatch(operation, payload).await,
+            Some(name) if LOCAL_WORKSPACE_OPERATIONS.contains(&name) => {
+                self.workspace.dispatch(operation, payload).await
+            }
             Some(operation) => self.read(operation, payload).await,
         }
     }

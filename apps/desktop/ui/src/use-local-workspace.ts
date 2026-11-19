@@ -2,12 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import type {
   ChartSetTimeframeCommand11, ChartSetTimeframeReply11, OperationReceipt11, Workspace,
+  DecisionNoteAppendOutcomeCommand11, DecisionNoteDeleteCommand11, DecisionNoteReadCommand11, DecisionNoteSaveCommand11,
   WorkspaceUndoCommand11, WorkspaceUndoReply11,
 } from '../../../../contracts/generated/protocol';
 
 type Intent = ChartSetTimeframeCommand11['intent'] | WorkspaceUndoCommand11['intent'];
 type Command = Omit<ChartSetTimeframeCommand11, 'intent'> & { intent: Intent };
-type LocalRequest = { type: 'snapshot' } | Command;
+type LocalRequest = { type: 'snapshot' } | Command | DecisionNoteReadCommand11 | DecisionNoteSaveCommand11
+  | DecisionNoteAppendOutcomeCommand11 | DecisionNoteDeleteCommand11;
 type UndoTarget = Pick<OperationReceipt11, 'operation_id' | 'committed_workspace_revision'>;
 type Snapshot = { workspace: Workspace; selection_revision: number; undo: UndoTarget | null };
 type View = {
@@ -46,7 +48,7 @@ function describeFailure(error: unknown) {
   }
 }
 
-async function exchange<T>(body: LocalRequest, signal: AbortSignal): Promise<T> {
+export async function exchangeWorkspace<T>(body: LocalRequest, signal: AbortSignal): Promise<T> {
   if (nativeWorkspace) {
     signal.throwIfAborted();
     const operation = body.type === 'snapshot' ? null : body.intent.operation;
@@ -70,11 +72,13 @@ function validWorkspace(value: Workspace | undefined) {
 }
 
 async function restore(signal: AbortSignal): Promise<Snapshot> {
-  const snapshot = await exchange<Snapshot>({ type: 'snapshot' }, signal);
+  const snapshot = await exchangeWorkspace<Snapshot>({ type: 'snapshot' }, signal);
   if (!validWorkspace(snapshot.workspace) || !Number.isSafeInteger(snapshot.selection_revision)
     || snapshot.selection_revision < 0 || snapshot.undo !== null && (
       typeof snapshot.undo?.operation_id !== 'string'
-      || snapshot.undo.committed_workspace_revision !== snapshot.workspace.revision
+      || !Number.isSafeInteger(snapshot.undo.committed_workspace_revision)
+      || snapshot.undo.committed_workspace_revision < 1
+      || snapshot.undo.committed_workspace_revision > snapshot.workspace.revision
     )) throw { code: 'OUTPUT_INVALID' };
   return snapshot;
 }
@@ -96,7 +100,7 @@ async function mutate(snapshot: Snapshot, intent: Intent, signal: AbortSignal): 
     },
     intent,
   } as const;
-  const reply = await exchange<ChartSetTimeframeReply11 | WorkspaceUndoReply11>(request, signal);
+  const reply = await exchangeWorkspace<ChartSetTimeframeReply11 | WorkspaceUndoReply11>(request, signal);
   if (reply.protocol_version !== '1.1' || reply.type !== 'response'
     || reply.request_id !== request.request_id || typeof reply.message_id !== 'string') {
     throw { code: 'OUTPUT_INVALID' };

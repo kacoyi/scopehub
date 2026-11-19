@@ -1,0 +1,551 @@
+[
+  {
+    "name": "save preview carries an original date and attributed evidence",
+    "operation": "decisionNote.save",
+    "direction": "input",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-4000-8000-000000000101",
+      "timestamp_ms": 1700000000000,
+      "type": "request",
+      "request_id": "00000000-0000-4000-8000-000000000100",
+      "scope": {
+        "workspace_id": "synthetic-workspace",
+        "target": {
+          "kind": "decision_note",
+          "object_id": "00000000-0000-4000-8000-000000000020"
+        },
+        "expected_workspace_revision": 2,
+        "idempotency_key": "00000000-0000-4000-8000-000000000102"
+      },
+      "intent": {
+        "operation": "decisionNote.save",
+        "arguments": {
+          "decided_on": "2024-01-19",
+          "thesis": "Synthetic spread narrowed during the observed window.",
+          "evidence_refs": [
+            {
+              "source_id": "fixture-bars",
+              "source_revision": "revision-2",
+              "locator": "rows 10–12"
+            }
+          ],
+          "choice": "Wait for the next session."
+        }
+      },
+      "confirmation": null
+    }
+  },
+  {
+    "name": "trusted save approval uses the pending challenge",
+    "operation": "decisionNote.save",
+    "direction": "input",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-4000-8000-000000000101",
+      "timestamp_ms": 1700000000000,
+      "type": "request",
+      "request_id": "00000000-0000-4000-8000-000000000100",
+      "scope": {
+        "workspace_id": "synthetic-workspace",
+        "target": {
+          "kind": "decision_note",
+          "object_id": "00000000-0000-4000-8000-000000000020"
+        },
+        "expected_workspace_revision": 2,
+        "idempotency_key": "00000000-0000-4000-8000-000000000102"
+      },
+      "intent": {
+        "operation": "decisionNote.save",
+        "arguments": {
+          "decided_on": "2024-01-19",
+          "thesis": "Synthetic spread narrowed during the observed window.",
+          "evidence_refs": [
+            {
+              "source_id": "fixture-bars",
+              "source_revision": "revision-2",
+              "locator": "rows 10–12"
+            }
+          ],
+          "choice": "Wait for the next session."
+        }
+      },
+      "confirmation": {
+        "challenge_id": "00000000-0000-4000-8000-000000000109",
+        "decision": "approve"
+      }
+    }
+  },
+  {
+    "name": "the save challenge contains only correlation and expiry",
+    "operation": "decisionNote.save",
+    "direction": "output",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-4000-8000-000000000103",
+      "timestamp_ms": 1700000000010,
+      "type": "response",
+      "request_id": "00000000-0000-4000-8000-000000000100",
+      "outcome": {
+        "state": "confirmation_required",
+        "operation": "decisionNote.save",
+        "challenge_id": "00000000-0000-4000-8000-000000000109",
+        "expires_at_ms": 1700000300010
+      }
+    }
+  },
+  {
+    "name": "a private command cannot assert a profile",
+    "operation": "decisionNote.save",
+    "direction": "input",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-4000-8000-000000000101",
+      "timestamp_ms": 1700000000000,
+      "type": "request",
+      "request_id": "00000000-0000-4000-8000-000000000100",
+      "scope": {
+        "workspace_id": "synthetic-workspace",
+        "target": {
+          "kind": "decision_note",
+          "object_id": "00000000-0000-4000-8000-000000000020"
+        },
+        "expected_workspace_revision": 2,
+        "idempotency_key": "00000000-0000-4000-8000-000000000102",
+        "profile_id": "untrusted-identity"
+      },
+      "intent": {
+        "operation": "decisionNote.save",
+        "arguments": {
+          "decided_on": "2024-01-19",
+          "thesis": "Synthetic spread narrowed during the observed window.",
+          "evidence_refs": [
+            {
+              "source_id": "fixture-bars",
+              "source_revision": "revision-2",
+              "locator": "rows 10–12"
+            }
+          ],
+          "choice": "Wait for the next session."
+        }
+      },
+      "confirmation": null
+    }
+  },
+  {
+    "name": "mutation requires explicit preview or confirmation state",
+    "operation": "decisionNote.save",
+    "direction": "input",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-4000-8000-000000000101",
+      "timestamp_ms": 1700000000000,
+      "type": "request",
+      "request_id": "00000000-0000-4000-8000-000000000100",
+      "scope": {
+        "workspace_id": "synthetic-workspace",
+        "target": {
+          "kind": "decision_note",
+          "object_id": "00000000-0000-4000-8000-000000000020"
+        },
+        "expected_workspace_revision": 2,
+        "idempotency_key": "00000000-0000-4000-8000-000000000102"
+      },
+      "intent": {
+        "operation": "decisionNote.save",
+        "arguments": {
+          "decided_on": "2024-01-19",
+          "thesis": "Synthetic spread narrowed during the observed window.",
+          "evidence_refs": [
+            {
+              "source_id": "fixture-bars",
+              "source_revision": "revision-2",
+              "locator": "rows 10–12"
+            }
+          ],
+          "choice": "Wait for the next session."
+        }
+      }
+    }
+  },
+  {
+    "name": "evidence requires an attributed revision",
+    "operation": "decisionNote.save",
+    "direction": "input",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-4000-8000-000000000101",
+      "timestamp_ms": 1700000000000,
+      "type": "request",
+      "request_id": "00000000-0000-4000-8000-000000000100",
+      "scope": {
+        "workspace_id": "synthetic-workspace",
+        "target": {
+          "kind": "decision_note",
+          "object_id": "00000000-0000-4000-8000-000000000020"
+        },
+        "expected_workspace_revision": 2,
+        "idempotency_key": "00000000-0000-4000-8000-000000000102"
+      },
+      "intent": {
+        "operation": "decisionNote.save",
+        "arguments": {
+          "decided_on": "2024-01-19",
+          "thesis": "Synthetic spread narrowed during the observed window.",
+          "evidence_refs": [
+            {
+              "source_id": "fixture-bars",
+              "locator": "rows 10–12"
+            }
+          ],
+          "choice": "Wait for the next session."
+        }
+      },
+      "confirmation": null
+    }
+  },
+  {
+    "name": "read requests the original and an outcome page",
+    "operation": "decisionNote.read",
+    "direction": "input",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-4000-8000-000000000111",
+      "timestamp_ms": 1700000000000,
+      "type": "request",
+      "request_id": "00000000-0000-4000-8000-000000000110",
+      "scope": {
+        "workspace_id": "synthetic-workspace"
+      },
+      "intent": {
+        "operation": "decisionNote.read",
+        "arguments": {
+          "note_id": "00000000-0000-4000-8000-000000000020",
+          "offset": 0
+        }
+      }
+    }
+  },
+  {
+    "name": "read requires a hyphenated UUID without a URN prefix",
+    "operation": "decisionNote.read",
+    "direction": "input",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-4000-8000-000000000111",
+      "timestamp_ms": 1700000000000,
+      "type": "request",
+      "request_id": "00000000-0000-4000-8000-000000000110",
+      "scope": {
+        "workspace_id": "synthetic-workspace"
+      },
+      "intent": {
+        "operation": "decisionNote.read",
+        "arguments": {
+          "note_id": "urn:uuid:00000000-0000-4000-8000-000000000020",
+          "offset": 0
+        }
+      }
+    }
+  },
+  {
+    "name": "private review distinguishes the original date and later outcome date",
+    "operation": "decisionNote.read",
+    "direction": "output",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-4000-8000-000000000113",
+      "timestamp_ms": 1700000000010,
+      "type": "response",
+      "request_id": "00000000-0000-4000-8000-000000000110",
+      "outcome": {
+        "state": "completed",
+        "operation": "decisionNote.read",
+        "result": {
+          "note": {
+            "note_id": "00000000-0000-4000-8000-000000000020",
+            "decided_on": "2024-01-19",
+            "thesis": "Synthetic spread narrowed during the observed window.",
+            "evidence_refs": [
+              {
+                "source_id": "fixture-bars",
+                "source_revision": "revision-2",
+                "locator": "rows 10–12"
+              }
+            ],
+            "choice": "Wait for the next session."
+          },
+          "notes": [],
+          "outcomes": [
+            {
+              "outcome_id": "00000000-0000-4000-8000-000000000021",
+              "observed_on": "2024-02-29",
+              "outcome": "Synthetic spread returned to its previous range."
+            }
+          ],
+          "next_offset": null
+        }
+      }
+    }
+  },
+  {
+    "name": "append keeps its own date",
+    "operation": "decisionNote.appendOutcome",
+    "direction": "input",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-4000-8000-000000000121",
+      "timestamp_ms": 1700000000000,
+      "type": "request",
+      "request_id": "00000000-0000-4000-8000-000000000120",
+      "scope": {
+        "workspace_id": "synthetic-workspace",
+        "target": {
+          "kind": "decision_note",
+          "object_id": "00000000-0000-4000-8000-000000000020"
+        },
+        "expected_workspace_revision": 2,
+        "idempotency_key": "00000000-0000-4000-8000-000000000122"
+      },
+      "intent": {
+        "operation": "decisionNote.appendOutcome",
+        "arguments": {
+          "observed_on": "2024-02-29",
+          "outcome": "Synthetic spread returned to its previous range."
+        }
+      },
+      "confirmation": null
+    }
+  },
+  {
+    "name": "append rejects a nonexistent calendar date",
+    "operation": "decisionNote.appendOutcome",
+    "direction": "input",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-4000-8000-000000000121",
+      "timestamp_ms": 1700000000000,
+      "type": "request",
+      "request_id": "00000000-0000-4000-8000-000000000120",
+      "scope": {
+        "workspace_id": "synthetic-workspace",
+        "target": {
+          "kind": "decision_note",
+          "object_id": "00000000-0000-4000-8000-000000000020"
+        },
+        "expected_workspace_revision": 2,
+        "idempotency_key": "00000000-0000-4000-8000-000000000122"
+      },
+      "intent": {
+        "operation": "decisionNote.appendOutcome",
+        "arguments": {
+          "observed_on": "2023-02-29",
+          "outcome": "Synthetic spread returned to its previous range."
+        }
+      },
+      "confirmation": null
+    }
+  },
+  {
+    "name": "append rejects the nonexistent Gregorian year zero",
+    "operation": "decisionNote.appendOutcome",
+    "direction": "input",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-4000-8000-000000000121",
+      "timestamp_ms": 1700000000000,
+      "type": "request",
+      "request_id": "00000000-0000-4000-8000-000000000120",
+      "scope": {
+        "workspace_id": "synthetic-workspace",
+        "target": {
+          "kind": "decision_note",
+          "object_id": "00000000-0000-4000-8000-000000000020"
+        },
+        "expected_workspace_revision": 2,
+        "idempotency_key": "00000000-0000-4000-8000-000000000122"
+      },
+      "intent": {
+        "operation": "decisionNote.appendOutcome",
+        "arguments": {
+          "observed_on": "0000-01-19",
+          "outcome": "Synthetic spread returned to its previous range."
+        }
+      },
+      "confirmation": null
+    }
+  },
+  {
+    "name": "append receives a body-free receipt",
+    "operation": "decisionNote.appendOutcome",
+    "direction": "output",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-4000-8000-000000000123",
+      "timestamp_ms": 1700000000010,
+      "type": "response",
+      "request_id": "00000000-0000-4000-8000-000000000120",
+      "outcome": {
+        "state": "committed",
+        "operation": "decisionNote.appendOutcome",
+        "receipt": {
+          "operation_id": "00000000-0000-4000-8000-000000000089",
+          "workspace_id": "synthetic-workspace",
+          "target": {
+            "kind": "decision_note",
+            "object_id": "00000000-0000-4000-8000-000000000020"
+          },
+          "committed_workspace_revision": 3,
+          "undoable": false
+        }
+      }
+    }
+  },
+  {
+    "name": "a local human can decline a delete",
+    "operation": "decisionNote.delete",
+    "direction": "input",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-4000-8000-000000000131",
+      "timestamp_ms": 1700000000000,
+      "type": "request",
+      "request_id": "00000000-0000-4000-8000-000000000130",
+      "scope": {
+        "workspace_id": "synthetic-workspace",
+        "target": {
+          "kind": "decision_note",
+          "object_id": "00000000-0000-4000-8000-000000000020"
+        },
+        "expected_workspace_revision": 2,
+        "idempotency_key": "00000000-0000-4000-8000-000000000132"
+      },
+      "intent": {
+        "operation": "decisionNote.delete",
+        "arguments": {}
+      },
+      "confirmation": {
+        "challenge_id": "00000000-0000-4000-8000-000000000139",
+        "decision": "decline"
+      }
+    }
+  },
+  {
+    "name": "decline returns a redacted terminal status",
+    "operation": "decisionNote.delete",
+    "direction": "output",
+    "valid": true,
+    "shared_fault": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-4000-8000-000000000133",
+      "timestamp_ms": 1700000000010,
+      "type": "response",
+      "request_id": "00000000-0000-4000-8000-000000000130",
+      "outcome": {
+        "state": "failed",
+        "error": {
+          "code": "CANCELLED",
+          "message": "The operation was cancelled.",
+          "retryable": false
+        }
+      }
+    }
+  },
+  {
+    "name": "delete returns a body-free marker identity via its receipt",
+    "operation": "decisionNote.delete",
+    "direction": "output",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-4000-8000-000000000133",
+      "timestamp_ms": 1700000000010,
+      "type": "response",
+      "request_id": "00000000-0000-4000-8000-000000000130",
+      "outcome": {
+        "state": "committed",
+        "operation": "decisionNote.delete",
+        "receipt": {
+          "operation_id": "00000000-0000-4000-8000-000000000089",
+          "workspace_id": "synthetic-workspace",
+          "target": {
+            "kind": "decision_note",
+            "object_id": "00000000-0000-4000-8000-000000000020"
+          },
+          "committed_workspace_revision": 3,
+          "undoable": false
+        }
+      }
+    }
+  },
+  {
+    "name": "deleted note body is forbidden in a receipt",
+    "operation": "decisionNote.delete",
+    "direction": "output",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-4000-8000-000000000133",
+      "timestamp_ms": 1700000000010,
+      "type": "response",
+      "request_id": "00000000-0000-4000-8000-000000000130",
+      "outcome": {
+        "state": "committed",
+        "operation": "decisionNote.delete",
+        "receipt": {
+          "operation_id": "00000000-0000-4000-8000-000000000089",
+          "workspace_id": "synthetic-workspace",
+          "target": {
+            "kind": "decision_note",
+            "object_id": "00000000-0000-4000-8000-000000000020"
+          },
+          "committed_workspace_revision": 3,
+          "undoable": false,
+          "thesis": "Synthetic spread narrowed during the observed window."
+        }
+      }
+    }
+  },
+  {
+    "name": "delete cannot claim workspace undo",
+    "operation": "decisionNote.delete",
+    "direction": "output",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-4000-8000-000000000133",
+      "timestamp_ms": 1700000000010,
+      "type": "response",
+      "request_id": "00000000-0000-4000-8000-000000000130",
+      "outcome": {
+        "state": "committed",
+        "operation": "decisionNote.delete",
+        "receipt": {
+          "operation_id": "00000000-0000-4000-8000-000000000089",
+          "workspace_id": "synthetic-workspace",
+          "target": {
+            "kind": "decision_note",
+            "object_id": "00000000-0000-4000-8000-000000000020"
+          },
+          "committed_workspace_revision": 3,
+          "undoable": true
+        }
+      }
+    }
+  }
+]

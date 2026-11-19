@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=00d5588197a5635a218a3f20f558086ee5336b4d0663fe40557e3abe3a6b950a. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=f524b758444ac5635cee2b49ac8bbb5151daad0735c4c8150690ef66f21da960. Do not edit.
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type OpaqueId = string;
 export type Uuid = string;
@@ -8,7 +8,7 @@ export type Metadata = Record<string, JsonValue>;
 export type WorkerRole = "market" | "ai" | "indicator";
 export type ProtocolVersion = "1.0";
 export type ErrorCode = "INVALID_ARGUMENT" | "UNSUPPORTED_CAPABILITY" | "PERMISSION_DENIED" | "CONFIRMATION_REQUIRED" | "CANCELLED" | "TIMEOUT" | "WORKER_EXITED" | "PROTOCOL_MISMATCH" | "DATA_UNAVAILABLE" | "STALE_CONTEXT" | "RESOURCE_LIMIT" | "OUTPUT_INVALID" | "PROVIDER_NOT_CONFIGURED" | "INTERNAL_ERROR" | "BUSY" | "SNAPSHOT_UNAVAILABLE";
-export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "workspace.readChartProjection" | "workspace.selectEvidence";
+export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "workspace.readChartProjection" | "workspace.selectEvidence" | "decisionNote.save" | "decisionNote.read" | "decisionNote.appendOutcome" | "decisionNote.delete";
 export type ChartStyle = "candlestick" | "line";
 export type TaskStatus = "queued" | "running" | "awaiting_confirmation" | "completed" | "failed" | "cancelled";
 export type Tradability = "non_tradable" | "unknown";
@@ -1642,3 +1642,201 @@ export type WorkspaceUndoReply11 = {
   outcome: WorkspaceUndoOutcome11;
 };
 export type HistoryPageReply11 = MarketHistoryPageResponse | MarketHistoryPageError;
+export type DecisionNoteUuid11 = string;
+export type DecisionNoteDate = string;
+export type DecisionNoteEvidenceRef = {
+  source_id: string;
+  source_revision: string;
+  locator: string;
+};
+export type DecisionNoteOriginal = {
+  note_id: DecisionNoteUuid11;
+  decided_on: DecisionNoteDate;
+  thesis: string;
+  evidence_refs: Array<DecisionNoteEvidenceRef>;
+  choice: string;
+};
+export type DecisionNoteSummary = {
+  note_id: DecisionNoteUuid11;
+  decided_on: DecisionNoteDate;
+};
+export type DecisionNoteOutcome = {
+  outcome_id: DecisionNoteUuid11;
+  observed_on: DecisionNoteDate;
+  outcome: string;
+};
+export type DecisionNoteReadOutput = {
+  note: (DecisionNoteOriginal | null);
+  notes: Array<DecisionNoteSummary>;
+  outcomes: Array<DecisionNoteOutcome>;
+  next_offset: (Revision | null);
+};
+export type DecisionNoteTarget = {
+  kind: "decision_note";
+  object_id: DecisionNoteUuid11;
+};
+export type DecisionNoteReceipt11 = {
+  operation_id: DecisionNoteUuid11;
+  workspace_id: OpaqueId;
+  target: DecisionNoteTarget;
+  committed_workspace_revision: Revision;
+  undoable: false;
+};
+export type DecisionNoteReadScope11 = {
+  workspace_id: OpaqueId;
+};
+export type DecisionNoteWriteScope11 = {
+  workspace_id: OpaqueId;
+  target: DecisionNoteTarget;
+  expected_workspace_revision: Revision;
+  idempotency_key: DecisionNoteUuid11;
+};
+export type DecisionNoteConfirmation11 = {
+  challenge_id: DecisionNoteUuid11;
+  decision: "approve" | "decline";
+};
+export type DecisionNoteSaveInput = {
+  decided_on: DecisionNoteDate;
+  thesis: string;
+  evidence_refs: Array<DecisionNoteEvidenceRef>;
+  choice: string;
+};
+export type DecisionNoteSaveIntent11 = {
+  operation: "decisionNote.save";
+  arguments: DecisionNoteSaveInput;
+};
+export type DecisionNoteSaveCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: DecisionNoteUuid11;
+  scope: DecisionNoteWriteScope11;
+  intent: DecisionNoteSaveIntent11;
+  confirmation: (DecisionNoteConfirmation11 | null);
+};
+export type DecisionNoteSaveCommitted11 = {
+  state: "committed";
+  operation: "decisionNote.save";
+  receipt: DecisionNoteReceipt11;
+};
+export type DecisionNoteSaveConfirmationRequired11 = {
+  state: "confirmation_required";
+  operation: "decisionNote.save";
+  challenge_id: DecisionNoteUuid11;
+  expires_at_ms: Timestamp;
+};
+export type DecisionNoteSaveOutcome11 = DecisionNoteSaveCommitted11 | DecisionNoteSaveConfirmationRequired11 | ScopedFailure11;
+export type DecisionNoteSaveReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: DecisionNoteUuid11;
+  outcome: DecisionNoteSaveOutcome11;
+};
+export type DecisionNoteReadInput = {
+  note_id: (DecisionNoteUuid11 | null);
+  offset: Revision;
+};
+export type DecisionNoteReadIntent11 = {
+  operation: "decisionNote.read";
+  arguments: DecisionNoteReadInput;
+};
+export type DecisionNoteReadCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: DecisionNoteUuid11;
+  scope: DecisionNoteReadScope11;
+  intent: DecisionNoteReadIntent11;
+};
+export type DecisionNoteReadCompleted11 = {
+  state: "completed";
+  operation: "decisionNote.read";
+  result: DecisionNoteReadOutput;
+};
+export type DecisionNoteReadOutcome11 = DecisionNoteReadCompleted11 | ScopedFailure11;
+export type DecisionNoteReadReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: DecisionNoteUuid11;
+  outcome: DecisionNoteReadOutcome11;
+};
+export type DecisionNoteAppendOutcomeInput = {
+  observed_on: DecisionNoteDate;
+  outcome: string;
+};
+export type DecisionNoteAppendOutcomeIntent11 = {
+  operation: "decisionNote.appendOutcome";
+  arguments: DecisionNoteAppendOutcomeInput;
+};
+export type DecisionNoteAppendOutcomeCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: DecisionNoteUuid11;
+  scope: DecisionNoteWriteScope11;
+  intent: DecisionNoteAppendOutcomeIntent11;
+  confirmation: (DecisionNoteConfirmation11 | null);
+};
+export type DecisionNoteAppendOutcomeCommitted11 = {
+  state: "committed";
+  operation: "decisionNote.appendOutcome";
+  receipt: DecisionNoteReceipt11;
+};
+export type DecisionNoteAppendOutcomeConfirmationRequired11 = {
+  state: "confirmation_required";
+  operation: "decisionNote.appendOutcome";
+  challenge_id: DecisionNoteUuid11;
+  expires_at_ms: Timestamp;
+};
+export type DecisionNoteAppendOutcomeOutcome11 = DecisionNoteAppendOutcomeCommitted11 | DecisionNoteAppendOutcomeConfirmationRequired11 | ScopedFailure11;
+export type DecisionNoteAppendOutcomeReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: DecisionNoteUuid11;
+  outcome: DecisionNoteAppendOutcomeOutcome11;
+};
+export type DecisionNoteDeleteInput = {
+};
+export type DecisionNoteDeleteIntent11 = {
+  operation: "decisionNote.delete";
+  arguments: DecisionNoteDeleteInput;
+};
+export type DecisionNoteDeleteCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: DecisionNoteUuid11;
+  scope: DecisionNoteWriteScope11;
+  intent: DecisionNoteDeleteIntent11;
+  confirmation: (DecisionNoteConfirmation11 | null);
+};
+export type DecisionNoteDeleteCommitted11 = {
+  state: "committed";
+  operation: "decisionNote.delete";
+  receipt: DecisionNoteReceipt11;
+};
+export type DecisionNoteDeleteConfirmationRequired11 = {
+  state: "confirmation_required";
+  operation: "decisionNote.delete";
+  challenge_id: DecisionNoteUuid11;
+  expires_at_ms: Timestamp;
+};
+export type DecisionNoteDeleteOutcome11 = DecisionNoteDeleteCommitted11 | DecisionNoteDeleteConfirmationRequired11 | ScopedFailure11;
+export type DecisionNoteDeleteReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: DecisionNoteUuid11;
+  outcome: DecisionNoteDeleteOutcome11;
+};

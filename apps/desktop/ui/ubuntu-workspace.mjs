@@ -8,6 +8,9 @@ const route = '/__scopehub/workspace';
 const chartId = 'main-chart';
 const timeframes = ['1m', '5m', '1d'];
 const mutations = ['chart.setTimeframe', 'workspace.undo'];
+const noteOperations = ['decisionNote.save', 'decisionNote.read', 'decisionNote.appendOutcome', 'decisionNote.delete'];
+const maxNoteRequestBytes = 32 * 1024;
+const maxResponseBytes = 256 * 1024;
 const startupDeadlineMs = 10_000;
 const requestDeadlineMs = 15_000;
 const commandDeadlineMs = 8_000;
@@ -55,7 +58,8 @@ function validWorkspace(workspace, workspaceId) {
 
 function validUndo(undo, workspace) {
   return undo === null || !!undo && uuid(undo.operation_id)
-    && undo.committed_workspace_revision === workspace.revision;
+    && revision(undo.committed_workspace_revision) && undo.committed_workspace_revision > 0
+    && undo.committed_workspace_revision <= workspace.revision;
 }
 
 function validSnapshot(state, workspaceId) {
@@ -65,15 +69,32 @@ function validSnapshot(state, workspaceId) {
 
 function requestFrame(command, workspaceId) {
   const name = command?.intent?.operation;
-  if (!mutations.includes(name)) throw new PreviewFailure(403, 'PERMISSION_DENIED');
+  if (!mutations.includes(name) && !noteOperations.includes(name)) throw new PreviewFailure(403, 'PERMISSION_DENIED');
   if (command?.scope?.workspace_id !== workspaceId) throw new PreviewFailure(403, 'PERMISSION_DENIED');
   if (command.protocol_version !== '1.1' || command.type !== 'request'
       || !uuid(command.request_id) || !uuid(command.message_id)) {
     throw new PreviewFailure(400, 'INVALID_ARGUMENT');
   }
   const line = JSON.stringify(command) + '\n';
-  if (Buffer.byteLength(line) > maxRequestBytes) throw new PreviewFailure(413, 'RESOURCE_LIMIT');
+  if (Buffer.byteLength(line) > (noteOperations.includes(name) ? maxNoteRequestBytes : maxRequestBytes)) {
+    throw new PreviewFailure(413, 'RESOURCE_LIMIT');
+  }
   return line;
+}
+
+function validNoteOutcome(outcome, job, workspaceId) {
+  if (outcome?.operation !== job.operation) return false;
+  if (job.operation === 'decisionNote.read') {
+    const { result } = outcome;
+    return outcome.state === 'completed' && Array.isArray(result?.notes) && Array.isArray(result?.outcomes)
+      && (job.noteId === null ? result.note === null && result.outcomes.length === 0
+        : result.note?.note_id === job.noteId && result.notes.length === 0);
+  }
+  if (outcome.state === 'confirmation_required') return uuid(outcome.challenge_id) && revision(outcome.expires_at_ms);
+  const { receipt } = outcome;
+  return outcome.state === 'committed' && !Object.hasOwn(outcome, 'result') && receipt?.workspace_id === workspaceId
+    && receipt.target?.kind === 'decision_note' && receipt.target.object_id === job.noteId
+    && uuid(receipt.operation_id) && revision(receipt.committed_workspace_revision) && receipt.undoable === false;
 }
 
 function startWriter(root, { path, profileId, workspaceId }) {
@@ -138,14 +159,18 @@ function startWriter(root, { path, profileId, workspaceId }) {
       if (reply?.type !== 'response' || reply?.protocol_version !== '1.1'
           || reply?.request_id !== job.requestId || !uuid(reply.message_id)
           || reply.message_id === job.messageId) throw invalidReply();
-      if (outcome?.state === 'committed') {
+      if (outcome?.state === 'failed') {
+        if (typeof outcome.error?.code !== 'string') throw invalidReply();
+      } else if (noteOperations.includes(job.operation)) {
+        if (!validNoteOutcome(outcome, job, workspaceId)) throw invalidReply();
+      } else if (outcome?.state === 'committed') {
         const { result, receipt } = outcome;
         if (outcome.operation !== job.operation || !validWorkspace(result, workspaceId)
             || receipt?.workspace_id !== workspaceId || receipt?.target?.kind !== 'chart'
             || receipt?.target?.object_id !== chartId || !uuid(receipt.operation_id)
             || result.revision !== receipt.committed_workspace_revision
             || typeof receipt.undoable !== 'boolean') throw invalidReply();
-      } else if (outcome?.state !== 'failed' || typeof outcome.error?.code !== 'string') throw invalidReply();
+      } else throw invalidReply();
     } else if (!validFailure) throw invalidReply();
     clearTimeout(job.timer);
     pending = undefined;
@@ -169,11 +194,13 @@ function startWriter(root, { path, profileId, workspaceId }) {
     let end;
     try {
       while ((end = bytes.indexOf(10)) !== -1) {
-        if (end >= maxRequestBytes) throw invalidReply();
+        const limit = noteOperations.includes(pending?.operation) ? maxResponseBytes : maxRequestBytes;
+        if (end >= limit) throw invalidReply();
         receive(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes.subarray(0, end))));
         bytes = bytes.subarray(end + 1);
       }
-      if (bytes.length >= maxRequestBytes) throw invalidReply();
+      const limit = noteOperations.includes(pending?.operation) ? maxResponseBytes : maxRequestBytes;
+      if (bytes.length >= limit) throw invalidReply();
       remainder = bytes;
     } catch {
       stop(invalidReply());
@@ -194,8 +221,10 @@ function startWriter(root, { path, profileId, workspaceId }) {
       const line = snapshot ? JSON.stringify({ type: 'snapshot', request_id: requestId }) + '\n'
         : requestFrame(body, workspaceId);
       const reply = Promise.withResolvers();
+      const noteId = body?.scope?.target?.object_id ?? body?.intent?.arguments?.note_id;
       pending = {
         ...reply, requestId, messageId: body.message_id, operation: snapshot ? 'snapshot' : body.intent.operation,
+        noteId: typeof noteId === 'string' ? noteId.toLowerCase() : noteId,
         timer: setTimeout(() => stop(timeout()), commandDeadlineMs),
       };
       // Once written, let SQLite decide the outcome. A closed browser request
@@ -245,7 +274,7 @@ export function ubuntuWorkspace() {
       server.middlewares.use(async (request, response, next) => {
         if (request.url !== route) return next();
         try {
-          assertLocalJsonRequest(request, http);
+          assertLocalJsonRequest(request, http, maxNoteRequestBytes);
           if (!access?.permits(request.headers.authorization)) throw new PreviewFailure(403, 'PERMISSION_DENIED');
           if (active) throw new PreviewFailure(429, 'BUSY');
           if (!writer) throw unavailable();
@@ -262,7 +291,11 @@ export function ubuntuWorkspace() {
           failureResponse(request, response, reason);
         }, requestDeadlineMs);
         try {
-          const body = await readLocalJson(request);
+          const body = await readLocalJson(request, maxNoteRequestBytes);
+          if (!noteOperations.includes(body?.intent?.operation)
+              && Math.max(Number(request.headers['content-length'] ?? 0), Buffer.byteLength(JSON.stringify(body))) > maxRequestBytes) {
+            throw new PreviewFailure(413, 'RESOURCE_LIMIT');
+          }
           const reply = await writer.handle(body, controller.signal);
           if (!controller.signal.aborted) {
             response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });

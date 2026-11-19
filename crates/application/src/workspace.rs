@@ -2,8 +2,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use scopehub_domain::{
     protocol::{
-        ChartStyle, Error, ErrorCode, EvidenceTarget11, MutationScope11, OperationReceipt11,
-        Revision, Workspace, WorkspaceObject11, WorkspaceObject11Kind,
+        ChartStyle, DecisionNoteDate, DecisionNoteReadOutput, Error, ErrorCode, EvidenceTarget11,
+        MutationScope11, OperationReceipt11, Revision, Workspace, WorkspaceObject11,
+        WorkspaceObject11Kind,
     },
     wire::normalize_integers,
 };
@@ -13,8 +14,25 @@ use uuid::Uuid;
 
 use crate::{Actor, Operation, OperationRegistry, authorized_operation, failure, operation};
 
+mod notes;
+
+pub(crate) use notes::PendingDecisionNoteConfirmation;
+pub use notes::{
+    DECISION_NOTE_APPEND_OUTCOME, DECISION_NOTE_DELETE, DECISION_NOTE_OPERATIONS,
+    DECISION_NOTE_READ, DECISION_NOTE_SAVE, DecisionNoteChange, DecisionNoteMutation,
+    DecisionNoteReceipt, DecisionNoteReplay,
+};
+
 pub const SET_TIMEFRAME: &str = "chart.setTimeframe";
 pub const UNDO: &str = "workspace.undo";
+pub const LOCAL_WORKSPACE_OPERATIONS: &[&str] = &[
+    SET_TIMEFRAME,
+    UNDO,
+    DECISION_NOTE_SAVE,
+    DECISION_NOTE_READ,
+    DECISION_NOTE_APPEND_OUTCOME,
+    DECISION_NOTE_DELETE,
+];
 pub const MAIN_CHART_ID: &str = "main-chart";
 const MAX_REVISION: Revision = 9_007_199_254_740_991;
 
@@ -122,6 +140,7 @@ pub struct WorkspaceChange<'a> {
 /// A transaction over the single workspace owned by this store.
 pub trait WorkspaceTransaction {
     fn state(&self) -> Result<WorkspaceState, Error>;
+    fn chart_revision(&self) -> Result<Revision, Error>;
     fn replay(&self, key: &WorkspaceReplayKey<'_>) -> Result<Option<WorkspaceReplay>, Error>;
     fn undo_candidate(
         &self,
@@ -130,6 +149,13 @@ pub trait WorkspaceTransaction {
         paired_client_id: Option<&str>,
     ) -> Result<Option<WorkspaceReceipt>, Error>;
     fn record(&mut self, change: &WorkspaceChange<'_>) -> Result<(), Error>;
+    fn note_decision_date(&self, note_id: &str) -> Result<Option<DecisionNoteDate>, Error>;
+    fn note_is_deleted(&self, note_id: &str) -> Result<bool, Error>;
+    fn note_replay(
+        &self,
+        key: &WorkspaceReplayKey<'_>,
+    ) -> Result<Option<DecisionNoteReplay>, Error>;
+    fn record_note(&mut self, change: &DecisionNoteChange<'_>) -> Result<(), Error>;
 }
 
 pub trait WorkspaceStore: Send {
@@ -139,6 +165,13 @@ pub trait WorkspaceStore: Send {
         &self,
         undo: Option<WorkspaceUndoAccess<'_>>,
     ) -> Result<(WorkspaceState, Option<WorkspaceUndoTarget>), Error>;
+    fn read_notes(
+        &self,
+        note_id: Option<&str>,
+        offset: u64,
+    ) -> Result<DecisionNoteReadOutput, Error>;
+    /// Remove superseded note pages from application-controlled database sidecars.
+    fn clean_deleted_note(&mut self) -> Result<(), Error>;
     /// Commit only if the application successfully produces an authorized result.
     fn transact<T>(
         &mut self,
@@ -211,6 +244,9 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         let name = request["intent"]["operation"]
             .as_str()
             .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
+        if DECISION_NOTE_OPERATIONS.contains(&name) {
+            return self.execute_decision_note(access, operation(name)?, request);
+        }
         if !matches!(name, SET_TIMEFRAME | UNDO) {
             return Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY));
         }
@@ -221,7 +257,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         {
             return Err(workspace_failure(ErrorCode::PROTOCOLMISMATCH));
         }
-        let (input, output) = op.wire_validators();
+        let (input, _) = op.wire_validators();
         if !input.is_valid(&request) {
             return Err(failure(ErrorCode::INVALIDARGUMENT));
         }
@@ -231,16 +267,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         let request_id = request["request_id"]
             .as_str()
             .expect("validated request id");
-        let reply = MutationReply {
-            operation: op,
-            request_id,
-            message_id: Uuid::new_v4(),
-            timestamp_ms: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .ok()
-                .and_then(|duration| i64::try_from(duration.as_millis()).ok())
-                .ok_or_else(|| failure(ErrorCode::INTERNALERROR))?,
-        };
+        let reply = WorkspaceReply::new(op, request_id)?;
         let result = op.authorize(access.actor).and_then(|()| {
             if !permits_scope(access, self.port.binding())
                 || scope.workspace_id != access.workspace_id
@@ -253,22 +280,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         });
         match result {
             Ok(value) => Ok(value),
-            Err(error) => {
-                // Project only the catalog's static fault, never adapter details.
-                let fault = workspace_failure(error.code);
-                let value = reply.envelope(json!({
-                    "state": "failed",
-                    "error": {
-                        "code": fault.code,
-                        "message": fault.message,
-                        "retryable": fault.retryable,
-                    },
-                }));
-                if !output.is_valid(&value) {
-                    return Err(failure(ErrorCode::OUTPUTINVALID));
-                }
-                Ok(value)
-            }
+            Err(error) => reply.failed(&workspace_failure(error.code)),
         }
     }
 }
@@ -286,27 +298,51 @@ fn workspace_failure(code: ErrorCode) -> Error {
     error
 }
 
-struct MutationReply<'a> {
+struct WorkspaceReply<'a> {
     operation: &'a Operation,
     request_id: &'a str,
     message_id: Uuid,
     timestamp_ms: i64,
 }
 
-impl MutationReply<'_> {
-    fn envelope(&self, outcome: Value) -> Value {
-        json!({
+impl<'a> WorkspaceReply<'a> {
+    fn new(operation: &'a Operation, request_id: &'a str) -> Result<Self, Error> {
+        Ok(Self {
+            operation,
+            request_id,
+            message_id: Uuid::new_v4(),
+            timestamp_ms: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .ok()
+                .and_then(|duration| i64::try_from(duration.as_millis()).ok())
+                .ok_or_else(|| failure(ErrorCode::INTERNALERROR))?,
+        })
+    }
+
+    fn validated(&self, outcome: Value) -> Result<Value, Error> {
+        let value = json!({
             "protocol_version": "1.1",
             "type": "response",
             "message_id": self.message_id.to_string(),
             "timestamp_ms": self.timestamp_ms,
             "request_id": self.request_id,
             "outcome": outcome,
-        })
+        });
+        if !self.operation.wire_validators().1.is_valid(&value) {
+            return Err(failure(ErrorCode::OUTPUTINVALID));
+        }
+        Ok(value)
+    }
+
+    fn failed(&self, fault: &Error) -> Result<Value, Error> {
+        self.validated(json!({
+            "state": "failed",
+            "error": {"code": fault.code, "message": fault.message, "retryable": fault.retryable},
+        }))
     }
 
     fn committed(&self, workspace_id: &str, receipt: &WorkspaceReceipt) -> Result<Value, Error> {
-        let value = self.envelope(json!({
+        self.validated(json!({
             "state": "committed",
             "operation": self.operation.name,
             "receipt": OperationReceipt11 {
@@ -317,11 +353,7 @@ impl MutationReply<'_> {
                 undoable: receipt.undoable,
             },
             "result": workspace_projection(workspace_id, receipt.revision, receipt.after),
-        }));
-        if !self.operation.wire_validators().1.is_valid(&value) {
-            return Err(failure(ErrorCode::OUTPUTINVALID));
-        }
-        Ok(value)
+        }))
     }
 }
 
@@ -330,7 +362,7 @@ fn execute_mutation(
     access: &WorkspaceAccess<'_>,
     scope: &MutationScope11,
     arguments: &Value,
-    reply: &MutationReply<'_>,
+    reply: &WorkspaceReply<'_>,
 ) -> Result<Value, Error> {
     let operation = reply.operation;
     // Compute semantic identity independently of transport correlation.
@@ -390,9 +422,9 @@ fn execute_mutation(
         let original = tx
             .undo_candidate(operation_id, access.principal_id, access.paired_client_id)?
             .ok_or_else(|| failure(ErrorCode::PERMISSIONDENIED))?;
-        // There is one durable chart field in this slice. Its last mutation
-        // must still be the candidate, even if later edits returned to its value.
-        if original.revision != current.revision || original.after != current.timeframe {
+        // The chart's last mutation must still be the candidate, even if later
+        // chart edits returned to its value. Private notes have their own target.
+        if original.revision != tx.chart_revision()? || original.after != current.timeframe {
             return Err(failure(ErrorCode::STALECONTEXT));
         }
         (original.before, Some(operation_id))

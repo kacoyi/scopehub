@@ -435,9 +435,25 @@
       "cadence": "task"
     },
     {
+      "id": "decision-note-lifecycle",
+      "status": "implemented",
+      "purpose": "Verify profile-local decision-note confirmation, v1 to v2 migration and interruption, original review, later outcomes, concurrent replay, scoped deletion and cleanup across Rust process restart. Staged backup restore is covered separately.",
+      "platforms": "all",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-persistence",
+        "decision_note"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
       "id": "workspace-timeframe",
       "status": "implemented",
-      "purpose": "Exercise a real local timeframe change, fresh browser and SQLite writer restart, scoped undo, and cancellation through the opted-in development workspace.",
+      "purpose": "Exercise a real local timeframe change, fresh browser and SQLite writer restart, scoped undo, cancellation and the private human decision-note lifecycle through the opted-in development workspace.",
       "platforms": "all",
       "command": [
         "pnpm",
@@ -680,6 +696,22 @@
       "architecture",
       "python-contracts-workers",
       "rust-format"
+    ],
+    "decision-note-slice": [
+      "environment",
+      "project-state",
+      "generated-contracts",
+      "architecture",
+      "python-types",
+      "python-contracts-workers",
+      "typescript-contracts",
+      "ui-build",
+      "rust-format",
+      "rust-contracts-workers",
+      "rust-lints",
+      "decision-note-lifecycle",
+      "workspace-timeframe",
+      "desktop-workspace-transport"
     ]
   },
   "required_change_checks": [
