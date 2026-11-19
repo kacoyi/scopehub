@@ -209,6 +209,47 @@ fn windows_private_acl_inheritance_rejects_shared_roots_and_sidecars() {
 
 #[cfg(windows)]
 #[test]
+fn windows_ancestor_acl_allows_reading_and_refuses_replaceable_entries() {
+    use std::os::windows::process::CommandExt;
+
+    let parent = Profile::new();
+    let profile_root = parent.0.join("workspace-dev");
+    let icacls = PathBuf::from(std::env::var_os("SystemRoot").unwrap()).join("System32/icacls.exe");
+    let grant = |ace| {
+        assert!(
+            std::process::Command::new(&icacls)
+                .arg(&parent.0)
+                .args(["/grant:r", ace])
+                .creation_flags(0x0800_0000)
+                .output()
+                .unwrap()
+                .status
+                .success()
+        );
+    };
+
+    grant("*S-1-1-0:(RX)");
+    SqliteWorkspace::prepare_profile_root(&profile_root).unwrap();
+    let writer = SqliteWorkspace::open(&profile_root, Profile::binding()).unwrap();
+    writer
+        .connection
+        .execute("UPDATE workspaces SET revision = 19", [])
+        .unwrap();
+    drop(writer);
+    let file = profile_root.join(DATABASE_NAME);
+    let durable = fs::read(&file).unwrap();
+
+    grant("*S-1-1-0:(DC)");
+    let refusal = storage::open_path(&profile_root).unwrap_err();
+    assert_eq!(refusal.to_string(), "replaceable-ancestor");
+    assert_eq!(fs::read(&file).unwrap(), durable);
+    grant("*S-1-1-0:(RX)");
+    let writer = SqliteWorkspace::open(&profile_root, Profile::binding()).unwrap();
+    assert_eq!(writer.snapshot(None).unwrap().0.revision, 19);
+}
+
+#[cfg(windows)]
+#[test]
 fn windows_temp_alias_and_full_path_open_the_same_durable_profile() {
     use std::os::windows::process::CommandExt;
 

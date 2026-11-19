@@ -46,17 +46,22 @@ function Confirm-StorageAcl($path, $attributes, $directory, $private) {
         if ($private -and $sid -notin $privatePrincipals) {
             Stop-Storage 30
         }
-        if (!$private -and $sid -notin $trustedAncestors -and
-            !($ace.AceFlags -band [Security.AccessControl.AceFlags]::InheritOnly) -and
-            ($ace.AccessMask -band ($ancestorMutation -bor $genericAll))) {
+
+        # Windows PowerShell 5.1 can attempt an invalid conversion when a
+        # flags enum is passed directly to a bitwise expression in a predicate.
+        $flags = [int]$ace.AceFlags
+        $access = [int]$ace.AccessMask
+        $appliesHere = ($flags -band $inheritOnlyMask) -eq 0
+        if (!$private -and $sid -notin $trustedAncestors -and $appliesHere -and
+            (($access -band $ancestorMutationMask) -ne 0)) {
             Stop-Storage 29
         }
         if ($sid -eq $user.Value) {
-            if (!($ace.AceFlags -band [Security.AccessControl.AceFlags]::InheritOnly)) {
+            if ($appliesHere) {
                 $ownerAccess = $true
             }
-            if (($ace.AccessMask -band $full) -eq $full -and
-                ($ace.AceFlags -band [int]$inherits) -eq [int]$inherits) {
+            if (($access -band $fullMask) -eq $fullMask -and
+                ($flags -band $childInheritanceMask) -eq $childInheritanceMask) {
                 $ownerInherits = $true
             }
         }
@@ -79,8 +84,11 @@ try {
     $trustedAncestors = $privatePrincipals + $trustedInstaller
     $inherits = [Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit'
     $full = [Security.AccessControl.FileSystemRights]::FullControl
-    $ancestorMutation = [int][Security.AccessControl.FileSystemRights]'Delete, DeleteSubdirectoriesAndFiles, ChangePermissions, TakeOwnership'
-    $genericAll = 0x10000000
+    $fullMask = [int]$full
+    $inheritOnlyMask = [int][Security.AccessControl.AceFlags]::InheritOnly
+    $childInheritanceMask = [int][Security.AccessControl.AceFlags]'ContainerInherit, ObjectInherit'
+    $ancestorMutationMask = [int][Security.AccessControl.FileSystemRights]'Delete, DeleteSubdirectoriesAndFiles, ChangePermissions, TakeOwnership'
+    $ancestorMutationMask = $ancestorMutationMask -bor 0x10000000 # GENERIC_ALL
 
     $script:failure = 21
     $path = [IO.Path]::GetFullPath($env:SCOPEHUB_STORAGE_PATH)
