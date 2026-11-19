@@ -2663,7 +2663,7 @@
         "state-migrations"
       ],
       "evidence": [],
-      "next_action": "Verify source settlement and closed-bar semantics, shutdown revocation, valid large fields and complete worker replies. Then connect the native folder picker and mapping editor, followed by staged refresh and publication.",
+      "next_action": "Verify the Windows desktop folder selection and reviewed CSV preview; then persist approved mappings and publish an immutable dataset revision on refresh.",
       "blocker": null,
       "closure_reason": null,
       "plan": {

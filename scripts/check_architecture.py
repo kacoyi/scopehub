@@ -159,16 +159,16 @@ def desktop_capability_errors(root):
         if path.suffix != '.json':
             errors.append(f'Unreviewed capability format: {path.name}')
             continue
-        capability = json.loads(path.read_text())
+        capability = json.loads(path.read_text(encoding='utf-8'))
         if (capability.get('remote') is not None or capability.get('windows') != ['main']
                 or capability.get('webviews') or capability.get('local', True) is not True
                 or capability.get('identifier') != 'main'
                 or capability.get('permissions') != permissions):
             errors.append(f'Desktop capability exceeds the local operation registry: {path.name}')
-    config = json.loads((directory / 'tauri.conf.json').read_text())
+    config = json.loads((directory / 'tauri.conf.json').read_text(encoding='utf-8'))
     if config['app']['security'].get('capabilities') != ['main']:
         errors.append('Desktop capability configuration must select only main')
-    build = (directory / 'build.rs').read_text()
+    build = (directory / 'build.rs').read_text(encoding='utf-8')
     manifest = re.search(r'AppManifest::new\(\)\.commands\(&\[([^\]]*)\]\)', build)
     if manifest is None or re.findall(r'"([^"]+)"', manifest[1]) != commands:
         errors.append('Desktop commands must use the reviewed application ACL')
@@ -177,9 +177,9 @@ def desktop_capability_errors(root):
 
 def main():
     errors = []
-    spec = json.loads((ROOT / 'engineering-contract-v1.json').read_text())
-    manifest = json.loads((ROOT / 'contracts/contract.json').read_text())
-    schema = json.loads((ROOT / manifest['schema']).read_text())
+    spec = json.loads((ROOT / 'engineering-contract-v1.json').read_text(encoding='utf-8'))
+    manifest = json.loads((ROOT / 'contracts/contract.json').read_text(encoding='utf-8'))
+    schema = json.loads((ROOT / manifest['schema']).read_text(encoding='utf-8'))
     for path in spec['repository']['required_files']:
         if not (ROOT / path).is_file():
             errors.append(f'Missing required artifact: {path}')
@@ -189,7 +189,7 @@ def main():
     for path in source_root.rglob('*'):
         if path.suffix not in {'.ts', '.tsx', '.js', '.mjs'}:
             continue
-        source = path.read_text()
+        source = path.read_text(encoding='utf-8')
         relative = path.relative_to(source_root)
         if 'lightweight-charts' in source and relative.parts[0] != 'chart-adapter':
             errors.append(f'Chart SDK outside adapter: {relative}')
@@ -197,7 +197,7 @@ def main():
             errors.append(f'Forbidden UI capability or adapter dependency: {relative}')
     for path in (ROOT / 'python').rglob('*.py'):
         relative = path.relative_to(ROOT / 'python')
-        for node in ast.walk(ast.parse(path.read_text())):
+        for node in ast.walk(ast.parse(path.read_text(encoding='utf-8'))):
             imports = []
             if isinstance(node, ast.Import):
                 imports = [alias.name for alias in node.names]
@@ -228,8 +228,8 @@ def main():
     for name, definition in schema['$defs'].items():
         if definition.get('type') == 'object' and name != 'Metadata' and definition.get('additionalProperties') is not False:
             errors.append(f'Unbounded structural fields: {name}')
-    tauri = json.loads((ROOT / 'apps/desktop/src-tauri/tauri.conf.json').read_text())
-    tauri_schema = json.loads((ROOT / 'node_modules/@tauri-apps/cli/config.schema.json').read_text())
+    tauri = json.loads((ROOT / 'apps/desktop/src-tauri/tauri.conf.json').read_text(encoding='utf-8'))
+    tauri_schema = json.loads((ROOT / 'node_modules/@tauri-apps/cli/config.schema.json').read_text(encoding='utf-8'))
     errors.extend(f'Tauri configuration: {error.message}' for error in validators.validator_for(tauri_schema)(tauri_schema).iter_errors(tauri))
     if not tauri['app']['security']['csp']:
         errors.append('Release CSP missing')
