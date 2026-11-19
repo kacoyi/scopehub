@@ -1,7 +1,7 @@
 {
   "artifact_type": "engineering_contract",
   "contract_id": "market-ai-workbench.v1",
-  "contract_version": "1.1.0",
+  "contract_version": "1.2.0",
   "language": "en-US",
   "normative_terms": {
     "MUST": "MUST be implemented",
@@ -54,14 +54,17 @@
     "collaboration_model": {
       "status": "product_requirements_not_implemented",
       "human_role": "Set objectives, contribute and challenge hypotheses, decide which investment judgments to adopt, and control the scope of authorized actions.",
-      "ai_role": "Work as a financial research partner. Investigate evidence, compute and compare scenarios, propose indicators, challenge assumptions and carry out authorized operations. State uncertainty and the basis of each interpretation.",
+      "ai_role": "Follow the user's purpose within one text or voice conversation. Ask what matters to the decision, investigate evidence, calculate, propose an indicator, discuss competing explanations, challenge a premise, help review a past choice or carry out an authorized task. Users can move between these activities without selecting a persona.",
       "shared_context": "Ground each turn in the current question, instrument, range, source revision, freshness and relevant operation results. Either participant can point to a chart interval, table row or passage and the other can inspect or correct that selection.",
       "interaction": "The AI can investigate a question, bring evidence into view, compute, challenge an interpretation and act within the granted scope. Continue the discussion from the object the human selects. Distinguish observations, calculations, inferences, suggestions and executed actions.",
       "decision_ownership": "The human retains ownership of adopted investment judgments and the resulting market exposure. AI assistance and workflow automation do not guarantee profitable outcomes or constitute an independent mandate to manage capital.",
       "authorization_principle": "Treat investment risk acceptance and action authorization as separate concerns. A general statement that the human bears market risk grants no additional capability and does not satisfy operation-specific confirmations.",
       "system_quality": "Distinguish adverse market outcomes from incorrect data, calculation errors, execution defects, and unauthorized actions. The latter require prevention, diagnosis, and correction; human ownership of investment decisions does not relax system correctness requirements.",
       "delivery": "Apply these principles through the existing milestone sequence and operation permissions; broader collaboration capabilities require concrete use cases before implementation.",
-      "capability_direction": "The embedded AI should be able to perform user manual work and competently participate in cognitive work across the financial workbench. Refine concrete operations and interaction behavior through delivery; this is separate from owner/development-AI responsibilities."
+      "capability_direction": "Treat the product AI as a workbench user. It can compose authorized queries, calculations and workspace operations through the Rust registry, including useful analyses without a dedicated button. For a comparison, show the input series and revisions, the calculation and its result at the relevant chart or table. Each step uses the effective grant and reports its own outcome. The user can inspect the result and the work that produced it.",
+      "deliberation": "Treat a question such as whether to buy as a request for analysis. Compare alternatives, including waiting, against the user's stated objectives, horizon and constraints. Show the evidence and uncertainty, identify what would change the conclusion, and revise or withdraw a claim when corrected. Agreement with an investment thesis grants no permission to act. A subsequent request to annotate the chart authorizes only the work allowed by that operation's scope.",
+      "learning": "Explain gaps in financial knowledge or reasoning using the decision at hand. If a stated rule and a proposed action appear inconsistent, point to the discrepancy and invite correction. Describe fear of loss or regret as a possible explanation only when grounded in the user's own words or selected records. Let the user disagree and continue the analysis.",
+      "decision_review": "Let the user choose which decisions to save as local notes. Preserve the dated thesis, alternatives, uncertainty, source references, AI objections and the user's choice as known at the time. In review, show later actions, outcomes and corrections separately, including a choice to wait. Evaluate the reasoning against the original constraints. Profit or loss alone cannot establish decision quality. Users can inspect or delete saved local notes. Saving a note and sharing it with a model are separate user choices. The mandatory redacted operation history has its own purpose and retention."
     },
     "platform": {
       "v1": "Windows 10/11 x64",
@@ -81,6 +84,8 @@
       "Text and opt-in voice conversations, two-way evidence selection and visible AI tool operations",
       "Declarative indicator previews and acceptance",
       "Explicitly authorized previews of trusted Python indicators",
+      "Evidence-based deliberation, user-selected decision notes and review against subsequent outcomes",
+      "User-configured model adapters and an opt-in local MCP connection to the open desktop workspace",
       "Operation history",
       "Workspace restoration",
       "Offline demo mode"
@@ -108,10 +113,12 @@
     "service_policy": {
       "default": "Installing ScopeHub does not include market data, AI, information or any other financial service subscription.",
       "development_samples": "Owner-provided files and generated fixtures are development/test inputs, not a promised production feed or bundled service.",
-      "connections": "Allow users to connect their own local data, APIs, services and independently implemented adapters. Keep sources replaceable and able to coexist.",
-      "commercial_services": "Users obtain needed services separately and bear applicable provider charges; installing ScopeHub does not include a service plan. User-owned local data and independently implemented connections remain supported product requirements. This requirement does not mandate a ScopeHub billing system.",
+      "connections": "Choose the source separately for each capability in settings. Keep user-owned files, model keys, data APIs, third-party services and custom adapters usable alongside eligible ScopeHub services. Show who supplies each service and allow the user to replace or disconnect it.",
+      "commercial_services": "ScopeHub may earn revenue from its software and separately selected services, including managed AI, licensed market quotes and history for charts, data preparation and technical connectivity. A user may combine a local futures CSV with ScopeHub AI, or use their own model or external client with an entitled ScopeHub feed. Each service requires its own selection and applicable terms. Pricing, plans, payment methods and billing implementation are deferred.",
       "demo": "Offline synthetic examples are explicitly selected and visibly labeled; never substitute them for an unavailable configured source.",
-      "capabilities": "Implement data access, charts, AI collaboration, information retrieval and service integrations within the product scope. Unconfigured startup is not a reason to omit these capabilities."
+      "capabilities": "Implement data access, charts, AI collaboration, information retrieval and service integrations within the product scope. Unconfigured startup is not a reason to omit these capabilities.",
+      "market_data_rights": "Qualify each offered dataset for its intended display, redistribution and use by a model or external client. Record source, coverage, delay, use rights and cost terms. A right to view a chart does not by itself allow exporting its underlying records. When entitlement ends, identify the affected source and keep independent connections available.",
+      "brokerage": "Any future live connection is technical access to an account the user opens, funds and authorizes directly with their brokerage or futures firm. The firm handles customer investment funds, executes orders and settles trades. ScopeHub can charge for its software or services. It does not open brokerage accounts for users, pool, receive, custody, transfer or invest customer capital. Qualify CTP and SnapTrade separately for the actual broker, account permissions and operations available. V1 excludes account access and live orders. A CTP market-data session grants neither."
     },
     "data_onboarding": {
       "entry": "Choose a local folder, a provider preset or a custom API. Chinese futures also have a dedicated CTP market-data connection. Show only fields required by the selected source and report instruments, coverage, freshness, units and available operations after a trial read.",
@@ -681,6 +688,18 @@
       "controls": "Make microphone, listening and transmission state visible. Stop capture when the user disables it. Interrupting speech stops playback. Cancelling or changing a task acts through the core and displays the result, including work already completed.",
       "provider": "Evaluate replaceable realtime model adapters. OpenAI GPT-Realtime-2 and GPT-Realtime-2.1 are candidates. Check availability for the intended region, mixed Chinese/alphanumeric recognition, latency, interruption, tool accuracy and actual session cost before choosing a default.",
       "data": "Before enabling a cloud session show the destination, scope of audio and workspace data and applicable charges. Local import stays usable offline. ScopeHub keeps no raw audio recording by default."
+    },
+    "model_connections": {
+      "setup": "In AI settings choose a provider and model, supply the credential it needs or select an entitled ScopeHub AI service. Identify the provider or router, destination, processing scope and charge basis before a connection test or first transmission. Resolve credentials in the trusted connector and exclude their values from prompts, tool replies and diagnostics.",
+      "capabilities": "Evaluate OpenAI, Google Gemini, Anthropic Claude and OpenRouter as independent candidates. Record text, structured tool calling and duplex audio per tested provider, route and model. A router or compatible request format alone establishes none of these capabilities. Use one qualified adapter for the first real session.",
+      "selection": "Display unavailable capabilities and offer supported interactions, including continuing in text. Switching provider, widening the fields sent or incurring a different charge requires the user's choice. Send only the selected context. An unavailable provider cannot silently switch to a different service or a synthetic answer."
+    },
+    "external_clients": {
+      "entry": "In external AI settings enable a local Model Context Protocol (MCP) connection and select the open workspace. Provide a connection command or client configuration, show its connection state and let the user disconnect it. ScopeHub serves tools to an external AI application such as Codex CLI, a compatible Codex desktop client, Claude Code or Claude Desktop. The external application supplies its own model access. A ScopeHub model key is unnecessary for this path.",
+      "transport": "Start with a client-launched local stdio bridge. Authenticate and pair the bridge with the running desktop core and the workspace the user selected. If the app closes or pairing expires, report disconnection. Identify the supported tool schema version and advertise only implemented operations permitted for this session.",
+      "grant": "The core binds a user-approved client identity, session and workspace to permitted operations and data fields. Start with a bounded chart read. Show which fields may leave ScopeHub and that the external application may forward them to its own cloud model. The user can narrow or revoke access. Filter every response by this grant and the source's use rights, including tool results and error details. Provider and broker secrets remain inside their trusted connectors.",
+      "operations": "Use the same Rust operation registry and state as the visible desktop. Attribute each step to the external client under the AI actor. Reads return the selected source and revision. Mutations require the target, expected revision and a write grant. When a core operation requires confirmation, obtain it from the human in ScopeHub. Keep the operation's retry, cancellation and undo semantics across clients. The bridge exposes no general filesystem, shell, SQL, account or order access.",
+      "visibility": "Identify the external client at the chart or object it read or changed and in redacted activity. A granted annotation appears on the user's open chart with its actual result. If the user changes selection while the client acts, reject the stale mutation and show how to read the new context. Disconnecting revokes future access and reports any already committed effects."
     }
   },
   "ui": {
@@ -879,11 +898,16 @@
         "task cancellation",
         "operation provenance",
         "Visible evidence selection across panels",
-        "Opt-in voice and text continuity"
+        "Opt-in voice and text continuity",
+        "Deliberation and opt-in decision review",
+        "Model-specific capability settings",
+        "Local MCP access to the same authorized workspace"
       ],
       "gate": [
         "AI cannot bypass authorization",
-        "end-to-end scenario"
+        "end-to-end scenario",
+        "A buy discussion preserves human judgment and operation scope",
+        "Observe a configured model, Codex CLI and a compatible desktop AI client through their respective entries"
       ]
     },
     {
@@ -919,7 +943,11 @@
       "Preview, apply, name, restore and revert a single-chart layout. Manual and AI edits use the same panel settings, linked selections and allowed interactions.",
       "The human and AI can each point to a versioned workspace object, reveal evidence in another panel, refine the selection and return to the previous view.",
       "AI operations show their target, preview or progress and actual outcome in the affected view. Confirmation, denial, failure and cancellation remain visible.",
-      "An explicitly enabled real voice session supports spoken discussion, interruption and text follow-up under the same operation permissions. A denied or interrupted request has an observable outcome."
+      "An explicitly enabled real voice session supports spoken discussion, interruption and text follow-up under the same operation permissions. A denied or interrupted request has an observable outcome.",
+      "Starting from a buy question, compare evidence, revise a challenged premise, and perform only a separately authorized workspace change. Reopen a user-saved decision and distinguish the original rationale from the later outcome.",
+      "Choose a provider and model independently of market data. Show verified capabilities, destination and applicable charges, handle an unsupported feature, and exercise a configured model on an evidence-based discussion.",
+      "An opted-in local MCP client reads the selected chart and, with a write grant, adds a reversible annotation to the same open workspace. The UI attributes the action. Denied, stale and revoked requests preserve the workspace and respect output permissions.",
+      "Observe Codex CLI and one compatible desktop AI client separately reading the open chart and applying a scoped annotation. Verify the visible result and undo on each supported test host."
     ],
     "performance": {
       "profile": "Record CPU/RAM/Windows/WebView2 versions; release build; 10000 bars; one chart; mock stream at 10 updates/s",

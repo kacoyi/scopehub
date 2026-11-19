@@ -1,0 +1,92 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-022",
+  "task_definition_sha256": "4ed1bf5dc0d8e3c2bd8e472ee68674d2dfc95e996cbe160f3ef317177d0076e2",
+  "run_id": "20261119T043122.056952Z-85dbfdd8",
+  "recorded_at": "2026-11-19T04:32:28.303543+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "c1c071191ff27bffeae56b5b11a40192737718f07a1f2b890c0e294412c23d97",
+    "file_count": 144,
+    "git_head": "497aaee26c00893c7845550865b92c461f2689fb",
+    "working_tree_dirty": true,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "5054b304fdb8774e1d1b7dbb176c5bedd908d60fb68305f811d62acfa4f50827",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/tmp/scopehub-contract-85IaBB5v/clean/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/tmp/scopehub-contract-85IaBB5v/clean/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "005fca44efe69e68b8c93be5ba866371264368b543cfc8f33535b56a9e5ae2b7"
+    },
+    {
+      "id": "generated-contracts",
+      "status": "passed",
+      "command": [
+        "/tmp/scopehub-contract-85IaBB5v/clean/.venv/bin/python",
+        "scripts/generate_contracts.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "613e7895729d6ca3eab1e5936a69b05a87fc03413db9f42730cbb5c0b3d65df8"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/tmp/scopehub-contract-85IaBB5v/clean/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "97f0454861ce9729d65eebe227ae94e1df2f1ff5eae3d552a233833ce997d9ff"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/tmp/scopehub-contract-85IaBB5v/clean/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5beb2c139c730c30f5fab991b71154c8d21f9c3ef743f2ec933dfca56be7a77b"
+    }
+  ],
+  "project_definition_sha256": "329f5b9b8d54aa98f1d1ace2f9f79c7ab2a46013c65cad912f142aa1983808bd",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

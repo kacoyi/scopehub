@@ -325,9 +325,35 @@
       "timeout_seconds": 1800
     },
     {
+      "id": "configured-model-session",
+      "status": "planned",
+      "purpose": "Independently verify model and data selection, declared capabilities, transmission scope, contrary evidence, corrections and tool outcomes in an authorized real text session. Record provider, route, model and observed charges where available.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 1800,
+      "cadence": "release"
+    },
+    {
       "id": "configured-voice-session",
       "status": "planned",
       "purpose": "Observe one explicitly authorized real duplex voice session, mixed-language entity correction, visible tool results, cancellation and text continuity.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 1800,
+      "cadence": "release"
+    },
+    {
+      "id": "external-ai-bridge",
+      "status": "planned",
+      "purpose": "Exercise a local MCP session against the running desktop core using bounded synthetic chart data. Verify visible attribution, grant and entitlement filtering, idempotent annotation, concurrent edits, undo and revocation.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 1800
+    },
+    {
+      "id": "configured-external-ai-clients",
+      "status": "planned",
+      "purpose": "Observe an authorized Codex CLI session and a compatible desktop AI client on supported hosts using the delivered local bridge. Check the same open chart, attributed annotations, denied operations and undo.",
       "platforms": "all",
       "command": null,
       "timeout_seconds": 1800,
@@ -380,7 +406,10 @@
       "checks": [
         "ai-workflow",
         "ai-replay-evaluations",
-        "configured-voice-session"
+        "configured-voice-session",
+        "external-ai-bridge",
+        "configured-external-ai-clients",
+        "configured-model-session"
       ]
     },
     {
@@ -502,6 +531,35 @@
       "checks": [
         "configured-voice-session",
         "credential-boundaries"
+      ]
+    },
+    {
+      "requirement": "Starting from a buy question, compare evidence, revise a challenged premise, and perform only a separately authorized workspace change. Reopen a user-saved decision and distinguish the original rationale from the later outcome.",
+      "checks": [
+        "ai-workflow",
+        "ai-replay-evaluations",
+        "state-migrations"
+      ]
+    },
+    {
+      "requirement": "Choose a provider and model independently of market data. Show verified capabilities, destination and applicable charges, handle an unsupported feature, and exercise a configured model on an evidence-based discussion.",
+      "checks": [
+        "configured-model-session",
+        "ai-replay-evaluations",
+        "credential-boundaries"
+      ]
+    },
+    {
+      "requirement": "An opted-in local MCP client reads the selected chart and, with a write grant, adds a reversible annotation to the same open workspace. The UI attributes the action. Denied, stale and revoked requests preserve the workspace and respect output permissions.",
+      "checks": [
+        "external-ai-bridge",
+        "operations-workflow"
+      ]
+    },
+    {
+      "requirement": "Observe Codex CLI and one compatible desktop AI client separately reading the open chart and applying a scoped annotation. Verify the visible result and undo on each supported test host.",
+      "checks": [
+        "configured-external-ai-clients"
       ]
     }
   ],

@@ -404,7 +404,7 @@
         "M4-002"
       ],
       "user_goal": "Discuss evidence out loud, correct what the AI understood and continue from that object in text.",
-      "given": "An explicitly configured voice provider, authorized microphone and data scope, and a chart with a known local disclosure fixture.",
+      "given": "A user-selected provider and model with verified voice capability, authorized microphone and data scope, and a chart with a known local disclosure fixture.",
       "when": "Ask whether the disclosure explains a price move, compare the published passage and chart in one timezone, interrupt with a corrected instrument or interval, then continue in text.",
       "then": [
         "The chart marks the observed move and publication time. The source view highlights the passage. The AI distinguishes the observed sequence from a causal inference.",
@@ -413,7 +413,9 @@
       "failure_cases": [
         "Microphone disabled or network interrupted",
         "Alphanumeric symbol or price misheard",
-        "Access denied or original target unavailable"
+        "Access denied or original target unavailable",
+        "Selected model supports text but lacks realtime audio",
+        "A proposed fallback changes the charge or external destination"
       ],
       "checks": [
         "configured-voice-session",
@@ -421,6 +423,60 @@
         "ai-replay-evaluations"
       ],
       "evidence_boundary": "A mock or text-only run cannot verify real voice. Keep raw audio private and retain only authorized redacted test observations. The disclosure fixture does not verify a network information channel."
+    },
+    {
+      "id": "decision-discussion-and-review",
+      "task_ids": [
+        "M4-001",
+        "M4-002",
+        "M2-001"
+      ],
+      "user_goal": "Decide whether a move changes my thesis and review my reasoning later.",
+      "given": "A synthetic instrument, two attributable revisions and the user's stated horizon and reason for considering a purchase.",
+      "when": "Ask whether to buy after a price rise. Challenge an explanation, correct a time window, request an annotation and choose whether to save the decision. Revisit it after later prices become available.",
+      "then": [
+        "The AI surfaces contrary evidence, recomputes the comparison for the corrected interval, states the uncertainty and lets the user choose. It can ask about a conflict with the user's own rule. Deliberation alone changes no chart or account state.",
+        "The authorized annotation has a visible core receipt. A saved note retains the contemporaneous alternatives and disagreement. Review distinguishes a gain or loss from faulty reasoning or incorrect input. The user can remove the note."
+      ],
+      "failure_cases": [
+        "User rejects a behavioral inference",
+        "A data correction arrives after the decision",
+        "A favorable outcome follows an unsupported thesis",
+        "User declines to save or share the note"
+      ],
+      "checks": [
+        "ai-workflow",
+        "ai-replay-evaluations",
+        "state-migrations",
+        "configured-model-session"
+      ],
+      "evidence_boundary": "Replay verifies permissions, provenance and which information was available. Observe the quality of dialogue separately with an authorized configured model. A simulated or realized return is not an acceptance metric."
+    },
+    {
+      "id": "external-ai-on-the-open-chart",
+      "task_ids": [
+        "M4-004",
+        "M4-005"
+      ],
+      "user_goal": "Use my preferred AI application to inspect the exact chart on screen and visibly annotate it.",
+      "given": "A running workspace showing the opt-in synthetic sample and a user-enabled local MCP connection scoped to that workspace.",
+      "when": "From Codex CLI, read the selected chart, request an annotation, inspect the result in ScopeHub and undo it. Repeat independently from a compatible desktop AI client.",
+      "then": [
+        "The read identifies the same instrument, interval, source and revision visible to the user. ScopeHub identifies the requesting client and exposes only selected data. Read-only access rejects the first annotation.",
+        "After a write grant the annotation appears once on the user's chart and can be undone. A changed revision, a different workspace or a revoked grant produces a visible denial with no new effect."
+      ],
+      "failure_cases": [
+        "Client requests a field outside its entitlement",
+        "Client disconnects after the core committed a mutation",
+        "The user changes selection before the write",
+        "User denies a required confirmation in ScopeHub"
+      ],
+      "checks": [
+        "external-ai-bridge",
+        "operations-workflow",
+        "configured-external-ai-clients"
+      ],
+      "evidence_boundary": "Automated bridge checks cover local transport, concurrency and authorization. A product claim for a named client also needs the observed real client version, host and protected output. A fixture or CLI trace alone cannot establish desktop compatibility."
     }
   ],
   "release_policy": {

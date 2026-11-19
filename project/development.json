@@ -435,7 +435,7 @@
         "M4-001"
       ],
       "delivery": "current-contract",
-      "boundary": "Planned shared chart, table and passage selections, visible core outcomes and reviewed mapping proposals. Deterministic replay and a configured voice session provide different evidence."
+      "boundary": "Planned shared evidence, reviewed mappings and visible outcomes. The financial partner challenges a thesis, revises its own conclusion and reviews user-selected decision notes. Replay and observed real-model discussion establish different aspects."
     },
     {
       "id": "installation",
@@ -535,6 +535,55 @@
       ],
       "delivery": "later",
       "boundary": "Evaluate a separately isolated renderer only when declarative layouts cannot express a concrete panel. Runtime execution needs a future scoped decision."
+    },
+    {
+      "id": "model-provider-choice",
+      "source": {
+        "path": "engineering-contract-v1.json",
+        "pointer": "/ai/model_connections"
+      },
+      "task_ids": [
+        "M4-002"
+      ],
+      "delivery": "current-contract",
+      "boundary": "One explicitly configured adapter is observed. Candidate model providers, tool capabilities, routing and voice support are qualified individually."
+    },
+    {
+      "id": "external-ai-clients",
+      "source": {
+        "path": "engineering-contract-v1.json",
+        "pointer": "/ai/external_clients"
+      },
+      "task_ids": [
+        "M4-004",
+        "M4-005"
+      ],
+      "delivery": "current-contract",
+      "boundary": "Local bridge and actual CLI and desktop client observations are pending. Only the user's selected workspace, operations and permitted data enter the external client."
+    },
+    {
+      "id": "optional-scopehub-services",
+      "source": {
+        "path": "engineering-contract-v1.json",
+        "pointer": "/product/service_policy/commercial_services"
+      },
+      "task_ids": [
+        "M5-003"
+      ],
+      "delivery": "later",
+      "boundary": "Optional licensed market data and managed AI may be selected independently of user-supplied connections. Service qualification and pricing are outstanding."
+    },
+    {
+      "id": "user-held-brokerage-connection",
+      "source": {
+        "path": "engineering-contract-v1.json",
+        "pointer": "/product/service_policy/brokerage"
+      },
+      "task_ids": [
+        "M2-004"
+      ],
+      "delivery": "later",
+      "boundary": "Future technical connectivity requires a separately qualified workflow with a user-held account. Customer investment funds and settlement stay with the brokerage or futures firm."
     }
   ],
   "improvement_metrics": [

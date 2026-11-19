@@ -226,11 +226,15 @@
     "financial_services": false
   },
   "development_data": "Explicit synthetic demo and owner-supplied test samples only; local/API adapters remain unimplemented.",
-  "service_capabilities": "Data, AI, information and service integration capabilities remain product requirements. Users supply their own connections and service subscriptions; unconfigured defaults do not remove capabilities.",
+  "service_capabilities": "Users can bring their own connections and independently select eligible ScopeHub software, AI or licensed data services. Internal model adapters and external AI clients have separate connection and authorization requirements. Production services and client access are unconfigured.",
   "product_requirements": [
     "engineering-contract-v1.json#/product/data_onboarding",
     "engineering-contract-v1.json#/ai/voice",
     "engineering-contract-v1.json#/ui/shared_evidence",
-    "engineering-contract-v1.json#/ui/customization"
+    "engineering-contract-v1.json#/ui/customization",
+    "engineering-contract-v1.json#/product/collaboration_model",
+    "engineering-contract-v1.json#/product/service_policy",
+    "engineering-contract-v1.json#/ai/model_connections",
+    "engineering-contract-v1.json#/ai/external_clients"
   ]
 }

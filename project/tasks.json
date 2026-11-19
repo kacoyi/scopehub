@@ -306,12 +306,14 @@
         "0001",
         "0002",
         "0003",
-        "0004"
+        "0004",
+        "0009"
       ],
       "acceptance": [
         "Human and AI actions use the same registry, permissions, confirmations, revisions and idempotency semantics.",
         "Workspace restoration and undo preserve accepted state; restart does not replay prior AI operations.",
-        "Introduce versioned database migrations and recovery tests when persistent state is first introduced."
+        "Introduce versioned database migrations and recovery tests when persistent state is first introduced.",
+        "A user-selected local decision note retains the dated rationale and evidence references across restart. Append later outcomes separately. Exercise deletion and recovery, and verify that declining to save leaves no decision note."
       ],
       "checks": [
         "operations-workflow",
@@ -376,7 +378,8 @@
         "0002",
         "0003",
         "0004",
-        "0008"
+        "0008",
+        "0009"
       ],
       "acceptance": [
         "Mock AI uses actual chart context and core tools to create, inspect and revise an indicator draft.",
@@ -385,7 +388,9 @@
         "Mock acceptance is separate from later real-model and real-data usability validation.",
         "From a selected interval, reveal a versioned row or local document passage in another view, highlight the exact evidence and continue after the user corrects the range. Preserve the previous view and surface stale or missing anchors.",
         "Observe the target and actual core result in the affected chart, column or panel. Check denial, cancellation and stale revisions, and exercise a layout edit through the same core operation as a manual edit.",
-        "Suggest a local CSV mapping from permitted sample fields. Show the proposal for correction and run the approved deterministic rule with the same result as a manually supplied mapping."
+        "Suggest a local CSV mapping from permitted sample fields. Show the proposal for correction and run the approved deterministic rule with the same result as a manually supplied mapping.",
+        "From a buy question, compare two explanations using workspace data and a reproducible calculation. Show contrary evidence and update the conclusion when the user corrects a premise. Seek clarification about a possible behavioral pattern. The discussion itself authorizes no mutation.",
+        "In the same conversation, carry out a separately scoped chart action. Offer to save the user's choice, including inaction, with the original evidence and disagreement. Reopen the note after a later price move, assess reasoning using information known at the time and surface any data or execution defect separately."
       ],
       "checks": [
         "ai-workflow",
@@ -394,7 +399,7 @@
         "local-folder-import"
       ],
       "evidence": [],
-      "next_action": "Extend the first indicator conversation with a fixture-backed evidence comparison, user correction and visible action results. Exercise the layout and import mapping through their delivered entries.",
+      "next_action": "Exercise the indicator, evidence, layout and import journeys through their normal entries. Add a buy-discussion replay with a correction, an authorized chart annotation and an optional decision note.",
       "blocker": null,
       "closure_reason": null
     },
@@ -2287,7 +2292,7 @@
     },
     {
       "id": "M4-002",
-      "title": "Evaluate an explicitly configured model and realtime voice session",
+      "title": "Qualify user-selected model access and a realtime voice session",
       "milestone": "M4",
       "status": "planned",
       "depends_on": [
@@ -2303,21 +2308,25 @@
         "0007",
         "0004",
         "0005",
-        "0008"
+        "0008",
+        "0009"
       ],
       "acceptance": [
         "Show provider, data scope, cost basis and microphone state before audio transmission. Keep secrets outside model input and logs. Confirm application recording defaults and stop capture on disable or disconnect.",
         "Observe an authorized real voice session with Chinese speech, alphanumeric contracts and spoken numbers. Record correction accuracy, first-audio latency, interruption, tool outcomes and actual metered cost where available.",
-        "Continue the same conversation in text, compare the same tool permissions and confirmation as manual input, and distinguish stopping playback from cancellation acknowledged by the core. Keep a missing authorized connection visibly unverified."
+        "Continue the same conversation in text, compare the same tool permissions and confirmation as manual input, and distinguish stopping playback from cancellation acknowledged by the core. Keep a missing authorized connection visibly unverified.",
+        "Select a provider and model separately from a synthetic or user-owned data source. Show the enabled text, tool and audio capabilities, destination and charge basis. A text-only adapter remains usable when voice is unavailable. Reject a silent provider or paid fallback and redact the configured secret in failures.",
+        "Observe at least one configured model discussing evidence and revising an interpretation after a correction. Record the actual provider, route where available, model and operation outcomes. Credential-free replay covers a second adapter profile without implying a second live integration. One authorized session may supply both text and voice evidence if each path is actually exercised."
       ],
       "checks": [
         "ai-workflow",
         "ai-replay-evaluations",
         "credential-boundaries",
+        "configured-model-session",
         "configured-voice-session"
       ],
       "evidence": [],
-      "next_action": "Define a short bilingual voice evaluation and a denied-action case. Run the offline replay first, then observe an explicitly configured adapter under the authorized transmission scope.",
+      "next_action": "Exercise two distinct capability profiles offline, then observe authorized discussion, tool use and bilingual voice with a qualified model for each required modality.",
       "blocker": null,
       "closure_reason": null
     },
@@ -2351,6 +2360,136 @@
       ],
       "evidence": [],
       "next_action": "Register an original-source retrieval and presentation check for the first configured channel before activation. Use the disclosure-versus-price example and record the actual coverage and access scope.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "later"
+    },
+    {
+      "id": "M4-004",
+      "title": "Expose the open workspace through a scoped local MCP server",
+      "milestone": "M4",
+      "status": "planned",
+      "depends_on": [
+        "M4-001"
+      ],
+      "scope": [
+        "crates/application",
+        "apps/desktop",
+        "contracts",
+        "tests"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008",
+        "0009"
+      ],
+      "acceptance": [
+        "Enable and pair a local client from settings. Through the delivered stdio entry, discover allowed tools and read the desktop's selected instrument, range, source and revision. Return only authorized fields and identify the client at the affected chart.",
+        "Grant a chart annotation, apply it once to the visible workspace, then undo it. Exercise duplicate requests, simultaneous human edits, grant revocation, closed workspaces, cross-workspace requests and restricted source fields. The core decides scope and any required confirmation."
+      ],
+      "checks": [
+        "external-ai-bridge",
+        "operations-workflow"
+      ],
+      "evidence": [],
+      "next_action": "Start with an opt-in read of the running synthetic chart. Add the scoped annotation only after attribution and negative read cases pass.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M4-005",
+      "title": "Observe actual CLI and desktop AI clients on the shared chart",
+      "milestone": "M4",
+      "status": "planned",
+      "depends_on": [
+        "M4-004"
+      ],
+      "scope": [
+        "apps/desktop",
+        "tests",
+        "project/checks.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008",
+        "0009"
+      ],
+      "acceptance": [
+        "From Codex CLI and one compatible desktop AI application, independently connect to an explicitly selected running workspace with synthetic data. Read the current chart and compare its source, timeframe and selection to the desktop.",
+        "In each client, first attempt a mutation under read-only access. After the user grants write access, add an attributed annotation, inspect it in the same chart and undo it. Record client, version, host, workspace revision and redacted results. Use the client's own model access."
+      ],
+      "checks": [
+        "configured-external-ai-clients",
+        "external-ai-bridge"
+      ],
+      "evidence": [],
+      "next_action": "Choose supported hosts for the two real clients. Perform the authorized sessions against the delivered bridge and retain separate observations for each client.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M5-003",
+      "title": "Qualify an optional ScopeHub data or AI service",
+      "milestone": "M5",
+      "status": "planned",
+      "depends_on": [
+        "M0-022"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "contracts",
+        "project/checks.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008",
+        "0009"
+      ],
+      "acceptance": [
+        "For the selected offering, verify entitlement, provider and destination, processing terms, coverage or model capabilities, cost disclosure and the effect of revocation. For data, establish actual display, redistribution and external-AI rights before exposing each use.",
+        "Exercise an independently supplied capability alongside the offering, such as user-owned CSV with managed AI or an entitled ScopeHub dataset with a user-selected model. Show what remains usable when the optional service is disconnected."
+      ],
+      "checks": [
+        "credential-boundaries"
+      ],
+      "evidence": [],
+      "next_action": "When an offering is selected, register a qualification check specific to its actual terms, permissions and mixed-source use before activation. Pricing and billing design await a separate owner decision.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "later"
+    },
+    {
+      "id": "M2-004",
+      "title": "Qualify technical connectivity to a user-held brokerage account",
+      "milestone": "M2",
+      "status": "planned",
+      "depends_on": [
+        "M0-022"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "contracts",
+        "project/checks.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008",
+        "0009"
+      ],
+      "acceptance": [
+        "For a separately authorized future workflow, identify the broker, adapter, supported markets and exact account or order scopes. Verify that the user opens and funds the account directly with the brokerage or futures firm.",
+        "Document the firm's execution and settlement responsibilities, core permissions, user approvals and reconciliation needed for that workflow. Qualify market-data-only CTP independently of any trading channel."
+      ],
+      "checks": [
+        "operations-workflow",
+        "credential-boundaries"
+      ],
+      "evidence": [],
+      "next_action": "Revisit only with an owner-selected brokerage use case. Specify a dedicated qualification gate before any account or order implementation.",
       "blocker": null,
       "closure_reason": null,
       "delivery": "later"
@@ -3074,6 +3213,119 @@
       }
     },
     {
+      "id": "M0-022",
+      "title": "Define financial collaboration, service choices and external AI access",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-021"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "contracts/contract.json",
+        "contracts/decisions",
+        "project/tasks.json",
+        "project/checks.json",
+        "project/delivery.json",
+        "project/development.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0007",
+        "0008",
+        "0009"
+      ],
+      "acceptance": [
+        "The contract covers a change of intent within a conversation, optional decision review, independently chosen services, the customer investment-funds boundary and both directions of AI connectivity.",
+        "The product brief and acceptance catalog identify responsible tasks, real-client evidence, later commercial qualification and the existing runtime surface."
+      ],
+      "checks": [
+        "project-state",
+        "generated-contracts",
+        "architecture",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-022-5054b304fdb8774e.json",
+          "sha256": "bac90b832f9b8455b006a19c7912db1caaebd28f4efd9cb26adae71428242efa"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A contributor can trace the owner's collaboration, service and external-client requirements to observable journeys and their delivery status.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/contract.json",
+          "contracts/decisions/0008-inspectable-data-and-workspace-actions.json",
+          "project/development.json",
+          "project/delivery.json",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "Separate an embedded model provider from an external client of the existing operation registry. Both can work with independently selected market data."
+        ],
+        "risks": [
+          {
+            "failure": "A design statement or synthetic replay is interpreted as a working client, paid service, live order or permission grant.",
+            "checks": [
+              "project-state",
+              "generated-contracts"
+            ]
+          },
+          {
+            "failure": "The new surface weakens established authorization or silently expands historical task acceptance.",
+            "checks": [
+              "architecture",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Compare to the preceding contract checkpoint. Preserve completed records and correct a changed decision with a subsequent revision.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "engineering-contract-v1.json",
+            "contracts/contract.json",
+            "scripts/project.py"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/iteration_policy"
+            }
+          ],
+          "non_goals": [
+            "Implementing a client or adapter, choosing prices, handling investment funds, enabling external transmission or connecting an account."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "Explicit service selection, one chart workspace, visible operations, existing protocol and accepted decisions."
+          ],
+          "change": [
+            "Specify decision support and review, optional first-party services, provider selection and a local external AI client journey."
+          ],
+          "data_plan": "Only project records change. New data retention, model access and client transmission require their own product actions during implementation.",
+          "cleanup": "Reconcile service wording in both manifests and verify the unchanged operation catalog and completed task history."
+        }
+      }
+    },
+    {
       "id": "M2-002",
       "title": "Customize and restore a single-chart workspace",
       "milestone": "M2",
@@ -3292,6 +3544,7 @@
         "M2-002",
         "M3-001",
         "M4-001",
+        "M4-004",
         "M4-002",
         "M1-013"
       ],
@@ -3303,13 +3556,15 @@
       "decision_refs": [
         "0004",
         "0005",
-        "0007"
+        "0007",
+        "0009"
       ],
       "acceptance": [
         "Exercise the current contract's live and historical chart journeys on Ubuntu, including interruption and recovery, user-owned local data, shared operations, durable workspace recovery, reproducible indicators and human-AI chart collaboration.",
         "Distinguish deterministic AI execution from an explicitly configured model connection. Follow the owner's authorization for the configured service, credentials and any external transmission. Record outstanding real-connection evidence when configuration or authorization is unavailable.",
         "Verify the complete applicable Ubuntu experience on a recorded revision and retain end-to-end observations and regression results. Track Windows installation, packaging and native credential evidence on their designated platform. Explicitly later capabilities remain outside this review unless their delivery scope changes.",
-        "Observe CSV folder refresh, a restored custom layout, two-way evidence selection and in-place action results. Identify the exact authorized voice session or record why its real-connection evidence is outstanding."
+        "Observe CSV folder refresh, a restored custom layout, two-way evidence selection and in-place action results. Identify the exact authorized voice session or record why its real-connection evidence is outstanding.",
+        "Exercise the local bridge against the visible Ubuntu chart and review a saved decision. Track actual CLI and desktop client observations under M4-005 on supported hosts, including Windows when required."
       ],
       "checks": [
         "ubuntu-preview",
@@ -3324,6 +3579,8 @@
         "ai-replay-evaluations",
         "local-folder-import",
         "workspace-layout",
+        "external-ai-bridge",
+        "configured-model-session",
         "configured-voice-session"
       ],
       "evidence": [],

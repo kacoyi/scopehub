@@ -1,0 +1,44 @@
+{
+  "schema_version": "1.0",
+  "id": "0009",
+  "title": "Separate model supply from client access to a shared financial workspace",
+  "status": "accepted",
+  "recorded_at": "2026-11-18",
+  "context": "The owner wants a financial partner that can challenge a thesis, review a decision and execute authorized work. Users may bring their own data, model or AI application, or pay ScopeHub for selected services. An external assistant must be able to operate on what its user actually sees.",
+  "decision": "Keep data supply, embedded model selection and external-client access independent. A configured provider adapter supplies the model for an in-product conversation. A local MCP server presents a scoped view of the running Rust core to an outside assistant. Resolve permissions, data entitlements, confirmations and state changes at that core. Record the responsible client and the affected object. Keep saved decision rationale distinct from the operation log and later outcomes.",
+  "authority": "The owner approved updating the contract for the preceding discussions and deferred pricing research. ADR 0007 delegates the engineering choice of bridge and provider boundaries. Live accounts, buying services, retention of user notes and transmission of user data each remain subject to their own applicable authorization.",
+  "alternatives": [
+    {
+      "option": "Treat every assistant as a model endpoint in ScopeHub.",
+      "reason": "Users speaking in a separate AI application need that application to call tools on their active ScopeHub workspace while keeping its own model relationship."
+    },
+    {
+      "option": "Let external assistants drive the UI or maintain a second workspace.",
+      "reason": "Neither gives the desktop core reliable operation grants, revision checks and a single inspectable result. Some valuable calculations also have no dedicated control."
+    },
+    {
+      "option": "Bundle data, AI and brokerage access into one service.",
+      "reason": "Users combine independently supplied capabilities. A chart display entitlement, permission to send data to an external AI and an account owner's authority to trade are distinct."
+    }
+  ],
+  "consequences": [
+    "The first bridge delivers chart inspection and a reversible annotation. Record offline protocol evidence separately from observed real CLI and desktop client sessions on supported hosts. External-client model credentials stay with that client.",
+    "The default installation stays unconfigured. Optional ScopeHub AI and data offerings need independent qualification before sale. Brokerage connectivity is a later product decision with user-held accounts and broker execution.",
+    "Evolve the wire schemas, credential bindings and local state only when their implementation needs them. Any persisted decision-note format requires versioned migration, deletion and recovery verification."
+  ],
+  "supersedes": [],
+  "related_decisions": [
+    "0007",
+    "0008"
+  ],
+  "revisit_when": "A concrete client needs a different transport, an entitlement cannot be enforced at export, or a provider, account or retention workflow requires new authority.",
+  "references": {
+    "protocol": [
+      "https://modelcontextprotocol.io/specification/2025-11-25/basic/transports"
+    ],
+    "clients": [
+      "https://learn.chatgpt.com/docs/extend/mcp",
+      "https://support.claude.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop"
+    ]
+  }
+}
