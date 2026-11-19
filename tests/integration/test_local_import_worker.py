@@ -138,11 +138,20 @@ class LocalImportWorkerTests(unittest.TestCase):
         rows = [f'000071,{day},8,10,7,9,,raw\r\n'.encode() for day in reversed(dates)]
         rows += [b'000071,2024-01-01,8,10,7,9,,"retained\r\nunknown"\r\n']
         content = header + b''.join(rows)
+        preview_process = worker(b''.join(map(line, request(content, row_limit=500))))
+        self.assertEqual((preview_process.returncode, preview_process.stderr), (0, b''))
+        preview_reply, = self.reply_frames(preview_process.stdout)
+        preview = json.loads(preview_reply)['preview']
+        self.assertTrue(preview['truncated'])
+        self.assertEqual(len(preview['rows']), 500)
+        self.assertEqual(preview['rows'][-1]['record_number'], 500)
+
         process = worker(b''.join(map(line, complete_request(content))))
         self.assertEqual((process.returncode, process.stderr), (0, b''))
         reply, = self.reply_frames(process.stdout)
         checked = json.loads(reply)['publication']
         self.assertEqual(checked['file_sha256'], sha256(content).hexdigest())
+        self.assertEqual(checked['file_sha256'], preview['file_sha256'])
         self.assertEqual(checked['mapping_revision'], MAPPING['revision'])
         self.assertEqual(checked['header'][-1], 'Note\r\nfrom source')
         self.assertEqual(checked['symbol'], '000071')
