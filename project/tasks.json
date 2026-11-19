@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-011",
+  "focus_task_id": "M4-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -779,7 +779,7 @@
       "id": "M4-001",
       "title": "Deliver the first human-AI chart collaboration workflow",
       "milestone": "M4",
-      "status": "planned",
+      "status": "active",
       "depends_on": [
         "M3-001",
         "M1-008",
@@ -789,7 +789,13 @@
         "python/ai",
         "crates/application",
         "apps/desktop/ui",
-        "tests"
+        "tests",
+        "crates/worker-host",
+        "crates/persistence",
+        "apps/desktop/src-tauri",
+        "python/worker_runtime",
+        "contracts",
+        "project"
       ],
       "decision_refs": [
         "0001",
@@ -798,7 +804,8 @@
         "0004",
         "0008",
         "0009",
-        "0011"
+        "0011",
+        "0019"
       ],
       "acceptance": [
         "Mock AI uses actual chart context and core tools to create, inspect and revise an indicator draft.",
@@ -818,12 +825,119 @@
         "ai-workflow",
         "ai-replay-evaluations",
         "workspace-layout",
-        "local-folder-import"
+        "local-folder-import",
+        "model-connection-workflow",
+        "model-connection-replay",
+        "ui-build",
+        "market-workflow",
+        "operations-workflow",
+        "generated-contracts",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Exercise the indicator, evidence, layout and import journeys through their normal entries. Add a buy-discussion replay with a correction, an authorized chart annotation and an optional decision note.",
+      "next_action": "Deliver and review one selected-chart question, a corrected interval and an entitlement denial through the normal text connection and shared Rust registry. Retain the broader assisted actions, evaluations and private excerpt boundaries until observed.",
       "blocker": null,
-      "closure_reason": null
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Ask the connected model about a selected chart interval, inspect the actual prices and provenance it used, and correct the interval in the same conversation. Continue through the indicator, evidence, layout, CSV mapping and decision-note acceptance scenarios.",
+        "change_types": [
+          "ai",
+          "model-connection",
+          "ui",
+          "protocol",
+          "permissions"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/decisions/0009-model-providers-and-external-workspace-clients.json",
+          "contracts/decisions/0011-local-profiles-and-connected-model-use.json",
+          "contracts/decisions/0019-profile-text-model-route.json",
+          "crates/application/src/workspace/evidence.rs",
+          "crates/application/src/workspace/text_connection.rs",
+          "apps/desktop/ui/src/model-chat.tsx"
+        ],
+        "hypotheses": [
+          "A provider tool call can use the existing Rust selection and projected-read registry. Its result must be correlated to the selected revision, range, fields, conversation and effective recipient.",
+          "A controlled endpoint and actual chart fixtures let independent checks compare the request, returned values and corrected interpretation without spending an end user’s model credit."
+        ],
+        "risks": [
+          {
+            "failure": "The model reports a value for an old selection or a successful action before the core result exists.",
+            "checks": [
+              "ai-workflow",
+              "ai-replay-evaluations",
+              "operations-workflow"
+            ]
+          },
+          {
+            "failure": "Display-only data, an unrelated row or a saved private record enters a provider request, follow-up or different route.",
+            "checks": [
+              "ai-replay-evaluations",
+              "model-connection-replay"
+            ]
+          },
+          {
+            "failure": "A canceled or interleaved tool call changes the wrong chart or creates an unapproved mutation.",
+            "checks": [
+              "ai-workflow",
+              "workspace-layout"
+            ]
+          }
+        ],
+        "rollback": "Retain failing replay inputs and the original chart, private data and operation receipts. Disable the affected tool on its declared route while the ordinary bounded text and manual workflows remain usable.",
+        "implementation": {
+          "modules": [
+            "product-ai",
+            "application",
+            "worker-host",
+            "worker-runtime",
+            "desktop",
+            "ui"
+          ],
+          "entrypoints": [
+            "crates/application/src/workspace/evidence.rs",
+            "crates/application/src/workspace/text_connection.rs",
+            "crates/application/src/workspace/indicators.rs",
+            "apps/desktop/ui/src/model-chat.tsx",
+            "python/ai/ollama.py"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ai/tool_policy"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ai/claim_policy"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ai/model_connections/session_grant"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence/private_content/transfer"
+            }
+          ],
+          "non_goals": [
+            "Trading, automatically exposing a display entitlement to any model, or counting the controlled model endpoint as a qualified live service."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Ordinary text, independent market and model choice, shared manual and AI operation authorization, reversible layout and indicator history, private local originals and explicit per-turn attachments."
+          ],
+          "change": [
+            "Add provider tool negotiation, bounded correlated dispatch and UI evidence grounded in the current authorized chart selection. Implement the remaining assisted workflows in verifiable increments."
+          ],
+          "data_plan": "Use disposable synthetic profiles and rights for each chosen destination during verification. Keep private originals local. Restrict chart results to the permitted selection and fields and recheck before serialization. Store replay evidence using synthetic data.",
+          "cleanup": "Stop further model and tool dispatch on cancellation or changed grants. Release request-local evidence, remove superseded draft references and retain attributable prior committed receipts."
+        }
+      }
     },
     {
       "id": "M5-001",
