@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-027",
+  "focus_task_id": "M1-008",
   "tasks": [
     {
       "id": "M0-001",
@@ -5305,7 +5305,7 @@
       "id": "M1-019",
       "title": "Verify recovery boundaries and owned worker interruption on Windows",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-003"
       ],
@@ -5369,9 +5369,17 @@
         {
           "path": "project/evidence/M1-019-a5c00379c62d812b.json",
           "sha256": "ade7745a3b59b2b08631312c9316857151498898f102c8aaa2480ccf8f7d24b3"
+        },
+        {
+          "path": "project/evidence/M1-019-875d2aa0a12efd3c.json",
+          "sha256": "c9ce07a16bba084da526c3ca6b293fab69a27f9d35eb73ce3b6ddcba4cad6756"
+        },
+        {
+          "path": "project/evidence/M1-019-e036185761cf4c65.json",
+          "sha256": "7e6b31c53e8c67539b63a4a95aa207f6edac4062dc7bc17c563d82b3fe63aca6"
         }
       ],
-      "next_action": "Confirm the repaired hosted Linux advisory read and recheck the integrated Windows run. The isolated Linux scenario and matching hosted Windows scenario passed at f8e8bc3.",
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -5469,7 +5477,7 @@
       "id": "M0-027",
       "title": "Isolate the live publisher advisory request in GitHub verification",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-017"
       ],
@@ -5498,9 +5506,17 @@
         {
           "path": "project/evidence/M0-027-25105a7b3a4f376a.json",
           "sha256": "86751b14e19cb2f9b2dfce9baf02de232e84eec447ee98c1f51245acc6c901f4"
+        },
+        {
+          "path": "project/evidence/M0-027-875d2aa0a12efd3c.json",
+          "sha256": "6bb2d38b8253a08a5309e784bb195c2a163e8ea58f35aaa772abae61f8d0558b"
+        },
+        {
+          "path": "project/evidence/M0-027-e036185761cf4c65.json",
+          "sha256": "4b5a6dfb545c543ea9298bac984771f657cc36e6a662180a129f46246425189c"
         }
       ],
-      "next_action": "The live local review and synthetic credential-boundary checks passed. Verify the isolated read with the existing hosted job identity and archive that run before resolving the rate-limit feedback.",
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
