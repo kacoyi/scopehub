@@ -2850,6 +2850,7 @@ dependencies = [
  "scopehub-domain",
  "serde_json",
  "sha2",
+ "url",
  "uuid",
 ]
 

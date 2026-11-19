@@ -1,0 +1,184 @@
+[
+  {
+    "name": "review an explicit route",
+    "operation": "ai.textConnection",
+    "direction": "input",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-0000-0000-000000000001",
+      "request_id": "00000000-0000-0000-0000-000000000002",
+      "timestamp_ms": 100,
+      "type": "request",
+      "scope": {
+        "workspace_id": "main"
+      },
+      "intent": {
+        "operation": "ai.textConnection",
+        "arguments": {
+          "action": "propose",
+          "route": {
+            "kind": "ollama",
+            "origin": "http://127.0.0.1:11434",
+            "model": "synthetic"
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "send text under a live grant",
+    "operation": "ai.textConnection",
+    "direction": "input",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-0000-0000-000000000001",
+      "request_id": "00000000-0000-0000-0000-000000000002",
+      "timestamp_ms": 100,
+      "type": "request",
+      "scope": {
+        "workspace_id": "main"
+      },
+      "intent": {
+        "operation": "ai.textConnection",
+        "arguments": {
+          "action": "send",
+          "connection_id": "00000000-0000-0000-0000-000000000003",
+          "question": "How does a synthetic example work?"
+        }
+      }
+    }
+  },
+  {
+    "name": "ordinary turn cannot attach a private record",
+    "operation": "ai.textConnection",
+    "direction": "input",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-0000-0000-000000000001",
+      "request_id": "00000000-0000-0000-0000-000000000002",
+      "timestamp_ms": 100,
+      "type": "request",
+      "scope": {
+        "workspace_id": "main"
+      },
+      "intent": {
+        "operation": "ai.textConnection",
+        "arguments": {
+          "action": "send",
+          "connection_id": "00000000-0000-0000-0000-000000000003",
+          "question": "How does a synthetic example work?",
+          "record_id": "00000000-0000-0000-0000-000000000004"
+        }
+      }
+    }
+  },
+  {
+    "name": "origin choice has no credential reference",
+    "operation": "ai.textConnection",
+    "direction": "input",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-0000-0000-000000000001",
+      "request_id": "00000000-0000-0000-0000-000000000002",
+      "timestamp_ms": 100,
+      "type": "request",
+      "scope": {
+        "workspace_id": "main"
+      },
+      "intent": {
+        "operation": "ai.textConnection",
+        "arguments": {
+          "action": "propose",
+          "route": {
+            "kind": "ollama",
+            "origin": "http://127.0.0.1:11434",
+            "model": "synthetic",
+            "credential_ref": "synthetic"
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "scope has no claimed profile or actor",
+    "operation": "ai.textConnection",
+    "direction": "input",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-0000-0000-000000000001",
+      "request_id": "00000000-0000-0000-0000-000000000002",
+      "timestamp_ms": 100,
+      "type": "request",
+      "scope": {
+        "workspace_id": "main",
+        "profile_id": "synthetic-other"
+      },
+      "intent": {
+        "operation": "ai.textConnection",
+        "arguments": {
+          "action": "send",
+          "connection_id": "00000000-0000-0000-0000-000000000003",
+          "question": "How does a synthetic example work?"
+        }
+      }
+    }
+  },
+  {
+    "name": "correlated result carries responding model",
+    "operation": "ai.textConnection",
+    "direction": "output",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-0000-0000-000000000001",
+      "request_id": "00000000-0000-0000-0000-000000000002",
+      "timestamp_ms": 100,
+      "type": "response",
+      "outcome": {
+        "state": "completed",
+        "operation": "ai.textConnection",
+        "result": {
+          "action": "poll",
+          "turn_id": "00000000-0000-0000-0000-000000000004",
+          "turn": {
+            "state": "completed",
+            "model": "synthetic-resolved",
+            "text": "Synthetic answer."
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "model output cannot carry a tool request",
+    "operation": "ai.textConnection",
+    "direction": "output",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-0000-0000-000000000001",
+      "request_id": "00000000-0000-0000-0000-000000000002",
+      "timestamp_ms": 100,
+      "type": "response",
+      "outcome": {
+        "state": "completed",
+        "operation": "ai.textConnection",
+        "result": {
+          "action": "poll",
+          "turn_id": "00000000-0000-0000-0000-000000000004",
+          "turn": {
+            "state": "completed",
+            "model": "synthetic-resolved",
+            "text": "Synthetic answer.",
+            "tool_calls": []
+          }
+        }
+      }
+    }
+  }
+]

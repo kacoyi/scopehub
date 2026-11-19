@@ -27,6 +27,9 @@ mod notes;
 mod private_records;
 mod source;
 pub use source::{FrozenWorkspaceSourceStatus, WorkspaceSourcePreference, WorkspaceSourceView};
+mod text_connection;
+pub(crate) use text_connection::TextConnection;
+pub use text_connection::{AI_TEXT_CONNECTION, TextModelWork};
 
 pub(crate) use indicators::IndicatorStage;
 pub use indicators::{
@@ -66,6 +69,7 @@ pub use notes::{
 pub const SET_TIMEFRAME: &str = "chart.setTimeframe";
 pub const UNDO: &str = "workspace.undo";
 pub const LOCAL_WORKSPACE_OPERATIONS: &[&str] = &[
+    AI_TEXT_CONNECTION,
     SET_TIMEFRAME,
     UNDO,
     PREVIEW_LAYOUT,
@@ -542,6 +546,9 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         }
         if PRIVATE_RECORD_OPERATIONS.contains(&name) {
             return self.execute_private_record(access, operation(name)?, request);
+        }
+        if name == AI_TEXT_CONNECTION {
+            return self.execute_text_connection(access, operation(name)?, request);
         }
         if !matches!(name, SET_TIMEFRAME | UNDO | PREVIEW_LAYOUT | APPLY_LAYOUT) {
             return Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY));
