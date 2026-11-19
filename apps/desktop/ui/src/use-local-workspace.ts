@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import type {
+  AiTextConnectionCommand11,
   IndicatorAcceptVersionCommand11, IndicatorCreateDraftCommand11, IndicatorRemoveCommand11,
   IndicatorRunPreviewCommand11, TaskCancelRequest11, TrustedConfirmationDecision11,
   ChartSetTimeframeCommand11, ChartSetTimeframeReply11, OperationReceipt11, Workspace,
@@ -27,6 +28,7 @@ type WorkspaceSource = Exclude<WorkspaceSourceChoice, { kind: 'frozen' }>
   | { kind: 'frozen'; revision_id: string; status: 'available' | 'revoked' | 'unavailable' };
 type SourceRequest = { type: 'workspace_source'; request_id: string; expected_selection_revision: number; source: WorkspaceSourceChoice };
 type LocalRequest = SourceRequest | { type: 'snapshot' } | Command | DecisionNoteReadCommand11 | DecisionNoteSaveCommand11
+  | AiTextConnectionCommand11
   | DecisionNoteAppendOutcomeCommand11 | DecisionNoteDeleteCommand11 | DecisionNoteExportBackupCommand11
   | DecisionNotePreviewRestoreCommand11 | DecisionNoteRestoreBackupCommand11
   | PrivateRecordChangeCommand11 | PrivateRecordExportCommand11 | PrivateRecordReadCommand11
@@ -53,6 +55,8 @@ type View = {
 
 const desktop = isTauri();
 const nativeWorkspace = desktop && window.__SCOPEHUB_DESKTOP_WORKSPACE__ === true;
+const nativeModel = desktop && window.__SCOPEHUB_DESKTOP_TEXT_MODEL__ === true;
+export const nativeTextWorkspaceId = nativeModel ? 'main' : undefined;
 const launchCapability = !desktop && import.meta.env.SCOPEHUB_UBUNTU_WORKSPACE ? takeLaunchCapability() : undefined;
 const enabled = nativeWorkspace || launchCapability !== undefined;
 const chart = { kind: 'chart', object_id: 'main-chart' } as const;
@@ -84,9 +88,9 @@ function describeFailure(error: unknown) {
 }
 
 export async function exchangeWorkspace<T>(body: LocalRequest, signal: AbortSignal): Promise<T> {
-  if (nativeWorkspace || desktop && body.type === 'frozen_chart_status') {
+  const operation = body.type === 'request' ? 'operation' in body ? body.operation : body.intent.operation : null;
+  if (nativeWorkspace || nativeModel && operation === 'ai.textConnection' || desktop && body.type === 'frozen_chart_status') {
     signal.throwIfAborted();
-    const operation = body.type === 'request' ? 'operation' in body ? body.operation : body.intent.operation : null;
     const value = await invoke<T>('execute_operation', { operation, payload: body });
     signal.throwIfAborted();
     return value;

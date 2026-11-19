@@ -8,9 +8,10 @@ use std::{
 };
 
 use scopehub_application::{
-    Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, LOCAL_WORKSPACE_OPERATIONS,
-    OperationRegistry, PRIVATE_RECORD_CHANGE, READ_LOCAL_IMPORT_REVISION, WorkspaceAccess,
-    WorkspaceBinding, evidence_operation_name, failure,
+    AI_TEXT_CONNECTION, Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE,
+    LOCAL_WORKSPACE_OPERATIONS, OperationRegistry, PRIVATE_RECORD_CHANGE,
+    READ_LOCAL_IMPORT_REVISION, TextModelWork, WorkspaceAccess, WorkspaceBinding,
+    evidence_operation_name, failure,
 };
 use scopehub_domain::{
     protocol::{Error, ErrorCode},
@@ -88,6 +89,7 @@ fn serve(
     }
 
     let mut line = Vec::new();
+    let mut model_work: Option<(uuid::Uuid, TextModelWork)> = None;
     loop {
         line.clear();
         let count = input
@@ -254,7 +256,66 @@ fn serve(
             frame["request_id"] = request["request_id"].clone();
             write_frame(&mut output, frame)?;
         } else {
+            let request = request.and_then(|mut request| {
+                if request["type"] != "ai_text_result" {
+                    return Ok(request);
+                }
+                // This carrier is assembled only by the trusted preview host.
+                // The browser can poll the turn, but supplies no worker result.
+                let frame = request
+                    .as_object_mut()
+                    .filter(|frame| frame.len() == 3)
+                    .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
+                let command = frame
+                    .remove("command")
+                    .filter(|command| {
+                        command["intent"]["operation"] == AI_TEXT_CONNECTION
+                            && command["intent"]["arguments"]["action"] == "poll"
+                    })
+                    .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
+                let id = command["intent"]["arguments"]["turn_id"]
+                    .as_str()
+                    .and_then(|id| uuid::Uuid::parse_str(id).ok())
+                    .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
+                let result = frame
+                    .remove("worker")
+                    .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
+                if model_work
+                    .as_ref()
+                    .is_some_and(|(pending, _)| *pending == id)
+                {
+                    let (_, work) = model_work.take().expect("matched text worker");
+                    let result = match result.get("error") {
+                        Some(error) => Err(serde_json::from_value(error.clone())
+                            .unwrap_or_else(|_| failure(ErrorCode::OUTPUTINVALID))),
+                        None => Ok(result),
+                    };
+                    work.finish(result);
+                }
+                Ok(command)
+            });
             let result = request.and_then(|request| registry.execute_workspace(access, request));
+            if model_work
+                .as_ref()
+                .is_some_and(|(_, work)| work.is_cancelled())
+            {
+                model_work = None;
+            }
+            let next_model_work = if let Ok(reply) = &result
+                && reply["outcome"]["operation"] == AI_TEXT_CONNECTION
+                && reply["outcome"]["result"]["action"] == "send"
+            {
+                let turn_id = reply["outcome"]["result"]["turn_id"]
+                    .as_str()
+                    .and_then(|id| uuid::Uuid::parse_str(id).ok())
+                    .ok_or_else(|| io::Error::other("Invalid text turn identity."))?;
+                registry
+                    .take_text_model_work(access, turn_id)
+                    .map_err(|_| io::Error::other("Text turn handoff failed."))?
+                    .map(|work| (turn_id, work))
+            } else {
+                None
+            };
             let work = match &result {
                 Ok(reply) => reply["outcome"]["result"]["task_id"].as_str(),
                 Err(_) => None,
@@ -264,6 +325,15 @@ fn serve(
             if let Some(work) = work {
                 frame["indicator_compute"] =
                     Value::String(serde_json::to_string(&work.request).map_err(io::Error::other)?);
+            }
+            if let Some((id, work)) = next_model_work {
+                frame["text_model_work"] = Value::String(
+                    json!({
+                        "destination": work.destination(), "request": work.request(),
+                    })
+                    .to_string(),
+                );
+                model_work = Some((id, work));
             }
             write_frame(&mut output, frame)?;
         }

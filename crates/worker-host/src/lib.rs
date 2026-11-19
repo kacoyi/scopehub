@@ -145,3 +145,4 @@ pub mod indicator;
 pub mod local_import;
 pub mod market;
 mod python;
+pub mod text_model;

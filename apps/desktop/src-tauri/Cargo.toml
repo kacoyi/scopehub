@@ -25,6 +25,7 @@ scopehub-worker-host = { path = "../../../crates/worker-host" }
 serde_json.workspace = true
 sha2 = "0.10"
 tokio.workspace = true
+uuid.workspace = true
 
 [target.'cfg(windows)'.dependencies]
 rfd = { version = "=0.17.2", default-features = false }

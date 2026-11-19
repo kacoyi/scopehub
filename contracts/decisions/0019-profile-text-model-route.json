@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "id": "0019",
+  "title": "Activate a profile-bound text route for the current session",
+  "status": "accepted",
+  "recorded_at": "2026-11-19",
+  "context": "M4-006 needs a first replaceable text connection, verified at its final outbound request boundary. Market data selection, saved private content and workspace operations carry separate permissions.",
+  "decision": "Use the native Ollama non-streaming chat API as the first adapter. The local human reviews a canonical HTTP loopback or HTTPS destination, chosen model, conversation scope and server-operator charge basis before activation. The existing Rust registry owns the one-use proposal and the profile-bound session grant. It constructs the outbound JSON from the question and up to four recent successful pairs within a bounded window. An owned Python connector sends that projection once and returns text and responding model identity.",
+  "authority": "M4-006, ADR 0007 and ADR 0011 authorize the implementation choice and the ordinary session grant. Development qualifies the bridge with an owned synthetic loopback peer.",
+  "alternatives": [
+    {
+      "option": "Use a browser provider SDK and supply the full workspace to its chat session.",
+      "reason": "The Rust registry must select the final permitted data, own revocation and separate the model from saved records and operation authority."
+    },
+    {
+      "option": "Persist enabled route grants or rely on a provider conversation identifier.",
+      "reason": "Session-local turns meet this delivery need and make restart, change of recipient and separation from future one-request attachments explicit."
+    }
+  ],
+  "consequences": [
+    "Local and remote servers use the same replaceable, credential-free adapter. The origin excludes user information, paths, queries and fragments. The worker uses direct HTTP or certificate-verified HTTPS, with a fixed path and a deadline. It follows no redirects and retries no outbound request.",
+    "The ordinary text route receives no chart fields, saved private records, tools, audio, profile identity or credential reference. A user-managed endpoint may forward traffic or apply its own charges. ScopeHub displays that boundary before activation.",
+    "Disconnect, cancellation and a new reviewed proposal revoke the current grant and drop its history. The profile restarts disconnected. SQLite v1 through v10 retain their existing layout.",
+    "The offline mock requires explicit local selection. Configured-route failure stays visible as a failure. Synthetic peer observations establish HTTP behavior; hosted capability evaluation and packaged Windows acceptance have separate gates."
+  ],
+  "supersedes": [],
+  "related_decisions": ["0007", "0009", "0011"],
+  "revisit_when": "A qualified provider needs trusted credential references, a different connection lifecycle, structured tools, voice or an independently approved context category.",
+  "references": {
+    "transport": ["https://docs.ollama.com/api/chat", "https://docs.ollama.com/api/authentication", "https://docs.ollama.com/faq"]
+  }
+}

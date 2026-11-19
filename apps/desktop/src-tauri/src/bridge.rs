@@ -6,13 +6,14 @@ use std::{
 };
 
 use scopehub_application::{
-    Actor, INDICATOR_CONFIRMATION, LIST_LOCAL_FOLDER_REVISIONS, LIST_LOCAL_IMPORT_REVISIONS,
-    LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS, MarketLifecycle, MarketPort,
-    MarketRegistry, PREPARE_LOCAL_FOLDER_PUBLICATION, PREVIEW_LOCAL_FOLDER_REFRESH,
-    PREVIEW_LOCAL_IMPORT, PUBLISH_LOCAL_FOLDER_REFRESH, PUBLISH_LOCAL_IMPORT,
-    READ_LOCAL_FOLDER_REVISION, READ_LOCAL_FOLDER_SOURCE_ROW, READ_LOCAL_IMPORT_REVISION,
-    READ_LOCAL_IMPORT_SOURCE_ROW, REVOKE_LOCAL_FOLDER_REVISION, REVOKE_LOCAL_IMPORT_REVISION,
-    RUN_INDICATOR_PREVIEW, SAVE_LOCAL_IMPORT_MAPPING, failure, is_sample_indicator_preview,
+    AI_TEXT_CONNECTION, Actor, INDICATOR_CONFIRMATION, LIST_LOCAL_FOLDER_REVISIONS,
+    LIST_LOCAL_IMPORT_REVISIONS, LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS,
+    MarketLifecycle, MarketPort, MarketRegistry, PREPARE_LOCAL_FOLDER_PUBLICATION,
+    PREVIEW_LOCAL_FOLDER_REFRESH, PREVIEW_LOCAL_IMPORT, PUBLISH_LOCAL_FOLDER_REFRESH,
+    PUBLISH_LOCAL_IMPORT, READ_LOCAL_FOLDER_REVISION, READ_LOCAL_FOLDER_SOURCE_ROW,
+    READ_LOCAL_IMPORT_REVISION, READ_LOCAL_IMPORT_SOURCE_ROW, REVOKE_LOCAL_FOLDER_REVISION,
+    REVOKE_LOCAL_IMPORT_REVISION, RUN_INDICATOR_PREVIEW, SAVE_LOCAL_IMPORT_MAPPING, failure,
+    is_sample_indicator_preview,
 };
 use scopehub_domain::protocol::{Error, ErrorCode};
 use scopehub_platform::local_folder::LocalFolderHost;
@@ -119,6 +120,35 @@ impl State {
         authorize_window(window_label)?;
         match operation {
             None => self.workspace.dispatch(operation, payload).await,
+            Some(AI_TEXT_CONNECTION) => {
+                // Serialize job registration with shutdown. The worker never
+                // holds the SQLite admission slot while awaiting the network.
+                let mut jobs = self.trusted_jobs.lock().await;
+                let (reply, work) = self.workspace.dispatch_text_connection(payload).await?;
+                if let Some(work) = work {
+                    while jobs.try_join_next().is_some() {}
+                    jobs.spawn(async move {
+                        let response = if let Some(mut config) = development_config() {
+                            config.deadline = scopehub_worker_host::text_model::TURN_DEADLINE;
+                            scopehub_worker_host::text_model::complete(
+                                &config,
+                                work.destination(),
+                                work.request(),
+                                async {
+                                    while !work.is_cancelled() {
+                                        tokio::time::sleep(Duration::from_millis(25)).await;
+                                    }
+                                },
+                            )
+                            .await
+                        } else {
+                            Err(failure(ErrorCode::PROVIDERNOTCONFIGURED))
+                        };
+                        work.finish(response);
+                    });
+                }
+                Ok(reply)
+            }
             Some(INDICATOR_CONFIRMATION) if payload["operation"] == INDICATOR_CONFIRMATION => {
                 let (reply, approved) = self.workspace.dispatch_indicator_decision(payload).await?;
                 if let Some(work) = approved {

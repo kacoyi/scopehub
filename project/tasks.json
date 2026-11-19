@@ -7597,14 +7597,16 @@
         "crates",
         "apps/desktop",
         "tests",
-        "project"
+        "project",
+        "contracts"
       ],
       "decision_refs": [
         "0001",
         "0004",
         "0007",
         "0009",
-        "0011"
+        "0011",
+        "0019"
       ],
       "acceptance": [
         "The first unconfigured question offers connection setup and an explicitly labeled offline demonstration without contacting any recipient.",
@@ -7613,25 +7615,29 @@
         "Retain separate evidence for real adapter traffic against the synthetic local endpoint, an explicitly chosen offline demonstration, and the pending paid or independently hosted model qualification in M4-002."
       ],
       "checks": [
-        "ai-workflow",
-        "ai-replay-evaluations",
+        "model-connection-workflow",
+        "model-connection-replay",
         "ui-build",
         "market-workflow",
         "operations-workflow",
         "python-types",
         "architecture",
-        "python-contracts-workers"
+        "python-contracts-workers",
+        "generated-contracts",
+        "typescript-contracts",
+        "rust-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Implement the first normal text entry and replaceable adapter, qualify ordinary activation and dispatch with an owned synthetic peer, and join it to the shared chart collaboration workflow.",
+      "next_action": "Verify the ordinary workspace text connection, profile grant boundaries and owned synthetic HTTP traffic; archive passing evidence and hand off shared chart collaboration and real-model qualification to their M4 tasks.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
         "outcome": "A product user can choose a text model once, ask a question and continue the conversation in the same authorized workspace.",
         "change_types": [
-          "ai",
+          "model-connection",
           "ui",
-          "permissions"
+          "permissions",
+          "protocol"
         ],
         "context": [
           "engineering-contract-v1.json",
@@ -7639,7 +7645,8 @@
           "contracts/decisions/0011-local-profiles-and-connected-model-use.json",
           "project/development.json",
           "crates/application/src/workspace.rs",
-          "apps/desktop/ui/src/workspace-panels.tsx"
+          "apps/desktop/ui/src/workspace-panels.tsx",
+          "contracts/decisions/0019-profile-text-model-route.json"
         ],
         "hypotheses": [
           "An explicitly chosen adapter can support ordinary turns independently of market-data supply and the chart rendering library.",
@@ -7649,21 +7656,21 @@
           {
             "failure": "A first question, retry, restart, or recipient change silently transmits to an unselected route.",
             "checks": [
-              "ai-workflow",
-              "ai-replay-evaluations"
+              "model-connection-workflow",
+              "model-connection-replay"
             ]
           },
           {
             "failure": "A saved private record, a credential or an old provider context reaches an unrelated turn.",
             "checks": [
-              "ai-replay-evaluations",
+              "model-connection-replay",
               "operations-workflow"
             ]
           },
           {
             "failure": "A fixture becomes an implicit replacement for an unavailable configured model.",
             "checks": [
-              "ai-workflow"
+              "model-connection-workflow"
             ]
           }
         ],
@@ -7674,12 +7681,17 @@
             "application",
             "worker-runtime",
             "desktop",
-            "ui"
+            "ui",
+            "worker-host"
           ],
           "entrypoints": [
             "apps/desktop/ui/src/workspace-panels.tsx",
             "apps/desktop/src-tauri/src/bridge.rs",
-            "crates/application/src/workspace.rs"
+            "crates/application/src/workspace.rs",
+            "crates/application/src/workspace/text_connection.rs",
+            "crates/worker-host/src/text_model.rs",
+            "python/worker_runtime/text_model.py",
+            "python/ai/ollama.py"
           ],
           "rules": [
             {
@@ -7698,9 +7710,7 @@
           "non_goals": [
             "Trading, external client pairing, microphone capture, accepting financial mutations or claiming real-provider qualification from fixture traffic."
           ],
-          "open_questions": [
-            "Choose an initial provider protocol supported by a capable real route; verify exact request and response semantics with its primary documentation and the controlled endpoint."
-          ]
+          "open_questions": []
         },
         "evolution": {
           "kind": "additive",
@@ -7710,8 +7720,8 @@
           "change": [
             "Add an ordinary text conversation entry, a clearly disclosed activated route and a replaceable text adapter."
           ],
-          "data_plan": "Keep profile data and conversation originals local. The final connector receives only explicitly scoped values. Redact credentials, do not reuse a private provider conversation handle, and retain only synthetic or de-identified test evidence.",
-          "cleanup": "Cancel pending work and clear the affected route grant on disconnect. Revalidate persisted route metadata before a subsequent send."
+          "data_plan": "Keep connection metadata and successful ordinary pairs in the bound session only. Project only the typed question and bounded recent pairs. The first route uses no credential references or private provider conversation handle; preserve only synthetic verification evidence.",
+          "cleanup": "Cancel pending work, clear the grant on disconnect or route replacement and start disconnected after process restart. Preserve all existing storage migrations."
         }
       }
     }

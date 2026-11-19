@@ -194,6 +194,16 @@
         "market-quality-states",
         "ui-build"
       ]
+    },
+    {
+      "id": "model-connection",
+      "triggers": [
+        "Profile-bound human model setup, conversation-only projection and text adapter transport"
+      ],
+      "checks": [
+        "model-connection-workflow",
+        "model-connection-replay"
+      ]
     }
   ],
   "scenarios": [
@@ -560,6 +570,32 @@
         "configured-external-ai-clients"
       ],
       "evidence_boundary": "Automated bridge checks cover local transport, concurrency and authorization. A product claim for a named client also needs the observed real client version, host and protected output. A fixture or CLI trace alone cannot establish desktop compatibility."
+    },
+    {
+      "id": "connect-text-model",
+      "task_ids": [
+        "M4-006"
+      ],
+      "user_goal": "Review a text route once and continue ordinary questions from the workspace.",
+      "given": "A disconnected profile and an owned synthetic HTTP endpoint implementing the selected chat surface.",
+      "when": "Ask without a route, review and enable a configured connection, complete two turns and cancel or disconnect it. Choose the offline mock separately.",
+      "then": [
+        "The first question and route setup produce zero outbound requests.",
+        "Two scoped HTTP requests reach the disclosed endpoint. The second includes the prior successful pair and the actual responding model is visible.",
+        "Failure does not substitute a mock. After cancellation, disconnection or replacement, an old grant cannot dispatch. The mock sends no HTTP requests."
+      ],
+      "failure_cases": [
+        "Unconfigured profile",
+        "Endpoint error",
+        "Cancellation",
+        "Expanded or changed destination",
+        "Prior grant after a restart"
+      ],
+      "checks": [
+        "model-connection-workflow",
+        "model-connection-replay"
+      ],
+      "evidence_boundary": "The peer is a synthetic HTTP fixture. Model capability, finance collaboration and packaged Windows behavior have independent acceptance gates."
     }
   ],
   "release_policy": {

@@ -106,7 +106,8 @@
         "domain"
       ],
       "owns": [
-        "Operation authorization and cross-field market invariants"
+        "Operation authorization and cross-field market invariants",
+        "Local human text connection grants and final conversation-only projection"
       ],
       "invariants": [
         "Reject unsupported operations; actor identity comes from trusted transports",
@@ -127,7 +128,8 @@
         "crates/worker-host/src/lib.rs",
         "crates/worker-host/src/indicator.rs",
         "crates/worker-host/src/local_import.rs",
-        "crates/worker-host/src/market.rs"
+        "crates/worker-host/src/market.rs",
+        "crates/worker-host/src/text_model.rs"
       ],
       "dependencies": [
         "domain",
@@ -237,12 +239,14 @@
         "python/worker_runtime/__main__.py",
         "python/worker_runtime/indicator.py",
         "python/worker_runtime/local_import.py",
-        "python/worker_runtime/protocol.py"
+        "python/worker_runtime/protocol.py",
+        "python/worker_runtime/text_model.py"
       ],
       "dependencies": [
         "domain",
         "providers",
-        "indicators"
+        "indicators",
+        "product-ai"
       ],
       "owns": [
         "Protocol role and dispatch state"
@@ -340,24 +344,27 @@
     },
     {
       "id": "product-ai",
-      "status": "planned",
+      "status": "implemented",
       "paths": [
         "python/ai"
       ],
       "responsibility": "Configured model adapters and product collaboration execution.",
-      "public_entries": [],
+      "public_entries": [
+        "python/ai/ollama.py"
+      ],
       "dependencies": [
         "domain"
       ],
       "owns": [
-        "Model interaction and task-local reasoning state"
+        "Configured text model HTTP adapter"
       ],
       "invariants": [
-        "Use core-provided operations; cannot self-authorize"
+        "Send the final core-projected text request to its selected endpoint. Use no ambient credentials, proxy, implicit fallback or stored private data."
       ],
       "checks": [
-        "ai-workflow",
-        "ai-replay-evaluations"
+        "model-connection-workflow",
+        "model-connection-replay",
+        "python-contracts-workers"
       ]
     },
     {
@@ -714,6 +721,13 @@
       "writer": "persistence",
       "status": "implemented",
       "rule": "The local Rust single writer stores explicitly saved typed exchanges, memories and strategies, and applies corrections, deletion and backup recovery within the bound profile. The core also owns any future retrieval data and excerpt grants. Those behaviors are tracked by their delivery tasks."
+    },
+    {
+      "id": "text-model-session",
+      "owner": "application",
+      "writer": "application",
+      "status": "implemented",
+      "rule": "Profile-bound in-memory route disclosure, grant and bounded successful text pairs. Restart, disconnection, cancellation or a new valid proposal revokes the grant. No storage reads or outbound workspace operations."
     }
   ],
   "herdr": {
