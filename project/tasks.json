@@ -2663,7 +2663,7 @@
         "state-migrations"
       ],
       "evidence": [],
-      "next_action": "Integrate native folder selection, scoped catalog display and editable CSV mappings with the local human market.previewLocalImport operation. Then qualify versioned refresh, historical chart publication, large-file preview and native Windows acceptance.",
+      "next_action": "Verify source settlement and closed-bar semantics, shutdown revocation, valid large fields and complete worker replies. Then connect the native folder picker and mapping editor, followed by staged refresh and publication.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -2714,6 +2714,14 @@
             "checks": [
               "chart-history",
               "local-folder-import"
+            ]
+          },
+          {
+            "failure": "An explicit open bar or prior settlement becomes a valid historical close, a stopped session can still read a path, or a long valid row or partial write loses a source record.",
+            "checks": [
+              "market-fixtures",
+              "rust-contracts-workers",
+              "python-contracts-workers"
             ]
           }
         ],

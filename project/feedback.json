@@ -964,6 +964,23 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "local-import-source-semantics-and-boundaries",
+      "source": "Independent review of 59f0878 using synthetic futures rows, confined directories, valid long CSV fields and a partial output stream.",
+      "observation": "A previous settlement price mapped to closing price without a diagnostic, and a source row marked open normalized as a closed bar. A shut down desktop host retained a readable selected directory. The parser rejected a valid field above its implicit library limit and skipped the next row. A short write could truncate a terminal result while the worker still reported success.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "market-fixtures",
+        "rust-contracts-workers",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
