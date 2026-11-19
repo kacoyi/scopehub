@@ -1,0 +1,97 @@
+{
+  "recorded_at": "2026-11-19",
+  "kind": "native_indicator_acceptance_and_layout_restoration",
+  "task_ids": [
+    "M3-001",
+    "M2-002"
+  ],
+  "platform": "Interactive Windows 11 x64 standard user in the disposable KVM guest. The MSVC desktop embedded the built UI and used WebView2, the Rust registry, profile SQLite and the locked CPython environment.",
+  "artifact_root": "/mnt/testvm/scopehub-win11-qa/trials/ws493/run",
+  "earlier_run": {
+    "source_commit": "772e6e8991b83d57c5c744c677f83b1bbdb2a4a0",
+    "archive_sha256": "8c48440fed096fd529018358d79c5bc4153248ef65c914b4732dc0a4a0fcc6f6",
+    "exe_sha256": "e53e6398df4c293fdd844b328eec49dabb6d17f28bba5748a0ad9868ff272c9c",
+    "exe_bytes": 33221120,
+    "native_checks": {
+      "STATE.TXT": {
+        "passed": 60,
+        "ignored_fixture_entries": 4,
+        "sha256": "0f52c3131451b7d9f2774aceb86d92796c3ce1dbb6f506de35e4996fc06d3e6f"
+      },
+      "NUMBER.TXT": {
+        "passed": 4,
+        "ignored_fixture_entries": 0,
+        "sha256": "d41a9415153c35e7e91b946570f51f1671c87a18d74d9a087895336f2769a5c5"
+      },
+      "WORKER.TXT": {
+        "passed": 12,
+        "ignored_fixture_entries": 0,
+        "sha256": "976c26d39d69468d2f5cad24b2bcc087aa868f27f10937176007f6798f5068a8"
+      }
+    },
+    "interactive_report": {
+      "directory": "native-indlay-gui-772e6e8",
+      "report_sha256": "893640e15bcc1620388505c3a0773d327de80d281a9b1598ec842d6d30bf5440",
+      "screenshot_sha256": "9cd32c8b70775cb783f6686754bf78baae4fd61076017966e85f1d5abcb6a2d0",
+      "case_sha256": "847d90c9371c22767e8833e083109b440904778797082df11c70e696cac308a6",
+      "desktop_exit_codes": [
+        0,
+        0
+      ],
+      "accepted_document_sha256": "06d38ba3d1c142614ad9a758a2421317a0647bab9788c02445e80b4584484e3a",
+      "observations": [
+        "Decline executed no code. One explicit run produced 3500.5 and a separate acceptance stored one immutable version.",
+        "A new desktop process restored the same version and named layout with the script moved. Leaving the sample removed its output from view and retained the layout."
+      ]
+    }
+  },
+  "cache_eviction_run": {
+    "source_commit": "362e5dcaaddfce6665795555b0df18b1d1037c03",
+    "archive_sha256": "cee8295abb9120cb8b7c5736403bc3d5bb74925075327fa5b6258cd1522b4c20",
+    "exe_sha256": "dd991776993268c1f4b7af92558ead320b5f808b50cfa997740190a727a9ab2e",
+    "exe_bytes": 33221120,
+    "native_checks": {
+      "STATE.TXT": {
+        "passed": 60,
+        "ignored_fixture_entries": 4,
+        "sha256": "d99e25ae2a4c462515114dfa98f6553c2a13cfe311f942f125f99d043df3af88"
+      },
+      "NUMBER.TXT": {
+        "passed": 4,
+        "ignored_fixture_entries": 0,
+        "sha256": "b07543805bb8ad7b221d9e7a1095fc7a3cf05a01f927a063d0dc65fcba1a12f1"
+      },
+      "WORKER.TXT": {
+        "passed": 12,
+        "ignored_fixture_entries": 0,
+        "sha256": "b9047071dc789f3d9330d3676a7e87d6357378e74798ebdca19c5bef0ee16cbf"
+      }
+    },
+    "interactive_report": {
+      "directory": "native-indlay-gui-362e5dc",
+      "report_sha256": "5d400b3195216e7d8c193050de24b674749843706fe32ce635d61b15c3b91870",
+      "screenshot_sha256": "0c7df86334d3803dc37384faf8237cdabcc5a0710ccf309dd383fddeb69beda9",
+      "case_sha256": "27e32d55d571804479ff94055f7283d5c16715d91b4e5b2bfb878f2d06ac1d51",
+      "driver_sha256": "7c6ab1ca14781cf28bd768a52735b2522e0fdd83424ece1af6c824c681ddf6ac",
+      "desktop_exit_codes": [
+        0,
+        0
+      ],
+      "accepted_document_sha256": "1100bc625573b0896af90589ecaaa8b0ed41ff7bd4772175c052f527d48758a4",
+      "observations": [
+        "Decline executed no code. One explicit run produced 3500.5 and a separate acceptance stored one immutable version.",
+        "The WebView cleared its HTTP cache and origin CacheStorage. A seeded marker disappeared and the accepted SQLite artifact stayed identical.",
+        "A new desktop process restored the same version and named layout with the script moved. Leaving the sample removed its output from view and retained the layout."
+      ]
+    }
+  },
+  "method": [
+    "The ordinary chart opened an explicitly simulated 40-bar futures source. The user-selected local script was supplied through the native WebView file input. The review showed the exact UTF-8 code, divisor 2 and the two closes 3500.2 and 3500.8.",
+    "An independent fixture counted script executions. A read-only SQLite observer checked the accepted versions, active layers and named layouts. The accepted output at the second bar was 3500.5.",
+    "The final run observed the file and network permission disclosure, cleared the HTTP cache through the WebView protocol and removed only the app origin CacheStorage in the disposable profile. A synthetic marker was present before eviction and absent afterward. The selected script was moved and the normal desktop was closed before reopening.",
+    "The cache-eviction run retained the exact version, layer and document digest after restart. The chart showed the saved value in the light named layout. Leaving the sample cleared the chart and retained the layout and the durable accepted artifact."
+  ],
+  "remaining": [
+    "Physical-device experience, installer qualification and release approval have separate acceptance gates."
+  ]
+}
