@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { invoke, isTauri } from '@tauri-apps/api/core';
 import type {
   ChartSetTimeframeCommand11, ChartSetTimeframeReply11, OperationReceipt11, Workspace,
   WorkspaceUndoCommand11, WorkspaceUndoReply11,
 } from '../../../../contracts/generated/protocol';
 
 type Intent = ChartSetTimeframeCommand11['intent'] | WorkspaceUndoCommand11['intent'];
+type Command = Omit<ChartSetTimeframeCommand11, 'intent'> & { intent: Intent };
+type LocalRequest = { type: 'snapshot' } | Command;
 type UndoTarget = Pick<OperationReceipt11, 'operation_id' | 'committed_workspace_revision'>;
 type Snapshot = { workspace: Workspace; selection_revision: number; undo: UndoTarget | null };
 type View = {
@@ -13,7 +16,9 @@ type View = {
   error: string | undefined;
 };
 
-const enabled = import.meta.env.SCOPEHUB_UBUNTU_WORKSPACE;
+const desktop = isTauri();
+const nativeWorkspace = desktop && window.__SCOPEHUB_DESKTOP_WORKSPACE__ === true;
+const enabled = nativeWorkspace || (!desktop && import.meta.env.SCOPEHUB_UBUNTU_WORKSPACE);
 const chart = { kind: 'chart', object_id: 'main-chart' } as const;
 
 function errorCode(error: unknown) {
@@ -30,7 +35,14 @@ function describeFailure(error: unknown) {
   }
 }
 
-async function exchange<T>(body: object, signal: AbortSignal): Promise<T> {
+async function exchange<T>(body: LocalRequest, signal: AbortSignal): Promise<T> {
+  if (nativeWorkspace) {
+    signal.throwIfAborted();
+    const operation = body.type === 'snapshot' ? null : body.intent.operation;
+    const value = await invoke<T>('execute_operation', { operation, payload: body });
+    signal.throwIfAborted();
+    return value;
+  }
   const response = await fetch('/__scopehub/workspace', {
     method: 'POST', mode: 'same-origin', credentials: 'omit', redirect: 'error', signal,
     headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),

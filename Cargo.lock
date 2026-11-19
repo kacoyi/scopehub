@@ -2825,8 +2825,10 @@ version = "0.1.0"
 dependencies = [
  "scopehub-application",
  "scopehub-domain",
+ "scopehub-persistence",
  "scopehub-worker-host",
  "serde_json",
+ "sha2",
  "tauri",
  "tauri-build",
  "tokio",
