@@ -110,11 +110,12 @@ class PublicationTests(ProjectFixture):
         self.assertFalse(self.destination.exists())
 
     def test_only_current_named_logs_report_and_synthetic_browser_outputs_are_published(self):
-        self.add_catalog_checks('chart-history', 'ubuntu-preview', 'market-live-stream')
+        self.add_catalog_checks('chart-history', 'ubuntu-preview', 'market-live-stream', 'market-quality-states')
         report = self.hosted_report()
         self.add_result(report, 'chart-history')
         self.add_result(report, 'ubuntu-preview')
         self.add_result(report, 'market-live-stream')
+        self.add_result(report, 'market-quality-states')
         self.save_report(report)
         summary = b'{"status":"passed"}\n'
         browser = {
@@ -125,6 +126,8 @@ class PublicationTests(ProjectFixture):
             'ubuntu-preview/fixture/browser/preview-open/futures-candles.png': b'synthetic PNG',
             'runs/fixture/market-live-stream/results.json': b'{}\n',
             'runs/fixture/market-live-stream/browser/market-stream-final/synthetic-replay-final.png': b'synthetic PNG',
+            'runs/fixture/market-quality-states/results.json': b'{}\n',
+            'runs/fixture/market-quality-states/browser/market-quality-source/synthetic-market-quality.png': b'synthetic PNG',
         }
         for relative, contents in browser.items():
             self.write(relative, contents)
@@ -135,6 +138,7 @@ class PublicationTests(ProjectFixture):
             'chart-history/latest.json', 'chart-history/runs/old/browser-results.json',
             'ubuntu-preview/old/results.json', 'ubuntu-preview/fixture/browser/preview-open/trace.zip',
             'ubuntu-preview/fixture/browser/preview-open/private.png', 'ubuntu-preview/fixture/profile.json',
+            'runs/fixture/market-quality-states/browser/market-quality-source/trace.zip',
             '.private',
         ]:
             self.write(relative, self.sentinel)

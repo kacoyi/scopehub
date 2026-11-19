@@ -1,3 +1,4 @@
+import { setTimeout as delay } from 'node:timers/promises';
 import { expect, test } from '@playwright/test';
 import { painted } from '../ui/chart-pixels.mjs';
 import { control, openPanel, watchlistSymbol } from '../ui/workspace-controls.mjs';
@@ -7,6 +8,7 @@ const operation = '/__scopehub/operation';
 const chart = page => page.locator('.history');
 const legend = page => page.getByLabel('Selected bar');
 const status = page => page.locator('.replay-status');
+const busy = { ok: false, error: { code: 'BUSY', retryable: true } };
 const priceText = (page, close, volume, phase) => expect(legend(page)).toContainText(
   new RegExp(`C ${close}Volume ${volume}Trading day 2024-01-04${phase} bar`),
 );
@@ -212,6 +214,112 @@ test('selection change cancels the owned replay and releases the slot for the ne
   await control(page, 'Play sample updates').click();
   await expect(status(page)).toHaveText('Synthetic replay complete', { timeout: 8_000 });
   await priceText(page, '12\\.16', 130, 'Closed');
+});
+
+test('replacement history waits for a cancelled preparation past the old cleanup bound', async ({ page }) => {
+  const preparation = Promise.withResolvers();
+  const firstBusy = Promise.withResolvers();
+  const release = Promise.withResolvers();
+  let released = false;
+  let admitted = 0;
+  await page.route(`**${operation}`, async route => {
+    const request = route.request();
+    const { payload } = request.postDataJSON();
+    if (payload.include_stream_position) {
+      preparation.resolve(request);
+      await release.promise;
+      await route.abort().catch(error => { if (!request.failure()) throw error; });
+      return;
+    }
+    if (payload.series?.instrument_id === 'SIM.CN.STOCK.001') {
+      if (!released) {
+        await route.fulfill({ status: 429, json: busy });
+        firstBusy.resolve();
+        return;
+      }
+      admitted++;
+    }
+    await route.continue();
+  });
+
+  try {
+    await page.goto('/#demo');
+    await expect(chart(page)).toHaveAttribute('data-instrument', 'SIM.CN.FUTURE.001');
+    await control(page, 'Play sample updates').click();
+    const previous = await preparation.promise;
+    const cancelled = page.waitForEvent('requestfailed', { predicate: request => request === previous });
+    await watchlistSymbol(page, 'SIM.CN.STOCK.001').click();
+    expect((await cancelled).failure()?.errorText).toContain('ERR_ABORTED');
+    await firstBusy.promise;
+    // Model the bridge holding its slot after cancellation, beyond the former 1 s budget.
+    await delay(1_250);
+    released = true;
+    release.resolve();
+    await expect(chart(page)).toHaveAttribute('data-instrument', 'SIM.CN.STOCK.001', { timeout: 4_000 });
+    await expect(status(page)).toHaveCount(0);
+    expect(admitted).toBe(1);
+  } finally {
+    release.resolve();
+  }
+});
+
+test('replacement replay admits exactly one stream after the old cleanup bound', async ({ page }) => {
+  const firstBusy = Promise.withResolvers();
+  let released = false;
+  let admitted = 0;
+  await page.route(`**${stream}`, async route => {
+    if (route.request().postDataJSON().payload.series.instrument_id === 'SIM.CN.STOCK.001') {
+      if (!released) {
+        await route.fulfill({ status: 429, json: busy });
+        firstBusy.resolve();
+        return;
+      }
+      admitted++;
+    }
+    await route.continue();
+  });
+
+  await page.goto('/#demo');
+  await control(page, 'Play sample updates').click();
+  await expect(status(page)).toHaveText('Synthetic replay in progress');
+  const cancelled = page.waitForEvent('requestfailed', { predicate: request => new URL(request.url()).pathname === stream });
+  await watchlistSymbol(page, 'SIM.CN.STOCK.001').click();
+  expect((await cancelled).failure()?.errorText).toContain('ERR_ABORTED');
+  await expect(chart(page)).toHaveAttribute('data-instrument', 'SIM.CN.STOCK.001');
+  await control(page, 'Play sample updates').click();
+  await firstBusy.promise;
+  // Release independently of the retry count and after the former 1.55 s budget.
+  await delay(1_950);
+  released = true;
+  await expect(status(page)).toHaveText('Synthetic replay complete', { timeout: 8_000 });
+  expect(admitted).toBe(1);
+});
+
+test('persistent admission contention stops and offers explicit replay retry', async ({ page }) => {
+  let attempts = 0;
+  await page.route(`**${stream}`, route => {
+    attempts++;
+    return route.fulfill({ status: 429, json: busy });
+  });
+  await page.goto('/#demo');
+  await control(page, 'Play sample updates').click();
+  await expect(status(page)).toContainText('The market worker is busy.', { timeout: 5_000 });
+  await expect(control(page, 'Retry replay')).toBeVisible();
+  expect(attempts).toBeGreaterThan(1);
+  await expect(chart(page)).toHaveAttribute('data-bars', '40');
+});
+
+test('a BUSY terminal frame does not admit another replay', async ({ page }) => {
+  let admitted = 0;
+  await page.route(`**${stream}`, route => {
+    admitted++;
+    return route.fulfill({ contentType: 'application/x-ndjson', body: JSON.stringify(busy) + '\n' });
+  });
+  await page.goto('/#demo');
+  await control(page, 'Play sample updates').click();
+  await expect(status(page)).toContainText('The market worker is busy.', { timeout: 5_000 });
+  expect(admitted).toBe(1);
+  await expect(chart(page)).toHaveAttribute('data-bars', '40');
 });
 
 test('a crossed epoch produces a visible gap and leaves the chart at its frozen value', async ({ page }) => {

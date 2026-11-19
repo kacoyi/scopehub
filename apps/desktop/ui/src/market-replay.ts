@@ -2,6 +2,8 @@ import { Channel, invoke } from '@tauri-apps/api/core';
 import type {
   MarketBarUpdateEvent, MarketStreamGapEvent, MarketSubscriptionInput, MarketSubscriptionOutput, StreamPosition,
 } from '../../../../contracts/generated/protocol';
+import { invalidMarketData } from './market';
+import { retryMarketAdmission } from './market-admission';
 
 type Progress = { subscription: MarketSubscriptionOutput } | { event: MarketBarUpdateEvent | MarketStreamGapEvent };
 type Outcome = { status: 'complete' } | { status: 'gapped'; reason: string };
@@ -11,14 +13,22 @@ type Publish = (frame: Progress) => void;
 export const samePosition = (a: StreamPosition, b: StreamPosition) =>
   a.stream_id === b.stream_id && a.epoch === b.epoch && a.sequence === b.sequence;
 
-async function browserReplay(payload: MarketSubscriptionInput, signal: AbortSignal, publish: Publish): Promise<Outcome> {
+async function browserReplay(
+  payload: MarketSubscriptionInput, signal: AbortSignal, publish: Publish, admitted: () => void,
+): Promise<Outcome> {
   const response = await fetch('/__scopehub/market-stream', {
     method: 'POST', mode: 'same-origin', credentials: 'omit', redirect: 'error', signal,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ operation: 'market.subscribe', payload }),
   });
-  if (!response.ok) throw (await response.json()).error;
-  if (!response.body || response.headers.get('content-type') !== 'application/x-ndjson') throw new Error('Invalid replay response');
+  if (!response.ok) {
+    const reply = await response.json().catch(() => undefined);
+    throw reply?.error ?? new Error('Replay transport failed');
+  }
+  if (!response.body || response.headers.get('content-type') !== 'application/x-ndjson') throw invalidMarketData();
+  // Streaming headers mean the preview has admitted a child, even when its
+  // only frame is a terminal worker error.
+  admitted();
 
   let partial = '';
   let terminal: Terminal | undefined;
@@ -31,13 +41,17 @@ async function browserReplay(payload: MarketSubscriptionInput, signal: AbortSign
       partial = lines.pop() ?? '';
       for (const line of lines) {
         signal.throwIfAborted();
-        if (terminal) throw new Error('Replay continued after its terminal result');
-        const frame: Progress | Terminal = JSON.parse(line);
+        if (terminal) throw invalidMarketData();
+        let frame: Progress | Terminal;
+        try { frame = JSON.parse(line); } catch { throw invalidMarketData(); }
+        if (!frame || typeof frame !== 'object' || !('ok' in frame || 'subscription' in frame || 'event' in frame)) {
+          throw invalidMarketData();
+        }
         if ('ok' in frame) terminal = frame;
         else publish(frame);
       }
     }
-    if (partial || !terminal) throw new Error('Incomplete replay response');
+    if (partial || !terminal) throw invalidMarketData();
     if (!terminal.ok) throw terminal.error;
     return terminal.result;
   } finally {
@@ -46,7 +60,9 @@ async function browserReplay(payload: MarketSubscriptionInput, signal: AbortSign
   }
 }
 
-async function nativeReplay(payload: MarketSubscriptionInput, signal: AbortSignal, publish: Publish): Promise<Outcome> {
+async function nativeReplay(
+  payload: MarketSubscriptionInput, signal: AbortSignal, publish: Publish, admitted: () => void,
+): Promise<Outcome> {
   const subscriptionId = crypto.randomUUID();
   let started = false;
   const cancel = () => {
@@ -55,6 +71,7 @@ async function nativeReplay(payload: MarketSubscriptionInput, signal: AbortSigna
   const progress = new Channel<Progress | Terminal | { started: true }>();
   const terminal = new Promise<Outcome>((resolve, reject) => {
     progress.onmessage = frame => {
+      admitted();
       if ('started' in frame) {
         started = true;
         if (signal.aborted) cancel();
@@ -80,16 +97,5 @@ async function nativeReplay(payload: MarketSubscriptionInput, signal: AbortSigna
 
 export async function subscribeSample(payload: MarketSubscriptionInput, signal: AbortSignal, publish: Publish) {
   const replay = import.meta.env.SCOPEHUB_UBUNTU_PREVIEW ? browserReplay : nativeReplay;
-  let started = false;
-  for (const delay of [50, 100, 200, 400, 800, 0]) {
-    signal.throwIfAborted();
-    try {
-      return await replay(payload, signal, frame => { started = true; publish(frame); });
-    } catch (error) {
-      if (started || !delay || !error || typeof error !== 'object' || !('code' in error) || error.code !== 'BUSY') throw error;
-      // A superseded selection may still be releasing its dedicated worker.
-      await new Promise(resolve => window.setTimeout(resolve, delay));
-    }
-  }
-  throw new Error('Replay retry budget exhausted');
+  return retryMarketAdmission(signal, admitted => replay(payload, signal, publish, admitted));
 }

@@ -1,5 +1,10 @@
 import { assetLabel, instrumentName, price, symbol, unitLabel } from './instrument-display';
-import type { ChartHistory, Instrument } from './market';
+import {
+  isSampleRevision, sampleDateStart, sampleRevisionInstrument, sampleRevisions,
+  type ChartHistory, type Instrument, type MarketFailure, type SampleRevision,
+} from './market';
+import { MarketQualityFacts, ReplayGapFacts } from './market-quality';
+import type { ReplayGap } from './use-sample-replay';
 import { WorkspaceIcon } from './workspace-icons';
 
 export type Panel = 'watchlist' | 'data' | 'sources';
@@ -63,33 +68,61 @@ function DataWindow({ history }: { history: ChartHistory | undefined }) {
   </>;
 }
 
-function DataSources({ sample, history, leave }: { sample: boolean; history: ChartHistory | undefined; leave: () => void }) {
-  const dataset = history?.dataset;
+type SampleFilters = {
+  revision: SampleRevision; date: string;
+  setRevision: (value: SampleRevision) => void; setDate: (value: string) => void;
+};
+
+type MarketStatus = {
+  failureKind: MarketFailure['kind'] | undefined;
+  replayGap: ReplayGap | undefined;
+};
+
+function DataSources({ sample, selected, history, failureKind, replayGap, filters, leave }: MarketStatus & {
+  sample: boolean; selected: Instrument | undefined; history: ChartHistory | undefined;
+  filters: SampleFilters; leave: () => void;
+}) {
   return <div className="source-details">
     {sample && <section><h3>Historical sample</h3><p>Generated prices and volume from fixed sessions in January 2024.</p>
-      {dataset && <dl className="source-facts"><dt>Source</dt><dd>{dataset.provider_id}</dd><dt>Revision</dt><dd>{dataset.revision}</dd>
-        <dt>Time zone</dt><dd>{dataset.timezone}</dd><dt>Quality at sample time</dt><dd>{dataset.quality}</dd>
-        {history && <><dt>Observed as of</dt><dd>{new Date(history.snapshot.as_of_ms).toISOString()}</dd>
-          <dt>Coverage</dt><dd>{history.quality_state.coverage}</dd><dt>Freshness</dt><dd>{history.quality_state.freshness}</dd>
-          <dt>Connection</dt><dd>{history.quality_state.connection}</dd><dt>Input digest</dt><dd>{history.snapshot.content_hash}</dd></>}</dl>}
+      <div className="sample-filters">
+        {selected?.id === sampleRevisionInstrument && <>
+          <label htmlFor="sample-revision">Sample revision</label>
+          <select id="sample-revision" value={filters.revision} onChange={event => {
+            const value = event.currentTarget.value;
+            if (isSampleRevision(value)) filters.setRevision(value);
+          }}>
+            {Object.entries(sampleRevisions).map(([value, { label }]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+        </>}
+        <label htmlFor="sample-date">Sample date (UTC)</label>
+        <input id="sample-date" type="date" max="9999-12-31" value={filters.date} aria-describedby="sample-date-help" onChange={event => {
+          const value = event.currentTarget.value;
+          if (value === '' || sampleDateStart(value) !== undefined) filters.setDate(value);
+        }} />
+        <small id="sample-date-help">Leave blank for the full sample window.</small>
+      </div>
+      <MarketQualityFacts history={history} failureKind={failureKind} />
       <button type="button" className="secondary-button" onClick={leave}>Leave sample</button>
     </section>}
+    {replayGap && <ReplayGapFacts gap={replayGap} />}
     <section><h3>Your connections</h3><p>Connect your own market data, AI and information services as integrations become available. Service subscriptions are separate.</p>
       <dl className="facts"><dt>Market data</dt><dd>Not configured</dd><dt>AI model</dt><dd>Not configured</dd><dt>Information</dt><dd>Not configured</dd></dl>
     </section>
   </div>;
 }
 
-type Props = {
+type Props = MarketStatus & {
   panel: Panel; sample: boolean; instruments: Instrument[]; selected: Instrument | undefined; history: ChartHistory | undefined;
+  filters: SampleFilters;
   choose: (item: Instrument) => void; close: () => void; leave: () => void;
 };
-export function WorkspacePanel({ panel, sample, instruments, selected, history, choose, close, leave }: Props) {
+export function WorkspacePanel({ panel, sample, instruments, selected, history, failureKind, replayGap, filters, choose, close, leave }: Props) {
   return <aside id="workspace-panel" className={'workspace-panel panel-' + panel} aria-label={panelLabels[panel]}>
     <div className="panel-heading"><h2>{panelLabels[panel]}</h2>
       <button type="button" className="icon-button" aria-label="Close panel" title="Close panel" onClick={close}><WorkspaceIcon name="close" /></button></div>
     {panel === 'watchlist' && <Watchlist instruments={instruments} selected={selected} history={history} choose={choose} sample={sample} />}
     {panel === 'data' && <DataWindow history={history} />}
-    {panel === 'sources' && <DataSources history={history} sample={sample} leave={leave} />}
+    {panel === 'sources' && <DataSources history={history} sample={sample} selected={selected}
+      failureKind={failureKind} replayGap={replayGap} filters={filters} leave={leave} />}
   </aside>;
 }

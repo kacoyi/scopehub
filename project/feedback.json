@@ -726,6 +726,52 @@
         "prevention": "Worker and frozen-page tests cover closed, delayed, stale and unknown data with gaps, empty selections, pinned revisions and a stale or unknown observation that still has subsequent fixture events."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "superseded-market-admission",
+      "source": "Independent timing review of an owned history preparation and market replay during M1-007.",
+      "observation": "A replacement could stop attempting admission after 1000 ms for preview history or 1550 ms for a replay even though its previous worker was still within the bridge cleanup window. A simulated 1025 ms or 1600 ms release reproduced the two false BUSY results.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-007"
+      ],
+      "regression_checks": [
+        "market-live-stream"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "market-quality-attribution",
+      "source": "Independent M1-007 chart review with held ordinary history, controlled transport failures and a typed gap event.",
+      "observation": "Without a snapshot, a failed worker read populated the source connection as disconnected. With a frozen snapshot, loss of the local preview transport could instead be presented as a worker exit. The UI also discarded known UTC ranges and loss counts when a stream gap arrived.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-007"
+      ],
+      "regression_checks": [
+        "market-quality-states"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "superseded-ordinary-history",
+      "source": "Independent M1-007 chart review with held ordinary history, controlled transport failures and a typed gap event.",
+      "observation": "Switching symbols aborted the caller while a superseded ordinary browser history fetch still occupied the read queue until its old response arrived. This left the replacement chart loading while an obsolete response was held.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-007"
+      ],
+      "regression_checks": [
+        "market-quality-states",
+        "market-live-stream"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

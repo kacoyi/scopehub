@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { ChartCursorMode, ChartStyle, HistoryChartHandle } from './chart-adapter/history';
 import { symbol } from './instrument-display';
-import type { Instrument } from './market';
+import { sampleRevisionInstrument, type ChartHistory, type Instrument, type SampleRevision } from './market';
+import { ReplayGapDetails, replayGapReason } from './market-quality';
 import { PriceChart } from './price-chart';
 import { narrowScreen, readSampleView, saveSampleView } from './sample-view';
 import { SymbolSearch } from './symbol-search';
@@ -28,10 +29,24 @@ function PlotMessage({ title, children, error = false }: { title: string; childr
   </div></div>;
 }
 
+function HistoryStatus({ history }: { history: ChartHistory }) {
+  const { freshness, coverage, connection } = history.quality_state;
+  const warnings = [
+    freshness === 'stale' && 'Stale data',
+    freshness === 'delayed' && 'Delayed observations',
+    coverage === 'gapped' && 'Known gaps',
+    connection === 'disconnected' && 'Source disconnected',
+  ].filter(Boolean);
+  if (warnings.length) return <span className="history-status warning" role="status">{warnings.join(' · ')}</span>;
+  return history.bars.length ? <span className="history-status" role="status">History ready</span> : null;
+}
+
 export function ChartWorkspace({ sample, leaveSample }: { sample: boolean; leaveSample: () => void }) {
   const [saved] = useState(() => sample ? readSampleView() : undefined);
   const [chosenId, setChosenId] = useState(saved?.symbol ?? '');
   const [timeframe, setTimeframe] = useState(saved?.timeframe ?? '1m');
+  const [revision, setRevision] = useState<SampleRevision>(saved?.sampleRevision ?? 'normal');
+  const [date, setDate] = useState(saved?.sampleDate ?? '');
   const [style, setStyle] = useState<ChartStyle>(saved?.style ?? 'candlestick');
   const [cursor, setCursor] = useState<ChartCursorMode>(saved?.cursor ?? 'crosshair');
   const [panel, setPanel] = useState<Panel | null>(() => {
@@ -39,12 +54,6 @@ export function ChartWorkspace({ sample, leaveSample }: { sample: boolean; leave
     return saved?.narrow === narrow && saved.panel !== undefined ? saved.panel : narrow ? null : 'watchlist';
   });
   const [focusChart, setFocusChart] = useState(saved?.chartOnly ?? false);
-  useEffect(() => {
-    if (sample) saveSampleView({
-      symbol: chosenId, timeframe, style, cursor, panel, chartOnly: focusChart,
-      narrow: window.matchMedia(narrowScreen).matches,
-    });
-  }, [sample, chosenId, timeframe, style, cursor, panel, focusChart]);
   const [searchQuery, setSearchQuery] = useState<string | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const chart = useRef<HistoryChartHandle | null>(null);
@@ -52,12 +61,27 @@ export function ChartWorkspace({ sample, leaveSample }: { sample: boolean; leave
   const { catalog, retryCatalog } = useSampleCatalog(sample);
   const instruments = catalog.state === 'ready' ? catalog.value : noInstruments;
   const selected = instruments.find(item => item.id === chosenId) ?? instruments[0];
-  const { result, retryHistory } = useHistory(selected, timeframe);
+  const sampleRevision = selected?.id === sampleRevisionInstrument ? revision : 'normal';
+  const { result, retryHistory } = useHistory(selected, timeframe, sampleRevision, date);
   const history = result.state === 'ready' ? result.value : undefined;
+  const failure = catalog.state === 'error' ? catalog.failure : result.state === 'error' ? result.failure : undefined;
   const { replay, start, stop } = useSampleReplay(history);
   const playing = replay?.state === 'starting' || replay?.state === 'playing';
+  const replayFailure = replay?.state === 'failed' ? replay.failure : undefined;
+  const replayGap = replay?.state === 'gap' ? replay.gap : undefined;
   const visiblePanel = focusChart ? null : panel;
-  const canInspect = Boolean(history?.bars.length);
+  const lastBar = history?.bars.at(-1);
+  const canInspect = Boolean(lastBar);
+  const canReplay = lastBar && !lastBar.is_closed && history?.quality_state.freshness !== 'stale'
+    && (!replayFailure || replayFailure.retryable);
+  const savedSymbol = selected?.id ?? chosenId;
+  const savedRevision = selected ? sampleRevision : revision;
+  useEffect(() => {
+    if (sample) saveSampleView({
+      symbol: savedSymbol, timeframe, style, cursor, panel, chartOnly: focusChart,
+      sampleRevision: savedRevision, sampleDate: date, narrow: window.matchMedia(narrowScreen).matches,
+    });
+  }, [sample, savedSymbol, timeframe, style, cursor, panel, focusChart, savedRevision, date]);
 
   const searchWasOpen = useRef(false);
   useEffect(() => {
@@ -71,6 +95,7 @@ export function ChartWorkspace({ sample, leaveSample }: { sample: boolean; leave
   }, []);
   const choose = (item: Instrument) => {
     setChosenId(item.id);
+    if (item.id !== sampleRevisionInstrument) setRevision('normal');
     if (searchQuery !== null) closeSearch();
     if (window.matchMedia(narrowScreen).matches) closePanel();
   };
@@ -104,12 +129,12 @@ export function ChartWorkspace({ sample, leaveSample }: { sample: boolean; leave
   if (!sample) {
     plot = <PlotMessage title="Open a chart"><p>Explore three instruments with offline sample data.</p>
       <button type="button" className="primary" onClick={openSample}>Open offline sample <WorkspaceIcon name="arrow" /></button></PlotMessage>;
-  } else if (catalog.state === 'error') {
-    plot = <PlotMessage title={catalog.message} error>{catalog.retryable && <button type="button" className="primary" onClick={retryCatalog}>Retry demo</button>}</PlotMessage>;
+  } else if (failure) {
+    const catalogFailed = catalog.state === 'error';
+    plot = <PlotMessage title={failure.message} error>{failure.retryable && <button type="button" className="primary"
+      onClick={catalogFailed ? retryCatalog : retryHistory}>{catalogFailed ? 'Retry demo' : 'Retry history'}</button>}</PlotMessage>;
   } else if (catalog.state === 'ready' && !selected) {
     plot = <PlotMessage title="No instruments in this sample." />;
-  } else if (result.state === 'error') {
-    plot = <PlotMessage title={result.message} error>{result.retryable && <button type="button" className="primary" onClick={retryHistory}>Retry history</button>}</PlotMessage>;
   } else if (!selected || !history) {
     plot = <PlotMessage title="Loading synthetic history…" />;
   } else if (!history.bars.length) {
@@ -146,22 +171,26 @@ export function ChartWorkspace({ sample, leaveSample }: { sample: boolean; leave
       </nav>}
       <section className="plot-workspace" aria-label="Price chart">
         {plot}
-        <footer className="chart-footer"><span>{sample ? 'Jan 2024' : 'ScopeHub'}</span>
+        <footer className="chart-footer"><span>{sample ? (date ? date + ' UTC' : 'Jan 2024') : 'ScopeHub'}</span>
           {selected && <span>{selected.timezone}</span>}
-          {canInspect && <button type="button" className="secondary-button replay-button" onClick={playing ? stop : start}>
-            {playing ? 'Stop replay' : 'Play sample updates'}
+          {history && <HistoryStatus history={history} />}
+          {canReplay && <button type="button" className="secondary-button replay-button" onClick={playing ? stop : start}>
+            {playing ? 'Stop replay' : replayFailure ? 'Retry replay' : 'Play sample updates'}
           </button>}
-          {replay && <span role="status" className={'replay-status ' + replay.state}>
+          {replay && <span role={replay.state === 'failed' ? 'alert' : 'status'} className={'replay-status ' + replay.state}>
             {replay.state === 'starting' ? 'Preparing synthetic replay…'
               : replay.state === 'playing' ? 'Synthetic replay in progress'
               : replay.state === 'complete' ? 'Synthetic replay complete'
-              : `Replay gap. ${replay.detail}`}
+              : replay.state === 'gap' ? `Replay gap. ${replayGapReason(replay.gap)}`
+              : replayFailure && `Replay failed. ${replayFailure.message}`}
           </span>}
+          {replayGap && <ReplayGapDetails gap={replayGap} />}
           <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">Charts by TradingView Lightweight Charts™</a></footer>
       </section>
       {visiblePanel && <>
         <button type="button" className="panel-scrim" aria-label="Dismiss side panel" onClick={closePanel} />
         <WorkspacePanel panel={visiblePanel} sample={sample} selected={selected} instruments={instruments} history={history}
+          failureKind={(failure ?? replayFailure)?.kind} replayGap={replayGap} filters={{ revision: sampleRevision, date, setRevision, setDate }}
           choose={choose} close={closePanel} leave={leaveSample} />
       </>}
       {!focusChart && <nav className="side-tools" aria-label="Workspace panels" ref={dock}>{panelOrder.map(key =>
