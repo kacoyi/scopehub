@@ -19,6 +19,7 @@ use serde_json::{Value, json};
 const MAX_REQUEST_BYTES: u64 = 16 * 1024;
 const MAX_NOTE_REQUEST_BYTES: u64 = 32 * 1024;
 const MAX_BACKUP_REQUEST_BYTES: u64 = 1024 * 1024;
+const MAX_SAMPLE_REQUEST_BYTES: u64 = 256 * 1024;
 
 fn request_limit(operation: Option<&str>) -> u64 {
     match operation {
@@ -107,6 +108,33 @@ fn serve(
         }
         let request =
             serde_json::from_slice::<Value>(&line).map_err(|_| failure(ErrorCode::INVALIDARGUMENT));
+        if request
+            .as_ref()
+            .is_ok_and(|frame| frame["type"] == "indicator_sample_preview")
+        {
+            // The authenticated local preview host assembles this private frame.
+            // Browser requests never supply the history or the wrapper.
+            let mut request = request.expect("private frame");
+            let result = if count as u64 > MAX_SAMPLE_REQUEST_BYTES {
+                Err(failure(ErrorCode::RESOURCELIMIT))
+            } else if let Some(frame) = request.as_object_mut()
+                && frame.len() == 3
+                && frame.contains_key("history")
+                && frame.contains_key("command")
+            {
+                let command = frame.remove("command").expect("command member");
+                let history = frame.remove("history").expect("history member");
+                if command.to_string().len() as u64 >= MAX_REQUEST_BYTES {
+                    Err(failure(ErrorCode::RESOURCELIMIT))
+                } else {
+                    registry.execute_sample_indicator_preview(access, command, history)
+                }
+            } else {
+                Err(failure(ErrorCode::INVALIDARGUMENT))
+            };
+            write_frame(&mut output, result_frame(result))?;
+            continue;
+        }
         let operation = request.as_ref().ok().and_then(|request| {
             evidence_operation_name(request).or_else(|| request["intent"]["operation"].as_str())
         });

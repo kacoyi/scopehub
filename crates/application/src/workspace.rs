@@ -32,7 +32,8 @@ pub(crate) use indicators::IndicatorStage;
 pub use indicators::{
     ACCEPT_INDICATOR_VERSION, CANCEL_INDICATOR_TASK, CREATE_INDICATOR_DRAFT,
     INDICATOR_CONFIRMATION, IndicatorLayerRef, IndicatorLayerUndo, IndicatorVersionRecord,
-    MAX_ACTIVE_INDICATOR_LAYERS, REMOVE_INDICATOR_LAYER, RUN_INDICATOR_PREVIEW,
+    MAX_ACTIVE_INDICATOR_LAYERS, READ_INDICATOR_SAMPLE_HISTORY, REMOVE_INDICATOR_LAYER,
+    RUN_INDICATOR_PREVIEW, is_sample_indicator_preview,
 };
 pub(crate) use private_records::PrivateRecordStaging;
 pub use private_records::{
@@ -261,6 +262,9 @@ pub trait WorkspaceTransaction {
         revision_id: &str,
     ) -> Result<Option<crate::StoredLocalDataset>, Error>;
     fn local_evidence_display_allowed(&self, revision_id: &str) -> Result<bool, Error>;
+    fn indicator_sample_allowed(&self, _instrument_id: &str) -> Result<bool, Error> {
+        Ok(false)
+    }
     fn indicator_compute_allowed(&self, _revision_id: &str) -> Result<bool, Error> {
         Ok(false)
     }
@@ -514,10 +518,10 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
                 return self.execute_indicator_layer(access, REMOVE_INDICATOR_LAYER, request);
             }
             CREATE_INDICATOR_DRAFT => {
-                return self.execute_indicator(access, CREATE_INDICATOR_DRAFT, request);
+                return self.execute_indicator(access, CREATE_INDICATOR_DRAFT, request, None);
             }
             RUN_INDICATOR_PREVIEW => {
-                return self.execute_indicator(access, RUN_INDICATOR_PREVIEW, request);
+                return self.execute_indicator(access, RUN_INDICATOR_PREVIEW, request, None);
             }
             _ => {}
         }

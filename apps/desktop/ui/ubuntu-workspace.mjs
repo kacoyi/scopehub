@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { realpathSync, statSync } from 'node:fs';
 import { basename, isAbsolute, relative, resolve, sep } from 'node:path';
-import { PreviewFailure, assertLocalJsonRequest, failureResponse, maxRequestBytes, readLocalJson } from './ubuntu-preview.mjs';
+import { PreviewFailure, assertLocalJsonRequest, failureResponse, maxRequestBytes, readIndicatorSampleHistory, readLocalJson } from './ubuntu-preview.mjs';
 import { issueWorkspaceAccess } from './ubuntu-workspace-access.mjs';
 
 const route = '/__scopehub/workspace';
@@ -450,8 +450,18 @@ function startWriter(root, { path, profileId, workspaceId }) {
       const snapshot = body?.type === 'snapshot';
       if (snapshot && Object.keys(body).length !== 1) throw new PreviewFailure(400, 'INVALID_ARGUMENT');
       const requestId = snapshot ? ++snapshotRequestId : body?.request_id;
-      const line = snapshot ? JSON.stringify({ type: 'snapshot', request_id: requestId }) + '\n'
+      let line = snapshot ? JSON.stringify({ type: 'snapshot', request_id: requestId }) + '\n'
         : requestFrame(body, workspaceId);
+      if (body?.intent?.operation === 'indicator.runPreview'
+          && body.intent.arguments?.snapshot?.series?.provider_id === 'scopehub.synthetic') {
+        const history = await readIndicatorSampleHistory(root, body, signal);
+        if (history.ok === false) return history;
+        signal.throwIfAborted();
+        if (failure) throw failure;
+        if (pending) throw new PreviewFailure(429, 'BUSY');
+        line = JSON.stringify({ type: 'indicator_sample_preview', command: body, history: history.result }) + '\n';
+        if (Buffer.byteLength(line) > 256 * 1024) throw new PreviewFailure(413, 'RESOURCE_LIMIT');
+      }
       const reply = Promise.withResolvers();
       const noteId = body?.scope?.target?.object_id ?? body?.intent?.arguments?.note_id;
       const operation = snapshot || body.type === sourceMutation || frozenChartControls.includes(body.type) || indicatorReads.includes(body.type)

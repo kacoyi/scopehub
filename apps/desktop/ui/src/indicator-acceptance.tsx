@@ -18,8 +18,20 @@ const command = () => ({
   request_id: crypto.randomUUID(), timestamp_ms: Date.now(),
 } as const);
 
+async function readAccepted<T>(request: Parameters<typeof exchangeWorkspace>[0], signal: AbortSignal): Promise<T> {
+  for (;;) {
+    try {
+      return await exchangeWorkspace<T>(request, signal);
+    } catch (error) {
+      if (!error || typeof error !== 'object' || !('code' in error) || error.code !== 'BUSY') throw error;
+      await new Promise<void>(resolve => setTimeout(resolve, 100));
+      signal.throwIfAborted();
+    }
+  }
+}
+
 async function readLayers(snapshot: FrozenSnapshot, signal: AbortSignal): Promise<Accepted[]> {
-  const listing = await exchangeWorkspace<{ dataset_id: string; layers: Layer[] }>({
+  const listing = await readAccepted<{ dataset_id: string; layers: Layer[] }>({
     type: 'indicator_accepted_layers', request_id: crypto.randomUUID(), revision_id: snapshot.dataset_id,
   }, signal);
   if (listing.dataset_id !== snapshot.dataset_id) throw new Error();
@@ -29,7 +41,7 @@ async function readLayers(snapshot: FrozenSnapshot, signal: AbortSignal): Promis
       accepted.push(layer);
       continue;
     }
-    const output = await exchangeWorkspace<{ layer_id: string; version_id: string; document: NonNullable<Accepted['document']> }>({
+    const output = await readAccepted<{ layer_id: string; version_id: string; document: NonNullable<Accepted['document']> }>({
       type: 'indicator_accepted_output', request_id: crypto.randomUUID(), layer_id: layer.layer_id,
     }, signal);
     if (output.layer_id !== layer.layer_id || output.version_id !== layer.version_id

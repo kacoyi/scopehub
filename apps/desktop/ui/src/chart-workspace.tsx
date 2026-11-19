@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import type { LayoutPanel11 } from '../../../../contracts/generated/protocol';
+import type { IndicatorResult, LayoutPanel11 } from '../../../../contracts/generated/protocol';
 import type { ChartCursorMode, ChartStyle, HistoryChartHandle } from './chart-adapter/history';
 import { DecisionNotes } from './decision-notes';
 import { PrivateRecords } from './private-records';
 import { UnavailableSharedSelection } from './frozen-evidence';
 import { instrumentName, symbol } from './instrument-display';
+import { IndicatorPreview } from './indicator-preview';
+import type { PublishedRevisionAccess } from './published-revision-access';
 import { isClosedBarGapRevision, sampleRevisionInstrument, type Bar, type ChartHistory, type Instrument, type SampleRevision } from './market';
 import { ReplayGapDetails, replayGapReason } from './market-quality';
 import { PriceChart } from './price-chart';
@@ -67,9 +69,10 @@ export type RestoredChartSource = {
   label?: string;
 };
 
-export function ChartWorkspace({ sample, leaveSample, localActions, workspace, openPublished, restoredSource, restoredSampleInstrument, chooseSampleInstrument, onOpenSample, retryRestoredSource }: {
+export function ChartWorkspace({ sample, leaveSample, localActions, workspace, openPublished, restoredSource, restoredSampleInstrument, chooseSampleInstrument, onOpenSample, retryRestoredSource, revisionAccess }: {
   sample: boolean; leaveSample: () => void; localActions: LocalSourceActions | undefined;
   workspace: LocalWorkspace | undefined;
+  revisionAccess: PublishedRevisionAccess;
   openPublished: (() => void) | undefined;
   restoredSource?: RestoredChartSource | undefined;
   restoredSampleInstrument?: string | undefined;
@@ -118,6 +121,17 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
     ? revision : 'normal';
   const { result, retryHistory } = useHistory(sample && timeframe ? selected : undefined, timeframe, sampleRevision, date);
   const history = frozen?.history ?? (sample && result.state === 'ready' ? result.value : undefined);
+  const indicatorSource = history?.snapshot.content_hash;
+  const [previewLayer, setPreviewLayer] = useState<{ source: string; result: IndicatorResult }>();
+  const [acceptedLayers, setAcceptedLayers] = useState<{ source: string; results: readonly IndicatorResult[] }>();
+  const showPreview = useCallback((result: IndicatorResult | undefined) => {
+    setPreviewLayer(result && indicatorSource ? { source: indicatorSource, result } : undefined);
+  }, [indicatorSource]);
+  const showAccepted = useCallback((results: readonly IndicatorResult[]) => {
+    setAcceptedLayers(indicatorSource ? { source: indicatorSource, results } : undefined);
+  }, [indicatorSource]);
+  const acceptingIndicators = Boolean(workspace && history?.bars.length
+    && (frozen || sample && workspace.snapshot?.source?.kind === 'sample'));
   const [lastInspected, setLastInspected] = useState<ChartHistory>();
   const [sampleBar, setSampleBar] = useState<{ snapshot: string; time: number }>();
   const inspectionHistory = sample && definition?.link_selection === false && lastInspected?.dataset.mode === 'simulated'
@@ -288,6 +302,8 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
     plot = <PriceChart key={frozen ? restoredSource?.revision_id : selected.id + ':' + timeframe} instrument={chartInstrument ?? selected}
       history={history} style={style} cursor={cursor} handle={chart} replayBar={sample ? replay?.bar : undefined}
       repairedBars={sample ? repairedBars : undefined} selectedBarTime={selectedBarTime} activateBar={selectBar}
+      indicatorPreview={previewLayer?.source === indicatorSource ? previewLayer?.result : undefined}
+      acceptedIndicators={acceptedLayers?.source === indicatorSource ? acceptedLayers?.results : undefined}
       {...appearance && { appearance }} />;
   }
 
@@ -368,6 +384,12 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
             <ReplayGapDetails gap={replayGap} />
           </>}
           <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">Charts by TradingView Lightweight Charts™</a></footer>
+        {acceptingIndicators && workspace && history && <details className="chart-indicators">
+          <summary>Indicators</summary>
+          <IndicatorPreview key={history.snapshot.content_hash} snapshot={history.snapshot} bars={history.bars}
+            workspace={workspace} access={frozen ? revisionAccess : undefined}
+            showResult={showPreview} showAccepted={showAccepted} />
+        </details>}
         </section>
         {activeDocks.map(({ dockName, panels, active }) => <LayoutDock key={dockName} dock={dockName} panels={panels}
           active={active.panel} select={value => docks.setDock(dockName, value)} close={() => closeDock(active)}>

@@ -10,7 +10,7 @@ import { exchangeWorkspace, type LocalWorkspace } from './use-local-workspace';
 
 type Ready = {
   status: 'ready'; task_id: string; event: PreviewReady11; source_snapshot: FrozenSnapshot;
-  resolved_parameters: Record<string, unknown>; warmup_from_ms: number | null;
+  resolved_parameters: Record<string, unknown>; warmup_from_ms: number | null; calendar_hash: string | null;
 };
 type Waiting = { status: 'running'; task_id: string };
 type Terminal = { status: 'terminal'; task_id: string; event: TaskTerminalEvent11 };
@@ -50,7 +50,7 @@ function describeError(error: unknown) {
 }
 
 type Props = {
-  snapshot: FrozenSnapshot; bars: readonly Bar[]; workspace: LocalWorkspace; access: PublishedRevisionAccess;
+  snapshot: FrozenSnapshot; bars: readonly Bar[]; workspace: LocalWorkspace; access?: PublishedRevisionAccess | undefined;
   showResult: (result: IndicatorResult | undefined) => void;
   showAccepted: (results: readonly IndicatorResult[]) => void;
 };
@@ -58,7 +58,7 @@ type Props = {
 export function IndicatorPreview({ snapshot, bars, workspace, access, showResult, showAccepted }: Props) {
   const heading = useId();
   const [period, setPeriod] = useState('2');
-  const [first, setFirst] = useState(snapshot.from_ms);
+  const [first, setFirst] = useState(bars[0]?.time_ms ?? snapshot.from_ms);
   const [last, setLast] = useState(bars.at(-1)?.time_ms ?? snapshot.from_ms);
   const [running, setRunning] = useState(false);
   const [taskId, setTaskId] = useState<string>();
@@ -125,11 +125,13 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
         if (event.task_id !== id || event.draft_id !== draft_id || event.code_hash !== code_hash
           || !validHash(event.params_hash) || !validHash(event.snapshot.content_hash)
           || event.artifact.storage !== 'inline' || !validHash(event.artifact.result_hash)
+          || (snapshot.series.provider_id === 'scopehub.synthetic' && (typeof status.calendar_hash !== 'string'
+            || !validHash(status.calendar_hash)))
           || status.source_snapshot.content_hash !== snapshot.content_hash
           || event.snapshot.dataset_id !== snapshot.dataset_id || event.snapshot.dataset_revision !== snapshot.dataset_revision
           || event.snapshot.as_of_ms !== snapshot.as_of_ms || event.snapshot.from_ms !== range.from_ms
           || event.snapshot.to_ms !== range.to_ms || status.resolved_parameters.period !== requestedPeriod) throw new Error();
-        if (!access.canDisplay(snapshot.dataset_id)) return;
+        if (access && !access.canDisplay(snapshot.dataset_id)) return;
         showResult(event.artifact.result);
         setResult(status);
         return;
@@ -137,7 +139,7 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
       signal.throwIfAborted();
     } catch (error) {
       if (abort.signal.aborted) return;
-      if (displayAccessDenied(error)) void access.verify(snapshot.dataset_id);
+      if (displayAccessDenied(error)) void access?.verify(snapshot.dataset_id);
       setMessage({ text: describeError(error), error: code(error) !== 'CANCELLED' });
     } finally {
       if (active.current === abort) {
@@ -194,6 +196,7 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
         <summary>Preview provenance and values</summary>
         <dl>
           <dt>Input hash</dt><dd><code>{ready.content_hash}</code></dd>
+          {result.calendar_hash && <><dt>Schedule hash</dt><dd><code>{result.calendar_hash}</code></dd></>}
           <dt>Visible interval</dt><dd>{date(ready.from_ms)} to {date(ready.to_ms)} (exclusive)</dd>
           <dt>Warm-up start</dt><dd>{result.warmup_from_ms === null ? 'None' : date(result.warmup_from_ms)}</dd>
           <dt>Dataset revision</dt><dd><code>{ready.dataset_revision}</code></dd>
@@ -210,7 +213,7 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
         </table>
       </details>
     </div>}
-    <IndicatorAcceptance preview={result?.event} snapshot={snapshot} workspace={workspace} access={access}
-      clearPreview={clearPreview} showAccepted={showAccepted} />
+    {access && <IndicatorAcceptance preview={result?.event} snapshot={snapshot} workspace={workspace} access={access}
+      clearPreview={clearPreview} showAccepted={showAccepted} />}
   </section>;
 }

@@ -105,7 +105,7 @@ function App() {
 
   return <>
     {!local && <ChartWorkspace key={sample ? 'sample' : 'unconfigured'} sample={sample}
-      leaveSample={leaveSample} localActions={localActions} workspace={workspace}
+      leaveSample={leaveSample} localActions={localActions} workspace={workspace} revisionAccess={revisionAccess}
       openPublished={workspace ? () => setOpeningRevision(true) : undefined}
       restoredSource={restored} restoredSampleInstrument={source?.kind === 'sample' ? source.instrument_id ?? undefined : undefined}
       retryRestoredSource={retry} onOpenSample={openSample}

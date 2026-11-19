@@ -450,6 +450,110 @@ function independentEvidenceHash(id, a, b) {
   return result.toString('hex');
 }
 
+test('indicator-preview uses the bound sample calendar through the normal chart', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  const port = await freePort();
+  const afterClosure = 1704243600000;
+  const lastExpected = 1704200940000;
+  const observation = [];
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      const injected = await post(server, {
+        type: 'indicator_sample_preview', command: {}, history: { bars: [], sessions: [] },
+      });
+      expect(injected.status).toBe(403);
+      await injected.body?.cancel();
+
+      await inFreshBrowser(browser, server, async page => {
+        await control(page, 'Open offline sample').click();
+        await expect(page.getByText('Offline sample', { exact: true })).toBeVisible();
+        const source = await (await post(server, snapshot)).json();
+        expect(source.result.source).toMatchObject({ kind: 'sample' });
+        await control(page, 'Data sources').click();
+        const sources = page.getByRole('complementary', { name: 'Data sources' });
+        // UTC Jan 3 starts after the first session. The preceding bar
+        // must come from the same immutable revision's earlier warm-up.
+        await sources.getByLabel('Sample date (UTC)').fill('2024-01-03');
+        const plot = page.getByRole('region', { name: 'Price chart' });
+        const chart = plot.locator('.history');
+        await expect(chart).toHaveAttribute('data-bars', '20');
+        await sources.getByRole('button', { name: 'Close panel' }).click();
+        const indicatorSwitch = plot.getByText('Indicators', { exact: true });
+        await indicatorSwitch.click({ timeout: 8_000 });
+        const indicator = plot.getByRole('region', { name: 'Indicator preview' });
+        let previewCommand;
+        const run = async () => {
+          await indicator.getByLabel('First visible bar').selectOption(String(afterClosure));
+          await indicator.getByLabel('Last visible bar').selectOption(String(afterClosure));
+          const ready = page.waitForResponse(async response =>
+            new URL(response.url()).pathname === endpoint
+            && response.request().postDataJSON()?.type === 'indicator_preview_status'
+            && (await response.json()).result?.status === 'ready');
+          const submitted = page.waitForRequest(request => new URL(request.url()).pathname === endpoint
+            && request.postDataJSON()?.intent?.operation === 'indicator.runPreview');
+          await indicator.getByRole('button', { name: 'Run preview' }).click();
+          previewCommand = (await submitted).postDataJSON();
+          const terminal = (await (await ready).json()).result;
+          await expect(indicator.getByText(/Preview layers/)).toBeVisible();
+          return terminal;
+        };
+        const normal = await run();
+        expect(normal.event.artifact.result.series[0].points).toEqual([{ time_ms: afterClosure, value: 3500.5 }]);
+        expect(normal.warmup_from_ms).toBe(lastExpected);
+        expect(normal.source_snapshot.from_ms).toBe(Date.UTC(2024, 0, 3));
+        expect(normal.event.snapshot.warmup_bars).toBe(1);
+        expect(normal.calendar_hash).toMatch(/^[a-f0-9]{64}$/);
+        await expect(indicator.getByText("The source's scheduled closures add no indicator buckets.")).toBeVisible();
+        await expect(indicator.getByText(/expected market buckets are missing/)).toHaveCount(0);
+        await indicator.getByText('Preview provenance and values').click();
+        await expect(indicator.getByRole('table', { name: 'Indicator preview values' })).toContainText('3500.5');
+        observation.push(normal);
+        expect(Object.keys(previewCommand.intent.arguments).sort()).toEqual(['draft_id', 'parameters', 'snapshot']);
+        const forged = structuredClone(previewCommand);
+        forged.request_id = randomUUID();
+        forged.message_id = randomUUID();
+        forged.scope.idempotency_key = randomUUID();
+        forged.scope.target.snapshot.content_hash = 'f'.repeat(64);
+        forged.intent.arguments.snapshot.content_hash = 'f'.repeat(64);
+        const denied = await (await post(server, forged)).json();
+        expect(denied.result?.outcome).toMatchObject({ state: 'failed', error: { code: 'SNAPSHOT_UNAVAILABLE' } });
+        await expect(indicator.getByRole('table', { name: 'Indicator preview values' })).toContainText('3500.5');
+
+
+        await control(page, 'Data sources').click();
+        await sources.getByLabel('Sample revision').selectOption('gapped');
+        await expect(sources.getByText('scopehub-synthetic-v1:20241013:gapped', { exact: true })).toBeVisible();
+        await sources.getByRole('button', { name: 'Close panel' }).click();
+        if (await plot.locator('.chart-indicators').getAttribute('open') === null) {
+          await indicatorSwitch.click({ timeout: 8_000 });
+        }
+        // Jan 3 has the same observed bars; switching the revision removes the
+        // old result even though the chart looks identical in this UTC slice.
+        await expect(indicator.getByText(/Preview layers/)).toHaveCount(0);
+        const gapped = await run();
+        expect(gapped.source_snapshot.dataset_revision).toMatch(/:gapped$/);
+        expect(gapped.calendar_hash).toBe(normal.calendar_hash);
+        expect(gapped.event.snapshot.content_hash).not.toBe(normal.event.snapshot.content_hash);
+        expect(gapped.event.artifact.result.series[0].points).toEqual([{ time_ms: afterClosure, value: null }]);
+        await expect(indicator.getByText(/expected market buckets are missing/)).toBeVisible();
+        await expect(indicator.getByText(/no verified session schedule/)).toHaveCount(0);
+        observation.push(gapped);
+
+        await control(page, 'Data sources').click();
+        await sources.getByRole('button', { name: 'Leave sample' }).click();
+        await expect(plot.getByRole('region', { name: 'Indicator preview' })).toHaveCount(0);
+        const stale = await (await post(server, {
+          type: 'indicator_preview_status', request_id: randomUUID(), task_id: gapped.task_id,
+        })).json();
+        expect(stale).toMatchObject({ ok: false, error: { code: 'STALE_CONTEXT' } });
+      }, [endpoint, '/__scopehub/operation']);
+    });
+    await testInfo.attach('sample-indicator-calendar', { body: JSON.stringify(observation), contentType: 'application/json' });
+  } finally {
+    await profile.close();
+  }
+});
+
 test('indicator-preview evaluates real frozen chart bytes and isolates failure and cancellation', async ({ browser }, testInfo) => {
   const profile = await makeProfile();
   const port = await freePort();
@@ -657,6 +761,11 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         expect(reruns).toBe(0);
         const restore = { type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: savedLayer.layer_id };
         expect(await reply(server, restore)).toEqual(savedOutput);
+        await dialog.getByRole('button', { name: 'Use as workspace source' }).click();
+        const mainChart = page.getByRole('region', { name: 'Price chart' });
+        await mainChart.getByText('Indicators', { exact: true }).click();
+        await expect(mainChart.getByRole('region', { name: 'Accepted indicators' }).getByText(savedLayer.version_id)).toBeVisible();
+        expect(reruns).toBe(0);
 
         const database = new DatabaseSync(join(profile.root, 'workspace.sqlite3'));
         try {
@@ -1687,7 +1796,7 @@ async function assertSampleStorage(page, timeframe) {
   expect(stored).toEqual({ onlySamplePreference: true, emptySessionStorage: true, matchesSample: true });
 }
 
-async function inFreshBrowser(browser, server, use) {
+async function inFreshBrowser(browser, server, use, permittedOperations = [endpoint]) {
   const context = await browser.newContext();
   try {
     // Read the real launcher handoff but set its fragment locally before page
@@ -1700,7 +1809,7 @@ async function inFreshBrowser(browser, server, use) {
     let capabilityInRequestUrl = false;
     page.on('request', request => { capabilityInRequestUrl ||= request.url().includes(server.capability); });
     await use(page, await openWorkspaceSnapshot(page, server.url));
-    expect(requests.every(path => path === endpoint)).toBe(true);
+    expect(requests.every(path => permittedOperations.includes(path))).toBe(true);
     expect(capabilityInRequestUrl).toBe(false);
   } finally {
     await context.close();

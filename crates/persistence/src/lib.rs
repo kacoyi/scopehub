@@ -712,6 +712,15 @@ impl WorkspaceTransaction for SqliteTransaction<'_> {
         local_dataset::display_allowed(self.connection, revision_id)
     }
 
+    fn indicator_sample_allowed(&self, instrument_id: &str) -> Result<bool, Error> {
+        let source = workspace_layout::source_view(self.connection, &self.binding.workspace_id)?;
+        Ok(matches!(
+            source.map(|view| view.preference),
+            Some(WorkspaceSourcePreference::Sample(selected))
+                if selected.as_deref().is_none_or(|id| id == instrument_id)
+        ))
+    }
+
     fn indicator_compute_allowed(&self, revision_id: &str) -> Result<bool, Error> {
         // These revisions contain native CSV selected and published by this
         // profile. That local source policy allows on-device declarative analysis.

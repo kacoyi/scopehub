@@ -57,12 +57,13 @@ pub use workspace::{
     LAYOUT_ID, LOCAL_WORKSPACE_OPERATIONS, LocalChartAnalysisGrant, MAIN_CHART_ID,
     MAX_ACTIVE_INDICATOR_LAYERS, PREVIEW_LAYOUT, PRIVATE_RECORD_CHANGE, PRIVATE_RECORD_EXPORT,
     PRIVATE_RECORD_OPERATIONS, PRIVATE_RECORD_READ, PrivateRecordPlan, READ_CHART_PROJECTION,
-    REMOVE_INDICATOR_LAYER, RUN_INDICATOR_PREVIEW, SELECT_EVIDENCE, SET_TIMEFRAME,
-    StoredWorkspaceView, Timeframe, UNDO, WorkspaceAccess, WorkspaceBinding, WorkspaceChange,
-    WorkspaceLayoutChange, WorkspaceLayoutSnapshot, WorkspaceLayoutState, WorkspaceReceipt,
-    WorkspaceReplay, WorkspaceReplayKey, WorkspaceSnapshot, WorkspaceSourcePreference,
-    WorkspaceSourceView, WorkspaceState, WorkspaceStore, WorkspaceTransaction, WorkspaceUndoAccess,
-    WorkspaceUndoTarget, evidence_operation_name,
+    READ_INDICATOR_SAMPLE_HISTORY, REMOVE_INDICATOR_LAYER, RUN_INDICATOR_PREVIEW, SELECT_EVIDENCE,
+    SET_TIMEFRAME, StoredWorkspaceView, Timeframe, UNDO, WorkspaceAccess, WorkspaceBinding,
+    WorkspaceChange, WorkspaceLayoutChange, WorkspaceLayoutSnapshot, WorkspaceLayoutState,
+    WorkspaceReceipt, WorkspaceReplay, WorkspaceReplayKey, WorkspaceSnapshot,
+    WorkspaceSourcePreference, WorkspaceSourceView, WorkspaceState, WorkspaceStore,
+    WorkspaceTransaction, WorkspaceUndoAccess, WorkspaceUndoTarget, evidence_operation_name,
+    is_sample_indicator_preview,
 };
 
 use std::{

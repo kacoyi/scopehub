@@ -11,7 +11,8 @@ use scopehub_application::{
     PREPARE_LOCAL_FOLDER_PUBLICATION, PREVIEW_LOCAL_FOLDER_REFRESH, PREVIEW_LOCAL_IMPORT,
     PUBLISH_LOCAL_FOLDER_REFRESH, PUBLISH_LOCAL_IMPORT, READ_LOCAL_FOLDER_REVISION,
     READ_LOCAL_FOLDER_SOURCE_ROW, READ_LOCAL_IMPORT_REVISION, READ_LOCAL_IMPORT_SOURCE_ROW,
-    REVOKE_LOCAL_FOLDER_REVISION, REVOKE_LOCAL_IMPORT_REVISION, SAVE_LOCAL_IMPORT_MAPPING, failure,
+    REVOKE_LOCAL_FOLDER_REVISION, REVOKE_LOCAL_IMPORT_REVISION, RUN_INDICATOR_PREVIEW,
+    SAVE_LOCAL_IMPORT_MAPPING, failure, is_sample_indicator_preview,
 };
 use scopehub_domain::protocol::{Error, ErrorCode};
 use scopehub_platform::local_folder::LocalFolderHost;
@@ -116,6 +117,18 @@ impl State {
         authorize_window(window_label)?;
         match operation {
             None => self.workspace.dispatch(operation, payload).await,
+            Some(RUN_INDICATOR_PREVIEW) if is_sample_indicator_preview(&payload) => {
+                let request = payload.clone();
+                self.workspace
+                    .dispatch_sample_preview(payload, async {
+                        let mut market = self
+                            .reads
+                            .try_lock()
+                            .map_err(|_| failure(ErrorCode::BUSY))?;
+                        market.read_sample_indicator_history(request).await
+                    })
+                    .await
+            }
             Some(name) if LOCAL_WORKSPACE_OPERATIONS.contains(&name) => {
                 self.workspace.dispatch(operation, payload).await
             }

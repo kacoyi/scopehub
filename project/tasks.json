@@ -631,7 +631,8 @@
         "0002",
         "0003",
         "0004",
-        "0017"
+        "0017",
+        "0018"
       ],
       "acceptance": [
         "Declarative previews have deterministic results, bounded execution and validated output.",
@@ -652,7 +653,7 @@
         "ui-build"
       ],
       "evidence": [],
-      "next_action": "Implement the explicit user-selected trusted-Python slice through the shared registry. Bind separate local human approval to each exact frozen input, code, parameters and purpose, and connect trusted scheduled source evidence in the indicator workbench, then complete indicator-preview acceptance. The local CSV chart explicitly uses conservative continuity when it has no verified schedule.",
+      "next_action": "Implement the explicit user-selected trusted-Python slice through the shared registry. Use synthetic fixtures and affirmative source-purpose authorization. Bind separate human approval to each exact code, input snapshot, parameters and execution scope, then complete indicator-preview acceptance.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -696,6 +697,13 @@
               "indicator-workflow",
               "state-migrations"
             ]
+          },
+          {
+            "failure": "The sample chart uses a submitted schedule, replaces the frozen observation with a newer sample, or carries a preview across a source change.",
+            "checks": [
+              "indicator-declarative-preview",
+              "rust-contracts-workers"
+            ]
           }
         ],
         "rollback": "Keep preview state disposable and independent of accepted layers. On failed acceptance roll back all durable changes together. Verify an interrupted v10 migration against the populated v9 layout checkpoint before retrying.",
@@ -732,8 +740,9 @@
             "External data transmission, unrestricted commands, automatic trusted execution, and changes to the layout migration."
           ],
           "open_questions": [
-            "Schema v10 builds on layout checkpoint 5eebdb9. Keep the validated v9 preservation and rollback checks when composing later layout UI changes.",
-            "Trusted, user-selected Python and per-run approval remain a later slice of M3-001. The real synthetic provider verifies completed and missing scheduled buckets in the evaluator. A chart binding that delivers its trusted session evidence remains pending."
+            "The verified v9 layout checkpoint b11df1a is composed with v10. Retain populated migration rollback and restore verification.",
+            "The bound synthetic chart uses verified sessions through the normal workspace. CSV continues to explain unverified calendar continuity.",
+            "Trusted, user-selected Python and per-run approval remain the following M3-001 slice."
           ]
         },
         "evolution": {
@@ -743,7 +752,8 @@
           ],
           "change": [
             "Validate and execute typed declarative drafts with cancellable preview lifetimes.",
-            "Accept a matching result at most once and recheck current rights when restoring visible output."
+            "Accept a matching result at most once and recheck current rights when restoring visible output.",
+            "For an explicitly bound synthetic sample, re-read its exact frozen series through the offline market registry. Validate the chart snapshot and hash the adapter schedule with the computation input. Reuse the chart adapter for the preview."
           ],
           "data_plan": "Pin the immutable input revision, series, as-of, visible and warm-up bounds, input hash, code identity, engine and resolved typed parameters. Persist validated output and provenance with a workspace operation receipt after coordinating v9.",
           "cleanup": "Dispose cancelled or superseded previews and isolate validation failures. Retain accepted artifacts independently of disposable preview state. Restore only entitled output and never rerun code on restore."

@@ -187,7 +187,7 @@
     {
       "id": "indicator-declarative-preview",
       "status": "implemented",
-      "purpose": "Exercise the shared registry and chart adapter with independent declarative preview values, warm-up, cancellation, failed preview isolation, immutable acceptance, removal, restart and source revocation.",
+      "purpose": "Exercise the shared registry and chart adapter with independent declarative preview values, trusted sample sessions and missing buckets, unverified CSV continuity, warm-up, cancellation, failure isolation, immutable CSV acceptance, removal, restart and source revocation.",
       "platforms": "all",
       "command": [
         "pnpm",

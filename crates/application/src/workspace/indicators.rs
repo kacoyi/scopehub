@@ -1,11 +1,13 @@
 //! Profile-bound declarative indicator commands and disposable preview jobs.
 
 mod accepted;
+mod sample;
 pub(super) use accepted::undo_indicator_layer;
 pub use accepted::{
     ACCEPT_INDICATOR_VERSION, INDICATOR_CONFIRMATION, IndicatorLayerRef, IndicatorLayerUndo,
     IndicatorVersionRecord, MAX_ACTIVE_INDICATOR_LAYERS, REMOVE_INDICATOR_LAYER,
 };
+pub use sample::{READ_INDICATOR_SAMPLE_HISTORY, is_sample_indicator_preview};
 
 use std::{
     collections::VecDeque,
@@ -32,11 +34,7 @@ use super::{
     WorkspaceAccess, WorkspaceReply, WorkspaceStore, WorkspaceTransaction, chart_target,
     evidence::FrozenChart, permits_scope, timestamp_ms, workspace_failure,
 };
-use crate::{
-    Actor, OperationRegistry, failure,
-    history::{add_bar, snapshot_seed},
-    operation, validator,
-};
+use crate::{Actor, OperationRegistry, failure, history::snapshot_hash, operation, validator};
 
 pub const CREATE_INDICATOR_DRAFT: &str = "indicator.createDraft";
 pub const RUN_INDICATOR_PREVIEW: &str = "indicator.runPreview";
@@ -88,6 +86,7 @@ struct Preview {
     snapshot: FrozenSnapshot,
     resolved_parameters: Value,
     warmup_from_ms: Option<i64>,
+    calendar_hash: Option<String>,
     artifact: Value,
     code_hash: String,
     params_hash: String,
@@ -191,6 +190,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         access: &WorkspaceAccess<'_>,
         name: &'static str,
         mut request: Value,
+        sample_history: Option<Value>,
     ) -> Result<Value, Error> {
         let op = operation(name)?;
         let (input, _) = op.wire_validators();
@@ -220,13 +220,27 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             if name == CREATE_INDICATOR_DRAFT {
                 self.create_indicator_draft(&reply, &scope, args, identity, now)
             } else {
-                self.run_indicator_preview(&reply, scope, args, identity, now)
+                self.run_indicator_preview(&reply, scope, args, identity, now, sample_history)
             }
         })();
         match result {
             Ok(response) => Ok(response),
             Err(error) => reply.failed(&workspace_failure(error.code)),
         }
+    }
+
+    /// The trusted composition may attach the page read by the fixed offline adapter.
+    /// The public workspace command cannot include source bars or a schedule.
+    pub fn execute_sample_indicator_preview(
+        &mut self,
+        access: &WorkspaceAccess<'_>,
+        command: Value,
+        page: Value,
+    ) -> Result<Value, Error> {
+        if !is_sample_indicator_preview(&command) {
+            return Err(failure(ErrorCode::INVALIDARGUMENT));
+        }
+        self.execute_indicator(access, RUN_INDICATOR_PREVIEW, command, Some(page))
     }
 
     fn authorize_indicator(&self, access: &WorkspaceAccess<'_>, name: &str) -> Result<(), Error> {
@@ -298,6 +312,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         args: &Value,
         identity: String,
         now: Instant,
+        sample_history: Option<Value>,
     ) -> Result<Value, Error> {
         if let Some(job) = self
             .indicator_stage
@@ -320,9 +335,15 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             .ok_or_else(|| failure(ErrorCode::STALECONTEXT))?;
         let resolved =
             Program::prepare(draft.source.clone(), &args.parameters).map_err(evaluator_error)?;
-        let input = self
-            .port
-            .inspect(|tx| freeze(tx, &scope, &args.snapshot, resolved.warmup_bars()))?;
+        let input = self.port.inspect(|tx| {
+            freeze(
+                tx,
+                &scope,
+                &args.snapshot,
+                resolved.warmup_bars(),
+                sample_history,
+            )
+        })?;
         let id = new_id();
         let receipt = outcome(RUN_INDICATOR_PREVIEW, &scope, json!({"task_id": id}));
         let response = reply.validated(receipt.clone())?;
@@ -372,10 +393,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             JobResult::Ready(preview) => {
                 self.port.inspect(|tx| {
                     check_context(tx, &job.scope)?;
-                    if !tx.indicator_compute_allowed(&job.source.dataset_id)? {
-                        return Err(failure(ErrorCode::PERMISSIONDENIED));
-                    }
-                    Ok(())
+                    require_compute_right(tx, &job.source)
                 })?;
                 let mut event = event(job, "indicator.preview_ready");
                 event["draft_id"] = json!(job.draft_id);
@@ -392,7 +410,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
                 Ok(json!({
                     "status": "ready", "task_id": task_id, "event": event,
                     "source_snapshot": job.source, "resolved_parameters": preview.resolved_parameters,
-                    "warmup_from_ms": preview.warmup_from_ms,
+                    "warmup_from_ms": preview.warmup_from_ms, "calendar_hash": preview.calendar_hash,
                 }))
             }
             _ => {
@@ -519,7 +537,23 @@ struct Input {
     snapshot: FrozenSnapshot,
     bars: Vec<Bar>,
     first_visible: usize,
-    period_ms: i64,
+    calendar: BucketCalendar,
+    calendar_hash: Option<String>,
+}
+
+fn require_compute_right(
+    tx: &dyn WorkspaceTransaction,
+    source: &FrozenSnapshot,
+) -> Result<(), Error> {
+    let allowed = if source.series.provider_id == crate::DEMO_PROVIDER {
+        tx.indicator_sample_allowed(&source.series.instrument_id)?
+    } else {
+        tx.indicator_compute_allowed(&source.dataset_id)?
+    };
+    if !allowed {
+        return Err(failure(ErrorCode::PERMISSIONDENIED));
+    }
+    Ok(())
 }
 
 fn freeze(
@@ -527,6 +561,7 @@ fn freeze(
     scope: &MutationScope11,
     source: &FrozenSnapshot,
     warmup: usize,
+    sample_history: Option<Value>,
 ) -> Result<Input, Error> {
     check_context(tx, scope)?;
     let EvidenceTarget11::ChartInterval11(target) = &scope.target else {
@@ -535,8 +570,16 @@ fn freeze(
     if &target.snapshot != source {
         return Err(failure(ErrorCode::STALECONTEXT));
     }
-    if !tx.indicator_compute_allowed(&source.dataset_id)? {
-        return Err(failure(ErrorCode::PERMISSIONDENIED));
+    require_compute_right(tx, source)?;
+    if target.range.from_ms >= target.range.to_ms
+        || target.range.from_ms < source.from_ms
+        || target.range.to_ms > source.to_ms
+    {
+        return Err(failure(ErrorCode::INVALIDARGUMENT));
+    }
+    if source.series.provider_id == crate::DEMO_PROVIDER {
+        let page = sample_history.ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))?;
+        return sample::freeze_sample(source, &target.range, page, warmup);
     }
     let dataset = tx
         .local_evidence_dataset(&source.dataset_id)?
@@ -578,10 +621,7 @@ fn freeze(
     let timezone = dataset.content["series"]["timezone"]
         .as_str()
         .ok_or_else(|| failure(ErrorCode::OUTPUTINVALID))?;
-    snapshot.content_hash = hex::encode(
-        bars.iter()
-            .fold(snapshot_seed(&snapshot, timezone), add_bar),
-    );
+    snapshot.content_hash = snapshot_hash(&snapshot, timezone, bars);
     let period_ms = match source.series.timeframe.as_str() {
         "1m" => 60_000,
         "5m" => 300_000,
@@ -592,7 +632,8 @@ fn freeze(
         snapshot,
         bars: bars.to_vec(),
         first_visible: start - first,
-        period_ms,
+        calendar: BucketCalendar::unverified(period_ms).map_err(evaluator_error)?,
+        calendar_hash: None,
     })
 }
 
@@ -611,13 +652,11 @@ fn compute(
         dataset_id: input.snapshot.dataset_id.clone(),
         dataset_revision: input.snapshot.dataset_revision.clone(),
     };
-    // Native CSV mappings name a calendar, but contain no verified sessions.
-    let calendar = BucketCalendar::unverified(input.period_ms).map_err(evaluator_error)?;
     let result = program
         .evaluate_with_calendar(
             &input.bars,
             input.first_visible,
-            &calendar,
+            &input.calendar,
             &stopped,
             provenance,
         )
@@ -638,6 +677,7 @@ fn compute(
         code_hash,
         params_hash,
         warmup_from_ms: (input.first_visible > 0).then(|| input.bars[0].time_ms),
+        calendar_hash: input.calendar_hash,
         id: new_id(),
         delivered: false,
     })
@@ -687,7 +727,8 @@ mod tests {
                 snapshot,
                 bars,
                 first_visible: 0,
-                period_ms: 60_000,
+                calendar: BucketCalendar::unverified(60_000).unwrap(),
+                calendar_hash: None,
             },
             Program::prepare(source, &[]).unwrap(),
             "1".repeat(64),

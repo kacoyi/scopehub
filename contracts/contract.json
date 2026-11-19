@@ -159,7 +159,7 @@
       "input": "IndicatorRunPreviewInput",
       "output": "IndicatorRunPreviewOutput",
       "implementation": "implemented",
-      "implementation_scope": "Protocol 1.1 profile-local human dispatch freezes an authorized published CSV interval, validates and runs declarative output, and exposes correlated bounded preview status.",
+      "implementation_scope": "Protocol 1.1 profile-local human dispatch freezes an authorized published CSV or bound offline sample interval. The sample uses its exact verified adapter schedule. The registry validates declarative output and exposes correlated bounded preview status.",
       "wire_bindings": {
         "1.1": {
           "input": "IndicatorRunPreviewCommand11",

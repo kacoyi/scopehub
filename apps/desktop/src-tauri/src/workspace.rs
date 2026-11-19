@@ -1,6 +1,7 @@
 //! Native profile binding and admission for the existing SQLite workspace writer.
 
 use std::{
+    future::Future,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -72,6 +73,7 @@ enum Request {
     FrozenChartStatus(String),
     IndicatorPreviewStatus(String),
     IndicatorAcceptedRead(Value),
+    SampleIndicatorPreview(Value, Value),
     Operation(Value),
 }
 
@@ -225,6 +227,25 @@ impl WorkspaceBridge {
             None if chart_status => Ok(json!({"available": false})),
             None => Err(failure(ErrorCode::INTERNALERROR)),
         }
+    }
+
+    pub(super) async fn dispatch_sample_preview(
+        &self,
+        command: Value,
+        load_history: impl Future<Output = Result<Value, Error>>,
+    ) -> Result<Value, Error> {
+        if !self.workspace_enabled {
+            return Err(failure(ErrorCode::PERMISSIONDENIED));
+        }
+        if command.to_string().len() >= MAX_REQUEST_BYTES {
+            return Err(failure(ErrorCode::RESOURCELIMIT));
+        }
+        let history = load_history.await?;
+        Self::with_bound(self.admit()?, true, move |bound| {
+            bound.dispatch(Request::SampleIndicatorPreview(command, history))
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::INTERNALERROR))
     }
 
     pub(super) async fn find(
@@ -635,6 +656,9 @@ impl BoundWorkspace {
             Request::IndicatorAcceptedRead(payload) => {
                 self.registry.read_accepted_indicator(&access, &payload)
             }
+            Request::SampleIndicatorPreview(command, page) => self
+                .registry
+                .execute_sample_indicator_preview(&access, command, page),
             Request::Operation(payload) => self.registry.execute_workspace(&access, payload),
         }
     }
