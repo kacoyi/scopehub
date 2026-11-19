@@ -5,10 +5,11 @@ use std::collections::BTreeMap;
 use scopehub_domain::{
     protocol::{
         Error, ErrorCode, FolderRefreshAlternative, FolderRefreshSource,
-        ListLocalFolderRevisionsInput, ListLocalFolderRevisionsOutput,
+        ListLocalFolderRevisionsInput, ListLocalFolderRevisionsOutput, LocalImportRowLocator,
         PrepareLocalFolderPublicationInput, PublishLocalFolderRefreshInput,
         PublishedLocalFolderRevision, PublishedLocalFolderSource, ReadLocalFolderRevisionInput,
-        ReadLocalFolderRevisionOutput, RevokeLocalFolderRevisionInput,
+        ReadLocalFolderRevisionOutput, ReadLocalFolderSourceRowInput,
+        RevokeLocalFolderRevisionInput,
     },
     wire::max_message_bytes,
 };
@@ -16,15 +17,18 @@ use serde_json::{Value, json};
 
 use crate::{
     Actor, FolderManifestPublication, FolderManifestRequest, FolderManifestStore,
-    LocalDatasetStore, MappingCommitGuard, OperationRegistry, StoredFolderManifest,
-    WorkspaceAccess, authorized_operation, failure, folder_manifest::FolderManifestAnchor,
-    local_publication::validated_input,
+    FrozenLocalSourceRow, LocalDatasetStore, MappingCommitGuard, OperationRegistry,
+    StoredFolderManifest, WorkspaceAccess, authorized_operation, failure,
+    folder_manifest::FolderManifestAnchor,
+    local_mapping_fingerprint,
+    local_publication::{bounded_source_row_output, validated_input},
 };
 
 pub const PREPARE_LOCAL_FOLDER_PUBLICATION: &str = "market.prepareLocalFolderPublication";
 pub const PUBLISH_LOCAL_FOLDER_REFRESH: &str = "market.publishLocalFolderRefresh";
 pub const LIST_LOCAL_FOLDER_REVISIONS: &str = "market.listLocalFolderRevisions";
 pub const READ_LOCAL_FOLDER_REVISION: &str = "market.readLocalFolderRevision";
+pub const READ_LOCAL_FOLDER_SOURCE_ROW: &str = "market.readLocalFolderSourceRow";
 pub const REVOKE_LOCAL_FOLDER_REVISION: &str = "market.revokeLocalFolderRevision";
 
 pub fn folder_prepare_input(
@@ -69,6 +73,18 @@ pub fn read_local_folder_revision_input(
 ) -> Result<ReadLocalFolderRevisionInput, Error> {
     serde_json::from_value(validated_input(actor, READ_LOCAL_FOLDER_REVISION, payload)?)
         .map_err(|_| failure(ErrorCode::INVALIDARGUMENT))
+}
+
+pub fn read_local_folder_source_row_input(
+    actor: Actor,
+    payload: Value,
+) -> Result<ReadLocalFolderSourceRowInput, Error> {
+    serde_json::from_value(validated_input(
+        actor,
+        READ_LOCAL_FOLDER_SOURCE_ROW,
+        payload,
+    )?)
+    .map_err(|_| failure(ErrorCode::INVALIDARGUMENT))
 }
 
 pub fn revoke_local_folder_revision_input(
@@ -201,6 +217,93 @@ impl<S: FolderManifestStore + LocalDatasetStore> OperationRegistry<S> {
         })
         .map_err(|_| failure(ErrorCode::INTERNALERROR))?;
         validate_output(access.actor, READ_LOCAL_FOLDER_REVISION, output)
+    }
+
+    pub fn prepare_frozen_folder_source_row(
+        &self,
+        access: &WorkspaceAccess<'_>,
+        request: ReadLocalFolderSourceRowInput,
+    ) -> Result<FrozenLocalSourceRow<ReadLocalFolderSourceRowInput>, Error> {
+        self.authorize_local_import(access, READ_LOCAL_FOLDER_SOURCE_ROW)?;
+        self.authorize_local_import(access, READ_LOCAL_FOLDER_REVISION)?;
+        let id = &request.revision_id;
+        let target = &request.source;
+        let manifest = self
+            .port
+            .read_folder_manifest(id)?
+            .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))?;
+        let member = manifest.sources.iter().any(|file| {
+            file.relative_path == target.relative_path && file.sha256 == target.source_sha256
+        });
+        let chosen = manifest
+            .bars
+            .iter()
+            .flat_map(|entry| &entry.locators)
+            .any(|locator| {
+                locator.relative_path == target.relative_path
+                    && locator.record_number == target.record_number
+                    && locator.line_start == target.line_start
+                    && locator.line_end == target.line_end
+            });
+        if !member || !chosen {
+            return Err(failure(ErrorCode::STALECONTEXT));
+        }
+        // Folder revisions own their display right independently of the anchor.
+        let anchor = self
+            .port
+            .read_folder_manifest_anchor(id)?
+            .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))?;
+        let reviewed = self
+            .port
+            .load_mapping_version(&anchor.source_key, anchor.revision.review_revision)?
+            .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))?;
+        if local_mapping_fingerprint(&reviewed.mapping)? != anchor.revision.mapping_sha256 {
+            return Err(failure(ErrorCode::OUTPUTINVALID));
+        }
+        let original = self
+            .port
+            .read_folder_manifest_source(id, &target.relative_path)?
+            .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))?;
+        Ok(FrozenLocalSourceRow {
+            original,
+            source_sha256: target.source_sha256.clone(),
+            mapping: reviewed.mapping,
+            request,
+            header_sha256: reviewed.header_sha256,
+        })
+    }
+
+    pub fn finish_frozen_folder_source_row(
+        &self,
+        access: &WorkspaceAccess<'_>,
+        source: FrozenLocalSourceRow<ReadLocalFolderSourceRowInput>,
+        row: Value,
+    ) -> Result<Value, Error> {
+        self.authorize_local_import(access, READ_LOCAL_FOLDER_SOURCE_ROW)?;
+        self.authorize_local_import(access, READ_LOCAL_FOLDER_REVISION)?;
+        let id = &source.request.revision_id;
+        let target = &source.request.source;
+        source.verify(
+            &row,
+            &LocalImportRowLocator {
+                record_number: target.record_number,
+                line_start: target.line_start,
+                line_end: target.line_end,
+            },
+        )?;
+        let output = bounded_source_row_output(
+            access.actor,
+            READ_LOCAL_FOLDER_SOURCE_ROW,
+            json!({
+                "version": 1, "revision_id": id, "source": target,
+                "header": row["header"], "raw_fields": row["raw_fields"],
+            }),
+        )?;
+        // Source parsing runs outside the SQLite lane, so display may have changed.
+        self.port
+            .folder_manifest_summary(id)?
+            .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))?;
+        Ok(output)
     }
 
     pub fn revoke_frozen_folder_revision(

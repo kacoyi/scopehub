@@ -214,7 +214,7 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
       {visibleFrozen && <section ref={chart} className="local-revision-chart" tabIndex={-1} aria-labelledby={chartHeading}>
         <h3 id={chartHeading}>{visibleFrozen.kind === 'folder' ? visibleFrozen.result.revision.origin_path : visibleFrozen.result.revision.relative_path}</h3>
         {visibleFrozen.kind === 'folder'
-          ? <FrozenFolderChart key={visibleFrozen.result.revision.revision_id} result={visibleFrozen.result} />
+          ? <FrozenFolderChart key={visibleFrozen.result.revision.revision_id} result={visibleFrozen.result} access={revisionAccess} />
           : <FrozenLocalChart key={visibleFrozen.result.revision.revision_id} result={visibleFrozen.result} workspace={workspace} access={revisionAccess} />}
         {nativeLocalImport && <div className="local-import-card">
           <RevisionAccessActions key={visibleFrozen.result.revision.revision_id} folder={visibleFrozen.kind === 'folder'}

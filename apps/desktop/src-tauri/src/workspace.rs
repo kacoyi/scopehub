@@ -11,15 +11,17 @@ use scopehub_application::{
     LIST_LOCAL_IMPORT_REVISIONS, LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS,
     LocalDatasetPublication, MappingCommitGuard, OperationRegistry,
     PREPARE_LOCAL_FOLDER_PUBLICATION, PREVIEW_LOCAL_FOLDER_REFRESH, PUBLISH_LOCAL_FOLDER_REFRESH,
-    PUBLISH_LOCAL_IMPORT, READ_LOCAL_FOLDER_REVISION, READ_LOCAL_IMPORT_REVISION,
-    READ_LOCAL_IMPORT_SOURCE_ROW, REVOKE_LOCAL_FOLDER_REVISION, REVOKE_LOCAL_IMPORT_REVISION,
-    ReviewedImportMapping, SAVE_LOCAL_IMPORT_MAPPING, WorkspaceAccess, WorkspaceBinding,
-    evidence_operation_name, failure, list_local_folder_revisions_input,
-    list_local_import_revisions_input, local_mapping_fingerprint, read_local_folder_revision_input,
-    read_local_import_revision_input, revoke_local_folder_revision_input,
-    revoke_local_import_revision_input,
+    PUBLISH_LOCAL_IMPORT, READ_LOCAL_FOLDER_REVISION, READ_LOCAL_FOLDER_SOURCE_ROW,
+    READ_LOCAL_IMPORT_REVISION, READ_LOCAL_IMPORT_SOURCE_ROW, REVOKE_LOCAL_FOLDER_REVISION,
+    REVOKE_LOCAL_IMPORT_REVISION, ReviewedImportMapping, SAVE_LOCAL_IMPORT_MAPPING,
+    WorkspaceAccess, WorkspaceBinding, evidence_operation_name, failure,
+    list_local_folder_revisions_input, list_local_import_revisions_input,
+    local_mapping_fingerprint, read_local_folder_revision_input, read_local_import_revision_input,
+    revoke_local_folder_revision_input, revoke_local_import_revision_input,
 };
-use scopehub_domain::protocol::{CsvMappingV1, Error, ErrorCode, ReadLocalImportSourceRowInput};
+use scopehub_domain::protocol::{
+    CsvMappingV1, Error, ErrorCode, ReadLocalFolderSourceRowInput, ReadLocalImportSourceRowInput,
+};
 use scopehub_persistence::SqliteWorkspace;
 use scopehub_platform::local_folder::FrozenFile;
 use serde_json::{Value, json};
@@ -43,6 +45,7 @@ const LOCAL_IMPORT_OPERATIONS: &[&str] = &[
     PUBLISH_LOCAL_FOLDER_REFRESH,
     LIST_LOCAL_FOLDER_REVISIONS,
     READ_LOCAL_FOLDER_REVISION,
+    READ_LOCAL_FOLDER_SOURCE_ROW,
     REVOKE_LOCAL_FOLDER_REVISION,
 ];
 const MAX_REQUEST_BYTES: usize = 16 * 1024;
@@ -394,6 +397,35 @@ impl WorkspaceBridge {
             bound
                 .registry
                 .read_frozen_folder_revision(&local_import_access(&bound.profile_id), &input)
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
+    }
+
+    pub(super) async fn load_local_folder_source_row(
+        &self,
+        input: ReadLocalFolderSourceRowInput,
+    ) -> Result<FrozenLocalSourceRow<ReadLocalFolderSourceRowInput>, Error> {
+        Self::with_bound(self.admit()?, false, move |bound| {
+            bound
+                .registry
+                .prepare_frozen_folder_source_row(&local_import_access(&bound.profile_id), input)
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
+    }
+
+    pub(super) async fn finish_local_folder_source_row(
+        &self,
+        source: FrozenLocalSourceRow<ReadLocalFolderSourceRowInput>,
+        row: Value,
+    ) -> Result<Value, Error> {
+        Self::with_bound(self.admit()?, false, move |bound| {
+            bound.registry.finish_frozen_folder_source_row(
+                &local_import_access(&bound.profile_id),
+                source,
+                row,
+            )
         })
         .await?
         .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))

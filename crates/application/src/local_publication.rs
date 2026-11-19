@@ -3,8 +3,8 @@
 use scopehub_domain::{
     protocol::{
         CsvMappingV1, Error, ErrorCode, ListLocalImportRevisionsInput,
-        ListLocalImportRevisionsOutput, LocalImportRevisionListEntry, PublishLocalImportInput,
-        ReadLocalImportRevisionInput, ReadLocalImportSourceRowInput,
+        ListLocalImportRevisionsOutput, LocalImportRevisionListEntry, LocalImportRowLocator,
+        PublishLocalImportInput, ReadLocalImportRevisionInput, ReadLocalImportSourceRowInput,
         RevokeLocalImportRevisionInput,
     },
     wire::{max_message_bytes, normalize_integers},
@@ -48,12 +48,43 @@ pub struct StoredLocalDataset {
 }
 
 /// A single, entitled source row prepared for the private CSV worker.
-pub struct FrozenLocalSourceRow {
+pub struct FrozenLocalSourceRow<R = ReadLocalImportSourceRowInput> {
     pub original: Vec<u8>,
     pub source_sha256: String,
     pub mapping: CsvMappingV1,
-    request: ReadLocalImportSourceRowInput,
-    header: Value,
+    pub(crate) request: R,
+    pub(crate) header_sha256: String,
+}
+
+impl<R> FrozenLocalSourceRow<R> {
+    pub(crate) fn verify(&self, row: &Value, locator: &LocalImportRowLocator) -> Result<(), Error> {
+        let header = row["header"].as_array();
+        if row["source_sha256"] != self.source_sha256
+            || row["locator"] != json!(locator)
+            || header
+                .and_then(|header| ordered_header_digest(header, &self.mapping))
+                .as_deref()
+                != Some(&self.header_sha256)
+            || row["raw_fields"].as_array().map(Vec::len) != header.map(Vec::len)
+        {
+            return Err(failure(ErrorCode::OUTPUTINVALID));
+        }
+        Ok(())
+    }
+}
+
+pub(crate) fn bounded_source_row_output(
+    actor: Actor,
+    name: &str,
+    output: Value,
+) -> Result<Value, Error> {
+    if output.to_string().len() > MAX_SOURCE_ROW_BYTES {
+        return Err(failure(ErrorCode::RESOURCELIMIT));
+    }
+    if !authorized_operation(actor, name)?.output.is_valid(&output) {
+        return Err(failure(ErrorCode::OUTPUTINVALID));
+    }
+    Ok(output)
 }
 
 pub trait LocalDatasetStore: ReviewedMappingStore {
@@ -346,7 +377,7 @@ impl<S: LocalDatasetStore> OperationRegistry<S> {
             source_sha256: stored.source_sha256,
             mapping: reviewed.mapping,
             request,
-            header: header.clone(),
+            header_sha256: reviewed.header_sha256,
         })
     }
 
@@ -358,27 +389,15 @@ impl<S: LocalDatasetStore> OperationRegistry<S> {
     ) -> Result<Value, Error> {
         self.authorize_local_import(access, READ_LOCAL_IMPORT_SOURCE_ROW)?;
         let revision_id = &source.request.revision_id;
-        let locator = json!(source.request.locator);
-        if row["source_sha256"] != source.source_sha256
-            || row["locator"] != locator
-            || row["header"] != source.header
-            || row["raw_fields"].as_array().map(Vec::len) != source.header.as_array().map(Vec::len)
-        {
-            return Err(failure(ErrorCode::OUTPUTINVALID));
-        }
-        let output = json!({
-            "version": 1, "revision_id": revision_id, "source_sha256": source.source_sha256,
-            "locator": locator, "header": source.header, "raw_fields": row["raw_fields"],
-        });
-        if output.to_string().len() > MAX_SOURCE_ROW_BYTES {
-            return Err(failure(ErrorCode::RESOURCELIMIT));
-        }
-        if !authorized_operation(access.actor, READ_LOCAL_IMPORT_SOURCE_ROW)?
-            .output
-            .is_valid(&output)
-        {
-            return Err(failure(ErrorCode::OUTPUTINVALID));
-        }
+        source.verify(&row, &source.request.locator)?;
+        let output = bounded_source_row_output(
+            access.actor,
+            READ_LOCAL_IMPORT_SOURCE_ROW,
+            json!({
+                "version": 1, "revision_id": revision_id, "source_sha256": source.source_sha256,
+                "locator": source.request.locator, "header": row["header"], "raw_fields": row["raw_fields"],
+            }),
+        )?;
         // The parser ran outside the SQLite lane. Check current display authority
         // after it returns, including revocations from another profile connection.
         if !self.evidence_chart_display_allowed(access, revision_id)? {

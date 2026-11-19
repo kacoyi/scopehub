@@ -841,6 +841,18 @@
       "schema_requirement": "Open an entitled frozen folder revision, chosen bars and source-qualified row locators without reopening the directory. A summary-only request omits file and bar details."
     },
     {
+      "name": "market.readLocalFolderSourceRow",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "ReadLocalFolderSourceRowRequest",
+      "output_spec": "ReadLocalFolderSourceRowReply11",
+      "schema_requirement": "Protocol 1.1 only. Read one original CSV record through a displayable frozen folder revision in the active local human profile. Require the exact chosen source path, content digest and record locator in that manifest. Parse retained bytes with the historical reviewed mapping and return aligned headers and original field values. The result is limited to 64 KiB of UTF-8 JSON and remains available after source removal."
+    },
+    {
       "name": "market.revokeLocalFolderRevision",
       "effect": "persist",
       "confirmation": false,

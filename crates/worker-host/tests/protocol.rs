@@ -122,6 +122,9 @@ fn shared_vectors_and_generated_types_agree() {
                 Message::ReadLocalFolderRevisionRequest(_) => {
                     requests.insert("market.readLocalFolderRevision");
                 }
+                Message::ReadLocalFolderSourceRowRequest(_) => {
+                    requests.insert("market.readLocalFolderSourceRow");
+                }
                 Message::RevokeLocalFolderRevisionRequest(_) => {
                     requests.insert("market.revokeLocalFolderRevision");
                 }
@@ -192,6 +195,7 @@ fn shared_vectors_and_generated_types_agree() {
                         | "market.publishLocalFolderRefresh"
                         | "market.listLocalFolderRevisions"
                         | "market.readLocalFolderRevision"
+                        | "market.readLocalFolderSourceRow"
                         | "market.revokeLocalFolderRevision"
                         | "market.revokeLocalImportRevision"
                 )
