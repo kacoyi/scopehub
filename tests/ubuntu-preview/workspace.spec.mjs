@@ -2245,8 +2245,9 @@ test('an authorized peer sees shared producer BUSY and its failed step detaches 
   try {
     await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
       await inFreshBrowser(browser, server, async origin => {
-        await openPrivateRecords(origin);
-        await inFreshBrowser(browser, server, async peer => {
+        await inFreshBrowser(browser, server, async (peer, initial) => {
+          expect(initial.ok).toBe(true);
+          await openPrivateRecords(origin);
           const writer = await writerPid(server);
           const listenerEvents = ['requestfinished', 'requestfailed', 'close', 'crash'];
           const listenerCounts = () => listenerEvents.map(event => origin.listenerCount(event));

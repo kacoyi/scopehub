@@ -7473,6 +7473,8 @@
       "checks": [
         "project-state",
         "python-contracts-workers",
+        "ui-build",
+        "market-workflow",
         "workspace-timeframe",
         "private-record-lifecycle"
       ],
@@ -7483,7 +7485,8 @@
       "plan": {
         "outcome": "A user can resolve an uncertain deletion after another authorized window edits the same record and see the correct outcome.",
         "change_types": [
-          "tooling"
+          "tooling",
+          "ui"
         ],
         "context": [
           "tests/ubuntu-preview/workspace.spec.mjs",
