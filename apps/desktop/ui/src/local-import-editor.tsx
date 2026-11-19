@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type {
   CsvColumnMappingV1, CsvMappingV1, CsvPreview, LocalImportPreviewInput, LocalImportPreviewOutput, PreviewIssue, PreviewRow,
-  PublishedLocalImportRevision, ReadLocalImportRevisionOutput, SavedLocalImportMapping,
+  PreviewLocalFolderRefreshOutput, PublishedLocalImportRevision, ReadLocalImportRevisionOutput, SavedLocalImportMapping,
 } from '../../../../contracts/generated/protocol';
 import {
-  loadLocalImportMapping, publishLocalImport, readLocalImportRevision, revokeLocalImportRevision, saveLocalImportMapping,
+  loadLocalImportMapping, previewLocalFolderRefresh, publishLocalImport, readLocalImportRevision, revokeLocalImportRevision, saveLocalImportMapping,
 } from './local-import-transport';
 import { FrozenLocalChart } from './local-preview-chart';
+import { FolderRefreshReview } from './folder-refresh-review';
 import { RevisionAccessActions } from './local-revision-dialog';
 import './local-import.css';
 
@@ -35,7 +36,7 @@ type Props = {
 
 type Inspection = { output: LocalImportPreviewOutput; draft: CsvMappingV1; mapping: CsvMappingV1; rowLimit: number; raw: boolean };
 type ApprovedMapping = { draft: CsvMappingV1; sha256: string; record: SavedLocalImportMapping };
-type ImportAction = 'preview' | 'save' | 'load' | 'publish' | 'read' | 'revoke';
+type ImportAction = 'preview' | 'save' | 'load' | 'publish' | 'read' | 'revoke' | 'refresh';
 type Pending = { action: ImportAction; cancelled: boolean; cancel: () => Promise<void> };
 type Progress = { action: ImportAction; phase: 'running' | 'cancelling' | 'cancelled' };
 type Failure = { message: string; sha256?: string; headerUnavailable?: boolean };
@@ -47,6 +48,7 @@ const actionText = {
   load: { running: 'Checking for a reviewed mapping…', label: 'load', cancelled: 'Load cancelled.', failure: 'Unable to load a reviewed mapping.' },
   publish: { running: 'Checking the complete CSV and publishing…', label: 'publication', cancelled: 'Publication cancelled.', failure: 'Unable to publish this CSV file.' },
   read: { running: 'Opening frozen chart…', label: 'chart', cancelled: 'Chart opening cancelled.', failure: 'Unable to open the frozen chart.' },
+  refresh: { running: 'Checking complete files in the selected folder…', label: 'folder refresh', cancelled: 'Folder refresh cancelled.', failure: 'Unable to stage the folder refresh.' },
   revoke: { running: 'Removing access to the revision…', label: 'removal', cancelled: 'Removal cancelled.', failure: 'Unable to remove access to this revision.' },
 };
 
@@ -79,13 +81,18 @@ function importErrorCode(error: unknown) {
 function describeImportFailure(error: unknown, fallback: string, action?: ImportAction): Failure {
   if (!error || typeof error !== 'object') return { message: fallback };
   const code = importErrorCode(error);
+  const details = 'details' in error ? error.details : undefined;
+  if (code === 'SNAPSHOT_UNAVAILABLE' && action === 'refresh') return {
+    message: details && typeof details === 'object' && 'reason' in details && details.reason === 'folder_changed_during_review'
+      ? 'The folder changed during review. Stage the refresh again.'
+      : 'This frozen revision is unavailable in the current profile.',
+  };
   if (code === 'SNAPSHOT_UNAVAILABLE') return {
     message: action === 'read' || action === 'revoke' ? 'This frozen chart is unavailable in the current profile.'
       : 'The file changed since it was inspected. Inspect raw rows again to review the current file.',
   };
   if (code === 'STALE_CONTEXT' && action !== 'publish') return { message: 'The folder selection has expired. Choose the folder again.' };
   const message = 'message' in error && typeof error.message === 'string' && error.message ? error.message : fallback;
-  const details = 'details' in error ? error.details : undefined;
   if (details && typeof details === 'object') {
     const sha256 = 'sha256' in details && typeof details.sha256 === 'string' ? details.sha256 : undefined;
     const headerUnavailable = code === 'DATA_UNAVAILABLE' && 'reason' in details && details.reason === 'csv_header_unavailable';
@@ -211,6 +218,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   const [approved, setApproved] = useState<ApprovedMapping>();
   const [published, setPublished] = useState<PublishedLocalImportRevision>();
   const [frozen, setFrozen] = useState<ReadLocalImportRevisionOutput>();
+  const [folderRefresh, setFolderRefresh] = useState<PreviewLocalFolderRefreshOutput>();
   const [loadedSourceHash, setLoadedSourceHash] = useState<string>();
   const [failure, setFailure] = useState<Failure>();
   const [mappingFailure, setMappingFailure] = useState<Failure>();
@@ -235,11 +243,12 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   }, []);
 
   useEffect(() => {
+    if (folderRefresh?.base.revision_id === revokedRevisionId) setFolderRefresh(undefined);
     if (published && published.revision_id === revokedRevisionId) {
       setPublished(undefined);
       setFrozen(undefined);
     }
-  }, [published, revokedRevisionId]);
+  }, [folderRefresh, published, revokedRevisionId]);
 
   const file = catalog.files.find(item => item.file_id === fileId && item.kind === 'csv');
   const native = draft.record_kind === 'native_ohlcv';
@@ -321,7 +330,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     active.current = request;
     setProgress({ action, phase: 'running' });
     const commits = action === 'save' || action === 'publish' || action === 'revoke';
-    const publicationAction = action === 'publish' || action === 'read' || action === 'revoke';
+    const publicationAction = action === 'publish' || action === 'read' || action === 'revoke' || action === 'refresh';
     if (action === 'preview') setFailure(undefined);
     else if (publicationAction) {
       setPublicationFailure(undefined);
@@ -430,6 +439,19 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     });
   }
 
+  async function stageFolderRefresh(revisionId: string) {
+    setFolderRefresh(undefined);
+    await runRequest('refresh', id => previewLocalFolderRefresh({
+      version: 1, folder_id: catalog.folder_id, revision_id: revisionId,
+    }, id), reply => {
+      if (reply.base.revision_id !== revisionId) {
+        setPublicationFailure({ message: 'The folder preview could not be verified for this revision.' });
+        return;
+      }
+      setFolderRefresh(reply);
+    });
+  }
+
   async function openFrozenChart() {
     if (!published) return;
     await runRequest('read', id => readLocalImportRevision({
@@ -455,6 +477,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       }
       setFrozen(undefined);
       setPublished(undefined);
+      setFolderRefresh(current => current?.base.revision_id === reply.revision_id ? undefined : current);
       setPublicationNotice('Access removed for this published revision.');
     });
   }
@@ -567,6 +590,12 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
         </div>}
         {mappingNotice && <div className="local-import-card" role="status">{mappingNotice}</div>}
         {publicationNotice && <div className="local-import-card" role="status">{publicationNotice}</div>}
+        <FolderRefreshReview
+          revisionId={published?.revision_id}
+          busy={busy}
+          result={folderRefresh?.base.revision_id === revokedRevisionId ? undefined : folderRefresh}
+          onPreview={revisionId => void stageFolderRefresh(revisionId)}
+        />
         {published && <section className="local-import-card" aria-label="Published local CSV">
           <h2>Published local CSV</h2>
           <p role="status">{published.symbol} · {published.bar_count.toLocaleString()} bars · {published.relative_path}</p>

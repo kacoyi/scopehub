@@ -4,12 +4,19 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def main() -> int:
+    tags = {'publication': '@profile-local-csv', 'folder-refresh': '@profile-folder-refresh'}
+    args = sys.argv[1:]
+    if len(args) > 1 or (args and args[0] not in tags):
+        raise SystemExit('Choose publication or folder-refresh.')
+    tag = tags[args[0]] if args else tags['publication']
     env = {**os.environ, 'CARGO_BUILD_JOBS': '2'}
+    env['SCOPEHUB_LOCAL_IMPORT_REPORT'] = 'local-folder-refresh-preview' if args == ['folder-refresh'] else 'local-import-publication'
     target = (ROOT / env.get('CARGO_TARGET_DIR', 'target/m1-008')).resolve()
     binary = 'local_import_bridge.exe' if os.name == 'nt' else 'local_import_bridge'
     env['SCOPEHUB_LOCAL_IMPORT_BRIDGE'] = str(target / 'debug' / 'examples' / binary)
@@ -26,7 +33,7 @@ def main() -> int:
         return build.returncode
     return subprocess.run([
         pnpm, 'exec', 'playwright', 'test', '--config', 'tests/ui/local-import.playwright.config.mjs',
-        '--grep', '@profile-local-csv',
+        '--grep', tag,
     ], cwd=ROOT, env=env, check=False).returncode
 
 

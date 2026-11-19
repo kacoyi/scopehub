@@ -130,6 +130,7 @@ impl Cancellation {
 struct FileEntry {
     relative: PathBuf,
     metadata: FileMetadata,
+    observed: Metadata,
 }
 
 struct Selection {
@@ -175,8 +176,21 @@ impl Selection {
     }
 }
 
-/// Owned by one trusted host session. File reads are identified by a current
-/// folder and its catalog-issued IDs. None of the read methods accept a path.
+/// Private catalog of the selected directory at the start of refresh review.
+pub struct FolderRefreshScan {
+    selection: Arc<Selection>,
+    accepted_path: PathBuf,
+    files: Vec<FileEntry>,
+}
+
+impl FolderRefreshScan {
+    pub fn files(&self) -> impl Iterator<Item = &FileMetadata> {
+        self.files.iter().map(|entry| &entry.metadata)
+    }
+}
+
+/// Owned by one trusted host session. All file reads resolve through the
+/// current native folder selection and its catalog-issued IDs.
 #[derive(Default)]
 pub struct LocalFolderHost {
     active: Mutex<Option<Arc<Selection>>>,
@@ -248,6 +262,7 @@ impl LocalFolderHost {
             &directory,
             Path::new(""),
             0,
+            false,
             &check,
             &mut visited,
             &mut files,
@@ -320,12 +335,133 @@ impl LocalFolderHost {
             .filter(|selection| selection.id == folder_id)
             .ok_or(FolderError::SelectionUnavailable)?;
         let entry = selection.csv_entry(file_id)?;
-        let relative = path_fingerprint(b"scopehub-local-relative-file-v1", &entry.relative);
-        let mut digest = Sha256::new();
-        digest.update(b"scopehub-local-mapping-source-v1\0");
-        digest.update(selection.source_namespace);
-        digest.update(relative);
-        Ok(format!("{:x}", digest.finalize()))
+        Ok(source_key_for_path(selection, &entry.relative))
+    }
+
+    /// Enumerate the live pinned directory for a private, independent review.
+    /// The saved identity proves that the accepted relative path belongs to this
+    /// directory even when the accepted entry is now missing.
+    pub fn scan_for_refresh(
+        &self,
+        folder_id: FolderId,
+        accepted_path: &str,
+        accepted_key: &str,
+        cancel: &Cancellation,
+    ) -> Result<FolderRefreshScan, FolderError> {
+        let _admission = self.admit_open(&self.reading)?;
+        let selection = self.selected(folder_id)?;
+        let accepted = Path::new(accepted_path);
+        if accepted.as_os_str().is_empty()
+            || !accepted
+                .components()
+                .all(|part| matches!(part, Component::Normal(_)))
+            || source_key_for_path(&selection, accepted) != accepted_key
+        {
+            return Err(FolderError::InvalidSelection);
+        }
+        let files = scan_refresh_entries(&selection, accepted, cancel)?;
+        Ok(FolderRefreshScan {
+            selection,
+            accepted_path: accepted.to_owned(),
+            files,
+        })
+    }
+
+    /// Freeze one complete CSV from the staged enumeration without changing
+    /// the original picker catalog or accepting a path from the UI.
+    pub fn read_for_refresh(
+        &self,
+        scan: &FolderRefreshScan,
+        file_id: FileId,
+        cancel: &Cancellation,
+    ) -> Result<FrozenFile, FolderError> {
+        let _admission = self.admit_open(&self.reading)?;
+        let selection = self.selected(scan.selection.id)?;
+        if !Arc::ptr_eq(&selection, &scan.selection) {
+            return Err(FolderError::SelectionUnavailable);
+        }
+        let entry = scan
+            .files
+            .iter()
+            .find(|entry| entry.metadata.file_id == file_id)
+            .ok_or(FolderError::UnknownFile)?;
+        if entry.metadata.kind != FileKind::Csv {
+            return Err(FolderError::UnsupportedFile);
+        }
+        let frozen = read_entry(
+            &selection,
+            entry,
+            None,
+            cancel,
+            ReadMode::Publication,
+            |file, checked| {
+                if !same_version(&entry.observed, checked) {
+                    return Err(FolderError::ContentChanged);
+                }
+                Ok(file)
+            },
+        )?;
+        let _active = self.active.lock().map_err(|_| FolderError::Io)?;
+        selection.check_live(cancel)?;
+        Ok(frozen)
+    }
+
+    /// Recheck every staged pathname and each frozen digest against the live
+    /// grant before returning a comparison. Keep the verified handles open
+    /// through the last enumeration and the reply boundary.
+    pub fn with_verified_refresh_current<T>(
+        &self,
+        scan: &FolderRefreshScan,
+        digests: &[(FileId, String)],
+        cancel: &Cancellation,
+        finish: impl FnOnce() -> T,
+    ) -> Result<T, FolderError> {
+        cancel.check()?;
+        let _admission = self.admit_open(&self.reading)?;
+        let selection = self.selected(scan.selection.id)?;
+        if !Arc::ptr_eq(&selection, &scan.selection) {
+            return Err(FolderError::SelectionUnavailable);
+        }
+        let mut pinned = Vec::with_capacity(digests.len());
+        for (id, digest) in digests {
+            let entry = scan
+                .files
+                .iter()
+                .find(|entry| entry.metadata.file_id == *id)
+                .ok_or(FolderError::UnknownFile)?;
+            let (mut file, pins) = open_entry(&selection, entry, cancel)?;
+            let (_, checked) = read_open_entry(
+                &selection,
+                entry,
+                Some(digest),
+                cancel,
+                ReadMode::Commit,
+                &mut file,
+            )?;
+            if !same_version(&entry.observed, &checked) {
+                return Err(FolderError::ContentChanged);
+            }
+            pinned.push((file, pins, checked));
+        }
+        let current = scan_refresh_entries(&selection, &scan.accepted_path, cancel)?;
+        if current.len() != scan.files.len()
+            || current.iter().zip(&scan.files).any(|(current, staged)| {
+                current.relative != staged.relative
+                    || current.metadata.kind != staged.metadata.kind
+                    || !same_version(&current.observed, &staged.observed)
+            })
+        {
+            return Err(FolderError::ContentChanged);
+        }
+        self.with_current(selection.id, || {
+            for (file, _pins, checked) in &pinned {
+                if !same_version(checked, &file.metadata().map_err(|_| FolderError::Io)?) {
+                    return Err(FolderError::ContentChanged);
+                }
+            }
+            selection.check_live(cancel)?;
+            Ok(finish())
+        })?
     }
 
     /// Hash the complete opened file and freeze the very same bytes when within
@@ -442,6 +578,14 @@ enum ReadMode {
     Commit,
 }
 
+fn source_key_for_path(selection: &Selection, path: &Path) -> String {
+    let mut digest = Sha256::new();
+    digest.update(b"scopehub-local-mapping-source-v1\0");
+    digest.update(selection.source_namespace);
+    digest.update(path_fingerprint(b"scopehub-local-relative-file-v1", path));
+    format!("{:x}", digest.finalize())
+}
+
 fn path_fingerprint(domain: &[u8], path: &Path) -> [u8; 32] {
     let mut digest = Sha256::new();
     digest.update(domain);
@@ -477,6 +621,7 @@ fn scan(
     directory: &Directory,
     parent: &Path,
     depth: usize,
+    include_csv_directories: bool,
     check: &impl Fn() -> Result<(), FolderError>,
     visited: &mut usize,
     files: &mut Vec<FileEntry>,
@@ -502,15 +647,22 @@ fn scan(
             let child = directory
                 .open_directory(&name)
                 .map_err(|_| FolderError::Io)?;
-            scan(&child, &relative, depth + 1, check, visited, files)?;
-            continue;
+            scan(
+                &child,
+                &relative,
+                depth + 1,
+                include_csv_directories,
+                check,
+                visited,
+                files,
+            )?;
+            if !include_csv_directories || !is_csv_path(&relative) {
+                continue;
+            }
+            FileKind::UnsupportedEntry
         } else if !metadata.is_file() {
             FileKind::UnsupportedEntry
-        } else if relative
-            .extension()
-            .and_then(OsStr::to_str)
-            .is_some_and(|extension| extension.eq_ignore_ascii_case("csv"))
-        {
+        } else if is_csv_path(&relative) {
             FileKind::Csv
         } else {
             FileKind::UnsupportedExtension
@@ -532,9 +684,38 @@ fn scan(
                 kind,
             },
             relative,
+            observed: metadata,
         });
     }
     Ok(())
+}
+
+fn is_csv_path(path: &Path) -> bool {
+    path.extension()
+        .and_then(OsStr::to_str)
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("csv"))
+}
+
+fn scan_refresh_entries(
+    selection: &Selection,
+    accepted: &Path,
+    cancel: &Cancellation,
+) -> Result<Vec<FileEntry>, FolderError> {
+    let mut files = Vec::new();
+    scan(
+        &selection.directory,
+        Path::new(""),
+        0,
+        true,
+        &|| selection.check_live(cancel),
+        &mut 0,
+        &mut files,
+    )?;
+    // Retain any opaque ancestor that blocks inspection of the accepted path.
+    files.retain(|entry| is_csv_path(&entry.relative) || accepted.starts_with(&entry.relative));
+    files.sort_unstable_by(|a, b| a.relative.cmp(&b.relative));
+    selection.check_live(cancel)?;
+    Ok(files)
 }
 
 fn open_entry(
@@ -570,6 +751,19 @@ fn read_entry<T>(
     finish: impl FnOnce(FrozenFile, &Metadata) -> Result<T, FolderError>,
 ) -> Result<T, FolderError> {
     let (mut file, _parent_pins) = open_entry(selection, entry, cancel)?;
+    let (frozen, checked) =
+        read_open_entry(selection, entry, expected_sha256, cancel, mode, &mut file)?;
+    finish(frozen, &checked)
+}
+
+fn read_open_entry(
+    selection: &Selection,
+    entry: &FileEntry,
+    expected_sha256: Option<&str>,
+    cancel: &Cancellation,
+    mode: ReadMode,
+    file: &mut File,
+) -> Result<(FrozenFile, Metadata), FolderError> {
     let before = file.metadata().map_err(|_| FolderError::Io)?;
     if mode != ReadMode::Preview && before.len() > MAX_PREVIEW_BYTES as u64 {
         return Err(FolderError::ContentChanged);
@@ -607,15 +801,15 @@ fn read_entry<T>(
     }
     let mut metadata = entry.metadata.clone();
     metadata.byte_count = byte_count;
-    finish(
+    Ok((
         FrozenFile {
             folder_id: selection.id,
             file: metadata,
             sha256,
             content: content.map(Arc::from),
         },
-        &after,
-    )
+        after,
+    ))
 }
 
 fn open_error(error: io::Error) -> FolderError {

@@ -6,10 +6,11 @@ use std::{
 };
 
 use scopehub_application::{
-    Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, LOAD_LOCAL_IMPORT_MAPPING,
-    LOCAL_WORKSPACE_OPERATIONS, LocalDatasetPublication, MappingCommitGuard, OperationRegistry,
-    PUBLISH_LOCAL_IMPORT, READ_LOCAL_IMPORT_REVISION, REVOKE_LOCAL_IMPORT_REVISION,
-    ReviewedImportMapping, SAVE_LOCAL_IMPORT_MAPPING, WorkspaceAccess, WorkspaceBinding, failure,
+    Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, FolderRefreshBase,
+    LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS, LocalDatasetPublication,
+    MappingCommitGuard, OperationRegistry, PREVIEW_LOCAL_FOLDER_REFRESH, PUBLISH_LOCAL_IMPORT,
+    READ_LOCAL_IMPORT_REVISION, REVOKE_LOCAL_IMPORT_REVISION, ReviewedImportMapping,
+    SAVE_LOCAL_IMPORT_MAPPING, WorkspaceAccess, WorkspaceBinding, failure,
     local_mapping_fingerprint, read_local_import_revision_input,
     revoke_local_import_revision_input,
 };
@@ -26,6 +27,7 @@ const WORKSPACE_ID: &str = "main";
 const WORKSPACE_DIRECTORY: &str = "workspace-dev";
 const LOCAL_IMPORT_OPERATIONS: &[&str] = &[
     LOAD_LOCAL_IMPORT_MAPPING,
+    PREVIEW_LOCAL_FOLDER_REFRESH,
     SAVE_LOCAL_IMPORT_MAPPING,
     PUBLISH_LOCAL_IMPORT,
     READ_LOCAL_IMPORT_REVISION,
@@ -246,6 +248,36 @@ impl WorkspaceBridge {
                 &local_import_access(&bound.profile_id),
                 &revision_id,
             )
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
+    }
+
+    pub(super) async fn folder_refresh_base(
+        &self,
+        revision_id: String,
+    ) -> Result<FolderRefreshBase, Error> {
+        Self::with_bound(self.admit()?, false, move |bound| {
+            bound
+                .registry
+                .load_folder_refresh_base(&local_import_access(&bound.profile_id), &revision_id)
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
+    }
+
+    pub(super) async fn finish_folder_refresh(
+        &self,
+        revision_id: String,
+        finish: impl FnOnce() -> Result<Value, Error> + Send + 'static,
+    ) -> Result<Value, Error> {
+        Self::with_bound(self.admit()?, false, move |bound| {
+            // Keep the workspace lane until the native recheck finishes so
+            // a display revocation cannot overtake the entitled read.
+            bound
+                .registry
+                .load_folder_refresh_base(&local_import_access(&bound.profile_id), &revision_id)?;
+            finish()
         })
         .await?
         .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))

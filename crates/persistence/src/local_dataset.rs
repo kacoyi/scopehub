@@ -94,7 +94,8 @@ impl LocalDatasetStore for SqliteWorkspace {
             .query_row(
                 "SELECT revision.relative_path, revision.source_sha256, revision.mapping_sha256,
                         revision.review_revision,
-                        CASE WHEN revocation.revision_id IS NULL THEN revision.content_json END
+                        CASE WHEN revocation.revision_id IS NULL THEN revision.content_json END,
+                        revision.source_key
                  FROM local_dataset_revisions AS revision
                  LEFT JOIN local_dataset_display_revocations AS revocation USING (revision_id)
                  WHERE revision.revision_id = ?1",
@@ -106,17 +107,26 @@ impl LocalDatasetStore for SqliteWorkspace {
                         row.get::<_, String>(2)?,
                         revision(row, 3)?,
                         row.get::<_, Option<String>>(4)?,
+                        row.get::<_, String>(5)?,
                     ))
                 },
             )
             .optional()
             .map_err(store_error)?;
         row.map(
-            |(relative_path, source_sha256, mapping_sha256, review_revision, content)| {
+            |(
+                relative_path,
+                source_sha256,
+                mapping_sha256,
+                review_revision,
+                content,
+                source_key,
+            )| {
                 let content = content.ok_or_else(|| failure(ErrorCode::PERMISSIONDENIED))?;
                 let content = serde_json::from_str(&content)
                     .map_err(|_| failure(ErrorCode::INTERNALERROR))?;
                 Ok(StoredLocalDataset {
+                    source_key,
                     revision_id: revision_id.to_owned(),
                     relative_path,
                     source_sha256,

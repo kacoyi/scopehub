@@ -33,6 +33,7 @@ pub struct LocalDatasetPublication<'a> {
 }
 
 pub struct StoredLocalDataset {
+    pub source_key: String,
     pub revision_id: String,
     pub relative_path: String,
     pub source_sha256: String,
@@ -79,7 +80,11 @@ pub fn revoke_local_import_revision_input(
     .map_err(|_| failure(ErrorCode::INVALIDARGUMENT))
 }
 
-fn validated_input(actor: Actor, name: &str, mut payload: Value) -> Result<Value, Error> {
+pub(crate) fn validated_input(
+    actor: Actor,
+    name: &str,
+    mut payload: Value,
+) -> Result<Value, Error> {
     let operation = authorized_operation(actor, name)?;
     if !operation.input.is_valid(&payload) {
         return Err(failure(ErrorCode::INVALIDARGUMENT));
@@ -120,21 +125,23 @@ fn frozen_output(actor: Actor, revision: &Value, bars: &Value) -> Result<Value, 
     if output.to_string().len() >= max_message_bytes() {
         return Err(failure(ErrorCode::RESOURCELIMIT));
     }
-    if !operation.output.is_valid(&output) || !valid_records(&output) {
+    if !operation.output.is_valid(&output)
+        || !valid_records(
+            bars,
+            revision["source_record_count"].as_u64().unwrap_or_default(),
+        )
+    {
         return Err(failure(ErrorCode::OUTPUTINVALID));
     }
     Ok(output)
 }
 
-fn valid_records(output: &Value) -> bool {
+pub(crate) fn valid_records(bars: &Value, count: u64) -> bool {
     let mut previous_time = i64::MIN;
     let mut records = Vec::new();
-    let Some(bars) = output["bars"].as_array() else {
+    let Some(bars) = bars.as_array() else {
         return false;
     };
-    let count = output["revision"]["source_record_count"]
-        .as_u64()
-        .unwrap_or_default();
     if !(1..=MAX_RECORDS).contains(&count) {
         return false;
     }
@@ -262,7 +269,7 @@ impl<S: LocalDatasetStore> OperationRegistry<S> {
 }
 
 impl StoredLocalDataset {
-    fn summary(&self) -> Value {
+    pub(crate) fn summary(&self) -> Value {
         revision_summary(
             &self.revision_id,
             &self.relative_path,

@@ -1,5 +1,6 @@
 //! Shared operation entry for trusted transports.
 
+mod folder_refresh;
 mod history;
 mod local_import;
 mod local_publication;
@@ -7,6 +8,10 @@ mod replay;
 mod reviewed_mapping;
 mod workspace;
 
+pub use folder_refresh::{
+    FolderRefreshBase, FolderRefreshCheck, FolderRefreshFile, MAX_STAGED_RECORDS,
+    PREVIEW_LOCAL_FOLDER_REFRESH, folder_refresh_input, folder_refresh_output,
+};
 pub use local_import::{
     DEFAULT_PREVIEW_ROWS, LocalImportPort, PREVIEW_LOCAL_IMPORT, preview_local_import,
 };
@@ -152,6 +157,7 @@ impl Operation {
                     | SAVE_LOCAL_IMPORT_MAPPING
                     | PUBLISH_LOCAL_IMPORT
                     | READ_LOCAL_IMPORT_REVISION
+                    | PREVIEW_LOCAL_FOLDER_REFRESH
                     | REVOKE_LOCAL_IMPORT_REVISION
             ) && !matches!(actor, Actor::LocalUser))
         {

@@ -639,3 +639,131 @@ base('built UI publishes all 502 native bars through Rust and reopens, replaces 
     await rm(temporary, { recursive: true, force: true });
   }
 });
+
+base('stages additions, aliases, conflicts and withdrawals against a frozen local CSV without publishing', {
+  tag: '@profile-folder-refresh',
+}, async ({ page }) => {
+  const binary = process.env.SCOPEHUB_LOCAL_IMPORT_BRIDGE;
+  base.skip(!binary, 'Set SCOPEHUB_LOCAL_IMPORT_BRIDGE to the portable Rust test example.');
+  const temporary = await mkdtemp(join(await realpath(tmpdir()), 'scopehub-folder-refresh-ui-'));
+  const profile = join(temporary, 'profile');
+  const folder = join(temporary, 'synthetic-csv');
+  let bridge;
+  let holdRefresh = false;
+  const releaseRefresh = Promise.withResolvers();
+  try {
+    await mkdir(profile, { mode: 0o700 });
+    await mkdir(folder, { mode: 0o700 });
+    const csv = (rows, header = equity.header) => [header, ...rows].map(row => row.join(',')).join('\n') + '\n';
+    const originalPath = join(folder, 'daily.csv');
+    const original = csv([equity.rows[0], ...equity.rows]);
+    await writeFile(originalPath, original);
+
+    bridge = startLocalImportBridge(binary, profile, folder);
+    const calls = [];
+    const refreshes = () => calls.filter(call => call.args?.operation === 'market.previewLocalFolderRefresh');
+    await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
+      const reply = command === 'cancel_local_import_preview' ? { result: null } : await bridge.request(command, args);
+      calls.push({ command, args, reply });
+      if (holdRefresh && args?.operation === 'market.previewLocalFolderRefresh') await releaseRefresh.promise;
+      return reply;
+    });
+    await page.addInitScript(() => {
+      window.isTauri = true;
+      window.__TAURI_INTERNALS__ = {
+        async invoke(command, args) {
+          const reply = await window.testNativeInvoke(command, args);
+          if (reply.error) throw reply.error;
+          return reply.result;
+        },
+      };
+    });
+
+    await page.goto('/');
+    await control(page, 'Choose local CSV folder').last().click();
+    await control(page, 'Inspect raw rows').click();
+    await enterMapping(page, equity);
+    await control(page, 'Preview mapping').click();
+    await control(page, 'Save reviewed mapping').click();
+    await control(page, 'Publish complete file').click();
+    await control(page, 'Open frozen chart').click();
+    const frozen = page.getByRole('region', { name: 'Frozen local CSV chart' });
+    await expect(frozen.getByLabel('Selected bar')).toContainText('C 40');
+    const publication = calls.find(call => call.args?.operation === 'market.publishLocalImport').reply.result.revision;
+
+    // These files did not exist when the authorized native picker ran.
+    const newBar = ['000731', '2026-04-16', '40', '43', '39', '42', '200'];
+    const correction = equity.rows[1].map((value, index) => index === 5 ? '41' : value);
+    await writeFile(join(folder, 'alias.csv'), original);
+    await writeFile(join(folder, 'added.csv'), csv([equity.rows[0], newBar]));
+    await writeFile(join(folder, 'correction.csv'), csv([correction]));
+    await writeFile(join(folder, 'held.csv'), csv(equity.rows, equity.header.map(name => name === 'Native close' ? 'Settled' : name)));
+
+    const review = page.getByRole('region', { name: 'Folder refresh review' });
+    const acceptedId = review.getByLabel('Accepted revision ID');
+    const stage = control(page, 'Stage folder refresh');
+    const changes = review.getByRole('table', { name: 'Folder source changes' });
+    const file = name => changes.getByRole('rowheader', { name, exact: true }).locator('..');
+    await expect(acceptedId).toHaveValue(publication.revision_id);
+    await stage.click();
+    await expect(file('added.csv')).toContainText('Added');
+    await expect(file('alias.csv')).toContainText('Alias of daily.csv');
+    await expect(file('held.csv')).toContainText('Header needs review');
+    await review.getByText(/Competing values · Review required/).click();
+    await expect(review.getByText(/Accepted.+C 40/)).toBeVisible();
+    await expect(review.getByText(/Current.+C 41/)).toBeVisible();
+    await expect(review.getByText('correction.csv · Record 1 · Lines 2–2')).toBeVisible();
+    await review.getByText(/2026-04-16.+New bar/).click();
+    await expect(review.getByText(/Current.+C 42/)).toBeVisible();
+
+    await review.getByLabel('Include unchanged overlaps').check();
+    await review.getByText(/2026-04-14.+Same bar/).click();
+    for (const path of ['daily.csv', 'alias.csv']) {
+      await expect(review.getByText(`${path} · Record 1 · Lines 2–2`)).toBeVisible();
+      await expect(review.getByText(`${path} · Record 2 · Lines 3–3`)).toBeVisible();
+    }
+    await expect(review.getByText('added.csv · Record 1 · Lines 2–2')).toBeVisible();
+
+    await acceptedId.fill(randomUUID());
+    await expect(changes).toHaveCount(0);
+    await acceptedId.fill(publication.revision_id);
+
+    // Hold a successful native reply at the browser boundary until after cancelling the UI request.
+    holdRefresh = true;
+    await stage.click();
+    await expect.poll(() => refreshes().length).toBe(2);
+    expect(refreshes()[1].reply).toEqual(refreshes()[0].reply);
+    await control(page, 'Cancel folder refresh').click();
+    releaseRefresh.resolve();
+    holdRefresh = false;
+    await expect(page.getByText('Folder refresh cancelled.', { exact: true })).toBeVisible();
+    await expect(changes).toHaveCount(0);
+    await expect.poll(() => calls.find(call => call.command === 'cancel_local_import_preview')?.args)
+      .toEqual({ requestId: refreshes()[1].args.requestId });
+
+    await rm(originalPath);
+    await rm(join(folder, 'correction.csv'));
+    await stage.click();
+    await expect(file('daily.csv')).toContainText('Removal candidate');
+    await expect(file('daily.csv')).toContainText('Source absent · Review required');
+    await expect(file('alias.csv')).toContainText('Alias of daily.csv (accepted source)');
+    await expect(review.getByText(/2026-04-15.+Same bar/)).toBeVisible();
+
+    await rm(join(folder, 'alias.csv'));
+    await stage.click();
+    await expect(review.getByText(/2026-04-15.+Coverage unverified · Review required/)).toBeVisible();
+
+    await rm(join(folder, 'held.csv'));
+    await stage.click();
+    await review.getByText(/Withdrawal candidate/).click();
+    await expect(review.getByText(/Accepted.+C 40/)).toBeVisible();
+    await expect(frozen.getByLabel('Selected bar')).toContainText('C 40');
+    expect(calls.filter(call => call.command === 'choose_local_csv_folder')).toHaveLength(1);
+    expect(calls.filter(call => call.args?.operation === 'market.publishLocalImport')).toHaveLength(1);
+    expect(refreshes()).toHaveLength(5);
+  } finally {
+    releaseRefresh.resolve();
+    await bridge?.close();
+    await rm(temporary, { recursive: true, force: true });
+  }
+});

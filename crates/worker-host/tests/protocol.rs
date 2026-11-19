@@ -98,6 +98,9 @@ fn shared_vectors_and_generated_types_agree() {
                 Message::ReadLocalImportRevisionRequest(_) => {
                     requests.insert("market.readLocalImportRevision");
                 }
+                Message::PreviewLocalFolderRefreshRequest(_) => {
+                    requests.insert("market.previewLocalFolderRefresh");
+                }
                 Message::RevokeLocalImportRevisionRequest(_) => {
                     requests.insert("market.revokeLocalImportRevision");
                 }

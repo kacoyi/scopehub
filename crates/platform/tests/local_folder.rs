@@ -305,6 +305,86 @@ fn final_source_verification_skips_commit_on_edit_cancel_or_revocation() {
 }
 
 #[test]
+fn folder_refresh_final_verification_rejects_changed_manifest_and_stopped_grants() {
+    let temp = TempDir::new();
+    let accepted = write(&temp.0, "equity.csv", EQUITY);
+    let alias = write(&temp.0, "copies/alias.csv", EQUITY);
+    let host = LocalFolderHost::default();
+    let live = Cancellation::default();
+    let selection = host.adopt_selected(&temp.0, &live).unwrap();
+    let key = host
+        .source_key(selection.folder_id, file(&selection, "equity.csv").file_id)
+        .unwrap();
+    let stage = || {
+        let scan = host
+            .scan_for_refresh(selection.folder_id, "equity.csv", &key, &live)
+            .unwrap();
+        let digests: Vec<_> = scan
+            .files()
+            .filter(|entry| entry.kind == FileKind::Csv)
+            .map(|entry| {
+                let source = host.read_for_refresh(&scan, entry.file_id, &live).unwrap();
+                (entry.file_id, source.sha256)
+            })
+            .collect();
+        (scan, digests)
+    };
+    let (scan, digests) = stage();
+    assert_eq!(digests.len(), 2);
+    assert_eq!(
+        host.with_verified_refresh_current(&scan, &digests, &live, || 1),
+        Ok(1)
+    );
+    let cancelled = Cancellation::default();
+    cancelled.cancel();
+    assert_eq!(
+        host.with_verified_refresh_current(&scan, &digests, &cancelled, || unreachable!()),
+        Err::<(), _>(FolderError::Cancelled),
+    );
+
+    // Same-size alias edits, completed removals and newly appearing CSVs all
+    // invalidate a result staged earlier. Unrelated files do not affect it.
+    write(&temp.0, "notes.txt", b"outside the CSV manifest");
+    host.with_verified_refresh_current(&scan, &digests, &live, || ())
+        .unwrap();
+    fs::write(&alias, CORRECTED_EQUITY).unwrap();
+    assert_eq!(
+        host.with_verified_refresh_current(&scan, &digests, &live, || ()),
+        Err(FolderError::ContentChanged)
+    );
+    let (scan, digests) = stage();
+    fs::remove_file(&accepted).unwrap();
+    assert_eq!(
+        host.with_verified_refresh_current(&scan, &digests, &live, || ()),
+        Err(FolderError::ContentChanged)
+    );
+    let (scan, digests) = stage();
+    fs::create_dir(&accepted).unwrap();
+    assert_eq!(
+        host.with_verified_refresh_current(&scan, &digests, &live, || ()),
+        Err(FolderError::ContentChanged)
+    );
+    let (scan, digests) = stage();
+    assert_eq!(
+        scan.files()
+            .find(|entry| entry.relative_path == "equity.csv")
+            .unwrap()
+            .kind,
+        FileKind::UnsupportedEntry
+    );
+    write(&temp.0, "added.csv", EQUITY);
+    assert_eq!(
+        host.with_verified_refresh_current(&scan, &digests, &live, || ()),
+        Err(FolderError::ContentChanged)
+    );
+    host.revoke(selection.folder_id).unwrap();
+    assert_eq!(
+        host.with_verified_refresh_current(&scan, &digests, &live, || ()),
+        Err(FolderError::SelectionUnavailable)
+    );
+}
+
+#[test]
 fn cancelled_requests_leave_the_previous_selection_available() {
     let temp = TempDir::new();
     let first = temp.directory("first");

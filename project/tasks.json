@@ -2713,6 +2713,7 @@
         "chart-history",
         "local-folder-import",
         "local-import-publication",
+        "local-folder-refresh-preview",
         "project-state",
         "python-contracts-workers",
         "architecture",
@@ -2727,7 +2728,7 @@
         "local-import-ui"
       ],
       "evidence": [],
-      "next_action": "Implement and verify a read-only folder refresh preview against an accepted v5 publication using a current native directory selection, the saved mapping and complete checked CSV files. Present added, aliased, replaced, incompatible and missing sources with bar overlaps and conflicts. Confirm v7 ownership after chart evidence v6 before any durable multi-file change. Keep frozen discovery separate.",
+      "next_action": "Integrate the verified read-only folder preview with the separate platform handle change at 150d62d. Use its transient checked root and cataloged ancestor identities for scan_for_refresh and with_verified_refresh_current. Preserve both branches' M1-008 ledger and platform regressions. Verify the integrated picker and preview on native Windows. Coordinate v7 ownership after chart evidence v6 before implementing reviewed atomic multi-file publication and recovery.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -2858,7 +2859,7 @@
             "failure": "Traversal order chooses an economic correction, aliases lose source row locators, a different directory is accepted as the original, or staged failures or cancellation change the frozen revision.",
             "checks": [
               "rust-contracts-workers",
-              "local-import-publication"
+              "local-folder-refresh-preview"
             ]
           }
         ],

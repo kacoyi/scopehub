@@ -1,6 +1,7 @@
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import type {
   LoadLocalImportMappingInput, LoadLocalImportMappingOutput, LocalImportPreviewInput, LocalImportPreviewOutput,
+  PreviewLocalFolderRefreshInput, PreviewLocalFolderRefreshOutput,
   PublishLocalImportInput, PublishLocalImportOutput, ReadLocalImportRevisionInput, ReadLocalImportRevisionOutput,
   RevokeLocalImportRevisionInput, RevokeLocalImportRevisionOutput,
   SaveLocalImportMappingInput, SaveLocalImportMappingOutput,
@@ -59,6 +60,13 @@ export async function revokeLocalImportRevision(payload: RevokeLocalImportRevisi
   requireNative();
   return invoke<RevokeLocalImportRevisionOutput>('execute_operation', {
     operation: 'market.revokeLocalImportRevision', payload, requestId,
+  });
+}
+
+export async function previewLocalFolderRefresh(payload: PreviewLocalFolderRefreshInput, requestId: string) {
+  requireNative();
+  return invoke<PreviewLocalFolderRefreshOutput>('execute_operation', {
+    operation: 'market.previewLocalFolderRefresh', payload, requestId,
   });
 }
 

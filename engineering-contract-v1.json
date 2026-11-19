@@ -757,6 +757,18 @@
       "schema_requirement": "Protocol 1.1 only. Return immutable bars and source row provenance by revision ID in the entitled local human profile. This read requires no directory access and neither refreshes the revision nor grants other data access."
     },
     {
+      "name": "market.previewLocalFolderRefresh",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "PreviewLocalFolderRefreshRequest",
+      "output_spec": "PreviewLocalFolderRefreshReply11",
+      "schema_requirement": "A trusted local human previews the current authorized directory against the entitled frozen CSV revision from that directory. Reuse its saved mapping for compatible complete native bars. Retain all attributable locators for equal bars and surface competing values, replaced files and withdrawal candidates for review. Staging has no publication effect."
+    },
+    {
       "name": "market.revokeLocalImportRevision",
       "effect": "persist",
       "confirmation": false,

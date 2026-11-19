@@ -352,6 +352,19 @@
       "cadence": "task"
     },
     {
+      "id": "local-folder-refresh-preview",
+      "status": "implemented",
+      "purpose": "Stage a current synthetic CSV directory against a frozen v5 publication through the built UI, Rust registry and Python checker. Observe additions, consistent overlaps with every alias locator, conflicts, incomplete coverage, removals and discarded late replies. This check covers the read-only folder preview.",
+      "platforms": "all",
+      "command": [
+        "{python}",
+        "scripts/check_local_import_publication.py",
+        "folder-refresh"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
       "id": "local-folder-import",
       "status": "planned",
       "purpose": "Exercise the folder picker, editable mapping, source lineage, idempotent refresh and schema drift through the actual local chart workflow.",

@@ -7,8 +7,8 @@ use std::{
 
 use scopehub_application::{
     Actor, LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS, MarketLifecycle, MarketPort,
-    MarketRegistry, PREVIEW_LOCAL_IMPORT, PUBLISH_LOCAL_IMPORT, READ_LOCAL_IMPORT_REVISION,
-    REVOKE_LOCAL_IMPORT_REVISION, SAVE_LOCAL_IMPORT_MAPPING, failure,
+    MarketRegistry, PREVIEW_LOCAL_FOLDER_REFRESH, PREVIEW_LOCAL_IMPORT, PUBLISH_LOCAL_IMPORT,
+    READ_LOCAL_IMPORT_REVISION, REVOKE_LOCAL_IMPORT_REVISION, SAVE_LOCAL_IMPORT_MAPPING, failure,
 };
 use scopehub_domain::protocol::{Error, ErrorCode};
 use scopehub_platform::local_folder::LocalFolderHost;
@@ -158,6 +158,12 @@ impl State {
                 return self
                     .local_import
                     .publish(&self.workspace, payload, request_id)
+                    .await;
+            }
+            PREVIEW_LOCAL_FOLDER_REFRESH => {
+                return self
+                    .local_import
+                    .preview_folder_refresh(&self.workspace, payload, request_id)
                     .await;
             }
             READ_LOCAL_IMPORT_REVISION => {

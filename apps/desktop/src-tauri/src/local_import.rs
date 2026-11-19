@@ -1,5 +1,6 @@
 //! Compose the local human's filesystem selection with the private preview worker.
 
+mod folder_refresh;
 mod requests;
 
 use std::{

@@ -386,6 +386,282 @@ fn publication_input(save: &Value, receipt: &Value) -> Value {
 
 #[cfg(any(target_os = "linux", windows))]
 #[tokio::test]
+async fn folder_refresh_stages_sources_conflicts_and_withdrawals_without_writing() {
+    use scopehub_application::{PREVIEW_LOCAL_FOLDER_REFRESH, REVOKE_LOCAL_IMPORT_REVISION};
+    use std::fs;
+
+    let fixture = ImportFixture::new();
+    let profile = fixture.0.join("profile");
+    let folder = fixture.0.join("source");
+    let different_folder = fixture.0.join("different");
+    fs::create_dir(&folder).unwrap();
+    fs::create_dir(&different_folder).unwrap();
+    let header = "Ticker,Date,Open,High,Low,Close,Shares\n";
+    let first = "000418,2026-11-19,4,7,3,5,20\n";
+    let second = "000418,2026-11-20,4,8,3,6,21\n";
+    let accepted = format!("{header}{first}{first}{second}");
+    let path = folder.join("source.csv");
+    fs::write(&path, &accepted).unwrap();
+    fs::write(different_folder.join("source.csv"), &accepted).unwrap();
+    let state = state_with_local_profile(Some(&profile));
+    let ids = select_csv(&state, &folder).await;
+    let save = reviewed_save_input(&state, &ids, equity_mapping()).await;
+    let saved = execute_import(&state, SAVE_LOCAL_IMPORT_MAPPING, save.clone())
+        .await
+        .unwrap();
+    let published = execute_import(
+        &state,
+        PUBLISH_LOCAL_IMPORT,
+        publication_input(&save, &saved),
+    )
+    .await
+    .unwrap();
+    let revision_id = &published["revision"]["revision_id"];
+    let read = json!({"version": 1, "revision_id": revision_id});
+    let prior = execute_import(&state, READ_LOCAL_IMPORT_REVISION, read.clone())
+        .await
+        .unwrap();
+    let request = json!({"version": 1, "folder_id": ids["folder_id"], "revision_id": revision_id});
+    let extras = [
+        ("z-alias.csv", accepted.clone()),
+        (
+            "a-added.csv",
+            format!("{header}{first}000418,2026-11-21,4,8,3,7,22\n"),
+        ),
+        (
+            "correction.csv",
+            format!("{header}000418,2026-11-19,4,7,3,6,20\n"),
+        ),
+        ("incompatible.csv", accepted.replace("Close", "Last")),
+        ("other-symbol.csv", accepted.replace("000418", "000419")),
+    ];
+    for (name, bytes) in &extras {
+        fs::write(folder.join(name), bytes).unwrap();
+    }
+    let staged = execute_import(&state, PREVIEW_LOCAL_FOLDER_REFRESH, request.clone())
+        .await
+        .unwrap();
+    assert_eq!(staged["base"], published["revision"]);
+    assert_eq!(staged["files"][0]["relative_path"], "a-added.csv");
+    assert_eq!(staged["files"][0]["change"], "added");
+    assert_eq!(staged["files"][2]["review"], "header_changed");
+    assert_eq!(staged["files"][3]["review"], "series_mismatch");
+    assert_eq!(staged["files"][5]["alias_of"], "source.csv");
+    let bar = &staged["bars"][0];
+    assert_eq!(bar["status"], "conflict");
+    assert_eq!(bar["accepted"]["bar"]["close"], 5.0);
+    assert_eq!(bar["alternatives"][0]["bar"]["close"], 5.0);
+    assert_eq!(bar["alternatives"][1]["bar"]["close"], 6.0);
+    let sources = bar["alternatives"][0]["sources"].as_array().unwrap();
+    let locators: Vec<_> = sources
+        .iter()
+        .map(|source| {
+            (
+                source["relative_path"].as_str().unwrap(),
+                source["record_number"].as_u64().unwrap(),
+                source["line_start"].as_u64().unwrap(),
+                source["line_end"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        locators,
+        [
+            ("a-added.csv", 1, 2, 2),
+            ("source.csv", 1, 2, 2),
+            ("source.csv", 2, 3, 3),
+            ("z-alias.csv", 1, 2, 2),
+            ("z-alias.csv", 2, 3, 3),
+        ]
+    );
+    assert_eq!(sources[1]["source_sha256"], sources[3]["source_sha256"]);
+    assert_eq!(staged["bars"][1]["status"], "unchanged");
+    assert_eq!(staged["bars"][2]["status"], "addition");
+
+    for (name, _) in &extras {
+        fs::remove_file(folder.join(name)).unwrap();
+    }
+    for (name, bytes) in extras.iter().rev() {
+        fs::write(folder.join(name), bytes).unwrap();
+    }
+    assert_eq!(
+        execute_import(&state, PREVIEW_LOCAL_FOLDER_REFRESH, request.clone())
+            .await
+            .unwrap(),
+        staged
+    );
+
+    fs::write(&path, accepted.replace(",6,21", ",7,21")).unwrap();
+    let replaced = execute_import(&state, PREVIEW_LOCAL_FOLDER_REFRESH, request.clone())
+        .await
+        .unwrap();
+    assert_eq!(replaced["files"][4]["change"], "replaced");
+    assert_eq!(replaced["bars"][1]["status"], "conflict");
+    assert_eq!(replaced["bars"][1]["accepted"]["bar"]["close"], 6.0);
+    fs::remove_file(&path).unwrap();
+    let aliased = execute_import(&state, PREVIEW_LOCAL_FOLDER_REFRESH, request.clone())
+        .await
+        .unwrap();
+    assert_eq!(aliased["files"][4]["change"], "removed");
+    assert_eq!(aliased["bars"][1]["status"], "unchanged");
+    fs::remove_file(folder.join("z-alias.csv")).unwrap();
+    let held = execute_import(&state, PREVIEW_LOCAL_FOLDER_REFRESH, request.clone())
+        .await
+        .unwrap();
+    assert_eq!(held["bars"][1]["status"], "unverified");
+    assert_eq!(held["bars"][1]["accepted"]["bar"]["close"], 6.0);
+    fs::remove_file(folder.join("incompatible.csv")).unwrap();
+    let removed = execute_import(&state, PREVIEW_LOCAL_FOLDER_REFRESH, request.clone())
+        .await
+        .unwrap();
+    assert_eq!(removed["files"][3]["change"], "removed");
+    assert_eq!(removed["bars"][1]["status"], "withdrawal");
+    assert_eq!(removed["bars"][1]["accepted"]["bar"]["close"], 6.0);
+
+    let (cancelled, ()) = tokio::join!(
+        state.execute_local_operation(
+            PREVIEW_LOCAL_FOLDER_REFRESH,
+            request.clone(),
+            Some("cancel-folder-review")
+        ),
+        async {
+            tokio::task::yield_now().await;
+            state.cancel_local_import("cancel-folder-review");
+        },
+    );
+    assert_eq!(cancelled.unwrap_err().code, ErrorCode::CANCELLED);
+    assert_eq!(
+        execute_import(&state, READ_LOCAL_IMPORT_REVISION, read.clone())
+            .await
+            .unwrap(),
+        prior
+    );
+    state.shutdown().await;
+
+    // Pause the real Python checker after it receives and normalizes the
+    // complete file, then cancel or change the CSV manifest before it replies.
+    let config = development_config().unwrap();
+    let worker_root = fixture.0.join("held-worker");
+    let module = worker_root.join("python/worker_runtime");
+    fs::create_dir_all(&module).unwrap();
+    fs::write(
+        worker_root.join("repo-root"),
+        config.root.canonicalize().unwrap().to_str().unwrap(),
+    )
+    .unwrap();
+    fs::write(
+        module.join("local_import.py"),
+        r#"
+import pathlib, sys, time
+root = pathlib.Path('repo-root').read_text(encoding='utf-8')
+sys.modules.pop('worker_runtime', None)
+sys.path[:0] = [root, str(pathlib.Path(root) / 'python')]
+from worker_runtime import local_import
+
+check = local_import.check_complete_csv
+def hold(*args):
+    result = check(*args)
+    pathlib.Path('checked').touch()
+    while not pathlib.Path('release').exists():
+        time.sleep(0.01)
+    return result
+
+local_import.check_complete_csv = hold
+raise SystemExit(local_import.run(sys.stdin.buffer, sys.stdout.buffer))
+"#,
+    )
+    .unwrap();
+    let state = State {
+        local_import: LocalImport::new(Some(WorkerConfig {
+            root: worker_root.clone(),
+            ..config
+        })),
+        ..state_with_local_profile(Some(&profile))
+    };
+    let current = select_csv(&state, &folder).await;
+    let live_request =
+        json!({"version": 1, "folder_id": current["folder_id"], "revision_id": revision_id});
+    let ready = worker_root.join("checked");
+    for cancel in [true, false] {
+        let id = if cancel {
+            "cancel-after-check"
+        } else {
+            "change-after-check"
+        };
+        let preview = state.execute_local_operation(
+            PREVIEW_LOCAL_FOLDER_REFRESH,
+            live_request.clone(),
+            Some(id),
+        );
+        tokio::pin!(preview);
+        tokio::select! {
+            result = &mut preview => panic!("refresh ended before the complete file check: {result:?}"),
+            result = tokio::time::timeout(Duration::from_secs(4), async {
+                while !ready.exists() { tokio::time::sleep(Duration::from_millis(10)).await; }
+            }) => result.unwrap(),
+        }
+        if cancel {
+            state.cancel_local_import(id);
+        } else {
+            fs::write(folder.join("appeared-during-check.csv"), &accepted).unwrap();
+            fs::write(worker_root.join("release"), "").unwrap();
+        }
+        let error = preview.await.unwrap_err();
+        assert_eq!(
+            error.code,
+            if cancel {
+                ErrorCode::CANCELLED
+            } else {
+                ErrorCode::SNAPSHOTUNAVAILABLE
+            }
+        );
+        if !cancel {
+            assert_eq!(error.details["reason"], "folder_changed_during_review");
+        }
+        fs::remove_file(&ready).unwrap();
+        assert_eq!(
+            execute_import(&state, READ_LOCAL_IMPORT_REVISION, read.clone())
+                .await
+                .unwrap(),
+            prior
+        );
+    }
+
+    let wrong = select_csv(&state, &different_folder).await;
+    assert_eq!(
+        execute_import(&state, PREVIEW_LOCAL_FOLDER_REFRESH, request)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::STALECONTEXT,
+    );
+    let wrong_request =
+        json!({"version": 1, "folder_id": wrong["folder_id"], "revision_id": revision_id});
+    assert_eq!(
+        execute_import(&state, PREVIEW_LOCAL_FOLDER_REFRESH, wrong_request)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::PERMISSIONDENIED,
+    );
+    let current = select_csv(&state, &folder).await;
+    execute_import(&state, REVOKE_LOCAL_IMPORT_REVISION, read)
+        .await
+        .unwrap();
+    let revoked_request =
+        json!({"version": 1, "folder_id": current["folder_id"], "revision_id": revision_id});
+    assert_eq!(
+        execute_import(&state, PREVIEW_LOCAL_FOLDER_REFRESH, revoked_request)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::PERMISSIONDENIED,
+    );
+    state.shutdown().await;
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[tokio::test]
 async fn local_publication_replays_the_minimal_save_publish_chain() {
     use scopehub_application::REVOKE_LOCAL_IMPORT_REVISION;
     use std::fs;

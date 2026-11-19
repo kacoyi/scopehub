@@ -13,7 +13,7 @@ async function freePort() {
 
 const port = process.env.SCOPEHUB_LOCAL_IMPORT_TEST_PORT ??= await freePort();
 const baseURL = `http://127.0.0.1:${port}`;
-const report = resolve(process.env.SCOPEHUB_RUN_DIR ?? '.reports', 'local-import-ui');
+const report = resolve(process.env.SCOPEHUB_RUN_DIR ?? '.reports', process.env.SCOPEHUB_LOCAL_IMPORT_REPORT ?? 'local-import-ui');
 
 export default defineConfig({
   testDir: '.', testMatch: 'local-import.spec.mjs', workers: 1, retries: 0, timeout: 45_000,

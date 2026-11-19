@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=96ab0cacf324ece6f9494fe1fb9e9308d5d229fa2eda73ae4838fb3a16330f4d. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=e8da5cce467e39590d6770d517458373c1472cdac7dd185c1baaa38de9a6b82f. Do not edit.
 // Structural types and literal discriminators: validate schema refinements before deserializing.
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -161,6 +161,8 @@ pub enum OperationName {
     MarketLoadLocalImportMapping,
     #[serde(rename = "market.readLocalImportRevision")]
     MarketReadLocalImportRevision,
+    #[serde(rename = "market.previewLocalFolderRefresh")]
+    MarketPreviewLocalFolderRefresh,
     #[serde(rename = "market.revokeLocalImportRevision")]
     MarketRevokeLocalImportRevision,
     #[serde(rename = "market.publishLocalImport")]
@@ -207,6 +209,7 @@ impl OperationName {
             Self::MarketSaveLocalImportMapping => "market.saveLocalImportMapping",
             Self::MarketLoadLocalImportMapping => "market.loadLocalImportMapping",
             Self::MarketReadLocalImportRevision => "market.readLocalImportRevision",
+            Self::MarketPreviewLocalFolderRefresh => "market.previewLocalFolderRefresh",
             Self::MarketRevokeLocalImportRevision => "market.revokeLocalImportRevision",
             Self::MarketPublishLocalImport => "market.publishLocalImport",
             Self::WorkspaceReadChartProjection => "workspace.readChartProjection",
@@ -1550,6 +1553,44 @@ pub struct ReadLocalImportRevisionError {
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct PreviewLocalFolderRefreshRequest {
+    pub protocol_version: PreviewLocalFolderRefreshRequestProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: PreviewLocalFolderRefreshRequestType,
+    pub request_id: Uuid,
+    pub task_id: Option<Uuid>,
+    pub operation: PreviewLocalFolderRefreshRequestOperation,
+    pub payload: PreviewLocalFolderRefreshInput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PreviewLocalFolderRefreshResponse {
+    pub protocol_version: PreviewLocalFolderRefreshResponseProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: PreviewLocalFolderRefreshResponseType,
+    pub request_id: Uuid,
+    pub operation: PreviewLocalFolderRefreshResponseOperation,
+    pub ok: ConstBool<true>,
+    pub result: PreviewLocalFolderRefreshOutput,
+    pub error: (),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PreviewLocalFolderRefreshError {
+    pub protocol_version: PreviewLocalFolderRefreshErrorProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: PreviewLocalFolderRefreshErrorType,
+    pub request_id: Uuid,
+    pub operation: PreviewLocalFolderRefreshErrorOperation,
+    pub ok: ConstBool<false>,
+    pub result: (),
+    pub error: MarketPageFault,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RevokeLocalImportRevisionRequest {
     pub protocol_version: RevokeLocalImportRevisionRequestProtocolVersion,
     pub message_id: Uuid,
@@ -1994,6 +2035,9 @@ pub enum Message {
     ReadLocalImportRevisionRequest(Box<ReadLocalImportRevisionRequest>),
     ReadLocalImportRevisionResponse(Box<ReadLocalImportRevisionResponse>),
     ReadLocalImportRevisionError(Box<ReadLocalImportRevisionError>),
+    PreviewLocalFolderRefreshRequest(Box<PreviewLocalFolderRefreshRequest>),
+    PreviewLocalFolderRefreshResponse(Box<PreviewLocalFolderRefreshResponse>),
+    PreviewLocalFolderRefreshError(Box<PreviewLocalFolderRefreshError>),
     RevokeLocalImportRevisionRequest(Box<RevokeLocalImportRevisionRequest>),
     RevokeLocalImportRevisionResponse(Box<RevokeLocalImportRevisionResponse>),
     RevokeLocalImportRevisionError(Box<RevokeLocalImportRevisionError>),
@@ -3912,6 +3956,61 @@ pub struct RevokeLocalImportRevisionOutput {
     pub revision_id: Uuid,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FolderRefreshFile {
+    pub relative_path: String,
+    pub source_sha256: Option<Hash>,
+    pub prior_sha256: Option<Hash>,
+    pub change: FolderRefreshFileChange,
+    pub alias_of: Option<String>,
+    pub review: FolderRefreshFileReview,
+    pub detail: Option<String>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FolderRefreshSource {
+    pub relative_path: String,
+    pub source_sha256: Hash,
+    pub record_number: u64,
+    pub line_start: u64,
+    pub line_end: u64,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FolderRefreshAlternative {
+    pub bar: Bar,
+    pub sources: Vec<FolderRefreshSource>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FolderRefreshBar {
+    pub time_ms: Timestamp,
+    pub status: FolderRefreshBarStatus,
+    pub accepted: Option<PublishedLocalImportBar>,
+    pub alternatives: Vec<FolderRefreshAlternative>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PreviewLocalFolderRefreshInput {
+    pub version: u64,
+    pub folder_id: Uuid,
+    pub revision_id: Uuid,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PreviewLocalFolderRefreshOutput {
+    pub version: u64,
+    pub base: PublishedLocalImportRevision,
+    pub files: Vec<FolderRefreshFile>,
+    pub bars: Vec<FolderRefreshBar>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum PreviewLocalFolderRefreshReply11 {
+    PreviewLocalFolderRefreshResponse(Box<PreviewLocalFolderRefreshResponse>),
+    PreviewLocalFolderRefreshError(Box<PreviewLocalFolderRefreshError>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum FieldExpressionOp {
     #[serde(rename = "field")]
     Value,
@@ -5573,6 +5672,114 @@ impl ReadLocalImportRevisionErrorOperation {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Value => "market.readLocalImportRevision",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PreviewLocalFolderRefreshRequestProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl PreviewLocalFolderRefreshRequestProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PreviewLocalFolderRefreshRequestType {
+    #[serde(rename = "request")]
+    Value,
+}
+impl PreviewLocalFolderRefreshRequestType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PreviewLocalFolderRefreshRequestOperation {
+    #[serde(rename = "market.previewLocalFolderRefresh")]
+    Value,
+}
+impl PreviewLocalFolderRefreshRequestOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.previewLocalFolderRefresh",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PreviewLocalFolderRefreshResponseProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl PreviewLocalFolderRefreshResponseProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PreviewLocalFolderRefreshResponseType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl PreviewLocalFolderRefreshResponseType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PreviewLocalFolderRefreshResponseOperation {
+    #[serde(rename = "market.previewLocalFolderRefresh")]
+    Value,
+}
+impl PreviewLocalFolderRefreshResponseOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.previewLocalFolderRefresh",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PreviewLocalFolderRefreshErrorProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl PreviewLocalFolderRefreshErrorProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PreviewLocalFolderRefreshErrorType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl PreviewLocalFolderRefreshErrorType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PreviewLocalFolderRefreshErrorOperation {
+    #[serde(rename = "market.previewLocalFolderRefresh")]
+    Value,
+}
+impl PreviewLocalFolderRefreshErrorOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.previewLocalFolderRefresh",
         }
     }
 }
@@ -8072,6 +8279,81 @@ impl DecisionNoteRestoreBackupReply11Type {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum FolderRefreshFileChange {
+    #[serde(rename = "unchanged")]
+    Unchanged,
+    #[serde(rename = "added")]
+    Added,
+    #[serde(rename = "replaced")]
+    Replaced,
+    #[serde(rename = "removed")]
+    Removed,
+    #[serde(rename = "unverified")]
+    Unverified,
+}
+impl FolderRefreshFileChange {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Unchanged => "unchanged",
+            Self::Added => "added",
+            Self::Replaced => "replaced",
+            Self::Removed => "removed",
+            Self::Unverified => "unverified",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum FolderRefreshFileReview {
+    #[serde(rename = "compatible")]
+    Compatible,
+    #[serde(rename = "header_changed")]
+    HeaderChanged,
+    #[serde(rename = "series_mismatch")]
+    SeriesMismatch,
+    #[serde(rename = "invalid_rows")]
+    InvalidRows,
+    #[serde(rename = "unavailable")]
+    Unavailable,
+    #[serde(rename = "removed")]
+    Removed,
+}
+impl FolderRefreshFileReview {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Compatible => "compatible",
+            Self::HeaderChanged => "header_changed",
+            Self::SeriesMismatch => "series_mismatch",
+            Self::InvalidRows => "invalid_rows",
+            Self::Unavailable => "unavailable",
+            Self::Removed => "removed",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum FolderRefreshBarStatus {
+    #[serde(rename = "unchanged")]
+    Unchanged,
+    #[serde(rename = "addition")]
+    Addition,
+    #[serde(rename = "conflict")]
+    Conflict,
+    #[serde(rename = "withdrawal")]
+    Withdrawal,
+    #[serde(rename = "unverified")]
+    Unverified,
+}
+impl FolderRefreshBarStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Unchanged => "unchanged",
+            Self::Addition => "addition",
+            Self::Conflict => "conflict",
+            Self::Withdrawal => "withdrawal",
+            Self::Unverified => "unverified",
         }
     }
 }
