@@ -7472,7 +7472,7 @@
         "private-record-lifecycle"
       ],
       "evidence": [],
-      "next_action": "Reproduce the hosted peer-rename wait with real scoped writers, then correct the earliest demonstrated violation and retain both outcomes.",
+      "next_action": "Run the workspace-timeframe and private-record-lifecycle gates on the integrated source, retain matching Linux and Windows evidence, and close the peer-rename feedback when verified.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -7486,7 +7486,8 @@
           "project/delivery.json"
         ],
         "hypotheses": [
-          "The Windows screenshot shows a body-free retry. The waiter for a later successful read expired, but the archived failure does not establish whether the peer completed its correction or whether the originating window revalidated it."
+          "The archived Windows waiter expired without identifying the peer action or origin read. The original Windows trigger remains unknown.",
+          "An admitted focus read occupies the single preview producer. In the controlled Linux reproduction the authorized peer then received HTTP 429 BUSY and the old panel reported only a generic failure."
         ],
         "risks": [
           {
@@ -7523,7 +7524,7 @@
             "Changing deletion policy, granting a new reader, or replaying a mutation automatically."
           ],
           "open_questions": [
-            "Which peer or local read stage first fails in the controlled reproduction?"
+            "Does the staged recovery and the shared-producer negative control pass on the integrated Windows source?"
           ]
         },
         "evolution": {
@@ -7532,7 +7533,8 @@
             "Body-free recovery, explicit confirmation, original operation identity, peer access checks, stale revision handling and single tombstones."
           ],
           "change": [
-            "Make each peer and origin outcome independently observable and repair any product behavior shown faulty by that evidence."
+            "Expose a real BUSY as contention in the private records panel.",
+            "Observe the peer read, review, approval and stored correction independently of the origin focus and exact deletion retry. Prove shared-producer contention separately from the two-service recovery."
           ],
           "data_plan": "Use only synthetic records in disposable profiles.",
           "cleanup": "Release the test-owned read observer, writer transaction and browser contexts on every outcome."
