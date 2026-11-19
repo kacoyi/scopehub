@@ -38,7 +38,7 @@ export function assertLocalJsonRequest(request, server, maxBytes = maxRequestByt
   if (Number(request.headers['content-length']) > maxBytes) throw new PreviewFailure(413, 'RESOURCE_LIMIT');
 }
 
-export async function readLocalJson(request, maxBytes = maxRequestBytes) {
+export async function readLocalJson(request, maxBytes = maxRequestBytes, operationLimit) {
   const chunks = [];
   let size = 0;
   for await (const chunk of request.iterator({ destroyOnReturn: false })) {
@@ -46,11 +46,14 @@ export async function readLocalJson(request, maxBytes = maxRequestBytes) {
     if (size > maxBytes) throw new PreviewFailure(413, 'RESOURCE_LIMIT');
     chunks.push(chunk);
   }
+  let body;
   try {
-    return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks)));
+    body = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks)));
   } catch {
     throw new PreviewFailure(400, 'INVALID_ARGUMENT');
   }
+  if (operationLimit && size > operationLimit(body?.intent?.operation)) throw new PreviewFailure(413, 'RESOURCE_LIMIT');
+  return body;
 }
 
 async function readOperation(request, stream) {

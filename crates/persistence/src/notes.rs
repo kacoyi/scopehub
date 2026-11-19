@@ -1,7 +1,7 @@
 use rusqlite::{Connection, OptionalExtension, Row, params};
 use scopehub_application::{
-    DecisionNoteChange, DecisionNoteMutation, DecisionNoteReceipt, DecisionNoteReplay,
-    WorkspaceBinding, WorkspaceReplayKey, failure,
+    DECISION_NOTE_APPEND_OUTCOME, DECISION_NOTE_SAVE, DecisionNoteChange, DecisionNoteMutation,
+    DecisionNoteReceipt, DecisionNoteReplay, WorkspaceBinding, WorkspaceReplayKey, failure,
 };
 use scopehub_domain::protocol::{
     DecisionNoteOriginal, DecisionNoteOutcome, DecisionNoteReadOutput, DecisionNoteSummary, Error,
@@ -13,7 +13,7 @@ use super::{revision, store_error};
 const INDEX_PAGE_SIZE: usize = 50;
 const OUTCOME_PAGE_SIZE: usize = 10;
 
-fn decode_original(row: &Row<'_>) -> rusqlite::Result<DecisionNoteOriginal> {
+pub(super) fn decode_original(row: &Row<'_>) -> rusqlite::Result<DecisionNoteOriginal> {
     let evidence_refs: String = row.get(3)?;
     Ok(DecisionNoteOriginal {
         note_id: row.get(0)?,
@@ -25,7 +25,7 @@ fn decode_original(row: &Row<'_>) -> rusqlite::Result<DecisionNoteOriginal> {
     })
 }
 
-fn original(
+pub(super) fn original(
     connection: &Connection,
     workspace_id: &str,
     note_id: &str,
@@ -41,6 +41,14 @@ fn original(
         .map_err(store_error)
 }
 
+pub(super) fn decode_outcome(row: &Row<'_>) -> rusqlite::Result<DecisionNoteOutcome> {
+    Ok(DecisionNoteOutcome {
+        outcome_id: row.get(0)?,
+        observed_on: row.get(1)?,
+        outcome: row.get(2)?,
+    })
+}
+
 pub(super) fn read(
     connection: &Connection,
     workspace_id: &str,
@@ -54,7 +62,7 @@ pub(super) fn read(
         let mut statement = connection
             .prepare(
                 "SELECT outcome_id, observed_on, outcome FROM decision_note_outcomes
-             WHERE workspace_id = ?1 AND note_id = ?2 ORDER BY revision LIMIT ?3 OFFSET ?4",
+             WHERE workspace_id = ?1 AND note_id = ?2 ORDER BY ordinal LIMIT ?3 OFFSET ?4",
             )
             .map_err(store_error)?;
         let mut outcomes = statement
@@ -65,13 +73,7 @@ pub(super) fn read(
                     OUTCOME_PAGE_SIZE as i64 + 1,
                     sql_offset
                 ],
-                |row| {
-                    Ok(DecisionNoteOutcome {
-                        outcome_id: row.get(0)?,
-                        observed_on: row.get(1)?,
-                        outcome: row.get(2)?,
-                    })
-                },
+                decode_outcome,
             )
             .map_err(store_error)?
             .collect::<rusqlite::Result<Vec<_>>>()
@@ -186,57 +188,115 @@ pub(super) fn apply(
         i64::try_from(change.receipt.revision).map_err(|_| failure(ErrorCode::INTERNALERROR))?;
     match &change.mutation {
         DecisionNoteMutation::Save(note) => {
-            let evidence = serde_json::to_string(&note.evidence_refs)
-                .map_err(|_| failure(ErrorCode::INTERNALERROR))?;
-            connection.execute(
-                "INSERT INTO decision_notes (workspace_id, note_id, decided_on, thesis, evidence_refs, choice)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-                params![workspace_id, note_id, note.decided_on, note.thesis, evidence, note.choice],
-            ).map_err(store_error)?;
+            insert_original(connection, workspace_id, note_id, note)
         }
         DecisionNoteMutation::Append(outcome) => {
-            connection.execute(
-                "INSERT INTO decision_note_outcomes (workspace_id, note_id, outcome_id, observed_on, outcome, revision)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-                params![workspace_id, note_id, outcome.outcome_id, outcome.observed_on, outcome.outcome, revision],
-            ).map_err(store_error)?;
+            insert_outcome(connection, workspace_id, note_id, outcome, revision)
         }
         DecisionNoteMutation::Delete => {
-            let deleted = connection
-                .execute(
-                    "DELETE FROM decision_notes WHERE workspace_id = ?1 AND note_id = ?2",
-                    params![workspace_id, note_id],
-                )
-                .map_err(store_error)?;
-            if deleted != 1 {
+            if !apply_deletion(
+                connection,
+                binding,
+                note_id,
+                revision,
+                change.committed_at_ms,
+            )? {
                 return Err(failure(ErrorCode::DATAUNAVAILABLE));
             }
-            connection
-                .execute(
-                    "INSERT INTO decision_note_deletions
-                   (profile_id, workspace_id, note_id, revision, deleted_at_ms, cleanup_pending)
-                 VALUES (?1, ?2, ?3, ?4, ?5, 1)",
-                    params![
-                        binding.profile_id,
-                        workspace_id,
-                        note_id,
-                        revision,
-                        change.committed_at_ms
-                    ],
-                )
-                .map_err(store_error)?;
-            // Retain the scoped keys and receipts, but remove their body-derived digests.
-            connection
-                .execute(
-                    "UPDATE idempotency_records SET digest = zeroblob(32)
-                 WHERE operation_id IN (SELECT id FROM operation_log
-                     WHERE workspace_id = ?1 AND decision_note_id = ?2 AND revision < ?3)",
-                    params![workspace_id, note_id, revision],
-                )
-                .map_err(store_error)?;
+            Ok(())
         }
     }
+}
+
+pub(super) fn insert_original(
+    connection: &Connection,
+    workspace_id: &str,
+    note_id: &str,
+    note: &DecisionNoteOriginal,
+) -> Result<(), Error> {
+    let evidence = serde_json::to_string(&note.evidence_refs)
+        .map_err(|_| failure(ErrorCode::INTERNALERROR))?;
+    connection.execute(
+        "INSERT INTO decision_notes (workspace_id, note_id, decided_on, thesis, evidence_refs, choice)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        params![workspace_id, note_id, note.decided_on, note.thesis, evidence, note.choice],
+    ).map_err(store_error)?;
     Ok(())
+}
+
+pub(super) fn insert_outcome(
+    connection: &Connection,
+    workspace_id: &str,
+    note_id: &str,
+    outcome: &DecisionNoteOutcome,
+    revision: i64,
+) -> Result<(), Error> {
+    connection
+        .execute(
+            "INSERT INTO decision_note_outcomes
+           (workspace_id, note_id, outcome_id, observed_on, outcome, revision, ordinal)
+         SELECT ?1, ?2, ?3, ?4, ?5, ?6, coalesce(max(ordinal), 0) + 1
+         FROM decision_note_outcomes WHERE workspace_id = ?1 AND note_id = ?2",
+            params![
+                workspace_id,
+                note_id,
+                outcome.outcome_id,
+                outcome.observed_on,
+                outcome.outcome,
+                revision
+            ],
+        )
+        .map_err(store_error)?;
+    Ok(())
+}
+
+/// Keep the original deletion date and bind the marker to this live revision.
+/// A restore can learn a marker for which this copy has no live note.
+pub(super) fn apply_deletion(
+    connection: &Connection,
+    binding: &WorkspaceBinding,
+    note_id: &str,
+    revision: i64,
+    deleted_at_ms: i64,
+) -> Result<bool, Error> {
+    let removed = connection
+        .execute(
+            "DELETE FROM decision_notes WHERE workspace_id = ?1 AND note_id = ?2",
+            params![binding.workspace_id, note_id],
+        )
+        .map_err(store_error)?;
+    // Retain scoped keys and receipts, and scrub only body-bearing digests.
+    let redacted = connection
+        .execute(
+            "UPDATE idempotency_records SET digest = zeroblob(32)
+             WHERE digest != zeroblob(32) AND operation_id IN (SELECT id FROM operation_log
+                 WHERE workspace_id = ?1 AND decision_note_id = ?2
+                   AND revision < ?3 AND operation IN (?4, ?5))",
+            params![
+                binding.workspace_id,
+                note_id,
+                revision,
+                DECISION_NOTE_SAVE,
+                DECISION_NOTE_APPEND_OUTCOME
+            ],
+        )
+        .map_err(store_error)?;
+    connection
+        .execute(
+            "INSERT INTO decision_note_deletions
+               (profile_id, workspace_id, note_id, revision, deleted_at_ms, cleanup_pending)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                binding.profile_id,
+                binding.workspace_id,
+                note_id,
+                revision,
+                deleted_at_ms,
+                removed != 0 || redacted != 0
+            ],
+        )
+        .map_err(store_error)?;
+    Ok(removed != 0)
 }
 
 pub(super) fn clean_deletions(

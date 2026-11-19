@@ -1,8 +1,8 @@
 use std::{path::Path, sync::Arc};
 
 use scopehub_application::{
-    Actor, DECISION_NOTE_OPERATIONS, LOCAL_WORKSPACE_OPERATIONS, OperationRegistry,
-    WorkspaceAccess, WorkspaceBinding, failure,
+    Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, LOCAL_WORKSPACE_OPERATIONS,
+    OperationRegistry, WorkspaceAccess, WorkspaceBinding, failure,
 };
 use scopehub_domain::protocol::{Error, ErrorCode};
 use scopehub_persistence::SqliteWorkspace;
@@ -13,6 +13,7 @@ use tokio::sync::Mutex;
 const WORKSPACE_ID: &str = "main";
 const MAX_REQUEST_BYTES: usize = 16 * 1024;
 const MAX_NOTE_REQUEST_BYTES: usize = 32 * 1024;
+const MAX_BACKUP_REQUEST_BYTES: usize = 1024 * 1024;
 
 pub(super) struct WorkspaceBridge {
     lane: Arc<Mutex<Lane>>,
@@ -76,7 +77,9 @@ impl WorkspaceBridge {
             Some(operation)
                 if payload["type"] == "request" && payload["intent"]["operation"] == operation =>
             {
-                let limit = if DECISION_NOTE_OPERATIONS.contains(&operation) {
+                let limit = if operation == DECISION_NOTE_PREVIEW_RESTORE {
+                    MAX_BACKUP_REQUEST_BYTES
+                } else if DECISION_NOTE_OPERATIONS.contains(&operation) {
                     MAX_NOTE_REQUEST_BYTES
                 } else {
                     MAX_REQUEST_BYTES

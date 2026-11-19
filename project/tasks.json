@@ -384,7 +384,7 @@
         "desktop-workspace-transport"
       ],
       "evidence": [],
-      "next_action": "Implement staged local backup restoration with preview, profile validation, same-transaction application of known decision-note deletion markers and the independent older-copy warning. Exercise cancellation and interruption before cutover and retain the existing local decision-note lifecycle checks.",
+      "next_action": "Close the remaining shared-operation and state-migration gates. Exercise durable writes bound to a changing shared target, broaden recovery as other workspace records become durable, and retain the local decision-note lifecycle and staged restore regressions.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -408,7 +408,8 @@
         "hypotheses": [
           "Start with 1m to 5m, restart the Rust process, undo by the returned operation ID and restart to 1m. Two profiles with the same workspace ID make isolation directly observable.",
           "A profile-bound, long-lived Rust core can share one transaction owner across the native and explicitly enabled Ubuntu workspace entries.",
-          "A synthetic original thesis and a separately dated outcome can be distinguished after restart. Deleting their note can retain a profile-bound marker and redacted operation results without leaving the body available to a live read, undo or idempotent replay."
+          "A synthetic original thesis and a separately dated outcome can be distinguished after restart. Deleting their note can retain a profile-bound marker and redacted operation results without leaving the body available to a live read, undo or idempotent replay.",
+          "A logical backup limited to decision notes can recover missing originals and dated outcomes, keep newer work, and suppress marked notes without copying operation history, grants or SQLite journals."
         ],
         "risks": [
           {
@@ -449,7 +450,7 @@
             ]
           }
         ],
-        "rollback": "Keep the original database and an untouched local backup through staged migration. Exercise interruption before the atomic cutover and verify forward repair or restoring the previous visible state.",
+          "rollback": "Keep the selected backup file untouched. Stage a revision-bound restore in memory. Cancel, reject or interrupt before committing the SQLite transaction and verify the previous live notes, deletion state and timeframe remain available across process restart.",
         "implementation": {
           "modules": [
             "application",
@@ -466,8 +467,10 @@
             "project/development.json",
             "crates/application/src/workspace.rs",
             "crates/application/src/workspace/notes.rs",
+            "crates/application/src/workspace/backup.rs",
             "crates/persistence/src/lib.rs",
             "crates/persistence/src/decision_notes.sql",
+            "crates/persistence/src/decision_note_restore.sql",
             "apps/desktop/ui/src/decision-notes.tsx"
           ],
           "rules": [
@@ -497,6 +500,7 @@
             }
           ],
           "non_goals": [
+            "The first backup covers saved decision notes, dated outcomes and deletion markers. Broader workspace settings, accepted indicator versions, saved conversations, credentials, grants, audit history, caches and journals are outside this backup format.",
             "Real cloud or voice sessions, financial provider subscriptions, and full indicator computation belong to other tasks."
           ],
           "open_questions": []
@@ -508,9 +512,9 @@
           ],
           "change": [
             "The private hosts dispatch decisionNote.save, decisionNote.read, decisionNote.appendOutcome and decisionNote.delete through the Rust registry. Explicit local confirmation authorizes new writes. Reads and redacted receipt replay use current disclosure access.",
-            "Add staged backup recovery with profile-scoped deletion markers and a warning for independent older copies."
+            "Add explicit local decision-note export and revision-bound preview and apply. Recover missing notes and outcomes, preserve other current notes, reject conflicting surviving identities and apply the union of known deletion markers in the same transaction. Warn before approving candidates whose deletion history is unavailable."
           ],
-          "data_plan": "Keep application state inside the bound OS-user profile. The v1 to v2 migration retains chart state, undo and replay and adds immutable originals, separate outcomes and profile-scoped deletion markers. Exercise staged backup recovery against the original database and independent older copies.",
+          "data_plan": "Keep application state inside the bound OS-user profile. The v1 to v2 migration retains chart state, undo and replay and adds immutable originals, separate outcomes and profile-scoped deletion markers. Version 3 preserves outcome order and supports several outcomes under one restore receipt. A versioned logical note backup stays scoped to its originating profile and workspace.",
           "cleanup": "Delete original and outcome bodies, clear body-derived replay fingerprints, and durably resume SQLite WAL cleanup if a reader blocks it. Restore without replaying past AI work or reusing external disclosure grants."
         }
       }

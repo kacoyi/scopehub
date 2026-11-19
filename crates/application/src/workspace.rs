@@ -14,8 +14,14 @@ use uuid::Uuid;
 
 use crate::{Actor, Operation, OperationRegistry, authorized_operation, failure, operation};
 
+mod backup;
 mod notes;
 
+pub(crate) use backup::PendingDecisionNoteRestore;
+pub use backup::{
+    DECISION_NOTE_BACKUP_MAX_BYTES, DECISION_NOTE_EXPORT_BACKUP, DECISION_NOTE_PREVIEW_RESTORE,
+    DECISION_NOTE_RESTORE_BACKUP, DecisionNoteBackupData, DecisionNoteRestorePlan,
+};
 pub(crate) use notes::PendingDecisionNoteConfirmation;
 pub use notes::{
     DECISION_NOTE_APPEND_OUTCOME, DECISION_NOTE_DELETE, DECISION_NOTE_OPERATIONS,
@@ -32,6 +38,9 @@ pub const LOCAL_WORKSPACE_OPERATIONS: &[&str] = &[
     DECISION_NOTE_READ,
     DECISION_NOTE_APPEND_OUTCOME,
     DECISION_NOTE_DELETE,
+    DECISION_NOTE_EXPORT_BACKUP,
+    DECISION_NOTE_PREVIEW_RESTORE,
+    DECISION_NOTE_RESTORE_BACKUP,
 ];
 pub const MAIN_CHART_ID: &str = "main-chart";
 const MAX_REVISION: Revision = 9_007_199_254_740_991;
@@ -156,6 +165,15 @@ pub trait WorkspaceTransaction {
         key: &WorkspaceReplayKey<'_>,
     ) -> Result<Option<DecisionNoteReplay>, Error>;
     fn record_note(&mut self, change: &DecisionNoteChange<'_>) -> Result<(), Error>;
+    fn plan_note_restore(
+        &self,
+        backup: DecisionNoteBackupData,
+    ) -> Result<DecisionNoteRestorePlan, Error>;
+    fn record_note_restore(
+        &mut self,
+        change: &WorkspaceChange<'_>,
+        plan: &DecisionNoteRestorePlan,
+    ) -> Result<(), Error>;
 }
 
 pub trait WorkspaceStore: Send {
@@ -170,6 +188,7 @@ pub trait WorkspaceStore: Send {
         note_id: Option<&str>,
         offset: u64,
     ) -> Result<DecisionNoteReadOutput, Error>;
+    fn decision_note_backup(&self) -> Result<DecisionNoteBackupData, Error>;
     /// Remove superseded note pages from application-controlled database sidecars.
     fn clean_deleted_note(&mut self) -> Result<(), Error>;
     /// Commit only if the application successfully produces an authorized result.
@@ -241,6 +260,13 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         access: &WorkspaceAccess<'_>,
         mut request: Value,
     ) -> Result<Value, Error> {
+        if self
+            .note_restore
+            .as_ref()
+            .is_some_and(PendingDecisionNoteRestore::expired)
+        {
+            self.note_restore = None;
+        }
         let name = request["intent"]["operation"]
             .as_str()
             .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;

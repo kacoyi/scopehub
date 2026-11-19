@@ -1,3 +1,5 @@
+#[path = "support/decision_note_restore.rs"]
+mod decision_note_restore;
 mod support;
 
 use std::{
@@ -12,8 +14,9 @@ use std::{
 
 use scopehub_application::{
     Actor, DECISION_NOTE_APPEND_OUTCOME, DECISION_NOTE_DELETE, DECISION_NOTE_READ,
-    DECISION_NOTE_SAVE, LOCAL_WORKSPACE_OPERATIONS, OperationRegistry, WorkspaceAccess,
-    WorkspaceState, WorkspaceStore, WorkspaceTransaction, WorkspaceUndoAccess, WorkspaceUndoTarget,
+    DECISION_NOTE_SAVE, DecisionNoteBackupData, LOCAL_WORKSPACE_OPERATIONS, OperationRegistry,
+    WorkspaceAccess, WorkspaceState, WorkspaceStore, WorkspaceTransaction, WorkspaceUndoAccess,
+    WorkspaceUndoTarget,
 };
 use scopehub_domain::protocol::{DecisionNoteReadOutput, Error};
 use serde_json::{Value, json};
@@ -384,27 +387,14 @@ fn killing_the_writer_before_commit_keeps_the_last_committed_revision() {
     ));
     assert_committed(&completed[1], 1, "5m");
 
-    let mut child = Command::new(std::env::current_exe().unwrap())
+    let child = Command::new(std::env::current_exe().unwrap())
         .args(["--exact", "interrupted_writer_child", "--ignored"])
         .env(INTERRUPT_CHILD_ROOT, &profile.0)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .spawn()
         .unwrap();
-    let deadline = Instant::now() + CHILD_DEADLINE;
-    while !profile.0.join("staged").is_file() {
-        if let Some(status) = child.try_wait().unwrap() {
-            panic!("interrupted writer exited before staging: {status}");
-        }
-        if Instant::now() >= deadline {
-            child.kill().unwrap();
-            child.wait().unwrap();
-            panic!("interrupted writer did not stage its transaction");
-        }
-        thread::sleep(Duration::from_millis(10));
-    }
-    child.kill().unwrap();
-    assert!(!child.wait().unwrap().success());
+    kill_staged_writer(child, &profile.0.join("staged"));
 
     let resumed = frames(bridge(&profile, PROFILE_ID, &[set(1, "1d", INTERRUPT_KEY)]));
     assert_snapshot(&resumed[0], 1, "5m");
@@ -428,14 +418,33 @@ fn interrupted_writer_child() {
     let mut registry = OperationRegistry::new(InterruptingStore {
         store,
         marker: root.join("staged"),
+        transactions_before_interrupt: 0,
     });
     let result = registry.execute_workspace(&access(), set(1, "1d", INTERRUPT_KEY));
     panic!("writer returned before interruption: {result:?}");
 }
 
+fn kill_staged_writer(mut child: Child, marker: &std::path::Path) {
+    let deadline = Instant::now() + CHILD_DEADLINE;
+    while !marker.is_file() {
+        if let Some(status) = child.try_wait().unwrap() {
+            panic!("interrupted writer exited before staging: {status}");
+        }
+        if Instant::now() >= deadline {
+            child.kill().unwrap();
+            child.wait().unwrap();
+            panic!("interrupted writer did not stage its transaction");
+        }
+        thread::sleep(Duration::from_millis(10));
+    }
+    child.kill().unwrap();
+    assert!(!child.wait().unwrap().success());
+}
+
 struct InterruptingStore {
     store: scopehub_persistence::SqliteWorkspace,
     marker: PathBuf,
+    transactions_before_interrupt: u8,
 }
 
 impl WorkspaceStore for InterruptingStore {
@@ -462,10 +471,18 @@ impl WorkspaceStore for InterruptingStore {
         self.store.clean_deleted_note()
     }
 
+    fn decision_note_backup(&self) -> Result<DecisionNoteBackupData, Error> {
+        self.store.decision_note_backup()
+    }
+
     fn transact<T>(
         &mut self,
         work: impl FnOnce(&mut dyn WorkspaceTransaction) -> Result<T, Error>,
     ) -> Result<T, Error> {
+        if self.transactions_before_interrupt > 0 {
+            self.transactions_before_interrupt -= 1;
+            return self.store.transact(work);
+        }
         self.store.transact(|transaction| {
             work(transaction)?;
             // The state, receipt and replay key are staged on the SQLite

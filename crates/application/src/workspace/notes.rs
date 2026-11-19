@@ -2,8 +2,8 @@ use std::time::{Duration, Instant};
 
 use scopehub_domain::protocol::{
     DecisionNoteAppendOutcomeInput, DecisionNoteConfirmation11, DecisionNoteConfirmation11Decision,
-    DecisionNoteOriginal, DecisionNoteOutcome, DecisionNoteReadCommand11, DecisionNoteSaveInput,
-    DecisionNoteWriteScope11, Error, ErrorCode, Revision,
+    DecisionNoteEvidenceRef, DecisionNoteOriginal, DecisionNoteOutcome, DecisionNoteReadCommand11,
+    DecisionNoteSaveInput, DecisionNoteWriteScope11, Error, ErrorCode, Revision,
 };
 use scopehub_domain::wire::normalize_integers;
 use serde_json::{Value, json};
@@ -11,6 +11,7 @@ use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
 use super::{
+    DECISION_NOTE_EXPORT_BACKUP, DECISION_NOTE_PREVIEW_RESTORE, DECISION_NOTE_RESTORE_BACKUP,
     MAX_REVISION, WorkspaceAccess, WorkspaceReplayKey, WorkspaceReply, WorkspaceStore,
     WorkspaceTransaction, permits_scope, workspace_failure,
 };
@@ -20,14 +21,17 @@ pub const DECISION_NOTE_SAVE: &str = "decisionNote.save";
 pub const DECISION_NOTE_READ: &str = "decisionNote.read";
 pub const DECISION_NOTE_APPEND_OUTCOME: &str = "decisionNote.appendOutcome";
 pub const DECISION_NOTE_DELETE: &str = "decisionNote.delete";
-pub const DECISION_NOTE_OPERATIONS: [&str; 4] = [
+pub const DECISION_NOTE_OPERATIONS: [&str; 7] = [
     DECISION_NOTE_SAVE,
     DECISION_NOTE_READ,
     DECISION_NOTE_APPEND_OUTCOME,
     DECISION_NOTE_DELETE,
+    DECISION_NOTE_EXPORT_BACKUP,
+    DECISION_NOTE_PREVIEW_RESTORE,
+    DECISION_NOTE_RESTORE_BACKUP,
 ];
 
-const CONFIRMATION_TTL: Duration = Duration::from_secs(300);
+pub(super) const CONFIRMATION_TTL: Duration = Duration::from_secs(300);
 
 pub struct DecisionNoteReceipt {
     pub operation_id: String,
@@ -113,15 +117,7 @@ impl NoteArguments {
                 if decided_on.is_some() || tx.note_is_deleted(note_id)? {
                     return Err(failure(ErrorCode::STALECONTEXT));
                 }
-                let empty = |text: &str| text.trim().is_empty();
-                if empty(&input.thesis)
-                    || empty(&input.choice)
-                    || input.evidence_refs.iter().any(|reference| {
-                        empty(&reference.source_id)
-                            || empty(&reference.source_revision)
-                            || empty(&reference.locator)
-                    })
-                {
+                if !has_note_content(&input.thesis, &input.evidence_refs, &input.choice) {
                     return Err(failure(ErrorCode::INVALIDARGUMENT));
                 }
                 Ok(DecisionNoteMutation::Save(DecisionNoteOriginal {
@@ -189,25 +185,41 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             {
                 return Err(failure(ErrorCode::PERMISSIONDENIED));
             }
-            if op.name == DECISION_NOTE_READ {
-                if !access.operations.contains(&DECISION_NOTE_READ) {
-                    return Err(failure(ErrorCode::PERMISSIONDENIED));
+            match op.name.as_str() {
+                DECISION_NOTE_READ => self.read_decision_note(access, request, &reply),
+                DECISION_NOTE_EXPORT_BACKUP => self.export_decision_note_backup(access, &reply),
+                DECISION_NOTE_PREVIEW_RESTORE => {
+                    self.preview_decision_note_restore(access, request, &reply)
                 }
-                let request: DecisionNoteReadCommand11 = serde_json::from_value(request)
-                    .map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
-                let args = request.intent.arguments;
-                let note_id = args.note_id.as_deref().map(canonical_id).transpose()?;
-                let result = self.port.read_notes(note_id.as_deref(), args.offset)?;
-                return reply.validated(json!({
-                    "state": "completed", "operation": DECISION_NOTE_READ, "result": result,
-                }));
+                DECISION_NOTE_RESTORE_BACKUP => {
+                    self.resolve_decision_note_restore(access, request, &reply)
+                }
+                _ => self.write_decision_note(access, request, &reply),
             }
-            self.write_decision_note(access, request, &reply)
         });
         match result {
             Ok(value) => Ok(value),
             Err(error) => reply.failed(&note_failure(error.code)),
         }
+    }
+
+    fn read_decision_note(
+        &self,
+        access: &WorkspaceAccess<'_>,
+        request: Value,
+        reply: &WorkspaceReply<'_>,
+    ) -> Result<Value, Error> {
+        if !access.operations.contains(&DECISION_NOTE_READ) {
+            return Err(failure(ErrorCode::PERMISSIONDENIED));
+        }
+        let request: DecisionNoteReadCommand11 =
+            serde_json::from_value(request).map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
+        let args = request.intent.arguments;
+        let note_id = args.note_id.as_deref().map(canonical_id).transpose()?;
+        let result = self.port.read_notes(note_id.as_deref(), args.offset)?;
+        reply.validated(json!({
+            "state": "completed", "operation": DECISION_NOTE_READ, "result": result,
+        }))
     }
 
     fn write_decision_note(
@@ -316,6 +328,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         })?;
         if matches!(&write, WriteResult::Committed(_)) {
             self.note_confirmation = None;
+            self.note_restore = None;
         }
         match write {
             WriteResult::Preview(pending, value) => {
@@ -336,10 +349,25 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
     }
 }
 
-fn canonical_id(value: &str) -> Result<String, Error> {
+pub(super) fn canonical_id(value: &str) -> Result<String, Error> {
     Uuid::parse_str(value)
         .map(|id| id.to_string())
         .map_err(|_| failure(ErrorCode::INVALIDARGUMENT))
+}
+
+pub(super) fn has_note_content(
+    thesis: &str,
+    refs: &[DecisionNoteEvidenceRef],
+    choice: &str,
+) -> bool {
+    let filled = |text: &str| !text.trim().is_empty();
+    filled(thesis)
+        && filled(choice)
+        && refs.iter().all(|reference| {
+            filled(&reference.source_id)
+                && filled(&reference.source_revision)
+                && filled(&reference.locator)
+        })
 }
 
 fn note_receipt(
@@ -365,6 +393,7 @@ fn note_failure(code: ErrorCode) -> Error {
         ErrorCode::CANCELLED => "The decision-note change was declined.",
         ErrorCode::CONFIRMATIONREQUIRED => "Confirm the current decision-note change first.",
         ErrorCode::DATAUNAVAILABLE => "The decision note is unavailable.",
+        ErrorCode::RESOURCELIMIT => "The decision-note operation exceeds a local limit.",
         _ => return error,
     }
     .into();

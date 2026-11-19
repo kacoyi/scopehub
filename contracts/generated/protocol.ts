@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=f524b758444ac5635cee2b49ac8bbb5151daad0735c4c8150690ef66f21da960. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=67bcde06672bca6de8218b0befb4eccc112885767a01d93b376d5d245e13f6b5. Do not edit.
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type OpaqueId = string;
 export type Uuid = string;
@@ -8,7 +8,7 @@ export type Metadata = Record<string, JsonValue>;
 export type WorkerRole = "market" | "ai" | "indicator";
 export type ProtocolVersion = "1.0";
 export type ErrorCode = "INVALID_ARGUMENT" | "UNSUPPORTED_CAPABILITY" | "PERMISSION_DENIED" | "CONFIRMATION_REQUIRED" | "CANCELLED" | "TIMEOUT" | "WORKER_EXITED" | "PROTOCOL_MISMATCH" | "DATA_UNAVAILABLE" | "STALE_CONTEXT" | "RESOURCE_LIMIT" | "OUTPUT_INVALID" | "PROVIDER_NOT_CONFIGURED" | "INTERNAL_ERROR" | "BUSY" | "SNAPSHOT_UNAVAILABLE";
-export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "workspace.readChartProjection" | "workspace.selectEvidence" | "decisionNote.save" | "decisionNote.read" | "decisionNote.appendOutcome" | "decisionNote.delete";
+export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "workspace.readChartProjection" | "workspace.selectEvidence" | "decisionNote.save" | "decisionNote.read" | "decisionNote.appendOutcome" | "decisionNote.delete" | "decisionNote.exportBackup" | "decisionNote.previewRestore" | "decisionNote.restoreBackup";
 export type ChartStyle = "candlestick" | "line";
 export type TaskStatus = "queued" | "running" | "awaiting_confirmation" | "completed" | "failed" | "cancelled";
 export type Tradability = "non_tradable" | "unknown";
@@ -1839,4 +1839,125 @@ export type DecisionNoteDeleteReply11 = {
   type: "response";
   request_id: DecisionNoteUuid11;
   outcome: DecisionNoteDeleteOutcome11;
+};
+export type DecisionNoteBackupEntry = {
+  original: DecisionNoteOriginal;
+  outcomes: Array<DecisionNoteOutcome>;
+};
+export type DecisionNoteBackupDeletion = {
+  note_id: DecisionNoteUuid11;
+  deleted_at_ms: Timestamp;
+};
+export type DecisionNoteBackupV1 = {
+  format: "scopehub.decision-notes";
+  version: number;
+  profile_binding: string;
+  captured_workspace_revision: Revision;
+  notes: Array<DecisionNoteBackupEntry>;
+  deletions: Array<DecisionNoteBackupDeletion>;
+};
+export type DecisionNoteRestoreScope11 = {
+  workspace_id: OpaqueId;
+  expected_workspace_revision: Revision;
+  idempotency_key: DecisionNoteUuid11;
+};
+export type DecisionNoteRestoreSummary = {
+  added_notes: Revision;
+  added_outcomes: Revision;
+  removed_notes: Revision;
+  suppressed_notes: Revision;
+  imported_deletions: Revision;
+  independent_copy_warning: boolean;
+};
+export type DecisionNoteExportBackupInput = {
+};
+export type DecisionNotePreviewRestoreInput = {
+  backup: DecisionNoteBackupV1;
+};
+export type DecisionNoteRestoreBackupInput = {
+  stage_id: DecisionNoteUuid11;
+  decision: "approve" | "decline";
+};
+export type DecisionNoteExportBackupIntent11 = {
+  operation: "decisionNote.exportBackup";
+  arguments: DecisionNoteExportBackupInput;
+};
+export type DecisionNoteExportBackupCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: DecisionNoteUuid11;
+  scope: DecisionNoteReadScope11;
+  intent: DecisionNoteExportBackupIntent11;
+};
+export type DecisionNoteExportBackupCompleted11 = {
+  state: "completed";
+  operation: "decisionNote.exportBackup";
+  result: DecisionNoteBackupV1;
+};
+export type DecisionNoteExportBackupOutcome11 = DecisionNoteExportBackupCompleted11 | ScopedFailure11;
+export type DecisionNoteExportBackupReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: DecisionNoteUuid11;
+  outcome: DecisionNoteExportBackupOutcome11;
+};
+export type DecisionNotePreviewRestoreIntent11 = {
+  operation: "decisionNote.previewRestore";
+  arguments: DecisionNotePreviewRestoreInput;
+};
+export type DecisionNotePreviewRestoreCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: DecisionNoteUuid11;
+  scope: DecisionNoteRestoreScope11;
+  intent: DecisionNotePreviewRestoreIntent11;
+};
+export type DecisionNotePreviewRestoreConfirmationRequired11 = {
+  state: "confirmation_required";
+  operation: "decisionNote.previewRestore";
+  stage_id: DecisionNoteUuid11;
+  expires_at_ms: Timestamp;
+  summary: DecisionNoteRestoreSummary;
+};
+export type DecisionNotePreviewRestoreOutcome11 = DecisionNotePreviewRestoreConfirmationRequired11 | ScopedFailure11;
+export type DecisionNotePreviewRestoreReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: DecisionNoteUuid11;
+  outcome: DecisionNotePreviewRestoreOutcome11;
+};
+export type DecisionNoteRestoreBackupIntent11 = {
+  operation: "decisionNote.restoreBackup";
+  arguments: DecisionNoteRestoreBackupInput;
+};
+export type DecisionNoteRestoreBackupCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: DecisionNoteUuid11;
+  scope: DecisionNoteRestoreScope11;
+  intent: DecisionNoteRestoreBackupIntent11;
+};
+export type DecisionNoteRestoreBackupCommitted11 = {
+  state: "committed";
+  operation: "decisionNote.restoreBackup";
+  receipt: OperationReceipt11;
+};
+export type DecisionNoteRestoreBackupOutcome11 = DecisionNoteRestoreBackupCommitted11 | ScopedFailure11;
+export type DecisionNoteRestoreBackupReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: DecisionNoteUuid11;
+  outcome: DecisionNoteRestoreBackupOutcome11;
 };

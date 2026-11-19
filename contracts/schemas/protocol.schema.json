@@ -84,7 +84,10 @@
         "decisionNote.save",
         "decisionNote.read",
         "decisionNote.appendOutcome",
-        "decisionNote.delete"
+        "decisionNote.delete",
+        "decisionNote.exportBackup",
+        "decisionNote.previewRestore",
+        "decisionNote.restoreBackup"
       ]
     },
     "ChartStyle": {
@@ -9564,6 +9567,551 @@
         },
         "outcome": {
           "$ref": "#/$defs/DecisionNoteDeleteOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteBackupEntry": {
+      "type": "object",
+      "properties": {
+        "original": {
+          "$ref": "#/$defs/DecisionNoteOriginal"
+        },
+        "outcomes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DecisionNoteOutcome"
+          },
+          "maxItems": 128
+        }
+      },
+      "required": [
+        "original",
+        "outcomes"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteBackupDeletion": {
+      "type": "object",
+      "properties": {
+        "note_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "deleted_at_ms": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "note_id",
+        "deleted_at_ms"
+      ],
+      "additionalProperties": false,
+      "description": "Body-free deletion marker from the same profile and workspace."
+    },
+    "DecisionNoteBackupV1": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "type": "string",
+          "const": "scopehub.decision-notes"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "profile_binding": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64,
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "captured_workspace_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DecisionNoteBackupEntry"
+          },
+          "maxItems": 256
+        },
+        "deletions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DecisionNoteBackupDeletion"
+          },
+          "maxItems": 1024
+        }
+      },
+      "required": [
+        "format",
+        "version",
+        "profile_binding",
+        "captured_workspace_revision",
+        "notes",
+        "deletions"
+      ],
+      "additionalProperties": false,
+      "description": "Versioned local decision-note archive. The core also limits the compact UTF-8 archive to 512 KiB."
+    },
+    "DecisionNoteRestoreScope11": {
+      "type": "object",
+      "properties": {
+        "workspace_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "expected_workspace_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "idempotency_key": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "expected_workspace_revision",
+        "idempotency_key"
+      ],
+      "additionalProperties": false,
+      "description": "The trusted local host supplies the profile and principal. Restore targets the private decision-note collection in the bound workspace."
+    },
+    "DecisionNoteRestoreSummary": {
+      "type": "object",
+      "properties": {
+        "added_notes": {
+          "$ref": "#/$defs/Revision"
+        },
+        "added_outcomes": {
+          "$ref": "#/$defs/Revision"
+        },
+        "removed_notes": {
+          "$ref": "#/$defs/Revision"
+        },
+        "suppressed_notes": {
+          "$ref": "#/$defs/Revision"
+        },
+        "imported_deletions": {
+          "$ref": "#/$defs/Revision"
+        },
+        "independent_copy_warning": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "added_notes",
+        "added_outcomes",
+        "removed_notes",
+        "suppressed_notes",
+        "imported_deletions",
+        "independent_copy_warning"
+      ],
+      "additionalProperties": false,
+      "description": "A body-free merge preview. The warning indicates that an independent older copy may contain notes whose deletion markers are unavailable."
+    },
+    "DecisionNoteExportBackupInput": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "DecisionNotePreviewRestoreInput": {
+      "type": "object",
+      "properties": {
+        "backup": {
+          "$ref": "#/$defs/DecisionNoteBackupV1"
+        }
+      },
+      "required": [
+        "backup"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteRestoreBackupInput": {
+      "type": "object",
+      "properties": {
+        "stage_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "approve",
+            "decline"
+          ]
+        }
+      },
+      "required": [
+        "stage_id",
+        "decision"
+      ],
+      "additionalProperties": false,
+      "description": "Resolve an exact staged restore in the issuing local session. The request carries no archive body."
+    },
+    "DecisionNoteExportBackupIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "decisionNote.exportBackup"
+        },
+        "arguments": {
+          "$ref": "#/$defs/DecisionNoteExportBackupInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteExportBackupCommand11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "scope": {
+          "$ref": "#/$defs/DecisionNoteReadScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/DecisionNoteExportBackupIntent11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "scope",
+        "intent"
+      ],
+      "additionalProperties": false,
+      "description": "Private local workspace request. The worker protocol cannot carry it."
+    },
+    "DecisionNoteExportBackupCompleted11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "completed"
+        },
+        "operation": {
+          "type": "string",
+          "const": "decisionNote.exportBackup"
+        },
+        "result": {
+          "$ref": "#/$defs/DecisionNoteBackupV1"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteExportBackupOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/DecisionNoteExportBackupCompleted11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
+    },
+    "DecisionNoteExportBackupReply11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "outcome": {
+          "$ref": "#/$defs/DecisionNoteExportBackupOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNotePreviewRestoreIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "decisionNote.previewRestore"
+        },
+        "arguments": {
+          "$ref": "#/$defs/DecisionNotePreviewRestoreInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNotePreviewRestoreCommand11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "scope": {
+          "$ref": "#/$defs/DecisionNoteRestoreScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/DecisionNotePreviewRestoreIntent11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "scope",
+        "intent"
+      ],
+      "additionalProperties": false,
+      "description": "Private local workspace request. The worker protocol cannot carry it."
+    },
+    "DecisionNotePreviewRestoreConfirmationRequired11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "confirmation_required"
+        },
+        "operation": {
+          "type": "string",
+          "const": "decisionNote.previewRestore"
+        },
+        "stage_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "expires_at_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "summary": {
+          "$ref": "#/$defs/DecisionNoteRestoreSummary"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "stage_id",
+        "expires_at_ms",
+        "summary"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNotePreviewRestoreOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/DecisionNotePreviewRestoreConfirmationRequired11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
+    },
+    "DecisionNotePreviewRestoreReply11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "outcome": {
+          "$ref": "#/$defs/DecisionNotePreviewRestoreOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteRestoreBackupIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "decisionNote.restoreBackup"
+        },
+        "arguments": {
+          "$ref": "#/$defs/DecisionNoteRestoreBackupInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteRestoreBackupCommand11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "scope": {
+          "$ref": "#/$defs/DecisionNoteRestoreScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/DecisionNoteRestoreBackupIntent11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "scope",
+        "intent"
+      ],
+      "additionalProperties": false,
+      "description": "Private local workspace request. The worker protocol cannot carry it."
+    },
+    "DecisionNoteRestoreBackupCommitted11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "committed"
+        },
+        "operation": {
+          "type": "string",
+          "const": "decisionNote.restoreBackup"
+        },
+        "receipt": {
+          "$ref": "#/$defs/OperationReceipt11"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "receipt"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionNoteRestoreBackupOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/DecisionNoteRestoreBackupCommitted11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
+    },
+    "DecisionNoteRestoreBackupReply11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "outcome": {
+          "$ref": "#/$defs/DecisionNoteRestoreBackupOutcome11"
         }
       },
       "required": [

@@ -136,6 +136,10 @@ th { position: sticky; top: 0; background: var(--surface); color: var(--muted); 
 .decision-body .secondary-button { margin: 0; }
 .note-original, .note-outcomes, .note-approval { display: grid; gap: 5px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; }
 .note-approval { border-color: #596a83; }
+.note-backup { display: grid; gap: 7px; width: 100%; padding-block-start: 10px; border-top: 1px solid var(--line); }
+.note-backup label { display: grid; gap: 3px; min-width: 0; }
+.note-backup input { min-width: 0; max-width: 100%; font: inherit; }
+.note-restore-preview dl { display: grid; grid-template-columns: minmax(0, 1fr) max-content; gap: 4px 12px; }
 .note-original dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 12px; }
 .note-original dd, .note-outcomes p { text-align: left; overflow-wrap: anywhere; white-space: pre-wrap; }
 .note-original ul, .note-outcomes ul { margin: 0; padding: 0; list-style: none; }

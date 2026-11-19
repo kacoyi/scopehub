@@ -233,6 +233,136 @@ test('private decision notes require consent and retain the dated original separ
   }
 });
 
+test('decision-note backup restore previews known deletions and independent copies before apply', async ({ browser }) => {
+  const profile = await makeProfile();
+  const independent = await makeProfile(profile.id);
+  const wrongProfile = await makeProfile();
+  const port = await freePort();
+  const deleted = { date: '2026-01-03', thesis: 'Synthetic original later deleted', choice: 'Wait',
+    outcomes: [{ date: '2026-02-03', body: 'Synthetic outcome later deleted' }] };
+  const retained = { date: '2026-01-08', thesis: 'Synthetic retained original', choice: 'Revisit',
+    outcomes: [{ date: '2026-02-08', body: 'Synthetic first retained outcome' },
+      { date: '2026-02-09', body: 'Synthetic second retained outcome' }] };
+  const current = { date: '2026-01-21', thesis: 'Synthetic note saved after backup', choice: 'Observe', outcomes: [] };
+  const warning = /An independent older backup may bring back previously deleted decision notes/;
+  let untouched;
+  let withMarker;
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        await act(page, '5m', 'chart.setTimeframe');
+        await control(page, 'Decision notes').click();
+        const notes = page.getByRole('dialog', { name: 'Decision notes' });
+        await saveBackupTestNote(notes, deleted);
+        await saveBackupTestNote(notes, retained);
+        untouched = await downloadBackupFile(page, notes);
+        const archive = JSON.parse(untouched.toString('utf-8'));
+        expect(Object.keys(archive).sort()).toEqual([
+          'captured_workspace_revision', 'deletions', 'format', 'notes', 'profile_binding', 'version',
+        ]);
+        expect(archive).toMatchObject({ format: 'scopehub.decision-notes', version: 1, deletions: [] });
+        expect(archive.notes).toHaveLength(2);
+
+        await notes.getByRole('button', { name: new RegExp(deleted.date) }).click();
+        await notes.getByRole('button', { name: 'Review deletion' }).click();
+        await notes.getByRole('button', { name: 'Delete decision note' }).click();
+        await expect(notes.getByText('Decision note deleted.')).toBeVisible();
+        await saveBackupTestNote(notes, current);
+
+        const preview = await chooseBackup(notes, untouched);
+        await expect(preview.locator('dd').nth(2)).toHaveText('0');
+        await expect(preview.locator('dd').nth(3)).toHaveText('1');
+        await expect(preview.getByText(warning)).toHaveCount(0);
+        await expect(notes.getByText(deleted.thesis)).toHaveCount(0);
+        await preview.getByRole('button', { name: 'Cancel restore' }).click();
+        await expect(notes.getByText('Restore cancelled.')).toBeVisible();
+        await expect(notes.getByRole('button', { name: new RegExp(current.date) })).toBeVisible();
+
+        await (await chooseBackup(notes, untouched)).getByRole('button', { name: 'Apply restore' }).click();
+        await expect(notes.getByText('Decision-note backup restored.')).toBeVisible();
+        await expect(notes.getByRole('button', { name: new RegExp(deleted.date) })).toHaveCount(0);
+        await expect(notes.getByRole('button', { name: new RegExp(current.date) })).toBeVisible();
+        await assertBackupTestNote(notes, retained);
+        await notes.getByRole('button', { name: 'All decision notes' }).click();
+        withMarker = await downloadBackupFile(page, notes);
+        const afterDeletion = JSON.parse(withMarker.toString('utf-8'));
+        expect(afterDeletion.deletions).toEqual([
+          { note_id: archive.notes.find(note => note.original.decided_on === deleted.date).original.note_id,
+            deleted_at_ms: expect.any(Number) },
+        ]);
+        expect(withMarker.includes(deleted.thesis)).toBe(false);
+        expect(withMarker.includes(deleted.outcomes[0].body)).toBe(false);
+      });
+    });
+
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      const writer = await writerPid(server);
+      await inFreshBrowser(browser, server, async (page, initial) => {
+        expect(state(initial)).toMatchObject({ timeframe: '5m', undo: { committed_workspace_revision: 1 } });
+        await control(page, 'Decision notes').click();
+        const notes = page.getByRole('dialog', { name: 'Decision notes' });
+        await expect(notes.getByRole('button', { name: new RegExp(deleted.date) })).toHaveCount(0);
+        await assertBackupTestNote(notes, retained);
+        await writerPid(server, 'kill', writer);
+        await expect(notes.getByText(retained.thesis)).toHaveCount(0);
+        await expect(notes.getByText(retained.outcomes[0].body)).toHaveCount(0);
+      });
+    });
+
+    await inService(port, independent, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        await control(page, 'Decision notes').click();
+        const notes = page.getByRole('dialog', { name: 'Decision notes' });
+        const preview = await chooseBackup(notes, untouched);
+        await expect(preview.getByText(warning)).toBeVisible();
+        await expect(notes.getByText(deleted.thesis)).toHaveCount(0);
+        await preview.getByRole('button', { name: 'Cancel restore' }).click();
+        await expect(notes.getByText('No saved decision notes.')).toBeVisible();
+        const approval = await chooseBackup(notes, untouched);
+        await expect(approval.getByText(warning)).toBeVisible();
+        await approval.getByRole('button', { name: 'Apply restore' }).click();
+        await expect(notes.getByText('Decision-note backup restored.')).toBeVisible();
+        await assertBackupTestNote(notes, deleted);
+        await notes.getByRole('button', { name: 'All decision notes' }).click();
+        await inFreshBrowser(browser, server, async observer => {
+          await control(observer, 'Decision notes').click();
+          const observedNotes = observer.getByRole('dialog', { name: 'Decision notes' });
+          await assertBackupTestNote(observedNotes, deleted);
+
+          const importMarker = await chooseBackup(notes, withMarker);
+          await expect(importMarker.locator('dd').nth(2)).toHaveText('1');
+          await expect(importMarker.locator('dd').nth(4)).toHaveText('1');
+          await importMarker.getByRole('button', { name: 'Apply restore' }).click();
+          await expect(notes.getByRole('button', { name: new RegExp(deleted.date) })).toHaveCount(0);
+          await expect(observedNotes.getByText(deleted.thesis)).toHaveCount(0);
+          await expect(observedNotes.getByText(deleted.outcomes[0].body)).toHaveCount(0);
+          await expect(observedNotes.getByRole('button', { name: new RegExp(retained.date) })).toBeVisible();
+        });
+        const older = await chooseBackup(notes, untouched);
+        await expect(older.locator('dd').nth(3)).toHaveText('1');
+        await expect(older.getByText(warning)).toHaveCount(0);
+        await older.getByRole('button', { name: 'Cancel restore' }).click();
+        await assertBackupTestNote(notes, retained);
+      });
+    });
+
+    await inService(port, wrongProfile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        await control(page, 'Decision notes').click();
+        const notes = page.getByRole('dialog', { name: 'Decision notes' });
+        const rejected = page.waitForResponse(mutationResponse('decisionNote.previewRestore'));
+        await selectBackupFile(notes, untouched);
+        expect((await (await rejected).json()).result.outcome).toMatchObject({ state: 'failed', error: { code: 'PERMISSION_DENIED' } });
+        await expect(notes.getByText('This backup or action is unavailable for the current local profile.')).toBeVisible();
+        await expect(notes.getByRole('region', { name: 'Restore preview' })).toHaveCount(0);
+        await expect(notes.getByText('No saved decision notes.')).toBeVisible();
+      });
+    });
+  } finally {
+    await Promise.all([profile.close(), independent.close(), wrongProfile.close()]);
+  }
+});
+
 test('the opted-in route binds identity, limits input, and drains cancellation without replaying after EOF', async () => {
   const profile = await makeProfile();
   const port = await freePort();
@@ -462,13 +592,13 @@ test('ordinary and Ubuntu history startup do not open a writer or dispatch data 
   }
 });
 
-async function makeProfile() {
+async function makeProfile(id = 'synthetic-' + randomUUID()) {
   const directory = await mkdtemp(join(tmpdir(), 'scopehub-ubuntu-test-'));
   const profile = join(directory, 'profile');
   const close = () => rm(directory, { recursive: true, force: true });
   try {
     await exec(workspaceBridge, ['--prepare-profile-root', profile], { timeout: 12_000 });
-    return { root: profile, id: 'synthetic-' + randomUUID(), close };
+    return { root: profile, id, close };
   } catch (error) {
     await close();
     throw error;
@@ -670,6 +800,57 @@ async function inFreshBrowser(browser, server, use) {
 function mutationResponse(operation) {
   return response => new URL(response.url()).pathname === endpoint
     && response.request().postDataJSON()?.intent?.operation === operation;
+}
+
+async function saveBackupTestNote(notes, fixture) {
+  await notes.getByRole('button', { name: 'New decision note' }).click();
+  await notes.getByLabel('Decision date').fill(fixture.date);
+  await notes.getByLabel('Thesis').fill(fixture.thesis);
+  await notes.getByLabel('Choice').fill(fixture.choice);
+  await notes.getByRole('button', { name: 'Review decision note' }).click();
+  await notes.getByRole('button', { name: 'Save decision note' }).click();
+  for (const outcome of fixture.outcomes) {
+    await notes.getByRole('button', { name: 'Add later outcome' }).click();
+    await notes.getByLabel('Outcome date').fill(outcome.date);
+    await notes.getByLabel('Outcome', { exact: true }).fill(outcome.body);
+    await notes.getByRole('button', { name: 'Review later outcome' }).click();
+    await notes.getByRole('button', { name: 'Save later outcome' }).click();
+  }
+  await notes.getByRole('button', { name: 'All decision notes' }).click();
+}
+
+async function assertBackupTestNote(notes, fixture) {
+  await notes.getByRole('button', { name: new RegExp(fixture.date) }).click();
+  const original = notes.getByRole('region', { name: 'Original decision' });
+  await expect(original.getByText(fixture.date, { exact: true })).toBeVisible();
+  await expect(original.getByText(fixture.thesis)).toBeVisible();
+  await expect(original.getByText(fixture.choice)).toBeVisible();
+  const outcomes = notes.getByRole('region', { name: 'Later outcomes' });
+  for (const outcome of fixture.outcomes) {
+    await expect(outcomes.getByText(outcome.date, { exact: true })).toBeVisible();
+    await expect(outcomes.getByText(outcome.body)).toBeVisible();
+  }
+}
+
+async function downloadBackupFile(page, notes) {
+  const download = page.waitForEvent('download');
+  await notes.getByRole('button', { name: 'Download backup' }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toMatch(/^scopehub-decision-notes-.*\.json$/);
+  return readFile(await file.path());
+}
+
+async function selectBackupFile(notes, bytes) {
+  const picker = notes.getByLabel('Choose backup file');
+  await expect(picker).toBeEnabled();
+  await picker.setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: bytes });
+}
+
+async function chooseBackup(notes, bytes) {
+  await selectBackupFile(notes, bytes);
+  const preview = notes.getByRole('region', { name: 'Restore preview' });
+  await expect(preview).toBeVisible();
+  return preview;
 }
 
 async function dropApprovalReply(page, server, operation) {

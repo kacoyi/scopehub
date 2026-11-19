@@ -6,12 +6,14 @@ mod workspace;
 
 pub use replay::{SUBSCRIBE, SubscriptionFuture, SubscriptionPort};
 pub use workspace::{
-    DECISION_NOTE_APPEND_OUTCOME, DECISION_NOTE_DELETE, DECISION_NOTE_OPERATIONS,
-    DECISION_NOTE_READ, DECISION_NOTE_SAVE, DecisionNoteChange, DecisionNoteMutation,
-    DecisionNoteReceipt, DecisionNoteReplay, LOCAL_WORKSPACE_OPERATIONS, MAIN_CHART_ID,
-    SET_TIMEFRAME, Timeframe, UNDO, WorkspaceAccess, WorkspaceBinding, WorkspaceChange,
-    WorkspaceReceipt, WorkspaceReplay, WorkspaceReplayKey, WorkspaceSnapshot, WorkspaceState,
-    WorkspaceStore, WorkspaceTransaction, WorkspaceUndoAccess, WorkspaceUndoTarget,
+    DECISION_NOTE_APPEND_OUTCOME, DECISION_NOTE_BACKUP_MAX_BYTES, DECISION_NOTE_DELETE,
+    DECISION_NOTE_EXPORT_BACKUP, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE,
+    DECISION_NOTE_READ, DECISION_NOTE_RESTORE_BACKUP, DECISION_NOTE_SAVE, DecisionNoteBackupData,
+    DecisionNoteChange, DecisionNoteMutation, DecisionNoteReceipt, DecisionNoteReplay,
+    DecisionNoteRestorePlan, LOCAL_WORKSPACE_OPERATIONS, MAIN_CHART_ID, SET_TIMEFRAME, Timeframe,
+    UNDO, WorkspaceAccess, WorkspaceBinding, WorkspaceChange, WorkspaceReceipt, WorkspaceReplay,
+    WorkspaceReplayKey, WorkspaceSnapshot, WorkspaceState, WorkspaceStore, WorkspaceTransaction,
+    WorkspaceUndoAccess, WorkspaceUndoTarget,
 };
 
 use std::{
@@ -210,6 +212,7 @@ fn authorized_operation(actor: Actor, name: &str) -> Result<&'static Operation, 
 pub struct OperationRegistry<P> {
     port: P,
     note_confirmation: Option<workspace::PendingDecisionNoteConfirmation>,
+    note_restore: Option<workspace::PendingDecisionNoteRestore>,
 }
 
 pub type MarketRegistry<P> = OperationRegistry<P>;
@@ -219,6 +222,7 @@ impl<P> OperationRegistry<P> {
         Self {
             port,
             note_confirmation: None,
+            note_restore: None,
         }
     }
 }

@@ -1,13 +1,17 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import type {
-  DecisionNoteEvidenceRef, DecisionNoteOriginal, DecisionNoteReadOutput, DecisionNoteSaveInput,
+  DecisionNoteBackupV1, DecisionNoteEvidenceRef, DecisionNoteOriginal, DecisionNoteReadOutput, DecisionNoteSaveInput,
 } from '../../../../contracts/generated/protocol';
-import { noteErrorCode, prepareNote, readNotes, resolveNote, type NoteIntent, type PreparedNote } from './decision-note-transport';
-import type { LocalWorkspace } from './use-local-workspace';
+import {
+  exportNoteBackup, noteErrorCode, prepareNote, previewNoteRestore, readNotes, resolveNote, resolveNoteRestore,
+  type NoteIntent, type PreparedNote, type PreparedRestore,
+} from './decision-note-transport';
+import { readWorkspaceSnapshot, type LocalWorkspace } from './use-local-workspace';
 import { WorkspaceIcon } from './workspace-icons';
 
-type Page = { noteId: string | null; offset: number; data: DecisionNoteReadOutput };
+type Page = { noteId: string | null; offset: number; revision: number | undefined; epoch: number; data: DecisionNoteReadOutput };
 type Editor = 'note' | 'outcome';
+type PendingAction = { kind: 'note'; note: PreparedNote } | { kind: 'restore'; restore: PreparedRestore };
 
 const actions = {
   'decisionNote.save': { title: 'Save this decision note locally?', confirm: 'Save decision note', done: 'Decision note saved.' },
@@ -27,6 +31,24 @@ function failureMessage(error: unknown) {
     case 'CANCELLED': return 'The action was cancelled.';
     default: return 'The local workspace could not verify the result.';
   }
+}
+
+function backupFailureMessage(error: unknown) {
+  switch (noteErrorCode(error)) {
+    case 'INVALID_ARGUMENT': return 'Choose a valid ScopeHub decision-note backup file.';
+    case 'PERMISSION_DENIED': return 'This backup or action is unavailable for the current local profile.';
+    case 'RESOURCE_LIMIT': return 'The decision-note backup exceeds the size limit.';
+    default: return failureMessage(error);
+  }
+}
+
+function downloadBackup(backup: DecisionNoteBackupV1) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(backup)], { type: 'application/json' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `scopehub-decision-notes-${localDate()}.json`;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 function localDate() {
@@ -120,9 +142,11 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
   const dialog = useRef<HTMLDialogElement>(null);
   const cancelApproval = useRef<HTMLButtonElement>(null);
   const active = useRef<AbortController | null>(null);
+  const detailProbe = useRef<ReturnType<typeof readWorkspaceSnapshot> | null>(null);
+  const pageEpoch = useRef(0);
   const [page, setPage] = useState<Page>();
   const [editor, setEditor] = useState<Editor>();
-  const [prepared, setPrepared] = useState<PreparedNote>();
+  const [prepared, setPrepared] = useState<PendingAction>();
   const [uncertain, setUncertain] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
@@ -131,14 +155,24 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
   const workspaceId = snapshot?.workspace.id;
   const note = page?.data.note ?? null;
 
-  const run = useCallback((work: (signal: AbortSignal) => Promise<void>) => {
+  const discardPage = useCallback(() => {
+    pageEpoch.current += 1;
+    setPage(undefined);
+  }, []);
+
+  const run = useCallback((work: (signal: AbortSignal) => Promise<void>, formatError: (fault: unknown) => string = failureMessage) => {
     if (active.current) return;
     const controller = new AbortController();
     active.current = controller;
     setBusy(true);
     setError('');
-    void work(controller.signal).catch(fault => {
-      if (!controller.signal.aborted) setError(failureMessage(fault));
+    void (async () => {
+      // A liveness check already admitted to the writer owns its reply slot.
+      await detailProbe.current?.catch(() => undefined);
+      controller.signal.throwIfAborted();
+      await work(controller.signal);
+    })().catch(fault => {
+      if (!controller.signal.aborted) setError(formatError(fault));
     }).finally(() => {
       if (active.current !== controller) return;
       active.current = null;
@@ -146,10 +180,13 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
     });
   }, []);
 
-  const load = useCallback(async (noteId: string | null, offset: number, signal: AbortSignal) => {
+  const load = useCallback(async (noteId: string | null, offset: number, signal: AbortSignal, atRevision?: number) => {
     if (!workspaceId) return;
+    // Capture the revision first so a concurrent commit cannot label an old
+    // detail body with a newer revision.
+    const revision = noteId === null ? undefined : atRevision ?? (await readWorkspaceSnapshot(signal)).workspace.revision;
     const data = await readNotes(workspaceId, noteId, offset, signal);
-    if (!signal.aborted) setPage({ noteId, offset, data });
+    if (!signal.aborted) setPage({ noteId, offset, revision, epoch: ++pageEpoch.current, data });
   }, [workspaceId]);
 
   useEffect(() => {
@@ -164,6 +201,56 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
     };
   }, [load, run]);
 
+  useEffect(() => {
+    if (!page?.noteId || page.revision === undefined) return;
+    const controller = new AbortController();
+    const isCurrent = () => !controller.signal.aborted && pageEpoch.current === page.epoch;
+    const clearSelection = () => {
+      setEditor(undefined);
+      setPrepared(undefined);
+      setUncertain(false);
+      setNotice('');
+    };
+    const check = () => {
+      if (!isCurrent() || workspace.pending || active.current || detailProbe.current) return;
+      const probe = readWorkspaceSnapshot(controller.signal);
+      detailProbe.current = probe;
+      void probe.then(snapshot => {
+        if (!isCurrent() || active.current || snapshot.workspace.revision === page.revision) return;
+        run(async signal => {
+          if (!isCurrent()) return;
+          discardPage();
+          try {
+            await load(page.noteId, page.offset, signal, snapshot.workspace.revision);
+          } catch (fault) {
+            if (signal.aborted || noteErrorCode(fault) !== 'DATA_UNAVAILABLE') throw fault;
+            clearSelection();
+            await load(null, 0, signal);
+          }
+        });
+      }, fault => {
+        if (!isCurrent()) return;
+        const code = noteErrorCode(fault);
+        if (fault instanceof TypeError || code === 'PERMISSION_DENIED' || code === 'WORKER_EXITED' || code === 'CANCELLED') {
+          discardPage();
+          clearSelection();
+          setError(failureMessage(fault));
+        }
+      }).finally(() => {
+        if (detailProbe.current === probe) detailProbe.current = null;
+      });
+    };
+    const timer = window.setInterval(check, 1_000);
+    window.addEventListener('focus', check);
+    document.addEventListener('visibilitychange', check);
+    return () => {
+      controller.abort();
+      window.clearInterval(timer);
+      window.removeEventListener('focus', check);
+      document.removeEventListener('visibilitychange', check);
+    };
+  }, [discardPage, load, page, run, workspace.pending]);
+
   useEffect(() => { if (prepared && !busy) cancelApproval.current?.focus(); }, [prepared, busy]);
 
   function navigate(noteId: string | null, offset = 0) {
@@ -176,47 +263,75 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
     setNotice('');
     run(async signal => {
       const action = await prepareNote(snapshot.workspace.id, snapshot.workspace.revision, noteId, intent, signal);
-      if (!signal.aborted) setPrepared(action);
+      if (!signal.aborted) setPrepared({ kind: 'note', note: action });
     });
+  }
+
+  function exportBackup() {
+    if (!workspaceId) return;
+    setNotice('');
+    run(async signal => {
+      const backup = await exportNoteBackup(workspaceId, signal);
+      signal.throwIfAborted();
+      downloadBackup(backup);
+      setNotice('Decision-note backup download started.');
+    }, backupFailureMessage);
+  }
+
+  function selectBackup(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = '';
+    if (!file || !snapshot) return;
+    setNotice('');
+    run(async signal => {
+      const restore = await previewNoteRestore(file, snapshot.workspace.id, snapshot.workspace.revision, signal);
+      if (!signal.aborted) setPrepared({ kind: 'restore', restore });
+    }, backupFailureMessage);
   }
 
   function finish(decision: 'approve' | 'decline', close = false) {
     if (!prepared) return;
+    const restoring = prepared.kind === 'restore';
+    const operation = prepared.kind === 'note' ? prepared.note.command.intent.operation : undefined;
+    const noteId = prepared.kind === 'note' ? prepared.note.command.scope.target.object_id : null;
+    const deleting = operation === 'decisionNote.delete';
+    const clearPage = decision === 'approve' && (restoring || deleting);
     run(async signal => {
-      const { command } = prepared;
-      const noteId = command.scope.target.object_id;
-      const deleting = decision === 'approve' && command.intent.operation === 'decisionNote.delete';
-      if (deleting) setPage(undefined);
+      if (clearPage) discardPage();
       try {
-        await resolveNote(prepared, decision, signal);
+        if (prepared.kind === 'restore') await resolveNoteRestore(prepared.restore, decision, signal);
+        else await resolveNote(prepared.note, decision, signal);
       } catch (fault) {
-        if (!signal.aborted && decision === 'approve') {
-          switch (noteErrorCode(fault)) {
-            case 'STALE_CONTEXT': case 'CONFIRMATION_REQUIRED': case 'PERMISSION_DENIED':
-            case 'INVALID_ARGUMENT': case 'DATA_UNAVAILABLE': case 'CANCELLED': case 'RESOURCE_LIMIT':
-              setPrepared(undefined);
-              setUncertain(false);
-              if (deleting) await load(noteId, 0, signal).catch(() => { /* The note may already be unavailable. */ });
-              break;
-            default: setUncertain(true);
+        const code = noteErrorCode(fault);
+        if (!(decision === 'decline' && code === 'CONFIRMATION_REQUIRED')) {
+          if (!signal.aborted && decision === 'approve') {
+            switch (code) {
+              case 'STALE_CONTEXT': case 'CONFIRMATION_REQUIRED': case 'PERMISSION_DENIED':
+              case 'INVALID_ARGUMENT': case 'DATA_UNAVAILABLE': case 'CANCELLED': case 'RESOURCE_LIMIT':
+                setPrepared(undefined);
+                setUncertain(false);
+                if (clearPage) await load(noteId, 0, signal).catch(() => { /* The live selection may already be unavailable. */ });
+                break;
+              default: setUncertain(true);
+            }
           }
+          throw fault;
         }
-        throw fault;
       }
       if (signal.aborted) return;
       setPrepared(undefined);
       setUncertain(false);
       setEditor(undefined);
       if (close) { onClose(); return; }
-      if (decision === 'decline') { setNotice('Action cancelled.'); return; }
-      setNotice(actions[command.intent.operation].done);
-      setPage(undefined);
+      if (decision === 'decline') { setNotice(restoring ? 'Restore cancelled.' : 'Action cancelled.'); return; }
+      setNotice(operation ? actions[operation].done : 'Decision-note backup restored.');
+      discardPage();
       try {
         await load(deleting ? null : noteId, 0, signal);
       } finally {
         if (!signal.aborted) workspace.reload();
       }
-    });
+    }, restoring ? backupFailureMessage : failureMessage);
   }
 
   function close() {
@@ -229,7 +344,8 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
   }
 
   const editingBlocked = busy || Boolean(prepared) || Boolean(workspace.pending || workspace.error);
-  const action = prepared ? actions[prepared.command.intent.operation] : undefined;
+  const action = prepared?.kind === 'note' ? actions[prepared.note.command.intent.operation] : undefined;
+  const restoreSummary = prepared?.kind === 'restore' ? prepared.restore.summary : undefined;
   return <dialog ref={dialog} className="symbol-dialog decision-dialog" aria-labelledby="decision-notes-heading"
     onCancel={event => { event.preventDefault(); close(); }}>
     <div className="dialog-heading"><h2 id="decision-notes-heading">Decision notes</h2>
@@ -264,6 +380,27 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
             {uncertain ? 'Retry confirmation' : action.confirm}</button>
         </div>
       </section>}
+      {restoreSummary && <section className="note-approval note-restore-preview" aria-label="Restore preview">
+        <h3>Preview decision-note restore</h3>
+        <p>Apply adds missing notes and outcomes from the backup and removes notes covered by known deletion markers.</p>
+        <dl>
+          <dt>Notes to add</dt><dd>{restoreSummary.added_notes}</dd>
+          <dt>Later outcomes to add</dt><dd>{restoreSummary.added_outcomes}</dd>
+          <dt>Current notes to remove</dt><dd>{restoreSummary.removed_notes}</dd>
+          <dt>Backup notes blocked by deletion markers</dt><dd>{restoreSummary.suppressed_notes}</dd>
+          <dt>Deletion markers to import</dt><dd>{restoreSummary.imported_deletions}</dd>
+        </dl>
+        {restoreSummary.independent_copy_warning && <p className="note-error" role="alert">
+          An independent older backup may bring back previously deleted decision notes whose deletion markers are unavailable.
+        </p>}
+        {uncertain && <p>The restore may have completed. Retry to recover its result.</p>}
+        <div className="note-actions">
+          <button ref={cancelApproval} type="button" className="secondary-button" disabled={busy || uncertain}
+            onClick={() => finish('decline')}>Cancel restore</button>
+          <button type="button" className="primary" disabled={busy} onClick={() => finish('approve')}>
+            {uncertain ? 'Retry restore' : 'Apply restore'}</button>
+        </div>
+      </section>}
       {page && !editor && !prepared && (note ? <section className="note-outcomes" aria-label="Later outcomes">
         <h3>Later outcomes</h3>
         {page.data.outcomes.length ? <ul>{page.data.outcomes.map(outcome => <li key={outcome.outcome_id}>
@@ -280,6 +417,14 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
         {page.data.next_offset !== null && <button type="button" className="secondary-button" disabled={busy}
           onClick={() => navigate(page.noteId, page.data.next_offset ?? 0)}>Next page</button>}
       </div>}
+      {page && !note && !editor && !prepared && <section className="note-backup" aria-label="Decision-note backup">
+        <h3>Decision-note backup</h3>
+        <p>Backup files contain private notes and outcomes. Keep them in a private location.</p>
+        <div className="note-actions">
+          <button type="button" className="secondary-button" disabled={editingBlocked} onClick={exportBackup}>Download backup</button>
+          <label>Choose backup file<input type="file" accept=".json,application/json" disabled={editingBlocked} onChange={selectBackup} /></label>
+        </div>
+      </section>}
     </div>
   </dialog>;
 }

@@ -1,5 +1,6 @@
 //! Profile-bound SQLite workspace storage for the Rust application registry.
 
+mod note_backup;
 mod notes;
 mod storage;
 
@@ -9,10 +10,10 @@ use rusqlite::{
     Connection, OpenFlags, OptionalExtension, Row, TransactionBehavior, config::DbConfig, params,
 };
 use scopehub_application::{
-    Actor, DecisionNoteChange, DecisionNoteReplay, SET_TIMEFRAME, Timeframe, UNDO,
-    WorkspaceBinding, WorkspaceChange, WorkspaceReceipt, WorkspaceReplay, WorkspaceReplayKey,
-    WorkspaceState, WorkspaceStore, WorkspaceTransaction, WorkspaceUndoAccess, WorkspaceUndoTarget,
-    failure,
+    Actor, DecisionNoteBackupData, DecisionNoteChange, DecisionNoteReplay, DecisionNoteRestorePlan,
+    SET_TIMEFRAME, Timeframe, UNDO, WorkspaceBinding, WorkspaceChange, WorkspaceReceipt,
+    WorkspaceReplay, WorkspaceReplayKey, WorkspaceState, WorkspaceStore, WorkspaceTransaction,
+    WorkspaceUndoAccess, WorkspaceUndoTarget, failure,
 };
 use scopehub_domain::protocol::{
     DecisionNoteDate, DecisionNoteReadOutput, Error, ErrorCode, Revision,
@@ -22,7 +23,8 @@ const DATABASE_NAME: &str = "workspace.sqlite3";
 const APPLICATION_ID: i64 = 0x5348_5542;
 const INITIAL_SCHEMA_VERSION: i64 = 1;
 const DECISION_NOTES_SCHEMA_VERSION: i64 = 2;
-const SCHEMA_VERSION: i64 = DECISION_NOTES_SCHEMA_VERSION;
+const DECISION_NOTE_RESTORE_SCHEMA_VERSION: i64 = 3;
+const SCHEMA_VERSION: i64 = DECISION_NOTE_RESTORE_SCHEMA_VERSION;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum OpenWorkspaceError {
@@ -218,6 +220,10 @@ fn migrate(connection: &Connection, binding: &WorkspaceBinding) -> Result<(), Op
     if version < DECISION_NOTES_SCHEMA_VERSION {
         migrate_decision_notes(connection)?;
     }
+    if version < DECISION_NOTE_RESTORE_SCHEMA_VERSION {
+        connection.execute_batch(include_str!("decision_note_restore.sql"))?;
+        record_migration(connection, DECISION_NOTE_RESTORE_SCHEMA_VERSION)?;
+    }
     Ok(())
 }
 
@@ -386,6 +392,17 @@ impl WorkspaceStore for SqliteWorkspace {
         Ok(output)
     }
 
+    fn decision_note_backup(&self) -> Result<DecisionNoteBackupData, Error> {
+        let snapshot = self
+            .connection
+            .unchecked_transaction()
+            .map_err(store_error)?;
+        let revision = state(&snapshot, &self.binding.workspace_id)?.revision;
+        let data = note_backup::read(&snapshot, &self.binding, revision)?;
+        snapshot.commit().map_err(store_error)?;
+        Ok(data)
+    }
+
     fn clean_deleted_note(&mut self) -> Result<(), Error> {
         notes::clean_deletions(&self.connection, &self.binding).map_err(store_error)
     }
@@ -512,6 +529,22 @@ impl WorkspaceTransaction for SqliteTransaction<'_> {
             Some(&receipt.note_id),
         )?;
         notes::apply(self.connection, self.binding, change)
+    }
+
+    fn plan_note_restore(
+        &self,
+        backup: DecisionNoteBackupData,
+    ) -> Result<DecisionNoteRestorePlan, Error> {
+        note_backup::plan(self.connection, self.binding, backup)
+    }
+
+    fn record_note_restore(
+        &mut self,
+        change: &WorkspaceChange<'_>,
+        plan: &DecisionNoteRestorePlan,
+    ) -> Result<(), Error> {
+        self.record_change(change, None)?;
+        note_backup::apply(self.connection, self.binding, change.receipt.revision, plan)
     }
 }
 

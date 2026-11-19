@@ -8,9 +8,14 @@ const route = '/__scopehub/workspace';
 const chartId = 'main-chart';
 const timeframes = ['1m', '5m', '1d'];
 const mutations = ['chart.setTimeframe', 'workspace.undo'];
-const noteOperations = ['decisionNote.save', 'decisionNote.read', 'decisionNote.appendOutcome', 'decisionNote.delete'];
+const exportBackup = 'decisionNote.exportBackup';
+const previewRestore = 'decisionNote.previewRestore';
+const restoreBackup = 'decisionNote.restoreBackup';
+const noteOperations = ['decisionNote.save', 'decisionNote.read', 'decisionNote.appendOutcome', 'decisionNote.delete',
+  exportBackup, previewRestore, restoreBackup];
 const maxNoteRequestBytes = 32 * 1024;
 const maxResponseBytes = 256 * 1024;
+const maxBackupFrameBytes = 1024 * 1024;
 const startupDeadlineMs = 10_000;
 const requestDeadlineMs = 15_000;
 const commandDeadlineMs = 8_000;
@@ -67,6 +72,16 @@ function validSnapshot(state, workspaceId) {
     && validUndo(state.undo, state.workspace);
 }
 
+function requestLimit(operation) {
+  if (operation === previewRestore) return maxBackupFrameBytes;
+  return noteOperations.includes(operation) ? maxNoteRequestBytes : maxRequestBytes;
+}
+
+function responseLimit(operation) {
+  if (operation === exportBackup) return maxBackupFrameBytes;
+  return noteOperations.includes(operation) ? maxResponseBytes : maxRequestBytes;
+}
+
 function requestFrame(command, workspaceId) {
   const name = command?.intent?.operation;
   if (!mutations.includes(name) && !noteOperations.includes(name)) throw new PreviewFailure(403, 'PERMISSION_DENIED');
@@ -76,7 +91,7 @@ function requestFrame(command, workspaceId) {
     throw new PreviewFailure(400, 'INVALID_ARGUMENT');
   }
   const line = JSON.stringify(command) + '\n';
-  if (Buffer.byteLength(line) > (noteOperations.includes(name) ? maxNoteRequestBytes : maxRequestBytes)) {
+  if (Buffer.byteLength(line) > requestLimit(name)) {
     throw new PreviewFailure(413, 'RESOURCE_LIMIT');
   }
   return line;
@@ -90,10 +105,24 @@ function validNoteOutcome(outcome, job, workspaceId) {
       && (job.noteId === null ? result.note === null && result.outcomes.length === 0
         : result.note?.note_id === job.noteId && result.notes.length === 0);
   }
+  if (job.operation === exportBackup) {
+    const { result } = outcome;
+    return outcome.state === 'completed' && result?.format === 'scopehub.decision-notes' && result.version === 1
+      && revision(result.captured_workspace_revision) && Array.isArray(result.notes) && Array.isArray(result.deletions);
+  }
+  if (job.operation === previewRestore) {
+    const { summary } = outcome;
+    return outcome.state === 'confirmation_required' && uuid(outcome.stage_id) && revision(outcome.expires_at_ms)
+      && typeof summary?.independent_copy_warning === 'boolean'
+      && ['added_notes', 'added_outcomes', 'removed_notes', 'suppressed_notes', 'imported_deletions']
+        .every(field => revision(summary[field]));
+  }
   if (outcome.state === 'confirmation_required') return uuid(outcome.challenge_id) && revision(outcome.expires_at_ms);
   const { receipt } = outcome;
+  const isRestore = job.operation === restoreBackup;
   return outcome.state === 'committed' && !Object.hasOwn(outcome, 'result') && receipt?.workspace_id === workspaceId
-    && receipt.target?.kind === 'decision_note' && receipt.target.object_id === job.noteId
+    && receipt.target?.kind === (isRestore ? 'workspace' : 'decision_note')
+    && receipt.target.object_id === (isRestore ? workspaceId : job.noteId)
     && uuid(receipt.operation_id) && revision(receipt.committed_workspace_revision) && receipt.undoable === false;
 }
 
@@ -194,12 +223,12 @@ function startWriter(root, { path, profileId, workspaceId }) {
     let end;
     try {
       while ((end = bytes.indexOf(10)) !== -1) {
-        const limit = noteOperations.includes(pending?.operation) ? maxResponseBytes : maxRequestBytes;
+        const limit = responseLimit(pending?.operation);
         if (end >= limit) throw invalidReply();
         receive(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes.subarray(0, end))));
         bytes = bytes.subarray(end + 1);
       }
-      const limit = noteOperations.includes(pending?.operation) ? maxResponseBytes : maxRequestBytes;
+      const limit = responseLimit(pending?.operation);
       if (bytes.length >= limit) throw invalidReply();
       remainder = bytes;
     } catch {
@@ -274,7 +303,7 @@ export function ubuntuWorkspace() {
       server.middlewares.use(async (request, response, next) => {
         if (request.url !== route) return next();
         try {
-          assertLocalJsonRequest(request, http, maxNoteRequestBytes);
+          assertLocalJsonRequest(request, http, maxBackupFrameBytes);
           if (!access?.permits(request.headers.authorization)) throw new PreviewFailure(403, 'PERMISSION_DENIED');
           if (active) throw new PreviewFailure(429, 'BUSY');
           if (!writer) throw unavailable();
@@ -291,11 +320,7 @@ export function ubuntuWorkspace() {
           failureResponse(request, response, reason);
         }, requestDeadlineMs);
         try {
-          const body = await readLocalJson(request, maxNoteRequestBytes);
-          if (!noteOperations.includes(body?.intent?.operation)
-              && Math.max(Number(request.headers['content-length'] ?? 0), Buffer.byteLength(JSON.stringify(body))) > maxRequestBytes) {
-            throw new PreviewFailure(413, 'RESOURCE_LIMIT');
-          }
+          const body = await readLocalJson(request, maxBackupFrameBytes, requestLimit);
           const reply = await writer.handle(body, controller.signal);
           if (!controller.signal.aborted) {
             response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });

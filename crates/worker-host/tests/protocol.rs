@@ -1,8 +1,10 @@
 use scopehub_domain::protocol::{
     DecisionNoteAppendOutcomeCommand11, DecisionNoteAppendOutcomeReply11,
-    DecisionNoteDeleteCommand11, DecisionNoteDeleteReply11, DecisionNoteReadCommand11,
-    DecisionNoteReadReply11, DecisionNoteSaveCommand11, DecisionNoteSaveReply11, Message, Request,
-    ToolCall,
+    DecisionNoteDeleteCommand11, DecisionNoteDeleteReply11, DecisionNoteExportBackupCommand11,
+    DecisionNoteExportBackupReply11, DecisionNotePreviewRestoreCommand11,
+    DecisionNotePreviewRestoreReply11, DecisionNoteReadCommand11, DecisionNoteReadReply11,
+    DecisionNoteRestoreBackupCommand11, DecisionNoteRestoreBackupReply11,
+    DecisionNoteSaveCommand11, DecisionNoteSaveReply11, Message, Request, ToolCall,
 };
 use scopehub_worker_host::{SCHEMA, decode_line, max_message_bytes};
 use serde_json::Value;
@@ -222,6 +224,24 @@ fn private_workspace_vectors_use_local_projections_and_generated_types() {
             }
             ("decisionNote.delete", "input") => roundtrip::<DecisionNoteDeleteCommand11>(message),
             ("decisionNote.delete", "output") => roundtrip::<DecisionNoteDeleteReply11>(message),
+            ("decisionNote.exportBackup", "input") => {
+                roundtrip::<DecisionNoteExportBackupCommand11>(message)
+            }
+            ("decisionNote.exportBackup", "output") => {
+                roundtrip::<DecisionNoteExportBackupReply11>(message)
+            }
+            ("decisionNote.previewRestore", "input") => {
+                roundtrip::<DecisionNotePreviewRestoreCommand11>(message)
+            }
+            ("decisionNote.previewRestore", "output") => {
+                roundtrip::<DecisionNotePreviewRestoreReply11>(message)
+            }
+            ("decisionNote.restoreBackup", "input") => {
+                roundtrip::<DecisionNoteRestoreBackupCommand11>(message)
+            }
+            ("decisionNote.restoreBackup", "output") => {
+                roundtrip::<DecisionNoteRestoreBackupReply11>(message)
+            }
             _ => panic!("Missing generated type for {operation} {direction}"),
         };
         assert_eq!(decoded, *message, "{name}");

@@ -437,7 +437,7 @@
     {
       "id": "decision-note-lifecycle",
       "status": "implemented",
-      "purpose": "Verify profile-local decision-note confirmation, v1 to v2 migration and interruption, original review, later outcomes, concurrent replay, scoped deletion and cleanup across Rust process restart. Staged backup restore is covered separately.",
+      "purpose": "Verify profile-local decision notes and v1 through v3 migrations. Exercise confirmation, dated outcomes, replay, deletion, bounded backup export, staged restore with marker union, and rollback when killed before commit.",
       "platforms": "all",
       "command": [
         "cargo",
@@ -453,7 +453,7 @@
     {
       "id": "workspace-timeframe",
       "status": "implemented",
-      "purpose": "Exercise a real local timeframe change, fresh browser and SQLite writer restart, scoped undo, cancellation and the private human decision-note lifecycle through the opted-in development workspace.",
+      "purpose": "Exercise the real opted-in local writer through browser and process restart, timeframe undo, terminal cleanup, and human decision-note confirmation, deletion, backup download and staged restore.",
       "platforms": "all",
       "command": [
         "pnpm",

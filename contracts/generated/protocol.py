@@ -1,4 +1,4 @@
-# Generated from contracts/schemas/protocol.schema.json; sha256=f524b758444ac5635cee2b49ac8bbb5151daad0735c4c8150690ef66f21da960. Do not edit.
+# Generated from contracts/schemas/protocol.schema.json; sha256=67bcde06672bca6de8218b0befb4eccc112885767a01d93b376d5d245e13f6b5. Do not edit.
 from __future__ import annotations
 from typing import Literal, NotRequired, TypedDict
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
@@ -10,7 +10,7 @@ Metadata = dict[str, JsonValue]
 WorkerRole = Literal['market', 'ai', 'indicator']
 ProtocolVersion = Literal['1.0']
 ErrorCode = Literal['INVALID_ARGUMENT', 'UNSUPPORTED_CAPABILITY', 'PERMISSION_DENIED', 'CONFIRMATION_REQUIRED', 'CANCELLED', 'TIMEOUT', 'WORKER_EXITED', 'PROTOCOL_MISMATCH', 'DATA_UNAVAILABLE', 'STALE_CONTEXT', 'RESOURCE_LIMIT', 'OUTPUT_INVALID', 'PROVIDER_NOT_CONFIGURED', 'INTERNAL_ERROR', 'BUSY', 'SNAPSHOT_UNAVAILABLE']
-OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'market.subscribe', 'workspace.readChartProjection', 'workspace.selectEvidence', 'decisionNote.save', 'decisionNote.read', 'decisionNote.appendOutcome', 'decisionNote.delete']
+OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'market.subscribe', 'workspace.readChartProjection', 'workspace.selectEvidence', 'decisionNote.save', 'decisionNote.read', 'decisionNote.appendOutcome', 'decisionNote.delete', 'decisionNote.exportBackup', 'decisionNote.previewRestore', 'decisionNote.restoreBackup']
 ChartStyle = Literal['candlestick', 'line']
 TaskStatus = Literal['queued', 'running', 'awaiting_confirmation', 'completed', 'failed', 'cancelled']
 Tradability = Literal['non_tradable', 'unknown']
@@ -1576,3 +1576,105 @@ class DecisionNoteDeleteReply11(TypedDict):
     type: Literal['response']
     request_id: DecisionNoteUuid11
     outcome: DecisionNoteDeleteOutcome11
+class DecisionNoteBackupEntry(TypedDict):
+    original: DecisionNoteOriginal
+    outcomes: list[DecisionNoteOutcome]
+class DecisionNoteBackupDeletion(TypedDict):
+    note_id: DecisionNoteUuid11
+    deleted_at_ms: Timestamp
+class DecisionNoteBackupV1(TypedDict):
+    format: Literal['scopehub.decision-notes']
+    version: int
+    profile_binding: str
+    captured_workspace_revision: Revision
+    notes: list[DecisionNoteBackupEntry]
+    deletions: list[DecisionNoteBackupDeletion]
+class DecisionNoteRestoreScope11(TypedDict):
+    workspace_id: OpaqueId
+    expected_workspace_revision: Revision
+    idempotency_key: DecisionNoteUuid11
+class DecisionNoteRestoreSummary(TypedDict):
+    added_notes: Revision
+    added_outcomes: Revision
+    removed_notes: Revision
+    suppressed_notes: Revision
+    imported_deletions: Revision
+    independent_copy_warning: bool
+class DecisionNoteExportBackupInput(TypedDict):
+    pass
+class DecisionNotePreviewRestoreInput(TypedDict):
+    backup: DecisionNoteBackupV1
+class DecisionNoteRestoreBackupInput(TypedDict):
+    stage_id: DecisionNoteUuid11
+    decision: Literal['approve', 'decline']
+class DecisionNoteExportBackupIntent11(TypedDict):
+    operation: Literal['decisionNote.exportBackup']
+    arguments: DecisionNoteExportBackupInput
+class DecisionNoteExportBackupCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: DecisionNoteUuid11
+    scope: DecisionNoteReadScope11
+    intent: DecisionNoteExportBackupIntent11
+class DecisionNoteExportBackupCompleted11(TypedDict):
+    state: Literal['completed']
+    operation: Literal['decisionNote.exportBackup']
+    result: DecisionNoteBackupV1
+DecisionNoteExportBackupOutcome11 = DecisionNoteExportBackupCompleted11 | ScopedFailure11
+class DecisionNoteExportBackupReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: DecisionNoteUuid11
+    outcome: DecisionNoteExportBackupOutcome11
+class DecisionNotePreviewRestoreIntent11(TypedDict):
+    operation: Literal['decisionNote.previewRestore']
+    arguments: DecisionNotePreviewRestoreInput
+class DecisionNotePreviewRestoreCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: DecisionNoteUuid11
+    scope: DecisionNoteRestoreScope11
+    intent: DecisionNotePreviewRestoreIntent11
+class DecisionNotePreviewRestoreConfirmationRequired11(TypedDict):
+    state: Literal['confirmation_required']
+    operation: Literal['decisionNote.previewRestore']
+    stage_id: DecisionNoteUuid11
+    expires_at_ms: Timestamp
+    summary: DecisionNoteRestoreSummary
+DecisionNotePreviewRestoreOutcome11 = DecisionNotePreviewRestoreConfirmationRequired11 | ScopedFailure11
+class DecisionNotePreviewRestoreReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: DecisionNoteUuid11
+    outcome: DecisionNotePreviewRestoreOutcome11
+class DecisionNoteRestoreBackupIntent11(TypedDict):
+    operation: Literal['decisionNote.restoreBackup']
+    arguments: DecisionNoteRestoreBackupInput
+class DecisionNoteRestoreBackupCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: DecisionNoteUuid11
+    scope: DecisionNoteRestoreScope11
+    intent: DecisionNoteRestoreBackupIntent11
+class DecisionNoteRestoreBackupCommitted11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['decisionNote.restoreBackup']
+    receipt: OperationReceipt11
+DecisionNoteRestoreBackupOutcome11 = DecisionNoteRestoreBackupCommitted11 | ScopedFailure11
+class DecisionNoteRestoreBackupReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: DecisionNoteUuid11
+    outcome: DecisionNoteRestoreBackupOutcome11
