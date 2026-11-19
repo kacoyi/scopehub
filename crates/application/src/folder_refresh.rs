@@ -242,9 +242,16 @@ pub fn folder_refresh_output(
         return Err(error);
     }
     let mut records = 0;
-    let mut digests = BTreeMap::new();
-    for (&path, &digest) in &prior_sources {
-        digests.entry(digest).or_insert(path);
+    let mut current_canonical = BTreeMap::new();
+    // Keep an accepted representative only while its current bytes still match.
+    // Groups without one take the first current path in sorted order below.
+    for file in &input_files {
+        let path = file.relative_path.as_str();
+        if let Some(digest) = file.sha256.as_deref()
+            && prior_sources.get(path) == Some(&digest)
+        {
+            current_canonical.entry(digest).or_insert(path);
+        }
     }
     let series = json!(accepted.series);
     let mut sources = Vec::new();
@@ -255,7 +262,11 @@ pub fn folder_refresh_output(
         let previous_digest = prior_sources.remove(file.relative_path.as_str());
         let digest = file.sha256.as_deref();
         let alias_of = digest
-            .map(|digest| *digests.entry(digest).or_insert(file.relative_path.as_str()))
+            .map(|digest| {
+                *current_canonical
+                    .entry(digest)
+                    .or_insert(file.relative_path.as_str())
+            })
             .filter(|path| *path != file.relative_path);
         let change = match (previous_digest, digest) {
             (None, _) => "added",
@@ -694,6 +705,35 @@ mod tests {
         assert_eq!(blocked["files"][1]["change"], "unverified");
         assert_eq!(blocked["bars"][0]["status"], "unverified");
         assert_eq!(blocked["publication_allowed"], false);
+
+        let compare = |paths: [&str; 2]| {
+            let files = paths
+                .into_iter()
+                .map(|path| FolderRefreshFile {
+                    relative_path: path.into(),
+                    sha256: current.sha256.clone(),
+                    check: current.check.clone(),
+                })
+                .collect();
+            folder_refresh_output(Actor::LocalUser, &base, files, || false).unwrap()
+        };
+        let forward = compare(paths);
+        let reverse = compare([paths[1], paths[0]]);
+        assert_eq!(
+            serde_json::to_vec(&forward).unwrap(),
+            serde_json::to_vec(&reverse).unwrap()
+        );
+        assert_eq!(
+            forward["bars"][0]["alternatives"].as_array().unwrap().len(),
+            1
+        );
+        assert_eq!(
+            forward["bars"][0]["alternatives"][0]["sources"]
+                .as_array()
+                .unwrap()
+                .len(),
+            2
+        );
 
         let output =
             folder_refresh_output(Actor::LocalUser, &base, vec![current], || false).unwrap();

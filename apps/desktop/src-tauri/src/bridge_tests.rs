@@ -682,6 +682,165 @@ raise SystemExit(local_import.run(sys.stdin.buffer, sys.stdout.buffer))
 
 #[cfg(any(target_os = "linux", windows))]
 #[tokio::test]
+async fn folder_refresh_aliases_use_the_current_sha256_after_replacing_the_canonical_path() {
+    use scopehub_application::{
+        PREPARE_LOCAL_FOLDER_PUBLICATION, PREVIEW_LOCAL_FOLDER_REFRESH,
+        PUBLISH_LOCAL_FOLDER_REFRESH, READ_LOCAL_FOLDER_REVISION,
+    };
+    use std::fs;
+
+    let fixture = ImportFixture::new();
+    let folder = fixture.0.join("source");
+    fs::create_dir(&folder).unwrap();
+    let daily = folder.join("daily.csv");
+    let accepted = concat!(
+        "Ticker,Date,Open,High,Low,Close,Shares\n",
+        "000418,2026-11-19,4,8,3,6,20\n",
+        "000418,2026-11-20,4,10,3,8,21\n",
+    );
+    let replacement = accepted.replace(",8,21", ",9,21");
+    fs::write(&daily, accepted).unwrap();
+    let state = state_with_local_profile(Some(&fixture.0.join("profile")));
+    let ids = select_csv(&state, &folder).await;
+    let save = reviewed_save_input(&state, &ids, equity_mapping()).await;
+    let saved = execute_import(&state, SAVE_LOCAL_IMPORT_MAPPING, save.clone())
+        .await
+        .unwrap();
+    let published = execute_import(
+        &state,
+        PUBLISH_LOCAL_IMPORT,
+        publication_input(&save, &saved),
+    )
+    .await
+    .unwrap();
+    fs::write(folder.join("z.csv"), accepted).unwrap();
+    let mut request = json!({
+        "version": 1, "folder_id": ids["folder_id"], "revision_id": published["revision"]["revision_id"]
+    });
+    let alias_preview = execute_import(&state, PREVIEW_LOCAL_FOLDER_REFRESH, request.clone())
+        .await
+        .unwrap();
+    assert_eq!(alias_preview["files"][1]["alias_of"], "daily.csv");
+    let prepared = execute_import(
+        &state,
+        PREPARE_LOCAL_FOLDER_PUBLICATION,
+        json!({
+            "version": 1, "folder_id": ids["folder_id"], "review_id": alias_preview["review_id"],
+            "conflicts": [], "withdraw_bars": [], "withdraw_sources": []
+        }),
+    )
+    .await
+    .unwrap();
+    let published = execute_import(
+        &state,
+        PUBLISH_LOCAL_FOLDER_REFRESH,
+        json!({
+            "version": 1, "folder_id": ids["folder_id"], "review_id": alias_preview["review_id"],
+            "candidate_sha256": prepared["candidate_sha256"],
+            "idempotency_key": "2f4569b3-fb1c-4aa0-bcce-08ce228001f1"
+        }),
+    )
+    .await
+    .unwrap();
+    request["revision_id"] = published["revision"]["revision_id"].clone();
+    let read = json!({"version": 1, "revision_id": request["revision_id"]});
+    let frozen = execute_import(&state, READ_LOCAL_FOLDER_REVISION, read.clone())
+        .await
+        .unwrap();
+    assert_eq!(
+        frozen["files"][0]["source_sha256"],
+        frozen["files"][1]["source_sha256"]
+    );
+
+    fs::write(daily, &replacement).unwrap();
+    let staged = execute_import(&state, PREVIEW_LOCAL_FOLDER_REFRESH, request.clone())
+        .await
+        .unwrap();
+    let daily = &staged["files"][0];
+    let retained = &staged["files"][1];
+    assert_eq!(daily["relative_path"], "daily.csv");
+    assert_eq!(daily["change"], "replaced");
+    assert_eq!(retained["relative_path"], "z.csv");
+    assert_eq!(retained["source_sha256"], daily["prior_sha256"]);
+    assert_ne!(retained["source_sha256"], daily["source_sha256"]);
+    assert_eq!(
+        retained["alias_of"],
+        Value::Null,
+        "z.csv has no current equal file"
+    );
+    assert_eq!(daily["alias_of"], Value::Null);
+    assert_eq!(staged["bars"][0]["status"], "unchanged");
+    assert_eq!(staged["bars"][1]["status"], "conflict");
+    let alternatives = staged["bars"][1]["alternatives"].as_array().unwrap();
+    assert_eq!(alternatives.len(), 2);
+    assert_eq!(alternatives[0]["bar"]["close"], 9.0);
+    assert_eq!(alternatives[0]["sources"][0]["relative_path"], "daily.csv");
+    assert_eq!(alternatives[1]["bar"]["close"], 8.0);
+    assert_eq!(alternatives[1]["sources"][0]["relative_path"], "z.csv");
+
+    let copies = [
+        ("a-original.csv", accepted),
+        ("m-original.csv", accepted),
+        ("b-revised.csv", replacement.as_str()),
+        ("n-revised.csv", replacement.as_str()),
+    ];
+    for (path, bytes) in copies {
+        fs::write(folder.join(path), bytes).unwrap();
+    }
+    let grouped = execute_import(&state, PREVIEW_LOCAL_FOLDER_REFRESH, request.clone())
+        .await
+        .unwrap();
+    let files = grouped["files"].as_array().unwrap();
+    let aliases: Vec<_> = files
+        .iter()
+        .map(|file| {
+            (
+                file["relative_path"].as_str().unwrap(),
+                file["alias_of"].as_str(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        aliases,
+        [
+            ("a-original.csv", Some("z.csv")),
+            ("b-revised.csv", None),
+            ("daily.csv", Some("b-revised.csv")),
+            ("m-original.csv", Some("z.csv")),
+            ("n-revised.csv", Some("b-revised.csv")),
+            ("z.csv", None),
+        ]
+    );
+    for file in files.iter().filter(|file| !file["alias_of"].is_null()) {
+        let canonical = files
+            .iter()
+            .find(|target| target["relative_path"] == file["alias_of"])
+            .unwrap();
+        assert_eq!(canonical["source_sha256"], file["source_sha256"]);
+        assert!(canonical["alias_of"].is_null());
+    }
+    for (path, _) in copies {
+        fs::remove_file(folder.join(path)).unwrap();
+    }
+    for (path, bytes) in copies.into_iter().rev() {
+        fs::write(folder.join(path), bytes).unwrap();
+    }
+    assert_eq!(
+        execute_import(&state, PREVIEW_LOCAL_FOLDER_REFRESH, request)
+            .await
+            .unwrap(),
+        grouped
+    );
+    assert_eq!(
+        execute_import(&state, READ_LOCAL_FOLDER_REVISION, read)
+            .await
+            .unwrap(),
+        frozen
+    );
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[tokio::test]
 async fn reviewed_folder_publication_requires_current_choices_and_reopens_frozen_receipts() {
     use std::fs;
 

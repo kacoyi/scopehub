@@ -9,7 +9,6 @@ import { usePublishedRevisionAccess } from './published-revision-access';
 import { readSampleView, saveSampleView } from './sample-view';
 import { useLocalWorkspace } from './use-local-workspace';
 import { useRestoredWorkspaceSource } from './workspace-source';
-import './style.css';
 
 function initialSource(): boolean {
   if (window.location.hash) return window.location.hash === '#demo';
@@ -28,6 +27,7 @@ function App() {
   const revisionAccess = usePublishedRevisionAccess(localWorkspace);
   const snapshot = localWorkspace?.snapshot;
   const source = snapshot?.source;
+  const supportsSourcePreference = source !== undefined;
   const sample = localWorkspace ? Boolean(snapshot && (source?.kind === 'sample' || source == null && legacySample)) : legacySample;
   const { restored, retry } = useRestoredWorkspaceSource(localWorkspace, revisionAccess);
   const target = snapshot?.chart_evidence;
@@ -40,20 +40,20 @@ function App() {
       const chosen = window.location.hash === '#demo';
       demoLinkHandled.current = false;
       if (chosen) setLocal(false);
-      else if (!localWorkspace) {
+      else if (!supportsSourcePreference) {
         saveSampleView(null);
       }
       setLegacySample(chosen);
     };
     window.addEventListener('hashchange', navigate);
     return () => window.removeEventListener('hashchange', navigate);
-  }, [localWorkspace]);
+  }, [supportsSourcePreference]);
   useEffect(() => {
     if (!legacySample || window.location.hash !== '#demo' || demoLinkHandled.current
-      || !localWorkspace?.snapshot || localWorkspace.pending || source?.kind === 'sample') return;
+      || !supportsSourcePreference || !localWorkspace || localWorkspace.pending || source?.kind === 'sample') return;
     demoLinkHandled.current = true;
     void localWorkspace.chooseSource({ kind: 'sample', instrument_id: readSampleView()?.symbol ?? null }).catch(() => {});
-  }, [legacySample, localWorkspace, source]);
+  }, [legacySample, localWorkspace, source, supportsSourcePreference]);
 
   const leaveSample = () => {
     const leave = () => {
@@ -63,7 +63,7 @@ function App() {
       }
       setLegacySample(false);
     };
-    if (localWorkspace) void localWorkspace.chooseSource({ kind: 'none' }).then(leave, () => {});
+    if (localWorkspace && supportsSourcePreference) void localWorkspace.chooseSource({ kind: 'none' }).then(leave, () => {});
     else leave();
   };
   const chooseFolder = useCallback(async () => {
@@ -86,7 +86,7 @@ function App() {
   };
   const openSample = () => {
     setLocal(false);
-    if (localWorkspace) {
+    if (localWorkspace && supportsSourcePreference) {
       if (source?.kind !== 'sample') {
         void localWorkspace.chooseSource({ kind: 'sample', instrument_id: readSampleView()?.symbol ?? null }).catch(() => {});
       }
@@ -109,11 +109,11 @@ function App() {
       openPublished={workspace ? () => setOpeningRevision(true) : undefined}
       restoredSource={restored} restoredSampleInstrument={source?.kind === 'sample' ? source.instrument_id ?? undefined : undefined}
       retryRestoredSource={retry} onOpenSample={openSample}
-      chooseSampleInstrument={workspace && (async id => {
+      chooseSampleInstrument={workspace && supportsSourcePreference ? async id => {
         if (source?.kind !== 'sample' || source.instrument_id !== id) {
           await workspace.chooseSource({ kind: 'sample', instrument_id: id });
         }
-      })} />}
+      } : undefined} />}
     {folder && <div hidden={!local}>
       <main className="workstation local-workstation">
         <header className="topbar local-source-bar">
@@ -131,14 +131,14 @@ function App() {
     </div>}
     {openingRevision && <OpenLocalRevisionDialog onClose={() => setOpeningRevision(false)} revisionAccess={revisionAccess}
       workspace={workspace} nativeLocalImport={hasLocalCsvPicker()}
-      useWorkspaceSource={workspace && (async revision_id => {
+      useWorkspaceSource={workspace && supportsSourcePreference ? async revision_id => {
         await workspace.chooseSource({ kind: 'frozen', revision_id });
         if (window.location.hash === '#demo') {
           window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
         }
         setLocal(false);
         setOpeningRevision(false);
-      })} />}
+      } : undefined} />}
   </>;
 }
 

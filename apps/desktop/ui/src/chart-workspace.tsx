@@ -81,10 +81,10 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   const [chosenId, setChosenId] = useState(restoredSampleInstrument ?? saved?.symbol ?? '');
   const [sampleTimeframe, setSampleTimeframe] = useState(saved?.timeframe ?? '1m');
   const frozen = !sample && restoredSource?.status === 'ready' ? restoredSource.chart : undefined;
-  const timeframe = frozen?.history.dataset.timeframe ?? (workspace ? workspace.snapshot?.workspace.timeframe ?? '' : sampleTimeframe);
+  const timeframe = sample ? sampleTimeframe : frozen?.history.dataset.timeframe ?? (workspace ? workspace.snapshot?.workspace.timeframe ?? '' : sampleTimeframe);
   const workspaceBusy = Boolean(workspace?.pending);
-  const timeframeBlocked = Boolean(workspace && (!workspace.snapshot || workspaceBusy || workspace.error));
-  const fixedTimeframe = !sample && restoredSource !== undefined;
+  const workspaceBlocked = Boolean(workspace && (!workspace.snapshot || workspaceBusy || workspace.error));
+  const timeframeBlocked = !sample && (workspaceBlocked || restoredSource !== undefined);
   const [revision, setRevision] = useState<SampleRevision>(saved?.sampleRevision ?? 'normal');
   const [date, setDate] = useState(saved?.sampleDate ?? '');
   const [style, setStyle] = useState<ChartStyle>(saved?.style ?? 'candlestick');
@@ -216,8 +216,12 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
     }
   };
   const chooseTimeframe = (value: string) => {
-    if (workspace) workspace.chooseTimeframe(value);
-    else setSampleTimeframe(value);
+    if (!sample && workspace) {
+      workspace.chooseTimeframe(value);
+      return;
+    }
+    setSampleTimeframe(value);
+    if (value !== '1m' && isClosedBarGapRevision(revision)) setRevision('normal');
   };
   useEffect(() => {
     if (timeframe && timeframe !== '1m' && isClosedBarGapRevision(revision)) setRevision('normal');
@@ -305,21 +309,21 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
       <div className="toolbar-group symbol-group"><button type="button" ref={trigger} className="symbol-trigger" aria-label="Search symbols"
         aria-haspopup="dialog" title="Search symbols (/)" onClick={() => setSearchQuery('')}>
         <WorkspaceIcon name="search" /><strong>{selected ? symbol(selected) : 'Symbol search'}</strong><WorkspaceIcon name="chevron" /></button></div>
-      <div className="toolbar-group periods" role="group" aria-label="Timeframe" aria-busy={workspaceBusy || undefined}>
+      <div className="toolbar-group periods" role="group" aria-label="Timeframe" aria-busy={!sample && workspaceBusy || undefined}>
         {['1m', '5m', '1d'].map(value => <button type="button" key={value} className="period"
-          aria-pressed={timeframe === value} disabled={timeframeBlocked || fixedTimeframe}
+          aria-pressed={timeframe === value} disabled={timeframeBlocked}
           onClick={() => chooseTimeframe(value)}>{value}</button>)}
-        {workspace && <button type="button" className="period" aria-label="Undo timeframe change"
-          disabled={timeframeBlocked || fixedTimeframe || !workspace.snapshot?.undo} onClick={workspace.undoTimeframe}>Undo</button>}
+        {!sample && workspace && <button type="button" className="period" aria-label="Undo timeframe change"
+          disabled={timeframeBlocked || !workspace.snapshot?.undo} onClick={workspace.undoTimeframe}>Undo</button>}
       </div>
       <div className="toolbar-group chart-styles" role="group" aria-label="Chart style">
         <Tool name="Candles" icon="candles" active={style === 'candlestick'} onClick={() => setStyle('candlestick')} />
         <Tool name="Close-price line" icon="line" active={style === 'line'} onClick={() => setStyle('line')} />
       </div>
       {workspace && <div className="toolbar-group"><button type="button" className="period notes-trigger"
-        aria-haspopup="dialog" disabled={timeframeBlocked} onClick={() => setNotesOpen(true)}>Decision notes</button>
+        aria-haspopup="dialog" disabled={workspaceBlocked} onClick={() => setNotesOpen(true)}>Decision notes</button>
         <button type="button" className="period notes-trigger" aria-haspopup="dialog"
-          disabled={timeframeBlocked} onClick={() => setRecordsOpen(true)}>Private records</button></div>}
+          disabled={workspaceBlocked} onClick={() => setRecordsOpen(true)}>Private records</button></div>}
       <span className={'connection' + (sample ? ' sample' : '')} role="status"><i aria-hidden="true" />{sample
         ? <><span>Offline sample</span><b>Simulated</b></> : restoredSource ? frozen ? restoredSource.label ?? 'Published CSV'
           : restoredSource.status === 'revoked' ? 'Access revoked' : restoredSource.status === 'loading' ? 'Restoring CSV' : 'Source unavailable'

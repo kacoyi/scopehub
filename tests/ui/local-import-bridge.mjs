@@ -27,5 +27,9 @@ export function startLocalImportBridge(binary, profile, folder) {
       child.stdin.end();
       await ended;
     },
+    async interrupt() {
+      if (!child.kill('SIGKILL')) throw new Error('The local import bridge was not running when interrupted.');
+      await ended;
+    },
   };
 }

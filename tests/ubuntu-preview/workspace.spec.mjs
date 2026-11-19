@@ -10,7 +10,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { expect, test } from '@playwright/test';
-import { control } from '../ui/workspace-controls.mjs';
+import { control, leaveSample } from '../ui/workspace-controls.mjs';
 import { painted } from '../ui/chart-pixels.mjs';
 import { startLocalImportBridge } from '../ui/local-import-bridge.mjs';
 import { assertUnsuitableWindowsHandoffsRejected, assertWindowsPrivateHandoff } from './workspace_test_handoff_acl.mjs';
@@ -819,6 +819,172 @@ test('decision-note list removes peer deletions after focus and a rejected detai
   }
 });
 
+test('the offline sample keeps its own timeframe without replacing the private undo', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  const port = await freePort();
+  const context = await browser.newContext();
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      const page = await context.newPage();
+      const launchPath = '/synthetic-private-launch';
+      await page.addInitScript(({ launchPath, capability }) => {
+        // Simulate the real handoff without exposing its fragment in navigation
+        // artifacts or re-injecting it on refresh after the UI scrubs it.
+        if (location.pathname === launchPath) history.replaceState(null, '', '/#workspace=' + capability);
+      }, { launchPath, capability: server.capability });
+      const workspaceRequests = [];
+      context.on('request', request => {
+        if (new URL(request.url()).pathname !== endpoint) return;
+        workspaceRequests.push(request.postDataJSON());
+      });
+      const launch = () => page.goto(server.url + launchPath);
+      const shellUrl = url => url.origin === server.url && url.pathname === '/' && url.hash === '';
+      const sampleSource = { kind: 'sample', instrument_id: null };
+      const noSource = { kind: 'none' };
+      const readPrivate = async (selectionRevision, source) => {
+        const frame = await (await post(server, snapshot)).json();
+        const current = state(frame, selectionRevision);
+        expect(frame.result.source).toEqual(source);
+        return current;
+      };
+      const assertSourceWrite = (start, expectedSelection, source) => {
+        expect(workspaceRequests.slice(start)).toEqual([{
+          type: 'workspace_source', source, expected_selection_revision: expectedSelection,
+          request_id: expect.stringMatching(/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/),
+        }, snapshot]);
+      };
+      const assertSample = async (tab, timeframe) => {
+        await expect(tab.locator('.connection')).toHaveText('Offline sampleSimulated');
+        await expect(control(tab, timeframe)).toHaveAttribute('aria-pressed', 'true');
+        await expect(tab.locator('.history')).toHaveAttribute('data-timeframe', timeframe);
+      };
+      const undo = control(page, 'Undo timeframe change');
+
+      await launch();
+      await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
+      await expect(page).toHaveURL(server.url + '/');
+      await expect(page.locator('.connection')).toHaveText('No data source');
+      expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
+      expect(await readPrivate(0, null)).toEqual({ revision: 0, timeframe: '1m', undo: null });
+      expect((await act(page, '5m', 'chart.setTimeframe')).result.outcome)
+        .toMatchObject({ state: 'committed', result: { timeframe: '5m', revision: 1 } });
+      const prior = (await act(page, '1m', 'chart.setTimeframe')).result.outcome;
+      expect(prior).toMatchObject({ state: 'committed', result: { timeframe: '1m', revision: 2 }, receipt: { undoable: true } });
+      const before = {
+        revision: 2, timeframe: '1m',
+        undo: { operation_id: prior.receipt.operation_id, committed_workspace_revision: 2 },
+      };
+      expect(await readPrivate(0, null)).toEqual(before);
+      await expect(undo).toBeEnabled();
+
+      const beforeSample = workspaceRequests.length;
+      await control(page, 'Open offline sample').click();
+      await assertSample(page, '1m');
+      await expect(page).toHaveURL(shellUrl);
+      await expect(control(page, 'Edit layout')).toBeEnabled();
+      assertSourceWrite(beforeSample, 0, sampleSource);
+      const duringSample = workspaceRequests.length;
+      await control(page, '5m').click();
+      await assertSample(page, '5m');
+      const after = await readPrivate(1, sampleSource);
+      const refreshed = await context.newPage();
+      await refreshed.goto(server.url);
+      await expect(refreshed.locator('.history')).toBeVisible();
+      await refreshed.reload();
+      await expect(refreshed.locator('.history')).toBeVisible();
+      const refreshedTimeframe = await refreshed.locator('.history').getAttribute('data-timeframe');
+      expect(after).toEqual(before);
+      expect(workspaceRequests.slice(duringSample)).toEqual([]);
+      await expect(undo).toHaveCount(0);
+      await assertSample(refreshed, '5m');
+      await expect(control(refreshed, 'Undo timeframe change')).toHaveCount(0);
+      await assertSampleStorage(refreshed, '5m');
+      await refreshed.close();
+
+      const beforeLeave = workspaceRequests.length;
+      await leaveSample(page);
+      await expect(page).toHaveURL(shellUrl);
+      await expect(page.locator('.connection')).toHaveText('No data source');
+      await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
+      await expect(undo).toBeEnabled();
+      assertSourceWrite(beforeLeave, 1, noSource);
+      expect(await readPrivate(2, noSource)).toEqual(before);
+      const reply = await duringResponse(page, 'workspace.undo', () => undo.click());
+      const undoRequest = reply.request().postDataJSON();
+      expect(undoRequest.intent.arguments).toEqual({ operation_id: prior.receipt.operation_id });
+      expect(undoRequest.scope).toMatchObject({ expected_workspace_revision: 2, expected_selection_revision: 2 });
+      expect((await reply.json()).result.outcome).toMatchObject({
+        state: 'committed', result: { timeframe: '5m', revision: 3 }, receipt: { undoable: false },
+      });
+      await expect(undo).toBeDisabled();
+      const afterUndo = { revision: 3, timeframe: '5m', undo: null };
+      expect(await readPrivate(2, noSource)).toEqual(afterUndo);
+      expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
+
+      const beforeReload = workspaceRequests.length;
+      await page.reload();
+      await expect(page).toHaveURL(shellUrl);
+      await expect(control(page, 'Open offline sample')).toBeVisible();
+      await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
+      await expect(undo).toHaveCount(0);
+      expect(workspaceRequests.slice(beforeReload)).toEqual([]);
+      await launch();
+      await expect(page).toHaveURL(server.url + '/');
+      await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
+      await expect(undo).toBeDisabled();
+      expect(workspaceRequests.slice(beforeReload)).toEqual([snapshot]);
+
+      const beforeSampleReload = workspaceRequests.length;
+      await control(page, 'Open offline sample').click();
+      await assertSample(page, '1m');
+      assertSourceWrite(beforeSampleReload, 2, sampleSource);
+      const duringSampleReload = workspaceRequests.length;
+      await control(page, '1d').click();
+      await assertSample(page, '1d');
+      expect(await readPrivate(3, sampleSource)).toEqual(afterUndo);
+      await assertSampleStorage(page, '1d');
+      await page.reload();
+      await assertSample(page, '1d');
+      await expect(undo).toHaveCount(0);
+      await assertSampleStorage(page, '1d');
+      await leaveSample(page);
+      await expect(page.locator('.connection')).toHaveText('No data source');
+      await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
+      await expect(undo).toHaveCount(0);
+      expect(workspaceRequests.slice(duringSampleReload)).toEqual([]);
+      expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
+      expect(await readPrivate(3, sampleSource)).toEqual(afterUndo);
+
+      // The browser-only leave discarded its presentation preference without a local grant.
+      // Relaunching the profile restores its explicit sample at the browser's default period.
+      const beforeProfileRestore = workspaceRequests.length;
+      await launch();
+      await expect(page).toHaveURL(shellUrl);
+      await assertSample(page, '1m');
+      await expect(undo).toHaveCount(0);
+      expect(workspaceRequests.slice(beforeProfileRestore)).toEqual([snapshot]);
+      expect(await readPrivate(3, sampleSource)).toEqual(afterUndo);
+      const beforeProfileLeave = workspaceRequests.length;
+      await leaveSample(page);
+      await expect(page).toHaveURL(shellUrl);
+      await expect(page.locator('.connection')).toHaveText('No data source');
+      await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
+      await expect(undo).toBeDisabled();
+      assertSourceWrite(beforeProfileLeave, 3, noSource);
+      expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
+      expect(await readPrivate(4, noSource)).toEqual(afterUndo);
+      await testInfo.attach('workspace-sample-timeframe', {
+        body: JSON.stringify({ before, after, afterUndo, refreshedTimeframe,
+          sampleWorkspaceRequests: workspaceRequests.slice(beforeSample), finalSelectionRevision: 4 }),
+        contentType: 'application/json',
+      });
+    });
+  } finally {
+    await context.close();
+    await profile.close();
+  }
+});
+
 test('the opted-in route binds identity, limits input, and drains cancellation without replaying after EOF', async () => {
   const profile = await makeProfile();
   const port = await freePort();
@@ -1249,11 +1415,11 @@ async function postStatus(server, body, headers) {
   return responseStatus(await post(server, body, headers));
 }
 
-function state(frame) {
+function state(frame, expectedSelectionRevision = 0) {
   if (frame.ok !== true) return undefined;
   const { workspace, undo } = frame.result;
   expect(workspace).toMatchObject({ id: workspaceId, instrument_id: null, dataset: null, layers: [] });
-  expect(frame.result.selection_revision).toBe(0);
+  expect(frame.result.selection_revision).toBe(expectedSelectionRevision);
   return { revision: workspace.revision, timeframe: workspace.timeframe, undo };
 }
 
@@ -1264,6 +1430,28 @@ function observeOperations(page) {
     if (path.startsWith('/__scopehub/')) requests.push(path);
   });
   return requests;
+}
+
+async function assertSampleStorage(page, timeframe) {
+  const stored = await page.evaluate(expected => {
+    let preference;
+    try {
+      preference = JSON.parse(localStorage.getItem('scopehub.preview.sample.v1') ?? 'null');
+    } catch {
+      return null;
+    }
+    return {
+      onlySamplePreference: localStorage.length === 1 && preference !== null,
+      emptySessionStorage: sessionStorage.length === 0,
+      matchesSample: preference?.source === 'scopehub.synthetic' && preference.timeframe === expected
+        && typeof preference.symbol === 'string' && /^SIM\.[.A-Z0-9]+$/.test(preference.symbol)
+        && preference.style === 'candlestick' && preference.cursor === 'crosshair'
+        && preference.panel === 'watchlist' && preference.chartOnly === false && preference.narrow === false
+        && preference.sampleRevision === 'normal' && preference.sampleDate === ''
+        && Object.keys(preference).length === 10,
+    };
+  }, timeframe);
+  expect(stored).toEqual({ onlySamplePreference: true, emptySessionStorage: true, matchesSample: true });
 }
 
 async function inFreshBrowser(browser, server, use) {

@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util';
 import { expect } from '@playwright/test';
 import { replayStage } from './replay-stages.mjs';
 
@@ -18,9 +19,13 @@ const historyCall = {
   },
 };
 
-export async function openDefaultSample(page, { trigger = () => page.goto('/#demo'), verifyChart } = {}) {
+export async function openDefaultSample(page, {
+  trigger = () => page.goto('/#demo', { waitUntil: 'domcontentloaded', timeout: 10_000 }),
+  verifyChart,
+} = {}) {
   const attempts = new Map();
   let order = 0;
+  let navigationFailure;
   const issued = request => {
     if (request.method() !== 'POST') return;
     let call;
@@ -36,19 +41,42 @@ export async function openDefaultSample(page, { trigger = () => page.goto('/#dem
     if (attempt) attempt.finished = ++order;
   };
   const failed = request => {
+    const code = request.failure()?.errorText;
+    const failure = /^(?:net::)?ERR_[A-Z0-9_]+$/.test(code ?? '') ? code : 'request failed';
     const attempt = attempts.get(request);
-    if (attempt) attempt.failure = request.failure()?.errorText ?? 'Request failed';
+    if (attempt) attempt.failure = failure;
+    if (request.isNavigationRequest() && request.resourceType() === 'document' && request.method() === 'GET') {
+      navigationFailure = failure;
+    }
   };
   const read = async name => {
-    const completed = () => [...attempts.values()].find(attempt => attempt.call?.operation === name
-      && attempt.path === operation && attempt.finished !== undefined && attempt.response && attempt.response.status() !== 429);
-    await expect.poll(() => Boolean(completed()), { ...replayStage, message: `Waiting for ${name} during sample startup` }).toBe(true);
-    const { response } = completed();
-    const body = await response.json();
-    const outcome = `${name} returned HTTP ${response.status()}${body.error?.code ? ` (${body.error.code})` : ''}`;
-    expect(response.status(), outcome).toBe(200);
-    expect(body.ok, outcome).toBe(true);
-    return body.result;
+    const label = `${name} POST ${operation}`;
+    let terminal;
+    await expect.poll(async () => {
+      for (const attempt of attempts.values()) {
+        if (attempt.call?.operation !== name || attempt.path !== operation || attempt.busy) continue;
+        if (attempt.failure) {
+          terminal = { error: `${label} failed (${attempt.failure})` };
+          return true;
+        }
+        const { response } = attempt;
+        if (!attempt.finished || !response) continue;
+        const status = response.status();
+        const body = await response.json().catch(() => undefined);
+        if (status === 429 && isDeepStrictEqual(body, busy)) {
+          attempt.busy = true;
+          continue;
+        }
+        const detail = body?.error?.code ? ` (${body.error.code})` : '';
+        terminal = status === 200 && body?.ok === true
+          ? { result: body.result }
+          : { error: `${label} returned HTTP ${status}${detail}${body === undefined ? ' with no readable JSON body' : ''}` };
+        return true;
+      }
+      return false;
+    }, { ...replayStage, message: `Waiting for ${label} to settle during sample startup` }).toBe(true);
+    if (terminal.error) throw new Error(terminal.error);
+    return terminal.result;
   };
 
   page.on('request', issued);
@@ -56,7 +84,11 @@ export async function openDefaultSample(page, { trigger = () => page.goto('/#dem
   page.on('requestfinished', finished);
   page.on('requestfailed', failed);
   try {
-    await trigger();
+    const navigation = await trigger().catch(cause => {
+      if (!navigationFailure) throw cause;
+      throw new Error(`Sample document GET failed (${navigationFailure})`, { cause });
+    });
+    if (navigation?.status() >= 400) throw new Error(`Sample document GET returned HTTP ${navigation.status()}`);
     const catalog = await read(catalogCall.operation);
     expect(catalog.instruments.map(item => item.id)).toContain(future);
     const history = await read(historyCall.operation);

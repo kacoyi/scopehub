@@ -2823,11 +2823,11 @@
         "local-import-ui"
       ],
       "evidence": [],
-      "next_action": "Qualify the exact reviewed folder publication checkpoint in the native Windows application. Exercise the real picker, compatible mapping, conflicting values, explicit source and bar withdrawals, final file checks, interrupted publication, lost replies, restart, provenance and display revocation. Retain this source separately from the v8 private-record integration and collect the remaining local-folder-import acceptance evidence.",
+      "next_action": "Verify the joined current-source alias rules, declared financial record kinds and revision-library refresh against the recorded Windows source-row workflow and the complete task harness.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
-        "outcome": "A person chooses a local CSV directory, reviews the actual rows and explicit mapping offline, then publishes a traceable equity or futures series to the chart. External editors can save, replace, add and remove files while the selection is idle. Compatible refreshes preserve the accepted mapping and earlier snapshots. After restart, the person can browse displayable revisions for the active profile and explicitly reopen a frozen chart without a folder selection or a memorized ID.",
+        "outcome": "A person chooses a local CSV directory, reviews the actual rows and explicit mapping offline, then publishes a traceable equity or futures series to the chart. External editors can save, replace, add and remove files while the selection is idle. Compatible refreshes preserve the accepted mapping and earlier snapshots. After restart, the person can browse displayable revisions for the active profile and explicitly reopen a frozen chart without a folder selection or a memorized ID. From the chart, the person can inspect the original decoded fields at a selected published locator, including records outside the preview.",
         "change_types": [
           "market-fixtures",
           "ui",
@@ -2872,7 +2872,10 @@
           "A metadata-only Windows handle with full sharing can retain the selected directory identity while idle. A short operation can reopen and pin the non-reparse chain, compare identities, then verify source bytes through final commit.",
           "The source identity stored by v5 and its accepted relative path can prove the selected folder even when the original file is absent. A fresh read-only scan can use that live grant and the exact retained mapping without persisting a grant or changing the accepted chart.",
           "An additive v7 manifest anchored to a known v5 mapping can retain complete reviewed membership and source-qualified locators. One guarded transaction can write the revision, deduplicated original bytes and the scoped retry receipt without updating the accepted parent.",
-          "A private comparison can bind exact user choices to a canonical candidate digest without proving a write. The dedicated durable receipt then proves the chosen manifest and can replay under a matching live root without rereading files."
+          "The retained original bytes and exact reviewed parser settings can independently recover unmapped fields for one validated frozen row. The portable Chromium baseline at 73fd6c0 reopened a synthetic revision after renaming the source folder and displayed record 502 at physical lines 504–505 without an inspection control.",
+          "A private comparison can bind exact user choices to a canonical candidate digest without proving a write. The dedicated durable receipt then proves the chosen manifest and can replay under a matching live root without rereading files.",
+          "The folder source qualified locator, retained file digest and historical anchor mapping can recover one selected raw record through the existing worker. The portable browser can exercise actual Rust picker admission with a supplied synthetic path while the native shell dialog is observed separately.",
+          "Use a previous representative only if its current digest still matches. Select a deterministic current representative for each equal digest and use the accepted fingerprints to identify separate historical matches in the review."
         ],
         "risks": [
           {
@@ -3030,11 +3033,28 @@
             ]
           },
           {
+            "failure": "An ordinal or quote boundary mismatch returns a different original record, a raw settlement is confused with normalized close, or a delayed response discloses stale or revoked fields. Verify exact fields, full locators, output size, stale selection, restart, and peer revocation with the portable Rust, Python, SQLite, and Chromium path.",
+            "checks": [
+              "local-import-publication",
+              "local-folder-import",
+              "rust-contracts-workers",
+              "python-contracts-workers"
+            ]
+          },
+          {
             "failure": "A changed file or directory, ambiguous review, lost reply, result revocation or partial SQLite commit publishes or exposes an unauthorized folder revision. Exercise prompt cancellation, recheck of complete digests and membership, exact replay and re-open with no folder grant.",
             "checks": [
               "rust-contracts-workers",
-              "local-folder-refresh-preview",
+              "local-folder-import",
               "local-folder-manifest-storage"
+            ]
+          },
+          {
+            "failure": "A retained path is reported as a current alias of its former representative after that path changes bytes. Compare current fingerprints and direct alias references after replacement and reordered enumeration. Verify the historical match, accepted snapshot and competing closes through the registry and built review.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-folder-refresh-preview",
+              "local-folder-import"
             ]
           }
         ],
@@ -3078,7 +3098,10 @@
             "crates/persistence/src/folder_manifest.rs",
             "crates/persistence/src/folder_manifest.sql",
             "python/providers/csv_bar_mapping.py",
-            "crates/application/src/folder_publication.rs"
+            "apps/desktop/ui/src/local-preview-chart.tsx",
+            "tests/ui/local-import.spec.mjs",
+            "crates/application/src/folder_publication.rs",
+            "scripts/check_local_import_publication.py"
           ],
           "rules": [
             {
@@ -3117,23 +3140,25 @@
           "non_goals": [
             "Remote data channels, cloud transmissions, inferred settlement/trade conversions and the separate real-provider connection workflow.",
             "First publication and explicit compatible replacement cover one selected file and one fully resolved native bar series. No persistent folder grant is issued.",
-            "Revision discovery uses v5 snapshots and does not add a migration, change folder access, implement folder-wide refresh or make network requests.",
+            "The single-file library reads v5 snapshots alongside the v7 folder library. Neither library preserves a native directory grant or makes network requests.",
             "Repair replay and selected-folder sharing on the current schema v5. Coordinate the checked directory interface with the separately implemented folder review and manifest.",
-            "Use the existing v7 schema and local profile writer. Keep existing v5 library and shared chart selection behavior. Private records and cross-branch integration belong to their own work."
+            "Use the existing v7 schema and local profile writer. Keep existing v5 library and shared chart selection behavior. Private records and cross-branch integration belong to their own work.",
+            "Frozen source row inspection remains local human display within the revision entitlement. No new grant or model and external authority changes. The portable gate uses a trusted synthetic path chooser callback and covers native picker admission, registry dispatch, worker execution and profile storage."
           ],
           "open_questions": [
-            "Stage added files and detect byte-identical aliases within a folder without treating an alias as new economic events. Preserve all contributing source locators and prove results are independent of folder enumeration order.",
-            "Hold changed headers, mixed series and competing corrections for review. Support explicit multi-file replacement and missing-file withdrawal with a complete reviewed manifest, atomic publication and restart/retry evidence.",
+            "Compare canonical source membership, alias locators and explicit conflict and withdrawal choices across native Windows and portable release candidates.",
+            "Verify explicitly identified executed trades, depth snapshots, reference data and corporate actions remain inspectable in source order alongside unknown inputs. Derived candles and roll calculations require their documented source semantics.",
             "Verify that a person can select each same-name revision by its final close in the native Windows library. Use the stored trading days and venue as context and retain the source digest when the visible market summaries are equal.",
             "Verify the picker, publication, migration and frozen chart path in the native Windows application.",
-            "Establish a bounded complete scan and normalized output size. A failed or over-limit scan must make partial coverage explicit or return no preview."
+            "Qualify large directory and source record limits in the native review workflow, including partial-coverage diagnostics."
           ]
         },
         "evolution": {
           "kind": "additive",
           "preserve": [
             "Explicit sample selection, source identity, original frozen historical reads and source rights.",
-            "Direct revision-ID opening and its unavailable and denied results."
+            "Direct revision-ID opening and its unavailable and denied results.",
+            "The normalized chart, original source bytes, and reviewed encoding, delimiter, and logical CSV record boundaries remain immutable for each single-file revision."
           ],
           "change": [
             "Add a separately authorized local-folder source with reviewable versioned mappings and snapshots.",
@@ -3152,10 +3177,13 @@
             "Stage a deterministic folder comparison against the immutable accepted v5 single-file revision. Apply the versioned saved mapping only when the ordered header and resolved series agree. Coalesce identical economic bars with every locator and preserve divergent alternatives and the prior bar for review. Show source replacement and withdrawal candidates without committing any.",
             "Add the v7 owned storage and ordered migration. Bind each accepted folder revision to its v5 anchor, persist reviewed source membership and every selected locator, and store an exact retry receipt in the same SQLite transaction.",
             "Check explicit per-row quantity unit, price adjustment and venue declarations against the reviewed mapping. Use private complete-source inspection to retain all same-file competing values and source locators. Show the reviewed series context with the comparison and keep strict normalization for single-file publication.",
-            "Bind explicit conflict choices and source and bar withdrawals to a private review. Publish a canonical chosen manifest under the final checked native handles, then return entitled exact receipts. Add frozen folder discovery, chart and source inspection, and independent display revocation through the existing local human workflow."
+            "Bind explicit conflict choices and source and bar withdrawals to a private review. Publish a canonical chosen manifest under the final checked native handles, then return entitled exact receipts. Add frozen folder discovery, chart and source inspection, and independent display revocation through the existing local human workflow.",
+            "Resolve one published source locator through the current profile and revision display entitlement. Parse retained bytes using the historical reviewed mapping, validate the returned digest, locator and header, and return original decoded fields within 64 KiB. Qualify both frozen presenters with their own source revision scope.",
+            "The local-folder-import gate exercises editable, genuinely parsed equity and futures CSVs, distinguishes declared dated and continuous native sources, and holds raw-only and incompatible inputs. It drives reviewed addition, aliases, correction, withdrawal, exact reply replay, final-source rejection and host interruption through the built desktop UI and retained profile. Isolate it from single-file publication, read-only folder staging and the SQLite crash-in-transaction control.",
+            "Point each current alias directly to a current path with equal bytes. Retain a matching accepted path as representative when available. Display matches to accepted fingerprints with a separate historical label using the existing preview and immutable snapshot formats."
           ],
-          "data_plan": "Keep source bytes, mapping, evidence locators and dataset revisions on the active profile. Migrate long-lived state through its owning Rust writer when publication is introduced. Integrate the profile writer and migration history from af89eff. Preserve workspace schema v1, decision notes v2 and backup and restore v3. Apply reviewed mapping schema v4 transactionally and verify both populated v3 databases and fresh initialization. Persist an opaque per-source association, ordered header digest and reviewed mapping. Derive folder access only from the current trusted selection. Add a transactional v4 to v5 migration owned by the existing profile writer. Test upgrade with populated workspace, decision-note and reviewed mapping data, plus new and reopened profiles. A failed or cancelled publication leaves previous revisions readable without rereading the folder. Recover a failed migration from the preserved pre-upgrade profile. Discover from existing immutable v5 records and revocation markers with no new persisted state. The read-only folder preview compares those same immutable publications in the joined v6 profile. Folder manifest persistence starts with the v7 migration. Apply v7 as additive schema in the existing immediate migration transaction, with no fabricated folder history for old single-file revisions. Exercise a populated v6 profile and an untouched recovery copy. Keep folder ownership local and store neither directory grants nor absolute source paths.",
-          "cleanup": "Cancel uncommitted staging on failure and close file handles when the selected folder or profile changes. Close the profile writer and cancel uncommitted mapping operations when the host shuts down. Release any uncommitted complete-file data after cancellation, changed bytes or write failure. Discard stale list pages on refresh and remove inaccessible entries after a raced selection. Keep the worker admission permit through the bounded cleanup. A failed cleanup never authorizes a replacement. Release the private staged files and cancel the current scan or parser on directory grant change or cancellation. The frozen source and its original remain available under existing display rights. Roll back uncommitted v7 rows, shared byte insertions and receipts on cancellation, stale guard, or abrupt process exit."
+          "data_plan": "Keep source bytes, mapping, evidence locators and dataset revisions on the active profile. Migrate long-lived state through its owning Rust writer when publication is introduced. Integrate the profile writer and migration history from af89eff. Preserve workspace schema v1, decision notes v2 and backup and restore v3. Apply reviewed mapping schema v4 transactionally and verify both populated v3 databases and fresh initialization. Persist an opaque per-source association, ordered header digest and reviewed mapping. Derive folder access only from the current trusted selection. Add a transactional v4 to v5 migration owned by the existing profile writer. Test upgrade with populated workspace, decision-note and reviewed mapping data, plus new and reopened profiles. A failed or cancelled publication leaves previous revisions readable without rereading the folder. Recover a failed migration from the preserved pre-upgrade profile. Discover from existing immutable v5 records and revocation markers with no new persisted state. The read-only folder preview compares those same immutable publications in the joined v6 profile. Folder manifest persistence starts with the v7 migration. Apply v7 as additive schema in the existing immediate migration transaction, with no fabricated folder history for old single-file revisions. Exercise a populated v6 profile and an untouched recovery copy. Keep folder ownership local and store neither directory grants nor absolute source paths. Read frozen raw fields on demand from existing single-file and folder lineage. Retain no new copies in storage or shared workspace records.",
+          "cleanup": "Cancel uncommitted staging on failure and close file handles when the selected folder or profile changes. Close the profile writer and cancel uncommitted mapping operations when the host shuts down. Release any uncommitted complete-file data after cancellation, changed bytes or write failure. Discard stale list pages on refresh and remove inaccessible entries after a raced selection. Keep the worker admission permit through the bounded cleanup. A failed cleanup never authorizes a replacement. Release the private staged files and cancel the current scan or parser on directory grant change or cancellation. The frozen source and its original remain available under existing display rights. Roll back uncommitted v7 rows, shared byte insertions and receipts on cancellation, stale guard, or abrupt process exit. Drop the transient source row on collapse, page change, replacement, or revocation. A failed read leaves the revision and its normalized chart intact."
         }
       }
     },
@@ -6565,6 +6593,846 @@
           ],
           "data_plan": "Use a unique local port and a controlled browser route or temporary synthetic profile.",
           "cleanup": "Detach pending listeners when an action fails. Consume or cancel owned HTTP response bodies and close the owned browser contexts."
+        }
+      }
+    },
+    {
+      "id": "M2-009",
+      "title": "Isolate the offline sample timeframe from the durable workspace",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-007"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/main.tsx",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ui/desktop-workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/delivery.json",
+        "contracts/reviews/2026-11-19-workspace-timeframe-scope.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0010",
+        "0011"
+      ],
+      "acceptance": [
+        "Through the real preview and Rust writer, an explicitly opened and labeled simulated sample can save 5m and restore it on refresh while the bound workspace retains its independent 1m revision and existing undo receipt.",
+        "Leaving the sample in the launched page restores the durable controls and permits the original undo through the fragment-scrubbed in-memory grant. Refreshing the scrubbed shell requires a new handoff to use durable controls.",
+        "The built desktop UI with opted-in substituted Tauri IPC routes sample controls to the sample preference and retains the private timeframe and undo on return. Unconfigured startup remains inert and keeps explicit sample opt-in."
+      ],
+      "checks": [
+        "project-state",
+        "architecture",
+        "python-contracts-workers",
+        "ui-build",
+        "market-workflow",
+        "rust-contracts-workers",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-009-0baed08382358263.json",
+          "sha256": "2984f4f38c88bcae1c14526c71784c39786f5896a41f04249a99b1057a51c287"
+        },
+        {
+          "path": "project/evidence/M2-009-ed6211b1605652bd.json",
+          "sha256": "65f5923a2d9d12f19257c4c1cbe12d69136a79e5026c607d94c3f745392e0604"
+        },
+        {
+          "path": "project/evidence/M2-009-4b235889ac15264c.json",
+          "sha256": "3b7ed3af43ff6da3347f9cd94b7cbf0a70ec1969c85f925fa41c6b90164c5668"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The active synthetic chart and private workspace have independent timeframe ownership across entry, leave and browser reload.",
+        "change_types": [
+          "ui",
+          "tooling"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-19-workspace-timeframe-scope.json",
+          "apps/desktop/ui/src/main.tsx",
+          "apps/desktop/ui/src/chart-workspace.tsx",
+          "apps/desktop/ui/src/sample-view.ts",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "The composed chart binds the local workspace controls while the sample is active. Giving the active source ownership of the controls keeps both stored states independent."
+        ],
+        "risks": [
+          {
+            "failure": "Opening the sample changes a durable revision or replaces the existing private undo.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "Leaving or refreshing the sample loses the expected timeframe, activates a private grant in a new browser document, or loses the grant in the original launched document.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport",
+              "market-workflow"
+            ]
+          }
+        ],
+        "rollback": "Retain red and green runs using isolated synthetic profiles. Revert the UI routing change on the task branch if the ordinary durable path or synthetic startup regresses.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/main.tsx",
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ui/desktop-workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "contracts/decisions/0010-reproducible-operations-and-acceptance.json",
+              "pointer": "/decision"
+            },
+            {
+              "path": "contracts/decisions/0011-local-profiles-and-connected-model-use.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Private decision notes, evidence selection, general operation replay, profile backup and migration recovery continue under their own development scope.",
+            "Keep the existing SQLite schema and local authorization contract. Native IPC substitution and portable Rust bridge tests leave installed Windows WebView acceptance to its own gate."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Explicit sample opt-in, existing sample preference format and leave behavior.",
+            "Private snapshot, durable write and undo through the same Rust registry and profile store.",
+            "Page-local preview grants and unconfigured startup without a private write path."
+          ],
+          "change": [
+            "Bind chart controls and sample reads to the selected source while retaining the existing local workspace session in the parent UI."
+          ],
+          "data_plan": "Reuse the public sample preference. Use temporary synthetic SQLite profiles for verification.",
+          "cleanup": "Remove generated synthetic profiles after their writers exit. Retain red and green reports with synthetic observations and keep launch grants out of artifacts."
+        }
+      }
+    },
+    {
+      "id": "M0-028",
+      "title": "Route delegated Herdr work through bounded approval policies",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-025"
+      ],
+      "scope": [
+        "scripts/herdr.py",
+        "tests/project/test_herdr.py",
+        "project"
+      ],
+      "decision_refs": [
+        "0007",
+        "0011"
+      ],
+      "acceptance": [
+        "The normal Herdr launcher sends implementation and coordination tasks to the automatic approval reviewer with the workspace-write sandbox. Review tasks use the read-only sandbox and return a denial directly. Both paths preserve the assigned checkout, model, reasoning effort and literal task.",
+        "Exercise the installed CLI through a real local Herdr session in a synthetic or task worktree. Retain the effective arguments and an independently checked outcome. Keep approval refusals visible to the coordinator."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-028-6db9900ad8dc0a0d.json",
+          "sha256": "13f544a77afbf39f7f633b35e4e9b76d0e054594652a1b367df47b2e69949438"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A bounded development assignment can finish routine work without a developer at each child terminal.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/development.json",
+          "project/delivery.json",
+          "scripts/herdr.py",
+          "tests/project/test_herdr.py"
+        ],
+        "hypotheses": [
+          "The launcher inherited interactive approvals for implementation and coordination. The installed CLI supports automatic review in its normal workspace sandbox."
+        ],
+        "risks": [
+          {
+            "failure": "A writer silently gains unrestricted access or a reviewer becomes writable.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A real policy refusal is hidden, or quoting the assignment changes its meaning.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Preserve the previous launcher commit and incomplete assignments in their existing worktrees. If the chosen CLI mode is unavailable, report the terminal failure and retain the task.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/herdr.py",
+            "tests/project/test_herdr.py"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/herdr"
+            },
+            {
+              "path": "contracts/decisions/0007-ai-led-development.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Changing global Codex settings, extending product-user permissions, or publishing a release."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Role-specific models, read-only review, current worktree selection, verbatim assignments, and the explicit local Herdr space."
+          ],
+          "change": [
+            "Route elevated development requests to the built-in automatic reviewer. Surface denials and missing inputs directly."
+          ],
+          "data_plan": "Use repository code and synthetic local probes. The launcher does not persist credentials or user content.",
+          "cleanup": "Only newly started sessions receive new launch arguments. Preserve pending work and retire coordinator-owned test sessions after verification."
+        }
+      }
+    },
+    {
+      "id": "M1-024",
+      "title": "Verify first native sample startup and its isolation from a private workspace",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M2-009"
+      ],
+      "scope": [
+        "pyproject.toml",
+        "uv.lock",
+        "project",
+        "crates/worker-host",
+        "python/worker_runtime",
+        "apps/desktop/src-tauri",
+        "contracts/reviews/2026-11-19-native-sample-startup.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0010"
+      ],
+      "acceptance": [
+        "An ordinary Windows development WebView opens the explicitly selected offline sample, displays the correct futures bars at 1m and 5m, and restores the 5m simulated chart in a new process. The same account retains the prior private workspace and can undo the original private change.",
+        "Retain the first native failure. Record the real executable, worker environment, observations and any unconfirmed cause. Compare relevant runtime changes in the same standard-user guest using the real default catalog and history requests.",
+        "Verify the shipped combination of source and pinned runtime through the normal entry, preserve schema format checks, worker cleanup, and existing production deadlines."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture",
+        "dependency-review",
+        "market-workflow",
+        "workspace-timeframe",
+        "desktop-workspace-transport",
+        "rust-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-024-c902a0ef0d560f59.json",
+          "sha256": "839f5d23e0fde66034a4a0bf9ffef4086c728024900c8eabf3245b139fae356d"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The normal private desktop can enter, persist and exit an explicit local sample without losing its original private undo.",
+        "change_types": [
+          "tooling",
+          "dependencies"
+        ],
+        "context": [
+          "pyproject.toml",
+          "crates/worker-host/src/market.rs",
+          "apps/desktop/src-tauri/src/bridge.rs",
+          "apps/desktop/ui/src/use-market-data.ts",
+          "contracts/reviews/2026-11-19-native-sample-startup.json"
+        ],
+        "hypotheses": [
+          "The old worker environment imports a format grammar that lengthens startup. The first GUI failure reported a timeout before the catalog appeared. Its underlying mechanism has not yet been isolated."
+        ],
+        "risks": [
+          {
+            "failure": "A faster partial run masks loss of the sample preference, the private undo, or a terminal worker error.",
+            "checks": [
+              "market-workflow",
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "Changing the validator dependencies drops an actively used wire format or leaves inconsistent locks.",
+            "checks": [
+              "python-contracts-workers",
+              "architecture",
+              "dependency-review",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the original executable, dependency lock, local guest artifacts and synthetic profiles. Restore the previous runtime after each diagnostic comparison.",
+        "implementation": {
+          "modules": [
+            "desktop",
+            "worker-host",
+            "worker-runtime",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "apps/desktop/src-tauri/src/bridge.rs",
+            "crates/worker-host/src/market.rs",
+            "python/worker_runtime/__main__.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Packaged distribution, physical-device experience and connected model sessions have separate gates."
+          ],
+          "open_questions": [
+            "Which native stage exceeded its budget during the original first launch?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Offline sample opt-in, its simulated badge and independent saved preferences.",
+            "Private workspace revisions, original undo receipts, configured format checks and bounded worker operations."
+          ],
+          "change": [
+            "Qualify the normal native sample startup on the integrated runtime and remove measured avoidable cold work."
+          ],
+          "data_plan": "Use only synthetic market data and an isolated development profile in a disposable Windows clone.",
+          "cleanup": "Close owned processes and retain the original source, runtime and diagnostic results separately."
+        }
+      }
+    },
+    {
+      "id": "M1-021",
+      "title": "Observe cold preview module startup and report terminal failures",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-019"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/market-quality.spec.mjs",
+        "tests/ui",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Verify that an ordinary loopback navigation mounts the unconfigured chart before the quality test opens its controls and sends zero market operations before opt-in.",
+        "A deliberately failed or unavailable first application module must fail startup within its own bounded stage, with the observed terminal reason and without navigation retries.",
+        "Retain the hosted failure and distinguish a locally reproduced readiness defect from any unresolved Windows-specific cause."
+      ],
+      "checks": [
+        "market-quality-states",
+        "ui-build",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-021-3189ca6944144955.json",
+          "sha256": "293b326a5911a39f7855d03e735eae06441d69f306dae531970a3616c8cce9e4"
+        },
+        {
+          "path": "project/evidence/M1-021-080bd752204ca4e1.json",
+          "sha256": "96b216d892bd17b73a8d5059d581516ed56eff2f3731fd60bcc25054deb80927"
+        },
+        {
+          "path": "project/evidence/M1-021-28b425d808c6d1a6.json",
+          "sha256": "ee68c1cb3ce9c7999ed4f38cd04ccdd719f009dcbec97f5b9257b68c0c2adca9"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The bounded readiness and terminal diagnostics passed the local harness. The hosted Windows startup incident remains open until a later instrumented run exposes its terminal reason.",
+      "plan": {
+        "outcome": "A market quality check verifies a rendered chart before interacting with Data sources and reports the first observable startup failure instead of waiting for an absent control.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/market-quality.spec.mjs",
+          "tests/ui/workspace-controls.mjs",
+          "apps/desktop/ui/index.html",
+          "apps/desktop/ui/src/main.tsx",
+          "apps/desktop/ui/vite.config.ts"
+        ],
+        "hypotheses": [
+          "The artifact shows an unmounted chart before any market selection. HTML navigation alone cannot establish whether the application module loaded and React rendered.",
+          "The artifact does not identify a failed module, JavaScript exception, or browser/host fault. A controlled module fault can verify the harness separately from the unresolved Windows cause."
+        ],
+        "risks": [
+          {
+            "failure": "A failed or hung app mount is treated as a pass, retried invisibly, or lost in a whole-test locator timeout.",
+            "checks": [
+              "market-quality-states"
+            ]
+          },
+          {
+            "failure": "A startup diagnostic exposes uncontrolled URLs or replaces the real market checks.",
+            "checks": [
+              "market-quality-states"
+            ]
+          }
+        ],
+        "rollback": "Retain run 44546526143 and the controlled failures. Revert any unverified runtime change and keep the Windows observation open.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/market-quality.spec.mjs",
+            "tests/ui/workspace-controls.mjs",
+            "apps/desktop/ui/index.html",
+            "apps/desktop/ui/src/main.tsx"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Production retries or timeout changes, chart behavior changes, packaged Windows acceptance, and assuming a root cause from a screenshot."
+          ],
+          "open_questions": [
+            "Which first-page event caused the unmounted chart on the hosted Windows runner?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Real loopback chart boot and worker operations, default no-market-call checks, and all quality assertions."
+          ],
+          "change": [
+            "Separate page navigation from observable application readiness and preserve bounded diagnostics on a terminal startup failure."
+          ],
+          "data_plan": "Use only synthetic test content and same-origin resource classifications.",
+          "cleanup": "Detach startup observers after the readiness outcome and leave the test browser to its existing teardown."
+        }
+      }
+    },
+    {
+      "id": "M1-022",
+      "title": "Report sample startup transport terminals and isolate injected recovery controls",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-018",
+        "M1-019",
+        "M1-021"
+      ],
+      "scope": [
+        "tests/ui/sample-startup.mjs",
+        "tests/ubuntu-preview/market-recovery-ui.spec.mjs",
+        "tests/ubuntu-preview/market-recovery-ui.config.mjs",
+        "project/checks.json",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "The shared startup check reports an observed navigation failure, catalog or history transport failure, or rejected operation during that stage, without automatic retries or changes to market UI failure behavior.",
+        "Verify one unmodified loopback baseline through the ordinary catalog, history, preparation and replay. Reuse same-run synthetic responses for exact matching futures requests in injected protocol controls, preserving every protocol assertion and the real stock replacement.",
+        "Run real closed-bar repair and worker interruption checks. Retain the hosted incident and state which underlying connection cause and Windows verification remain unresolved."
+      ],
+      "checks": [
+        "market-recovery-ui",
+        "market-recovery",
+        "market-worker-interruption",
+        "market-live-stream",
+        "market-quality-states",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-022-ea6bcbb84486e82e.json",
+          "sha256": "03cc167aa12699fe16bf0af09a331fb638a1d9f890d64c77544c77e478a1b5a1"
+        },
+        {
+          "path": "project/evidence/M1-022-080bd752204ca4e1.json",
+          "sha256": "d90304f2ab2312f111554f78fc458cd11e26ff32830edb6820aef4a9108ee228"
+        },
+        {
+          "path": "project/evidence/M1-022-28b425d808c6d1a6.json",
+          "sha256": "0380bc1df117580ee13f934ad259ed2984ffde4d965e23346eba956f056e194e"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The Linux task harness verified the diagnostic regression, shared synthetic baseline and both real recovery gates. The original hosted connection cause remains unconfirmed, and this revision has not run on Windows.",
+      "plan": {
+        "outcome": "Expose the actual startup terminal and make injected recovery coverage independent of repeated worker startups.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ui/sample-startup.mjs",
+          "tests/ubuntu-preview/market-recovery-ui.spec.mjs",
+          "tests/ubuntu-preview/market-recovery-ui.config.mjs",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "The hosted workspace mounted and then lost catalog startup. Response-only polling hides a Playwright requestfailed terminal.",
+          "The injected protocol controls can share an exact same-run synthetic baseline while real loopback and recovery coverage remain independent."
+        ],
+        "risks": [
+          {
+            "failure": "Navigation, a transport failure, or a non-BUSY rejection is reported as a generic stage deadline.",
+            "checks": [
+              "market-recovery-ui"
+            ]
+          },
+          {
+            "failure": "A fixture masks request drift or replaces real recovery or interruption evidence.",
+            "checks": [
+              "market-recovery-ui",
+              "market-recovery",
+              "market-worker-interruption",
+              "market-live-stream",
+              "market-quality-states"
+            ]
+          }
+        ],
+        "rollback": "Retain the original hosted failure and staged negative evidence. Keep real gates unchanged if fixture isolation cannot preserve their coverage.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ui/sample-startup.mjs",
+            "tests/ubuntu-preview/market-recovery-ui.spec.mjs",
+            "tests/ubuntu-preview/market-recovery-ui.config.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Production connection policies, retries, market data changes and packaged Windows acceptance."
+          ],
+          "open_questions": [
+            "The published Windows artifacts do not establish which connection error occurred."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Financial assertions, request sequencing, exact BUSY admission, frozen provenance and both real recovery gates."
+          ],
+          "change": [
+            "Observe early terminal outcomes during startup and capture one verified loopback baseline for the injected futures cases."
+          ],
+          "data_plan": "Keep only same-run synthetic responses in test worker memory and use ordinary sanitized reports.",
+          "cleanup": "Close the baseline page and its context after capture. Let Playwright dispose of each case's routes and fixture context."
+        }
+      }
+    },
+    {
+      "id": "M1-023",
+      "title": "Show workspace startup and offer manual recovery before the application mounts",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-021"
+      ],
+      "scope": [
+        "apps/desktop/ui/index.html",
+        "apps/desktop/ui/public",
+        "apps/desktop/ui/src/main.tsx",
+        "apps/desktop/ui/src/style.css",
+        "tests/ubuntu-preview/market-quality.spec.mjs",
+        "project"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "An already delivered desktop or preview document shows an accessible startup state when its application entry fails or remains pending. The user can explicitly reload the same location and reach the ordinary workspace once the entry is available.",
+        "A healthy mount replaces the startup state. Failed and pending entries issue zero market operations and perform no automatic navigation. Startup verification still requires a real chart workspace and reports its original terminal failure.",
+        "Retain the original hosted screenshot and distinguish the historical trigger from the verified rendered-document behavior."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "ui-build",
+        "market-workflow",
+        "market-quality-states"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-023-68b382a58f0aeec4.json",
+          "sha256": "76313198a348202a81afab8f630827635d2ffcf4fede72d078c7b448967c388b"
+        },
+        {
+          "path": "project/evidence/M1-023-a5e300dd1915516d.json",
+          "sha256": "d82b57d913e3ba2231a0114ee2ac6b4b446aff1d415bab3b4809e832d7c21568"
+        },
+        {
+          "path": "project/evidence/M1-023-2d2836848cd36439.json",
+          "sha256": "c3175073fc1e30f945a3f399633d17addb53d3ed5626a2c0ee2d80bf9fce9377"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The delivered startup panel, manual reload, module failure and ordinary chart journey passed on hosted Ubuntu and Windows in run 44573777675. The mechanism behind the earlier blank Windows screenshot remains undetermined.",
+      "plan": {
+        "outcome": "A person can see and recover from an unmounted workspace even while its main JavaScript module is unavailable.",
+        "change_types": [
+          "ui",
+          "tooling"
+        ],
+        "context": [
+          "apps/desktop/ui/index.html",
+          "apps/desktop/ui/src/main.tsx",
+          "apps/desktop/src-tauri/tauri.conf.json",
+          "tests/ubuntu-preview/market-quality.spec.mjs",
+          "tests/ui/workspace-controls.mjs"
+        ],
+        "hypotheses": [
+          "The HTML document currently supplies an empty root. A controlled failure of the first application module leaves no visible workspace or recovery action. The old hosted screenshot alone cannot identify a particular failed request."
+        ],
+        "risks": [
+          {
+            "failure": "The startup notice is mistaken for a mounted chart or causes background navigation, market traffic or an opaque error.",
+            "checks": [
+              "market-quality-states"
+            ]
+          },
+          {
+            "failure": "Reload loses the current location or the fallback remains in the loaded application.",
+            "checks": [
+              "ui-build",
+              "market-workflow",
+              "market-quality-states"
+            ]
+          }
+        ],
+        "rollback": "Keep the bounded diagnostic tests and earlier failure reports. Revert the startup markup and helper together if ordinary mounting regresses.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/index.html",
+            "apps/desktop/ui/src/main.tsx",
+            "tests/ubuntu-preview/market-quality.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Replacing the desktop host, increasing worker timeouts or diagnosing the historical Windows incident from a screenshot."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "The active URL, explicit sample opt-in, default idle workspace, existing Content Security Policy and independent market worker deadlines."
+          ],
+          "change": [
+            "Provide startup status independently of the application bundle and a user-initiated retry."
+          ],
+          "data_plan": "Keep startup state in this document. The recovery control only reloads the current location.",
+          "cleanup": "The successful React mount replaces the temporary markup. Recover by explicitly reloading the same document."
+        }
+      }
+    },
+    {
+      "id": "M1-025",
+      "title": "Verify selected sample history after a loopback interruption",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-001",
+        "M1-022"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/market-workflow.spec.mjs",
+        "tests/ubuntu-preview/market-workflow.config.mjs",
+        "tests/ubuntu-preview/market-quality.spec.mjs",
+        "tests/ui",
+        "apps/desktop/ui/ubuntu-preview.mjs",
+        "apps/desktop/ui/src/market.ts",
+        "apps/desktop/ui/src/use-market-data.ts",
+        "project"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0010"
+      ],
+      "acceptance": [
+        "On an explicit symbol and timeframe change, distinguish the selected history request and any prior cancelled request. A terminal transport or provider result remains attributable to that selection and is observed without waiting for a missing canvas.",
+        "An interrupted selected history read exposes the reason and the explicit retry control. The ordinary retry restores the correct coverage, chart and values through the live loopback Rust worker for that same selection. Preserve unconfigured startup, existing healthy three-instrument canvas assertions and bounded deadlines.",
+        "Retain the Windows main run, a discriminating synthetic control and a source-matched healthy real workflow. Record the first failing stage and any remaining uncertainty in the historical Windows event."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "ui-build",
+        "market-workflow",
+        "market-quality-states",
+        "market-live-stream"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-025-482421467bcd112c.json",
+          "sha256": "e4743052a91a21dd653e1e355c4580e9848f7707b91083af2103cbf35fb87e9b"
+        },
+        {
+          "path": "project/evidence/M1-025-c02d0de076347728.json",
+          "sha256": "d4c79630aaf35ab3bed312aa551f882b76c8fd8648f20e8e9681d6b7302a8575"
+        },
+        {
+          "path": "project/evidence/M1-025-962ef42dfbc36cfa.json",
+          "sha256": "3f1aa33115327426f62fe4814ee098bcc0ff52551c045070215cf25d83d2b00c"
+        },
+        {
+          "path": "project/evidence/M1-025-68f786fececa2dca.json",
+          "sha256": "0ecafd3da25c56b362cb19bda4d41786d8eed0556d48c6c46e6324a9bd2d93a6"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The user can recover a correctly attributed failed stock history selection and render its original five-minute line and volume values.",
+        "change_types": [
+          "tooling",
+          "ui"
+        ],
+        "context": [
+          "project/feedback.json",
+          "apps/desktop/ui/src/market.ts",
+          "apps/desktop/ui/src/use-market-data.ts",
+          "apps/desktop/ui/ubuntu-preview.mjs",
+          "tests/ubuntu-preview/market-workflow.spec.mjs",
+          "tests/ubuntu-preview/market-quality.spec.mjs"
+        ],
+        "hypotheses": [
+          "Windows run 44581311289 at dcafca35796318669c721c53f1a7bff55ef5e46a completed the CN futures step. Its CN stock 5m close-price line screenshot shows Retry history and the current selection's untyped disconnect alert. The canvas assertion timed out after 5000 ms. Playwright was configured without trace and the retained output contains no request, response or bridge admission event. The original socket code and host stage remain unknown.",
+          "A completed non-2xx response without a typed error envelope can reproduce the old disconnect alert without a socket failure. Keep it distinct from a rejected fetch or body transfer. Ignore only cancellation of an obsolete selection whose own signal was aborted."
+        ],
+        "risks": [
+          {
+            "failure": "An old request or an automatic retry hides the failed selected request or paints another series.",
+            "checks": [
+              "market-workflow",
+              "market-quality-states"
+            ]
+          },
+          {
+            "failure": "A substitute response or a larger timeout hides a defect in the real chart, worker or explicit retry.",
+            "checks": [
+              "market-workflow",
+              "market-live-stream"
+            ]
+          }
+        ],
+        "rollback": "Keep the hosted failure and original three-instrument path. Revert a stage change if it hides transport or worker failures.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/market.ts",
+            "apps/desktop/ui/src/use-market-data.ts",
+            "apps/desktop/ui/ubuntu-preview.mjs",
+            "tests/ubuntu-preview/market-workflow.spec.mjs",
+            "tests/ubuntu-preview/market-quality.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Real financial providers and installed desktop acceptance have separate entries."
+          ],
+          "open_questions": [
+            "The original browser transport event and matching host stage were not retained. A source-matched hosted run can verify the repair and capture stages if the Windows symptom recurs."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "User-selected symbol, timeframe, chart style and existing bounded market operations.",
+            "The current explicit retry and all independent financial assertions."
+          ],
+          "change": [
+            "Use a correlated test-only history trace and fail the normal three-instrument journey at the first unexpected selected terminal.",
+            "Report a completed untyped HTTP failure separately from transport loss. Interrupt a selected stock response in an isolated control and verify an explicit retry through the real worker."
+          ],
+          "data_plan": "Use the existing simulated source and disposable local fixtures.",
+          "cleanup": "Keep failed and successful logs and remove temporary listeners with their request scopes."
         }
       }
     }
