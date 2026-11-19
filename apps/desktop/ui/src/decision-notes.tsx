@@ -9,8 +9,9 @@ import {
 import { readWorkspaceSnapshot, type LocalWorkspace } from './use-local-workspace';
 import { WorkspaceIcon } from './workspace-icons';
 
-type Page = { noteId: string | null; offset: number; revision: number | undefined; epoch: number; data: DecisionNoteReadOutput };
+type Page = { noteId: string | null; offset: number; revision: number; epoch: number; data: DecisionNoteReadOutput };
 type Editor = 'note' | 'outcome';
+type OutcomeDraft = { noteId: string; observed_on: string; outcome: string };
 type PendingAction = { kind: 'note'; note: PreparedNote } | { kind: 'restore'; restore: PreparedRestore };
 
 const actions = {
@@ -26,7 +27,7 @@ function failureMessage(error: unknown) {
     case 'DATA_UNAVAILABLE': return 'This decision note is unavailable.';
     case 'PERMISSION_DENIED': return 'This decision note action is no longer authorized.';
     case 'BUSY': return 'The local workspace is busy. Try again.';
-    case 'RESOURCE_LIMIT': return 'The decision note exceeds a workspace limit.';
+    case 'RESOURCE_LIMIT': return 'This action exceeds the size or record limit for a complete decision-note backup.';
     case 'INVALID_ARGUMENT': return 'Check the dates and text. A later outcome needs a date after the original decision.';
     case 'CANCELLED': return 'The action was cancelled.';
     default: return 'The local workspace could not verify the result.';
@@ -37,7 +38,7 @@ function backupFailureMessage(error: unknown) {
   switch (noteErrorCode(error)) {
     case 'INVALID_ARGUMENT': return 'Choose a valid ScopeHub decision-note backup file.';
     case 'PERMISSION_DENIED': return 'This backup or action is unavailable for the current local profile.';
-    case 'RESOURCE_LIMIT': return 'The decision-note backup exceeds the size limit.';
+    case 'RESOURCE_LIMIT': return 'The selected file or resulting backup exceeds the size or record limit.';
     default: return failureMessage(error);
   }
 }
@@ -105,18 +106,20 @@ function NoteEditor({ disabled, onReview, onDiscard }: {
   </form>;
 }
 
-function OutcomeEditor({ note, disabled, onReview, onDiscard }: {
-  note: DecisionNoteOriginal; disabled: boolean; onReview: (intent: NoteIntent) => void; onDiscard: () => void;
+function OutcomeEditor({ note, draft, disabled, onChange, onReview, onDiscard }: {
+  note: DecisionNoteOriginal; draft: OutcomeDraft; disabled: boolean;
+  onChange: (draft: OutcomeDraft) => void; onReview: (intent: NoteIntent) => void; onDiscard: () => void;
 }) {
   return <form autoComplete="off" onSubmit={event => {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    onReview({ operation: 'decisionNote.appendOutcome', arguments: { observed_on: text(form, 'date'), outcome: text(form, 'body') } });
+    onReview({ operation: 'decisionNote.appendOutcome', arguments: { observed_on: draft.observed_on, outcome: draft.outcome } });
   }}>
     <fieldset className="note-fields" disabled={disabled}>
       <legend>Later outcome</legend>
-      <label>Outcome date<input name="date" type="date" required min={note.decided_on} defaultValue={localDate()} /></label>
-      <label>Outcome<textarea name="body" required maxLength={2048} rows={3} spellCheck={false} /></label>
+      <label>Outcome date<input name="date" type="date" required min={note.decided_on} value={draft.observed_on}
+        onChange={event => onChange({ ...draft, observed_on: event.target.value })} /></label>
+      <label>Outcome<textarea name="body" required maxLength={2048} rows={3} spellCheck={false} value={draft.outcome}
+        onChange={event => onChange({ ...draft, outcome: event.target.value })} /></label>
       <div className="note-actions">
         <button className="primary" type="submit">Review later outcome</button>
         <button className="secondary-button" type="button" onClick={onDiscard}>Discard draft</button>
@@ -138,14 +141,20 @@ function OriginalDecision({ note }: { note: DecisionNoteOriginal }) {
   </section>;
 }
 
+function lostNoteSession(fault: unknown) {
+  const code = noteErrorCode(fault);
+  return fault instanceof TypeError || code === 'PERMISSION_DENIED' || code === 'WORKER_EXITED' || code === 'CANCELLED';
+}
+
 export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspace; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const cancelApproval = useRef<HTMLButtonElement>(null);
   const active = useRef<AbortController | null>(null);
-  const detailProbe = useRef<ReturnType<typeof readWorkspaceSnapshot> | null>(null);
+  const projectionProbe = useRef<ReturnType<typeof readWorkspaceSnapshot> | null>(null);
   const pageEpoch = useRef(0);
   const [page, setPage] = useState<Page>();
   const [editor, setEditor] = useState<Editor>();
+  const [outcomeDraft, setOutcomeDraft] = useState<OutcomeDraft>();
   const [prepared, setPrepared] = useState<PendingAction>();
   const [uncertain, setUncertain] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -160,6 +169,14 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
     setPage(undefined);
   }, []);
 
+  const clearSelection = useCallback(() => {
+    setEditor(undefined);
+    setOutcomeDraft(undefined);
+    setPrepared(undefined);
+    setUncertain(false);
+    setNotice('');
+  }, []);
+
   const run = useCallback((work: (signal: AbortSignal) => Promise<void>, formatError: (fault: unknown) => string = failureMessage) => {
     if (active.current) return;
     const controller = new AbortController();
@@ -168,7 +185,7 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
     setError('');
     void (async () => {
       // A liveness check already admitted to the writer owns its reply slot.
-      await detailProbe.current?.catch(() => undefined);
+      await projectionProbe.current?.catch(() => undefined);
       controller.signal.throwIfAborted();
       await work(controller.signal);
     })().catch(fault => {
@@ -182,12 +199,27 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
 
   const load = useCallback(async (noteId: string | null, offset: number, signal: AbortSignal, atRevision?: number) => {
     if (!workspaceId) return;
-    // Capture the revision first so a concurrent commit cannot label an old
-    // detail body with a newer revision.
-    const revision = noteId === null ? undefined : atRevision ?? (await readWorkspaceSnapshot(signal)).workspace.revision;
-    const data = await readNotes(workspaceId, noteId, offset, signal);
-    if (!signal.aborted) setPage({ noteId, offset, revision, epoch: ++pageEpoch.current, data });
-  }, [workspaceId]);
+    // Capture the revision first so a concurrent commit cannot label old
+    // content or an old list as current.
+    try {
+      const revision = atRevision ?? (await readWorkspaceSnapshot(signal)).workspace.revision;
+      const data = await readNotes(workspaceId, noteId, offset, signal);
+      if (!signal.aborted) setPage({ noteId, offset, revision, epoch: ++pageEpoch.current, data });
+    } catch (fault) {
+      if (signal.aborted) return;
+      if (lostNoteSession(fault)) {
+        discardPage();
+        clearSelection();
+      } else if (noteId !== null && noteErrorCode(fault) === 'DATA_UNAVAILABLE') {
+        discardPage();
+        clearSelection();
+        const revision = (await readWorkspaceSnapshot(signal)).workspace.revision;
+        const data = await readNotes(workspaceId, null, 0, signal);
+        if (!signal.aborted) setPage({ noteId: null, offset: 0, revision, epoch: ++pageEpoch.current, data });
+      }
+      throw fault;
+    }
+  }, [clearSelection, discardPage, workspaceId]);
 
   useEffect(() => {
     const modal = dialog.current;
@@ -202,42 +234,31 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
   }, [load, run]);
 
   useEffect(() => {
-    if (!page?.noteId || page.revision === undefined) return;
+    if (!page) return;
     const controller = new AbortController();
     const isCurrent = () => !controller.signal.aborted && pageEpoch.current === page.epoch;
-    const clearSelection = () => {
-      setEditor(undefined);
-      setPrepared(undefined);
-      setUncertain(false);
-      setNotice('');
-    };
     const check = () => {
-      if (!isCurrent() || workspace.pending || active.current || detailProbe.current) return;
+      if (!isCurrent() || workspace.pending || active.current || projectionProbe.current) return;
       const probe = readWorkspaceSnapshot(controller.signal);
-      detailProbe.current = probe;
+      projectionProbe.current = probe;
       void probe.then(snapshot => {
         if (!isCurrent() || active.current || snapshot.workspace.revision === page.revision) return;
         run(async signal => {
           if (!isCurrent()) return;
           discardPage();
-          try {
-            await load(page.noteId, page.offset, signal, snapshot.workspace.revision);
-          } catch (fault) {
-            if (signal.aborted || noteErrorCode(fault) !== 'DATA_UNAVAILABLE') throw fault;
-            clearSelection();
-            await load(null, 0, signal);
-          }
+          // An unsubmitted draft belongs to the editor. A prepared approval belongs to its revision.
+          if (!uncertain) setPrepared(undefined);
+          await load(page.noteId, page.offset, signal, snapshot.workspace.revision);
         });
       }, fault => {
         if (!isCurrent()) return;
-        const code = noteErrorCode(fault);
-        if (fault instanceof TypeError || code === 'PERMISSION_DENIED' || code === 'WORKER_EXITED' || code === 'CANCELLED') {
+        if (lostNoteSession(fault)) {
           discardPage();
           clearSelection();
           setError(failureMessage(fault));
         }
       }).finally(() => {
-        if (detailProbe.current === probe) detailProbe.current = null;
+        if (projectionProbe.current === probe) projectionProbe.current = null;
       });
     };
     const timer = window.setInterval(check, 1_000);
@@ -249,7 +270,7 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
       window.removeEventListener('focus', check);
       document.removeEventListener('visibilitychange', check);
     };
-  }, [discardPage, load, page, run, workspace.pending]);
+  }, [clearSelection, discardPage, load, page, run, uncertain, workspace.pending]);
 
   useEffect(() => { if (prepared && !busy) cancelApproval.current?.focus(); }, [prepared, busy]);
 
@@ -259,10 +280,10 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
   }
 
   function review(noteId: string, intent: NoteIntent) {
-    if (!snapshot || workspace.pending || workspace.error) return;
+    if (!workspaceId || !page || workspace.pending || workspace.error) return;
     setNotice('');
     run(async signal => {
-      const action = await prepareNote(snapshot.workspace.id, snapshot.workspace.revision, noteId, intent, signal);
+      const action = await prepareNote(workspaceId, page.revision, noteId, intent, signal);
       if (!signal.aborted) setPrepared({ kind: 'note', note: action });
     });
   }
@@ -281,10 +302,10 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
   function selectBackup(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0];
     event.currentTarget.value = '';
-    if (!file || !snapshot) return;
+    if (!file || !workspaceId || !page) return;
     setNotice('');
     run(async signal => {
-      const restore = await previewNoteRestore(file, snapshot.workspace.id, snapshot.workspace.revision, signal);
+      const restore = await previewNoteRestore(file, workspaceId, page.revision, signal);
       if (!signal.aborted) setPrepared({ kind: 'restore', restore });
     }, backupFailureMessage);
   }
@@ -322,6 +343,7 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
       setPrepared(undefined);
       setUncertain(false);
       setEditor(undefined);
+      setOutcomeDraft(undefined);
       if (close) { onClose(); return; }
       if (decision === 'decline') { setNotice(restoring ? 'Restore cancelled.' : 'Action cancelled.'); return; }
       setNotice(operation ? actions[operation].done : 'Decision-note backup restored.');
@@ -357,19 +379,24 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
       {error && <p className="note-error" role="alert">{error}</p>}
       {(workspace.error || error.startsWith('The workspace changed.')) && <button type="button" className="secondary-button"
         disabled={busy || Boolean(workspace.pending)} onClick={workspace.reload}>Reload workspace state</button>}
-      {!page && !editor && !prepared && (busy ? <p role="status">Loading decision notes…</p>
-        : <button type="button" className="secondary-button" onClick={() => navigate(null)}>Reload decision notes</button>)}
+      {!page && !prepared && (busy ? <p role="status">Loading decision notes…</p>
+        : <button type="button" className="secondary-button" onClick={() => navigate(outcomeDraft?.noteId ?? null)}>Reload decision notes</button>)}
       {page && !editor && !prepared && (note ? <div className="note-actions">
         <button type="button" className="secondary-button" disabled={busy} onClick={() => navigate(null)}>All decision notes</button>
-        <button type="button" className="secondary-button" disabled={editingBlocked} onClick={() => setEditor('outcome')}>Add later outcome</button>
+        <button type="button" className="secondary-button" disabled={editingBlocked} onClick={() => {
+          setOutcomeDraft({ noteId: note.note_id, observed_on: localDate(), outcome: '' });
+          setEditor('outcome');
+        }}>Add later outcome</button>
         <button type="button" className="secondary-button" disabled={editingBlocked}
           onClick={() => review(note.note_id, { operation: 'decisionNote.delete', arguments: {} })}>Review deletion</button>
       </div> : <button type="button" className="primary" disabled={editingBlocked} onClick={() => setEditor('note')}>New decision note</button>)}
       {editor === 'note' && <NoteEditor disabled={editingBlocked} onDiscard={() => { setEditor(undefined); setError(''); }}
         onReview={args => review(crypto.randomUUID(), { operation: 'decisionNote.save', arguments: args })} />}
       {note && <OriginalDecision note={note} />}
-      {editor === 'outcome' && note && <OutcomeEditor note={note} disabled={editingBlocked}
-        onDiscard={() => { setEditor(undefined); setError(''); }} onReview={intent => review(note.note_id, intent)} />}
+      {editor === 'outcome' && note && outcomeDraft?.noteId === note.note_id && <OutcomeEditor note={note} draft={outcomeDraft}
+        disabled={editingBlocked} onChange={setOutcomeDraft}
+        onDiscard={() => { setEditor(undefined); setOutcomeDraft(undefined); setError(''); }}
+        onReview={intent => review(note.note_id, intent)} />}
       {action && <section className="note-approval" aria-label="Confirm action">
         <h3>{action.title}</h3>
         {uncertain && <p>The save or deletion may have completed. Retry to recover its result.</p>}

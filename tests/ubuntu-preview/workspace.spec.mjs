@@ -363,6 +363,124 @@ test('decision-note backup restore previews known deletions and independent copi
   }
 });
 
+test('decision-note draft keeps its text and date across peer timeframe changes', async ({ browser }) => {
+  const profile = await makeProfile();
+  const fixture = { date: '2026-02-03', thesis: 'Synthetic decision for a pending outcome', choice: 'Wait', outcomes: [] };
+  const draft = 'Synthetic unsubmitted reflection';
+  const date = '2026-04-09';
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        await control(page, 'Decision notes').click();
+        await saveBackupTestNote(page.getByRole('dialog', { name: 'Decision notes' }), fixture);
+      });
+      await inFreshBrowser(browser, server, async observer => {
+        await control(observer, 'Decision notes').click();
+        const notes = observer.locator('dialog.decision-dialog');
+        await assertBackupTestNote(notes, fixture);
+        await notes.getByRole('button', { name: 'Add later outcome' }).click();
+        const outcome = notes.locator('textarea[name="body"]');
+        const outcomeDate = notes.locator('input[name="date"]');
+        await outcome.fill(draft);
+        await outcomeDate.fill(date);
+
+        await inFreshBrowser(browser, server, async peer => {
+          const reloaded = observer.waitForResponse(mutationResponse('decisionNote.read'), { timeout: 10_000 });
+          expect((await act(peer, '5m', 'chart.setTimeframe')).result.outcome.state).toBe('committed');
+          await observer.bringToFront();
+          await reloaded;
+          await expect(outcome).toHaveValue(draft);
+          await expect(outcomeDate).toHaveValue(date);
+
+          await notes.getByRole('button', { name: 'Review later outcome' }).click();
+          const approval = notes.getByRole('button', { name: 'Save later outcome' });
+          await expect(approval).toBeVisible();
+          await peer.bringToFront();
+          expect((await act(peer, '1d', 'chart.setTimeframe')).result.outcome.state).toBe('committed');
+          await observer.bringToFront();
+          await expect(approval).toHaveCount(0);
+          await expect(outcome).toHaveValue(draft);
+          await expect(outcomeDate).toHaveValue(date);
+        });
+
+        await notes.getByRole('button', { name: 'Review later outcome' }).click();
+        await notes.getByRole('button', { name: 'Save later outcome' }).click();
+        await expect(notes.getByRole('region', { name: 'Later outcomes' }).getByText(draft)).toBeVisible();
+        await expect(notes.getByRole('region', { name: 'Later outcomes' }).getByText(date)).toBeVisible();
+        await notes.getByRole('button', { name: 'Add later outcome' }).click();
+        const deletedDraft = 'Synthetic draft to remove on peer deletion';
+        await outcome.fill(deletedDraft);
+        await inFreshBrowser(browser, server, async peer => {
+          await control(peer, 'Decision notes').click();
+          await deleteBackupTestNote(peer.getByRole('dialog', { name: 'Decision notes' }), fixture.date);
+          await observer.bringToFront();
+          await expect(outcome).toHaveCount(0);
+          await expect(notes.getByText(fixture.thesis)).toHaveCount(0);
+          await expect(notes.getByText(draft)).toHaveCount(0);
+          await expect(notes.getByText('No saved decision notes.')).toBeVisible();
+        });
+      });
+    });
+  } finally {
+    await profile.close();
+  }
+});
+
+test('decision-note list removes peer deletions after focus and a rejected detail read', async ({ browser }) => {
+  const profile = await makeProfile();
+  const first = { date: '2026-02-03', thesis: 'Synthetic note removed while a list stays open', choice: 'Wait', outcomes: [] };
+  const second = { date: '2026-02-04', thesis: 'Synthetic note removed before its detail read', choice: 'Wait', outcomes: [] };
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        await control(page, 'Decision notes').click();
+        const notes = page.getByRole('dialog', { name: 'Decision notes' });
+        await saveBackupTestNote(notes, first);
+        await saveBackupTestNote(notes, second);
+      });
+      await inFreshBrowser(browser, server, async observer => {
+        await control(observer, 'Decision notes').click();
+        const notes = observer.getByRole('dialog', { name: 'Decision notes' });
+        const firstRow = notes.getByRole('button', { name: new RegExp(first.date) });
+        const secondRow = notes.getByRole('button', { name: new RegExp(second.date) });
+        await expect(firstRow).toBeVisible();
+        await expect(secondRow).toBeVisible();
+        await inFreshBrowser(browser, server, async peer => {
+          await control(peer, 'Decision notes').click();
+          const peerNotes = peer.getByRole('dialog', { name: 'Decision notes' });
+          await deleteBackupTestNote(peerNotes, first.date);
+          await observer.evaluate(() => window.dispatchEvent(new Event('focus')));
+          await expect(firstRow).toHaveCount(0);
+          await expect(secondRow).toBeVisible();
+
+          const intercepted = Promise.withResolvers();
+          const resume = Promise.withResolvers();
+          await observer.route(server.url + endpoint, async route => {
+            const intent = route.request().postDataJSON()?.intent;
+            if (intent?.operation === 'decisionNote.read' && intent.arguments.note_id !== null) {
+              intercepted.resolve();
+              await resume.promise;
+            }
+            await route.continue();
+          });
+          await secondRow.click();
+          try {
+            await intercepted.promise;
+            await deleteBackupTestNote(peerNotes, second.date);
+          } finally {
+            resume.resolve();
+          }
+          await expect(notes.getByText('This decision note is unavailable.')).toBeVisible();
+          await expect(secondRow).toHaveCount(0);
+          await expect(notes.getByText('No saved decision notes.')).toBeVisible();
+        });
+      });
+    });
+  } finally {
+    await profile.close();
+  }
+});
+
 test('the opted-in route binds identity, limits input, and drains cancellation without replaying after EOF', async () => {
   const profile = await makeProfile();
   const port = await freePort();
@@ -817,6 +935,13 @@ async function saveBackupTestNote(notes, fixture) {
     await notes.getByRole('button', { name: 'Save later outcome' }).click();
   }
   await notes.getByRole('button', { name: 'All decision notes' }).click();
+}
+
+async function deleteBackupTestNote(notes, date) {
+  await notes.getByRole('button', { name: new RegExp(date) }).click();
+  await notes.getByRole('button', { name: 'Review deletion' }).click();
+  await notes.getByRole('button', { name: 'Delete decision note' }).click();
+  await expect(notes.getByText('Decision note deleted.')).toBeVisible();
 }
 
 async function assertBackupTestNote(notes, fixture) {
