@@ -19,19 +19,17 @@ export const sampleHistoryCall = (timeframe = '1m') => ({
   },
 });
 
-export async function openDefaultSample(page, {
-  trigger = () => page.goto('/#demo', { waitUntil: 'domcontentloaded', timeout: 10_000 }),
-  verifyChart,
-} = {}) {
-  const historyCall = sampleHistoryCall();
+export function observeSampleRequests(page, { marketOnly = false } = {}) {
   const attempts = new Map();
   let order = 0;
   let navigationFailure;
   const issued = request => {
     if (request.method() !== 'POST') return;
+    const path = new URL(request.url()).pathname;
+    if (marketOnly && path !== operation) return;
     let call;
     try { call = request.postDataJSON(); } catch { /* A malformed body fails the request assertion. */ }
-    attempts.set(request, { path: new URL(request.url()).pathname, call, issued: ++order });
+    attempts.set(request, { path, call, issued: ++order });
   };
   const received = response => {
     const attempt = attempts.get(response.request());
@@ -50,7 +48,7 @@ export async function openDefaultSample(page, {
       navigationFailure = failure;
     }
   };
-  const read = async name => {
+  const read = async (name, { allowFailure = false } = {}) => {
     const label = `${name} POST ${operation}`;
     let terminal;
     await expect.poll(async () => {
@@ -76,7 +74,7 @@ export async function openDefaultSample(page, {
       }
       return false;
     }, { ...replayStage, message: `Waiting for ${label} to settle during sample startup` }).toBe(true);
-    if (terminal.error) throw new Error(terminal.error);
+    if (terminal.error && !allowFailure) throw new Error(terminal.error);
     return terminal.result;
   };
 
@@ -84,15 +82,30 @@ export async function openDefaultSample(page, {
   page.on('response', received);
   page.on('requestfinished', finished);
   page.on('requestfailed', failed);
+  const stop = () => {
+    page.off('request', issued);
+    page.off('response', received);
+    page.off('requestfinished', finished);
+    page.off('requestfailed', failed);
+  };
+  return { attempts, read, stop, get navigationFailure() { return navigationFailure; } };
+}
+
+export async function openDefaultSample(page, {
+  trigger = () => page.goto('/#demo', { waitUntil: 'domcontentloaded', timeout: 10_000 }),
+  verifyChart,
+} = {}) {
+  const historyCall = sampleHistoryCall();
+  const observer = observeSampleRequests(page);
   try {
     const navigation = await trigger().catch(cause => {
-      if (!navigationFailure) throw cause;
-      throw new Error(`Sample document GET failed (${navigationFailure})`, { cause });
+      if (!observer.navigationFailure) throw cause;
+      throw new Error(`Sample document GET failed (${observer.navigationFailure})`, { cause });
     });
     if (navigation?.status() >= 400) throw new Error(`Sample document GET returned HTTP ${navigation.status()}`);
-    const catalog = await read(sampleCatalogCall.operation);
+    const catalog = await observer.read(sampleCatalogCall.operation);
     expect(catalog.instruments.map(item => item.id)).toContain(future);
-    const history = await read(historyCall.operation);
+    const history = await observer.read(historyCall.operation);
     expect(history.snapshot.series).toEqual(historyCall.payload.series);
     expect(history.snapshot.dataset_revision).toBe(normalRevision);
     expect(history.total_bars).toBe(40);
@@ -107,7 +120,7 @@ export async function openDefaultSample(page, {
     const expected = [sampleCatalogCall, historyCall];
     let phase = 0;
     let previousFinish = 0;
-    for (const attempt of attempts.values()) {
+    for (const attempt of observer.attempts.values()) {
       const label = attempt.call?.operation ?? attempt.path;
       expect(attempt.path, `POST endpoint for ${label}`).toBe(operation);
       expect(attempt.failure, `Transport failure for ${label}`).toBeUndefined();
@@ -126,9 +139,6 @@ export async function openDefaultSample(page, {
     expect(phase, 'catalog and history each completed once').toBe(expected.length);
     return history.snapshot;
   } finally {
-    page.off('request', issued);
-    page.off('response', received);
-    page.off('requestfinished', finished);
-    page.off('requestfailed', failed);
+    observer.stop();
   }
 }

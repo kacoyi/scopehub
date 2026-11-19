@@ -13,7 +13,7 @@ import { expect, test } from '@playwright/test';
 import { control, leaveSample } from '../ui/workspace-controls.mjs';
 import { painted } from '../ui/chart-pixels.mjs';
 import { startLocalImportBridge } from '../ui/local-import-bridge.mjs';
-import { busy, future, sampleCatalogCall, sampleHistoryCall } from '../ui/sample-startup.mjs';
+import { busy, future, observeSampleRequests, sampleCatalogCall, sampleHistoryCall } from '../ui/sample-startup.mjs';
 import { observeSelectedHistory, operationPath, readMarketAttemptStages, traceHeader, waitForSelectedHistoryTerminal } from '../ui/selected-history.mjs';
 import { assertUnsuitableWindowsHandoffsRejected, assertWindowsPrivateHandoff } from './workspace_test_handoff_acl.mjs';
 
@@ -34,6 +34,7 @@ const service = `
   const [entry, mode, port, faultEnabled] = process.argv.slice(1);
   const { createServer } = await import(entry);
   let interrupted;
+  let heldFirstDisconnect = false;
   const plugins = faultEnabled ? [{
     name: 'scopehub-test-history-response-interruption',
     enforce: 'pre',
@@ -43,7 +44,20 @@ const service = `
         if (request.url !== '${operationPath}' || !request.headers['${traceHeader}'] || !fault) return next();
         const end = response.end;
         response.end = function (...args) {
-          if (fault === 'before-headers' && response.statusCode === 200) return response.destroy();
+          if (fault === 'before-headers' && response.statusCode === 200) {
+            if (heldFirstDisconnect) return response.destroy();
+            heldFirstDisconnect = true;
+            // Keep the real history response pending past the default UI assertion window.
+            const start = performance.now();
+            const timer = setTimeout(() => {
+              console.info('Preview history', JSON.stringify({
+                id: request.headers['${traceHeader}'], stage: 'held-disconnect', elapsed_ms: Math.round(performance.now() - start),
+              }));
+              response.destroy();
+            }, 5500);
+            response.once('close', () => clearTimeout(timer));
+            return response;
+          }
           if (fault === 'during-body-' + response.statusCode) {
             interrupted = response;
             response.write('{');
@@ -1593,24 +1607,28 @@ const futureHistory = { '1m': 40, '5m': 8, '1d': 2 };
 const sampleButton = page => control(page, 'Open offline sample');
 const retryHistory = page => control(page, 'Retry history');
 
+async function expectedLayerRead(historyRequest) {
+  const reply = await historyRequest.existingResponse().json();
+  expect(reply.ok).toBe(true);
+  return {
+    type: 'indicator_accepted_layers', revision_id: reply.result.snapshot.dataset_id,
+    request_id: expect.stringMatching(/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/),
+  };
+}
+
 async function sampleStep(page, server, testInfo, label, trigger, {
   timeframe = '1m', catalog = true, error, retryable = false,
 } = {}) {
-  const requests = [];
-  const calls = [];
-  const issued = request => {
-    if (request.method() !== 'POST' || new URL(request.url()).pathname !== operationPath) return;
-    requests.push(request);
-    calls.push(request.postDataJSON());
-  };
+  const observer = observeSampleRequests(page, { marketOnly: true });
   const selection = { id: future, timeframe };
   const history = page.locator(`.history[data-instrument="${future}"][data-timeframe="${timeframe}"]`);
   let terminal;
-  page.on('request', issued);
   try {
     await trigger();
     await expect(page.locator('.connection')).toHaveText('Offline sampleSimulated');
     await expect(control(page, timeframe)).toHaveAttribute('aria-pressed', 'true');
+    if (catalog) await observer.read(sampleCatalogCall.operation);
+    await observer.read('market.readHistoryPage', { allowFailure: Boolean(error) });
     terminal = await waitForSelectedHistoryTerminal(page, history.locator('canvas').first(), selection);
     expect(terminal, label).toEqual(error ? { state: 'error', message: error } : { state: 'chart' });
     await expect(retryHistory(page)).toHaveCount(retryable ? 1 : 0);
@@ -1619,9 +1637,9 @@ async function sampleStep(page, server, testInfo, label, trigger, {
 
     const expected = [...(catalog ? [sampleCatalogCall] : []), sampleHistoryCall(timeframe)];
     let phase = 0;
-    for (const [index, request] of requests.entries()) {
+    for (const [request, attempt] of observer.attempts) {
       const call = expected[phase];
-      expect(calls[index], label).toEqual(call);
+      expect(attempt.call, label).toEqual(call);
       const response = request.existingResponse();
       if (response?.status() === 429) {
         expect(await response.json()).toEqual(busy);
@@ -1649,16 +1667,17 @@ async function sampleStep(page, server, testInfo, label, trigger, {
       }
     }
     expect(phase, label).toBe(expected.length);
-    const terminalRequest = requests.at(-1);
+    const terminalRequest = [...observer.attempts.keys()].at(-1);
     // The service's stdout and the browser events arrive independently.
     await expect.poll(() => server.historyStages.get(terminalRequest.headers()[traceHeader])?.at(-1)?.stage)
       .toMatch(/^(finished|closed)$/);
     return terminalRequest;
   } finally {
-    page.off('request', issued);
+    observer.stop();
+    const requests = [...observer.attempts.keys()];
     const stages = await readMarketAttemptStages(page, requests);
     const attempts = stages.map((stage, index) => ({
-      call: calls[index], ...stage, host: server.historyStages.get(stage.trace),
+      call: observer.attempts.get(requests[index]).call, ...stage, host: server.historyStages.get(stage.trace),
     }));
     await testInfo.attach(label, { contentType: 'application/json', body: JSON.stringify({ selection, terminal, attempts }) });
   }
@@ -1693,11 +1712,11 @@ test('the offline sample keeps its own timeframe without replacing the private u
         expect(frame.result.source).toEqual(source);
         return current;
       };
-      const assertSourceWrite = (start, expectedSelection, source) => {
-        expect(workspaceRequests.slice(start)).toEqual([{
+      const assertSourceWrite = async (start, expectedSelection, source, layerRead) => {
+        await expect.poll(() => workspaceRequests.slice(start)).toEqual([{
           type: 'workspace_source', source, expected_selection_revision: expectedSelection,
           request_id: expect.stringMatching(/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/),
-        }, snapshot]);
+        }, snapshot, ...(layerRead ? [layerRead] : [])]);
       };
       const undo = control(page, 'Undo timeframe change');
 
@@ -1719,12 +1738,13 @@ test('the offline sample keeps its own timeframe without replacing the private u
       await expect(undo).toBeEnabled();
 
       const beforeSample = workspaceRequests.length;
-      await sampleStep(page, server, testInfo, 'first explicit sample open', () => sampleButton(page).click());
+      const firstHistory = await sampleStep(page, server, testInfo, 'first explicit sample open', () => sampleButton(page).click());
       await expect(page).toHaveURL(shellUrl);
       await expect(control(page, 'Edit layout')).toBeEnabled();
-      assertSourceWrite(beforeSample, 0, sampleSource);
+      const oneMinuteRead = await expectedLayerRead(firstHistory);
+      await assertSourceWrite(beforeSample, 0, sampleSource, oneMinuteRead);
       const duringSample = workspaceRequests.length;
-      await sampleStep(page, server, testInfo, 'sample five-minute selection', () => control(page, '5m').click(),
+      const fiveMinuteHistory = await sampleStep(page, server, testInfo, 'sample five-minute selection', () => control(page, '5m').click(),
         { timeframe: '5m', catalog: false });
       const after = await readPrivate(1, sampleSource);
       const refreshed = await context.newPage();
@@ -1733,7 +1753,7 @@ test('the offline sample keeps its own timeframe without replacing the private u
       await sampleStep(refreshed, server, testInfo, 'shared sample preference refresh', () => refreshed.reload(), { timeframe: '5m' });
       const refreshedTimeframe = await refreshed.locator('.history').getAttribute('data-timeframe');
       expect(after).toEqual(before);
-      expect(workspaceRequests.slice(duringSample)).toEqual([]);
+      expect(workspaceRequests.slice(duringSample)).toEqual([await expectedLayerRead(fiveMinuteHistory)]);
       await expect(undo).toHaveCount(0);
       await expect(control(refreshed, 'Undo timeframe change')).toHaveCount(0);
       await assertSampleStorage(refreshed, '5m');
@@ -1745,7 +1765,7 @@ test('the offline sample keeps its own timeframe without replacing the private u
       await expect(page.locator('.connection')).toHaveText('No data source');
       await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
       await expect(undo).toBeEnabled();
-      assertSourceWrite(beforeLeave, 1, noSource);
+      await assertSourceWrite(beforeLeave, 1, noSource);
       expect(await readPrivate(2, noSource)).toEqual(before);
       const reply = await duringResponse(page, 'workspace.undo', () => undo.click());
       const undoRequest = reply.request().postDataJSON();
@@ -1774,9 +1794,9 @@ test('the offline sample keeps its own timeframe without replacing the private u
 
       const beforeSampleReload = workspaceRequests.length;
       await sampleStep(page, server, testInfo, 'second explicit sample open', () => sampleButton(page).click());
-      assertSourceWrite(beforeSampleReload, 2, sampleSource);
+      await assertSourceWrite(beforeSampleReload, 2, sampleSource, oneMinuteRead);
       const duringSampleReload = workspaceRequests.length;
-      await sampleStep(page, server, testInfo, 'sample daily selection', () => control(page, '1d').click(),
+      const dailyHistory = await sampleStep(page, server, testInfo, 'sample daily selection', () => control(page, '1d').click(),
         { timeframe: '1d', catalog: false });
       expect(await readPrivate(3, sampleSource)).toEqual(afterUndo);
       await assertSampleStorage(page, '1d');
@@ -1787,7 +1807,7 @@ test('the offline sample keeps its own timeframe without replacing the private u
       await expect(page.locator('.connection')).toHaveText('No data source');
       await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
       await expect(undo).toHaveCount(0);
-      expect(workspaceRequests.slice(duringSampleReload)).toEqual([]);
+      expect(workspaceRequests.slice(duringSampleReload)).toEqual([await expectedLayerRead(dailyHistory)]);
       expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
       expect(await readPrivate(3, sampleSource)).toEqual(afterUndo);
 
@@ -1797,7 +1817,7 @@ test('the offline sample keeps its own timeframe without replacing the private u
       await sampleStep(page, server, testInfo, 'restore the profile sample', launch);
       await expect(page).toHaveURL(shellUrl);
       await expect(undo).toHaveCount(0);
-      expect(workspaceRequests.slice(beforeProfileRestore)).toEqual([snapshot]);
+      await expect.poll(() => workspaceRequests.slice(beforeProfileRestore)).toEqual([snapshot, oneMinuteRead]);
       expect(await readPrivate(3, sampleSource)).toEqual(afterUndo);
       const beforeProfileLeave = workspaceRequests.length;
       await leaveSample(page);
@@ -1805,7 +1825,7 @@ test('the offline sample keeps its own timeframe without replacing the private u
       await expect(page.locator('.connection')).toHaveText('No data source');
       await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
       await expect(undo).toBeDisabled();
-      assertSourceWrite(beforeProfileLeave, 3, noSource);
+      await assertSourceWrite(beforeProfileLeave, 3, noSource);
       expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
       expect(await readPrivate(4, noSource)).toEqual(afterUndo);
       await testInfo.attach('workspace-sample-timeframe', {
@@ -1821,6 +1841,7 @@ test('the offline sample keeps its own timeframe without replacing the private u
 });
 
 test('the reopened sample recovers its history without consuming the private undo', async ({ browser }, testInfo) => {
+  test.setTimeout(90_000);
   const profile = await makeProfile();
   const port = await freePort();
   const disconnected = 'Disconnected from the local preview. Retry when the connection is restored.';
@@ -1886,7 +1907,11 @@ test('the reopened sample recovers its history without consuming the private und
               client: { stage: 'fetch-rejected', error: 'TypeError', selectionAborted: false },
             });
             expect(request.existingResponse()).toBeNull();
-            const host = server.historyStages.get(attempt.trace);
+            const stages = server.historyStages.get(attempt.trace);
+            const holds = stages.filter(stage => stage.stage === 'held-disconnect');
+            expect(holds).toHaveLength(request === failed ? 1 : 0);
+            if (holds.length) expect(holds[0].elapsed_ms).toBeGreaterThan(5000);
+            const host = stages.filter(stage => stage.stage !== 'held-disconnect');
             expect(host.length).toBeGreaterThanOrEqual(3);
             // Chromium can resend the same HTTP request when a reused socket closes before headers.
             for (let i = 0; i < host.length; i += 3) {
@@ -1945,12 +1970,13 @@ test('the reopened sample recovers its history without consuming the private und
         });
         await leaveSample(page);
 
+        const layerRead = await expectedLayerRead(initial);
         const expectedScopeChanges = Array.from({ length: 10 }, (_, revision) => [{
           type: 'workspace_source',
           source: revision % 2 === 0 ? { kind: 'sample', instrument_id: null } : { kind: 'none' },
           expected_selection_revision: revision,
           request_id: expect.stringMatching(/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/),
-        }, snapshot]).flat();
+        }, snapshot, ...([0, 2].includes(revision) ? [layerRead] : [])]).flat();
         expect(sourceCalls).toEqual(expectedScopeChanges);
         expect(await postStatus(server, snapshot, { Authorization: '' })).toBe(403);
         expect(await privateState(10, 'none')).toEqual(before);

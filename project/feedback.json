@@ -1977,6 +1977,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "sample-recovery-dom-checked-before-transport",
+      "source": "Ubuntu workspace-timeframe in authenticated PR run 44610931395 at head 20d0ae950f4063583973f15b0975f5194d0dc81f. The failed case attached the logical browser request and its correlated host events.",
+      "observation": "The first healthy sample open completed both reads. On the controlled disconnected reopen, the catalog returned successfully and the host closed the initial selected-history response before headers. At the five-second DOM assertion cutoff Chromium was still fetching, and the same logical request had reached host admission again. The test ended before the browser reported a terminal outcome.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-010"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "market-workflow"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
