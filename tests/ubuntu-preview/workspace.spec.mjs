@@ -15,6 +15,7 @@ const exec = promisify(execFile);
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const ui = join(root, 'apps/desktop/ui');
 const vite = pathToFileURL(join(ui, 'node_modules/vite/dist/node/index.js')).href;
+const viteCli = join(ui, 'node_modules/vite/bin/vite.js');
 const workspaceBridge = join(root, 'target/debug', process.platform === 'win32' ? 'workspace_bridge.exe' : 'workspace_bridge');
 const python = join(root, '.venv', ...(process.platform === 'win32' ? ['Scripts', 'python.exe'] : ['bin', 'python']));
 const workspaceId = 'synthetic-workspace';
@@ -236,6 +237,38 @@ test('the private launcher handoff is required and a previous launch cannot auth
   }
 });
 
+test('terminal SIGINT and SIGTERM remove the handoff and reap the writer before relaunch', async () => {
+  test.skip(process.platform === 'win32', 'The owned CLI uses POSIX signal delivery.');
+  const profile = await makeProfile();
+  const port = await freePort();
+  let handoff;
+  let previousWriter;
+  let previousCapability;
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      handoff = server.handoff;
+      previousWriter = await writerPid(server);
+      previousCapability = server.capability;
+      expect(state(await (await post(server, snapshot)).json())).toEqual({ revision: 0, timeframe: '1m', undo: null });
+    }, { terminalSignal: 'SIGINT' });
+    await expect(stat(handoff)).rejects.toMatchObject({ code: 'ENOENT' });
+    await expect.poll(() => alive(previousWriter)).toBe(false);
+
+    let nextWriter;
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      nextWriter = await writerPid(server);
+      expect(nextWriter).not.toBe(previousWriter);
+      expect(server.capability !== previousCapability).toBe(true);
+      expect((await post(server, snapshot, { Authorization: 'Bearer ' + previousCapability })).status).toBe(403);
+      expect(state(await (await post(server, snapshot)).json())).toEqual({ revision: 0, timeframe: '1m', undo: null });
+    }, { terminalSignal: 'SIGTERM' });
+    await expect(stat(handoff)).rejects.toMatchObject({ code: 'ENOENT' });
+    await expect.poll(() => alive(nextWriter)).toBe(false);
+  } finally {
+    await profile.close();
+  }
+});
+
 test('two live writers read current undo and a stale browser reload recovers from Rust', async ({ browser }) => {
   const profile = await makeProfile();
   try {
@@ -334,19 +367,31 @@ async function assertPrivateHandoff(handoff) {
   const check = `
     $ErrorActionPreference = 'Stop'
     try {
-      $owner = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-      $allowed = @($owner, 'S-1-5-18', 'S-1-5-32-544')
-      $acl = Get-Acl -LiteralPath $env:SCOPEHUB_TEST_HANDOFF
-      $descriptor = [Security.AccessControl.RawSecurityDescriptor]::new($acl.GetSecurityDescriptorBinaryForm(), 0)
-      if ($null -eq $descriptor.DiscretionaryAcl -or $descriptor.Owner.Value -ne $owner) { exit 1 }
-      $ownerInherited = $false
+      function Read-Descriptor($path) {
+        $acl = Get-Acl -LiteralPath $path
+        return [Security.AccessControl.RawSecurityDescriptor]::new($acl.GetSecurityDescriptorBinaryForm(), 0)
+      }
+      $path = $env:SCOPEHUB_TEST_HANDOFF
+      if ([IO.File]::GetAttributes($path) -band [IO.FileAttributes]'Directory, ReparsePoint') { exit 1 }
+      $user = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+      $allowed = @($user, 'S-1-5-18', 'S-1-5-32-544')
+      $directory = Read-Descriptor ([IO.Path]::GetDirectoryName($path))
+      if ($directory.Owner.Value -ne $user) { exit 1 }
+      $descriptor = Read-Descriptor $path
+      if ($null -eq $descriptor.DiscretionaryAcl -or $descriptor.Owner.Value -notin $allowed) { exit 1 }
+      $required = [int][Security.AccessControl.FileSystemRights]'Read, Write, Delete'
+      $userInherited = $false
       foreach ($ace in $descriptor.DiscretionaryAcl) {
         if ($ace -isnot [Security.AccessControl.CommonAce] -or $ace.IsCallback) { exit 1 }
         if ($ace.AceQualifier -ne [Security.AccessControl.AceQualifier]::AccessAllowed) { continue }
         if ($ace.SecurityIdentifier.Value -notin $allowed) { exit 1 }
-        if ($ace.SecurityIdentifier.Value -eq $owner -and $ace.IsInherited) { $ownerInherited = $true }
+        if ($ace.SecurityIdentifier.Value -eq $user -and $ace.IsInherited -and
+            !($ace.AceFlags -band [Security.AccessControl.AceFlags]::InheritOnly) -and
+            ($ace.AccessMask -band $required) -eq $required) { $userInherited = $true }
       }
-      if (!$ownerInherited) { exit 1 }
+      if (!$userInherited) { exit 1 }
+      $stream = [IO.File]::Open($path, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite)
+      $stream.Dispose()
       exit 0
     } catch { exit 1 }
   `;
@@ -365,9 +410,12 @@ async function freePort() {
   return port;
 }
 
-async function inService(port, profile, mode, use, { expectHandoff = true } = {}) {
+async function inService(port, profile, mode, use, { expectHandoff = true, terminalSignal } = {}) {
   const url = 'http://127.0.0.1:' + port;
-  const child = spawn(process.execPath, ['--input-type=module', '--eval', service, vite, mode, String(port)], {
+  const args = terminalSignal
+    ? [viteCli, '--mode', mode, '--host', '127.0.0.1', '--port', String(port), '--strictPort']
+    : ['--input-type=module', '--eval', service, vite, mode, String(port)];
+  const child = spawn(process.execPath, args, {
     cwd: ui,
     env: {
       ...process.env,
@@ -375,7 +423,7 @@ async function inService(port, profile, mode, use, { expectHandoff = true } = {}
       SCOPEHUB_WORKSPACE_PROFILE_ID: profile.id,
       SCOPEHUB_WORKSPACE_ID: workspaceId,
     },
-    stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
+    stdio: terminalSignal ? ['pipe', 'pipe', 'pipe'] : ['ignore', 'pipe', 'pipe', 'ipc'],
   });
   const closed = once(child, 'close');
   let output = '';
@@ -417,7 +465,8 @@ async function inService(port, profile, mode, use, { expectHandoff = true } = {}
     }
     await use(server);
   } finally {
-    if (child.connected) child.send('close', () => {});
+    if (terminalSignal) child.kill(terminalSignal);
+    else if (child.connected) child.send('close', () => {});
     const grace = setTimeout(() => child.kill('SIGKILL'), 7_000);
     try {
       const [, signal] = await closed;
@@ -430,7 +479,7 @@ async function inService(port, profile, mode, use, { expectHandoff = true } = {}
 }
 
 async function writerPid(server, action, observedPid) {
-  const args = ['-I', join(root, 'tests/ubuntu-preview/workspace_test_writer.py'), String(server.pid)];
+  const args = ['-I', join(root, 'tests/ubuntu-preview/workspace_test_writer.py'), String(process.pid), String(server.pid)];
   if (action) args.push(action, String(observedPid));
   const { stdout } = await exec(python, args, { timeout: 5_000 });
   return Number(stdout.trim());

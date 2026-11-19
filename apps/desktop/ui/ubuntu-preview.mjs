@@ -175,9 +175,16 @@ export function ubuntuPreview() {
       const shutdown = () => {
         for (const cancel of active.values()) cancel(new PreviewFailure(503, 'WORKER_EXITED'));
       };
-      const interrupt = () => {
+      const interrupt = async () => {
         shutdown();
-        if (!process.listenerCount('SIGINT')) process.kill(process.pid, 'SIGINT');
+        // Let Vite run its close hooks before exiting, including the workspace
+        // writer and private handoff cleanup when that mode is active.
+        try {
+          await server.close();
+        } finally {
+          process.exitCode ??= 130;
+          process.exit();
+        }
       };
       process.once('exit', shutdown);
       process.once('SIGINT', interrupt);
