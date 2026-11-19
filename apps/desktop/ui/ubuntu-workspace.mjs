@@ -10,6 +10,10 @@ const privateFile = /^(?:workspace\.sqlite3(?:-(?:wal|shm|journal))?|\.?workspac
 const chartId = 'main-chart';
 const timeframes = ['1m', '5m', '1d'];
 const mutations = ['chart.setTimeframe', 'workspace.undo'];
+const selectEvidence = 'workspace.selectEvidence';
+const readChartProjection = 'workspace.readChartProjection';
+const evidenceOperations = [selectEvidence, readChartProjection];
+const frozenChartControls = ['frozen_chart', 'frozen_chart_status'];
 const exportBackup = 'decisionNote.exportBackup';
 const previewRestore = 'decisionNote.previewRestore';
 const restoreBackup = 'decisionNote.restoreBackup';
@@ -85,8 +89,12 @@ function validUndo(undo, workspace) {
 }
 
 function validSnapshot(state, workspaceId) {
+  const evidence = state?.chart_evidence;
+  const validEvidence = evidence === null || evidence?.unavailable === true || uuid(evidence?.revision_id)
+    && Number.isSafeInteger(evidence.range?.from_ms) && Number.isSafeInteger(evidence.range?.to_ms)
+    && evidence.range.from_ms < evidence.range.to_ms;
   return validWorkspace(state?.workspace, workspaceId) && revision(state.selection_revision)
-    && validUndo(state.undo, state.workspace);
+    && validUndo(state.undo, state.workspace) && validEvidence;
 }
 
 function requestLimit(operation) {
@@ -95,14 +103,23 @@ function requestLimit(operation) {
 }
 
 function responseLimit(operation) {
+  if (operation === 'frozen_chart') return 4 * 1024 * 1024 + maxRequestBytes;
+  if (operation === readChartProjection) return maxResponseBytes;
   if (operation === exportBackup) return maxBackupFrameBytes;
   return noteOperations.includes(operation) ? maxResponseBytes : maxRequestBytes;
 }
 
 function requestFrame(command, workspaceId) {
-  const name = command?.intent?.operation;
-  if (!mutations.includes(name) && !noteOperations.includes(name)) throw new PreviewFailure(403, 'PERMISSION_DENIED');
-  if (command?.scope?.workspace_id !== workspaceId) throw new PreviewFailure(403, 'PERMISSION_DENIED');
+  if (frozenChartControls.includes(command?.type)) {
+    if (Object.keys(command).length !== 3 || !uuid(command.request_id) || !uuid(command.revision_id)) {
+      throw new PreviewFailure(400, 'INVALID_ARGUMENT');
+    }
+    return JSON.stringify(command) + '\n';
+  }
+  const evidence = evidenceOperations.includes(command?.operation);
+  const name = evidence ? command.operation : command?.intent?.operation;
+  if (!evidence && !mutations.includes(name) && !noteOperations.includes(name)) throw new PreviewFailure(403, 'PERMISSION_DENIED');
+  if ((evidence ? command.workspace_id : command?.scope?.workspace_id) !== workspaceId) throw new PreviewFailure(403, 'PERMISSION_DENIED');
   if (command.protocol_version !== '1.1' || command.type !== 'request'
       || !uuid(command.request_id) || !uuid(command.message_id)) {
     throw new PreviewFailure(400, 'INVALID_ARGUMENT');
@@ -112,6 +129,19 @@ function requestFrame(command, workspaceId) {
     throw new PreviewFailure(413, 'RESOURCE_LIMIT');
   }
   return line;
+}
+
+function validEvidenceReply(reply, job, workspaceId) {
+  if (reply.operation !== job.operation) return false;
+  if (reply.error) return typeof reply.error.code === 'string' && !reply.selection && !reply.result;
+  if (job.operation === selectEvidence) {
+    const selection = reply.selection;
+    return selection?.workspace_id === workspaceId && selection.selection_revision === job.selectionRevision + 1
+      && (selection.target === null || selection.target?.kind === 'chart_interval');
+  }
+  const result = reply.result;
+  return uuid(result?.source_reference) && uuid(result.revision) && Array.isArray(result.fields)
+    && Array.isArray(result.rows) && result.rows.length <= 1000;
 }
 
 function validNoteOutcome(outcome, job, workspaceId) {
@@ -199,13 +229,26 @@ function startWriter(root, { path, profileId, workspaceId }) {
           || !(validFailure || frame.ok === true && validSnapshot(frame.result, workspaceId))) throw invalidReply();
       // Keep correlation internal to the trusted stdio transport.
       delete frame.request_id;
+    } else if (job.operation === 'frozen_chart_status') {
+      if (frame?.request_id !== job.requestId || !(validFailure || frame?.ok === true
+        && typeof frame.result?.available === 'boolean' && Object.keys(frame.result).length === 1)) throw invalidReply();
+      delete frame.request_id;
+    } else if (job.operation === 'frozen_chart') {
+      const chart = frame?.result;
+      if (frame?.request_id !== job.requestId || !(validFailure || frame?.ok === true
+          && chart?.snapshot?.dataset_id === job.revisionId
+          && chart?.revision?.revision_id === job.revisionId && Array.isArray(chart.bars)
+          && chart.bars.length === chart.revision.bar_count)) throw invalidReply();
+      delete frame.request_id;
     } else if (frame?.ok === true) {
       const reply = frame.result;
       const outcome = reply?.outcome;
       if (reply?.type !== 'response' || reply?.protocol_version !== '1.1'
           || reply?.request_id !== job.requestId || !uuid(reply.message_id)
           || reply.message_id === job.messageId) throw invalidReply();
-      if (outcome?.state === 'failed') {
+      if (evidenceOperations.includes(job.operation)) {
+        if (!validEvidenceReply(reply, job, workspaceId)) throw invalidReply();
+      } else if (outcome?.state === 'failed') {
         if (typeof outcome.error?.code !== 'string') throw invalidReply();
       } else if (noteOperations.includes(job.operation)) {
         if (!validNoteOutcome(outcome, job, workspaceId)) throw invalidReply();
@@ -268,8 +311,10 @@ function startWriter(root, { path, profileId, workspaceId }) {
         : requestFrame(body, workspaceId);
       const reply = Promise.withResolvers();
       const noteId = body?.scope?.target?.object_id ?? body?.intent?.arguments?.note_id;
+      const operation = snapshot || frozenChartControls.includes(body.type) ? body.type : body.operation ?? body.intent?.operation;
       pending = {
-        ...reply, requestId, messageId: body.message_id, operation: snapshot ? 'snapshot' : body.intent.operation,
+        ...reply, requestId, messageId: body.message_id, operation,
+        revisionId: body.revision_id, selectionRevision: body.expected_selection_revision,
         noteId: typeof noteId === 'string' ? noteId.toLowerCase() : noteId,
         timer: setTimeout(() => stop(timeout()), commandDeadlineMs),
       };

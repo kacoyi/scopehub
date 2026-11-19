@@ -2,6 +2,38 @@
   "schema_version": "1.0",
   "items": [
     {
+      "id": "published-evidence-ui-retains-revoked-content",
+      "source": "Independent Chromium review at cecda1c in .reports/independent-evidence-cecda1c/browser-observations.json.",
+      "observation": "After real peer revocation and focus refresh, the rendered inspection retained a close. Explicit refresh removed that inspection but retained the frozen chart, source SHA-256 and expandable published source rows. The focused baseline Chromium run in .reports/evidence-revocation-red-1461/results.json also reproduced a delayed formerly authorized chart body reappearing after revocation. The corrected Chromium workspace and native-bridge browser checks in .reports/runs/20261119T161404.568704Z-6c3e3adc removed the inspection, chart, source SHA-256 and rows, rejected delayed redisplay and preserved other authorized display and independent live-folder access.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "desktop-workspace-transport",
+        "local-import-publication"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "unavailable-evidence-clear-unreachable",
+      "source": "Independent Chromium review at cecda1c in .reports/independent-evidence-cecda1c/browser-observations.json.",
+      "observation": "A fresh authorized window observed a revoked shared selection, but the workspace and the denied published-chart dialog offered no way to clear it. The Rust registry accepted an explicit null for the current revision. The focused baseline Chromium run in .reports/evidence-revocation-red-1461/results.json reproduced both missing controls. The corrected Chromium workspace check in .reports/runs/20261119T161404.568704Z-6c3e3adc found both controls and committed explicit null through the current selection token. The workspace projection and undo receipt were preserved and a later entitled interval could be selected.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
       "id": "verification-lifetime",
       "source": "scripts/check.py",
       "observation": "Timeout handling discards captured output and subprocess.run does not explicitly terminate the check process group.",
@@ -1273,6 +1305,17 @@
       "deferral_reason": null
     },
     {
+      "id": "selected-chart-mutation-without-local-analysis-grant",
+      "source": "Synthetic published CSV and private Rust registry regression at cecda1c80829d42b7a120aba9ab4e3e12221669b. The observed red log is .reports/operations-workflow/cecda1c-red.log.",
+      "observation": "The real shared selection advanced to interval A at selection revision 1 while the workspace revision stayed 0. An authenticated generic AI command using those revisions committed the main-chart timeframe at workspace revision 1 despite missing the selected interval's local analysis grant. The operations-workflow regression now requires a denial with no operation or replay row. A separately authorized on-device intent for B can commit through the same registry.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M2-001"],
+      "regression_checks": ["operations-workflow"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
       "id": "native-reviewed-csv-worker-timeout",
       "source": "Windows 11 native MSVC/WebView2 engineering run on 2f4a0c0 with a selected synthetic 292-byte CSV, followed by two bounded standalone worker comparisons on the same guest.",
       "observation": "The actual desktop showed the complete digest after reading three raw rows in 2.17 seconds. The first native OHLCV preview subsequently displayed a worker timeout. The same worker exchange run directly twice returned closes 102 and 105, the incomplete-row diagnostic and process exit in 219 ms each. The native save and restart journey remains pending at this observation.",
@@ -1322,18 +1365,39 @@
       "deferral_reason": null
     },
     {
+      "id": "windows-idle-local-source-sharing",
+      "source": "Hosted Windows run 44563163301 rust-contracts-workers and independent standard-user Win11 MSVC measurements in .reports/windows-source-sharing/measured/CHANGES.JSON and PINS.JSON.",
+      "observation": "The native bridge replay tests failed at bridge_tests.rs:523 and :608 with Win32 error 32. The independent desktop matrix reproduced error 32 for direct-child rename and atomic replacement after selection, preview and publication. Both succeeded before selection and after exit. The isolated handle matrix reproduced the failure with read-only sharing on the selected directory and distinguished that from the expected protection of a file currently being verified.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "local-folder-import",
+        "local-import-publication"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
       "id": "workspace-browser-navigation-observer-lifetime",
       "source": "Authenticated hosted Windows PR #13 run 44548543796 at e960fd1, workspace-timeframe log and source snapshot.",
       "observation": "Chromium reported ERR_NO_BUFFER_SPACE on the initial document of the wrong-profile backup visit. The workspace test had already created a response waiter and had not installed a rejection handler. Context teardown also reported that the response waiter rejected when its page closed. Eight browser cases passed and the POSIX signal case skipped.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-008"
       ],
       "regression_checks": [
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The test created a response waiter before navigation and only awaited it after navigation and UI assertions succeeded. Controlled Chromium navigation failure left the waiter live, and context teardown rejected it separately. The origin of the original hosted ERR_NO_BUFFER_SPACE on the document remains undetermined.",
+        "correction": "Scope response and download observations to the triggering action, detach their listeners on exit and preserve the action error. Cancel unread status-only bodies and dispose intercepted API responses during cleanup.",
+        "prevention": "The controlled document failure reports the navigation error and verifies listener cleanup before context close. The status-only control verifies body cancellation. Hosted Verify delivery run 44560917644 at 6540608 passed both controls and the original backup-restore journey on Ubuntu and Windows."
+      },
       "deferral_reason": null
     },
     {
@@ -1341,12 +1405,47 @@
       "source": "Local M2-008 task run 20261119T153931.924374Z-c35b457c with temporary synthetic profiles.",
       "observation": "The peer-deletion browser case timed out while the observer had a pending detail read. A retained screenshot showed the peer on the second note with Local workspace is busy and Review deletion disabled. Both pages used the same single-flight Vite producer, and a page action could fail before the held route entered its release block. The backup restore and both new lifecycle controls passed in the same run.",
       "severity": "minor",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-008"
       ],
       "regression_checks": [
         "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The observer and deleting peer shared a single-flight Vite producer while an observer detail request was intentionally delayed. The peer entered BUSY in the retained local failure. The route release scope also started after the click, leaving an early action error outside cleanup.",
+        "correction": "Give the peers separately authenticated Rust writers for the same synthetic profile. Verify the detail request has reached the hold before committing the peer deletion. Release the hold and await removal of its route when the action exits.",
+        "prevention": "The browser test establishes distinct writer processes, deletes through the peer and verifies that the released stale detail is unavailable and the remaining list is correct. The joined local run and both hosted platforms in run 44560917644 passed this case."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "native-published-csv-revision-discovery",
+      "source": "Development verification in the native Windows desktop at 4571353, recorded in contracts/reviews/2026-11-19-windows-local-publication.json. The ordinary native keyboard list path at 09e89d2 is recorded in contracts/reviews/2026-11-19-windows-published-revision-library.json.",
+      "observation": "After restarting with an already published local CSV, reopening its frozen chart required manually pasting an opaque revision UUID even though the revision and source were already stored in the current profile.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "local-import-publication",
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "same-name-frozen-csv-revisions-hard-to-identify",
+      "source": "Development verification of the standard-user Windows desktop at 09e89d2. See contracts/reviews/2026-11-19-windows-published-revision-library.json.",
+      "observation": "Two revisions of daily.csv for the same symbol and period share the displayed filename and counts. Their final closes differ. The library shows only hashes and revision identifiers to distinguish them before opening a chart. Native Windows verification of the repaired selection path at b5f4054 is recorded in contracts/reviews/2026-11-19-windows-readable-csv-revisions.json.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "local-import-publication"
       ],
       "resolution": null,
       "deferral_reason": null

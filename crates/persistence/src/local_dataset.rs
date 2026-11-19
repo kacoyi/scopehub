@@ -2,6 +2,7 @@ use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 use scopehub_application::{
     LocalDatasetPublication, LocalDatasetStore, MappingCommitGuard, StoredLocalDataset,
 };
+use scopehub_domain::protocol::{LocalImportRevisionBarSummary, LocalImportRevisionListEntry};
 use uuid::Uuid;
 
 use super::{
@@ -87,56 +88,69 @@ impl LocalDatasetStore for SqliteWorkspace {
         Ok(revision_id)
     }
 
-    fn read_local_dataset(&self, revision_id: &str) -> Result<Option<StoredLocalDataset>, Error> {
-        check_revision_id(revision_id)?;
-        let row = self
+    fn list_local_datasets(
+        &self,
+        after_revision_id: Option<&str>,
+        limit: usize,
+        include_bar_summary: bool,
+    ) -> Result<Vec<LocalImportRevisionListEntry>, Error> {
+        let after = after_revision_id.unwrap_or_default();
+        if after_revision_id.is_some() {
+            check_revision_id(after)?;
+        }
+        let limit = i64::try_from(limit).map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
+        let mut statement = self
             .connection
-            .query_row(
-                "SELECT revision.relative_path, revision.source_sha256, revision.mapping_sha256,
-                        revision.review_revision,
-                        CASE WHEN revocation.revision_id IS NULL THEN revision.content_json END,
-                        revision.source_key
+            .prepare(
+                "SELECT revision.revision_id, revision.relative_path, revision.source_sha256,
+                        json_extract(revision.content_json, '$.symbol'),
+                        json_extract(revision.content_json, '$.series.timeframe'),
+                        json_array_length(revision.content_json, '$.bars'),
+                        json_extract(revision.content_json, '$.source_record_count'),
+                        CASE WHEN ?3 THEN json_extract(revision.content_json, '$.series.venue') END,
+                        CASE WHEN ?3 THEN json_extract(revision.content_json, '$.bars[0].bar.trading_day') END,
+                        CASE WHEN ?3 THEN json_extract(revision.content_json, '$.bars[#-1].bar.trading_day') END,
+                        CASE WHEN ?3 THEN json_extract(revision.content_json, '$.bars[#-1].bar.close') END
                  FROM local_dataset_revisions AS revision
-                 LEFT JOIN local_dataset_display_revocations AS revocation USING (revision_id)
-                 WHERE revision.revision_id = ?1",
-                [revision_id],
-                |row| {
-                    Ok((
-                        row.get::<_, String>(0)?,
-                        row.get::<_, String>(1)?,
-                        row.get::<_, String>(2)?,
-                        revision(row, 3)?,
-                        row.get::<_, Option<String>>(4)?,
-                        row.get::<_, String>(5)?,
-                    ))
-                },
+                 WHERE revision.revision_id > ?1
+                   AND NOT EXISTS (
+                       SELECT 1 FROM local_dataset_display_revocations AS revocation
+                       WHERE revocation.revision_id = revision.revision_id
+                   )
+                 ORDER BY revision.revision_id ASC
+                 LIMIT ?2",
             )
-            .optional()
             .map_err(store_error)?;
-        row.map(
-            |(
-                relative_path,
-                source_sha256,
-                mapping_sha256,
-                review_revision,
-                content,
-                source_key,
-            )| {
-                let content = content.ok_or_else(|| failure(ErrorCode::PERMISSIONDENIED))?;
-                let content = serde_json::from_str(&content)
-                    .map_err(|_| failure(ErrorCode::INTERNALERROR))?;
-                Ok(StoredLocalDataset {
-                    source_key,
-                    revision_id: revision_id.to_owned(),
-                    relative_path,
-                    source_sha256,
-                    mapping_sha256,
-                    review_revision,
-                    content,
+        statement
+            .query_map(params![after, limit, include_bar_summary], |row| {
+                let bar_summary = if include_bar_summary {
+                    Some(LocalImportRevisionBarSummary {
+                        venue: row.get(7)?,
+                        first_trading_day: row.get(8)?,
+                        final_trading_day: row.get(9)?,
+                        final_close: row.get(10)?,
+                    })
+                } else {
+                    None
+                };
+                Ok(LocalImportRevisionListEntry {
+                    revision_id: row.get(0)?,
+                    relative_path: row.get(1)?,
+                    source_sha256: row.get(2)?,
+                    symbol: row.get(3)?,
+                    timeframe: row.get(4)?,
+                    bar_count: u64::from(row.get::<_, u32>(5)?),
+                    source_record_count: u64::from(row.get::<_, u32>(6)?),
+                    bar_summary,
                 })
-            },
-        )
-        .transpose()
+            })
+            .map_err(store_error)?
+            .collect::<Result<_, _>>()
+            .map_err(store_error)
+    }
+
+    fn read_local_dataset(&self, revision_id: &str) -> Result<Option<StoredLocalDataset>, Error> {
+        read_local_dataset(&self.connection, revision_id)
     }
 
     fn revoke_local_dataset(&mut self, revision_id: &str) -> Result<bool, Error> {
@@ -173,6 +187,21 @@ fn check_revision_id(revision_id: &str) -> Result<(), Error> {
     Ok(())
 }
 
+pub(super) fn display_allowed(connection: &Connection, revision_id: &str) -> Result<bool, Error> {
+    check_revision_id(revision_id)?;
+    connection
+        .query_row(
+            "SELECT EXISTS(
+                SELECT 1 FROM local_dataset_revisions AS revision
+                LEFT JOIN local_dataset_display_revocations AS revoked USING (revision_id)
+                WHERE revision.revision_id = ?1 AND revoked.revision_id IS NULL
+            )",
+            [revision_id],
+            |row| row.get(0),
+        )
+        .map_err(store_error)
+}
+
 fn retain_original(connection: &Connection, digest: &str, original: &[u8]) -> Result<(), Error> {
     let identical: Option<bool> = connection
         .query_row(
@@ -193,4 +222,51 @@ fn retain_original(connection: &Connection, digest: &str, original: &[u8]) -> Re
             .map(|_| ())
             .map_err(store_error),
     }
+}
+
+pub(super) fn read_local_dataset(
+    connection: &Connection,
+    revision_id: &str,
+) -> Result<Option<StoredLocalDataset>, Error> {
+    check_revision_id(revision_id)?;
+    let row = connection
+        .query_row(
+            "SELECT revision.relative_path, revision.source_sha256, revision.mapping_sha256,
+                    revision.review_revision,
+                    CASE WHEN revocation.revision_id IS NULL THEN revision.content_json END,
+                    revision.source_key
+             FROM local_dataset_revisions AS revision
+             LEFT JOIN local_dataset_display_revocations AS revocation USING (revision_id)
+             WHERE revision.revision_id = ?1",
+            [revision_id],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    revision(row, 3)?,
+                    row.get::<_, Option<String>>(4)?,
+                    row.get::<_, String>(5)?,
+                ))
+            },
+        )
+        .optional()
+        .map_err(store_error)?;
+    row.map(
+        |(relative_path, source_sha256, mapping_sha256, review_revision, content, source_key)| {
+            let content = content.ok_or_else(|| failure(ErrorCode::PERMISSIONDENIED))?;
+            let content =
+                serde_json::from_str(&content).map_err(|_| failure(ErrorCode::INTERNALERROR))?;
+            Ok(StoredLocalDataset {
+                source_key,
+                revision_id: revision_id.to_owned(),
+                relative_path,
+                source_sha256,
+                mapping_sha256,
+                review_revision,
+                content,
+            })
+        },
+    )
+    .transpose()
 }

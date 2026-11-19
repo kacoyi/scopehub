@@ -61,7 +61,8 @@
       ],
       "input": "ChartSetTimeframeInput",
       "output": "ChartSetTimeframeOutput",
-      "implementation": "planned",
+      "implementation": "implemented",
+      "implementation_scope": "The private protocol 1.1 workspace registry updates the registered main chart. New writes check both revision tokens. A scoped on-device AI intent with selected CSV evidence requires access to that interval. Replay returns the persisted chart-only receipt under current workspace disclosure.",
       "wire_bindings": {
         "1.1": {
           "input": "ChartSetTimeframeCommand11",
@@ -213,7 +214,8 @@
       ],
       "input": "WorkspaceUndoInput",
       "output": "WorkspaceUndoOutput",
-      "implementation": "planned",
+      "implementation": "implemented",
+      "implementation_scope": "The private protocol 1.1 workspace registry can reverse an eligible main-chart timeframe operation in the initiating principal and client scope. Current revisions and the chart's recorded after-state are checked. A committed inverse has its own replayable receipt.",
       "wire_bindings": {
         "1.1": {
           "input": "WorkspaceUndoCommand11",
@@ -381,6 +383,26 @@
       }
     },
     {
+      "name": "market.listLocalImportRevisions",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "ListLocalImportRevisionsInput",
+      "output": "ListLocalImportRevisionsOutput",
+      "implementation": "implemented",
+      "implementation_scope": "Return a bounded summary page of displayable frozen CSV revisions for the active local human profile. Ascending revision IDs provide a stable exclusive cursor. A caller can opt in to the frozen venue, the first and final bars' trading days, and the final bar's close. The default reply retains its original fields. Listing needs no source directory, returns no source grant or raw content and does not replace read-time authorization.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "ListLocalImportRevisionsRequest",
+          "output": "ListLocalImportRevisionsReply11"
+        }
+      }
+    },
+    {
       "name": "market.readLocalImportRevision",
       "effect": "read",
       "confirmation": false,
@@ -451,7 +473,8 @@
       ],
       "input": "ProjectedChartArguments11",
       "output": "ProjectedChart11",
-      "implementation": "planned",
+      "implementation": "implemented",
+      "implementation_scope": "Current authorized selection of a published local CSV interval. Return only the requested entitled fields and opaque revision references. Production admission is local profile display. A trusted on-device analysis intent requires separate recipient, revision, interval and field authorization; no connected or external recipient is enabled.",
       "wire_since": "1.1",
       "wire_bindings": {
         "1.1": {
@@ -471,7 +494,8 @@
       ],
       "input": "SelectEvidenceArguments11",
       "output": "SharedSelection11",
-      "implementation": "planned",
+      "implementation": "implemented",
+      "implementation_scope": "Explicit chart interval or null through the shared Rust registry for an entitled published local CSV snapshot. The profile-bound SQLite writer updates only the target reference and selection revision. Workspace object, table row and document passage targets are pending.",
       "wire_since": "1.1",
       "wire_bindings": {
         "1.1": {

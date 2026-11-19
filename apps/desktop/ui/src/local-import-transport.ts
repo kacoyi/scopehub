@@ -1,5 +1,6 @@
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import type {
+  ListLocalImportRevisionsInput, ListLocalImportRevisionsOutput,
   LoadLocalImportMappingInput, LoadLocalImportMappingOutput, LocalImportPreviewInput, LocalImportPreviewOutput,
   PreviewLocalFolderRefreshInput, PreviewLocalFolderRefreshOutput,
   PublishLocalImportInput, PublishLocalImportOutput, ReadLocalImportRevisionInput, ReadLocalImportRevisionOutput,
@@ -53,6 +54,13 @@ export async function readLocalImportRevision(payload: ReadLocalImportRevisionIn
   requireNative();
   return invoke<ReadLocalImportRevisionOutput>('execute_operation', {
     operation: 'market.readLocalImportRevision', payload, requestId,
+  });
+}
+
+export async function listLocalImportRevisions(payload: ListLocalImportRevisionsInput, requestId: string) {
+  requireNative();
+  return invoke<ListLocalImportRevisionsOutput>('execute_operation', {
+    operation: 'market.listLocalImportRevisions', payload, requestId,
   });
 }
 

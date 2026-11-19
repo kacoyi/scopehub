@@ -48,9 +48,16 @@
 .local-publication-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .local-access-confirmation { margin-top: 12px; }
 .local-revision-dialog.symbol-dialog { width: min(900px, calc(100vw - 26px)); max-height: calc(100dvh - 26px); }
-.local-revision-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.local-revision-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
 .local-revision-heading button { margin: 0; }
-.local-revision-body { display: grid; gap: 12px; padding: 12px; }
+.local-revision-body, .local-revision-chart { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.local-revision-body { padding: 12px; }
+.local-revision-chart h3 { font-size: 15px; overflow-wrap: anywhere; }
+.local-revision-library { display: grid; gap: 8px; }
+.local-revision-list { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.local-revision-list .secondary-button { display: grid; gap: 3px; width: 100%; margin: 0; text-align: left; overflow-wrap: anywhere; }
+.local-revision-list span { color: var(--muted); }
+.local-revision-list .local-revision-summary { color: inherit; }
 .local-import-progress { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .local-import-error { margin-bottom: 14px; padding: 9px 12px; border: 1px solid #784950; border-radius: 5px; color: #ffb0ac; }
 .local-import-error code, .local-import-hash code { overflow-wrap: anywhere; }

@@ -1,5 +1,7 @@
 #[path = "support/decision_note_restore.rs"]
 mod decision_note_restore;
+#[path = "support/operations_workflow.rs"]
+mod operations_workflow;
 mod support;
 
 use std::{
@@ -13,10 +15,10 @@ use std::{
 };
 
 use scopehub_application::{
-    Actor, DECISION_NOTE_APPEND_OUTCOME, DECISION_NOTE_DELETE, DECISION_NOTE_READ,
-    DECISION_NOTE_SAVE, DecisionNoteBackupData, LOCAL_WORKSPACE_OPERATIONS, OperationRegistry,
-    WorkspaceAccess, WorkspaceState, WorkspaceStore, WorkspaceTransaction, WorkspaceUndoAccess,
-    WorkspaceUndoTarget,
+    Actor, ChartEvidenceStatus, DECISION_NOTE_APPEND_OUTCOME, DECISION_NOTE_DELETE,
+    DECISION_NOTE_READ, DECISION_NOTE_SAVE, DecisionNoteBackupData, LOCAL_WORKSPACE_OPERATIONS,
+    OperationRegistry, WorkspaceAccess, WorkspaceState, WorkspaceStore, WorkspaceTransaction,
+    WorkspaceUndoAccess, WorkspaceUndoTarget,
 };
 use scopehub_domain::protocol::{DecisionNoteReadOutput, Error};
 use serde_json::{Value, json};
@@ -455,8 +457,23 @@ impl WorkspaceStore for InterruptingStore {
     fn snapshot(
         &self,
         undo: Option<WorkspaceUndoAccess<'_>>,
-    ) -> Result<(WorkspaceState, Option<WorkspaceUndoTarget>), Error> {
-        self.store.snapshot(undo)
+        disclose_chart_evidence: bool,
+    ) -> Result<
+        (
+            WorkspaceState,
+            Option<WorkspaceUndoTarget>,
+            Option<ChartEvidenceStatus>,
+        ),
+        Error,
+    > {
+        self.store.snapshot(undo, disclose_chart_evidence)
+    }
+
+    fn inspect<T>(
+        &self,
+        read: impl FnOnce(&dyn WorkspaceTransaction) -> Result<T, Error>,
+    ) -> Result<T, Error> {
+        self.store.inspect(read)
     }
 
     fn read_notes(
@@ -706,7 +723,11 @@ fn frames(output: Vec<Value>) -> Vec<Value> {
 }
 
 fn assert_snapshot(snapshot: &Value, revision: u64, timeframe: &str) {
-    assert_eq!(snapshot["selection_revision"], 0);
+    assert_snapshot_at_selection(snapshot, revision, 0, timeframe);
+}
+
+fn assert_snapshot_at_selection(snapshot: &Value, revision: u64, selection: u64, timeframe: &str) {
+    assert_eq!(snapshot["selection_revision"], selection);
     assert_eq!(
         snapshot["workspace"],
         json!({

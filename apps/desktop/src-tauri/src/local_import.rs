@@ -654,6 +654,7 @@ impl PreviewPort<'_> {
             &mapping,
             row_limit,
             self.stopped(folder),
+            || self.check_live(folder),
         )
         .await;
         self.check_live(folder)?;

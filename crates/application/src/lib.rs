@@ -14,12 +14,13 @@ pub use folder_refresh::{
 };
 pub use local_import::{
     DEFAULT_PREVIEW_ROWS, LocalImportPort, PREVIEW_LOCAL_IMPORT, preview_local_import,
+    validate_csv_preview,
 };
 pub use local_publication::{
-    LocalDatasetPublication, LocalDatasetStore, PUBLISH_LOCAL_IMPORT, READ_LOCAL_IMPORT_REVISION,
-    REVOKE_LOCAL_IMPORT_REVISION, StoredLocalDataset, local_mapping_fingerprint,
-    publish_local_import_input, read_local_import_revision_input,
-    revoke_local_import_revision_input,
+    LIST_LOCAL_IMPORT_REVISIONS, LocalDatasetPublication, LocalDatasetStore, PUBLISH_LOCAL_IMPORT,
+    READ_LOCAL_IMPORT_REVISION, REVOKE_LOCAL_IMPORT_REVISION, StoredLocalDataset,
+    list_local_import_revisions_input, local_mapping_fingerprint, publish_local_import_input,
+    read_local_import_revision_input, revoke_local_import_revision_input,
 };
 pub use replay::{SUBSCRIBE, SubscriptionFuture, SubscriptionPort};
 pub use reviewed_mapping::{
@@ -28,16 +29,17 @@ pub use reviewed_mapping::{
     reviewed_preview_header, save_mapping_input,
 };
 pub use workspace::{
-    DECISION_NOTE_APPEND_OUTCOME, DECISION_NOTE_BACKUP_MAX_BYTES,
-    DECISION_NOTE_BACKUP_MAX_DELETIONS, DECISION_NOTE_BACKUP_MAX_NOTES,
-    DECISION_NOTE_BACKUP_MAX_OUTCOMES, DECISION_NOTE_DELETE, DECISION_NOTE_EXPORT_BACKUP,
-    DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, DECISION_NOTE_READ,
-    DECISION_NOTE_RESTORE_BACKUP, DECISION_NOTE_SAVE, DecisionNoteBackupData, DecisionNoteChange,
-    DecisionNoteMutation, DecisionNoteOutcomeAddition, DecisionNoteReceipt, DecisionNoteReplay,
-    DecisionNoteRestorePlan, LOCAL_WORKSPACE_OPERATIONS, MAIN_CHART_ID, SET_TIMEFRAME, Timeframe,
-    UNDO, WorkspaceAccess, WorkspaceBinding, WorkspaceChange, WorkspaceReceipt, WorkspaceReplay,
-    WorkspaceReplayKey, WorkspaceSnapshot, WorkspaceState, WorkspaceStore, WorkspaceTransaction,
-    WorkspaceUndoAccess, WorkspaceUndoTarget,
+    ChartEvidenceRef, ChartEvidenceStatus, DECISION_NOTE_APPEND_OUTCOME,
+    DECISION_NOTE_BACKUP_MAX_BYTES, DECISION_NOTE_BACKUP_MAX_DELETIONS,
+    DECISION_NOTE_BACKUP_MAX_NOTES, DECISION_NOTE_BACKUP_MAX_OUTCOMES, DECISION_NOTE_DELETE,
+    DECISION_NOTE_EXPORT_BACKUP, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE,
+    DECISION_NOTE_READ, DECISION_NOTE_RESTORE_BACKUP, DECISION_NOTE_SAVE, DecisionNoteBackupData,
+    DecisionNoteChange, DecisionNoteMutation, DecisionNoteOutcomeAddition, DecisionNoteReceipt,
+    DecisionNoteReplay, DecisionNoteRestorePlan, LOCAL_WORKSPACE_OPERATIONS,
+    LocalChartAnalysisGrant, MAIN_CHART_ID, READ_CHART_PROJECTION, SELECT_EVIDENCE, SET_TIMEFRAME,
+    Timeframe, UNDO, WorkspaceAccess, WorkspaceBinding, WorkspaceChange, WorkspaceReceipt,
+    WorkspaceReplay, WorkspaceReplayKey, WorkspaceSnapshot, WorkspaceState, WorkspaceStore,
+    WorkspaceTransaction, WorkspaceUndoAccess, WorkspaceUndoTarget, evidence_operation_name,
 };
 
 use std::{
@@ -156,6 +158,7 @@ impl Operation {
                     | LOAD_LOCAL_IMPORT_MAPPING
                     | SAVE_LOCAL_IMPORT_MAPPING
                     | PUBLISH_LOCAL_IMPORT
+                    | LIST_LOCAL_IMPORT_REVISIONS
                     | READ_LOCAL_IMPORT_REVISION
                     | PREVIEW_LOCAL_FOLDER_REFRESH
                     | REVOKE_LOCAL_IMPORT_REVISION

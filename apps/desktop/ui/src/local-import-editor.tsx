@@ -1,13 +1,16 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import type {
   CsvColumnMappingV1, CsvMappingV1, CsvPreview, LocalImportPreviewInput, LocalImportPreviewOutput, PreviewIssue, PreviewRow,
-  PreviewLocalFolderRefreshOutput, PublishedLocalImportRevision, ReadLocalImportRevisionOutput, SavedLocalImportMapping,
+  PreviewLocalFolderRefreshOutput, PublishedLocalImportRevision, SavedLocalImportMapping,
 } from '../../../../contracts/generated/protocol';
 import {
   loadLocalImportMapping, previewLocalFolderRefresh, publishLocalImport, readLocalImportRevision, revokeLocalImportRevision, saveLocalImportMapping,
 } from './local-import-transport';
+import { openAuthenticatedFrozenChart, UnavailableSharedSelection, type FrozenChartResult } from './frozen-evidence';
 import { FrozenLocalChart } from './local-preview-chart';
 import { FolderRefreshReview } from './folder-refresh-review';
+import { displayAccessDenied, useWatchPublishedRevision, type PublishedRevisionAccess } from './published-revision-access';
+import type { LocalWorkspace } from './use-local-workspace';
 import { RevisionAccessActions } from './local-revision-dialog';
 import './local-import.css';
 
@@ -31,7 +34,8 @@ type Props = {
   previewImport: (input: LocalImportPreviewInput, requestId: string) => Promise<LocalImportPreviewOutput>;
   cancelPreview: (requestId: string) => Promise<void>;
   renderChart: (preview: LocalImportPreviewOutput) => ReactNode;
-  revokedRevisionId: string | undefined;
+  revisionAccess: PublishedRevisionAccess;
+  workspace: LocalWorkspace | undefined;
 };
 
 type Inspection = { output: LocalImportPreviewOutput; draft: CsvMappingV1; mapping: CsvMappingV1; rowLimit: number; raw: boolean };
@@ -81,11 +85,8 @@ function importErrorCode(error: unknown) {
 function describeImportFailure(error: unknown, fallback: string, action?: ImportAction): Failure {
   if (!error || typeof error !== 'object') return { message: fallback };
   const code = importErrorCode(error);
-  const details = 'details' in error ? error.details : undefined;
   if (code === 'SNAPSHOT_UNAVAILABLE' && action === 'refresh') return {
-    message: details && typeof details === 'object' && 'reason' in details && details.reason === 'folder_changed_during_review'
-      ? 'The folder changed during review. Stage the refresh again.'
-      : 'This frozen revision is unavailable in the current profile.',
+    message: 'This frozen revision is unavailable in the current profile.',
   };
   if (code === 'SNAPSHOT_UNAVAILABLE') return {
     message: action === 'read' || action === 'revoke' ? 'This frozen chart is unavailable in the current profile.'
@@ -93,6 +94,7 @@ function describeImportFailure(error: unknown, fallback: string, action?: Import
   };
   if (code === 'STALE_CONTEXT' && action !== 'publish') return { message: 'The folder selection has expired. Choose the folder again.' };
   const message = 'message' in error && typeof error.message === 'string' && error.message ? error.message : fallback;
+  const details = 'details' in error ? error.details : undefined;
   if (details && typeof details === 'object') {
     const sha256 = 'sha256' in details && typeof details.sha256 === 'string' ? details.sha256 : undefined;
     const headerUnavailable = code === 'DATA_UNAVAILABLE' && 'reason' in details && details.reason === 'csv_header_unavailable';
@@ -209,15 +211,15 @@ function NormalizedBars({ preview }: { preview: CsvPreview }) {
   </section>;
 }
 
-export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport, cancelPreview, renderChart, revokedRevisionId }: Props) {
+export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport, cancelPreview, renderChart, revisionAccess, workspace }: Props) {
   const catalog = initialCatalog;
   const [fileId, setFileId] = useState(() => catalog.files.find(file => file.kind === 'csv')?.file_id ?? '');
   const [draft, setDraft] = useState(newMapping);
   const [rowLimit, setRowLimit] = useState(50);
   const [inspection, setInspection] = useState<Inspection>();
   const [approved, setApproved] = useState<ApprovedMapping>();
-  const [published, setPublished] = useState<PublishedLocalImportRevision>();
-  const [frozen, setFrozen] = useState<ReadLocalImportRevisionOutput>();
+  const [publishedRecord, setPublished] = useState<PublishedLocalImportRevision>();
+  const [frozenChart, setFrozen] = useState<FrozenChartResult>();
   const [folderRefresh, setFolderRefresh] = useState<PreviewLocalFolderRefreshOutput>();
   const [loadedSourceHash, setLoadedSourceHash] = useState<string>();
   const [failure, setFailure] = useState<Failure>();
@@ -232,6 +234,20 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   const picker = useRef(false);
   const alive = useRef(true);
   const revision = useRef(0);
+  const publishedId = publishedRecord?.revision_id;
+  const lostAccess = publishedId !== undefined && revisionAccess.revoked.has(publishedId);
+  const revokedSourceHash = lostAccess ? publishedRecord?.source_sha256 : undefined;
+  const published = lostAccess ? undefined : publishedRecord;
+  const frozen = frozenChart && !revisionAccess.revoked.has(frozenChart.revision.revision_id) ? frozenChart : undefined;
+  const refreshRevisionId = folderRefresh?.base.revision_id;
+  const refreshRevoked = refreshRevisionId !== undefined && revisionAccess.revoked.has(refreshRevisionId);
+  useWatchPublishedRevision(published?.revision_id, revisionAccess.verify, workspace);
+  useWatchPublishedRevision(refreshRevoked || refreshRevisionId === published?.revision_id ? undefined : refreshRevisionId,
+    revisionAccess.verify, workspace);
+
+  useLayoutEffect(() => {
+    if (refreshRevoked) setFolderRefresh(undefined);
+  }, [refreshRevoked]);
 
   useEffect(() => {
     alive.current = true;
@@ -242,13 +258,16 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     };
   }, []);
 
-  useEffect(() => {
-    if (folderRefresh?.base.revision_id === revokedRevisionId) setFolderRefresh(undefined);
-    if (published && published.revision_id === revokedRevisionId) {
-      setPublished(undefined);
-      setFrozen(undefined);
-    }
-  }, [folderRefresh, published, revokedRevisionId]);
+  useLayoutEffect(() => {
+    if (!lostAccess) return;
+    setPublished(record => record?.revision_id === publishedId ? undefined : record);
+    setFrozen(chart => chart?.revision.revision_id === publishedId ? undefined : chart);
+    // The editor can reopen the file via its independent folder grant. Discard
+    // the preview of the withdrawn bytes that would otherwise reappear here.
+    setInspection(value => value?.output.sha256 === revokedSourceHash ? undefined : value);
+    setLoadedSourceHash(value => value === revokedSourceHash ? undefined : value);
+    setPublicationNotice('Access removed for this published revision.');
+  }, [lostAccess, publishedId, revokedSourceHash]);
 
   const file = catalog.files.find(item => item.file_id === fileId && item.kind === 'csv');
   const native = draft.record_kind === 'native_ohlcv';
@@ -383,6 +402,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       ...(!raw && sourceHash ? { expected_sha256: sourceHash } : {}),
     };
     await runRequest('preview', id => previewImport(input, id), output => {
+      if (published && output.sha256 === published.source_sha256 && !revisionAccess.canDisplay(published.revision_id)) return;
       setLoadedSourceHash(undefined);
       if (savedDraft && savedDraft.sha256 !== output.sha256) setApproved(undefined);
       setInspection({ output, draft, mapping, rowLimit, raw });
@@ -434,6 +454,10 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       version: 1, folder_id: catalog.folder_id, file_id: file.file_id,
       expected_sha256: publishable.sha256, review_revision: publishable.record.review_revision,
     }, id), reply => {
+      if (!revisionAccess.canDisplay(reply.revision.revision_id)) {
+        setPublicationNotice('Access removed for this published revision.');
+        return;
+      }
       setPublished(reply.revision);
       if (frozen?.revision.revision_id !== reply.revision.revision_id) setFrozen(undefined);
     });
@@ -444,6 +468,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     await runRequest('refresh', id => previewLocalFolderRefresh({
       version: 1, folder_id: catalog.folder_id, revision_id: revisionId,
     }, id), reply => {
+      if (!revisionAccess.canDisplay(revisionId)) return;
       if (reply.base.revision_id !== revisionId) {
         setPublicationFailure({ message: 'The folder preview could not be verified for this revision.' });
         return;
@@ -454,9 +479,17 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
 
   async function openFrozenChart() {
     if (!published) return;
-    await runRequest('read', id => readLocalImportRevision({
-      version: 1, revision_id: published.revision_id,
-    }, id), reply => {
+    const revisionId = published.revision_id;
+    await runRequest('read', async id => {
+      try {
+        return workspace ? await openAuthenticatedFrozenChart(revisionId, id)
+          : await readLocalImportRevision({ version: 1, revision_id: revisionId }, id);
+      } catch (error) {
+        if (displayAccessDenied(error)) revisionAccess.revoke(revisionId);
+        throw error;
+      }
+    }, reply => {
+      if (!revisionAccess.canDisplay(revisionId)) return;
       if (reply.revision.revision_id !== published.revision_id || reply.revision.source_sha256 !== published.source_sha256
         || reply.revision.mapping_sha256 !== published.mapping_sha256 || reply.bars.length !== published.bar_count) {
         setPublicationFailure({ message: 'The frozen chart reply could not be verified.' });
@@ -475,10 +508,9 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
         setPublicationFailure({ message: 'The access removal reply could not be verified.' });
         return;
       }
-      setFrozen(undefined);
-      setPublished(undefined);
-      setFolderRefresh(current => current?.base.revision_id === reply.revision_id ? undefined : current);
+      revisionAccess.revoke(published.revision_id);
       setPublicationNotice('Access removed for this published revision.');
+      workspace?.reload();
     });
   }
 
@@ -593,7 +625,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
         <FolderRefreshReview
           revisionId={published?.revision_id}
           busy={busy}
-          result={folderRefresh?.base.revision_id === revokedRevisionId ? undefined : folderRefresh}
+          result={refreshRevoked ? undefined : folderRefresh}
           onPreview={revisionId => void stageFolderRefresh(revisionId)}
         />
         {published && <section className="local-import-card" aria-label="Published local CSV">
@@ -606,7 +638,8 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
           </div>
           <RevisionAccessActions key={published.revision_id} disabled={busy} onRevoke={() => void revokeFrozenChart()} />
         </section>}
-        {frozen && <FrozenLocalChart key={frozen.revision.revision_id} result={frozen} />}
+        {!frozen && <UnavailableSharedSelection workspace={workspace} />}
+        {frozen && <FrozenLocalChart key={frozen.revision.revision_id} result={frozen} workspace={workspace} access={revisionAccess} />}
         {file && displayedSourceHash && <section className="local-import-card" aria-label={visible ? 'Preview source' : 'Current source'}>
           <h2>{file.relative_path}</h2>
           {visible && <p>{visible.rows.length} source records{visible.truncated ? ' · Preview omits later records' : ''}{mapped && ` · Mapping v${visible.mapping_version} · ${visible.mapping_revision}`}</p>}

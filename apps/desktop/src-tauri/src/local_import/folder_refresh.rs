@@ -172,6 +172,7 @@ async fn check_file(
         &header_mapping,
         1,
         port.stopped(source.folder_id),
+        || port.check_live(source.folder_id),
     )
     .await;
     port.check_live(source.folder_id)?;

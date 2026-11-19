@@ -168,11 +168,21 @@
     },
     {
       "id": "operations-workflow",
-      "status": "planned",
-      "purpose": "Verify permissions, persistence, revisions, undo and restart",
+      "status": "implemented",
+      "purpose": "Verify real A/B/clear chart selection, local AI chart mutation admission, independent revision conflicts, authorized exactly-once replay, rollback, undo and fresh writer reconnect.",
       "platforms": "all",
-      "command": null,
-      "timeout_seconds": 1800
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-persistence",
+        "--test",
+        "workspace_process",
+        "operations_workflow::"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "change"
     },
     {
       "id": "indicator-workflow",
@@ -535,7 +545,7 @@
     {
       "id": "workspace-timeframe",
       "status": "implemented",
-      "purpose": "Exercise the real opted-in local writer through browser and process restart, timeframe undo, terminal cleanup, and human decision-note confirmation, deletion, backup download and staged restore.",
+      "purpose": "Exercise the real opted-in local writer through browser and process restart, timeframe undo, terminal cleanup, decision-note confirmation, deletion, backup and restore, and chart evidence selection and narrow projection of actual frozen profile data.",
       "platforms": "all",
       "command": [
         "pnpm",
@@ -670,7 +680,8 @@
     {
       "requirement": "For new work, existing confirmations become invalid when parameters, the code hash or a bound workspace or selection revision changes",
       "checks": [
-        "operations-workflow"
+        "operations-workflow",
+        "indicator-workflow"
       ]
     },
     {
@@ -682,7 +693,9 @@
     {
       "requirement": "Closing and reopening restores the workspace and indicator versions without re-executing previous AI tasks",
       "checks": [
-        "operations-workflow"
+        "operations-workflow",
+        "indicator-workflow",
+        "state-migrations"
       ]
     },
     {
@@ -781,6 +794,23 @@
       "python-contracts-workers",
       "rust-format"
     ],
+    "workspace-operations-slice": [
+      "environment",
+      "project-state",
+      "generated-contracts",
+      "architecture",
+      "python-types",
+      "python-contracts-workers",
+      "typescript-contracts",
+      "ui-build",
+      "rust-format",
+      "rust-contracts-workers",
+      "rust-lints",
+      "operations-workflow",
+      "decision-note-lifecycle",
+      "workspace-timeframe",
+      "desktop-workspace-transport"
+    ],
     "decision-note-slice": [
       "environment",
       "project-state",
@@ -823,6 +853,7 @@
     "market-worker-interruption",
     "market-recovery-ui",
     "market-recovery",
+    "operations-workflow",
     "workspace-timeframe",
     "desktop-workspace-transport"
   ],

@@ -6,9 +6,10 @@ use std::{
 };
 
 use scopehub_application::{
-    Actor, LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS, MarketLifecycle, MarketPort,
-    MarketRegistry, PREVIEW_LOCAL_FOLDER_REFRESH, PREVIEW_LOCAL_IMPORT, PUBLISH_LOCAL_IMPORT,
-    READ_LOCAL_IMPORT_REVISION, REVOKE_LOCAL_IMPORT_REVISION, SAVE_LOCAL_IMPORT_MAPPING, failure,
+    Actor, LIST_LOCAL_IMPORT_REVISIONS, LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS,
+    MarketLifecycle, MarketPort, MarketRegistry, PREVIEW_LOCAL_FOLDER_REFRESH,
+    PREVIEW_LOCAL_IMPORT, PUBLISH_LOCAL_IMPORT, READ_LOCAL_IMPORT_REVISION,
+    REVOKE_LOCAL_IMPORT_REVISION, SAVE_LOCAL_IMPORT_MAPPING, failure,
 };
 use scopehub_domain::protocol::{Error, ErrorCode};
 use scopehub_platform::local_folder::LocalFolderHost;
@@ -93,6 +94,16 @@ fn state_with_profile(app_local_data: Option<&Path>, enable_workspace: bool) -> 
 }
 
 impl State {
+    #[cfg(feature = "portable-test-bridge")]
+    pub async fn execute_test_window_operation(
+        &self,
+        operation: Option<&str>,
+        payload: Value,
+        request_id: Option<&str>,
+    ) -> Result<Value, Error> {
+        self.execute("main", operation, payload, request_id).await
+    }
+
     async fn execute(
         &self,
         window_label: &str,
@@ -165,6 +176,10 @@ impl State {
                     .local_import
                     .preview_folder_refresh(&self.workspace, payload, request_id)
                     .await;
+            }
+            LIST_LOCAL_IMPORT_REVISIONS => {
+                self.local_import.reject_reused_request(request_id)?;
+                return self.workspace.list_local_revisions(payload).await;
             }
             READ_LOCAL_IMPORT_REVISION => {
                 self.local_import.reject_reused_request(request_id)?;

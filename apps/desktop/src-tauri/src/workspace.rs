@@ -7,12 +7,12 @@ use std::{
 
 use scopehub_application::{
     Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, FolderRefreshBase,
-    LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS, LocalDatasetPublication,
-    MappingCommitGuard, OperationRegistry, PREVIEW_LOCAL_FOLDER_REFRESH, PUBLISH_LOCAL_IMPORT,
-    READ_LOCAL_IMPORT_REVISION, REVOKE_LOCAL_IMPORT_REVISION, ReviewedImportMapping,
-    SAVE_LOCAL_IMPORT_MAPPING, WorkspaceAccess, WorkspaceBinding, failure,
-    local_mapping_fingerprint, read_local_import_revision_input,
-    revoke_local_import_revision_input,
+    LIST_LOCAL_IMPORT_REVISIONS, LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS,
+    LocalDatasetPublication, MappingCommitGuard, OperationRegistry, PREVIEW_LOCAL_FOLDER_REFRESH,
+    PUBLISH_LOCAL_IMPORT, READ_LOCAL_IMPORT_REVISION, REVOKE_LOCAL_IMPORT_REVISION,
+    ReviewedImportMapping, SAVE_LOCAL_IMPORT_MAPPING, WorkspaceAccess, WorkspaceBinding,
+    evidence_operation_name, failure, list_local_import_revisions_input, local_mapping_fingerprint,
+    read_local_import_revision_input, revoke_local_import_revision_input,
 };
 use scopehub_domain::protocol::{CsvMappingV1, Error, ErrorCode};
 use scopehub_persistence::SqliteWorkspace;
@@ -30,6 +30,7 @@ const LOCAL_IMPORT_OPERATIONS: &[&str] = &[
     PREVIEW_LOCAL_FOLDER_REFRESH,
     SAVE_LOCAL_IMPORT_MAPPING,
     PUBLISH_LOCAL_IMPORT,
+    LIST_LOCAL_IMPORT_REVISIONS,
     READ_LOCAL_IMPORT_REVISION,
     REVOKE_LOCAL_IMPORT_REVISION,
 ];
@@ -52,6 +53,8 @@ enum Lane {
 
 enum Request {
     Snapshot,
+    FrozenChart(String),
+    FrozenChartStatus(String),
     Operation(Value),
 }
 
@@ -122,14 +125,34 @@ impl WorkspaceBridge {
         operation: Option<&str>,
         payload: Value,
     ) -> Result<Value, Error> {
-        if !self.workspace_enabled {
+        let chart_status = operation.is_none() && payload["type"] == "frozen_chart_status";
+        if !self.workspace_enabled && !chart_status {
             return Err(failure(ErrorCode::PERMISSIONDENIED));
         }
         let lane = self.admit()?;
         let request = match operation {
             None if payload == json!({"type": "snapshot"}) => Request::Snapshot,
+            None if payload["type"] == "frozen_chart" || chart_status => {
+                let revision_id = payload["revision_id"]
+                    .as_str()
+                    .filter(|id| {
+                        id.len() == 36
+                            && payload.as_object().is_some_and(|obj| obj.len() == 3)
+                            && payload["request_id"]
+                                .as_str()
+                                .is_some_and(|request_id| request_id.len() == 36)
+                    })
+                    .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
+                if chart_status {
+                    Request::FrozenChartStatus(revision_id.to_owned())
+                } else {
+                    Request::FrozenChart(revision_id.to_owned())
+                }
+            }
             Some(operation)
-                if payload["type"] == "request" && payload["intent"]["operation"] == operation =>
+                if payload["type"] == "request"
+                    && (payload["intent"]["operation"] == operation
+                        || evidence_operation_name(&payload) == Some(operation)) =>
             {
                 let limit = if operation == DECISION_NOTE_PREVIEW_RESTORE {
                     MAX_BACKUP_REQUEST_BYTES
@@ -145,9 +168,13 @@ impl WorkspaceBridge {
             }
             _ => return Err(failure(ErrorCode::INVALIDARGUMENT)),
         };
-        Self::with_bound(lane, true, move |bound| bound.dispatch(request))
-            .await?
-            .ok_or_else(|| failure(ErrorCode::INTERNALERROR))
+        let reply =
+            Self::with_bound(lane, !chart_status, move |bound| bound.dispatch(request)).await?;
+        match reply {
+            Some(reply) => Ok(reply),
+            None if chart_status => Ok(json!({"available": false})),
+            None => Err(failure(ErrorCode::INTERNALERROR)),
+        }
     }
 
     pub(super) async fn find(
@@ -283,6 +310,26 @@ impl WorkspaceBridge {
         .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
     }
 
+    pub(super) async fn list_local_revisions(&self, payload: Value) -> Result<Value, Error> {
+        let input = list_local_import_revisions_input(Actor::LocalUser, payload)?;
+        let lane = self.admit().map_err(|error| {
+            if error.code == ErrorCode::PERMISSIONDENIED {
+                failure(ErrorCode::PROVIDERNOTCONFIGURED)
+            } else {
+                error
+            }
+        })?;
+        let result = Self::with_bound(lane, false, move |bound| {
+            bound
+                .registry
+                .list_frozen_local_datasets(&local_import_access(&bound.profile_id), &input)
+        })
+        .await?;
+        Ok(result.unwrap_or_else(
+            || json!({"version": 1, "revisions": [], "next_after_revision_id": null}),
+        ))
+    }
+
     pub(super) async fn read_local_revision(&self, payload: Value) -> Result<Value, Error> {
         let input = read_local_import_revision_input(Actor::LocalUser, payload)?;
         Self::with_bound(self.admit()?, false, move |bound| {
@@ -360,11 +407,22 @@ impl BoundWorkspace {
                 Ok(json!({
                     "workspace": snapshot.workspace,
                     "selection_revision": snapshot.selection_revision,
+                    "chart_evidence": snapshot.chart_evidence,
                     "undo": snapshot.undo.map(|target| json!({
                         "operation_id": target.operation_id,
                         "committed_workspace_revision": target.committed_workspace_revision,
                     })),
                 }))
+            }
+            Request::FrozenChart(revision_id) => self
+                .registry
+                .open_evidence_chart(&local_import_access(&self.profile_id), &revision_id),
+            Request::FrozenChartStatus(revision_id) => {
+                let available = self.registry.evidence_chart_display_allowed(
+                    &local_import_access(&self.profile_id),
+                    &revision_id,
+                )?;
+                Ok(json!({"available": available}))
             }
             Request::Operation(payload) => self.registry.execute_workspace(&access, payload),
         }
