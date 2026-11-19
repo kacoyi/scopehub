@@ -367,3 +367,43 @@ class LocalFolderPreviewTests(unittest.TestCase):
         self.assertEqual(corrected['file_sha256'], changed['file_sha256'])
         self.assertEqual(corrected['mapping_revision'], 'synthetic-futures-3')
         self.assertEqual(corrected['rows'], limited['rows'])
+
+    def test_decode_failure_after_a_complete_logical_header_preserves_the_decoded_columns(self):
+        for encoding, delimiter, header, expected in (
+            ('utf-8', ',', 'Ticker,"Cl,ose ""official""\nprice",Note\n',
+             ['Ticker', 'Cl,ose "official"\nprice', 'Note']),
+            ('utf-8-sig', ';', '\ufeff代码;"收;盘\r\n标签";交易日\r\n',
+             ['\ufeff代码', '收;盘\r\n标签', '交易日']),
+            ('gb18030', ';', '代码;"收;盘\r标签";交易日\r',
+             ['代码', '收;盘\r标签', '交易日']),
+        ):
+            with self.subTest(encoding=encoding):
+                valid = (header + delimiter.join(['000071', '5', '2026-11-19']) + '\n').encode(encoding)
+                content = valid + b'\xff\n'
+                mapping = {**FUTURES_MAPPING, 'encoding': encoding, 'delimiter': delimiter}
+
+                preview = preview_csv(content, mapping, row_limit=1)
+
+                self.assertEqual(preview['file_sha256'], sha256(content).hexdigest())
+                self.assertEqual(preview['header'], expected)
+                self.assertIsNone(preview['raw_header_text'])
+                issue, = preview['issues']
+                self.assertEqual(issue['code'], 'decode_failed')
+                self.assertIn(f'byte {len(valid)}', issue['message'])
+                self.assertEqual(preview['rows'], [])
+                self.assertIsNone(preview['series'])
+
+    def test_a_decodable_prefix_does_not_prove_a_complete_valid_header(self):
+        for content in (
+            b'Ticker,Close\xff\r\n',
+            b'Ticker,"Close\n\xff"\r\n',
+            b'Ticker,"Close"extra\r\n\xff',
+            b'Ticker,Close,Close\r\n\xff',
+            b'Ticker,' + b'X,' * 512 + b'Close\r\n\xff',
+        ):
+            with self.subTest(content=content[:40]):
+                preview = preview_csv(content, FUTURES_MAPPING)
+                self.assertEqual(preview['file_sha256'], sha256(content).hexdigest())
+                self.assertEqual(preview['header'], [])
+                self.assertEqual(preview['rows'], [])
+                self.assertIn('decode_failed', [issue['code'] for issue in preview['issues']])

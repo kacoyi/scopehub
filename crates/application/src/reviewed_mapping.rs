@@ -2,8 +2,8 @@
 
 use scopehub_domain::{
     protocol::{
-        CsvMappingV1, Error, ErrorCode, LoadLocalImportMappingInput, SaveLocalImportMappingInput,
-        SavedLocalImportMapping,
+        CsvMappingV1, Error, ErrorCode, LoadLocalImportMappingInput, LocalImportPreviewInput,
+        SaveLocalImportMappingInput, SavedLocalImportMapping,
     },
     wire::normalize_integers,
 };
@@ -62,13 +62,14 @@ pub fn load_mapping_input(
 
 pub fn mapping_header_digest(preview: &Value, mapping: &CsvMappingV1) -> Option<String> {
     let body = &preview["preview"];
+    // A later decode failure can accompany a verified first logical record.
     let header = body["header"].as_array()?;
     if header.is_empty()
         || !body["raw_header_text"].is_null()
         || body["issues"].as_array()?.iter().any(|issue| {
             matches!(
                 issue["code"].as_str(),
-                Some("invalid_header" | "column_limit" | "decode_failed")
+                Some("invalid_header" | "column_limit")
             )
         })
     {
@@ -86,25 +87,21 @@ pub fn mapping_header_digest(preview: &Value, mapping: &CsvMappingV1) -> Option<
     ))
 }
 
-pub fn verify_mapping_preview(
-    input: &SaveLocalImportMappingInput,
-    preview: &Value,
-) -> Result<String, Error> {
+/// Return the header identity of an eligible, already validated public preview.
+pub fn reviewed_preview_header(input: &LocalImportPreviewInput, preview: &Value) -> Option<String> {
     let body = &preview["preview"];
-    if preview["sha256"] != input.expected_sha256
-        || body["mapping_revision"] != input.mapping.revision
-        || body["issues"]
-            .as_array()
-            .is_none_or(|issues| !issues.is_empty())
-        || body["rows"]
-            .as_array()
-            .is_none_or(|rows| !rows.iter().any(|row| row["normalized"].is_object()))
+    if body["issues"]
+        .as_array()
+        .is_none_or(|issues| !issues.is_empty())
+        || body["rows"].as_array().is_none_or(|rows| {
+            !rows
+                .iter()
+                .any(|row| row["normalized"]["is_closed"] == true)
+        })
     {
-        let mut error = failure(ErrorCode::INVALIDARGUMENT);
-        error.message = "Correct the mapping and review a normalized bar before saving.".into();
-        return Err(error);
+        return None;
     }
-    mapping_header_digest(preview, &input.mapping).ok_or_else(|| failure(ErrorCode::OUTPUTINVALID))
+    mapping_header_digest(preview, &input.mapping)
 }
 
 pub fn load_mapping_output(
@@ -118,8 +115,18 @@ pub fn load_mapping_output(
             json!({"version":1,"status":"not_saved","record":null,"source_sha256":null})
         }
         (Some(record), Some(preview)) => {
-            let matches = mapping_header_digest(preview, &record.mapping).as_deref()
-                == Some(&record.header_sha256);
+            let Some(header) = mapping_header_digest(preview, &record.mapping) else {
+                let mut error = failure(ErrorCode::DATAUNAVAILABLE);
+                error.message = "The CSV header could not be verified with the saved encoding and delimiter. Inspect the current file before reusing the mapping.".into();
+                error
+                    .details
+                    .insert("reason".into(), json!("csv_header_unavailable"));
+                error
+                    .details
+                    .insert("sha256".into(), preview["sha256"].clone());
+                return Err(error);
+            };
+            let matches = header == record.header_sha256;
             json!({"version":1,"status":if matches {"saved"} else {"review_required"},
                 "record":matches.then_some(record),"source_sha256":preview["sha256"]})
         }

@@ -13,7 +13,7 @@ pub use replay::{SUBSCRIBE, SubscriptionFuture, SubscriptionPort};
 pub use reviewed_mapping::{
     LOAD_LOCAL_IMPORT_MAPPING, MappingCommitGuard, ReviewedImportMapping, ReviewedMappingStore,
     SAVE_LOCAL_IMPORT_MAPPING, load_mapping_input, load_mapping_output, mapping_header_digest,
-    save_mapping_input, verify_mapping_preview,
+    reviewed_preview_header, save_mapping_input,
 };
 pub use workspace::{
     DECISION_NOTE_APPEND_OUTCOME, DECISION_NOTE_BACKUP_MAX_BYTES,

@@ -357,6 +357,153 @@ async fn select_csv(state: &State, folder: &Path) -> Value {
 }
 
 #[cfg(any(target_os = "linux", windows))]
+async fn execute_import(state: &State, operation: &str, payload: Value) -> Result<Value, Error> {
+    state.execute("main", Some(operation), payload, None).await
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[tokio::test]
+async fn reviewed_mapping_save_requires_the_exact_public_preview() {
+    use sha2::{Digest, Sha256};
+    use std::fs;
+
+    let fixture = ImportFixture::new();
+    let profile = fixture.0.join("profile");
+    let source = fixture.0.join("source");
+    fs::create_dir(&source).unwrap();
+    let csv = source.join("source.csv");
+    let content = b"Ticker,Date,Open,High,Low,Close,AltClose,Shares\n000418,2026-11-19,4,7,3,5,6,20\n000418,2026-11-20,6,7,4,5,6,21\n";
+    fs::write(&csv, content).unwrap();
+    fs::write(source.join("unreviewed.csv"), content).unwrap();
+
+    let state = state_with_local_profile(Some(&profile));
+    let ids = select_csv(&state, &source).await;
+    let mut request = ids.clone();
+    request["mapping"] = equity_mapping();
+    request["row_limit"] = json!(1);
+    let mut save = request.clone();
+    save["expected_sha256"] = json!(format!("{:x}", Sha256::digest(content)));
+    assert_eq!(
+        execute_import(&state, SAVE_LOCAL_IMPORT_MAPPING, save.clone())
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALIDARGUMENT,
+        "a save cannot establish its own preview",
+    );
+    assert!(!profile.exists());
+
+    let shown = execute_import(&state, PREVIEW_LOCAL_IMPORT, request)
+        .await
+        .unwrap();
+    assert_eq!(shown["preview"]["rows"][0]["normalized"]["close"], 5.0);
+    assert_eq!(shown["sha256"], save["expected_sha256"]);
+
+    let mut unreviewed_mapping = save.clone();
+    unreviewed_mapping["mapping"]["columns"]["close"] = json!("AltClose");
+    assert_eq!(
+        unreviewed_mapping["mapping"]["revision"],
+        save["mapping"]["revision"]
+    );
+    assert_eq!(
+        execute_import(&state, SAVE_LOCAL_IMPORT_MAPPING, unreviewed_mapping)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALIDARGUMENT,
+        "the same revision label cannot authorize another column mapping",
+    );
+
+    let folder = state
+        .local_folders()
+        .catalog(ids["folder_id"].as_str().unwrap().parse().unwrap())
+        .unwrap();
+    let mut unreviewed_file = import_request(&folder, "unreviewed.csv", equity_mapping());
+    unreviewed_file["row_limit"] = save["row_limit"].clone();
+    unreviewed_file["expected_sha256"] = save["expected_sha256"].clone();
+    assert_eq!(
+        execute_import(&state, SAVE_LOCAL_IMPORT_MAPPING, unreviewed_file)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALIDARGUMENT,
+        "a different file with identical bytes requires its own preview",
+    );
+
+    let mut unreviewed_sample = save.clone();
+    unreviewed_sample["row_limit"] = json!(2);
+    assert_eq!(
+        execute_import(&state, SAVE_LOCAL_IMPORT_MAPPING, unreviewed_sample)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALIDARGUMENT,
+    );
+    assert!(!profile.exists());
+
+    // Change a row beyond the sample. The matching receipt cannot replace the live reread.
+    let mut changed = content.to_vec();
+    changed[content.len() - 2] = b'2';
+    fs::write(&csv, &changed).unwrap();
+    assert_eq!(
+        execute_import(&state, SAVE_LOCAL_IMPORT_MAPPING, save.clone())
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::SNAPSHOTUNAVAILABLE,
+    );
+    assert!(!profile.exists());
+
+    // Retry the same reviewed bytes after cancellation before admission.
+    fs::write(&csv, content).unwrap();
+    state.local_import.cancel("save-before-admission");
+    assert_eq!(
+        state
+            .execute(
+                "main",
+                Some(SAVE_LOCAL_IMPORT_MAPPING),
+                save.clone(),
+                Some("save-before-admission")
+            )
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::CANCELLED,
+    );
+    assert!(!profile.exists());
+    let saved = execute_import(&state, SAVE_LOCAL_IMPORT_MAPPING, save.clone())
+        .await
+        .unwrap();
+    assert_eq!(saved["record"]["review_revision"], 1);
+    assert_eq!(saved["record"]["mapping"], equity_mapping());
+
+    // Selecting the same path again still creates a new grant.
+    let new_ids = select_csv(&state, &source).await;
+    assert_ne!(ids["folder_id"], new_ids["folder_id"]);
+    assert_eq!(
+        execute_import(&state, SAVE_LOCAL_IMPORT_MAPPING, save.clone())
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::STALECONTEXT,
+    );
+    save["folder_id"] = new_ids["folder_id"].clone();
+    save["file_id"] = new_ids["file_id"].clone();
+    let loaded = execute_import(&state, LOAD_LOCAL_IMPORT_MAPPING, new_ids)
+        .await
+        .unwrap();
+    assert_eq!(loaded["status"], "saved");
+    assert_eq!(
+        execute_import(&state, SAVE_LOCAL_IMPORT_MAPPING, save)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALIDARGUMENT,
+    );
+    state.shutdown().await;
+}
+
+#[cfg(any(target_os = "linux", windows))]
 #[tokio::test]
 async fn reviewed_mapping_reuses_live_source_after_restart_and_requires_review_for_changed_header()
 {
@@ -382,8 +529,7 @@ async fn reviewed_mapping_reuses_live_source_after_restart_and_requires_review_f
     uncorrected["row_limit"] = json!(1);
     uncorrected["mapping"] = equity_mapping();
     uncorrected["mapping"]["columns"]["close"] = json!("WrongClose");
-    let raw = first
-        .execute_local_operation(PREVIEW_LOCAL_IMPORT, uncorrected.clone(), None)
+    let raw = execute_import(&first, PREVIEW_LOCAL_IMPORT, uncorrected.clone())
         .await
         .unwrap();
     assert!(raw["preview"]["rows"][0]["normalized"].is_null());
@@ -393,8 +539,7 @@ async fn reviewed_mapping_reuses_live_source_after_restart_and_requires_review_f
     );
     uncorrected["expected_sha256"] = raw["sha256"].clone();
     assert_eq!(
-        first
-            .execute_local_operation(SAVE_LOCAL_IMPORT_MAPPING, uncorrected.clone(), None)
+        execute_import(&first, SAVE_LOCAL_IMPORT_MAPPING, uncorrected.clone())
             .await
             .unwrap_err()
             .code,
@@ -407,20 +552,13 @@ async fn reviewed_mapping_reuses_live_source_after_restart_and_requires_review_f
 
     let mut corrected = uncorrected;
     corrected["mapping"] = equity_mapping();
-    first.local_import.cancel("cancel-before-admission");
+    let corrected_preview = execute_import(&first, PREVIEW_LOCAL_IMPORT, corrected.clone())
+        .await
+        .unwrap();
     assert_eq!(
-        first
-            .execute_local_operation(
-                SAVE_LOCAL_IMPORT_MAPPING,
-                corrected.clone(),
-                Some("cancel-before-admission")
-            )
-            .await
-            .unwrap_err()
-            .code,
-        ErrorCode::CANCELLED
+        corrected_preview["preview"]["rows"][0]["normalized"]["close"],
+        5.0
     );
-    assert!(!profile.exists());
     let saved = first
         .execute(
             "main",
@@ -454,20 +592,17 @@ async fn reviewed_mapping_reuses_live_source_after_restart_and_requires_review_f
     let restarted = state_with_development_workspace(Some(&profile));
     assert_eq!(snapshot(&restarted).await["workspace"]["revision"], 0);
     assert_eq!(
-        restarted
-            .execute_local_operation(LOAD_LOCAL_IMPORT_MAPPING, first_ids, None)
+        execute_import(&restarted, LOAD_LOCAL_IMPORT_MAPPING, first_ids)
             .await
             .unwrap_err()
             .code,
         ErrorCode::STALECONTEXT
     );
     let ids = select_csv(&restarted, &source).await;
-    // A data row changed beyond the review sample. Header reuse remains valid
-    // but neither the save nor the load may silently reuse the old digest.
+    // A data row changed beyond the review sample, preserving the decoded header.
     let updated = b"Ticker,Date,Open,High,Low,Close,Shares\n000418,2026-11-19,4,6,3,5,20\n000418,2026-11-20,6,7,4,5,22\n";
     fs::write(&csv, updated).unwrap();
-    let loaded = restarted
-        .execute_local_operation(LOAD_LOCAL_IMPORT_MAPPING, ids.clone(), None)
+    let loaded = execute_import(&restarted, LOAD_LOCAL_IMPORT_MAPPING, ids.clone())
         .await
         .unwrap();
     assert_eq!(loaded["status"], "saved");
@@ -477,21 +612,10 @@ async fn reviewed_mapping_reuses_live_source_after_restart_and_requires_review_f
         format!("{:x}", Sha256::digest(updated))
     );
     assert_ne!(loaded["source_sha256"], raw["sha256"]);
-    corrected["folder_id"] = ids["folder_id"].clone();
-    corrected["file_id"] = ids["file_id"].clone();
-    assert_eq!(
-        restarted
-            .execute_local_operation(SAVE_LOCAL_IMPORT_MAPPING, corrected.clone(), None)
-            .await
-            .unwrap_err()
-            .code,
-        ErrorCode::SNAPSHOTUNAVAILABLE
-    );
     let mut preview = ids.clone();
     preview["expected_sha256"] = loaded["source_sha256"].clone();
     preview["mapping"] = loaded["record"]["mapping"].clone();
-    let bar = restarted
-        .execute_local_operation(PREVIEW_LOCAL_IMPORT, preview, None)
+    let bar = execute_import(&restarted, PREVIEW_LOCAL_IMPORT, preview.clone())
         .await
         .unwrap();
     assert_eq!(bar["preview"]["rows"][0]["normalized"]["close"], 5.0);
@@ -500,8 +624,7 @@ async fn reviewed_mapping_reuses_live_source_after_restart_and_requires_review_f
     let isolated = state_with_local_profile(Some(&other_profile));
     let isolated_ids = select_csv(&isolated, &source).await;
     assert_eq!(
-        isolated
-            .execute_local_operation(LOAD_LOCAL_IMPORT_MAPPING, isolated_ids, None)
+        execute_import(&isolated, LOAD_LOCAL_IMPORT_MAPPING, isolated_ids)
             .await
             .unwrap()["status"],
         "not_saved"
@@ -509,22 +632,69 @@ async fn reviewed_mapping_reuses_live_source_after_restart_and_requires_review_f
     isolated.shutdown().await;
     assert!(!other_profile.exists());
 
-    fs::write(
-        &csv,
-        b"Ticker,Date,Open,High,Low,Last,Shares\n000418,2026-11-19,4,6,3,5,20\n",
-    )
-    .unwrap();
-    let changed = restarted
-        .execute_local_operation(LOAD_LOCAL_IMPORT_MAPPING, ids, None)
+    let damaged_body =
+        b"Ticker,Date,Open,High,Low,Close,Shares\n000418,2026-11-19,4,6,3,5,20\n\xff\n";
+    fs::write(&csv, damaged_body).unwrap();
+    let damaged_hash = format!("{:x}", Sha256::digest(damaged_body));
+    let loaded_with_damage = execute_import(&restarted, LOAD_LOCAL_IMPORT_MAPPING, ids.clone())
+        .await
+        .unwrap();
+    assert_eq!(loaded_with_damage["status"], "saved");
+    assert_eq!(loaded_with_damage["record"], saved["record"]);
+    assert_eq!(loaded_with_damage["source_sha256"], damaged_hash);
+
+    preview["expected_sha256"] = json!(damaged_hash);
+    let damaged_preview = execute_import(&restarted, PREVIEW_LOCAL_IMPORT, preview)
+        .await
+        .unwrap();
+    assert_eq!(damaged_preview["sha256"], damaged_hash);
+    assert_eq!(damaged_preview["preview"]["header"][5], "Close");
+    assert!(
+        damaged_preview["preview"]["issues"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|issue| issue["code"] == "decode_failed")
+    );
+    assert!(
+        damaged_preview["preview"]["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|row| row["normalized"].is_null())
+    );
+
+    let changed_header = b"Ticker,Date,Open,High,Low,Last,Shares\n000418,2026-11-19,4,6,3,5,20\n";
+    fs::write(&csv, changed_header).unwrap();
+    let changed = execute_import(&restarted, LOAD_LOCAL_IMPORT_MAPPING, ids.clone())
         .await
         .unwrap();
     assert_eq!(changed["status"], "review_required");
     assert!(changed["record"].is_null());
-    assert_ne!(changed["source_sha256"], loaded["source_sha256"]);
+    assert_eq!(
+        changed["source_sha256"],
+        format!("{:x}", Sha256::digest(changed_header))
+    );
+
+    let damaged_header =
+        b"Ticker,D\xffate,Open,High,Low,Close,Shares\n000418,2026-11-19,4,6,3,5,20\n";
+    fs::write(&csv, damaged_header).unwrap();
+    let unavailable = execute_import(&restarted, LOAD_LOCAL_IMPORT_MAPPING, ids)
+        .await
+        .unwrap_err();
+    assert_eq!(unavailable.code, ErrorCode::DATAUNAVAILABLE);
+    assert!(unavailable.message.to_lowercase().contains("header"));
+    assert_eq!(
+        unavailable.details.get("reason"),
+        Some(&json!("csv_header_unavailable"))
+    );
+    assert_eq!(
+        unavailable.details.get("sha256"),
+        Some(&json!(format!("{:x}", Sha256::digest(damaged_header)))),
+    );
     let other_ids = select_csv(&restarted, &other_source).await;
     assert_eq!(
-        restarted
-            .execute_local_operation(LOAD_LOCAL_IMPORT_MAPPING, other_ids, None)
+        execute_import(&restarted, LOAD_LOCAL_IMPORT_MAPPING, other_ids)
             .await
             .unwrap()["status"],
         "not_saved"
@@ -543,14 +713,12 @@ async fn pending_local_import_stops_on_cancellation_selection_change_or_shutdown
         Cancel,
         Revoke,
         Shutdown,
-        CancelSave,
     }
 
     for interruption in [
         Interruption::Cancel,
         Interruption::Revoke,
         Interruption::Shutdown,
-        Interruption::CancelSave,
     ] {
         let fixture = ImportFixture::new();
         let selected = fixture.0.join("selected");
@@ -569,32 +737,28 @@ pathlib.Path('received').touch()
 time.sleep(30)
 "#).unwrap();
         let config = development_config().expect("development worker");
-        let profile = fixture.0.join("profile");
         let state = State {
             local_import: LocalImport::new(Some(WorkerConfig {
                 root: fixture.0.clone(),
                 ..config
             })),
-            ..state_with_local_profile(Some(&profile))
+            ..state()
         };
         let folders = state.local_folders();
         let catalog = folders
             .adopt_selected(&selected, &Cancellation::default())
             .unwrap();
-        let mut request = import_request(
+        let request = import_request(
             &catalog,
             "source.csv",
             json!({"version":1,"revision":"1","encoding":"utf-8","delimiter":",","record_kind":"quote_snapshot"}),
         );
-        let operation = if matches!(interruption, Interruption::CancelSave) {
-            use sha2::{Digest, Sha256};
-            request["mapping"] = equity_mapping();
-            request["expected_sha256"] = json!(format!("{:x}", Sha256::digest(content)));
-            SAVE_LOCAL_IMPORT_MAPPING
-        } else {
-            PREVIEW_LOCAL_IMPORT
-        };
-        let preview = state.execute_local_operation(operation, request, Some("preview-1"));
+        let preview = state.execute(
+            "main",
+            Some(PREVIEW_LOCAL_IMPORT),
+            request,
+            Some("preview-1"),
+        );
         tokio::pin!(preview);
         let ready = fixture.0.join("received");
         tokio::select! {
@@ -605,9 +769,7 @@ time.sleep(30)
         }
         let interrupt = async {
             match interruption {
-                Interruption::Cancel | Interruption::CancelSave => {
-                    state.local_import.cancel("preview-1")
-                }
+                Interruption::Cancel => state.local_import.cancel("preview-1"),
                 Interruption::Revoke => folders.revoke(catalog.folder_id).unwrap(),
                 Interruption::Shutdown => state.shutdown().await,
             }
@@ -619,9 +781,7 @@ time.sleep(30)
         .unwrap();
         let code = match interruption {
             Interruption::Revoke => ErrorCode::STALECONTEXT,
-            Interruption::Cancel | Interruption::Shutdown | Interruption::CancelSave => {
-                ErrorCode::CANCELLED
-            }
+            Interruption::Cancel | Interruption::Shutdown => ErrorCode::CANCELLED,
         };
         assert_eq!(result.unwrap_err().code, code);
         if matches!(interruption, Interruption::Shutdown) {
@@ -636,21 +796,74 @@ time.sleep(30)
             fs::rename(&selected, fixture.0.join("released")).unwrap();
         }
         state.shutdown().await;
-        if matches!(interruption, Interruption::CancelSave) {
-            assert!(!profile.exists());
-            let restarted = state_with_local_profile(Some(&profile));
-            let ids = select_csv(&restarted, &selected).await;
-            assert_eq!(
-                restarted
-                    .execute_local_operation(LOAD_LOCAL_IMPORT_MAPPING, ids, None)
-                    .await
-                    .unwrap()["status"],
-                "not_saved"
-            );
-            restarted.shutdown().await;
-            assert!(!profile.exists());
-        }
     }
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[test]
+fn cancelling_an_admitted_reviewed_save_keeps_the_profile_unwritten() {
+    use std::{fs, task::Poll};
+
+    // Occupy the only blocking slot after getting a real public preview so the
+    // save can be cancelled deterministically while its live reread is pending.
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .max_blocking_threads(1)
+        .build()
+        .unwrap();
+    runtime.block_on(async {
+        let fixture = ImportFixture::new();
+        let profile = fixture.0.join("profile");
+        let source = fixture.0.join("source");
+        fs::create_dir(&source).unwrap();
+        fs::write(
+            source.join("source.csv"),
+            b"Ticker,Date,Open,High,Low,Close,Shares\n000418,2026-11-19,4,6,3,5,20\n",
+        )
+        .unwrap();
+
+        let state = state_with_local_profile(Some(&profile));
+        let ids = select_csv(&state, &source).await;
+        let mut save = ids.clone();
+        save["mapping"] = equity_mapping();
+        let shown = execute_import(&state, PREVIEW_LOCAL_IMPORT, save.clone())
+            .await
+            .unwrap();
+        save["expected_sha256"] = shown["sha256"].clone();
+
+        let (entered, blocking_slot_held) = oneshot::channel();
+        let (release, released) = oneshot::channel::<()>();
+        let blocker = tokio::task::spawn_blocking(move || {
+            entered.send(()).unwrap();
+            let _ = released.blocking_recv();
+        });
+        blocking_slot_held.await.unwrap();
+        let save = state.execute(
+            "main",
+            Some(SAVE_LOCAL_IMPORT_MAPPING),
+            save,
+            Some("save-with-pending-read"),
+        );
+        tokio::pin!(save);
+        future::poll_fn(|context| {
+            assert!(std::future::Future::poll(save.as_mut(), context).is_pending());
+            Poll::Ready(())
+        })
+        .await;
+        state.local_import.cancel("save-with-pending-read");
+        let result = tokio::time::timeout(Duration::from_secs(3), save).await;
+        release.send(()).unwrap();
+        blocker.await.unwrap();
+        assert_eq!(result.unwrap().unwrap_err().code, ErrorCode::CANCELLED);
+        assert_eq!(
+            execute_import(&state, LOAD_LOCAL_IMPORT_MAPPING, ids)
+                .await
+                .unwrap()["status"],
+            "not_saved",
+        );
+        assert!(!profile.exists());
+        state.shutdown().await;
+    });
 }
 
 struct DelayedPage {

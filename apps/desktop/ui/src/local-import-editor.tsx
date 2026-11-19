@@ -31,7 +31,7 @@ type Inspection = { output: LocalImportPreviewOutput; draft: CsvMappingV1; mappi
 type ImportAction = 'preview' | 'save' | 'load';
 type Pending = { action: ImportAction; cancelled: boolean; cancel: () => Promise<void> };
 type Progress = { action: ImportAction; phase: 'running' | 'cancelling' | 'cancelled' };
-type Failure = { message: string; sha256?: string };
+type Failure = { message: string; sha256?: string; headerUnavailable?: boolean };
 type DraftTextField = Exclude<keyof CsvMappingV1, 'version' | 'revision' | 'columns'>;
 
 const actionText = {
@@ -73,8 +73,10 @@ function describeImportFailure(error: unknown, fallback: string): Failure {
   if (code === 'STALE_CONTEXT') return { message: 'The folder selection has expired. Choose the folder again.' };
   const message = 'message' in error && typeof error.message === 'string' && error.message ? error.message : fallback;
   const details = 'details' in error ? error.details : undefined;
-  if (details && typeof details === 'object' && 'sha256' in details && typeof details.sha256 === 'string') {
-    return { message, sha256: details.sha256 };
+  if (details && typeof details === 'object') {
+    const sha256 = 'sha256' in details && typeof details.sha256 === 'string' ? details.sha256 : undefined;
+    const headerUnavailable = code === 'DATA_UNAVAILABLE' && 'reason' in details && details.reason === 'csv_header_unavailable';
+    return sha256 === undefined ? { message, headerUnavailable } : { message, sha256, headerUnavailable };
   }
   return { message };
 }
@@ -213,6 +215,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   const observed = inspection?.output.file_id === fileId ? inspection.output : undefined;
   const sameLayout = inspection?.draft.encoding === draft.encoding && inspection?.draft.delimiter === draft.delimiter;
   const visible = sameLayout ? observed?.preview : undefined;
+  const displayedSourceHash = visible ? observed?.sha256 : loadedSourceHash;
   const mapped = !inspection?.raw && inspection?.draft === draft && inspection.rowLimit === rowLimit && !failure ? observed : undefined;
   const reviewed = mapped?.preview.series && mapped.preview.issues.length === 0
     && mapped.preview.rows.some(row => row.normalized?.is_closed) ? inspection : undefined;
@@ -293,8 +296,16 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       cancelled = importErrorCode(error) === 'CANCELLED' || (request.cancelled && action !== 'save');
       if (active.current === request && !cancelled) {
         const failure = describeImportFailure(error, actionText[action].failure);
-        if (action === 'preview') setFailure(failure);
-        else setMappingFailure(failure);
+        if (action === 'preview') {
+          setFailure(failure);
+        } else {
+          if (action === 'load' && failure.headerUnavailable) {
+            setInspection(undefined);
+            setLoadedSourceHash(undefined);
+            setFailure(undefined);
+          }
+          setMappingFailure(failure);
+        }
       }
     } finally {
       if (active.current === request) {
@@ -341,7 +352,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
         setMappingNotice('This profile has no reviewed mapping for this file.');
       } else if (reply.status === 'review_required') {
         setInspection(undefined);
-        setLoadedSourceHash(undefined);
+        setLoadedSourceHash(reply.source_sha256 ?? undefined);
         setFailure(undefined);
         setMappingNotice('The CSV header has changed. Inspect the current raw rows and review the mapping.');
       } else if (reply.record && reply.source_sha256) {
@@ -455,10 +466,10 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
             <button type="button" className="secondary-button" disabled={progress.phase === 'cancelling'} onClick={cancel}>Cancel {actionText[progress.action].label}</button>}
         </div>}
         {mappingNotice && <div className="local-import-card" role="status">{mappingNotice}</div>}
-        {observed && visible && <section className="local-import-card" aria-label="Preview source">
-          <h2>{observed.relative_path}</h2>
-          <p>{visible.rows.length} source records{visible.truncated ? ' · Preview omits later records' : ''}{mapped && ` · Mapping v${visible.mapping_version} · ${visible.mapping_revision}`}</p>
-          <div className="local-import-hash"><strong>Complete file SHA-256</strong><code>{observed.sha256}</code></div>
+        {file && displayedSourceHash && <section className="local-import-card" aria-label={visible ? 'Preview source' : 'Current source'}>
+          <h2>{file.relative_path}</h2>
+          {visible && <p>{visible.rows.length} source records{visible.truncated ? ' · Preview omits later records' : ''}{mapped && ` · Mapping v${visible.mapping_version} · ${visible.mapping_revision}`}</p>}
+          <div className="local-import-hash"><strong>Complete file SHA-256</strong><code>{displayedSourceHash}</code></div>
         </section>}
         {mapped && <>{renderChart(mapped)}<NormalizedBars preview={mapped.preview} /></>}
         {visible ? <><RawRows key={visible.mapping_revision} preview={visible} /><Diagnostics preview={visible} /></> :

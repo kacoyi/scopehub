@@ -2725,7 +2725,7 @@
         "state-migrations"
       ],
       "evidence": [],
-      "next_action": "Verify the completed-preview requirement and distinguish decoded-header changes from unavailable headers or corrupt bodies. Verify the corrected source on native Windows, then stage dataset publication and folder refresh separately.",
+      "next_action": "Verify the preview-bound save and separate CSV header diagnosis on native Windows. In a separate slice, stage dataset publication and folder refresh, then verify immutable revision reads, retry, alias handling and interruption recovery.",
       "blocker": null,
       "closure_reason": null,
       "plan": {

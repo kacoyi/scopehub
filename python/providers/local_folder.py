@@ -67,19 +67,24 @@ def preview_csv(content: bytes, mapping: Mapping[str, object], *, row_limit: int
     if not isinstance(delimiter, str) or len(delimiter) != 1 or delimiter in '\r\n\x00"':
         issues.append(preview_issue('delimiter_required', 'delimiter', 'Select a single CSV field separator distinct from the quote and newline.'))
         return result
+    decode_failed = False
     try:
         decoded = content.decode(encoding)
     except UnicodeDecodeError as error:
-        issues.append(preview_issue('decode_failed', 'encoding', f'Cannot decode byte {error.start} with {encoding}. Check the source encoding.'))
-        return result
+        # utf-8-sig reports the error relative to the bytes after the BOM.
+        offset = len(content) - len(error.object) + error.start
+        issues.append(preview_issue('decode_failed', 'encoding', f'Cannot decode byte {offset} with {encoding}. Check the source encoding.'))
+        decoded = content[:offset].decode(encoding)
+        decode_failed = True
 
-    if result['mapping_version'] != 1 or result['mapping_revision'] is None:
-        issues.append(preview_issue('mapping_version', 'version', 'Use mapping version 1 and supply a mapping revision.'))
-    record_kind = mapping.get('record_kind')
-    if record_kind == 'quote_snapshot':
-        issues.append(preview_issue('quote_snapshot', 'record_kind', 'Quote snapshots stay raw. Reconstructed bars require verified trade and session rules.'))
-    elif record_kind != 'native_ohlcv':
-        issues.append(preview_issue('unsupported_record_kind', 'record_kind', 'Classify this input. Normalization requires closed native OHLCV bars.'))
+    if not decode_failed:
+        if result['mapping_version'] != 1 or result['mapping_revision'] is None:
+            issues.append(preview_issue('mapping_version', 'version', 'Use mapping version 1 and supply a mapping revision.'))
+        record_kind = mapping.get('record_kind')
+        if record_kind == 'quote_snapshot':
+            issues.append(preview_issue('quote_snapshot', 'record_kind', 'Quote snapshots stay raw. Reconstructed bars require verified trade and session rules.'))
+        elif record_kind != 'native_ohlcv':
+            issues.append(preview_issue('unsupported_record_kind', 'record_kind', 'Classify this input. Normalization requires closed native OHLCV bars.'))
 
     stream = StringIO(decoded, newline='')
     rows = csv.reader(stream, delimiter=delimiter, strict=True)
@@ -88,18 +93,29 @@ def preview_csv(content: bytes, mapping: Mapping[str, object], *, row_limit: int
     except StopIteration:
         header = []
     except csv.Error as error:
-        result['raw_header_text'] = decoded[:stream.tell()]
+        if not decode_failed:
+            result['raw_header_text'] = decoded[:stream.tell()]
         issues.append(preview_issue('invalid_header', 'header', f'Check the header delimiter, quoting or field size. {error}'))
         result['truncated'] = stream.tell() < len(decoded)
         return result
+    # csv.reader accepts an unterminated physical line at EOF. When decoding
+    # failed, only a logical record terminated in the source verifies the header.
+    if decode_failed and not decoded.endswith(('\r', '\n'), 0, stream.tell()):
+        return result
     if len(header) > _MAX_COLUMNS:
-        result['raw_header_text'] = decoded[:stream.tell()]
+        if not decode_failed:
+            result['raw_header_text'] = decoded[:stream.tell()]
         issues.append(preview_issue('column_limit', 'header', f'Review the field separator. CSV preview supports up to {_MAX_COLUMNS} columns.'))
         result['truncated'] = stream.tell() < len(decoded)
         return result
-    result['header'] = header
-    if not header or any(not column.strip() for column in header) or len(set(header)) != len(header):
+    valid_header = bool(header) and all(column.strip() for column in header) and len(set(header)) == len(header)
+    if not valid_header:
         issues.append(preview_issue('invalid_header', 'header', 'Use nonempty, unique CSV column headers.'))
+    if not decode_failed or valid_header:
+        result['header'] = header
+    if decode_failed:
+        # The header may be known while decoding the source records still failed.
+        return result
     native = native_mapping(mapping, header, issues) if not issues else None
     selected = set(native.indices.values()) if native is not None else set()
     result['raw_only_columns'] = [

@@ -22,7 +22,7 @@ pub async fn preview_local_import(
     actor: Actor,
     mut payload: Value,
     port: &mut impl LocalImportPort,
-) -> Result<Value, Error> {
+) -> Result<(LocalImportPreviewInput, Value), Error> {
     let operation = authorized_operation(actor, PREVIEW_LOCAL_IMPORT)?;
     if !operation.input.is_valid(&payload) || payload.to_string().len() >= max_message_bytes() {
         return Err(failure(ErrorCode::INVALIDARGUMENT));
@@ -39,7 +39,7 @@ pub async fn preview_local_import(
         return Err(failure(ErrorCode::OUTPUTINVALID));
     }
     port.ensure_live(&input)?;
-    Ok(output)
+    Ok((input, output))
 }
 
 fn matches_source(input: &LocalImportPreviewInput, output: &Value) -> bool {

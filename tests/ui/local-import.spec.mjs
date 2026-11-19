@@ -44,8 +44,11 @@ const future = {
   times: ['2026-04-14T13:05:00Z', '2026-04-14T13:10:00Z'],
 };
 
-function sourceIdentity(file) {
-  const bytes = [file.header, ...file.rows].map(row => row.join(',') + '\n').join('');
+function sourceIdentity(file, invalidPart) {
+  const valid = Buffer.from([file.header, ...file.rows].map(row => row.join(',') + '\n').join(''));
+  const invalidByte = Buffer.from([0xff]);
+  const bytes = invalidPart === 'header' ? Buffer.concat([invalidByte, valid])
+    : invalidPart === 'body' ? Buffer.concat([valid, invalidByte]) : valid;
   return {
     version: 1, folder_id: folderId, file_id: file.fileId,
     relative_path: file.path, display_name: file.path.split('/').at(-1),
@@ -62,7 +65,7 @@ const catalog = {
   }),
 };
 
-function importedFixture({ payload, requestId }) {
+function importedFixture({ payload, requestId }, invalidPart) {
   expect(Object.keys(payload).sort()).toEqual(
     ['file_id', 'folder_id', 'mapping', 'version', ...['expected_sha256', 'row_limit'].filter(field => field in payload)].sort(),
   );
@@ -75,7 +78,7 @@ function importedFixture({ payload, requestId }) {
   expect(requestId).toMatch(/^[\w-]+$/);
   const file = files.find(file => file.fileId === payload.file_id);
   expect(file).toBeDefined();
-  const identity = sourceIdentity(file);
+  const identity = sourceIdentity(file, invalidPart);
   const { mapping } = payload;
   expect(mapping).toMatchObject({ version: 1, encoding: 'utf-8', delimiter: ',' });
   expect(mapping.revision).toEqual(expect.any(String));
@@ -86,8 +89,9 @@ function importedFixture({ payload, requestId }) {
     expect(mapping.columns).toEqual(wrongClose ? { ...file.columns, close: 'PrevSettlementPrice' } : file.columns);
     expect(payload.expected_sha256).toBe(identity.sha256);
   }
-  const issues = wrongClose ? [{ code: 'auxiliary_column', field: 'close', message: 'Previous settlement price cannot be mapped to OHLC.' }] : [];
-  const rows = file.rows.map((rawFields, index) => {
+  const issues = invalidPart ? [{ code: 'decode_failed', field: 'encoding', message: 'Invalid UTF-8 in this CSV file.' }]
+    : wrongClose ? [{ code: 'auxiliary_column', field: 'close', message: 'Previous settlement price cannot be mapped to OHLC.' }] : [];
+  const rows = invalidPart ? [] : file.rows.map((rawFields, index) => {
     const incomplete = isNative && !wrongClose && index >= file.times.length;
     const normalized = isNative && !wrongClose && !incomplete ? {
       time_ms: Date.parse(file.times[index]), trading_day: rawFields[file === future ? 2 : 1],
@@ -101,7 +105,7 @@ function importedFixture({ payload, requestId }) {
       issues: incomplete ? [{ code: 'bar_incomplete', field: 'is_closed', message: 'The source marks this bar incomplete.' }] : [],
     };
   });
-  const series = isNative && !wrongClose ? {
+  const series = isNative && !wrongClose && !invalidPart ? {
     instrument_kind: file.settings.instrument_kind, venue: file.settings.venue, timeframe: file.settings.timeframe,
     calendar_id: file.settings.calendar_id, session_scope: file.settings.session_scope, timezone: file.settings.timezone,
     quantity_unit: file.settings.quantity_unit, price_adjustment: file.settings.price_adjustment, roll_method: null,
@@ -109,7 +113,7 @@ function importedFixture({ payload, requestId }) {
   return {
     ...identity, preview: {
       file_sha256: identity.sha256, mapping_version: mapping.version, mapping_revision: mapping.revision,
-      header: file.header, raw_header_text: null, rows, issues,
+      header: invalidPart === 'header' ? [] : file.header, raw_header_text: null, rows, issues,
       raw_only_columns: file === future ? [{ column: 'PrevSettlementPrice', reason: 'Previous settlement price' }] : [],
       series, truncated: false,
     },
@@ -124,6 +128,7 @@ const test = base.extend({
     const calls = [];
     const saved = new Map();
     const changedHeaders = new Set();
+    const invalidParts = new Map();
     const cancelSaveAs = [];
     const pendingSaves = new Map();
     const requests = [];
@@ -169,14 +174,19 @@ const test = base.extend({
         expect(args.requestId).toMatch(/^[\w-]+$/);
         const record = saved.get(file.fileId);
         if (!record) return { version: 1, status: 'not_saved', record: null, source_sha256: null };
+        const invalidPart = invalidParts.get(file.fileId);
+        if (invalidPart === 'header') return { invokeError: {
+          code: 'DATA_UNAVAILABLE', message: 'The CSV header could not be verified. Check the encoding and inspect the current file.',
+          details: { reason: 'csv_header_unavailable', sha256: sourceIdentity(file, invalidPart).sha256 },
+        } };
         if (changedHeaders.has(file.fileId)) {
           const changed = { ...file, header: [...file.header, 'New header'] };
           return { version: 1, status: 'review_required', record: null, source_sha256: sourceIdentity(changed).sha256 };
         }
-        return { version: 1, status: 'saved', record, source_sha256: sourceIdentity(file).sha256 };
+        return { version: 1, status: 'saved', record, source_sha256: sourceIdentity(file, invalidPart).sha256 };
       }
       expect(args.operation).toBe('market.previewLocalImport');
-      return importedFixture(args);
+      return importedFixture(args, invalidParts.get(args.payload.file_id));
     });
     await page.addInitScript(() => {
       window.isTauri = true;
@@ -188,7 +198,7 @@ const test = base.extend({
         },
       };
     });
-    await use({ calls, choices, changedHeaders, cancelSaveAs });
+    await use({ calls, choices, changedHeaders, invalidParts, cancelSaveAs });
     expect(pageErrors).toEqual([]);
     expect(requests.every(url => new URL(url).origin === baseURL && !new URL(url).pathname.startsWith('/__scopehub/'))).toBe(true);
   },
@@ -300,7 +310,7 @@ test('mocked native transport preserves the current source on cancel and support
   await expect(futuresChart).toBeVisible();
 });
 
-test('substitute native transport saves the reviewed preview and requests review when the header changes', async ({ page, mockNative }) => {
+test('substitute native transport saves the reviewed preview and distinguishes header and body failures', async ({ page, mockNative }) => {
   const matchingCalls = (operation) => mockNative.calls.filter(call => call.args?.operation === operation);
   const saves = () => matchingCalls('market.saveLocalImportMapping');
   const loads = () => matchingCalls('market.loadLocalImportMapping');
@@ -382,15 +392,43 @@ test('substitute native transport saves the reviewed preview and requests review
     command: 'cancel_local_import_preview', args: { requestId: saves()[2].args.requestId },
   });
 
-  await venue.fill('Draft venue');
+  await expect(normalized).toBeVisible();
+  await expect(save).toBeVisible();
+  mockNative.invalidParts.set(future.fileId, 'header');
+  await load.click();
+  const alert = page.getByRole('alert');
+  await expect(alert).toContainText('The CSV header could not be verified.');
+  await expect(alert).toContainText(sourceIdentity(future, 'header').sha256);
+  await expect(page.getByText(hash, { exact: true })).toHaveCount(0);
+  await expect(normalized).toHaveCount(0);
   await expect(save).toHaveCount(0);
+  await expect(close).toHaveValue('Close');
+
+  mockNative.invalidParts.set(future.fileId, 'body');
+  const bodyHash = sourceIdentity(future, 'body').sha256;
+  await load.click();
+  await expect(page.getByText('Reviewed mapping revision 2 loaded. Preview it against the current file.')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Current source' })).toContainText(bodyHash);
+  await expect(save).toHaveCount(0);
+  await control(page, 'Preview mapping').click();
+  await expect(page.getByRole('region', { name: 'Diagnostics' })).toContainText('Invalid UTF-8 in this CSV file.');
+  await expect(page.getByRole('region', { name: 'Preview source' })).toContainText(bodyHash);
+  expect(previews().at(-1).args.payload.expected_sha256).toBe(bodyHash);
+  await expect(normalized).toHaveCount(0);
+  await expect(save).toHaveCount(0);
+
+  await venue.fill('Draft venue');
+  mockNative.invalidParts.delete(future.fileId);
   mockNative.changedHeaders.add(future.fileId);
   await load.click();
   await expect(page.getByText('The CSV header has changed. Inspect the current raw rows and review the mapping.')).toBeVisible();
   await expect(venue).toHaveValue('Draft venue');
   await expect(close).toHaveValue('Close');
   await expect(normalized).toHaveCount(0);
-  await expect(page.getByText(hash, { exact: true })).toHaveCount(0);
+  const changed = { ...future, header: [...future.header, 'New header'] };
+  await expect(page.getByRole('region', { name: 'Current source' })).toContainText(sourceIdentity(changed).sha256);
+  await expect(page.getByText(bodyHash, { exact: true })).toHaveCount(0);
+  await expect(save).toHaveCount(0);
   expect(saves()).toHaveLength(3);
 });
 
