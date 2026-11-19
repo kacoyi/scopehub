@@ -4431,6 +4431,91 @@
           "cleanup": "Use a single quality derivation and remove reliance on a legacy display label as input."
         }
       }
+    },
+    {
+      "id": "M0-026",
+      "title": "Preserve failure diagnostics on Windows consoles",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-025"
+      ],
+      "scope": [
+        "scripts/check.py",
+        "tests/project/test_processes.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0011"
+      ],
+      "acceptance": [
+        "A failed check containing Unicode outside the console encoding retains its diagnostic log and returns the original failed check result so the run can finalize and stage evidence. Receipt hashes still bind the original bytes."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Reproduce the Windows console failure under a strict legacy encoding, repair the diagnostic boundary, and inspect the next native run for the actual market check result.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A check failure is diagnosable from the finalized run even on a legacy Windows console.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/check.py",
+          "scripts/processes.py",
+          "tests/project/test_processes.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The failure occurs only when the diagnostic tail is printed. Keeping raw bytes in the log and encoding a short console result safely preserves both diagnostics and the failed gate."
+        ],
+        "risks": [
+          {
+            "failure": "Reporting raises a second exception and hides the original failure, or a private stdout is printed.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain the hosted console and local recovery snapshot. Run the affected check with its isolated log while repairing the harness, then rerun native verification.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check.py",
+            "scripts/processes.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Mask the failed product check, change the process timeout or claim physical Windows acceptance."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Original raw check-log bytes, digest, exit code and redacted private check output."
+          ],
+          "change": [
+            "Console diagnostics remain parseable even when their text includes characters outside its code page."
+          ],
+          "data_plan": "No stored product data changes. Existing reports stay readable.",
+          "cleanup": "Use the existing structured harness output and keep a single private-log policy."
+        }
+      }
     }
   ]
 }

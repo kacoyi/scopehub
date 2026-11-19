@@ -86,7 +86,7 @@ def execute(name, argv, env, run_dir, timeout=900):
         record['reason_code'] = reason
     print(json.dumps(record), flush=True)
     if status == 'failed':
-        print(log_tail(log_path), flush=True)
+        print(json.dumps({'id': name, 'log_tail': log_tail(log_path)}, ensure_ascii=True), flush=True)
     return record
 
 

@@ -726,6 +726,21 @@
         "prevention": "Worker and frozen-page tests cover closed, delayed, stale and unknown data with gaps, empty selections, pinned revisions and a stale or unknown observation that still has subsequent fixture events."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-check-diagnostics-encoding",
+      "source": "Windows hosted verification run 44495516299, check harness after the market-live-stream process returned exit code 1.",
+      "observation": "The Windows console could not encode the browser failure text. The harness stopped before writing its report, so the hosted job lacked a downloadable Windows report for the original failure.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-026"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
