@@ -1851,8 +1851,8 @@
     },
     {
       "id": "workspace-sample-reopen-transport-terminal",
-      "source": "Ubuntu PR run 44601667278 at head 4aeddf2, merged test checkout 611de0d, workspace-timeframe screenshot and failure.",
-      "observation": "On the second explicit 1m sample open, the catalog displayed three instruments and the chart showed a disconnected local preview with Retry history. The assertion reported only a missing history element after five seconds. The other 23 workspace scenarios passed. The archived report lacks the network error, HTTP status and host response stage, so the original transport or OS cause remains unknown.",
+      "source": "Ubuntu and Windows jobs in PR run 44601667278 at head 4aeddf2, merged test checkout 611de0d, workspace-timeframe screenshots and structured reports.",
+      "observation": "Ubuntu failed at the second explicit 1m sample open (former line 923), after 23 other workspace scenarios passed. Windows failed at the first explicit 1m open (former line 870). Both screenshots display three catalog instruments, a disconnected local preview and Retry history. Both history assertions saw only a missing chart after five seconds. The reports lack the network error, HTTP status and host response stage for either sample failure. Their initiating transport or OS causes remain unknown.",
       "severity": "major",
       "status": "open",
       "task_ids": [
