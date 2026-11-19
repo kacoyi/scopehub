@@ -13,6 +13,101 @@ const busy = { ok: false, error: { code: 'BUSY', retryable: true } };
 const admissionFailure = { timeout: 3_000 };
 const playReplay = page => waitForReplayRequest(page, () => control(page, 'Play sample updates').click());
 
+const future = 'SIM.CN.FUTURE.001';
+const normalRevision = 'scopehub-synthetic-v1:20241013:normal';
+const catalogCall = { operation: 'instrument.search', payload: { query: '', limit: 50 } };
+const historyCall = {
+  operation: 'market.readHistoryPage',
+  payload: {
+    series: {
+      instrument_id: future, provider_id: 'scopehub.synthetic', timeframe: '1m', price_adjustment: 'raw',
+      session_scope: 'sample-sessions', calendar_id: `${future}.sample-calendar.v1`, quantity_unit: 'contracts',
+    },
+    from_ms: Date.UTC(2024, 0, 1), to_ms: Date.UTC(2024, 0, 6), warmup_bars: 0, expected_revision: normalRevision,
+  },
+};
+
+async function openDefaultSample(page, { trigger = () => page.goto('/#demo'), verifyChart } = {}) {
+  const attempts = new Map();
+  let order = 0;
+  const issued = request => {
+    if (request.method() !== 'POST') return;
+    let call;
+    try { call = request.postDataJSON(); } catch { /* A malformed body fails the request assertion. */ }
+    attempts.set(request, { path: new URL(request.url()).pathname, call, issued: ++order });
+  };
+  const received = response => {
+    const attempt = attempts.get(response.request());
+    if (attempt) attempt.response = response;
+  };
+  const finished = request => {
+    const attempt = attempts.get(request);
+    if (attempt) attempt.finished = ++order;
+  };
+  const failed = request => {
+    const attempt = attempts.get(request);
+    if (attempt) attempt.failure = request.failure()?.errorText ?? 'Request failed';
+  };
+  const read = async name => {
+    const completed = () => [...attempts.values()].find(attempt => attempt.call?.operation === name
+      && attempt.path === operation && attempt.finished !== undefined && attempt.response && attempt.response.status() !== 429);
+    await expect.poll(() => Boolean(completed()), { ...replayStage, message: `Waiting for ${name} during sample startup` }).toBe(true);
+    const { response } = completed();
+    expect(response.status(), name).toBe(200);
+    const body = await response.json();
+    expect(body.ok, name).toBe(true);
+    return body.result;
+  };
+
+  page.on('request', issued);
+  page.on('response', received);
+  page.on('requestfinished', finished);
+  page.on('requestfailed', failed);
+  try {
+    await trigger();
+    const catalog = await read(catalogCall.operation);
+    expect(catalog.instruments.map(item => item.id)).toContain(future);
+    const history = await read(historyCall.operation);
+    expect(history.snapshot.series).toEqual(historyCall.payload.series);
+    expect(history.snapshot.dataset_revision).toBe(normalRevision);
+    expect(history.total_bars).toBe(40);
+    expect(history.bars).toHaveLength(40);
+
+    await expect(chart(page)).toBeVisible();
+    await expect(chart(page)).toHaveAttribute('data-instrument', future);
+    await expect(chart(page)).toHaveAttribute('data-timeframe', '1m');
+    await expect(chart(page)).toHaveAttribute('data-bars', '40');
+    if (verifyChart) await verifyChart(history.snapshot);
+
+    const expected = [catalogCall, historyCall];
+    let phase = 0;
+    let previousFinish = 0;
+    for (const attempt of attempts.values()) {
+      const label = attempt.call?.operation ?? attempt.path;
+      expect(attempt.path, `POST endpoint for ${label}`).toBe(operation);
+      expect(attempt.failure, `Transport failure for ${label}`).toBeUndefined();
+      expect(attempt.response, `Response received for ${label}`).toBeDefined();
+      expect(attempt.finished, `Response finished for ${label}`).toBeDefined();
+      expect(attempt.call, `POST parameters for ${label}`).toEqual(expected[phase]);
+      expect(attempt.issued, `Previous response finished before ${label} was sent`).toBeGreaterThan(previousFinish);
+      previousFinish = attempt.finished;
+      if (attempt.response.status() === 429) {
+        expect(await attempt.response.json(), `Pre-admission BUSY for ${label}`).toEqual(busy);
+      } else {
+        expect(attempt.response.status(), label).toBe(200);
+        phase++;
+      }
+    }
+    expect(phase, 'catalog and history each completed once').toBe(expected.length);
+    return history.snapshot;
+  } finally {
+    page.off('request', issued);
+    page.off('response', received);
+    page.off('requestfinished', finished);
+    page.off('requestfailed', failed);
+  }
+}
+
 async function trackSubscriptions(page) {
   const attempts = [];
   page.on('request', request => {
@@ -111,13 +206,16 @@ test('starts only by choice, streams the interim and final bar onto the canvas, 
   await page.goto('/');
   await expect(control(page, 'Open offline sample')).toBeVisible();
   expect(calls).toEqual([]);
-  await control(page, 'Open offline sample').click();
-  await expect(chart(page)).toHaveAttribute('data-bars', '40');
-  await expect.poll(() => painted(page, 'candlestick')).toBeGreaterThan(20);
-  // The entry button occupies chart space until the first history arrives.
-  await page.mouse.move(1, 1);
-  await priceText(page, '3500\\.8', 110, 'Partial');
-  expect(calls.map(call => call.operation)).toEqual(['instrument.search', 'market.readHistoryPage']);
+  const initialSnapshot = await openDefaultSample(page, {
+    trigger: () => control(page, 'Open offline sample').click(),
+    verifyChart: async () => {
+      await expect.poll(() => painted(page, 'candlestick')).toBeGreaterThan(20);
+      // The entry button occupies chart space until the first history arrives.
+      await page.mouse.move(1, 1);
+      await priceText(page, '3500\\.8', 110, 'Partial');
+      expect(subscriptions).toHaveLength(0);
+    },
+  });
   const canvas = chart(page).locator('.chart canvas').first();
   const originalCanvas = await canvas.elementHandle();
   const initial = await canvas.evaluate(el => window.followLastCandle(el));
@@ -183,13 +281,36 @@ test('starts only by choice, streams the interim and final bar onto the canvas, 
   await expect.poll(() => painted(page, 'line')).toBeGreaterThan(20);
   await priceText(page, '3501', 130, 'Closed');
   await openPanel(page, 'Data window');
-  await expect(page.getByRole('table', { name: 'Historical bars' }).locator('tbody tr').last().getByRole('cell')).toHaveText(
-    ['2024-01-04T01:09:00.000Z', '2024-01-04', '3501.6', '3502', '3500.8', '3500.8', '110', 'Partial'],
-  );
-  await page.reload();
-  await priceText(page, '3500\\.8', 110, 'Partial');
-  await expect(status(page)).toHaveCount(0);
-  expect(subscriptions).toHaveLength(verifiedAttempts.length);
+  const bars = page.getByRole('table', { name: 'Historical bars' });
+  const rows = bars.locator('tbody tr');
+  const finalCells = rows.last().getByRole('cell');
+  const originalFinalRow = ['2024-01-04T01:09:00.000Z', '2024-01-04', '3501.6', '3502', '3500.8', '3500.8', '110', 'Partial'];
+  await expect(finalCells).toHaveText(originalFinalRow);
+  // Both reads use the real loopback worker. Slow successful replies independently
+  // so that their combined latency exceeds the former five-second render wait.
+  await page.route(`**${operation}`, async route => {
+    const response = await route.fetch(replayStage);
+    if (response.ok()) await delay(2_750);
+    await route.fulfill({ response });
+  });
+  await openDefaultSample(page, {
+    trigger: () => page.reload({ waitUntil: 'domcontentloaded' }),
+    verifyChart: async snapshot => {
+      expect(snapshot).toEqual(initialSnapshot);
+      await expect(control(page, 'Search symbols')).toHaveText('CN.FUTURE.001');
+      await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
+      await expect(control(page, 'Close-price line')).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.getByRole('img', { name: `Close-price line and volume chart for ${future}` })).toBeVisible();
+      await expect(page.getByText('Simulated', { exact: true })).toBeVisible();
+      await expect(bars).toBeVisible();
+      await expect(rows).toHaveCount(40);
+      await expect(finalCells).toHaveText(originalFinalRow);
+      await expect.poll(() => painted(page, 'line')).toBeGreaterThan(20);
+      await priceText(page, '3500\\.8', 110, 'Partial');
+      await expect(status(page)).toHaveCount(0);
+      expect(subscriptions).toHaveLength(verifiedAttempts.length);
+    },
+  });
 });
 
 test('changing symbol and timeframe during preparation loads the new chart before the old reply is released', async ({ page }) => {
@@ -225,7 +346,7 @@ test('changing symbol and timeframe during preparation loads the new chart befor
   });
 
   try {
-    await page.goto('/#demo');
+    await openDefaultSample(page);
     await expect(chart(page)).toHaveAttribute('data-instrument', 'SIM.CN.FUTURE.001');
     await control(page, 'Play sample updates').click();
     const [{ request, reply }] = await Promise.all([
@@ -259,7 +380,7 @@ test('changing symbol and timeframe during preparation loads the new chart befor
 
 test('selection change cancels the owned replay and releases the slot for the new selection', async ({ page }) => {
   const subscriptions = await trackSubscriptions(page);
-  await page.goto('/#demo');
+  await openDefaultSample(page);
   await expect(chart(page)).toHaveAttribute('data-instrument', 'SIM.CN.FUTURE.001');
   await playReplay(page);
   await expect(status(page)).toHaveText('Synthetic replay in progress', replayStage);
@@ -305,7 +426,7 @@ test('replacement history waits for a cancelled preparation past the old cleanup
   });
 
   try {
-    await page.goto('/#demo');
+    await openDefaultSample(page);
     await expect(chart(page)).toHaveAttribute('data-instrument', 'SIM.CN.FUTURE.001');
     await control(page, 'Play sample updates').click();
     const previous = await preparation.promise;
@@ -340,7 +461,7 @@ test('replacement replay admits exactly one stream after the old cleanup bound',
     await route.continue();
   });
 
-  await page.goto('/#demo');
+  await openDefaultSample(page);
   await playReplay(page);
   await expect(status(page)).toHaveText('Synthetic replay in progress', replayStage);
   const cancelled = page.waitForEvent('requestfailed', {
@@ -367,7 +488,7 @@ test('persistent admission contention stops and offers explicit replay retry', a
     attempts++;
     return route.fulfill({ status: 429, json: busy });
   });
-  await page.goto('/#demo');
+  await openDefaultSample(page);
   await playReplay(page);
   await expect(status(page)).toContainText('The market worker is busy.', admissionFailure);
   await expect(control(page, 'Retry replay')).toBeVisible();
@@ -381,7 +502,7 @@ test('a BUSY terminal frame does not admit another replay', async ({ page }) => 
     admitted++;
     return route.fulfill({ contentType: 'application/x-ndjson', body: JSON.stringify(busy) + '\n' });
   });
-  await page.goto('/#demo');
+  await openDefaultSample(page);
   await playReplay(page);
   await expect(status(page)).toContainText('The market worker is busy.', replayStage);
   expect(admitted).toBe(1);
@@ -394,7 +515,7 @@ test('a crossed epoch produces a visible gap and leaves the chart at its frozen 
     body.payload.after.epoch = 'prior-epoch';
     await route.continue({ postData: JSON.stringify(body) });
   });
-  await page.goto('/#demo');
+  await openDefaultSample(page);
   await playReplay(page);
   await expect(status(page)).toHaveText('Replay gap. The stream restarted.', replayStage);
   await priceText(page, '3500\\.8', 110, 'Partial');
