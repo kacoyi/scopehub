@@ -4297,6 +4297,10 @@
         {
           "path": "project/evidence/M2-002-58c13d0f723275d2.json",
           "sha256": "c65455d1a1229b88c9a3f5414a87a3d058d15f8114baf9587294e14654bb2f90"
+        },
+        {
+          "path": "project/evidence/M2-002-455f450f8ca66a3b.json",
+          "sha256": "39e467595a122ad178965edbc0f61a3e5af21c379aeeb918c075a8086fe16545"
         }
       ],
       "next_action": "Use the verified Linux checkpoints and the scoped native Windows source review at contracts/reviews/2026-11-19-native-layout-workspace.json. Reconcile with M3 on one reviewed source and verify the layout, selected source and an accepted indicator together through same-profile restart and interrupted restore. Exercise the selected frozen source, explicit simulated sample, unavailable source and revoked grant while retaining the saved arrangement and accepted artifact under current access. Retain the combined evidence before closing M2-002.",
