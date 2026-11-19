@@ -891,5 +891,115 @@
     "name": "local CSV preview digest cannot have a trailing newline",
     "valid": false,
     "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.previewLocalImport\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\\n\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-1\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"volume\":null}},\"row_limit\":30}}\n"
+  },
+  {
+    "name": "1.1 local CSV mapping save binds to the reviewed file digest",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.saveLocalImportMapping\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"560126dfde121bf49e27d6163183a6dcc629645d894ce7494a1f62b9e262b2e5\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-equity-reviewed\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"timestamp\":\"Time\",\"trading_day\":\"Day\",\"open\":\"Open\",\"high\":\"High\",\"low\":\"Low\",\"close\":\"Close\",\"volume\":null},\"instrument_kind\":\"equity\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-exchange\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"volume_semantics\":\"per_bar\",\"timestamp_convention\":\"bar_start\",\"timestamp_format\":\"%Y-%m-%d %H:%M\",\"trading_day_format\":\"%Y-%m-%d\"},\"row_limit\":30}}\n"
+  },
+  {
+    "name": "1.1 local CSV mapping save returns the reviewed mapping and header identity",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.saveLocalImportMapping\",\"ok\":true,\"result\":{\"version\":1,\"record\":{\"review_revision\":2,\"header_sha256\":\"6381b2c0ad85079009a9c4f09b87f182f791f3e60a5f2f0187d566737a4a6092\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-equity-reviewed\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"timestamp\":\"Time\",\"trading_day\":\"Day\",\"open\":\"Open\",\"high\":\"High\",\"low\":\"Low\",\"close\":\"Close\",\"volume\":null},\"instrument_kind\":\"equity\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-exchange\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"volume_semantics\":\"per_bar\",\"timestamp_convention\":\"bar_start\",\"timestamp_format\":\"%Y-%m-%d %H:%M\",\"trading_day_format\":\"%Y-%m-%d\"}}},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local CSV mapping load uses the live file selection",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.loadLocalImportMapping\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\"}}\n"
+  },
+  {
+    "name": "1.1 local CSV mapping load returns the matching review and current file digest",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.loadLocalImportMapping\",\"ok\":true,\"result\":{\"version\":1,\"status\":\"saved\",\"record\":{\"review_revision\":2,\"header_sha256\":\"6381b2c0ad85079009a9c4f09b87f182f791f3e60a5f2f0187d566737a4a6092\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-equity-reviewed\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"timestamp\":\"Time\",\"trading_day\":\"Day\",\"open\":\"Open\",\"high\":\"High\",\"low\":\"Low\",\"close\":\"Close\",\"volume\":null},\"instrument_kind\":\"equity\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-exchange\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"volume_semantics\":\"per_bar\",\"timestamp_convention\":\"bar_start\",\"timestamp_format\":\"%Y-%m-%d %H:%M\",\"trading_day_format\":\"%Y-%m-%d\"}},\"source_sha256\":\"560126dfde121bf49e27d6163183a6dcc629645d894ce7494a1f62b9e262b2e5\"},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 unsaved local CSV mapping has no record or digest",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.loadLocalImportMapping\",\"ok\":true,\"result\":{\"version\":1,\"status\":\"not_saved\",\"record\":null,\"source_sha256\":null},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 changed CSV header needs review and withholds the old mapping",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.loadLocalImportMapping\",\"ok\":true,\"result\":{\"version\":1,\"status\":\"review_required\",\"record\":null,\"source_sha256\":\"fdcb52aa885e33855102ec222a205a20dbe41068306eb9696378ca483b192b4c\"},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local CSV mapping cancelled fault",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.saveLocalImportMapping\",\"ok\":false,\"result\":null,\"error\":{\"code\":\"CANCELLED\",\"message\":\"The mapping save was cancelled.\",\"retryable\":false,\"details\":{}}}\n"
+  },
+  {
+    "name": "1.1 local CSV mapping stale_context fault",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.loadLocalImportMapping\",\"ok\":false,\"result\":null,\"error\":{\"code\":\"STALE_CONTEXT\",\"message\":\"The folder selection superseded this mapping request.\",\"retryable\":false,\"details\":{}}}\n"
+  },
+  {
+    "name": "local CSV mapping save requires a reviewed file digest",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.saveLocalImportMapping\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-equity-reviewed\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"timestamp\":\"Time\",\"trading_day\":\"Day\",\"open\":\"Open\",\"high\":\"High\",\"low\":\"Low\",\"close\":\"Close\",\"volume\":null},\"instrument_kind\":\"equity\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-exchange\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"volume_semantics\":\"per_bar\",\"timestamp_convention\":\"bar_start\",\"timestamp_format\":\"%Y-%m-%d %H:%M\",\"trading_day_format\":\"%Y-%m-%d\"},\"row_limit\":30}}\n"
+  },
+  {
+    "name": "local CSV mapping save rejects more than 500 preview rows",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.saveLocalImportMapping\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"560126dfde121bf49e27d6163183a6dcc629645d894ce7494a1f62b9e262b2e5\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-equity-reviewed\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"timestamp\":\"Time\",\"trading_day\":\"Day\",\"open\":\"Open\",\"high\":\"High\",\"low\":\"Low\",\"close\":\"Close\",\"volume\":null},\"instrument_kind\":\"equity\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-exchange\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"volume_semantics\":\"per_bar\",\"timestamp_convention\":\"bar_start\",\"timestamp_format\":\"%Y-%m-%d %H:%M\",\"trading_day_format\":\"%Y-%m-%d\"},\"row_limit\":501}}\n"
+  },
+  {
+    "name": "local CSV mapping save has no caller-controlled profile",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.saveLocalImportMapping\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"560126dfde121bf49e27d6163183a6dcc629645d894ce7494a1f62b9e262b2e5\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-equity-reviewed\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"timestamp\":\"Time\",\"trading_day\":\"Day\",\"open\":\"Open\",\"high\":\"High\",\"low\":\"Low\",\"close\":\"Close\",\"volume\":null},\"instrument_kind\":\"equity\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-exchange\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"volume_semantics\":\"per_bar\",\"timestamp_convention\":\"bar_start\",\"timestamp_format\":\"%Y-%m-%d %H:%M\",\"trading_day_format\":\"%Y-%m-%d\"},\"row_limit\":30,\"profile_id\":\"synthetic-test-profile\"}}\n"
+  },
+  {
+    "name": "local CSV mapping load has no caller-controlled folder path or grant",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.loadLocalImportMapping\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"folder_path\":\"/synthetic\",\"grant_id\":\"00000000-0000-4000-8000-000000000003\"}}\n"
+  },
+  {
+    "name": "local CSV mapping save is unavailable in 1.0",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.saveLocalImportMapping\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"560126dfde121bf49e27d6163183a6dcc629645d894ce7494a1f62b9e262b2e5\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-equity-reviewed\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"timestamp\":\"Time\",\"trading_day\":\"Day\",\"open\":\"Open\",\"high\":\"High\",\"low\":\"Low\",\"close\":\"Close\",\"volume\":null},\"instrument_kind\":\"equity\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-exchange\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"volume_semantics\":\"per_bar\",\"timestamp_convention\":\"bar_start\",\"timestamp_format\":\"%Y-%m-%d %H:%M\",\"trading_day_format\":\"%Y-%m-%d\"},\"row_limit\":30}}\n"
+  },
+  {
+    "name": "local CSV mapping save has no AI tool lane",
+    "valid": false,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"ai.tool_request\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"stream_id\":\"st\",\"sequence\":2,\"payload\":{\"operation\":\"market.saveLocalImportMapping\",\"arguments\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"560126dfde121bf49e27d6163183a6dcc629645d894ce7494a1f62b9e262b2e5\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-equity-reviewed\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"timestamp\":\"Time\",\"trading_day\":\"Day\",\"open\":\"Open\",\"high\":\"High\",\"low\":\"Low\",\"close\":\"Close\",\"volume\":null},\"instrument_kind\":\"equity\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-exchange\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"volume_semantics\":\"per_bar\",\"timestamp_convention\":\"bar_start\",\"timestamp_format\":\"%Y-%m-%d %H:%M\",\"trading_day_format\":\"%Y-%m-%d\"},\"row_limit\":30}}}\n"
+  },
+  {
+    "name": "local CSV mapping load is unavailable in 1.0",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.loadLocalImportMapping\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\"}}\n"
+  },
+  {
+    "name": "local CSV mapping load has no AI tool lane",
+    "valid": false,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"ai.tool_request\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"stream_id\":\"st\",\"sequence\":2,\"payload\":{\"operation\":\"market.loadLocalImportMapping\",\"arguments\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\"}}}\n"
+  },
+  {
+    "name": "local CSV mapping load matching review must contain the record",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.loadLocalImportMapping\",\"ok\":true,\"result\":{\"version\":1,\"status\":\"saved\",\"record\":null,\"source_sha256\":\"560126dfde121bf49e27d6163183a6dcc629645d894ce7494a1f62b9e262b2e5\"},\"error\":null}\n"
+  },
+  {
+    "name": "local CSV mapping load matching review must carry the current file digest",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.loadLocalImportMapping\",\"ok\":true,\"result\":{\"version\":1,\"status\":\"saved\",\"record\":{\"review_revision\":2,\"header_sha256\":\"6381b2c0ad85079009a9c4f09b87f182f791f3e60a5f2f0187d566737a4a6092\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-equity-reviewed\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"timestamp\":\"Time\",\"trading_day\":\"Day\",\"open\":\"Open\",\"high\":\"High\",\"low\":\"Low\",\"close\":\"Close\",\"volume\":null},\"instrument_kind\":\"equity\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-exchange\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"volume_semantics\":\"per_bar\",\"timestamp_convention\":\"bar_start\",\"timestamp_format\":\"%Y-%m-%d %H:%M\",\"trading_day_format\":\"%Y-%m-%d\"}},\"source_sha256\":null},\"error\":null}\n"
+  },
+  {
+    "name": "local CSV mapping load unsaved mapping cannot carry a file digest",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.loadLocalImportMapping\",\"ok\":true,\"result\":{\"version\":1,\"status\":\"not_saved\",\"record\":null,\"source_sha256\":\"560126dfde121bf49e27d6163183a6dcc629645d894ce7494a1f62b9e262b2e5\"},\"error\":null}\n"
+  },
+  {
+    "name": "local CSV mapping load changed header cannot return the earlier mapping",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.loadLocalImportMapping\",\"ok\":true,\"result\":{\"version\":1,\"status\":\"review_required\",\"record\":{\"review_revision\":2,\"header_sha256\":\"6381b2c0ad85079009a9c4f09b87f182f791f3e60a5f2f0187d566737a4a6092\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-equity-reviewed\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"timestamp\":\"Time\",\"trading_day\":\"Day\",\"open\":\"Open\",\"high\":\"High\",\"low\":\"Low\",\"close\":\"Close\",\"volume\":null},\"instrument_kind\":\"equity\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-exchange\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"volume_semantics\":\"per_bar\",\"timestamp_convention\":\"bar_start\",\"timestamp_format\":\"%Y-%m-%d %H:%M\",\"trading_day_format\":\"%Y-%m-%d\"}},\"source_sha256\":\"fdcb52aa885e33855102ec222a205a20dbe41068306eb9696378ca483b192b4c\"},\"error\":null}\n"
+  },
+  {
+    "name": "local CSV mapping load changed header requires the current file digest",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.loadLocalImportMapping\",\"ok\":true,\"result\":{\"version\":1,\"status\":\"review_required\",\"record\":null,\"source_sha256\":null},\"error\":null}\n"
+  },
+  {
+    "name": "local CSV mapping review revision is a positive safe integer",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.saveLocalImportMapping\",\"ok\":true,\"result\":{\"version\":1,\"record\":{\"review_revision\":9007199254740992,\"header_sha256\":\"6381b2c0ad85079009a9c4f09b87f182f791f3e60a5f2f0187d566737a4a6092\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-equity-reviewed\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"timestamp\":\"Time\",\"trading_day\":\"Day\",\"open\":\"Open\",\"high\":\"High\",\"low\":\"Low\",\"close\":\"Close\",\"volume\":null},\"instrument_kind\":\"equity\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-exchange\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"volume_semantics\":\"per_bar\",\"timestamp_convention\":\"bar_start\",\"timestamp_format\":\"%Y-%m-%d %H:%M\",\"trading_day_format\":\"%Y-%m-%d\"}}},\"error\":null}\n"
   }
 ]

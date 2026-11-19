@@ -2792,7 +2792,7 @@
             "Add a separately authorized local-folder source with reviewable versioned mappings and snapshots.",
             "Add immutable reviewed mapping versions in the existing profile database, including an explicit review-required result for a changed header."
           ],
-          "data_plan": "Keep source bytes, mapping, evidence locators and dataset revisions on the active profile. Migrate long-lived state through its owning Rust writer when publication is introduced. Migrate the existing SQLite schema transactionally from version 1. Persist an opaque per-source association, ordered header digest and reviewed mapping. Derive folder access only from the current trusted selection.",
+          "data_plan": "Keep source bytes, mapping, evidence locators and dataset revisions on the active profile. Migrate long-lived state through its owning Rust writer when publication is introduced. Integrate the profile writer and migration history from af89eff. Preserve workspace schema v1, decision notes v2 and backup and restore v3. Apply reviewed mapping schema v4 transactionally and verify both populated v3 databases and fresh initialization. Persist an opaque per-source association, ordered header digest and reviewed mapping. Derive folder access only from the current trusted selection.",
           "cleanup": "Cancel uncommitted staging on failure and close file handles when the selected folder or profile changes. Close the profile writer and cancel uncommitted mapping operations when the host shuts down."
         }
       }

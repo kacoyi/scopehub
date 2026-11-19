@@ -210,7 +210,8 @@ class DependencyTests(unittest.TestCase):
                     'uri': ('https://example.invalid/result', 'has spaces and no scheme')}
         def formats(value):
             if isinstance(value, dict):
-                return ({value['format']} if 'format' in value else set()).union(*(formats(x) for x in value.values()))
+                return ({value['format']} if isinstance(value.get('format'), str) else set()).union(
+                    *(formats(x) for x in value.values()))
             if isinstance(value, list):
                 return set().union(*(formats(x) for x in value))
             return set()
