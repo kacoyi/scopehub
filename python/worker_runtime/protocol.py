@@ -8,8 +8,8 @@ from jsonschema import Draft202012Validator, FormatChecker
 from contracts.generated.protocol import Message
 
 ROOT = Path(__file__).resolve().parents[2]
-SCHEMA = json.loads((ROOT / 'contracts/schemas/protocol.schema.json').read_text())
-POLICY = json.loads((ROOT / 'contracts/generated/runtime.json').read_text())
+SCHEMA = json.loads((ROOT / 'contracts/schemas/protocol.schema.json').read_text(encoding='utf-8'))
+POLICY = json.loads((ROOT / 'contracts/generated/runtime.json').read_text(encoding='utf-8'))
 MAX_MESSAGE_BYTES: int = POLICY['max_message_bytes']
 VALIDATOR = Draft202012Validator(SCHEMA, format_checker=FormatChecker())
 
@@ -40,7 +40,7 @@ def normalize_integers(value: object) -> object:
     return value
 
 
-def decode_line(line: bytes) -> Message:
+def decode_line(line: bytes, *, normalize: bool = True) -> Message:
     if len(line) > MAX_MESSAGE_BYTES:
         raise ProtocolError('RESOURCE_LIMIT')
     body = line.removesuffix(b'\n').removesuffix(b'\r')
@@ -53,7 +53,7 @@ def decode_line(line: bytes) -> Message:
             raise ProtocolError('INVALID_ARGUMENT')
     except (ValueError, UnicodeError, RecursionError) as error:
         raise ProtocolError('INVALID_ARGUMENT') from error
-    return cast(Message, normalize_integers(value))
+    return cast(Message, normalize_integers(value) if normalize else value)
 
 
 def encode_message(message: Message) -> bytes:

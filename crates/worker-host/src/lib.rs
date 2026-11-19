@@ -141,5 +141,7 @@ pub async fn probe_handshake(
 
 pub use scopehub_domain::wire::{POLICY, ProtocolError, SCHEMA, decode_line, max_message_bytes};
 mod cleanup;
+pub mod indicator;
 pub mod local_import;
 pub mod market;
+mod python;

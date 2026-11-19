@@ -8,8 +8,9 @@ license.workspace = true
 [dependencies]
 base64 = "0.22"
 scopehub-domain = { path = "../domain" }
-serde_json.workspace = true
+serde_json = { workspace = true, features = ["float_roundtrip", "raw_value"] }
 serde.workspace = true
+sha2 = "0.10"
 scopehub-application = { path = "../application" }
 uuid = { version = "1", features = ["v4"] }
 tokio.workspace = true
