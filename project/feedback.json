@@ -1353,7 +1353,7 @@
     },
     {
       "id": "native-published-csv-revision-discovery",
-      "source": "Owner observation in the native Windows desktop at 4571353. The native publication observation is recorded in contracts/reviews/2026-11-19-windows-local-publication.json.",
+      "source": "Development verification in the native Windows desktop at 4571353, recorded in contracts/reviews/2026-11-19-windows-local-publication.json. The ordinary native keyboard list path at 09e89d2 is recorded in contracts/reviews/2026-11-19-windows-published-revision-library.json.",
       "observation": "After restarting with an already published local CSV, reopening its frozen chart required manually pasting an opaque revision UUID even though the revision and source were already stored in the current profile.",
       "severity": "major",
       "status": "open",
@@ -1363,6 +1363,21 @@
       "regression_checks": [
         "local-import-publication",
         "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "same-name-frozen-csv-revisions-hard-to-identify",
+      "source": "Development verification of the standard-user Windows desktop at 09e89d2. See contracts/reviews/2026-11-19-windows-published-revision-library.json.",
+      "observation": "Two revisions of daily.csv for the same symbol and period share the displayed filename and counts. Their final closes differ. The library shows only hashes and revision identifiers to distinguish them before opening a chart.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "local-import-publication"
       ],
       "resolution": null,
       "deferral_reason": null

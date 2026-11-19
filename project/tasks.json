@@ -2728,7 +2728,7 @@
         "local-import-ui"
       ],
       "evidence": [],
-      "next_action": "Verify browsing and reopening published revisions in the native Windows desktop and verify the integrated preview retry, receipt replay and current entitlement. Continue reviewed folder refresh for additions, aliases, corrections and withdrawals.",
+      "next_action": "Make same-name frozen revisions recognizable, verify ordinary external source replacement on Windows, and continue reviewed folder refresh for additions, aliases, corrections and withdrawals.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -2757,7 +2757,8 @@
           "crates/persistence/src/local_dataset.rs",
           "apps/desktop/ui/src/local-revision-dialog.tsx",
           "crates/worker-host/src/local_import.rs",
-          "crates/worker-host/src/local_import_windows.rs"
+          "crates/worker-host/src/local_import_windows.rs",
+          "contracts/reviews/2026-11-19-windows-published-revision-library.json"
         ],
         "hypotheses": [
           "Explicit source mappings can normalize native OHLCV bars without inferring a price, volume unit or session from ambiguous financial fields. File identities and row locators can connect every accepted row to its original input.",
@@ -2939,7 +2940,7 @@
           "open_questions": [
             "Stage added files and detect byte-identical aliases within a folder without treating an alias as new economic events. Preserve all contributing source locators and prove results are independent of folder enumeration order.",
             "Hold changed headers, mixed series and competing corrections for review. Support explicit multi-file replacement and missing-file withdrawal with a complete reviewed manifest, atomic publication and restart/retry evidence.",
-            "Exercise the published-revision browser in native Windows with an existing v5 profile. The portable local-import-publication check covers same-file discovery after restart, cross-profile isolation, revocation between listing and opening, and narrow-screen keyboard access. Source row inspection beyond the existing frozen chart and folder-wide refresh are separate work.",
+            "Make same-name versions recognizable from the entitled published-revision list. Use truthful frozen summaries and verify the user can choose a correction without copying a hash or version ID.",
             "Verify the picker, publication, migration and frozen chart path in the native Windows application."
           ]
         },
