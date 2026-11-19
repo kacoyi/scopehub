@@ -1,6 +1,8 @@
-use std::{sync::Mutex as SyncMutex, time::Duration};
+use std::{path::Path, sync::Mutex as SyncMutex, time::Duration};
 
-use scopehub_application::{Actor, MarketLifecycle, MarketPort, MarketRegistry, failure};
+use scopehub_application::{
+    Actor, MarketLifecycle, MarketPort, MarketRegistry, SET_TIMEFRAME, UNDO, failure,
+};
 use scopehub_domain::protocol::{Error, ErrorCode};
 use scopehub_worker_host::market::{MarketWorker, WorkerConfig};
 use serde_json::Value;
@@ -10,10 +12,13 @@ use tokio::sync::{Mutex, MutexGuard, oneshot};
 #[cfg(windows)]
 use {scopehub_worker_host::market::run_subscription, serde_json::json};
 
+use crate::workspace::WorkspaceBridge;
+
 pub struct State {
     reads: Mutex<MarketRegistry<MarketWorker>>,
     replay: Mutex<()>,
     cancellation: SyncMutex<Cancellation>,
+    workspace: WorkspaceBridge,
 }
 
 #[derive(Default)]
@@ -56,10 +61,31 @@ pub fn state() -> State {
         reads: Mutex::new(MarketRegistry::new(MarketWorker::new(development_config()))),
         replay: Mutex::new(()),
         cancellation: SyncMutex::default(),
+        workspace: WorkspaceBridge::disabled(),
+    }
+}
+
+pub fn state_with_development_workspace(app_local_data: Option<&Path>) -> State {
+    State {
+        workspace: WorkspaceBridge::development(app_local_data),
+        ..state()
     }
 }
 
 impl State {
+    async fn execute(
+        &self,
+        window_label: &str,
+        operation: Option<&str>,
+        payload: Value,
+    ) -> Result<Value, Error> {
+        authorize_window(window_label)?;
+        match operation {
+            None | Some(SET_TIMEFRAME | UNDO) => self.workspace.dispatch(operation, payload).await,
+            Some(operation) => self.read(operation, payload).await,
+        }
+    }
+
     async fn read(&self, operation: &str, payload: Value) -> Result<Value, Error> {
         // Do not create an unbounded queue of requests in the native process.
         let mut registry = self
@@ -140,14 +166,14 @@ impl State {
                 let _ = sender.send(());
             }
         }
+        self.workspace.shutdown().await;
         let _replay = self.replay.lock().await;
         let _ = self.reads.lock().await.shutdown().await;
     }
 }
 
-#[cfg(windows)]
-fn authorize_window(window: &tauri::WebviewWindow) -> Result<(), Error> {
-    if window.label() == "main" {
+fn authorize_window(label: &str) -> Result<(), Error> {
+    if label == "main" {
         Ok(())
     } else {
         Err(failure(ErrorCode::PERMISSIONDENIED))
@@ -159,11 +185,12 @@ fn authorize_window(window: &tauri::WebviewWindow) -> Result<(), Error> {
 pub async fn execute_operation(
     window: tauri::WebviewWindow,
     state: tauri::State<'_, State>,
-    operation: String,
+    operation: Option<String>,
     payload: Value,
 ) -> Result<Value, Error> {
-    authorize_window(&window)?;
-    state.read(&operation, payload).await
+    state
+        .execute(window.label(), operation.as_deref(), payload)
+        .await
 }
 
 #[cfg(windows)]
@@ -175,7 +202,7 @@ pub async fn prepare_market_subscription(
     payload: Value,
     progress: Channel<Value>,
 ) -> Result<Value, Error> {
-    authorize_window(&window)?;
+    authorize_window(window.label())?;
     state
         .prepare(
             preparation_id,
@@ -197,7 +224,7 @@ pub fn cancel_market_preparation(
     state: tauri::State<'_, State>,
     preparation_id: String,
 ) -> Result<(), Error> {
-    authorize_window(&window)?;
+    authorize_window(window.label())?;
     state.cancel_replay(ReplayTask::Preparation(preparation_id));
     Ok(())
 }
@@ -211,7 +238,7 @@ pub async fn execute_market_subscription(
     payload: Value,
     progress: Channel<Value>,
 ) -> Result<(), Error> {
-    authorize_window(&window)?;
+    authorize_window(window.label())?;
     let (_slot, receive) = state.begin_replay(ReplayTask::Subscription(subscription_id))?;
     let publish = |frame| {
         progress
@@ -244,7 +271,7 @@ pub fn cancel_market_subscription(
     state: tauri::State<'_, State>,
     subscription_id: String,
 ) -> Result<(), Error> {
-    authorize_window(&window)?;
+    authorize_window(window.label())?;
     state.cancel_replay(ReplayTask::Subscription(subscription_id));
     Ok(())
 }

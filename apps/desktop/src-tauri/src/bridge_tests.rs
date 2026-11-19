@@ -67,7 +67,7 @@ async fn new_history_loads_while_preparation_is_held_and_only_its_owner_can_canc
     };
     let mut input = history("SIM.CN.FUTURE.001", "1m", "contracts");
     let frozen = state
-        .read("market.readHistoryPage", input.clone())
+        .execute("main", Some("market.readHistoryPage"), input.clone())
         .await
         .unwrap();
     input["snapshot"] = frozen["snapshot"].clone();
@@ -148,4 +148,279 @@ async fn new_history_loads_while_preparation_is_held_and_only_its_owner_can_canc
     assert!(
         matches!(state.begin_replay(ReplayTask::Preparation(NEW.into())), Err(error) if error.code == ErrorCode::CANCELLED)
     );
+}
+
+struct AppLocalData(PathBuf);
+
+impl AppLocalData {
+    fn new() -> Self {
+        use std::{
+            sync::atomic::{AtomicU64, Ordering},
+            time::{SystemTime, UNIX_EPOCH},
+        };
+
+        static SEQUENCE: AtomicU64 = AtomicU64::new(0);
+        let stamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let sequence = SEQUENCE.fetch_add(1, Ordering::Relaxed);
+        let temporary = std::env::temp_dir();
+        #[cfg(unix)]
+        let temporary = temporary.canonicalize().unwrap();
+        let path = temporary.join(format!(
+            "scopehub-desktop-test-{}-{stamp}-{sequence}",
+            std::process::id(),
+        ));
+        scopehub_persistence::SqliteWorkspace::prepare_profile_root(&path).unwrap();
+        Self(path)
+    }
+
+    fn database(&self) -> PathBuf {
+        self.0.join("workspace-dev").join("workspace.sqlite3")
+    }
+}
+
+impl Drop for AppLocalData {
+    fn drop(&mut self) {
+        std::fs::remove_dir_all(&self.0).unwrap();
+    }
+}
+
+fn uuid(number: u64) -> String {
+    format!("00000000-0000-4000-8000-{number:012x}")
+}
+
+fn mutation(revision: u64, operation: &str, arguments: Value, id: u64) -> Value {
+    json!({
+        "protocol_version": "1.1", "type": "request", "task_id": null, "timestamp_ms": 123,
+        "message_id": uuid(id + 1), "request_id": uuid(id + 2),
+        "scope": {
+            "workspace_id": "main", "target": {"kind": "chart", "object_id": "main-chart"},
+            "expected_workspace_revision": revision, "expected_selection_revision": 0,
+            "idempotency_key": uuid(id + 3),
+        },
+        "intent": {"operation": operation, "arguments": arguments},
+    })
+}
+
+async fn snapshot(state: &State) -> Value {
+    state
+        .execute("main", None, json!({"type": "snapshot"}))
+        .await
+        .unwrap()
+}
+
+#[tokio::test]
+async fn desktop_dispatch_restores_replays_and_undoes_with_one_owned_connection() {
+    let profile = AppLocalData::new();
+    let first = state_with_development_workspace(Some(&profile.0));
+    let opened = snapshot(&first).await;
+    assert_eq!(opened["workspace"]["revision"], 0);
+    assert_eq!(opened["workspace"]["timeframe"], "1m");
+    assert_eq!(opened["selection_revision"], 0);
+    assert!(opened["workspace"]["dataset"].is_null());
+    assert!(opened["undo"].is_null());
+    assert!(first.reads.lock().await.status().process_id.is_none());
+
+    let set = mutation(0, "chart.setTimeframe", json!({"timeframe": "5m"}), 10);
+    let reply = first
+        .execute("main", Some(SET_TIMEFRAME), set.clone())
+        .await
+        .unwrap();
+    assert_eq!(reply["request_id"], set["request_id"]);
+    assert_eq!(reply["outcome"]["result"]["timeframe"], "5m");
+    assert_eq!(reply["outcome"]["result"]["revision"], 1);
+    let receipt = &reply["outcome"]["receipt"];
+    let operation_id = receipt["operation_id"].as_str().unwrap();
+    first.shutdown().await;
+    assert!(!profile.database().with_extension("sqlite3-wal").exists());
+    assert_eq!(
+        first
+            .execute("main", Some(SET_TIMEFRAME), set.clone())
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::CANCELLED,
+    );
+
+    let restarted = state_with_development_workspace(Some(&profile.0));
+    let restored = snapshot(&restarted).await;
+    assert_eq!(restored["workspace"]["timeframe"], "5m");
+    assert_eq!(restored["workspace"]["revision"], 1);
+    assert_eq!(
+        restored["undo"],
+        json!({
+            "operation_id": operation_id, "committed_workspace_revision": 1,
+        })
+    );
+    let mut retry = set;
+    retry["message_id"] = json!(uuid(21));
+    retry["request_id"] = json!(uuid(22));
+    let repeated = restarted
+        .execute("main", Some(SET_TIMEFRAME), retry)
+        .await
+        .unwrap();
+    assert_eq!(repeated["request_id"], uuid(22));
+    assert_eq!(&repeated["outcome"]["receipt"], receipt);
+
+    let undo = mutation(
+        1,
+        "workspace.undo",
+        json!({"operation_id": operation_id}),
+        30,
+    );
+    let inverse = restarted.execute("main", Some(UNDO), undo).await.unwrap();
+    assert_eq!(inverse["outcome"]["result"]["timeframe"], "1m");
+    assert_eq!(inverse["outcome"]["result"]["revision"], 2);
+    assert_ne!(inverse["outcome"]["receipt"]["operation_id"], operation_id);
+    restarted.shutdown().await;
+
+    let third = state_with_development_workspace(Some(&profile.0));
+    let restored = snapshot(&third).await;
+    assert_eq!(restored["workspace"]["timeframe"], "1m");
+    assert_eq!(restored["workspace"]["revision"], 2);
+    assert!(restored["undo"].is_null());
+    assert!(third.reads.lock().await.status().process_id.is_none());
+    third.shutdown().await;
+}
+
+#[tokio::test]
+async fn desktop_rejects_other_windows_forged_identity_and_unconfigured_mutations() {
+    let profile = AppLocalData::new();
+    let command = mutation(0, "chart.setTimeframe", json!({"timeframe": "5m"}), 50);
+    let disabled = state();
+    for (operation, request) in [
+        (Some(SET_TIMEFRAME), command.clone()),
+        (None, json!({"type": "snapshot"})),
+    ] {
+        assert_eq!(
+            disabled
+                .execute("main", operation, request)
+                .await
+                .unwrap_err()
+                .code,
+            ErrorCode::PERMISSIONDENIED,
+        );
+    }
+    assert!(!profile.database().exists());
+
+    let desktop = state_with_development_workspace(Some(&profile.0));
+    for (operation, request) in [
+        (Some(SET_TIMEFRAME), command.clone()),
+        (None, json!({"type": "snapshot"})),
+    ] {
+        assert_eq!(
+            desktop
+                .execute("other-window", operation, request)
+                .await
+                .unwrap_err()
+                .code,
+            ErrorCode::PERMISSIONDENIED,
+        );
+    }
+    for (operation, request) in [
+        (Some(UNDO), command.clone()),
+        (Some(SET_TIMEFRAME), json!({"type": "snapshot"})),
+        (None, command.clone()),
+        (None, Value::Null),
+        (Some(SET_TIMEFRAME), Value::Null),
+        (Some("instrument.search"), Value::Null),
+        (None, json!({"type": "snapshot", "profile_root": "/caller"})),
+    ] {
+        assert_eq!(
+            desktop
+                .execute("main", operation, request)
+                .await
+                .unwrap_err()
+                .code,
+            ErrorCode::INVALIDARGUMENT,
+        );
+    }
+    assert_eq!(
+        desktop
+            .execute("main", Some("workspace.getContext"), json!({}))
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::UNSUPPORTEDCAPABILITY,
+    );
+    for (field, value) in [
+        ("profile_root", "/caller"),
+        ("principal_id", "other"),
+        ("client_id", "client"),
+        ("grant", "all"),
+    ] {
+        let mut forged = command.clone();
+        forged["scope"][field] = json!(value);
+        assert_eq!(
+            desktop
+                .execute("main", Some(SET_TIMEFRAME), forged)
+                .await
+                .unwrap_err()
+                .code,
+            ErrorCode::INVALIDARGUMENT,
+        );
+    }
+    let mut other_workspace = command;
+    other_workspace["scope"]["workspace_id"] = json!("caller-workspace");
+    let rejected = desktop
+        .execute("main", Some(SET_TIMEFRAME), other_workspace)
+        .await
+        .unwrap();
+    assert_eq!(rejected["outcome"]["error"]["code"], "PERMISSION_DENIED");
+    assert_eq!(snapshot(&desktop).await["workspace"]["revision"], 0);
+    assert!(desktop.reads.lock().await.status().process_id.is_none());
+    desktop.shutdown().await;
+}
+
+#[tokio::test]
+async fn copied_workspace_bytes_cannot_enable_a_grant_or_cross_native_profiles() {
+    let first = AppLocalData::new();
+    let writer = state_with_development_workspace(Some(&first.0));
+    let command = mutation(0, "chart.setTimeframe", json!({"timeframe": "5m"}), 100);
+    let reply = writer
+        .execute("main", Some(SET_TIMEFRAME), command)
+        .await
+        .unwrap();
+    assert_eq!(reply["outcome"]["result"]["timeframe"], "5m");
+    writer.shutdown().await;
+
+    // Normal startup has no workspace grant, even when workspace bytes exist.
+    let ordinary = state();
+    assert_eq!(
+        ordinary
+            .execute("main", None, json!({"type": "snapshot"}))
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::PERMISSIONDENIED,
+    );
+    assert!(first.database().is_file());
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let database = first.database();
+        let mode =
+            |path: &std::path::Path| std::fs::metadata(path).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode(database.parent().unwrap()), 0o700);
+        assert_eq!(mode(&database), 0o600);
+    }
+
+    let other = AppLocalData::new();
+    let copy = other.database();
+    scopehub_persistence::SqliteWorkspace::prepare_profile_root(copy.parent().unwrap()).unwrap();
+    std::fs::copy(first.database(), &copy).unwrap();
+    let before = std::fs::read(&copy).unwrap();
+    let foreign = state_with_development_workspace(Some(&other.0));
+    assert_eq!(
+        foreign
+            .execute("main", None, json!({"type": "snapshot"}))
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INTERNALERROR,
+    );
+    assert_eq!(std::fs::read(&copy).unwrap(), before);
+    foreign.shutdown().await;
 }

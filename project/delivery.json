@@ -234,7 +234,9 @@
     {
       "id": "workspace-recovery",
       "task_ids": [
-        "M2-001"
+        "M2-001",
+        "M2-007",
+        "M2-009"
       ],
       "user_goal": "Make an authorized change, undo it and recover accepted work after restarting.",
       "given": "A persisted workspace with a known revision and operation history.",
@@ -255,11 +257,14 @@
         "Changed parameters on a reused key",
         "A different principal tries to replay or undo the operation",
         "Original confirmation arrives after the task was cancelled",
-        "Restore interrupted while applying deletion markers"
+        "Restore interrupted while applying deletion markers",
+        "An explicitly opened synthetic sample changes the private timeframe or its eligible undo"
       ],
       "checks": [
         "operations-workflow",
-        "state-migrations"
+        "state-migrations",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
       ],
       "evidence_boundary": "Versioned local state and recovery; no order execution or account integration."
     },

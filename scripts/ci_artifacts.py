@@ -29,6 +29,8 @@ BROWSER_OUTPUTS = {
     'market-live-stream': ('results.json', 'market-stream-', ('synthetic-replay-final.png',)),
     'market-quality-states': ('results.json', 'market-quality-', ('synthetic-market-quality.png',)),
     'market-workflow': ('results.json', 'market-workflow-', ('synthetic-market-workflow.png',)),
+    'workspace-timeframe': ('results.json', 'workspace-', ()),
+    'desktop-workspace-transport': ('results.json', 'desktop-workspace-', ()),
     'market-worker-interruption': ('results.json', 'worker-interruption-', ()),
     'market-recovery-ui': ('results.json', 'market-recovery-ui-', ()),
     'market-recovery': ('results.json', 'market-closed-bar-repair-', (

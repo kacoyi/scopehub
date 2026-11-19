@@ -113,6 +113,7 @@ class PublicationTests(ProjectFixture):
         browser_checks = (
             'chart-history', 'ubuntu-preview', 'market-live-stream', 'market-quality-states',
             'market-workflow', 'market-worker-interruption', 'market-recovery-ui', 'market-recovery',
+            'workspace-timeframe', 'desktop-workspace-transport',
         )
         self.add_catalog_checks(*browser_checks)
         report = self.hosted_report()
@@ -131,6 +132,8 @@ class PublicationTests(ProjectFixture):
             'runs/fixture/market-quality-states/results.json': b'{}\n',
             'runs/fixture/market-quality-states/browser/market-quality-source/synthetic-market-quality.png': b'synthetic PNG',
             'runs/fixture/market-workflow/results.json': b'{}\n',
+            'runs/fixture/workspace-timeframe/results.json': b'{}\n',
+            'runs/fixture/desktop-workspace-transport/results.json': b'{}\n',
             'runs/fixture/market-workflow/browser/market-workflow-symbols/synthetic-market-workflow.png': b'synthetic PNG',
             'runs/fixture/market-worker-interruption/results.json': b'{}',
             'runs/fixture/market-recovery-ui/results.json': b'{}',
@@ -149,6 +152,7 @@ class PublicationTests(ProjectFixture):
             'ubuntu-preview/fixture/browser/preview-open/private.png', 'ubuntu-preview/fixture/profile.json',
             'runs/fixture/market-quality-states/browser/market-quality-source/trace.zip',
             'runs/fixture/market-workflow/browser/market-workflow-symbols/private.png',
+            'runs/fixture/workspace-timeframe/browser/workspace-restore/workspace.sqlite3',
             'runs/fixture/market-worker-interruption/browser/worker-interruption-market/worker-data.json',
             'runs/fixture/market-recovery/browser/market-closed-bar-repair-gap/worker-data.json',
             'runs/fixture/market-recovery/browser/other-case/verified-closed-bar-repair.png',
