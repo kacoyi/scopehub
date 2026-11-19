@@ -1,7 +1,7 @@
 import { test as base, expect } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createInterface } from 'node:readline';
@@ -474,7 +474,7 @@ function startLocalImportBridge(binary, profile, folder) {
   };
 }
 
-base('built UI publishes all 502 native bars through Rust and reopens, replaces and revokes frozen revisions', {
+base('built UI publishes all 502 native bars through Rust and discovers, reopens and revokes frozen revisions', {
   tag: '@profile-local-csv',
 }, async ({ page, baseURL }) => {
   const binary = process.env.SCOPEHUB_LOCAL_IMPORT_BRIDGE;
@@ -483,6 +483,7 @@ base('built UI publishes all 502 native bars through Rust and reopens, replaces 
   const profile = join(temporary, 'profile');
   const folder = join(temporary, 'synthetic-csv');
   let bridge;
+  let peer;
   try {
     await mkdir(profile, { mode: 0o700 });
     await mkdir(folder, { mode: 0o700 });
@@ -593,18 +594,84 @@ base('built UI publishes all 502 native bars through Rust and reopens, replaces 
     await open.click();
     await expect(frozen.getByLabel('Selected bar')).toContainText('C 304');
 
+    const run = (connection, operation, payload) => connection.request('execute_operation', {
+      operation, requestId: randomUUID(), payload: { version: 1, ...payload },
+    });
+    const list = 'market.listLocalImportRevisions';
+    const read = 'market.readLocalImportRevision';
+    const revoke = 'market.revokeLocalImportRevision';
+    const otherFolder = join(temporary, 'other-source');
+    await mkdir(otherFolder);
+    const otherCsv = csv(rows.slice(0, 2).map(row => ['000999', ...row.slice(1)]));
+    await writeFile(join(otherFolder, 'other.csv'), otherCsv);
+    peer = startLocalImportBridge(binary, join(temporary, 'other-profile'), otherFolder);
+    const { result: catalog } = await peer.request('choose_local_csv_folder', {});
+    const otherFile = {
+      folder_id: catalog.folder_id, file_id: catalog.files[0].file_id,
+      expected_sha256: createHash('sha256').update(otherCsv).digest('hex'),
+    };
+    const mapping = operations('market.previewLocalImport').at(-1).args.payload.mapping;
+    const otherPreview = { ...otherFile, mapping, row_limit: 1 };
+    expect((await run(peer, 'market.previewLocalImport', otherPreview)).result.preview.rows[0].symbol).toBe('000999');
+    const otherMapping = (await run(peer, 'market.saveLocalImportMapping', otherPreview)).result.record;
+    const other = (await run(peer, 'market.publishLocalImport', { ...otherFile, review_revision: otherMapping.review_revision })).result.revision;
+    const otherPage = (await run(peer, list, { after_revision_id: null, limit: 8 })).result;
+    expect(otherPage.revisions.map(entry => entry.revision_id)).toEqual([other.revision_id]);
+    expect((await run(peer, read, { revision_id: revision.revision_id })).error?.code).toBe('SNAPSHOT_UNAVAILABLE');
+    await peer.close();
+    peer = undefined;
+
     await bridge.close();
+    await rename(folder, join(temporary, 'moved-source'));
     bridge = startLocalImportBridge(binary, profile, folder);
     const folderSelections = calls.filter(call => call.command === 'choose_local_csv_folder').length;
     await page.reload();
-    await control(page, 'Open published CSV').click();
+    const openDialog = control(page, 'Open published CSV');
+    await expect(openDialog).toBeVisible();
+    expect(operations(list)).toHaveLength(0);
+    expect(operations(read)).toHaveLength(2);
+    await page.setViewportSize({ width: 390, height: 800 });
+    await openDialog.focus();
+    await openDialog.press('Enter');
     const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
-    await dialog.getByRole('textbox', { name: 'Revision ID' }).fill(revision.revision_id);
-    await open.click();
+    const library = dialog.getByRole('region', { name: 'Published revisions' });
+    const rowsForFile = library.getByRole('button', { name: /Open daily\.csv/ });
+    const firstEntry = library.getByRole('button', { name: new RegExp(`Open daily\\.csv.*${hash.slice(0, 12)}`) });
+    const nextEntry = library.getByRole('button', { name: new RegExp(`Open daily\\.csv.*${replacement.source_sha256.slice(0, 12)}`) });
+    const refresh = library.getByRole('button', { name: 'Refresh revisions' });
+    const idInput = dialog.getByRole('textbox', { name: 'Revision ID' });
+    await expect(rowsForFile).toHaveCount(2);
+    await expect(firstEntry).toContainText('000731 · 1d · 502 bars · 502 source rows');
+    await expect(nextEntry).toContainText('000731 · 1d · 502 bars · 502 source rows');
+    await expect(idInput).toHaveValue('');
+    await expect(frozen).toHaveCount(0);
+    expect(operations(read)).toHaveLength(2);
+    expect(await dialog.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+
+    const summary = item => ({
+      revision_id: item.revision_id, relative_path: 'daily.csv', symbol: '000731', timeframe: '1d',
+      source_sha256: item.source_sha256, bar_count: 502, source_record_count: 502,
+    });
+    const expected = [summary(revision), summary(replacement)].sort((left, right) =>
+      left.revision_id < right.revision_id ? -1 : 1);
+    expect(operations(list)[0].reply.result).toEqual({ version: 1, revisions: expected, next_after_revision_id: null });
+    const firstPageQuery = { after_revision_id: null, limit: 1 };
+    const firstPage = (await run(bridge, list, firstPageQuery)).result;
+    expect(firstPage).toEqual({ version: 1, revisions: expected.slice(0, 1), next_after_revision_id: expected[0].revision_id });
+    expect((await run(bridge, list, firstPageQuery)).result).toEqual(firstPage);
+    expect((await run(bridge, list, { ...firstPageQuery, after_revision_id: firstPage.next_after_revision_id })).result).toEqual({
+      version: 1, revisions: expected.slice(1), next_after_revision_id: null,
+    });
+    expect((await run(bridge, read, { revision_id: other.revision_id })).error?.code).toBe('SNAPSHOT_UNAVAILABLE');
+
+    await firstEntry.focus();
+    await expect(firstEntry).toBeFocused();
+    await firstEntry.press('Enter');
     await expect(frozen.getByLabel('Selected bar')).toContainText('C 305');
+    await expect(dialog.getByRole('region', { name: 'daily.csv' })).toBeFocused();
     await expect(provenance).toContainText(revision.revision_id);
     expect(calls.filter(call => call.command === 'choose_local_csv_folder')).toHaveLength(folderSelections);
-    const reads = operations('market.readLocalImportRevision');
+    const reads = operations(read);
     expect(reads).toHaveLength(3);
     const replyDigest = reply => createHash('sha256').update(JSON.stringify(reply)).digest('hex');
     expect(replyDigest(reads[2].reply)).toBe(replyDigest(reads[0].reply));
@@ -620,18 +687,54 @@ base('built UI publishes all 502 native bars through Rust and reopens, replaces 
     await control(page, 'Remove access').click();
     await expect(page.getByText('Access removed for this published revision.', { exact: true })).toBeVisible();
     await expect(frozen).toHaveCount(0);
-    const afterRevocation = await bridge.request('execute_operation', {
-      operation: 'market.readLocalImportRevision', requestId: randomUUID(),
-      payload: { version: 1, revision_id: revision.revision_id },
-    });
+    const afterRevocation = await run(bridge, read, { revision_id: revision.revision_id });
     expect(afterRevocation.error?.code).toBe('PERMISSION_DENIED');
+    await refresh.click();
+    await expect(rowsForFile).toHaveCount(1);
+    await expect(firstEntry).toHaveCount(0);
+    await expect(nextEntry).toBeVisible();
+    await idInput.fill(revision.revision_id);
     await open.click();
     await expect(dialog.getByRole('alert')).toContainText('This profile does not have permission to display this revision.');
-    await dialog.getByRole('textbox', { name: 'Revision ID' }).fill(replacement.revision_id);
+    await idInput.fill(other.revision_id);
+    await open.click();
+    await expect(dialog.getByRole('alert')).toContainText('This frozen chart is unavailable in the current profile.');
+    await idInput.fill(replacement.revision_id);
     await open.click();
     await expect(frozen.getByLabel('Selected bar')).toContainText('C 304');
+    await refresh.click();
+    await expect(nextEntry).toBeVisible();
+    await expect(frozen).toHaveCount(0);
+    peer = startLocalImportBridge(binary, profile, folder);
+    expect((await run(peer, revoke, { revision_id: replacement.revision_id })).result.revision_id).toBe(replacement.revision_id);
+    await nextEntry.focus();
+    await nextEntry.press('Enter');
+    await expect(dialog.getByRole('alert')).toContainText('This profile does not have permission to display this revision.');
+    expect(operations(read).at(-1).reply).toMatchObject({ error: { code: 'PERMISSION_DENIED', details: {} } });
+    expect(operations(read).at(-1).reply.result).toBeUndefined();
+    await expect(frozen).toHaveCount(0);
+    await expect(nextEntry).toHaveCount(0);
+    await refresh.click();
+    await expect(library.getByRole('status')).toHaveText('No published CSV revisions are available in this profile.');
+
+    await bridge.close();
+    const brokenProfile = join(temporary, 'read-error-profile');
+    await mkdir(brokenProfile);
+    const workspacePath = join(brokenProfile, 'workspace-dev');
+    await writeFile(workspacePath, 'This fixture prevents the profile store from opening.');
+    bridge = startLocalImportBridge(binary, brokenProfile, folder);
+    await page.reload();
+    await openDialog.click();
+    await expect(library.getByRole('alert')).toHaveText('Unable to read published revisions. Try refreshing the list.');
+    expect(operations(list).at(-1).reply.error?.code).toBe('INTERNAL_ERROR');
+    await expect(idInput).toBeEnabled();
+    await rm(workspacePath);
+    await refresh.click();
+    await expect(library.getByRole('status')).toHaveText('No published CSV revisions are available in this profile.');
+    expect(calls.filter(call => call.command === 'choose_local_csv_folder')).toHaveLength(folderSelections);
     expect(requestUrls.every(url => new URL(url).origin === baseURL && !new URL(url).pathname.startsWith('/__scopehub/'))).toBe(true);
   } finally {
+    await peer?.close();
     await bridge?.close();
     await rm(temporary, { recursive: true, force: true });
   }

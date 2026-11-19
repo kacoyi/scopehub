@@ -2,6 +2,7 @@ use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 use scopehub_application::{
     LocalDatasetPublication, LocalDatasetStore, MappingCommitGuard, StoredLocalDataset,
 };
+use scopehub_domain::protocol::LocalImportRevisionListEntry;
 use uuid::Uuid;
 
 use super::{
@@ -85,6 +86,51 @@ impl LocalDatasetStore for SqliteWorkspace {
         };
         guard.commit(|| transaction.commit().map_err(store_error))?;
         Ok(revision_id)
+    }
+
+    fn list_local_datasets(
+        &self,
+        after_revision_id: Option<&str>,
+        limit: usize,
+    ) -> Result<Vec<LocalImportRevisionListEntry>, Error> {
+        let after = after_revision_id.unwrap_or_default();
+        if after_revision_id.is_some() {
+            check_revision_id(after)?;
+        }
+        let limit = i64::try_from(limit).map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
+        let mut statement = self
+            .connection
+            .prepare(
+                "SELECT revision.revision_id, revision.relative_path, revision.source_sha256,
+                        json_extract(revision.content_json, '$.symbol'),
+                        json_extract(revision.content_json, '$.series.timeframe'),
+                        json_array_length(revision.content_json, '$.bars'),
+                        json_extract(revision.content_json, '$.source_record_count')
+                 FROM local_dataset_revisions AS revision
+                 WHERE revision.revision_id > ?1
+                   AND NOT EXISTS (
+                       SELECT 1 FROM local_dataset_display_revocations AS revocation
+                       WHERE revocation.revision_id = revision.revision_id
+                   )
+                 ORDER BY revision.revision_id ASC
+                 LIMIT ?2",
+            )
+            .map_err(store_error)?;
+        statement
+            .query_map(params![after, limit], |row| {
+                Ok(LocalImportRevisionListEntry {
+                    revision_id: row.get(0)?,
+                    relative_path: row.get(1)?,
+                    source_sha256: row.get(2)?,
+                    symbol: row.get(3)?,
+                    timeframe: row.get(4)?,
+                    bar_count: u64::from(row.get::<_, u32>(5)?),
+                    source_record_count: u64::from(row.get::<_, u32>(6)?),
+                })
+            })
+            .map_err(store_error)?
+            .collect::<Result<_, _>>()
+            .map_err(store_error)
     }
 
     fn read_local_dataset(&self, revision_id: &str) -> Result<Option<StoredLocalDataset>, Error> {

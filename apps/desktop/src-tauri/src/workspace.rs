@@ -6,10 +6,11 @@ use std::{
 };
 
 use scopehub_application::{
-    Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, LOAD_LOCAL_IMPORT_MAPPING,
-    LOCAL_WORKSPACE_OPERATIONS, LocalDatasetPublication, MappingCommitGuard, OperationRegistry,
-    PUBLISH_LOCAL_IMPORT, READ_LOCAL_IMPORT_REVISION, REVOKE_LOCAL_IMPORT_REVISION,
-    ReviewedImportMapping, SAVE_LOCAL_IMPORT_MAPPING, WorkspaceAccess, WorkspaceBinding, failure,
+    Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, LIST_LOCAL_IMPORT_REVISIONS,
+    LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS, LocalDatasetPublication,
+    MappingCommitGuard, OperationRegistry, PUBLISH_LOCAL_IMPORT, READ_LOCAL_IMPORT_REVISION,
+    REVOKE_LOCAL_IMPORT_REVISION, ReviewedImportMapping, SAVE_LOCAL_IMPORT_MAPPING,
+    WorkspaceAccess, WorkspaceBinding, failure, list_local_import_revisions_input,
     local_mapping_fingerprint, read_local_import_revision_input,
     revoke_local_import_revision_input,
 };
@@ -26,6 +27,7 @@ const LOCAL_IMPORT_OPERATIONS: &[&str] = &[
     LOAD_LOCAL_IMPORT_MAPPING,
     SAVE_LOCAL_IMPORT_MAPPING,
     PUBLISH_LOCAL_IMPORT,
+    LIST_LOCAL_IMPORT_REVISIONS,
     READ_LOCAL_IMPORT_REVISION,
     REVOKE_LOCAL_IMPORT_REVISION,
 ];
@@ -208,6 +210,26 @@ impl WorkspaceBridge {
         })
         .await?
         .ok_or_else(|| failure(ErrorCode::STALECONTEXT))
+    }
+
+    pub(super) async fn list_local_revisions(&self, payload: Value) -> Result<Value, Error> {
+        let input = list_local_import_revisions_input(Actor::LocalUser, payload)?;
+        let lane = self.admit().map_err(|error| {
+            if error.code == ErrorCode::PERMISSIONDENIED {
+                failure(ErrorCode::PROVIDERNOTCONFIGURED)
+            } else {
+                error
+            }
+        })?;
+        let result = Self::with_bound(lane, false, move |bound| {
+            bound
+                .registry
+                .list_frozen_local_datasets(&local_import_access(&bound.profile_id), &input)
+        })
+        .await?;
+        Ok(result.unwrap_or_else(
+            || json!({"version": 1, "revisions": [], "next_after_revision_id": null}),
+        ))
     }
 
     pub(super) async fn read_local_revision(&self, payload: Value) -> Result<Value, Error> {

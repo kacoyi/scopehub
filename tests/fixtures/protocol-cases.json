@@ -1051,5 +1051,60 @@
     "name": "1.1 local CSV display-right revocation returns the revision identity",
     "valid": true,
     "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.revokeLocalImportRevision\",\"ok\":true,\"result\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\"},\"error\":null}\n"
+  },
+  {
+    "name": "list published CSV revisions from the first page",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"task_id\":null,\"payload\":{\"version\":1,\"after_revision_id\":null,\"limit\":20}}\n"
+  },
+  {
+    "name": "list published CSV revisions after an exclusive cursor",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"task_id\":null,\"payload\":{\"version\":1,\"after_revision_id\":\"00000000-0000-4000-8000-000000000006\",\"limit\":1}}\n"
+  },
+  {
+    "name": "list published CSV revisions rejects an oversized page",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"task_id\":null,\"payload\":{\"version\":1,\"after_revision_id\":null,\"limit\":21}}\n"
+  },
+  {
+    "name": "list published CSV revisions rejects a profile selector",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"task_id\":null,\"payload\":{\"version\":1,\"after_revision_id\":null,\"limit\":20,\"profile_id\":\"another-profile\"}}\n"
+  },
+  {
+    "name": "list published CSV revisions returns display summaries",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"ok\":true,\"result\":{\"version\":1,\"revisions\":[{\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"relative_path\":\"equities/fixture.csv\",\"symbol\":\"000418\",\"bar_count\":1,\"source_record_count\":2,\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"timeframe\":\"1d\"}],\"next_after_revision_id\":\"00000000-0000-4000-8000-000000000006\"},\"error\":null}\n"
+  },
+  {
+    "name": "list published CSV revisions returns an empty page",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"ok\":true,\"result\":{\"version\":1,\"revisions\":[],\"next_after_revision_id\":null},\"error\":null}\n"
+  },
+  {
+    "name": "list published CSV revisions cannot return an absolute Windows path",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"ok\":true,\"result\":{\"version\":1,\"revisions\":[{\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"relative_path\":\"C:\\\\private\\\\fixture.csv\",\"symbol\":\"000418\",\"bar_count\":1,\"source_record_count\":2,\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"timeframe\":\"1d\"}],\"next_after_revision_id\":\"00000000-0000-4000-8000-000000000006\"},\"error\":null}\n"
+  },
+  {
+    "name": "list published CSV revisions cannot return an absolute POSIX path",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"ok\":true,\"result\":{\"version\":1,\"revisions\":[{\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"relative_path\":\"/private/fixture.csv\",\"symbol\":\"000418\",\"bar_count\":1,\"source_record_count\":2,\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"timeframe\":\"1d\"}],\"next_after_revision_id\":\"00000000-0000-4000-8000-000000000006\"},\"error\":null}\n"
+  },
+  {
+    "name": "list published CSV revisions cannot return an escaping path",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"ok\":true,\"result\":{\"version\":1,\"revisions\":[{\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"relative_path\":\"equities/../fixture.csv\",\"symbol\":\"000418\",\"bar_count\":1,\"source_record_count\":2,\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"timeframe\":\"1d\"}],\"next_after_revision_id\":\"00000000-0000-4000-8000-000000000006\"},\"error\":null}\n"
+  },
+  {
+    "name": "list published CSV revisions cannot return raw records or a source grant",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"ok\":true,\"result\":{\"version\":1,\"revisions\":[{\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"relative_path\":\"equities/fixture.csv\",\"symbol\":\"000418\",\"bar_count\":1,\"source_record_count\":2,\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"timeframe\":\"1d\",\"original_bytes\":\"CSV\",\"folder_id\":\"00000000-0000-4000-8000-000000000006\"}],\"next_after_revision_id\":\"00000000-0000-4000-8000-000000000006\"},\"error\":null}\n"
+  },
+  {
+    "name": "list published CSV revisions reports unconfigured local storage",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"ok\":false,\"result\":null,\"error\":{\"code\":\"PROVIDER_NOT_CONFIGURED\",\"message\":\"Local profile storage is unconfigured.\",\"retryable\":false,\"details\":{}}}\n"
   }
 ]

@@ -363,6 +363,75 @@ async fn execute_import(state: &State, operation: &str, payload: Value) -> Resul
 
 #[cfg(any(target_os = "linux", windows))]
 #[tokio::test]
+async fn published_revision_listing_requires_the_local_window_and_profile() {
+    let first_page = json!({"version":1,"after_revision_id":null,"limit":8});
+    let unconfigured = state();
+    assert_eq!(
+        execute_import(
+            &unconfigured,
+            LIST_LOCAL_IMPORT_REVISIONS,
+            first_page.clone()
+        )
+        .await
+        .unwrap_err()
+        .code,
+        ErrorCode::PROVIDERNOTCONFIGURED
+    );
+
+    let fixture = ImportFixture::new();
+    let profile = fixture.0.join("profile");
+    let configured = state_with_local_profile(Some(&profile));
+    assert_eq!(
+        configured
+            .execute(
+                "untrusted",
+                Some(LIST_LOCAL_IMPORT_REVISIONS),
+                first_page.clone(),
+                None
+            )
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::PERMISSIONDENIED
+    );
+    let mut market = MarketRegistry::new(worker());
+    for actor in [Actor::User, Actor::Ai, Actor::System] {
+        assert_eq!(
+            market
+                .execute(actor, LIST_LOCAL_IMPORT_REVISIONS, first_page.clone())
+                .await
+                .unwrap_err()
+                .code,
+            ErrorCode::PERMISSIONDENIED
+        );
+    }
+    for payload in [
+        json!({"version":1,"after_revision_id":null,"limit":0}),
+        json!({"version":1,"after_revision_id":null,"limit":21}),
+        json!({"version":1,"after_revision_id":"invalid","limit":1}),
+        json!({"version":1,"after_revision_id":null,"limit":1,"profile_id":"other"}),
+    ] {
+        assert_eq!(
+            execute_import(&configured, LIST_LOCAL_IMPORT_REVISIONS, payload)
+                .await
+                .unwrap_err()
+                .code,
+            ErrorCode::INVALIDARGUMENT
+        );
+    }
+    assert_eq!(
+        execute_import(&configured, LIST_LOCAL_IMPORT_REVISIONS, first_page)
+            .await
+            .unwrap(),
+        json!({"version":1,"revisions":[],"next_after_revision_id":null})
+    );
+    assert!(!profile.exists());
+    configured.shutdown().await;
+    unconfigured.shutdown().await;
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[tokio::test]
 async fn local_publication_keeps_the_prior_chart_after_changed_bytes_and_cancellation() {
     use scopehub_application::REVOKE_LOCAL_IMPORT_REVISION;
     use std::fs;

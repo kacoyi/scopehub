@@ -2731,7 +2731,7 @@
       "blocker": null,
       "closure_reason": null,
       "plan": {
-        "outcome": "A person chooses a local CSV directory, reviews the actual rows and explicit mapping offline, then publishes a traceable equity or futures series to the chart. Compatible refreshes preserve the accepted mapping and earlier snapshots.",
+        "outcome": "A person chooses a local CSV directory, reviews the actual rows and explicit mapping offline, then publishes a traceable equity or futures series to the chart. Compatible refreshes preserve the accepted mapping and earlier snapshots. After restart, the person can browse displayable revisions for the active profile and explicitly reopen a frozen chart without a folder selection or memorized ID.",
         "change_types": [
           "market-fixtures",
           "ui",
@@ -2750,7 +2750,10 @@
           "crates/persistence/src/lib.rs",
           "apps/desktop/src-tauri/src/workspace.rs",
           "apps/desktop/ui/src/local-import-editor.tsx",
-          "contracts/reviews/2026-11-19-windows-reviewed-mapping.json"
+          "contracts/reviews/2026-11-19-windows-reviewed-mapping.json",
+          "contracts/reviews/2026-11-19-windows-local-publication.json",
+          "crates/persistence/src/local_dataset.rs",
+          "apps/desktop/ui/src/local-revision-dialog.tsx"
         ],
         "hypotheses": [
           "Explicit source mappings can normalize native OHLCV bars without inferring a price, volume unit or session from ambiguous financial fields. File identities and row locators can connect every accepted row to its original input.",
@@ -2758,7 +2761,8 @@
           "A transient host-side fingerprint of an eligible public preview can bind the explicit save to the same active grant, file, checksum, mapping, and preview sample without retaining source rows.",
           "The first logical CSV record can establish the decoded header even when a later row cannot be decoded, provided the header boundary is verified with the existing CSV parser.",
           "The current native grant, selected catalog file, full file fingerprint and persisted mapping identity can jointly authorize publication without accepting normalized bars from the UI.",
-          "Immutable storage and a transactional idempotency key can return the same revision on retry and preserve the previous publication on interruption."
+          "Immutable storage and a transactional idempotency key can return the same revision on retry and preserve the previous publication on interruption.",
+          "A bounded keyset projection from the existing v5 revision and revocation tables can show distinguishing source and series summaries without reading the original CSV blob or granting source access. Existing frozen reads can recheck entitlement for every selection."
         ],
         "risks": [
           {
@@ -2835,9 +2839,17 @@
               "local-folder-import",
               "rust-contracts-workers"
             ]
+          },
+          {
+            "failure": "The library leaks a revoked or other profile revision, shows ambiguous same-file revisions, skips or repeats rows at page boundaries, or reopens a stale selection after restart.",
+            "checks": [
+              "local-import-publication",
+              "rust-contracts-workers",
+              "generated-contracts"
+            ]
           }
         ],
-        "rollback": "Keep the accepted mapping, immutable source identities and last published revision while staging changes. Rejected rows and unsupported files remain inspectable in the selected local session. Stage a mapping version in the current SQLite transaction and roll it back if cancellation or source revocation wins before commit. Keep the previous reviewed version available after failures.",
+        "rollback": "Keep the accepted mapping, immutable source identities and last published revision while staging changes. Rejected rows and unsupported files remain inspectable in the selected local session. Stage a mapping version in the current SQLite transaction and roll it back if cancellation or source revocation wins before commit. Keep the previous reviewed version available after failures. The library is a read-only projection. Its refresh can restart from the first page and the existing direct-ID read remains available if listing fails.",
         "implementation": {
           "modules": [
             "providers",
@@ -2862,7 +2874,10 @@
             "contracts/schemas/protocol.schema.json",
             "crates/persistence/src/lib.rs",
             "apps/desktop/src-tauri/src/workspace.rs",
-            "apps/desktop/ui/src/local-import-editor.tsx"
+            "apps/desktop/ui/src/local-import-editor.tsx",
+            "crates/application/src/local_publication.rs",
+            "crates/persistence/src/local_dataset.rs",
+            "apps/desktop/ui/src/local-revision-dialog.tsx"
           ],
           "rules": [
             {
@@ -2880,19 +2895,21 @@
           ],
           "non_goals": [
             "Remote data channels, cloud transmissions, inferred settlement/trade conversions and the separate real-provider connection workflow.",
-            "First publication and explicit compatible replacement cover one selected file and one fully resolved native bar series. No persistent folder grant is issued."
+            "First publication and explicit compatible replacement cover one selected file and one fully resolved native bar series. No persistent folder grant is issued.",
+            "Revision discovery uses v5 snapshots and does not add a migration, change folder access, implement folder-wide refresh or make network requests."
           ],
           "open_questions": [
             "Stage added files and detect byte-identical aliases within a folder without treating an alias as new economic events. Preserve all contributing source locators and prove results are independent of folder enumeration order.",
             "Hold changed headers, mixed series and competing corrections for review. Support explicit multi-file replacement and missing-file withdrawal with a complete reviewed manifest, atomic publication and restart/retry evidence.",
-            "Provide history discovery by series and source row inspection outside the 500-row sample. The initial frozen chart is reopenable by revision ID and provides original file and individual source row identities.",
+            "Exercise the published-revision browser in native Windows with an existing v5 profile. The portable local-import-publication check covers same-file discovery after restart, cross-profile isolation, revocation between listing and opening, and narrow-screen keyboard access. Source row inspection beyond the existing frozen chart and folder-wide refresh are separate work.",
             "Verify the picker, publication, migration and frozen chart path in the native Windows application."
           ]
         },
         "evolution": {
           "kind": "additive",
           "preserve": [
-            "Explicit sample selection, source identity, original frozen historical reads and source rights."
+            "Explicit sample selection, source identity, original frozen historical reads and source rights.",
+            "Direct revision-ID opening and its unavailable and denied results."
           ],
           "change": [
             "Add a separately authorized local-folder source with reviewable versioned mappings and snapshots.",
@@ -2900,10 +2917,11 @@
             "Require a prior completed public preview before the existing single-click save. Keep the live file reread and guarded SQLite commit.",
             "Compare the complete ordered decoded header independently of later decode failures. Preserve the source checksum and explicitly identify unverifiable headers.",
             "Add explicit complete-file publication and frozen reads for one resolved native CSV bar series. Check up to 4 MiB and 10,000 original records, hold incomplete or ambiguous results, and retain source bytes, mapping fingerprint and all row locators. Exact retries reuse the immutable revision.",
-            "Support explicit and separately reviewable republishing of compatible changed bytes as a new single-file revision. Reopen an earlier revision by ID with no directory grant. A separate local human action removes that revision's display permission while preserving its stored original."
+            "Support explicit and separately reviewable republishing of compatible changed bytes as a new single-file revision. Reopen an earlier revision by ID with no directory grant. A separate local human action removes that revision's display permission while preserving its stored original.",
+            "Add an explicit, human-only paginated library in Open published CSV. List entitled revisions in stable revision-ID order and read the selected frozen chart through the existing operation."
           ],
-          "data_plan": "Keep source bytes, mapping, evidence locators and dataset revisions on the active profile. Migrate long-lived state through its owning Rust writer when publication is introduced. Integrate the profile writer and migration history from af89eff. Preserve workspace schema v1, decision notes v2 and backup and restore v3. Apply reviewed mapping schema v4 transactionally and verify both populated v3 databases and fresh initialization. Persist an opaque per-source association, ordered header digest and reviewed mapping. Derive folder access only from the current trusted selection. Add a transactional v4 to v5 migration owned by the existing profile writer. Test upgrade with populated workspace, decision-note and reviewed mapping data, plus new and reopened profiles. A failed or cancelled publication leaves previous revisions readable without rereading the folder. Recover a failed migration from the preserved pre-upgrade profile.",
-          "cleanup": "Cancel uncommitted staging on failure and close file handles when the selected folder or profile changes. Close the profile writer and cancel uncommitted mapping operations when the host shuts down. Release any uncommitted complete-file data after cancellation, changed bytes or write failure."
+          "data_plan": "Keep source bytes, mapping, evidence locators and dataset revisions on the active profile. Migrate long-lived state through its owning Rust writer when publication is introduced. Integrate the profile writer and migration history from af89eff. Preserve workspace schema v1, decision notes v2 and backup and restore v3. Apply reviewed mapping schema v4 transactionally and verify both populated v3 databases and fresh initialization. Persist an opaque per-source association, ordered header digest and reviewed mapping. Derive folder access only from the current trusted selection. Add a transactional v4 to v5 migration owned by the existing profile writer. Test upgrade with populated workspace, decision-note and reviewed mapping data, plus new and reopened profiles. A failed or cancelled publication leaves previous revisions readable without rereading the folder. Recover a failed migration from the preserved pre-upgrade profile. Discover from existing immutable v5 records and revocation markers with no new persisted state.",
+          "cleanup": "Cancel uncommitted staging on failure and close file handles when the selected folder or profile changes. Close the profile writer and cancel uncommitted mapping operations when the host shuts down. Release any uncommitted complete-file data after cancellation, changed bytes or write failure. Discard stale list pages on refresh and remove inaccessible entries after a raced selection."
         }
       }
     },

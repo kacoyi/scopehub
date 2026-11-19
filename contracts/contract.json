@@ -381,6 +381,26 @@
       }
     },
     {
+      "name": "market.listLocalImportRevisions",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "ListLocalImportRevisionsInput",
+      "output": "ListLocalImportRevisionsOutput",
+      "implementation": "implemented",
+      "implementation_scope": "Return a bounded summary page of displayable frozen CSV revisions for the active local human profile. Ascending revision IDs provide a stable exclusive cursor. Listing needs no source directory, returns no source grant or raw content and does not replace read-time authorization.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "ListLocalImportRevisionsRequest",
+          "output": "ListLocalImportRevisionsReply11"
+        }
+      }
+    },
+    {
       "name": "market.readLocalImportRevision",
       "effect": "read",
       "confirmation": false,

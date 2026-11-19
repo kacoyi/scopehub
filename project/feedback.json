@@ -1278,6 +1278,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "native-published-csv-revision-discovery",
+      "source": "Owner observation in the native Windows desktop at 4571353. The native publication observation is recorded in contracts/reviews/2026-11-19-windows-local-publication.json.",
+      "observation": "After restarting with an already published local CSV, reopening its frozen chart required manually pasting an opaque revision UUID even though the revision and source were already stored in the current profile.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "local-import-publication",
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

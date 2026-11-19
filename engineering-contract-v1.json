@@ -745,6 +745,18 @@
       "schema_requirement": "Protocol 1.1 only. A local human explicitly publishes one complete reviewed native CSV series. The Rust registry binds the current selected file, complete source checksum and saved mapping; the authenticated profile writer retains the original bytes and immutable source row provenance."
     },
     {
+      "name": "market.listLocalImportRevisions",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "ListLocalImportRevisionsRequest",
+      "output_spec": "ListLocalImportRevisionsReply11",
+      "schema_requirement": "Protocol 1.1 only. Return a bounded summary page of displayable frozen CSV revisions for the active local human profile. Ascending revision IDs provide a stable exclusive cursor. Listing needs no source directory, returns no source grant or raw content and does not replace read-time authorization."
+    },
+    {
       "name": "market.readLocalImportRevision",
       "effect": "read",
       "confirmation": false,
