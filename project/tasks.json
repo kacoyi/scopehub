@@ -5028,6 +5028,8 @@
       ],
       "scope": [
         "tests/ubuntu-preview/market-stream.spec.mjs",
+        "tests/ui/replay-stages.mjs",
+        "tests/ubuntu-preview/market-quality.spec.mjs",
         "project/tasks.json",
         "project/feedback.json"
       ],
@@ -5037,12 +5039,14 @@
       ],
       "acceptance": [
         "The ordinary chart renders both known candle updates through an admitted real worker stream when a valid history preparation pushes total elapsed time beyond the former five-second browser expectation.",
-        "Bounded checks separately identify admission and terminal failures. A successful run still requires the correct intermediate and final candle paints, frozen row, exact frames, and one admitted subscription. Unexpected failed requests cannot count as a successful replay."
+        "Bounded checks separately identify admission and terminal failures. A successful run still requires the correct intermediate and final candle paints, frozen row, exact frames, and one admitted subscription. Unexpected failed requests cannot count as a successful replay.",
+        "Real retries and epoch-gap reads in the quality journey observe a separate preparation boundary. A prior gap still clears on retry, and failed or gapped streams cannot satisfy a completed-replay assertion."
       ],
       "checks": [
         "market-live-stream",
         "project-state",
-        "python-contracts-workers"
+        "python-contracts-workers",
+        "market-quality-states"
       ],
       "evidence": [],
       "next_action": "Reproduce the hosted timeout with a delayed real preparation. Check stage boundaries and repair the acceptance harness while retaining the gate on real worker output.",
@@ -5058,7 +5062,8 @@
           "tests/ubuntu-preview/playwright.config.mjs",
           "apps/desktop/ui/ubuntu-preview.mjs",
           "apps/desktop/ui/src/market-admission.ts",
-          "crates/worker-host/src/market.rs"
+          "crates/worker-host/src/market.rs",
+          "tests/ubuntu-preview/market-quality.spec.mjs"
         ],
         "hypotheses": [
           "The browser waited five seconds for preparation and an entire subscription together. Each operation has its own application deadline and a slow valid preparation can exhaust the single assertion."
@@ -5067,7 +5072,8 @@
           {
             "failure": "A hung operation or unexpected failed subscription becomes indistinguishable from legitimate admission delay.",
             "checks": [
-              "market-live-stream"
+              "market-live-stream",
+              "market-quality-states"
             ]
           },
           {

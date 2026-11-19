@@ -1,5 +1,6 @@
 import { expect, test as base } from '@playwright/test';
 import { painted } from '../ui/chart-pixels.mjs';
+import { replayStage, waitForReplayRequest } from '../ui/replay-stages.mjs';
 import { control, openPanel } from '../ui/workspace-controls.mjs';
 
 const operationPath = '/__scopehub/operation';
@@ -327,15 +328,15 @@ for (const failure of connectionFailures) {
     await expectProvenance(page, normal);
     await page.route(`**${streamPath}`, failure.inject, { times: 1 });
 
-    await control(page, 'Play sample updates').click();
+    await waitForReplayRequest(page, () => control(page, 'Play sample updates').click());
     await expect(plot(page).getByRole('alert')).toHaveText(`Replay failed. ${failure.alert}`);
     await expectPaintedHistory(page, future, '1m', normal.bars);
     await expectProvenance(page, normal);
     await expectFacts(page, { [failure.fact]: failure.value });
     await expect(fact(page, failure.unseen)).toHaveCount(0);
 
-    await control(page, 'Retry replay').click();
-    await expect(plot(page).getByText('Synthetic replay complete', { exact: true })).toBeVisible();
+    await waitForReplayRequest(page, () => control(page, 'Retry replay').click());
+    await expect(plot(page).getByText('Synthetic replay complete', { exact: true })).toBeVisible(replayStage);
     await page.mouse.move(1, 1);
     await expect(page.getByLabel('Selected bar')).toContainText(/C 3501Volume 130.*Closed bar/);
     await expectReady(page, future, '1m', normal.bars);
@@ -415,7 +416,7 @@ const replayGapDetails = page => plot(page).getByRole('group', { name: 'Replay g
 
 async function expectReplayGap(page, known) {
   const reason = known ? 'The source reported missing updates.' : 'The stream restarted.';
-  await expect(plot(page).getByText(`Replay gap. ${reason}`, { exact: true })).toBeVisible();
+  await expect(plot(page).getByText(`Replay gap. ${reason}`, { exact: true })).toBeVisible(replayStage);
   const interval = '[2024-01-04 01:09:30, 2024-01-04 01:10:00) UTC';
   await expect(replayGapDetails(page)).toHaveText(known ? `Affected range ${interval} · 2 lost updates` : 'Affected range unknown · Lost updates unknown');
   await expect(replayGap(page)).toBeVisible();
@@ -439,7 +440,7 @@ for (const known of [true, false]) {
       return route.fulfill({ contentType: 'application/x-ndjson', body: ndjson(frames) });
     });
 
-    await control(page, 'Play sample updates').click();
+    await waitForReplayRequest(page, () => control(page, 'Play sample updates').click());
     await expectReplayGap(page, known);
     await expectReady(page, future, '1m', normal.bars);
     await expectProvenance(page, normal);
@@ -481,7 +482,7 @@ test('a validated gap survives a held replay timeout and clears on retry or a ne
   }, { times: 1 });
 
   try {
-    await control(page, 'Play sample updates').click();
+    await waitForReplayRequest(page, () => control(page, 'Play sample updates').click());
     await expectReplayGap(page, true);
     await expect(plot(page).getByRole('alert')).toHaveCount(0);
     await expect(control(page, 'Stop replay')).toBeVisible();
@@ -497,11 +498,13 @@ test('a validated gap survives a held replay timeout and clears on retry or a ne
   await page.mouse.move(1, 1);
   await expect(page.getByLabel('Selected bar')).toContainText(/C 3500\.8Volume 110.*Partial bar/);
 
-  await control(page, 'Retry replay').click();
-  await expect(replayGap(page)).toHaveCount(0);
-  await expect(replayGapDetails(page)).toHaveCount(0);
-  await expect(plot(page).getByRole('alert')).toHaveCount(0);
-  await expect(plot(page).getByText('Synthetic replay complete', { exact: true })).toBeVisible();
+  await waitForReplayRequest(page, async () => {
+    await control(page, 'Retry replay').click();
+    await expect(replayGap(page)).toHaveCount(0);
+    await expect(replayGapDetails(page)).toHaveCount(0);
+    await expect(plot(page).getByRole('alert')).toHaveCount(0);
+  });
+  await expect(plot(page).getByText('Synthetic replay complete', { exact: true })).toBeVisible(replayStage);
   await page.mouse.move(1, 1);
   await expect(page.getByLabel('Selected bar')).toContainText(/C 3501Volume 130.*Closed bar/);
   await expectProvenance(page, normal);
@@ -523,7 +526,7 @@ test('a validated gap survives a held replay timeout and clears on retry or a ne
     const terminal = { ok: true, result: { status: 'gapped', reason: 'source_gap' } };
     return route.fulfill({ contentType: 'application/x-ndjson', body: ndjson([...frames, { event: update }, terminal]) });
   }, { times: 1 });
-  await control(page, 'Play sample updates').click();
+  await waitForReplayRequest(page, () => control(page, 'Play sample updates').click());
   await expect(plot(page).getByRole('alert')).toHaveText('Replay failed. The data response failed validation.');
   await expectReplayGap(page, true);
   await page.mouse.move(1, 1);
