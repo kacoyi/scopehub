@@ -4248,7 +4248,12 @@
         "ui-build",
         "desktop-workspace-transport"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-002-e21bf63bed696d2a.json",
+          "sha256": "4b19ab5a1d781570aac857ce7e5a12b6970e1e8b9f9b36f2ffff6b8fcdc819ab"
+        }
+      ],
       "next_action": "Archive the matching local layout and compatibility checks. Coordinate shared chart and registry entries with M3 before native Windows and owner review.",
       "blocker": null,
       "closure_reason": null,
