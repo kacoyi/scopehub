@@ -14,6 +14,12 @@ import type {
 
 type Intent = ChartSetTimeframeCommand11['intent'] | WorkspaceUndoCommand11['intent'];
 type LayoutIntent = WorkspacePreviewLayoutCommand11['intent'] | WorkspaceApplyLayoutCommand11['intent'];
+type LayoutCommand = WorkspacePreviewLayoutCommand11 | WorkspaceApplyLayoutCommand11 | WorkspaceUndoCommand11;
+type PreparedLayoutCommand = Pick<WorkspaceApplyLayoutCommand11, 'scope' | 'intent'>;
+export type PreparedWorkspaceLayout = {
+  readonly layout: NamedWorkspaceLayout11;
+  readonly command: PreparedLayoutCommand;
+};
 type Command = Omit<ChartSetTimeframeCommand11, 'intent'> & { intent: Intent | LayoutIntent };
 export type WorkspaceSourceChoice = { kind: 'none' } | { kind: 'sample'; instrument_id: string | null }
   | { kind: 'frozen'; revision_id: string };
@@ -141,9 +147,7 @@ async function selectEvidence(snapshot: Snapshot, target: ChartInterval11 | null
   };
 }
 
-function workspaceCommand<I extends Intent | WorkspacePreviewLayoutCommand11['intent'] | WorkspaceApplyLayoutCommand11['intent']>(
-  snapshot: Snapshot, intent: I, target: typeof chart | typeof layoutTarget, expectedRevision: number,
-) {
+function workspaceEnvelope() {
   return {
     protocol_version: '1.1',
     type: 'request',
@@ -151,6 +155,14 @@ function workspaceCommand<I extends Intent | WorkspacePreviewLayoutCommand11['in
     timestamp_ms: Date.now(),
     request_id: crypto.randomUUID(),
     task_id: null,
+  } as const;
+}
+
+function workspaceCommand<I extends Intent | LayoutIntent>(
+  snapshot: Snapshot, intent: I, target: typeof chart | typeof layoutTarget, expectedRevision: number,
+) {
+  return {
+    ...workspaceEnvelope(),
     scope: {
       workspace_id: snapshot.workspace.id,
       target,
@@ -216,28 +228,30 @@ export function useLocalWorkspace() {
   const submit = (intent: Intent) => {
     if (snapshot && !view.error) run(signal => mutate(snapshot, intent, signal), 'save');
   };
-  async function editLayout<I extends WorkspacePreviewLayoutCommand11['intent'] | WorkspaceApplyLayoutCommand11['intent'] | WorkspaceUndoCommand11['intent']>(
-    intent: I, revision: number | undefined,
-  ) {
-    if (!snapshot || revision === undefined) throw { code: 'STALE_CONTEXT' };
+  async function editLayout(request: LayoutCommand) {
+    if (!snapshot || snapshot.workspace.id !== request.scope.workspace_id) throw { code: 'STALE_CONTEXT' };
     if (active.current) throw { code: 'BUSY' };
     const controller = new AbortController();
     const signal = controller.signal;
     active.current = controller;
     setView(previous => ({ ...previous, pending: 'save', error: undefined }));
     try {
-      const request = workspaceCommand(snapshot, intent, layoutTarget, revision);
       const reply = await exchangeWorkspace<WorkspacePreviewLayoutReply11 | WorkspaceApplyLayoutReply11 | WorkspaceUndoReply11>(request, signal);
-      const outcome = reply.outcome;
-      if (reply.protocol_version !== '1.1' || reply.type !== 'response' || reply.request_id !== request.request_id
-        || typeof reply.message_id !== 'string') throw { code: 'OUTPUT_INVALID' };
+      const outcome = reply?.outcome;
+      if (reply?.protocol_version !== '1.1' || reply.type !== 'response' || reply.request_id !== request.request_id
+        || typeof reply.message_id !== 'string' || !outcome) throw { code: 'OUTPUT_INVALID' };
       if (outcome.state === 'failed') throw outcome.error;
-      if (!('operation' in outcome) || outcome.operation !== intent.operation) throw { code: 'OUTPUT_INVALID' };
+      if (!('operation' in outcome) || outcome.operation !== request.intent.operation) throw { code: 'OUTPUT_INVALID' };
       if (outcome.state === 'previewed') return outcome.result;
-      if (outcome.state !== 'committed' || outcome.receipt.target.kind !== 'layout'
-        || outcome.receipt.target.object_id !== layoutTarget.object_id || outcome.receipt.workspace_id !== snapshot.workspace.id
-        || outcome.receipt.committed_workspace_revision !== revision + 1) throw { code: 'OUTPUT_INVALID' };
+      const { workspace_id, expected_workspace_revision } = request.scope;
+      if (outcome.state !== 'committed' || typeof outcome.receipt?.operation_id !== 'string'
+        || outcome.receipt.target?.kind !== layoutTarget.kind || outcome.receipt.target.object_id !== layoutTarget.object_id
+        || outcome.receipt.workspace_id !== workspace_id
+        || outcome.receipt.committed_workspace_revision !== expected_workspace_revision + 1) throw { code: 'OUTPUT_INVALID' };
       const current = await readWorkspaceSnapshot(signal);
+      if (current.workspace.id !== workspace_id || current.workspace.revision < outcome.receipt.committed_workspace_revision) {
+        throw { code: 'OUTPUT_INVALID' };
+      }
       if (!signal.aborted) setView({ snapshot: current, pending: undefined, error: undefined });
       return undefined;
     } finally {
@@ -273,18 +287,34 @@ export function useLocalWorkspace() {
         }
       }
     },
-    async previewLayout(edit: WorkspaceLayoutEdit11, revision: number) {
-      const result = await editLayout({ operation: 'workspace.previewLayout', arguments: { edit } }, revision);
-      if (!result) throw { code: 'OUTPUT_INVALID' };
-      return result;
+    async previewLayout(edit: WorkspaceLayoutEdit11, revision: number): Promise<PreparedWorkspaceLayout> {
+      if (!snapshot) throw { code: 'STALE_CONTEXT' };
+      const preparedEdit = structuredClone(edit);
+      const request = workspaceCommand(snapshot, {
+        operation: 'workspace.previewLayout', arguments: { edit: preparedEdit },
+      }, layoutTarget, revision);
+      const result = await editLayout(request);
+      if (!result?.layout || typeof result.preview_token !== 'string') throw { code: 'OUTPUT_INVALID' };
+      // Keep the original scope and idempotency key if Apply has to recover a lost receipt.
+      return {
+        layout: result.layout,
+        command: {
+          scope: { ...request.scope, idempotency_key: crypto.randomUUID() },
+          intent: {
+            operation: 'workspace.applyLayout', arguments: { edit: preparedEdit, preview_token: result.preview_token },
+          },
+        },
+      };
     },
-    async applyLayout(edit: WorkspaceLayoutEdit11, preview_token: string, revision: number) {
-      await editLayout({ operation: 'workspace.applyLayout', arguments: { edit, preview_token } }, revision);
+    async applyLayout(command: PreparedLayoutCommand) {
+      await editLayout({ ...workspaceEnvelope(), ...command });
     },
     async undoLayout() {
       const target = snapshot?.layouts?.undo;
       if (!target) throw { code: 'STALE_CONTEXT' };
-      await editLayout({ operation: 'workspace.undo', arguments: { operation_id: target.operation_id } }, snapshot.workspace.revision);
+      await editLayout(workspaceCommand(snapshot, {
+        operation: 'workspace.undo', arguments: { operation_id: target.operation_id },
+      }, layoutTarget, snapshot.workspace.revision));
     },
     chooseEvidence(target: ChartInterval11 | null) {
       if (snapshot && !view.error) run(signal => selectEvidence(snapshot, target, signal), 'evidence');

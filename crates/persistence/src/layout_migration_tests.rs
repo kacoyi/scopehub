@@ -371,3 +371,61 @@ fn populated_v9_indicator_migration_rolls_back_and_keeps_layout_rows() {
         0
     );
 }
+
+#[test]
+fn chart_undo_keeps_its_target_in_history_without_layout_rows() {
+    let profile = Profile::new();
+    let (mut predecessor, _) = populated_v6(&profile);
+    // On the old writer, both a same-timeframe edit and its inverse are
+    // chart operations. Their target is present even when their values match.
+    predecessor
+        .transact(|tx| {
+            for (name, id, inverse, revision) in [
+                (SET_TIMEFRAME, "same-period-edit", None, 4),
+                (UNDO, "same-period-inverse", Some("same-period-edit"), 5),
+            ] {
+                tx.record(&WorkspaceChange {
+                    key: key(name, id),
+                    digest: [0; 32],
+                    receipt: WorkspaceReceipt {
+                        operation_id: id.into(),
+                        revision,
+                        undoable: inverse.is_none(),
+                        before: Timeframe::Day,
+                        after: Timeframe::Day,
+                    },
+                    actor: Actor::User,
+                    request_id: id,
+                    committed_at_ms: 500,
+                    undoes: inverse,
+                })?;
+            }
+            assert_eq!(tx.chart_revision()?, 5);
+            Ok(())
+        })
+        .unwrap();
+    drop(predecessor);
+
+    let current = profile.open().unwrap();
+    let view = current
+        .snapshot(
+            Some(WorkspaceUndoAccess {
+                actor: Actor::User,
+                principal_id: "principal",
+                paired_client_id: None,
+            }),
+            true,
+        )
+        .unwrap();
+    assert_eq!(view.state.revision, 5);
+    assert!(view.chart_undo.is_none() && view.layouts.undo.is_none());
+    current
+        .inspect(|tx| {
+            assert_eq!(tx.chart_revision()?, 5);
+            let replay = tx.replay(&key(UNDO, "same-period-inverse"))?.unwrap();
+            assert_eq!(replay.receipt.operation_id, "same-period-inverse");
+            assert_eq!(replay.receipt.revision, 5);
+            Ok(())
+        })
+        .unwrap();
+}

@@ -2896,7 +2896,7 @@
       "id": "M1-008",
       "title": "Import and refresh a user-selected historical CSV folder",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-001",
         "M1-003"
@@ -2946,8 +2946,13 @@
         "state-migrations",
         "local-import-ui"
       ],
-      "evidence": [],
-      "next_action": "Verify the joined current-source alias rules, declared financial record kinds and revision-library refresh against the recorded Windows source-row workflow and the complete task harness.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-008-823227e93a45d20f.json",
+          "sha256": "0bd106edb39ed4ec9b28ee60599eb4e7314d74d044ef73046400dd28fc2b9375"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -4398,7 +4403,11 @@
         "state-migrations",
         "market-workflow",
         "ui-build",
-        "desktop-workspace-transport"
+        "desktop-workspace-transport",
+        "generated-contracts",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers"
       ],
       "evidence": [
         {
@@ -4408,9 +4417,13 @@
         {
           "path": "project/evidence/M2-002-27b6d8470e3662ee.json",
           "sha256": "9044088f286ee9be989fa62cd405a04b75588191df89eff8696b901c8cd437bb"
+        },
+        {
+          "path": "project/evidence/M2-002-58c13d0f723275d2.json",
+          "sha256": "c65455d1a1229b88c9a3f5414a87a3d058d15f8114baf9587294e14654bb2f90"
         }
       ],
-      "next_action": "Use the integrated Linux layout and source-recovery checkpoint to reconcile the shared chart and registry with M3, then qualify native Windows use and obtain owner experience feedback.",
+      "next_action": "Use the verified Linux checkpoints and the scoped native Windows source review at contracts/reviews/2026-11-19-native-layout-workspace.json. Reconcile with M3 on one reviewed source and verify the layout, selected source and an accepted indicator together through same-profile restart and interrupted restore. Exercise the selected frozen source, explicit simulated sample, unavailable source and revoked grant while retaining the saved arrangement and accepted artifact under current access. Retain the combined evidence before closing M2-002.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -4418,7 +4431,8 @@
         "change_types": [
           "persistence",
           "permissions",
-          "ui"
+          "ui",
+          "protocol"
         ],
         "context": [
           "engineering-contract-v1.json",
@@ -4494,7 +4508,8 @@
             "Executable custom panels, external providers, changes to record backups or grant rules, and indicator artifact ownership."
           ],
           "open_questions": [
-            "Confirm native Windows accessibility and the remaining evidence navigation scenarios after the local browser slice."
+            "Confirm native Windows accessibility and the remaining evidence navigation scenarios after the local browser slice.",
+            "The shared Rust wire coverage check did not count scoped layout mutations, and the AI vectors lacked a bound preview and apply example. Verify both typed callers and their round trips in the layout task."
           ]
         },
         "evolution": {

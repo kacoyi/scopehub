@@ -406,13 +406,18 @@ fn eligible_undo(
 }
 
 fn chart_revision(connection: &Connection, workspace_id: &str) -> Result<Revision, Error> {
+    // Undo shares an operation name across targets. The original operation
+    // identifies an inverse's target in both current and predecessor profiles.
     connection
         .query_row(
-            "SELECT coalesce(max(revision), 0) FROM operation_log AS log
-             WHERE workspace_id = ?1 AND (operation = ?2 OR (operation = ?3 AND NOT EXISTS (
-                SELECT 1 FROM operation_log AS original WHERE original.id = log.undoes
-                  AND original.operation IN ('indicator.acceptVersion', 'indicator.remove')
-             )))",
+            "SELECT coalesce(max(event.revision), 0) FROM operation_log AS event
+             WHERE event.workspace_id = ?1 AND (
+                 event.operation = ?2 OR (event.operation = ?3 AND EXISTS (
+                     SELECT 1 FROM operation_log AS original
+                     WHERE original.id = event.undoes AND original.workspace_id = event.workspace_id
+                       AND original.operation = ?2
+                 ))
+             )",
             params![workspace_id, SET_TIMEFRAME, UNDO],
             |row| revision(row, 0),
         )

@@ -81,7 +81,8 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
   const visibleRevisions = library.status === 'ready'
     ? library.result.revisions.filter(entry => !revisionAccess.revoked.has(entry.revision_id)) : [];
   useWatchPublishedRevision(lostAccess ? undefined : watchedId,
-    watchedKind === 'folder' ? revisionAccess.verifyFolder : revisionAccess.verify, watchedKind === 'folder' ? undefined : workspace);
+    watchedKind === 'folder' ? revisionAccess.verifyFolder : revisionAccess.verify,
+    watchedKind === 'folder' ? undefined : workspace, 'checked-by-reader');
 
   useEffect(() => {
     if (!lostAccess) return;

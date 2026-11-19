@@ -1,0 +1,122 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M2-002",
+  "task_definition_sha256": "be65260957e2e1dea09c7c2cf6c6377525f5141be2d15e974fe77e0ed6126fb0",
+  "run_id": "20261119T194416.904451Z-bc847592",
+  "recorded_at": "2026-11-19T19:46:19.268320+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "839db953b97f7284ca8c43baef8750b3e946358ca461567d5da85fafee999452",
+    "file_count": 444,
+    "git_head": "d57be7d3d0aca27ad23554bde4e3b92f0d299231",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "58c13d0f723275d2867c5e694bf0ef80ad2017e5df45b6b2ae53557157ce5e2c",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/projects/scopehub-editable-layout/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "workspace-layout",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/workspace-layout.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "897180b9c9f4fc65c7d0df0deb2d87e6669fddf8d2988e10e64e306835326a0b"
+    },
+    {
+      "id": "operations-workflow",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-persistence",
+        "--test",
+        "workspace_process",
+        "operations_workflow::"
+      ],
+      "exit_code": 0,
+      "log_sha256": "7134a893c47cd7a96e4a6ae14853bcd3ccb696485031c44e9201b2ca85a9256d"
+    },
+    {
+      "id": "state-migrations",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-persistence"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d59613e9109b30ed903965d314810b280063c1f49075e3a6a005549626f7ee18"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "0a6acee46982d42f5c49c9e19d5e877768c29e60221d515587b8029c7cb1ff8f"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "62a4d3cbf7ea8c6e74652e946c9122277b6138931a25270658fedd8e041b2b8c"
+    },
+    {
+      "id": "desktop-workspace-transport",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/desktop-workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e34a2c2eab4b0c81b024d5ff60db94efc1575c0b509ad817330b5c8be1d835f8"
+    }
+  ],
+  "project_definition_sha256": "6e99a0352f74849a4599aa68da372c32316351fa139a242f3969dcdd9f4a0467",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}
