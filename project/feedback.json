@@ -911,7 +911,7 @@
       "source": "Independent checkpoint review of the opted-in local workspace at 9bb4647 with temporary synthetic profiles.",
       "observation": "The Vite launcher granted access based on loopback and origin without verifying possession of an owner-only launch credential. With a generally traversable POSIX profile root, database and journal sidecars used broad permissions. A second writer could commit a new workspace revision while the first launcher kept returning its startup snapshot to fresh clients.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-007"
       ],
@@ -919,7 +919,11 @@
         "workspace-timeframe",
         "rust-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The launcher treated loopback origin validation as caller authentication and reused the startup snapshot. The store did not enforce a private profile root and private SQLite files before opening storage.",
+        "correction": "Require a per-launch capability issued only through the verified private profile. Validate profile roots and SQLite files in the store. Read current state and eligible undo from Rust for every authorized snapshot.",
+        "prevention": "Hosted run 44543693795 passed workspace-timeframe and rust-contracts-workers on Ubuntu and Windows. The browser cases reject anonymous and expired grants, observe a second writer's commit, and recover from stale context. The native controls verify profile binding, private database and sidecars, restart, replay and scoped undo."
+      },
       "deferral_reason": null
     },
     {
@@ -927,7 +931,7 @@
       "source": "Independent foreground terminal and same-port relaunch review of 081c59b.",
       "observation": "A terminal interrupt stopped both Vite and its writer. The private handoff file remained on disk even though the replacement launcher correctly denied its old authority. The Windows regular-file assertion also required a user SID even when a private inheriting ACL permits the elevated token default owner.",
       "severity": "minor",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-007"
       ],
@@ -935,7 +939,11 @@
         "workspace-timeframe",
         "rust-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The foreground SIGINT path could exit before Vite's close hooks ran. The original Windows file-owner assertion also assumed a single owner SID for a regular file even when an elevated token can supply an allowed default owner.",
+        "correction": "Await Vite shutdown on terminal interrupt so the workspace close hook revokes the capability, removes the handoff and closes the writer. Require the current SID to own the profile directory and verify the regular file's allowed owner, inherited ACL and effective access independently.",
+        "prevention": "Hosted Ubuntu workspace-timeframe passed the owned CLI SIGINT and SIGTERM case with file removal, writer exit and same-port relaunch. The Windows report separately records the expected POSIX signal skip. Its private handoff case passed, including inherited and effective access checks."
+      },
       "deferral_reason": null
     },
     {
@@ -943,7 +951,7 @@
       "source": "Hosted Windows run 44520641312 at 081c59b and the same native storage admission on a clean Windows 11 Enterprise 26H2 guest under a standard local account.",
       "observation": "All five hosted browser workspace cases and three native desktop tests failed while preparing the private profile. On Windows 11 build 26300.9457, both AppLocalData and the real 8.3 TEMP alias failed. Native ACL APIs returned the owner and DACL at every ancestor. The helper instead raised an InvalidCastException while evaluating an ancestor ACE. Five of six native storage library tests failed at ccb9f81.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-007"
       ],
@@ -951,7 +959,11 @@
         "workspace-timeframe",
         "rust-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The guest reproduced an InvalidCastException in Windows PowerShell 5.1 when an ancestor ACE flags enum was evaluated with a bitwise mask. Native ACL reads returned the owner and DACL for both normal and short path spellings.",
+        "correction": "Convert ACE flags, access values and comparison masks to integers before bitwise evaluation. Continue to require the current SID and inheritable private rights on the profile root and reject unsafe ancestors, SQLite files and sidecars.",
+        "prevention": "Hosted Windows rust-contracts-workers passed all seven persistence library tests, including ancestor ACL admission and denial, TEMP alias equivalence and private inheritance with shared-root and sidecar denial. All six native desktop library tests passed, including absent AppLocalData provisioning. The Windows 11 guest also verified private startup and the alias path. These results cover hosted and virtualized Windows."
+      },
       "deferral_reason": null
     },
     {
@@ -959,14 +971,18 @@
       "source": "Hosted Windows workspace-timeframe on a temporary synthetic profile.",
       "observation": "Hosted Windows run 44528913523 at 4a379d8 returned HTTP 200 for a synthetic workspace file check. The check captured status alone, so the returned representation is unknown. It could not distinguish the ordinary HTML fallback from a file response.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-007"
       ],
       "regression_checks": [
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Workspace-private paths lacked an explicit response before Vite's static handlers and SPA fallback. A raw path miss could return the application shell. The historical status-only result leaves the response body undetermined.",
+        "correction": "Reject reserved workspace file names and direct raw filesystem URLs inside the bound private profile before Vite static serving or SPA fallback. Return an empty 404 with no-store and keep the private profile outside the served roots.",
+        "prevention": "Hosted workspace-timeframe passed on Ubuntu and Windows. HEAD requests distinguish the ordinary HTML 200 fallback from the empty 404 with no-store for real synthetic SQLite, named sidecars, an ordinary file in the isolated profile and handoff paths."
+      },
       "deferral_reason": null
     },
     {
@@ -974,14 +990,18 @@
       "source": "Hosted Windows workspace-timeframe on a temporary synthetic profile.",
       "observation": "The independent file-permission check exited at an unspecified stage on Windows PowerShell 5.1 in hosted run 44528913523. It used enum operands in bitwise tests. The production workspace could already create a private profile and restore eligible undo on that runner.",
       "severity": "minor",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-007"
       ],
       "regression_checks": [
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The original Windows assertion used enum operands in PowerShell 5.1 bitwise tests. A later hosted exit 52 combined provider lookup, descriptor read and owner comparison into one stage. A standard-user Windows 11 guest returned the current owner and DACL through both readers in both TEMP spellings, so the precise cause of that hosted exit remains undetermined.",
+        "correction": "Use integer masks and explicitly read the owner and access sections through filesystem APIs. Report descriptor reads independently from owner mismatches. Keep the current-SID directory rule, allowed file owners and trustees, inherited rights and an actual read/write handle.",
+        "prevention": "The Windows 11 guest passed the revised positive check in both TEMP spellings and reached the intended denial for broad access and missing inheritance on empty synthetic files. Hosted Windows workspace-timeframe at 290bd578 passed the same private handoff case with both negative controls."
+      },
       "deferral_reason": null
     }
   ]
