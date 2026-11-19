@@ -553,6 +553,48 @@ test('indicator-preview uses the bound sample calendar through the normal chart'
   }
 });
 
+test('indicator-preview shows zero volatility for equal closes in a full or cropped window', async ({ browser }) => {
+  const profile = await makeProfile();
+  const revision = randomUUID();
+  const prices = [133.33, 120.21, 120.21].map((close, index) => {
+    const time = Date.UTC(2026, 1, 3 + index);
+    return { time_ms: time, trading_day: new Date(time).toISOString().slice(0, 10),
+      open: close, high: close, low: close, close, volume: 10, is_closed: true };
+  });
+  try {
+    await seedFrozenEvidence(profile, revision, prices[0].time_ms, prices[2].time_ms, prices);
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        await control(page, 'Open published CSV').click();
+        const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+        await dialog.getByLabel('Revision ID').fill(revision);
+        await dialog.getByRole('button', { name: 'Open frozen chart' }).click();
+        const panel = dialog.getByRole('region', { name: 'Indicator preview' });
+        await expect(panel.getByLabel('Rolling period')).toHaveValue('2');
+        for (const count of [3, 1]) {
+          if (count === 1) await panel.getByLabel('First visible bar').selectOption(String(prices[2].time_ms));
+          const [reply] = await Promise.all([
+            page.waitForResponse(async r => r.url().endsWith(endpoint)
+              && r.request().postDataJSON()?.type === 'indicator_preview_status' && (await r.json()).result?.status === 'ready'),
+            panel.getByRole('button', { name: 'Run preview' }).click(),
+          ]);
+          const ready = (await reply.json()).result;
+          const values = ready.event.artifact.result.series[1].points;
+          expect(values).toHaveLength(count);
+          expect(values.at(-1)).toEqual({ time_ms: prices[2].time_ms, value: 0 });
+          if (count === 1) expect(ready.warmup_from_ms).toBe(prices[1].time_ms);
+          const table = panel.getByRole('table', { name: 'Indicator preview values' });
+          if (!await table.isVisible()) await panel.getByText('Preview provenance and values').click();
+          await expect(table.locator('tbody tr')).toHaveCount(count);
+          await expect(table.locator('tbody tr').last().getByRole('cell').last()).toHaveText('0');
+        }
+      });
+    });
+  } finally {
+    await profile.close();
+  }
+});
+
 test('indicator-preview evaluates real frozen chart bytes and isolates failure and cancellation', async ({ browser }, testInfo) => {
   const profile = await makeProfile();
   const port = await freePort();

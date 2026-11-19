@@ -3,7 +3,7 @@
 mod calendar;
 pub use calendar::{BucketCalendar, TradingSession};
 
-use std::collections::{BTreeMap, HashSet, VecDeque};
+use std::collections::{BTreeMap, HashSet};
 
 use serde_json::{Value, json};
 
@@ -469,50 +469,44 @@ impl Evaluation<'_> {
         size: usize,
         op: &Rolling11Op,
     ) -> Result<Vec<Option<f64>>> {
-        let mut queue = VecDeque::new();
-        let mut moments = Moments::default();
-        let mut shifts = 0;
         let deviation = matches!(op, Rolling11Op::RollingStd);
+        let mut block = Vec::new();
+        let mut suffixes = Vec::new();
+        let mut prefix = Moments::default();
         for (index, value) in values.iter_mut().enumerate() {
             if index % 1024 == 0 {
                 self.check_cancelled()?;
             }
             if self.continuity[index] == 1 || value.is_none() {
-                queue.clear();
-                moments = Moments::default();
-                shifts = 0;
+                block.clear();
+                suffixes.clear();
+                prefix = Moments::default();
             }
-            if let Some(sample) = *value {
-                if queue.len() == size {
-                    let oldest = queue.pop_front().expect("complete rolling window");
-                    if queue.is_empty() {
-                        moments = Moments::default();
-                    } else {
-                        moments.remove(oldest, queue.len(), deviation);
-                    }
-                    shifts += 1;
+            let Some(sample) = *value else { continue };
+
+            // A window crosses at most two blocks. Each suffix contains only observations
+            // still in that window, so an expired price contributes no rounding residue.
+            if block.len() == size {
+                let mut suffix = Moments::default();
+                for previous in block.drain(..).rev() {
+                    suffix = Moments::single(previous).combine(suffix, deviation);
+                    suffixes.push(suffix);
                 }
-                moments.push(sample, queue.len(), deviation);
-                queue.push_back(sample);
-                // Bound accumulated error from repeated removals, in amortized linear time.
-                if shifts == size {
-                    moments = Moments::default();
-                    for (index, sample) in queue.iter().copied().enumerate() {
-                        moments.push(sample, index, deviation);
-                    }
-                    shifts = 0;
-                }
+                prefix = Moments::default();
             }
-            *value = if queue.len() < size {
-                None
-            } else {
-                let estimate = if deviation {
-                    finite(moments.sum_squares)?;
-                    (moments.sum_squares.max(0.0) / size as f64).sqrt()
+            suffixes.pop();
+            block.push(sample);
+            prefix = prefix.combine(Moments::single(sample), deviation);
+            *value = if block.len() + suffixes.len() == size {
+                let suffix = suffixes.last().copied().unwrap_or_default();
+                let total = suffix.combine(prefix, deviation);
+                Some(finite(if deviation {
+                    total.population_deviation()
                 } else {
-                    moments.mean
-                };
-                Some(finite(estimate)?)
+                    total.mean()
+                })?)
+            } else {
+                None
             };
         }
         Ok(values)
@@ -557,26 +551,74 @@ impl Evaluation<'_> {
     }
 }
 
-#[derive(Default)]
+#[derive(Clone, Copy, Default)]
 struct Moments {
-    mean: f64,
-    sum_squares: f64,
+    count: usize,
+    // Express the mean relative to an actual observation to retain small price differences.
+    origin: f64,
+    offset: f64,
+    scale: f64,
+    squared_deviations: f64,
 }
 
 impl Moments {
-    fn push(&mut self, value: f64, previous_count: usize, deviation: bool) {
-        let delta = value - self.mean;
-        self.mean += delta / (previous_count + 1) as f64;
-        if deviation {
-            self.sum_squares += delta * (value - self.mean);
+    fn single(value: f64) -> Self {
+        Self {
+            count: 1,
+            origin: value,
+            ..Self::default()
         }
     }
 
-    fn remove(&mut self, value: f64, remaining: usize, deviation: bool) {
-        let delta = value - self.mean;
-        self.mean -= delta / remaining as f64;
+    fn mean(self) -> f64 {
+        self.origin + self.offset
+    }
+
+    fn population_deviation(self) -> f64 {
+        (self.squared_deviations / self.count as f64).sqrt() * self.scale
+    }
+
+    fn combine(self, other: Self, deviation: bool) -> Self {
+        if self.count == 0 {
+            return other;
+        }
+        if other.count == 0 {
+            return self;
+        }
+        let count = self.count + other.count;
+        let left_weight = self.count as f64 / count as f64;
+        let right_weight = other.count as f64 / count as f64;
+        let delta = (other.origin - self.origin) + (other.offset - self.offset);
+        let offset = self.offset + delta * right_weight;
+        let (origin, offset) = if offset.is_finite() {
+            (self.origin, offset)
+        } else {
+            // Two finite observations can be farther apart than f64::MAX.
+            (0.0, self.mean() * left_weight + other.mean() * right_weight)
+        };
+        // Merge centered sums of squares in units of the largest contributing spread.
+        // This avoids both underflow for tiny price changes and overflow when squaring.
+        let (mut scale, mut squared_deviations) = (0.0, 0.0);
         if deviation {
-            self.sum_squares -= delta * (value - self.mean);
+            let (spread, factor) = if delta.is_finite() {
+                (delta, 1.0)
+            } else {
+                (other.mean() * 0.5 - self.mean() * 0.5, 2.0)
+            };
+            scale = self.scale.max(other.scale).max(spread.abs());
+            if scale > 0.0 {
+                let between = (spread / scale) * factor;
+                squared_deviations = self.squared_deviations * (self.scale / scale).powi(2)
+                    + other.squared_deviations * (other.scale / scale).powi(2)
+                    + between.powi(2) * (self.count as f64 * right_weight);
+            }
+        }
+        Self {
+            count,
+            origin,
+            offset,
+            scale,
+            squared_deviations,
         }
     }
 }
@@ -691,6 +733,117 @@ mod tests {
             values(&evaluate(&program, 1).series[0]),
             [None, Some(3.0), None]
         );
+    }
+
+    #[test]
+    fn rolling_deviation_forgets_expired_prices_without_hiding_small_changes() {
+        let deviation = json!({"op":"rolling_std","value":{"op":"field","field":"close"},"window":{"periods":2}});
+        let zero = json!({"op":"constant","value":0.0});
+        let line = |id, value| json!({"kind":"line","id":id,"pane":"risk","style":{"color":"#0022FF","width":1},"value":value});
+        let program = Program::prepare(serde_json::from_value(json!({
+            "parameters": [],
+            "outputs": [
+                line("std", deviation.clone()),
+                line("reciprocal", json!({"op":"divide","left":{"op":"constant","value":1},"right":deviation})),
+                {"kind":"marker_when","position":"above","color":"#FFFFFF","label":"Nonzero volatility",
+                 "when":{"op":"gt","left":deviation,"right":zero}}
+            ]
+        })).unwrap(), &[]).unwrap();
+        let flat: f64 = 120.21;
+        let next = flat.next_up();
+        let bars: Vec<_> = [133.33, flat, flat, next, flat, flat]
+            .into_iter()
+            .enumerate()
+            .map(|(index, price)| Bar {
+                time_ms: index as i64,
+                open: price,
+                high: price,
+                low: price,
+                close: price,
+                ..bars()[0].clone()
+            })
+            .collect();
+        let evaluate = |bars: &[Bar], visible| {
+            program
+                .evaluate(
+                    bars,
+                    visible,
+                    |a, b| b.time_ms == a.time_ms + 1,
+                    || false,
+                    provenance(),
+                )
+                .unwrap()
+        };
+        let full = evaluate(&bars, 0);
+        for index in [2, 5] {
+            let warm = evaluate(&bars[index - 1..=index], 1);
+            assert_eq!(full.series[0].points[index].value, Some(0.0));
+            assert_eq!(full.series[1].points[index].value, None);
+            assert_eq!(full.series[0].points[index], warm.series[0].points[0]);
+            assert_eq!(full.series[1].points[index], warm.series[1].points[0]);
+            assert!(warm.markers.is_empty());
+            assert!(
+                warm.diagnostics
+                    .iter()
+                    .any(|d| d.code == "division_by_zero")
+            );
+        }
+        for index in [3, 4] {
+            // The population standard deviation of a pair is half its absolute difference.
+            assert_eq!(
+                full.series[0].points[index].value,
+                Some((next - flat) / 2.0)
+            );
+        }
+        assert_eq!(
+            full.markers.iter().map(|m| m.time_ms).collect::<Vec<_>>(),
+            [1, 3, 4]
+        );
+    }
+
+    #[test]
+    fn rolling_population_deviation_matches_each_current_window() {
+        let prices = [
+            144, 111, 102, 82, 91, 70, 64, 67, 65, 64, 64, 64, 64, 64, 64, 64, 86, 65,
+        ];
+        let parameters = Parameters::new();
+        let context = Evaluation {
+            parameters: &parameters,
+            bars: &[],
+            continuity: (1..=prices.len()).collect(),
+            cancelled: &|| false,
+            divide_by_zero: false,
+        };
+        for size in [1, 2, 3, 5, 7] {
+            let inputs = prices
+                .iter()
+                .map(|&p| Some(1.0e12 + f64::from(p) / 8.0))
+                .collect();
+            let values = context
+                .rolling(inputs, size, &Rolling11Op::RollingStd)
+                .unwrap();
+            assert!(values[..size - 1].iter().all(Option::is_none));
+            for (index, window) in prices.windows(size).enumerate() {
+                // With integer eighths, the sum of squared pair differences is exact.
+                let mut squares = 0i32;
+                for (i, left) in window.iter().enumerate() {
+                    for right in &window[i + 1..] {
+                        squares += (left - right) * (left - right);
+                    }
+                }
+                let expected = f64::from(squares).sqrt() / (size as f64 * 8.0);
+                let actual = values[index + size - 1].unwrap();
+                assert!(
+                    (actual - expected).abs() <= expected * 8.0 * f64::EPSILON,
+                    "window {window:?}: expected {expected}, got {actual}"
+                );
+            }
+        }
+        for magnitude in [1.0e-240, f64::MAX] {
+            let pair = Moments::single(-magnitude).combine(Moments::single(magnitude), true);
+            assert_eq!(pair.mean(), 0.0);
+            assert_eq!(pair.population_deviation(), magnitude);
+        }
     }
 
     #[test]
