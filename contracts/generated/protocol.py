@@ -1,4 +1,4 @@
-# Generated from contracts/schemas/protocol.schema.json; sha256=11d2a538498c8e336213e9dda414d643e765b2aee138dfa36d8f89d2658942c4. Do not edit.
+# Generated from contracts/schemas/protocol.schema.json; sha256=81b482afd494d8336a677360e000a324a04674ea3621256388a4dba6069f68fe. Do not edit.
 from __future__ import annotations
 from typing import Literal, NotRequired, TypedDict
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
@@ -10,7 +10,7 @@ Metadata = dict[str, JsonValue]
 WorkerRole = Literal['market', 'ai', 'indicator']
 ProtocolVersion = Literal['1.0']
 ErrorCode = Literal['INVALID_ARGUMENT', 'UNSUPPORTED_CAPABILITY', 'PERMISSION_DENIED', 'CONFIRMATION_REQUIRED', 'CANCELLED', 'TIMEOUT', 'WORKER_EXITED', 'PROTOCOL_MISMATCH', 'DATA_UNAVAILABLE', 'STALE_CONTEXT', 'RESOURCE_LIMIT', 'OUTPUT_INVALID', 'PROVIDER_NOT_CONFIGURED', 'INTERNAL_ERROR', 'BUSY', 'SNAPSHOT_UNAVAILABLE']
-OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'market.subscribe', 'market.previewLocalImport', 'market.saveLocalImportMapping', 'market.loadLocalImportMapping', 'market.listLocalImportRevisions', 'market.readLocalImportRevision', 'market.previewLocalFolderRefresh', 'market.prepareLocalFolderPublication', 'market.publishLocalFolderRefresh', 'market.listLocalFolderRevisions', 'market.readLocalFolderRevision', 'market.revokeLocalFolderRevision', 'market.revokeLocalImportRevision', 'market.publishLocalImport', 'workspace.readChartProjection', 'workspace.selectEvidence', 'decisionNote.save', 'decisionNote.read', 'decisionNote.appendOutcome', 'decisionNote.delete', 'decisionNote.exportBackup', 'decisionNote.previewRestore', 'decisionNote.restoreBackup']
+OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'market.subscribe', 'market.previewLocalImport', 'market.saveLocalImportMapping', 'market.loadLocalImportMapping', 'market.listLocalImportRevisions', 'market.readLocalImportRevision', 'market.previewLocalFolderRefresh', 'market.prepareLocalFolderPublication', 'market.publishLocalFolderRefresh', 'market.listLocalFolderRevisions', 'market.readLocalFolderRevision', 'market.revokeLocalFolderRevision', 'market.revokeLocalImportRevision', 'market.publishLocalImport', 'workspace.readChartProjection', 'workspace.selectEvidence', 'decisionNote.save', 'decisionNote.read', 'decisionNote.appendOutcome', 'decisionNote.delete', 'decisionNote.exportBackup', 'decisionNote.previewRestore', 'decisionNote.restoreBackup', 'privateRecord.read', 'privateRecord.change', 'privateRecord.exportBackup']
 ChartStyle = Literal['candlestick', 'line']
 TaskStatus = Literal['queued', 'running', 'awaiting_confirmation', 'completed', 'failed', 'cancelled']
 Tradability = Literal['non_tradable', 'unknown']
@@ -1923,6 +1923,161 @@ class DecisionNoteReadOutput(TypedDict):
 class DecisionNoteTarget(TypedDict):
     kind: Literal['decision_note']
     object_id: DecisionNoteUuid11
+PrivateRecordUuid11 = str
+class PrivateRecordReadScope11(TypedDict):
+    workspace_id: OpaqueId
+class PrivateRecordChangeScope11(TypedDict):
+    workspace_id: OpaqueId
+    expected_workspace_revision: Revision
+    idempotency_key: PrivateRecordUuid11
+PrivateRecordKind = Literal['conversation', 'memory', 'strategy']
+class PrivateRecordTurn(TypedDict):
+    speaker: Literal['user', 'assistant']
+    text: str
+class PrivateRecordConversation(TypedDict):
+    kind: Literal['conversation']
+    title: str
+    turns: list[PrivateRecordTurn]
+class PrivateRecordMemory(TypedDict):
+    kind: Literal['memory']
+    title: str
+    text: str
+class PrivateRecordStrategy(TypedDict):
+    kind: Literal['strategy']
+    title: str
+    text: str
+PrivateRecordContent = PrivateRecordConversation | PrivateRecordMemory | PrivateRecordStrategy
+class PrivateRecordEntry(TypedDict):
+    record_id: PrivateRecordUuid11
+    revision: Revision
+    content: PrivateRecordContent
+class PrivateRecordSummary(TypedDict):
+    record_id: PrivateRecordUuid11
+    revision: Revision
+    kind: PrivateRecordKind
+    title: str
+class PrivateRecordArchiveEntry(TypedDict):
+    record_id: PrivateRecordUuid11
+    content: PrivateRecordContent
+class PrivateRecordBackupV1(TypedDict):
+    format: Literal['scopehub.private-records']
+    version: int
+    profile_binding: str
+    records: list[PrivateRecordArchiveEntry]
+    deletions: list[PrivateRecordUuid11]
+class PrivateRecordReadInput(TypedDict):
+    record_id: PrivateRecordUuid11 | None
+class PrivateRecordReadOutput(TypedDict):
+    workspace_revision: Revision
+    record: PrivateRecordEntry | None
+    records: list[PrivateRecordSummary]
+class PrivateRecordSaveInput(TypedDict):
+    action: Literal['save']
+    record_id: PrivateRecordUuid11
+    expected_record_revision: Revision | None
+    content: PrivateRecordContent
+class PrivateRecordDeleteInput(TypedDict):
+    action: Literal['delete']
+    record_id: PrivateRecordUuid11
+    expected_record_revision: Revision
+class PrivateRecordRestoreInput(TypedDict):
+    action: Literal['restore']
+    backup: PrivateRecordBackupV1
+class PrivateRecordResolveInput(TypedDict):
+    action: Literal['resolve']
+    challenge_id: PrivateRecordUuid11
+    decision: Literal['approve', 'decline']
+PrivateRecordChangeInput = PrivateRecordSaveInput | PrivateRecordDeleteInput | PrivateRecordRestoreInput | PrivateRecordResolveInput
+class PrivateRecordChangeSummary(TypedDict):
+    added: int
+    corrected: int
+    removed: int
+    kept: int
+    suppressed: int
+    imported_deletions: int
+class PrivateRecordReceipt11(TypedDict):
+    operation_id: PrivateRecordUuid11
+    workspace_id: OpaqueId
+    record_id: PrivateRecordUuid11 | None
+    committed_workspace_revision: Revision
+    undoable: Literal[False]
+class PrivateRecordExportInput(TypedDict):
+    pass
+class PrivateRecordReadIntent11(TypedDict):
+    operation: Literal['privateRecord.read']
+    arguments: PrivateRecordReadInput
+class PrivateRecordReadCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: PrivateRecordUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: PrivateRecordUuid11
+    scope: PrivateRecordReadScope11
+    intent: PrivateRecordReadIntent11
+class PrivateRecordReadCompleted11(TypedDict):
+    state: Literal['completed']
+    operation: Literal['privateRecord.read']
+    result: PrivateRecordReadOutput
+PrivateRecordReadOutcome11 = PrivateRecordReadCompleted11 | ScopedFailure11
+class PrivateRecordReadReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: PrivateRecordUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: PrivateRecordUuid11
+    outcome: PrivateRecordReadOutcome11
+class PrivateRecordChangeIntent11(TypedDict):
+    operation: Literal['privateRecord.change']
+    arguments: PrivateRecordChangeInput
+class PrivateRecordChangeCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: PrivateRecordUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: PrivateRecordUuid11
+    scope: PrivateRecordChangeScope11
+    intent: PrivateRecordChangeIntent11
+class PrivateRecordChangeCommitted11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['privateRecord.change']
+    receipt: PrivateRecordReceipt11
+class PrivateRecordChangeConfirmationRequired11(TypedDict):
+    state: Literal['confirmation_required']
+    operation: Literal['privateRecord.change']
+    challenge_id: PrivateRecordUuid11
+    expires_at_ms: Timestamp
+    summary: PrivateRecordChangeSummary
+PrivateRecordChangeOutcome11 = PrivateRecordChangeCommitted11 | PrivateRecordChangeConfirmationRequired11 | ScopedFailure11
+class PrivateRecordChangeReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: PrivateRecordUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: PrivateRecordUuid11
+    outcome: PrivateRecordChangeOutcome11
+class PrivateRecordExportIntent11(TypedDict):
+    operation: Literal['privateRecord.exportBackup']
+    arguments: PrivateRecordExportInput
+class PrivateRecordExportCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: PrivateRecordUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: PrivateRecordUuid11
+    scope: PrivateRecordReadScope11
+    intent: PrivateRecordExportIntent11
+class PrivateRecordExportCompleted11(TypedDict):
+    state: Literal['completed']
+    operation: Literal['privateRecord.exportBackup']
+    result: PrivateRecordBackupV1
+PrivateRecordExportOutcome11 = PrivateRecordExportCompleted11 | ScopedFailure11
+class PrivateRecordExportReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: PrivateRecordUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: PrivateRecordUuid11
+    outcome: PrivateRecordExportOutcome11
 class DecisionNoteReceipt11(TypedDict):
     operation_id: DecisionNoteUuid11
     workspace_id: OpaqueId

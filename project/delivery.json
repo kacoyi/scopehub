@@ -245,7 +245,8 @@
         "Accepted state restores without replaying AI actions.",
         "Migration failure leaves a documented recovery route and retained user data.",
         "Execute a confirmed write, lose its reply, reconnect and submit the same idempotency key twice concurrently. Obtain one operation ID and one durable change. Undo that operation with a new receipt; a later conflicting change stays intact.",
-        "Restore layout and accepted artifacts with the recorded source disconnected and revoked separately. Keep its identity and visible reason without substituting a sample or issuing a forbidden read."
+        "Restore layout and accepted artifacts with the recorded source disconnected and revoked separately. Keep its identity and visible reason without substituting a sample or issuing a forbidden read.",
+        "Explicitly save a typed exchange, memory and strategy in the local profile. Reopen and inspect the same ordered turns, correct a record, delete it and apply an older local backup. A different profile cannot import the backup, and known tombstones suppress old copies."
       ],
       "failure_cases": [
         "Stale confirmation",
@@ -262,6 +263,7 @@
         "operations-workflow",
         "state-migrations",
         "decision-note-lifecycle",
+        "private-record-lifecycle",
         "workspace-timeframe",
         "desktop-workspace-transport"
       ],

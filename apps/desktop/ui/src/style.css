@@ -183,3 +183,21 @@ th { position: sticky; top: 0; background: var(--surface); color: var(--muted); 
   .panel-scrim { display: block; position: absolute; inset: 0 33px 0 0; z-index: 2; border-radius: 0; background: #05081170; }
   .workspace-panel { position: absolute; z-index: 3; inset: 0 33px 0 auto; width: min(360px, calc(100% - 66px)); box-shadow: -6px 0 20px #080b133d; }
 }
+
+.private-record-body { overflow-wrap: anywhere; }
+.private-record-body p { margin: 0; }
+.private-record-editor fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 10px; }
+.private-record-editor label, .private-record-actions label { display: grid; gap: 4px; }
+.private-record-editor input, .private-record-editor select, .private-record-editor textarea {
+  width: 100%; border: 1px solid var(--line); border-radius: 5px; padding: 7px; color: inherit; background: #111621; font: inherit;
+}
+.private-record-editor textarea { resize: vertical; }
+.private-record-editor .private-turn { border: 1px solid var(--line); border-radius: 5px; padding: 8px; }
+.private-record-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.private-record-body section .private-record-actions { margin-top: 12px; }
+.private-record-detail ol { display: grid; gap: 10px; padding-left: 22px; }
+.private-record-detail p { white-space: pre-wrap; }
+
+.private-review-target { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 10px; }
+.private-review-target dd { margin: 0; font-weight: 620; }
+.private-record-editor > section { margin: 8px 0; }

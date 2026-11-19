@@ -50,10 +50,12 @@ pub use workspace::{
     DECISION_NOTE_READ, DECISION_NOTE_RESTORE_BACKUP, DECISION_NOTE_SAVE, DecisionNoteBackupData,
     DecisionNoteChange, DecisionNoteMutation, DecisionNoteOutcomeAddition, DecisionNoteReceipt,
     DecisionNoteReplay, DecisionNoteRestorePlan, LOCAL_WORKSPACE_OPERATIONS,
-    LocalChartAnalysisGrant, MAIN_CHART_ID, READ_CHART_PROJECTION, SELECT_EVIDENCE, SET_TIMEFRAME,
-    Timeframe, UNDO, WorkspaceAccess, WorkspaceBinding, WorkspaceChange, WorkspaceReceipt,
-    WorkspaceReplay, WorkspaceReplayKey, WorkspaceSnapshot, WorkspaceState, WorkspaceStore,
-    WorkspaceTransaction, WorkspaceUndoAccess, WorkspaceUndoTarget, evidence_operation_name,
+    LocalChartAnalysisGrant, MAIN_CHART_ID, PRIVATE_RECORD_CHANGE, PRIVATE_RECORD_EXPORT,
+    PRIVATE_RECORD_OPERATIONS, PRIVATE_RECORD_READ, PrivateRecordPlan, READ_CHART_PROJECTION,
+    SELECT_EVIDENCE, SET_TIMEFRAME, Timeframe, UNDO, WorkspaceAccess, WorkspaceBinding,
+    WorkspaceChange, WorkspaceReceipt, WorkspaceReplay, WorkspaceReplayKey, WorkspaceSnapshot,
+    WorkspaceState, WorkspaceStore, WorkspaceTransaction, WorkspaceUndoAccess, WorkspaceUndoTarget,
+    evidence_operation_name,
 };
 
 use std::{
@@ -272,6 +274,7 @@ pub struct OperationRegistry<P> {
     port: P,
     note_confirmation: Option<workspace::PendingDecisionNoteConfirmation>,
     note_restore: workspace::DecisionNoteRestoreStaging,
+    private_record_stage: workspace::PrivateRecordStaging,
 }
 
 pub type MarketRegistry<P> = OperationRegistry<P>;
@@ -307,6 +310,7 @@ impl<P> OperationRegistry<P> {
             port,
             note_confirmation: None,
             note_restore: workspace::DecisionNoteRestoreStaging::default(),
+            private_record_stage: workspace::PrivateRecordStaging::default(),
         }
     }
 }

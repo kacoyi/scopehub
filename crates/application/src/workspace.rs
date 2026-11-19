@@ -6,8 +6,8 @@ use std::{
 use scopehub_domain::{
     protocol::{
         ChartStyle, DecisionNoteDate, DecisionNoteReadOutput, Error, ErrorCode, EvidenceTarget11,
-        MutationScope11, OperationReceipt11, Revision, Workspace, WorkspaceObject11,
-        WorkspaceObject11Kind,
+        MutationScope11, OperationReceipt11, PrivateRecordArchiveEntry, PrivateRecordEntry,
+        PrivateRecordSummary, Revision, Workspace, WorkspaceObject11, WorkspaceObject11Kind,
     },
     wire::normalize_integers,
 };
@@ -22,6 +22,13 @@ use crate::{
 mod backup;
 mod evidence;
 mod notes;
+mod private_records;
+
+pub(crate) use private_records::PrivateRecordStaging;
+pub use private_records::{
+    PRIVATE_RECORD_CHANGE, PRIVATE_RECORD_EXPORT, PRIVATE_RECORD_OPERATIONS, PRIVATE_RECORD_READ,
+    PrivateRecordPlan,
+};
 
 pub(crate) use backup::DecisionNoteRestoreStaging;
 pub use backup::{
@@ -55,6 +62,9 @@ pub const LOCAL_WORKSPACE_OPERATIONS: &[&str] = &[
     DECISION_NOTE_EXPORT_BACKUP,
     DECISION_NOTE_PREVIEW_RESTORE,
     DECISION_NOTE_RESTORE_BACKUP,
+    PRIVATE_RECORD_READ,
+    PRIVATE_RECORD_CHANGE,
+    PRIVATE_RECORD_EXPORT,
 ];
 pub const MAIN_CHART_ID: &str = "main-chart";
 const MAX_REVISION: Revision = 9_007_199_254_740_991;
@@ -166,6 +176,16 @@ pub struct WorkspaceChange<'a> {
 /// A transaction over the single workspace owned by this store.
 pub trait WorkspaceTransaction {
     fn state(&self) -> Result<WorkspaceState, Error>;
+    fn private_record(&self, id: &str) -> Result<Option<PrivateRecordEntry>, Error>;
+    fn private_record_index(&self) -> Result<Vec<PrivateRecordSummary>, Error>;
+    fn private_record_deletions(&self) -> Result<Vec<String>, Error>;
+    fn private_record_archive_entries(&self) -> Result<Vec<PrivateRecordArchiveEntry>, Error>;
+    fn private_record_receipt_target(&self, operation_id: &str) -> Result<Option<String>, Error>;
+    fn record_private_records(
+        &mut self,
+        change: &WorkspaceChange<'_>,
+        plan: &PrivateRecordPlan,
+    ) -> Result<(), Error>;
     fn chart_evidence(&self) -> Result<Option<ChartEvidenceRef>, Error>;
     fn set_chart_evidence(
         &mut self,
@@ -237,6 +257,7 @@ pub trait WorkspaceStore: Send {
     fn decision_note_backup(&self) -> Result<DecisionNoteBackupData, Error>;
     /// Remove superseded note pages from application-controlled database sidecars.
     fn clean_deleted_note(&mut self) -> Result<(), Error>;
+    fn clean_private_record_pages(&mut self) -> Result<(), Error>;
     /// Commit only if the application successfully produces an authorized result.
     fn transact<T>(
         &mut self,
@@ -285,6 +306,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         }
         if matches!(access.actor, Actor::User) && access.paired_client_id.is_none() {
             self.note_restore.observe_local_access(access);
+            self.private_record_stage.observe_local_access(access);
         }
         if !access.disclose_workspace_state {
             return Err(failure(ErrorCode::PERMISSIONDENIED));
@@ -301,6 +323,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             evidence::local_display(access) && access.operations.contains(&READ_CHART_PROJECTION),
         )?;
         self.note_restore.observe(state.revision);
+        self.private_record_stage.observe(state.revision);
         Ok(WorkspaceSnapshot {
             workspace: workspace_projection(access.workspace_id, state.revision, state.timeframe),
             selection_revision: state.selection_revision,
@@ -367,7 +390,16 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             .as_str()
             .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
         if DECISION_NOTE_OPERATIONS.contains(&name) {
-            return self.execute_decision_note(access, operation(name)?, request);
+            let result = self.execute_decision_note(access, operation(name)?, request)?;
+            if let Some(revision) =
+                result["outcome"]["receipt"]["committed_workspace_revision"].as_u64()
+            {
+                self.private_record_stage.observe(revision);
+            }
+            return Ok(result);
+        }
+        if PRIVATE_RECORD_OPERATIONS.contains(&name) {
+            return self.execute_private_record(access, operation(name)?, request);
         }
         if !matches!(name, SET_TIMEFRAME | UNDO) {
             return Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY));
@@ -415,6 +447,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
                     value["outcome"]["receipt"]["committed_workspace_revision"].as_u64()
                 {
                     self.note_restore.observe_commit(revision);
+                    self.private_record_stage.observe(revision);
                 }
                 Ok(value)
             }

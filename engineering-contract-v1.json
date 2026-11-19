@@ -968,6 +968,45 @@
       "input_spec": "DecisionNoteRestoreBackupCommand11",
       "output_spec": "DecisionNoteRestoreBackupReply11",
       "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. This operation is unavailable to workers and external clients."
+    },
+    {
+      "name": "privateRecord.read",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "PrivateRecordReadCommand11",
+      "output_spec": "PrivateRecordReadReply11",
+      "schema_requirement": "Use the bound local human 1.1 envelope. Saving, correcting, deleting and restoring require a revision-bound approval. The private workspace host supplies identity and current access."
+    },
+    {
+      "name": "privateRecord.change",
+      "effect": "persist",
+      "confirmation": true,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "PrivateRecordChangeCommand11",
+      "output_spec": "PrivateRecordChangeReply11",
+      "schema_requirement": "Use the bound local human 1.1 envelope. Saving, correcting, deleting and restoring require a revision-bound approval. The private workspace host supplies identity and current access."
+    },
+    {
+      "name": "privateRecord.exportBackup",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "PrivateRecordExportCommand11",
+      "output_spec": "PrivateRecordExportReply11",
+      "schema_requirement": "Use the bound local human 1.1 envelope. Saving, correcting, deleting and restoring require a revision-bound approval. The private workspace host supplies identity and current access."
     }
   ],
   "authorization": {

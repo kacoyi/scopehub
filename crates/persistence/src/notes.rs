@@ -314,14 +314,7 @@ pub(super) fn clean_deletions(
     };
     // secure_delete overwrites the current pages, but earlier WAL frames can
     // still contain bodies. Finish this cleanup on replay or startup if needed.
-    let busy: bool =
-        connection.query_row("PRAGMA wal_checkpoint(TRUNCATE)", [], |row| row.get(0))?;
-    if busy {
-        return Err(rusqlite::Error::SqliteFailure(
-            rusqlite::ffi::Error::new(rusqlite::ffi::SQLITE_BUSY),
-            None,
-        ));
-    }
+    super::checkpoint_private_pages(connection)?;
     // A deletion committed by another open host after the watermark still
     // needs its own checkpoint, even if this one happened to include it.
     connection.execute(

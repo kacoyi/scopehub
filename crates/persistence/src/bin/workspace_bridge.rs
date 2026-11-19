@@ -9,8 +9,8 @@ use std::{
 
 use scopehub_application::{
     Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, LOCAL_WORKSPACE_OPERATIONS,
-    OperationRegistry, READ_LOCAL_IMPORT_REVISION, WorkspaceAccess, WorkspaceBinding,
-    evidence_operation_name, failure,
+    OperationRegistry, PRIVATE_RECORD_CHANGE, READ_LOCAL_IMPORT_REVISION, WorkspaceAccess,
+    WorkspaceBinding, evidence_operation_name, failure,
 };
 use scopehub_domain::protocol::{Error, ErrorCode};
 use scopehub_persistence::SqliteWorkspace;
@@ -22,7 +22,7 @@ const MAX_BACKUP_REQUEST_BYTES: u64 = 1024 * 1024;
 
 fn request_limit(operation: Option<&str>) -> u64 {
     match operation {
-        Some(DECISION_NOTE_PREVIEW_RESTORE) => MAX_BACKUP_REQUEST_BYTES,
+        Some(DECISION_NOTE_PREVIEW_RESTORE | PRIVATE_RECORD_CHANGE) => MAX_BACKUP_REQUEST_BYTES,
         Some(operation) if DECISION_NOTE_OPERATIONS.contains(&operation) => MAX_NOTE_REQUEST_BYTES,
         _ => MAX_REQUEST_BYTES,
     }

@@ -2633,3 +2633,90 @@ async fn copied_workspace_bytes_cannot_enable_a_grant_or_cross_native_profiles()
     assert_eq!(std::fs::read(&copy).unwrap(), before);
     foreign.shutdown().await;
 }
+
+#[tokio::test]
+async fn native_private_record_uses_the_bound_writer_and_survives_restart() {
+    const READ: &str = "privateRecord.read";
+    const CHANGE: &str = "privateRecord.change";
+    const SYNTHETIC: &str = "synthetic native private strategy";
+    let profile = AppLocalData::new();
+    let id = uuid(971);
+    let command = |operation, scope, args| {
+        json!({
+            "protocol_version": "1.1", "type": "request", "timestamp_ms": 123,
+            "message_id": uuid(972), "request_id": uuid(973),
+            "scope": scope, "intent": {"operation": operation, "arguments": args},
+        })
+    };
+    let read = command(
+        READ,
+        json!({"workspace_id": "main"}),
+        json!({"record_id": id}),
+    );
+    assert_eq!(
+        state()
+            .execute("main", Some(READ), read.clone(), None)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::PERMISSIONDENIED,
+    );
+    let desktop = state_with_development_workspace(Some(&profile.0));
+    assert_eq!(
+        desktop
+            .execute("foreign-window", Some(READ), read.clone(), None)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::PERMISSIONDENIED,
+    );
+    let scope = json!({
+        "workspace_id":"main", "expected_workspace_revision":0, "idempotency_key":uuid(974),
+    });
+    let draft = command(
+        CHANGE,
+        scope.clone(),
+        json!({
+            "action": "save", "record_id": id, "expected_record_revision": null,
+            "content": {"kind":"strategy", "title":"Synthetic plan", "text":SYNTHETIC},
+        }),
+    );
+    let preview = desktop
+        .execute("main", Some(CHANGE), draft, None)
+        .await
+        .unwrap();
+    assert_eq!(preview["outcome"]["state"], "confirmation_required");
+    let approval = command(
+        CHANGE,
+        scope,
+        json!({
+            "action":"resolve", "challenge_id":preview["outcome"]["challenge_id"], "decision":"approve",
+        }),
+    );
+    let saved = desktop
+        .execute("main", Some(CHANGE), approval.clone(), None)
+        .await
+        .unwrap();
+    assert_eq!(saved["outcome"]["state"], "committed");
+    assert!(!saved.to_string().contains(SYNTHETIC));
+    assert!(desktop.reads.lock().await.status().process_id.is_none());
+    desktop.shutdown().await;
+
+    let reopened = state_with_development_workspace(Some(&profile.0));
+    let inspected = reopened
+        .execute("main", Some(READ), read, None)
+        .await
+        .unwrap();
+    assert_eq!(
+        inspected["outcome"]["result"]["record"]["content"]["text"],
+        SYNTHETIC
+    );
+    let replay = reopened
+        .execute("main", Some(CHANGE), approval, None)
+        .await
+        .unwrap();
+    assert_eq!(replay["outcome"], saved["outcome"]);
+    assert_eq!(snapshot(&reopened).await["workspace"]["revision"], 1);
+    assert!(reopened.reads.lock().await.status().process_id.is_none());
+    reopened.shutdown().await;
+}

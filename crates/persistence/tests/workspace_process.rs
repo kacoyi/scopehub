@@ -2,6 +2,8 @@
 mod decision_note_restore;
 #[path = "support/operations_workflow.rs"]
 mod operations_workflow;
+#[path = "support/private_record_workflow.rs"]
+mod private_record_workflow;
 mod support;
 
 use std::{
@@ -486,6 +488,10 @@ impl WorkspaceStore for InterruptingStore {
 
     fn clean_deleted_note(&mut self) -> Result<(), Error> {
         self.store.clean_deleted_note()
+    }
+
+    fn clean_private_record_pages(&mut self) -> Result<(), Error> {
+        self.store.clean_private_record_pages()
     }
 
     fn decision_note_backup(&self) -> Result<DecisionNoteBackupData, Error> {

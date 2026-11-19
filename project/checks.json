@@ -259,11 +259,18 @@
     },
     {
       "id": "state-migrations",
-      "status": "planned",
-      "purpose": "Validate versioned migration, backup/restore and interruption recovery Exercise isolated local user profiles, private records and derived indexes, deletion and restoration without replaying a past disclosure grant.",
+      "status": "implemented",
+      "purpose": "Run the full SQLite persistence suite against populated v1 through v7 predecessors, transaction interruption and recovery, preserved workspace, note and frozen folder lineage, isolated profiles, logical backups, deletion and WAL cleanup, and rejection of archive-supplied approval or outbound authority. Real model and Windows UI acceptance have separate checks.",
       "platforms": "all",
-      "command": null,
-      "timeout_seconds": 900
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-persistence"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
     },
     {
       "id": "ai-replay-evaluations",
@@ -559,9 +566,27 @@
       "cadence": "task"
     },
     {
+      "id": "private-record-lifecycle",
+      "status": "implemented",
+      "purpose": "Verify profile-local private records, body-free replay, revision and authorization gates, backup recovery, tombstone union and migration rollback.",
+      "platforms": "all",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-application",
+        "-p",
+        "scopehub-persistence",
+        "private_record"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
       "id": "workspace-timeframe",
       "status": "implemented",
-      "purpose": "Exercise the real opted-in local writer through browser and process restart, timeframe undo, terminal cleanup, decision-note confirmation, deletion, backup and restore, and chart evidence selection and narrow projection of actual frozen profile data.",
+      "purpose": "Exercise the real opted-in local writer through browser and process restart, timeframe undo, terminal cleanup, decision-note confirmation, deletion, backup and restore, private-record lifecycle and stale approval, and chart evidence selection and narrow projection of actual frozen profile data.",
       "platforms": "all",
       "command": [
         "pnpm",
@@ -823,7 +848,10 @@
       "rust-contracts-workers",
       "rust-lints",
       "operations-workflow",
+      "state-migrations",
       "decision-note-lifecycle",
+      "private-record-lifecycle",
+      "local-folder-manifest-storage",
       "workspace-timeframe",
       "desktop-workspace-transport"
     ],
