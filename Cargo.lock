@@ -2850,6 +2850,7 @@ dependencies = [
  "scopehub-domain",
  "serde_json",
  "sha2",
+ "url",
  "uuid",
 ]
 
@@ -2868,6 +2869,7 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tokio",
+ "uuid",
 ]
 
 [[package]]

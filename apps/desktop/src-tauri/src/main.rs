@@ -53,6 +53,16 @@ fn main() {
                     }
                 "#);
             }
+            if cfg!(debug_assertions) && local_data.is_some() {
+                window = window.initialization_script(r#"
+                    if (window.top === window && [
+                        'http://127.0.0.1:1420', 'tauri://localhost',
+                        'http://tauri.localhost', 'https://tauri.localhost',
+                    ].includes(window.location.origin)) {
+                        Object.defineProperty(window, '__SCOPEHUB_DESKTOP_TEXT_MODEL__', { value: true });
+                    }
+                "#);
+            }
             window.build()?;
             Ok(())
         })

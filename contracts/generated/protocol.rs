@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=9f48bd3a32aadff27fdedaa54a1e79e33d1c13a05d8042e8944d4b728d5cc688. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=dede32ffd96bd8fa2ca6997ac75ce43587fed23996789f5e81500da2e2c842ed. Do not edit.
 // Structural types and literal discriminators: validate schema refinements before deserializing.
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -211,6 +211,8 @@ pub enum OperationName {
     WorkspacePreviewLayout,
     #[serde(rename = "workspace.applyLayout")]
     WorkspaceApplyLayout,
+    #[serde(rename = "ai.textConnection")]
+    AiTextConnection,
 }
 impl OperationName {
     pub fn as_str(&self) -> &'static str {
@@ -260,6 +262,7 @@ impl OperationName {
             Self::PrivateRecordExportBackup => "privateRecord.exportBackup",
             Self::WorkspacePreviewLayout => "workspace.previewLayout",
             Self::WorkspaceApplyLayout => "workspace.applyLayout",
+            Self::AiTextConnection => "ai.textConnection",
         }
     }
 }
@@ -5060,6 +5063,233 @@ pub struct WorkspaceApplyLayoutReply11 {
     pub r#type: WorkspaceApplyLayoutReply11Type,
     pub request_id: Uuid,
     pub outcome: WorkspaceApplyLayoutOutcome11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextOllamaChoice {
+    pub kind: AiTextOllamaChoiceKind,
+    pub origin: String,
+    pub model: String,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextOfflineMockChoice {
+    pub kind: AiTextOfflineMockChoiceKind,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum AiTextRouteChoice {
+    AiTextOllamaChoice(Box<AiTextOllamaChoice>),
+    AiTextOfflineMockChoice(Box<AiTextOfflineMockChoice>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextOllamaRoute {
+    pub kind: AiTextOllamaRouteKind,
+    pub destination: String,
+    pub model: String,
+    pub scope: AiTextOllamaRouteScope,
+    pub charge_basis: AiTextOllamaRouteChargeBasis,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextOfflineMockRoute {
+    pub kind: AiTextOfflineMockRouteKind,
+    pub destination: AiTextOfflineMockRouteDestination,
+    pub model: AiTextOfflineMockRouteModel,
+    pub scope: AiTextOfflineMockRouteScope,
+    pub charge_basis: AiTextOfflineMockRouteChargeBasis,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum AiTextRoute {
+    AiTextOllamaRoute(Box<AiTextOllamaRoute>),
+    AiTextOfflineMockRoute(Box<AiTextOfflineMockRoute>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextGrant {
+    pub connection_id: Uuid,
+    pub route: AiTextRoute,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextRunningTurn {
+    pub state: AiTextRunningTurnState,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextCompletedTurn {
+    pub state: AiTextCompletedTurnState,
+    pub model: String,
+    pub text: String,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextFailedTurn {
+    pub state: AiTextFailedTurnState,
+    pub error: WorkspaceFault11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum AiTextTurn {
+    AiTextRunningTurn(Box<AiTextRunningTurn>),
+    AiTextCompletedTurn(Box<AiTextCompletedTurn>),
+    AiTextFailedTurn(Box<AiTextFailedTurn>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextStatusInput {
+    pub action: AiTextStatusInputAction,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextProposeInput {
+    pub action: AiTextProposeInputAction,
+    pub route: AiTextRouteChoice,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextActivateInput {
+    pub action: AiTextActivateInputAction,
+    pub proposal_id: Uuid,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextDisconnectInput {
+    pub action: AiTextDisconnectInputAction,
+    pub connection_id: Uuid,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextSendInput {
+    pub action: AiTextSendInputAction,
+    pub connection_id: Uuid,
+    pub question: String,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextPollInput {
+    pub action: AiTextPollInputAction,
+    pub connection_id: Uuid,
+    pub turn_id: Uuid,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextCancelInput {
+    pub action: AiTextCancelInputAction,
+    pub connection_id: Uuid,
+    pub turn_id: Uuid,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum AiTextConnectionInput {
+    AiTextStatusInput(Box<AiTextStatusInput>),
+    AiTextProposeInput(Box<AiTextProposeInput>),
+    AiTextActivateInput(Box<AiTextActivateInput>),
+    AiTextDisconnectInput(Box<AiTextDisconnectInput>),
+    AiTextSendInput(Box<AiTextSendInput>),
+    AiTextPollInput(Box<AiTextPollInput>),
+    AiTextCancelInput(Box<AiTextCancelInput>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextStatusOutput {
+    pub action: AiTextStatusOutputAction,
+    pub connection: Option<AiTextGrant>,
+    pub turn_id: Option<Uuid>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextProposeOutput {
+    pub action: AiTextProposeOutputAction,
+    pub proposal_id: Uuid,
+    pub route: AiTextRoute,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextActivateOutput {
+    pub action: AiTextActivateOutputAction,
+    pub connection: AiTextGrant,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextDisconnectOutput {
+    pub action: AiTextDisconnectOutputAction,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextSendOutput {
+    pub action: AiTextSendOutputAction,
+    pub turn_id: Uuid,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextPollOutput {
+    pub action: AiTextPollOutputAction,
+    pub turn_id: Uuid,
+    pub turn: AiTextTurn,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextCancelOutput {
+    pub action: AiTextCancelOutputAction,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum AiTextConnectionOutput {
+    AiTextStatusOutput(Box<AiTextStatusOutput>),
+    AiTextProposeOutput(Box<AiTextProposeOutput>),
+    AiTextActivateOutput(Box<AiTextActivateOutput>),
+    AiTextDisconnectOutput(Box<AiTextDisconnectOutput>),
+    AiTextSendOutput(Box<AiTextSendOutput>),
+    AiTextPollOutput(Box<AiTextPollOutput>),
+    AiTextCancelOutput(Box<AiTextCancelOutput>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextConnectionCommand11 {
+    pub protocol_version: ProtocolVersion11,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: AiTextConnectionCommand11Type,
+    pub request_id: Uuid,
+    pub scope: AiTextConnectionScope11,
+    pub intent: AiTextConnectionIntent11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextConnectionReply11 {
+    pub protocol_version: ProtocolVersion11,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: AiTextConnectionReply11Type,
+    pub request_id: Uuid,
+    pub outcome: AiTextConnectionOutcome11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextConnectionScope11 {
+    pub workspace_id: OpaqueId,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextConnectionIntent11 {
+    pub operation: AiTextConnectionIntent11Operation,
+    pub arguments: AiTextConnectionInput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextConnectionCompleted11 {
+    pub state: AiTextConnectionCompleted11State,
+    pub operation: AiTextConnectionCompleted11Operation,
+    pub result: AiTextConnectionOutput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum AiTextConnectionOutcome11 {
+    AiTextConnectionCompleted11(Box<AiTextConnectionCompleted11>),
+    ScopedFailure11(Box<ScopedFailure11>),
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum FieldExpressionOp {
@@ -10803,6 +11033,390 @@ impl WorkspaceApplyLayoutReply11Type {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextOllamaChoiceKind {
+    #[serde(rename = "ollama")]
+    Value,
+}
+impl AiTextOllamaChoiceKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "ollama",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextOfflineMockChoiceKind {
+    #[serde(rename = "offline_mock")]
+    Value,
+}
+impl AiTextOfflineMockChoiceKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "offline_mock",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextOllamaRouteKind {
+    #[serde(rename = "ollama")]
+    Value,
+}
+impl AiTextOllamaRouteKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "ollama",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextOllamaRouteScope {
+    #[serde(rename = "conversation_text")]
+    Value,
+}
+impl AiTextOllamaRouteScope {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "conversation_text",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextOllamaRouteChargeBasis {
+    #[serde(rename = "endpoint_operator")]
+    Value,
+}
+impl AiTextOllamaRouteChargeBasis {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "endpoint_operator",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextOfflineMockRouteKind {
+    #[serde(rename = "offline_mock")]
+    Value,
+}
+impl AiTextOfflineMockRouteKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "offline_mock",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextOfflineMockRouteDestination {
+    #[serde(rename = "This app (offline)")]
+    Value,
+}
+impl AiTextOfflineMockRouteDestination {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "This app (offline)",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextOfflineMockRouteModel {
+    #[serde(rename = "ScopeHub offline mock")]
+    Value,
+}
+impl AiTextOfflineMockRouteModel {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "ScopeHub offline mock",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextOfflineMockRouteScope {
+    #[serde(rename = "conversation_text")]
+    Value,
+}
+impl AiTextOfflineMockRouteScope {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "conversation_text",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextOfflineMockRouteChargeBasis {
+    #[serde(rename = "none")]
+    Value,
+}
+impl AiTextOfflineMockRouteChargeBasis {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "none",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextRunningTurnState {
+    #[serde(rename = "running")]
+    Value,
+}
+impl AiTextRunningTurnState {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "running",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextCompletedTurnState {
+    #[serde(rename = "completed")]
+    Value,
+}
+impl AiTextCompletedTurnState {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "completed",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextFailedTurnState {
+    #[serde(rename = "failed")]
+    Value,
+}
+impl AiTextFailedTurnState {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "failed",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextStatusInputAction {
+    #[serde(rename = "status")]
+    Value,
+}
+impl AiTextStatusInputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "status",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextProposeInputAction {
+    #[serde(rename = "propose")]
+    Value,
+}
+impl AiTextProposeInputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "propose",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextActivateInputAction {
+    #[serde(rename = "activate")]
+    Value,
+}
+impl AiTextActivateInputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "activate",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextDisconnectInputAction {
+    #[serde(rename = "disconnect")]
+    Value,
+}
+impl AiTextDisconnectInputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "disconnect",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextSendInputAction {
+    #[serde(rename = "send")]
+    Value,
+}
+impl AiTextSendInputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "send",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextPollInputAction {
+    #[serde(rename = "poll")]
+    Value,
+}
+impl AiTextPollInputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "poll",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextCancelInputAction {
+    #[serde(rename = "cancel")]
+    Value,
+}
+impl AiTextCancelInputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "cancel",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextStatusOutputAction {
+    #[serde(rename = "status")]
+    Value,
+}
+impl AiTextStatusOutputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "status",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextProposeOutputAction {
+    #[serde(rename = "propose")]
+    Value,
+}
+impl AiTextProposeOutputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "propose",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextActivateOutputAction {
+    #[serde(rename = "activate")]
+    Value,
+}
+impl AiTextActivateOutputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "activate",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextDisconnectOutputAction {
+    #[serde(rename = "disconnect")]
+    Value,
+}
+impl AiTextDisconnectOutputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "disconnect",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextSendOutputAction {
+    #[serde(rename = "send")]
+    Value,
+}
+impl AiTextSendOutputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "send",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextPollOutputAction {
+    #[serde(rename = "poll")]
+    Value,
+}
+impl AiTextPollOutputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "poll",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextCancelOutputAction {
+    #[serde(rename = "cancel")]
+    Value,
+}
+impl AiTextCancelOutputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "cancel",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextConnectionCommand11Type {
+    #[serde(rename = "request")]
+    Value,
+}
+impl AiTextConnectionCommand11Type {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextConnectionReply11Type {
+    #[serde(rename = "response")]
+    Value,
+}
+impl AiTextConnectionReply11Type {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextConnectionIntent11Operation {
+    #[serde(rename = "ai.textConnection")]
+    Value,
+}
+impl AiTextConnectionIntent11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "ai.textConnection",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextConnectionCompleted11State {
+    #[serde(rename = "completed")]
+    Value,
+}
+impl AiTextConnectionCompleted11State {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "completed",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextConnectionCompleted11Operation {
+    #[serde(rename = "ai.textConnection")]
+    Value,
+}
+impl AiTextConnectionCompleted11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "ai.textConnection",
         }
     }
 }

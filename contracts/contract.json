@@ -900,6 +900,27 @@
           "output": "PrivateRecordExportReply11"
         }
       }
+    },
+    {
+      "name": "ai.textConnection",
+      "effect": "control",
+      "confirmation": true,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input": "AiTextConnectionInput",
+      "output": "AiTextConnectionOutput",
+      "implementation": "implemented",
+      "implementation_scope": "Profile-bound local human text settings and current-session turns. A one-use route disclosure precedes activation. Model text has no tool or mutation authority.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "AiTextConnectionCommand11",
+          "output": "AiTextConnectionReply11"
+        }
+      }
     }
   ],
   "implemented_wire_behaviors": [

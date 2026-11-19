@@ -657,6 +657,38 @@
       ],
       "timeout_seconds": 900,
       "cadence": "change"
+    },
+    {
+      "id": "model-connection-workflow",
+      "status": "implemented",
+      "purpose": "Exercise local human model settings, explicit offline mock and configured text turns through the Rust registry and the real Ollama adapter against an owned synthetic HTTP peer.",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/ai-workflow.config.mjs"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
+      "id": "model-connection-replay",
+      "status": "implemented",
+      "purpose": "Replay profile, actor, disclosure, context isolation, expiry, duplicate send and cancellation boundaries without using a provider or opening a storage transaction.",
+      "platforms": "all",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-application",
+        "text_connection::tests"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
     }
   ],
   "milestones": [

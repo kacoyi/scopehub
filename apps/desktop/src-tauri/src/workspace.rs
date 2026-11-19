@@ -7,18 +7,19 @@ use std::{
 };
 
 use scopehub_application::{
-    Actor, ApprovedPython, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE,
-    FolderManifestAnchor, FolderRefreshBase, FrozenLocalSourceRow, LIST_LOCAL_FOLDER_REVISIONS,
-    LIST_LOCAL_IMPORT_REVISIONS, LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS,
-    LocalDatasetPublication, MappingCommitGuard, OperationRegistry,
+    AI_TEXT_CONNECTION, Actor, ApprovedPython, DECISION_NOTE_OPERATIONS,
+    DECISION_NOTE_PREVIEW_RESTORE, FolderManifestAnchor, FolderRefreshBase, FrozenLocalSourceRow,
+    LIST_LOCAL_FOLDER_REVISIONS, LIST_LOCAL_IMPORT_REVISIONS, LOAD_LOCAL_IMPORT_MAPPING,
+    LOCAL_WORKSPACE_OPERATIONS, LocalDatasetPublication, MappingCommitGuard, OperationRegistry,
     PREPARE_LOCAL_FOLDER_PUBLICATION, PREVIEW_LOCAL_FOLDER_REFRESH, PRIVATE_RECORD_CHANGE,
     PUBLISH_LOCAL_FOLDER_REFRESH, PUBLISH_LOCAL_IMPORT, READ_LOCAL_FOLDER_REVISION,
     READ_LOCAL_FOLDER_SOURCE_ROW, READ_LOCAL_IMPORT_REVISION, READ_LOCAL_IMPORT_SOURCE_ROW,
     REVOKE_LOCAL_FOLDER_REVISION, REVOKE_LOCAL_IMPORT_REVISION, ReviewedImportMapping,
-    SAVE_LOCAL_IMPORT_MAPPING, WorkspaceAccess, WorkspaceBinding, evidence_operation_name, failure,
-    list_local_folder_revisions_input, list_local_import_revisions_input,
-    local_mapping_fingerprint, read_local_folder_revision_input, read_local_import_revision_input,
-    revoke_local_folder_revision_input, revoke_local_import_revision_input,
+    SAVE_LOCAL_IMPORT_MAPPING, TextModelWork, WorkspaceAccess, WorkspaceBinding,
+    evidence_operation_name, failure, list_local_folder_revisions_input,
+    list_local_import_revisions_input, local_mapping_fingerprint, read_local_folder_revision_input,
+    read_local_import_revision_input, revoke_local_folder_revision_input,
+    revoke_local_import_revision_input,
 };
 use scopehub_domain::protocol::{
     CsvMappingV1, Error, ErrorCode, ReadLocalFolderSourceRowInput, ReadLocalImportSourceRowInput,
@@ -246,6 +247,41 @@ impl WorkspaceBridge {
                 bound
                     .registry
                     .take_approved_python(&workspace_access(&bound.profile_id), task)?
+            } else {
+                None
+            };
+            Ok((reply, work))
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::INTERNALERROR))
+    }
+
+    pub(super) async fn dispatch_text_connection(
+        &self,
+        command: Value,
+    ) -> Result<(Value, Option<TextModelWork>), Error> {
+        if command["intent"]["operation"] != AI_TEXT_CONNECTION || command["type"] != "request" {
+            return Err(failure(ErrorCode::INVALIDARGUMENT));
+        }
+        if command.to_string().len() >= MAX_REQUEST_BYTES {
+            return Err(failure(ErrorCode::RESOURCELIMIT));
+        }
+        Self::with_bound(self.admit()?, true, move |bound| {
+            // Model connection can run in the ordinary workspace. Give this
+            // transport only the text operation, independently of dev access.
+            let access = WorkspaceAccess {
+                operations: &[AI_TEXT_CONNECTION],
+                disclose_workspace_state: false,
+                ..workspace_access(&bound.profile_id)
+            };
+            let reply = bound.registry.execute_workspace(&access, command)?;
+            let result = &reply["outcome"]["result"];
+            let work = if result["action"] == "send" {
+                let id = result["turn_id"]
+                    .as_str()
+                    .and_then(|id| uuid::Uuid::parse_str(id).ok())
+                    .ok_or_else(|| failure(ErrorCode::OUTPUTINVALID))?;
+                bound.registry.take_text_model_work(&access, id)?
             } else {
                 None
             };

@@ -36,6 +36,7 @@ const readPrivateRecords = 'privateRecord.read';
 const changePrivateRecords = 'privateRecord.change';
 const exportPrivateRecords = 'privateRecord.exportBackup';
 const privateRecordOperations = [readPrivateRecords, changePrivateRecords, exportPrivateRecords];
+const textConnection = 'ai.textConnection';
 const maxNoteRequestBytes = 32 * 1024;
 const maxResponseBytes = 256 * 1024;
 const maxBackupFrameBytes = 1024 * 1024;
@@ -141,6 +142,7 @@ function requestLimit(operation) {
 function responseLimit(operation) {
   if (operation === 'frozen_chart' || operation === previewStatus || operation === acceptedOutput) return 4 * 1024 * 1024 + maxRequestBytes;
   if (operation === readChartProjection) return maxResponseBytes;
+  if (operation === textConnection) return 512 * 1024;
   if (operation === exportBackup || operation === exportPrivateRecords) return maxBackupFrameBytes;
   return noteOperations.includes(operation) || privateRecordOperations.includes(operation) ? maxResponseBytes : maxRequestBytes;
 }
@@ -168,7 +170,8 @@ function requestFrame(command, workspaceId) {
   const evidence = evidenceOperations.includes(command?.operation);
   const control = [cancelIndicator, indicatorConfirmation].includes(command?.operation);
   const name = evidence || control ? command.operation : command?.intent?.operation;
-  if (!evidence && !control && !indicatorOperations.includes(name) && !mutations.includes(name) && !noteOperations.includes(name) && !privateRecordOperations.includes(name)) throw new PreviewFailure(403, 'PERMISSION_DENIED');
+  if (!evidence && !control && !indicatorOperations.includes(name) && !mutations.includes(name) && !noteOperations.includes(name)
+      && !privateRecordOperations.includes(name) && name !== textConnection) throw new PreviewFailure(403, 'PERMISSION_DENIED');
   if (!control && (evidence ? command.workspace_id : command?.scope?.workspace_id) !== workspaceId) throw new PreviewFailure(403, 'PERMISSION_DENIED');
   if (command.protocol_version !== '1.1' || command.type !== 'request'
       || !uuid(command.request_id) || !uuid(command.message_id)) {
@@ -292,13 +295,12 @@ function validPrivateRecordOutcome(outcome, job, workspaceId) {
     && receipt.committed_workspace_revision === job.workspaceRevision + 1;
 }
 
-function launchTrustedIndicator(root, wireRequest) {
-  const executable = process.platform === 'win32' ? 'scopehub-indicator-child.exe' : 'scopehub-indicator-child';
+function launchTrustedWorker(root, program, wireRequest, frameBytes, failureMessage) {
+  const executable = process.platform === 'win32' ? program + '.exe' : program;
   const child = spawn(resolve(root, 'target/debug', executable), ['--root', root], {
     cwd: root, stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true,
   });
-  const frameBytes = 4 * 1024 * 1024;
-  const workerFault = code => JSON.stringify({ error: { code, retryable: false, message: 'Trusted indicator execution failed.', details: {} } });
+  const workerFault = code => JSON.stringify({ error: { code, retryable: false, message: failureMessage, details: {} } });
   const finished = Promise.withResolvers();
   const chunks = [];
   let length = 0;
@@ -351,6 +353,7 @@ function startWriter(root, { path, profileId, workspaceId }) {
   let ready = false;
   let snapshotRequestId = 0;
   let pending;
+  let model;
   const python = new Map();
   const stoppingPython = new Set();
 
@@ -361,6 +364,15 @@ function startWriter(root, { path, profileId, workspaceId }) {
     stoppingPython.add(run.result);
     void run.result.then(() => stoppingPython.delete(run.result));
     python.delete(task);
+  }
+
+  function stopModel() {
+    if (!model) return;
+    const run = model.run;
+    model = undefined;
+    run.cancel();
+    stoppingPython.add(run.result);
+    void run.result.then(() => stoppingPython.delete(run.result));
   }
   let remainder = Buffer.alloc(0);
 
@@ -378,6 +390,7 @@ function startWriter(root, { path, profileId, workspaceId }) {
 
   function stop(reason) {
     fail(reason);
+    stopModel();
     for (const task of python.keys()) stopPython(task);
     if (killTimer || child.exitCode !== null || child.signalCode !== null) return;
     child.stdin.end();
@@ -445,6 +458,9 @@ function startWriter(root, { path, profileId, workspaceId }) {
         if (!validNoteOutcome(outcome, job, workspaceId)) throw invalidReply();
       } else if (privateRecordOperations.includes(job.operation)) {
         if (!validPrivateRecordOutcome(outcome, job, workspaceId)) throw invalidReply();
+      } else if (job.operation === textConnection) {
+        if (outcome?.state !== 'completed' || outcome.operation !== textConnection
+          || outcome.result?.action !== job.modelAction) throw invalidReply();
       } else if (job.operation === previewLayout) {
         if (outcome?.state !== 'previewed' || outcome.operation !== job.operation
             || !validNamedLayout(outcome.result?.layout)
@@ -475,9 +491,26 @@ function startWriter(root, { path, profileId, workspaceId }) {
         if (run.completed) python.delete(id);
         else stopPython(id);
       }
-      const run = launchTrustedIndicator(root, wireRequest);
+      const run = launchTrustedWorker(root, 'scopehub-indicator-child', wireRequest,
+        4 * 1024 * 1024, 'Trusted indicator execution failed.');
       python.set(task, run);
       void run.result.then(result => { run.completed = result; });
+    }
+    const modelRequest = frame.text_model_work;
+    delete frame.text_model_work;
+    if (job.operation === textConnection && frame.result?.outcome?.state === 'completed') {
+      if (['propose', 'disconnect', 'cancel'].includes(job.modelAction)) stopModel();
+      if (job.deliveredModel) model = undefined;
+    }
+    if (modelRequest !== undefined) {
+      const turn = frame.result?.outcome?.result?.turn_id;
+      if (job.operation !== textConnection || job.modelAction !== 'send' || turn !== job.requestId
+        || typeof modelRequest !== 'string' || model) throw invalidReply();
+      const run = launchTrustedWorker(root, 'scopehub-text-model-child', modelRequest,
+        512 * 1024, 'Trusted text model execution failed.');
+      const current = { turn, run, result: undefined };
+      model = current;
+      void run.result.then(result => { current.result = result; });
     }
     if (job.operation === cancelIndicator && frame.result?.outcome?.status === 'cancelled'
         || job.operation === previewStatus && frame.result?.status === 'terminal') {
@@ -556,6 +589,14 @@ function startWriter(root, { path, profileId, workspaceId }) {
           : '{"error":{"code":"RESOURCE_LIMIT","retryable":false,"message":"Trusted indicator output exceeded its limit.","details":{}}}';
         line = header.slice(0, -1) + ',"worker":' + worker + '}\n';
       }
+      const textArgs = body.type === 'request' && body.intent?.operation === textConnection
+        ? body.intent.arguments : undefined;
+      const finishedModel = textArgs?.action === 'poll' && model?.turn === textArgs.turn_id && model.result;
+      if (finishedModel) {
+        line = JSON.stringify({
+          type: 'ai_text_result', command: body, worker: JSON.parse(finishedModel),
+        }) + '\n';
+      }
       const reply = Promise.withResolvers();
       const noteId = body?.scope?.target?.object_id ?? body?.intent?.arguments?.note_id;
       const operation = snapshot || body.type === sourceMutation || frozenChartControls.includes(body.type) || indicatorReads.includes(body.type)
@@ -568,6 +609,7 @@ function startWriter(root, { path, profileId, workspaceId }) {
         recordId: typeof body.intent?.arguments?.record_id === 'string'
           ? body.intent.arguments.record_id.toLowerCase() : body.intent?.arguments?.record_id,
         recordAction: body.intent?.arguments?.action, workspaceRevision: body.scope?.expected_workspace_revision,
+        modelAction: textArgs?.action, deliveredModel: Boolean(finishedModel),
         layoutTarget: body.scope?.target?.kind === 'layout' && body.scope.target.object_id === layoutId,
         noteId: typeof noteId === 'string' ? noteId.toLowerCase() : noteId,
         timer: setTimeout(() => stop(timeout()), commandDeadlineMs),

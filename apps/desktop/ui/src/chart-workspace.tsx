@@ -69,7 +69,7 @@ export type RestoredChartSource = {
   label?: string;
 };
 
-export function ChartWorkspace({ sample, leaveSample, localActions, workspace, openPublished, restoredSource, restoredSampleInstrument, chooseSampleInstrument, onOpenSample, retryRestoredSource, revisionAccess }: {
+export function ChartWorkspace({ sample, leaveSample, localActions, workspace, openPublished, restoredSource, restoredSampleInstrument, chooseSampleInstrument, onOpenSample, retryRestoredSource, revisionAccess, modelDialogOpen, openModelChat, openModelSettings }: {
   sample: boolean; leaveSample: () => void; localActions: LocalSourceActions | undefined;
   workspace: LocalWorkspace | undefined;
   revisionAccess: PublishedRevisionAccess;
@@ -79,6 +79,9 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   onOpenSample?: (() => void) | undefined;
   retryRestoredSource?: (() => void) | undefined;
   chooseSampleInstrument?: ((id: string) => Promise<void>) | undefined;
+  modelDialogOpen: boolean;
+  openModelChat: () => void;
+  openModelSettings: () => void;
 }) {
   const [saved] = useState(() => sample ? readSampleView() : undefined);
   const [chosenId, setChosenId] = useState(restoredSampleInstrument ?? saved?.symbol ?? '');
@@ -251,7 +254,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   }, []);
   useEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.isComposing || searchQuery !== null || notesOpen || recordsOpen || layout.editing) return;
+      if (event.defaultPrevented || event.isComposing || searchQuery !== null || notesOpen || recordsOpen || layout.editing || modelDialogOpen) return;
       if (event.key === 'Escape') {
         if (visiblePanel === 'sources') closePanel();
         else if (focusChart) setFocusChart(false);
@@ -267,7 +270,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
     };
     window.addEventListener('keydown', keyboard);
     return () => window.removeEventListener('keydown', keyboard);
-  }, [searchQuery, notesOpen, recordsOpen, layout.editing, focusChart, visiblePanel, closePanel]);
+  }, [searchQuery, notesOpen, recordsOpen, layout.editing, focusChart, visiblePanel, closePanel, modelDialogOpen]);
   const openSample = onOpenSample ?? (() => { window.location.hash = 'demo'; });
 
   let plot: ReactNode;
@@ -314,6 +317,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
     localActions: sample || restoredSource ? localActions : undefined,
     openPublished: (sample || restoredSource) && !localActions ? openPublished : undefined,
     openSample: !sample && restoredSource ? openSample : undefined,
+    openModelSettings,
   };
   const savedLayouts = workspace?.snapshot?.layouts;
   const pinned = definition?.pinned_instrument;
@@ -340,6 +344,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
         aria-haspopup="dialog" disabled={workspaceBlocked} onClick={() => setNotesOpen(true)}>Decision notes</button>
         <button type="button" className="period notes-trigger" aria-haspopup="dialog"
           disabled={workspaceBlocked} onClick={() => setRecordsOpen(true)}>Private records</button></div>}
+      <button type="button" className="period notes-trigger" aria-haspopup="dialog" onClick={openModelChat}>Ask AI</button>
       <span className={'connection' + (sample ? ' sample' : '')} role="status"><i aria-hidden="true" />{sample
         ? <><span>Offline sample</span><b>Simulated</b></> : restoredSource ? frozen ? restoredSource.label ?? 'Published CSV'
           : restoredSource.status === 'revoked' ? 'Access revoked' : restoredSource.status === 'loading' ? 'Restoring CSV' : 'Source unavailable'

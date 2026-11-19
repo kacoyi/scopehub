@@ -45,22 +45,23 @@ pub use reviewed_mapping::{
     reviewed_preview_header, save_mapping_input,
 };
 pub use workspace::{
-    ACCEPT_INDICATOR_VERSION, APPLY_LAYOUT, ApprovedPython, CANCEL_INDICATOR_TASK,
-    CREATE_INDICATOR_DRAFT, ChartEvidenceRef, ChartEvidenceStatus, DECISION_NOTE_APPEND_OUTCOME,
-    DECISION_NOTE_BACKUP_MAX_BYTES, DECISION_NOTE_BACKUP_MAX_DELETIONS,
-    DECISION_NOTE_BACKUP_MAX_NOTES, DECISION_NOTE_BACKUP_MAX_OUTCOMES, DECISION_NOTE_DELETE,
-    DECISION_NOTE_EXPORT_BACKUP, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE,
-    DECISION_NOTE_READ, DECISION_NOTE_RESTORE_BACKUP, DECISION_NOTE_SAVE, DecisionNoteBackupData,
-    DecisionNoteChange, DecisionNoteMutation, DecisionNoteOutcomeAddition, DecisionNoteReceipt,
-    DecisionNoteReplay, DecisionNoteRestorePlan, FrozenWorkspaceSourceStatus,
-    INDICATOR_CONFIRMATION, IndicatorLayerRef, IndicatorLayerUndo, IndicatorVersionRecord,
-    LAYOUT_ID, LOCAL_WORKSPACE_OPERATIONS, LocalChartAnalysisGrant, MAIN_CHART_ID,
+    ACCEPT_INDICATOR_VERSION, AI_TEXT_CONNECTION, APPLY_LAYOUT, ApprovedPython,
+    CANCEL_INDICATOR_TASK, CREATE_INDICATOR_DRAFT, ChartEvidenceRef, ChartEvidenceStatus,
+    DECISION_NOTE_APPEND_OUTCOME, DECISION_NOTE_BACKUP_MAX_BYTES,
+    DECISION_NOTE_BACKUP_MAX_DELETIONS, DECISION_NOTE_BACKUP_MAX_NOTES,
+    DECISION_NOTE_BACKUP_MAX_OUTCOMES, DECISION_NOTE_DELETE, DECISION_NOTE_EXPORT_BACKUP,
+    DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, DECISION_NOTE_READ,
+    DECISION_NOTE_RESTORE_BACKUP, DECISION_NOTE_SAVE, DecisionNoteBackupData, DecisionNoteChange,
+    DecisionNoteMutation, DecisionNoteOutcomeAddition, DecisionNoteReceipt, DecisionNoteReplay,
+    DecisionNoteRestorePlan, FrozenWorkspaceSourceStatus, INDICATOR_CONFIRMATION,
+    IndicatorLayerRef, IndicatorLayerUndo, IndicatorVersionRecord, LAYOUT_ID,
+    LOCAL_WORKSPACE_OPERATIONS, LocalChartAnalysisGrant, MAIN_CHART_ID,
     MAX_ACTIVE_INDICATOR_LAYERS, PREVIEW_LAYOUT, PRIVATE_RECORD_CHANGE, PRIVATE_RECORD_EXPORT,
     PRIVATE_RECORD_OPERATIONS, PRIVATE_RECORD_READ, PrivateRecordPlan, READ_CHART_PROJECTION,
     READ_INDICATOR_SAMPLE_HISTORY, REMOVE_INDICATOR_LAYER, RUN_INDICATOR_PREVIEW, SELECT_EVIDENCE,
-    SET_TIMEFRAME, StoredWorkspaceView, Timeframe, UNDO, WorkspaceAccess, WorkspaceBinding,
-    WorkspaceChange, WorkspaceLayoutChange, WorkspaceLayoutSnapshot, WorkspaceLayoutState,
-    WorkspaceReceipt, WorkspaceReplay, WorkspaceReplayKey, WorkspaceSnapshot,
+    SET_TIMEFRAME, StoredWorkspaceView, TextModelWork, Timeframe, UNDO, WorkspaceAccess,
+    WorkspaceBinding, WorkspaceChange, WorkspaceLayoutChange, WorkspaceLayoutSnapshot,
+    WorkspaceLayoutState, WorkspaceReceipt, WorkspaceReplay, WorkspaceReplayKey, WorkspaceSnapshot,
     WorkspaceSourcePreference, WorkspaceSourceView, WorkspaceState, WorkspaceStore,
     WorkspaceTransaction, WorkspaceUndoAccess, WorkspaceUndoTarget, evidence_operation_name,
     is_sample_indicator_preview,
@@ -287,6 +288,7 @@ pub struct OperationRegistry<P> {
     note_restore: workspace::DecisionNoteRestoreStaging,
     private_record_stage: workspace::PrivateRecordStaging,
     indicator_stage: workspace::IndicatorStage,
+    text_connection: workspace::TextConnection,
 }
 
 pub type MarketRegistry<P> = OperationRegistry<P>;
@@ -325,6 +327,7 @@ impl<P> OperationRegistry<P> {
             note_restore: workspace::DecisionNoteRestoreStaging::default(),
             private_record_stage: workspace::PrivateRecordStaging::default(),
             indicator_stage: workspace::IndicatorStage::default(),
+            text_connection: workspace::TextConnection::default(),
         }
     }
 }

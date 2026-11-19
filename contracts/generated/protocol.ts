@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=9f48bd3a32aadff27fdedaa54a1e79e33d1c13a05d8042e8944d4b728d5cc688. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=dede32ffd96bd8fa2ca6997ac75ce43587fed23996789f5e81500da2e2c842ed. Do not edit.
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type OpaqueId = string;
 export type Uuid = string;
@@ -8,7 +8,7 @@ export type Metadata = Record<string, JsonValue>;
 export type WorkerRole = "market" | "ai" | "indicator";
 export type ProtocolVersion = "1.0";
 export type ErrorCode = "INVALID_ARGUMENT" | "UNSUPPORTED_CAPABILITY" | "PERMISSION_DENIED" | "CONFIRMATION_REQUIRED" | "CANCELLED" | "TIMEOUT" | "WORKER_EXITED" | "PROTOCOL_MISMATCH" | "DATA_UNAVAILABLE" | "STALE_CONTEXT" | "RESOURCE_LIMIT" | "OUTPUT_INVALID" | "PROVIDER_NOT_CONFIGURED" | "INTERNAL_ERROR" | "BUSY" | "SNAPSHOT_UNAVAILABLE";
-export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "market.previewLocalImport" | "market.saveLocalImportMapping" | "market.loadLocalImportMapping" | "market.listLocalImportRevisions" | "market.readLocalImportRevision" | "market.readLocalImportSourceRow" | "market.previewLocalFolderRefresh" | "market.prepareLocalFolderPublication" | "market.publishLocalFolderRefresh" | "market.listLocalFolderRevisions" | "market.readLocalFolderRevision" | "market.readLocalFolderSourceRow" | "market.revokeLocalFolderRevision" | "market.revokeLocalImportRevision" | "market.publishLocalImport" | "workspace.readChartProjection" | "workspace.selectEvidence" | "decisionNote.save" | "decisionNote.read" | "decisionNote.appendOutcome" | "decisionNote.delete" | "decisionNote.exportBackup" | "decisionNote.previewRestore" | "decisionNote.restoreBackup" | "privateRecord.read" | "privateRecord.change" | "privateRecord.exportBackup" | "workspace.previewLayout" | "workspace.applyLayout";
+export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "market.previewLocalImport" | "market.saveLocalImportMapping" | "market.loadLocalImportMapping" | "market.listLocalImportRevisions" | "market.readLocalImportRevision" | "market.readLocalImportSourceRow" | "market.previewLocalFolderRefresh" | "market.prepareLocalFolderPublication" | "market.publishLocalFolderRefresh" | "market.listLocalFolderRevisions" | "market.readLocalFolderRevision" | "market.readLocalFolderSourceRow" | "market.revokeLocalFolderRevision" | "market.revokeLocalImportRevision" | "market.publishLocalImport" | "workspace.readChartProjection" | "workspace.selectEvidence" | "decisionNote.save" | "decisionNote.read" | "decisionNote.appendOutcome" | "decisionNote.delete" | "decisionNote.exportBackup" | "decisionNote.previewRestore" | "decisionNote.restoreBackup" | "privateRecord.read" | "privateRecord.change" | "privateRecord.exportBackup" | "workspace.previewLayout" | "workspace.applyLayout" | "ai.textConnection";
 export type ChartStyle = "candlestick" | "line";
 export type TaskStatus = "queued" | "running" | "awaiting_confirmation" | "completed" | "failed" | "cancelled";
 export type Tradability = "non_tradable" | "unknown";
@@ -3079,3 +3079,135 @@ export type WorkspaceApplyLayoutReply11 = {
   request_id: Uuid;
   outcome: WorkspaceApplyLayoutOutcome11;
 };
+export type AiTextOllamaChoice = {
+  kind: "ollama";
+  origin: string;
+  model: string;
+};
+export type AiTextOfflineMockChoice = {
+  kind: "offline_mock";
+};
+export type AiTextRouteChoice = AiTextOllamaChoice | AiTextOfflineMockChoice;
+export type AiTextOllamaRoute = {
+  kind: "ollama";
+  destination: string;
+  model: string;
+  scope: "conversation_text";
+  charge_basis: "endpoint_operator";
+};
+export type AiTextOfflineMockRoute = {
+  kind: "offline_mock";
+  destination: "This app (offline)";
+  model: "ScopeHub offline mock";
+  scope: "conversation_text";
+  charge_basis: "none";
+};
+export type AiTextRoute = AiTextOllamaRoute | AiTextOfflineMockRoute;
+export type AiTextGrant = {
+  connection_id: Uuid;
+  route: AiTextRoute;
+};
+export type AiTextRunningTurn = {
+  state: "running";
+};
+export type AiTextCompletedTurn = {
+  state: "completed";
+  model: string;
+  text: string;
+};
+export type AiTextFailedTurn = {
+  state: "failed";
+  error: WorkspaceFault11;
+};
+export type AiTextTurn = AiTextRunningTurn | AiTextCompletedTurn | AiTextFailedTurn;
+export type AiTextStatusInput = {
+  action: "status";
+};
+export type AiTextProposeInput = {
+  action: "propose";
+  route: AiTextRouteChoice;
+};
+export type AiTextActivateInput = {
+  action: "activate";
+  proposal_id: Uuid;
+};
+export type AiTextDisconnectInput = {
+  action: "disconnect";
+  connection_id: Uuid;
+};
+export type AiTextSendInput = {
+  action: "send";
+  connection_id: Uuid;
+  question: string;
+};
+export type AiTextPollInput = {
+  action: "poll";
+  connection_id: Uuid;
+  turn_id: Uuid;
+};
+export type AiTextCancelInput = {
+  action: "cancel";
+  connection_id: Uuid;
+  turn_id: Uuid;
+};
+export type AiTextConnectionInput = AiTextStatusInput | AiTextProposeInput | AiTextActivateInput | AiTextDisconnectInput | AiTextSendInput | AiTextPollInput | AiTextCancelInput;
+export type AiTextStatusOutput = {
+  action: "status";
+  connection: (AiTextGrant | null);
+  turn_id: (Uuid | null);
+};
+export type AiTextProposeOutput = {
+  action: "propose";
+  proposal_id: Uuid;
+  route: AiTextRoute;
+};
+export type AiTextActivateOutput = {
+  action: "activate";
+  connection: AiTextGrant;
+};
+export type AiTextDisconnectOutput = {
+  action: "disconnect";
+};
+export type AiTextSendOutput = {
+  action: "send";
+  turn_id: Uuid;
+};
+export type AiTextPollOutput = {
+  action: "poll";
+  turn_id: Uuid;
+  turn: AiTextTurn;
+};
+export type AiTextCancelOutput = {
+  action: "cancel";
+};
+export type AiTextConnectionOutput = AiTextStatusOutput | AiTextProposeOutput | AiTextActivateOutput | AiTextDisconnectOutput | AiTextSendOutput | AiTextPollOutput | AiTextCancelOutput;
+export type AiTextConnectionCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  scope: AiTextConnectionScope11;
+  intent: AiTextConnectionIntent11;
+};
+export type AiTextConnectionReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  outcome: AiTextConnectionOutcome11;
+};
+export type AiTextConnectionScope11 = {
+  workspace_id: OpaqueId;
+};
+export type AiTextConnectionIntent11 = {
+  operation: "ai.textConnection";
+  arguments: AiTextConnectionInput;
+};
+export type AiTextConnectionCompleted11 = {
+  state: "completed";
+  operation: "ai.textConnection";
+  result: AiTextConnectionOutput;
+};
+export type AiTextConnectionOutcome11 = AiTextConnectionCompleted11 | ScopedFailure11;
