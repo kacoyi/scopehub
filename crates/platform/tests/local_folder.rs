@@ -324,6 +324,92 @@ fn final_source_verification_skips_commit_on_edit_cancel_or_revocation() {
 }
 
 #[test]
+fn folder_refresh_final_verification_rejects_changed_manifest_and_stopped_grants() {
+    let temp = TempDir::new();
+    let accepted = write(&temp.0, "equity.csv", EQUITY);
+    let alias = write(&temp.0, "copies/alias.csv", EQUITY);
+    let host = LocalFolderHost::default();
+    let live = Cancellation::default();
+    let selection = host.adopt_selected(&temp.0, &live).unwrap();
+    let key = host
+        .source_key(selection.folder_id, file(&selection, "equity.csv").file_id)
+        .unwrap();
+    let stage = || {
+        let scan = host
+            .scan_for_refresh(
+                selection.folder_id,
+                "equity.csv",
+                &key,
+                ["equity.csv"],
+                &live,
+            )
+            .unwrap();
+        let digests: Vec<_> = scan
+            .files()
+            .filter(|entry| entry.kind == FileKind::Csv)
+            .map(|entry| {
+                let source = host.read_for_refresh(&scan, entry.file_id, &live).unwrap();
+                (entry.file_id, source.sha256)
+            })
+            .collect();
+        (scan, digests)
+    };
+    let (scan, digests) = stage();
+    assert_eq!(digests.len(), 2);
+    assert_eq!(
+        host.with_verified_refresh_current(&scan, &digests, &live, || 1),
+        Ok(1)
+    );
+    let cancelled = Cancellation::default();
+    cancelled.cancel();
+    assert_eq!(
+        host.with_verified_refresh_current(&scan, &digests, &cancelled, || unreachable!()),
+        Err::<(), _>(FolderError::Cancelled),
+    );
+
+    // Same-size alias edits, completed removals and newly appearing CSVs all
+    // invalidate a result staged earlier. Unrelated files do not affect it.
+    write(&temp.0, "notes.txt", b"outside the CSV manifest");
+    host.with_verified_refresh_current(&scan, &digests, &live, || ())
+        .unwrap();
+    fs::write(&alias, CORRECTED_EQUITY).unwrap();
+    assert_eq!(
+        host.with_verified_refresh_current(&scan, &digests, &live, || ()),
+        Err(FolderError::ContentChanged)
+    );
+    let (scan, digests) = stage();
+    fs::remove_file(&accepted).unwrap();
+    assert_eq!(
+        host.with_verified_refresh_current(&scan, &digests, &live, || ()),
+        Err(FolderError::ContentChanged)
+    );
+    let (scan, digests) = stage();
+    fs::create_dir(&accepted).unwrap();
+    assert_eq!(
+        host.with_verified_refresh_current(&scan, &digests, &live, || ()),
+        Err(FolderError::ContentChanged)
+    );
+    let (scan, digests) = stage();
+    assert_eq!(
+        scan.files()
+            .find(|entry| entry.relative_path == "equity.csv")
+            .unwrap()
+            .kind,
+        FileKind::UnsupportedEntry
+    );
+    write(&temp.0, "added.csv", EQUITY);
+    assert_eq!(
+        host.with_verified_refresh_current(&scan, &digests, &live, || ()),
+        Err(FolderError::ContentChanged)
+    );
+    host.revoke(selection.folder_id).unwrap();
+    assert_eq!(
+        host.with_verified_refresh_current(&scan, &digests, &live, || ()),
+        Err(FolderError::SelectionUnavailable)
+    );
+}
+
+#[test]
 fn old_grant_rejects_a_substituted_root_with_identical_bytes() {
     let temp = TempDir::new();
     let source = temp.directory("selected");
@@ -332,6 +418,7 @@ fn old_grant_rejects_a_substituted_root_with_identical_bytes() {
     let cancel = Cancellation::default();
     let catalog = host.adopt_selected(&source, &cancel).unwrap();
     let id = file(&catalog, "equity.csv").file_id;
+    let key = host.source_key(catalog.folder_id, id).unwrap();
 
     fs::rename(&source, temp.0.join("original")).unwrap();
     assert!(matches!(
@@ -339,6 +426,16 @@ fn old_grant_rejects_a_substituted_root_with_identical_bytes() {
         Err(FolderError::SelectionUnavailable)
     ));
     write(&source, "equity.csv", EQUITY);
+    assert!(matches!(
+        host.scan_for_refresh(
+            catalog.folder_id,
+            "equity.csv",
+            &key,
+            ["equity.csv"],
+            &cancel
+        ),
+        Err(FolderError::SelectionUnavailable)
+    ));
     assert!(matches!(
         host.read(catalog.folder_id, id, Some(EQUITY_SHA256), &cancel),
         Err(FolderError::SelectionUnavailable)
@@ -375,6 +472,7 @@ fn old_file_id_rejects_a_substituted_ancestor_with_identical_bytes() {
     let cancel = Cancellation::default();
     let catalog = host.adopt_selected(&source, &cancel).unwrap();
     let id = file(&catalog, "branch/leaf/equity.csv").file_id;
+    let key = host.source_key(catalog.folder_id, id).unwrap();
 
     // Restore the very same immediate parent under a substituted outer branch.
     let branch = source.join("branch");
@@ -383,6 +481,16 @@ fn old_file_id_rejects_a_substituted_ancestor_with_identical_bytes() {
     fs::create_dir(&branch).unwrap();
     fs::rename(original.join("leaf"), branch.join("leaf")).unwrap();
 
+    assert!(matches!(
+        host.scan_for_refresh(
+            catalog.folder_id,
+            "branch/leaf/equity.csv",
+            &key,
+            ["branch/leaf/equity.csv"],
+            &cancel
+        ),
+        Err(FolderError::ContentChanged)
+    ));
     assert!(matches!(
         host.read(catalog.folder_id, id, Some(EQUITY_SHA256), &cancel),
         Err(FolderError::ContentChanged)
@@ -399,6 +507,141 @@ fn old_file_id_rejects_a_substituted_ancestor_with_identical_bytes() {
             .unwrap()
             .sha256,
         EQUITY_SHA256
+    );
+}
+
+#[test]
+fn folder_refresh_rejects_new_ancestor_replacement_after_scan() {
+    let temp = TempDir::new();
+    let source = temp.directory("selected");
+    write(&source, "equity.csv", EQUITY);
+    let host = LocalFolderHost::default();
+    let cancel = Cancellation::default();
+    let catalog = host.adopt_selected(&source, &cancel).unwrap();
+    let key = host
+        .source_key(catalog.folder_id, file(&catalog, "equity.csv").file_id)
+        .unwrap();
+    write(&source, "branch/leaf/alias.csv", EQUITY);
+
+    let scan = host
+        .scan_for_refresh(
+            catalog.folder_id,
+            "equity.csv",
+            &key,
+            ["equity.csv"],
+            &cancel,
+        )
+        .unwrap();
+    let digests: Vec<_> = scan
+        .files()
+        .map(|entry| {
+            let frozen = host
+                .read_for_refresh(&scan, entry.file_id, &cancel)
+                .unwrap();
+            (entry.file_id, frozen.sha256)
+        })
+        .collect();
+    assert_eq!(digests.len(), 2);
+    host.with_verified_refresh_current(&scan, &digests, &cancel, || ())
+        .unwrap();
+
+    // The leaf file and its immediate parent remain the same objects.
+    let branch = source.join("branch");
+    let moved = temp.0.join("moved-branch");
+    fs::rename(&branch, &moved).unwrap();
+    fs::create_dir(&branch).unwrap();
+    fs::rename(moved.join("leaf"), branch.join("leaf")).unwrap();
+    assert_eq!(
+        host.with_verified_refresh_current(&scan, &digests, &cancel, || unreachable!()),
+        Err::<(), _>(FolderError::ContentChanged)
+    );
+}
+
+#[test]
+fn folder_refresh_verification_tracks_opaque_paths_for_the_reviewed_revision() {
+    let temp = TempDir::new();
+    let path = write(&temp.0, "origin.csv", EQUITY);
+    let host = LocalFolderHost::default();
+    let cancel = Cancellation::default();
+    let catalog = host.adopt_selected(&temp.0, &cancel).unwrap();
+    let key = host
+        .source_key(catalog.folder_id, file(&catalog, "origin.csv").file_id)
+        .unwrap();
+    fs::remove_file(path).unwrap();
+    let scan = |paths: &[&str]| {
+        host.scan_for_refresh(
+            catalog.folder_id,
+            "origin.csv",
+            &key,
+            paths.iter().copied(),
+            &cancel,
+        )
+        .unwrap()
+    };
+    let previous = ["supplement/accepted.csv"];
+    let absent = scan(&previous);
+    assert_eq!(absent.files().count(), 0);
+    let blocker = write(&temp.0, "supplement", b"uninspectable previous source");
+    assert_eq!(
+        host.with_verified_refresh_current(&absent, &[], &cancel, || unreachable!()),
+        Err::<(), _>(FolderError::ContentChanged)
+    );
+    let opaque = scan(&previous);
+    let entries = opaque.files().collect::<Vec<_>>();
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].relative_path, "supplement");
+    assert_eq!(entries[0].kind, FileKind::UnsupportedExtension);
+    assert_eq!(scan(&[]).files().count(), 0);
+    fs::remove_file(blocker).unwrap();
+    #[cfg(windows)]
+    {
+        write(
+            &temp.0,
+            "SUPPLEMENT",
+            b"the native lookup resolves this spelling",
+        );
+        assert_eq!(
+            scan(&previous).blocked_prior_paths().collect::<Vec<_>>(),
+            previous
+        );
+        assert_eq!(scan(&[]).blocked_prior_paths().count(), 0);
+        assert_eq!(
+            host.with_verified_refresh_current(&absent, &[], &cancel, || unreachable!()),
+            Err::<(), _>(FolderError::ContentChanged)
+        );
+    }
+}
+
+#[test]
+fn folder_refresh_empty_manifest_still_verifies_root_identity() {
+    let temp = TempDir::new();
+    let selected = temp.directory("selected");
+    let source = write(&selected, "equity.csv", EQUITY);
+    let host = LocalFolderHost::default();
+    let cancel = Cancellation::default();
+    let catalog = host.adopt_selected(&selected, &cancel).unwrap();
+    let key = host
+        .source_key(catalog.folder_id, file(&catalog, "equity.csv").file_id)
+        .unwrap();
+    fs::remove_file(source).unwrap();
+    let scan = host
+        .scan_for_refresh(
+            catalog.folder_id,
+            "equity.csv",
+            &key,
+            ["equity.csv"],
+            &cancel,
+        )
+        .unwrap();
+    assert_eq!(scan.files().count(), 0);
+    host.with_verified_refresh_current(&scan, &[], &cancel, || ())
+        .unwrap();
+
+    fs::rename(&selected, temp.0.join("moved-root")).unwrap();
+    fs::create_dir(&selected).unwrap();
+    assert_eq!(
+        host.with_verified_refresh_current(&scan, &[], &cancel, || unreachable!()),
+        Err::<(), _>(FolderError::SelectionUnavailable)
     );
 }
 
@@ -478,6 +721,35 @@ fn final_commit_keeps_directory_and_file_pins_until_it_returns() {
             fs::rename(&source, &moved_file).unwrap_err().raw_os_error(),
             Some(32)
         );
+        assert!(fs::rename(&selected, &moved_root).is_err());
+    })
+    .unwrap();
+
+    let alias = write(&selected, "nested/alias.csv", EQUITY);
+    let key = host.source_key(catalog.folder_id, id).unwrap();
+    let scan = host
+        .scan_for_refresh(
+            catalog.folder_id,
+            "equity.csv",
+            &key,
+            ["equity.csv"],
+            &cancel,
+        )
+        .unwrap();
+    let digests: Vec<_> = scan
+        .files()
+        .map(|entry| (entry.file_id, EQUITY_SHA256.to_owned()))
+        .collect();
+    assert_eq!(digests.len(), 2);
+    host.with_verified_refresh_current(&scan, &digests, &cancel, || {
+        for path in [&source, &alias] {
+            assert_eq!(
+                fs::write(path, CORRECTED_EQUITY)
+                    .unwrap_err()
+                    .raw_os_error(),
+                Some(32)
+            );
+        }
         assert!(fs::rename(&selected, &moved_root).is_err());
     })
     .unwrap();

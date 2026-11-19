@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from hashlib import sha256
 import unittest
 
-from providers.local_folder import preview_csv
+from providers.local_folder import CsvReviewRequired, check_complete_csv, preview_csv
 
 
 FUTURES_COLUMNS = {
@@ -90,6 +90,54 @@ class LocalFolderPreviewTests(unittest.TestCase):
         self.assertIsNone(row['normalized'])
         self.assertEqual(row['raw_fields'][-2:], ['true', '0'])
         self.assertEqual(row['issues'][0]['code'], 'bar_closure_ambiguous')
+
+    def test_explicit_market_declarations_must_match_the_reviewed_mapping(self):
+        mapping = {**FUTURES_MAPPING, 'instrument_kind': 'equity', 'quantity_unit': 'shares', 'venue': 'XSHG'}
+        header = FUTURES_HEADER.rstrip(b'\n') + b',Quantity Unit,Price_Adjustment,Venue\n'
+        first_row = b'DEMO071,20240719 09:35:00,19-07-2024,101,105,96,102,7,99,800,'
+        next_row = first_row.replace(b'09:35:00', b'09:40:00')
+        accepted = header + first_row + b'shares,raw,XSHG\n'
+        shown, = preview_csv(accepted, mapping)['rows']
+        self.assertEqual(shown['normalized']['volume'], 7)
+        self.assertEqual(check_complete_csv(accepted, mapping)['series']['price_adjustment'], 'raw')
+        self.assertIsNotNone(preview_csv(header + first_row + b',,\n', mapping)['rows'][0]['normalized'])
+
+        for unit, adjustment, venue, field in (
+            ('lots', 'raw', 'XSHG', 'quantity_unit'),
+            ('shares', 'split_adjusted', 'XSHG', 'price_adjustment'),
+            ('shares', 'raw', 'XSHE', 'venue'),
+        ):
+            with self.subTest(field=field):
+                declared = {'quantity_unit': unit, 'price_adjustment': adjustment, 'venue': venue}
+                declaration = f'{unit},{adjustment},{venue}\n'.encode()
+                changed = header + first_row + declaration
+                preview = preview_csv(changed, mapping)
+                row, = preview['rows']
+                self.assertEqual(row['raw_fields'][-3:], [unit, adjustment, venue])
+                self.assertIsNone(row['normalized'])
+                self.assertEqual(row['issues'][0]['field'], field)
+                self.assertIn(f'{field}_mismatch', [issue['code'] for issue in row['issues']])
+                self.assertIn(declared[field], row['issues'][0]['message'])
+                self.assertEqual(
+                    {column['column'] for column in preview['raw_only_columns']},
+                    {'Settlement', 'OpenInterest', 'Quantity Unit', 'Price_Adjustment', 'Venue'},
+                )
+
+                raw = preview_csv(changed, {**mapping, 'record_kind': 'unclassified'})
+                self.assertEqual(raw['rows'][0]['raw_fields'], row['raw_fields'])
+                self.assertIsNone(raw['rows'][0]['normalized'])
+                self.assertIsNotNone(preview_csv(changed, {**mapping, **declared})['rows'][0]['normalized'])
+
+                later = accepted + next_row + declaration
+                sampled, = preview_csv(later, mapping, row_limit=1)['rows']
+                self.assertEqual(sampled['normalized']['close'], 102)
+                with self.assertRaises(CsvReviewRequired) as review:
+                    check_complete_csv(later, mapping)
+                self.assertEqual(review.exception.issue['field'], field)
+                self.assertEqual(review.exception.issue['code'], f'{field}_mismatch')
+                self.assertEqual(review.exception.locator, {
+                    'record_number': 2, 'line_start': 3, 'line_end': 3,
+                })
 
     def test_invalid_quantities_and_prices_are_reviewable_in_source_order(self):
         content = FUTURES_HEADER + (

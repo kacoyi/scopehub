@@ -6,7 +6,9 @@ use std::{
 };
 
 use scopehub_application::failure;
-use scopehub_domain::protocol::{Error, ErrorCode, PublishLocalImportInput};
+use scopehub_domain::protocol::{
+    Error, ErrorCode, PublishLocalFolderRefreshInput, PublishLocalImportInput,
+};
 
 use super::PreviewBinding;
 
@@ -16,12 +18,14 @@ const MAX_TRACKED_REQUESTS: usize = 4_096;
 pub(super) enum MutationInput {
     Save(PreviewBinding),
     Publish(PublishLocalImportInput),
+    PublishFolder(PublishLocalFolderRefreshInput),
 }
 
 #[derive(Clone)]
 pub(crate) enum ImportReceipt {
     Mapping(u64),
     Publication(String),
+    FolderPublication,
 }
 
 pub(super) enum ImportAttempt {

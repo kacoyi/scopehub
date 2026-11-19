@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=d61540f2af5ac6b317afc674d4afe95d3c8e5a30e394b45defeab3f28c07e757. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=58a8fbc9affe172c3d931eb59850540c43b28938d346bfeab02155caf92456f8. Do not edit.
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type OpaqueId = string;
 export type Uuid = string;
@@ -8,7 +8,7 @@ export type Metadata = Record<string, JsonValue>;
 export type WorkerRole = "market" | "ai" | "indicator";
 export type ProtocolVersion = "1.0";
 export type ErrorCode = "INVALID_ARGUMENT" | "UNSUPPORTED_CAPABILITY" | "PERMISSION_DENIED" | "CONFIRMATION_REQUIRED" | "CANCELLED" | "TIMEOUT" | "WORKER_EXITED" | "PROTOCOL_MISMATCH" | "DATA_UNAVAILABLE" | "STALE_CONTEXT" | "RESOURCE_LIMIT" | "OUTPUT_INVALID" | "PROVIDER_NOT_CONFIGURED" | "INTERNAL_ERROR" | "BUSY" | "SNAPSHOT_UNAVAILABLE";
-export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "market.previewLocalImport" | "market.saveLocalImportMapping" | "market.loadLocalImportMapping" | "market.listLocalImportRevisions" | "market.readLocalImportRevision" | "market.revokeLocalImportRevision" | "market.publishLocalImport" | "workspace.readChartProjection" | "workspace.selectEvidence" | "decisionNote.save" | "decisionNote.read" | "decisionNote.appendOutcome" | "decisionNote.delete" | "decisionNote.exportBackup" | "decisionNote.previewRestore" | "decisionNote.restoreBackup";
+export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "market.previewLocalImport" | "market.saveLocalImportMapping" | "market.loadLocalImportMapping" | "market.listLocalImportRevisions" | "market.readLocalImportRevision" | "market.readLocalImportSourceRow" | "market.previewLocalFolderRefresh" | "market.prepareLocalFolderPublication" | "market.publishLocalFolderRefresh" | "market.listLocalFolderRevisions" | "market.readLocalFolderRevision" | "market.readLocalFolderSourceRow" | "market.revokeLocalFolderRevision" | "market.revokeLocalImportRevision" | "market.publishLocalImport" | "workspace.readChartProjection" | "workspace.selectEvidence" | "decisionNote.save" | "decisionNote.read" | "decisionNote.appendOutcome" | "decisionNote.delete" | "decisionNote.exportBackup" | "decisionNote.previewRestore" | "decisionNote.restoreBackup";
 export type ChartStyle = "candlestick" | "line";
 export type TaskStatus = "queued" | "running" | "awaiting_confirmation" | "completed" | "failed" | "cancelled";
 export type Tradability = "non_tradable" | "unknown";
@@ -889,6 +889,262 @@ export type ReadLocalImportRevisionError = {
   result: null;
   error: MarketPageFault;
 };
+export type ReadLocalImportSourceRowRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.readLocalImportSourceRow";
+  payload: ReadLocalImportSourceRowInput;
+};
+export type ReadLocalImportSourceRowResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.readLocalImportSourceRow";
+  ok: true;
+  result: ReadLocalImportSourceRowOutput;
+  error: null;
+};
+export type ReadLocalImportSourceRowError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.readLocalImportSourceRow";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type PreviewLocalFolderRefreshRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.previewLocalFolderRefresh";
+  payload: PreviewLocalFolderRefreshInput;
+};
+export type PreviewLocalFolderRefreshResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.previewLocalFolderRefresh";
+  ok: true;
+  result: PreviewLocalFolderRefreshOutput;
+  error: null;
+};
+export type PreviewLocalFolderRefreshError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.previewLocalFolderRefresh";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type PrepareLocalFolderPublicationRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.prepareLocalFolderPublication";
+  payload: PrepareLocalFolderPublicationInput;
+};
+export type PrepareLocalFolderPublicationResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.prepareLocalFolderPublication";
+  ok: true;
+  result: PrepareLocalFolderPublicationOutput;
+  error: null;
+};
+export type PrepareLocalFolderPublicationError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.prepareLocalFolderPublication";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type PublishLocalFolderRefreshRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.publishLocalFolderRefresh";
+  payload: PublishLocalFolderRefreshInput;
+};
+export type PublishLocalFolderRefreshResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.publishLocalFolderRefresh";
+  ok: true;
+  result: PublishLocalFolderRefreshOutput;
+  error: null;
+};
+export type PublishLocalFolderRefreshError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.publishLocalFolderRefresh";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type ListLocalFolderRevisionsRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.listLocalFolderRevisions";
+  payload: ListLocalFolderRevisionsInput;
+};
+export type ListLocalFolderRevisionsResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.listLocalFolderRevisions";
+  ok: true;
+  result: ListLocalFolderRevisionsOutput;
+  error: null;
+};
+export type ListLocalFolderRevisionsError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.listLocalFolderRevisions";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type ReadLocalFolderRevisionRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.readLocalFolderRevision";
+  payload: ReadLocalFolderRevisionInput;
+};
+export type ReadLocalFolderRevisionResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.readLocalFolderRevision";
+  ok: true;
+  result: ReadLocalFolderRevisionOutput;
+  error: null;
+};
+export type ReadLocalFolderRevisionError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.readLocalFolderRevision";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type ReadLocalFolderSourceRowRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.readLocalFolderSourceRow";
+  payload: ReadLocalFolderSourceRowInput;
+};
+export type ReadLocalFolderSourceRowResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.readLocalFolderSourceRow";
+  ok: true;
+  result: ReadLocalFolderSourceRowOutput;
+  error: null;
+};
+export type ReadLocalFolderSourceRowError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.readLocalFolderSourceRow";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type RevokeLocalFolderRevisionRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.revokeLocalFolderRevision";
+  payload: RevokeLocalFolderRevisionInput;
+};
+export type RevokeLocalFolderRevisionResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.revokeLocalFolderRevision";
+  ok: true;
+  result: RevokeLocalFolderRevisionOutput;
+  error: null;
+};
+export type RevokeLocalFolderRevisionError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.revokeLocalFolderRevision";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
 export type RevokeLocalImportRevisionRequest = {
   protocol_version: "1.1";
   message_id: Uuid;
@@ -1242,7 +1498,7 @@ export type CancelTaskError11 = {
   request_id: Uuid;
   error: WorkspaceFault11;
 };
-export type Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat | MarketHistoryPageRequest | MarketHistoryPageResponse | MarketHistoryPageError | MarketSubscriptionRequest | MarketSubscriptionResponse | MarketSubscriptionError | LocalImportPreviewRequest | LocalImportPreviewResponse | LocalImportPreviewError | SaveLocalImportMappingRequest | SaveLocalImportMappingResponse | SaveLocalImportMappingError | LoadLocalImportMappingRequest | LoadLocalImportMappingResponse | LoadLocalImportMappingError | ListLocalImportRevisionsRequest | ListLocalImportRevisionsResponse | ListLocalImportRevisionsError | ReadLocalImportRevisionRequest | ReadLocalImportRevisionResponse | ReadLocalImportRevisionError | RevokeLocalImportRevisionRequest | RevokeLocalImportRevisionResponse | RevokeLocalImportRevisionError | PublishLocalImportRequest | PublishLocalImportResponse | PublishLocalImportError | MarketBarUpdateEvent | MarketBarCorrectionEvent | MarketStreamGapEvent | WorkerHello11 | ScopedMutationRequest11 | ScopedMutationResponse11 | TrustedConfirmationDecision11 | PreviewReady11 | ArtifactChunk11 | TaskTerminalEvent11 | TaskCancelRequest11 | CancelMemberRequest11 | ReadProjectedChart11 | ProjectedChartResponse11 | SharedSelectionEvent11 | SharedSelectionRequest11 | AiToolRequest11 | AiToolResultDelivery11 | AiToolResultAck11 | ProjectedChartError11 | IndicatorCompute11 | IndicatorComputed11 | IndicatorInputSegment11 | SharedSelectionResponse11 | SharedSelectionError11 | SharedContextRequest11 | SharedContextResponse11 | SharedContextError11 | CancelTaskResponse11 | CancelTaskError11;
+export type Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat | MarketHistoryPageRequest | MarketHistoryPageResponse | MarketHistoryPageError | MarketSubscriptionRequest | MarketSubscriptionResponse | MarketSubscriptionError | LocalImportPreviewRequest | LocalImportPreviewResponse | LocalImportPreviewError | SaveLocalImportMappingRequest | SaveLocalImportMappingResponse | SaveLocalImportMappingError | LoadLocalImportMappingRequest | LoadLocalImportMappingResponse | LoadLocalImportMappingError | ListLocalImportRevisionsRequest | ListLocalImportRevisionsResponse | ListLocalImportRevisionsError | ReadLocalImportRevisionRequest | ReadLocalImportRevisionResponse | ReadLocalImportRevisionError | ReadLocalImportSourceRowRequest | ReadLocalImportSourceRowResponse | ReadLocalImportSourceRowError | PreviewLocalFolderRefreshRequest | PreviewLocalFolderRefreshResponse | PreviewLocalFolderRefreshError | PrepareLocalFolderPublicationRequest | PrepareLocalFolderPublicationResponse | PrepareLocalFolderPublicationError | PublishLocalFolderRefreshRequest | PublishLocalFolderRefreshResponse | PublishLocalFolderRefreshError | ListLocalFolderRevisionsRequest | ListLocalFolderRevisionsResponse | ListLocalFolderRevisionsError | ReadLocalFolderRevisionRequest | ReadLocalFolderRevisionResponse | ReadLocalFolderRevisionError | ReadLocalFolderSourceRowRequest | ReadLocalFolderSourceRowResponse | ReadLocalFolderSourceRowError | RevokeLocalFolderRevisionRequest | RevokeLocalFolderRevisionResponse | RevokeLocalFolderRevisionError | RevokeLocalImportRevisionRequest | RevokeLocalImportRevisionResponse | RevokeLocalImportRevisionError | PublishLocalImportRequest | PublishLocalImportResponse | PublishLocalImportError | MarketBarUpdateEvent | MarketBarCorrectionEvent | MarketStreamGapEvent | WorkerHello11 | ScopedMutationRequest11 | ScopedMutationResponse11 | TrustedConfirmationDecision11 | PreviewReady11 | ArtifactChunk11 | TaskTerminalEvent11 | TaskCancelRequest11 | CancelMemberRequest11 | ReadProjectedChart11 | ProjectedChartResponse11 | SharedSelectionEvent11 | SharedSelectionRequest11 | AiToolRequest11 | AiToolResultDelivery11 | AiToolResultAck11 | ProjectedChartError11 | IndicatorCompute11 | IndicatorComputed11 | IndicatorInputSegment11 | SharedSelectionResponse11 | SharedSelectionError11 | SharedContextRequest11 | SharedContextResponse11 | SharedContextError11 | CancelTaskResponse11 | CancelTaskError11;
 export type ProtocolVersion11 = "1.1";
 export type WorkspaceObject11 = {
   kind: "chart" | "layer" | "layout" | "dataset" | "workspace";
@@ -2379,6 +2635,20 @@ export type ReadLocalImportRevisionOutput = {
 };
 export type PublishLocalImportReply11 = PublishLocalImportResponse | PublishLocalImportError;
 export type ReadLocalImportRevisionReply11 = ReadLocalImportRevisionResponse | ReadLocalImportRevisionError;
+export type ReadLocalImportSourceRowInput = {
+  version: number;
+  revision_id: Uuid;
+  locator: LocalImportRowLocator;
+};
+export type ReadLocalImportSourceRowOutput = {
+  version: number;
+  revision_id: Uuid;
+  source_sha256: Hash;
+  locator: LocalImportRowLocator;
+  header: Array<string>;
+  raw_fields: Array<string>;
+};
+export type ReadLocalImportSourceRowReply11 = ReadLocalImportSourceRowResponse | ReadLocalImportSourceRowError;
 export type RevokeLocalImportRevisionInput = {
   version: number;
   revision_id: Uuid;
@@ -2388,3 +2658,139 @@ export type RevokeLocalImportRevisionOutput = {
   version: number;
   revision_id: Uuid;
 };
+export type FolderRefreshFile = {
+  relative_path: string;
+  source_sha256: (Hash | null);
+  prior_sha256: (Hash | null);
+  change: "unchanged" | "added" | "replaced" | "removed" | "unverified";
+  alias_of: (string | null);
+  review: "compatible" | "header_changed" | "series_mismatch" | "invalid_rows" | "unavailable" | "removed";
+  detail: (string | null);
+};
+export type FolderRefreshSource = {
+  relative_path: string;
+  source_sha256: Hash;
+  record_number: number;
+  line_start: number;
+  line_end: number;
+};
+export type FolderRefreshAlternative = {
+  bar: Bar;
+  sources: Array<FolderRefreshSource>;
+};
+export type FolderRefreshBar = {
+  time_ms: Timestamp;
+  status: "unchanged" | "addition" | "conflict" | "withdrawal" | "unverified";
+  accepted: (AcceptedFolderRefreshBar | null);
+  alternatives: Array<FolderRefreshAlternative>;
+};
+export type PreviewLocalFolderRefreshInput = {
+  version: number;
+  folder_id: Uuid;
+  revision_id: Uuid;
+};
+export type PreviewLocalFolderRefreshOutput = {
+  version: number;
+  base?: PublishedLocalImportRevision;
+  files: Array<FolderRefreshFile>;
+  bars: Array<FolderRefreshBar>;
+  folder_base?: PublishedLocalFolderRevision;
+  review_id?: Hash;
+  publication_allowed?: boolean;
+};
+export type PreviewLocalFolderRefreshReply11 = PreviewLocalFolderRefreshResponse | PreviewLocalFolderRefreshError;
+export type FolderPublicationConflictChoice = {
+  time_ms: Timestamp;
+  alternative_index: number;
+};
+export type PublishedLocalFolderRevision = {
+  revision_id: Uuid;
+  base_revision_id: Uuid;
+  parent_revision_id: (Uuid | null);
+  origin_path: string;
+  symbol: string;
+  series: PreviewSeries;
+  source_count: number;
+  bar_count: number;
+  bar_summary?: LocalImportRevisionBarSummary;
+};
+export type PublishedLocalFolderSource = {
+  relative_path: string;
+  source_sha256: Hash;
+  record_count: number;
+};
+export type PrepareLocalFolderPublicationInput = {
+  version: number;
+  folder_id: Uuid;
+  review_id: Hash;
+  conflicts: Array<FolderPublicationConflictChoice>;
+  withdraw_bars: Array<Timestamp>;
+  withdraw_sources: Array<string>;
+};
+export type PrepareLocalFolderPublicationOutput = {
+  version: number;
+  review_id: Hash;
+  candidate_sha256: Hash;
+  parent_revision_id: Uuid;
+  source_count: number;
+  bar_count: number;
+};
+export type PublishLocalFolderRefreshInput = {
+  version: number;
+  folder_id: Uuid;
+  review_id: Hash;
+  candidate_sha256: Hash;
+  idempotency_key: Uuid;
+};
+export type PublishLocalFolderRefreshOutput = {
+  version: number;
+  revision: PublishedLocalFolderRevision;
+};
+export type ListLocalFolderRevisionsInput = {
+  version: number;
+  after_revision_id: (CanonicalRevisionCursor | null);
+  limit: number;
+};
+export type ListLocalFolderRevisionsOutput = {
+  version: number;
+  revisions: Array<PublishedLocalFolderRevision>;
+  next_after_revision_id: (CanonicalRevisionCursor | null);
+};
+export type ReadLocalFolderRevisionInput = {
+  version: number;
+  revision_id: Uuid;
+  include_details?: boolean;
+};
+export type ReadLocalFolderRevisionOutput = {
+  version: number;
+  revision: PublishedLocalFolderRevision;
+  files: Array<PublishedLocalFolderSource>;
+  bars: Array<FolderRefreshAlternative>;
+};
+export type RevokeLocalFolderRevisionInput = {
+  version: number;
+  revision_id: Uuid;
+};
+export type RevokeLocalFolderRevisionOutput = {
+  version: number;
+  revision_id: Uuid;
+};
+export type PrepareLocalFolderPublicationReply11 = PrepareLocalFolderPublicationResponse | PrepareLocalFolderPublicationError;
+export type PublishLocalFolderRefreshReply11 = PublishLocalFolderRefreshResponse | PublishLocalFolderRefreshError;
+export type ListLocalFolderRevisionsReply11 = ListLocalFolderRevisionsResponse | ListLocalFolderRevisionsError;
+export type ReadLocalFolderRevisionReply11 = ReadLocalFolderRevisionResponse | ReadLocalFolderRevisionError;
+export type ReadLocalFolderSourceRowInput = {
+  version: number;
+  revision_id: Uuid;
+  source: FolderRefreshSource;
+};
+export type ReadLocalFolderSourceRowOutput = {
+  version: number;
+  revision_id: Uuid;
+  source: FolderRefreshSource;
+  header: Array<string>;
+  raw_fields: Array<string>;
+};
+export type ReadLocalFolderSourceRowReply11 = ReadLocalFolderSourceRowResponse | ReadLocalFolderSourceRowError;
+export type RevokeLocalFolderRevisionReply11 = RevokeLocalFolderRevisionResponse | RevokeLocalFolderRevisionError;
+export type AcceptedFolderRefreshBar = PublishedLocalImportBar | FolderRefreshAlternative;

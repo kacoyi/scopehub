@@ -6,32 +6,47 @@ use std::{
 };
 
 use scopehub_application::{
-    Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, LIST_LOCAL_IMPORT_REVISIONS,
-    LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS, LocalDatasetPublication,
-    MappingCommitGuard, OperationRegistry, PUBLISH_LOCAL_IMPORT, READ_LOCAL_IMPORT_REVISION,
+    Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, FolderManifestAnchor,
+    FolderRefreshBase, FrozenLocalSourceRow, LIST_LOCAL_FOLDER_REVISIONS,
+    LIST_LOCAL_IMPORT_REVISIONS, LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS,
+    LocalDatasetPublication, MappingCommitGuard, OperationRegistry,
+    PREPARE_LOCAL_FOLDER_PUBLICATION, PREVIEW_LOCAL_FOLDER_REFRESH, PUBLISH_LOCAL_FOLDER_REFRESH,
+    PUBLISH_LOCAL_IMPORT, READ_LOCAL_FOLDER_REVISION, READ_LOCAL_FOLDER_SOURCE_ROW,
+    READ_LOCAL_IMPORT_REVISION, READ_LOCAL_IMPORT_SOURCE_ROW, REVOKE_LOCAL_FOLDER_REVISION,
     REVOKE_LOCAL_IMPORT_REVISION, ReviewedImportMapping, SAVE_LOCAL_IMPORT_MAPPING,
     WorkspaceAccess, WorkspaceBinding, evidence_operation_name, failure,
-    list_local_import_revisions_input, local_mapping_fingerprint, read_local_import_revision_input,
-    revoke_local_import_revision_input,
+    list_local_folder_revisions_input, list_local_import_revisions_input,
+    local_mapping_fingerprint, read_local_folder_revision_input, read_local_import_revision_input,
+    revoke_local_folder_revision_input, revoke_local_import_revision_input,
 };
-use scopehub_domain::protocol::{CsvMappingV1, Error, ErrorCode};
+use scopehub_domain::protocol::{
+    CsvMappingV1, Error, ErrorCode, ReadLocalFolderSourceRowInput, ReadLocalImportSourceRowInput,
+};
 use scopehub_persistence::SqliteWorkspace;
 use scopehub_platform::local_folder::FrozenFile;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use tokio::sync::{Mutex, OwnedMutexGuard};
 
-use crate::local_import::{ImportReceipt, PendingImport};
+use crate::local_import::{FolderCommitGuard, ImportReceipt, PendingImport, PreparedFolderReview};
 
 const WORKSPACE_ID: &str = "main";
 const WORKSPACE_DIRECTORY: &str = "workspace-dev";
 const LOCAL_IMPORT_OPERATIONS: &[&str] = &[
     LOAD_LOCAL_IMPORT_MAPPING,
+    PREVIEW_LOCAL_FOLDER_REFRESH,
     SAVE_LOCAL_IMPORT_MAPPING,
     PUBLISH_LOCAL_IMPORT,
     LIST_LOCAL_IMPORT_REVISIONS,
     READ_LOCAL_IMPORT_REVISION,
+    READ_LOCAL_IMPORT_SOURCE_ROW,
     REVOKE_LOCAL_IMPORT_REVISION,
+    PREPARE_LOCAL_FOLDER_PUBLICATION,
+    PUBLISH_LOCAL_FOLDER_REFRESH,
+    LIST_LOCAL_FOLDER_REVISIONS,
+    READ_LOCAL_FOLDER_REVISION,
+    READ_LOCAL_FOLDER_SOURCE_ROW,
+    REVOKE_LOCAL_FOLDER_REVISION,
 ];
 const MAX_REQUEST_BYTES: usize = 16 * 1024;
 const MAX_NOTE_REQUEST_BYTES: usize = 32 * 1024;
@@ -279,6 +294,157 @@ impl WorkspaceBridge {
         .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
     }
 
+    pub(super) async fn folder_refresh_base(
+        &self,
+        revision_id: String,
+    ) -> Result<FolderRefreshBase, Error> {
+        Self::with_bound(self.admit()?, false, move |bound| {
+            bound
+                .registry
+                .load_folder_refresh_base(&local_import_access(&bound.profile_id), &revision_id)
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
+    }
+
+    pub(super) async fn finish_folder_refresh<T: Send + 'static>(
+        &self,
+        revision_id: String,
+        finish: impl FnOnce() -> Result<T, Error> + Send + 'static,
+    ) -> Result<T, Error> {
+        Self::with_bound(self.admit()?, false, move |bound| {
+            // Keep the workspace lane until the native recheck finishes so
+            // a display revocation cannot overtake the entitled read.
+            bound
+                .registry
+                .load_folder_refresh_base(&local_import_access(&bound.profile_id), &revision_id)?;
+            finish()
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
+    }
+
+    pub(super) async fn publish_folder(
+        &self,
+        idempotency_key: String,
+        prepared: Arc<PreparedFolderReview>,
+        guard: FolderCommitGuard,
+        attempt: Option<PendingImport>,
+    ) -> Result<Value, Error> {
+        Self::with_bound(self.admit()?, false, move |bound| {
+            let candidate = guard.candidate(&prepared)?;
+            let receipt = bound.registry.publish_reviewed_folder(
+                &local_import_access(&bound.profile_id),
+                &idempotency_key,
+                &candidate,
+                &guard,
+            )?;
+            if let Some(attempt) = attempt {
+                attempt.committed(ImportReceipt::FolderPublication);
+            }
+            Ok(receipt)
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
+    }
+
+    pub(super) async fn replay_folder_publication(
+        &self,
+        idempotency_key: String,
+        candidate_sha256: String,
+        verify_origin: impl FnOnce(&FolderManifestAnchor) -> Result<(), Error> + Send + 'static,
+    ) -> Result<Option<Value>, Error> {
+        let reply = Self::with_bound(self.admit()?, false, move |bound| {
+            let receipt = bound.registry.replay_reviewed_folder(
+                &local_import_access(&bound.profile_id),
+                &idempotency_key,
+                &candidate_sha256,
+            )?;
+            receipt
+                .map(|(reply, anchor)| {
+                    verify_origin(&anchor)?;
+                    Ok(reply)
+                })
+                .transpose()
+        })
+        .await?;
+        Ok(reply.flatten())
+    }
+
+    pub(super) async fn list_local_folder_revisions(&self, payload: Value) -> Result<Value, Error> {
+        let input = list_local_folder_revisions_input(Actor::LocalUser, payload)?;
+        let lane = self.admit().map_err(|error| {
+            if error.code == ErrorCode::PERMISSIONDENIED {
+                failure(ErrorCode::PROVIDERNOTCONFIGURED)
+            } else {
+                error
+            }
+        })?;
+        let result = Self::with_bound(lane, false, move |bound| {
+            bound
+                .registry
+                .list_frozen_folder_revisions(&local_import_access(&bound.profile_id), &input)
+        })
+        .await?;
+        Ok(result.unwrap_or_else(
+            || json!({"version": 1, "revisions": [], "next_after_revision_id": null}),
+        ))
+    }
+
+    pub(super) async fn read_local_folder_revision(&self, payload: Value) -> Result<Value, Error> {
+        let input = read_local_folder_revision_input(Actor::LocalUser, payload)?;
+        Self::with_bound(self.admit()?, false, move |bound| {
+            bound
+                .registry
+                .read_frozen_folder_revision(&local_import_access(&bound.profile_id), &input)
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
+    }
+
+    pub(super) async fn load_local_folder_source_row(
+        &self,
+        input: ReadLocalFolderSourceRowInput,
+    ) -> Result<FrozenLocalSourceRow<ReadLocalFolderSourceRowInput>, Error> {
+        Self::with_bound(self.admit()?, false, move |bound| {
+            bound
+                .registry
+                .prepare_frozen_folder_source_row(&local_import_access(&bound.profile_id), input)
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
+    }
+
+    pub(super) async fn finish_local_folder_source_row(
+        &self,
+        source: FrozenLocalSourceRow<ReadLocalFolderSourceRowInput>,
+        row: Value,
+    ) -> Result<Value, Error> {
+        Self::with_bound(self.admit()?, false, move |bound| {
+            bound.registry.finish_frozen_folder_source_row(
+                &local_import_access(&bound.profile_id),
+                source,
+                row,
+            )
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
+    }
+
+    pub(super) async fn revoke_local_folder_revision(
+        &self,
+        payload: Value,
+    ) -> Result<Value, Error> {
+        let input = revoke_local_folder_revision_input(Actor::LocalUser, payload)?;
+        Self::with_bound(self.admit()?, false, move |bound| {
+            bound
+                .registry
+                .revoke_frozen_folder_revision(&local_import_access(&bound.profile_id), &input)
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
+    }
+
     pub(super) async fn list_local_revisions(&self, payload: Value) -> Result<Value, Error> {
         let input = list_local_import_revisions_input(Actor::LocalUser, payload)?;
         let lane = self.admit().map_err(|error| {
@@ -305,6 +471,35 @@ impl WorkspaceBridge {
             bound
                 .registry
                 .read_frozen_local_dataset(&local_import_access(&bound.profile_id), &input)
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
+    }
+
+    pub(super) async fn load_local_source_row(
+        &self,
+        input: ReadLocalImportSourceRowInput,
+    ) -> Result<FrozenLocalSourceRow, Error> {
+        Self::with_bound(self.admit()?, false, move |bound| {
+            bound
+                .registry
+                .prepare_frozen_local_source_row(&local_import_access(&bound.profile_id), input)
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
+    }
+
+    pub(super) async fn finish_local_source_row(
+        &self,
+        source: FrozenLocalSourceRow,
+        row: Value,
+    ) -> Result<Value, Error> {
+        Self::with_bound(self.admit()?, false, move |bound| {
+            bound.registry.finish_frozen_local_source_row(
+                &local_import_access(&bound.profile_id),
+                source,
+                row,
+            )
         })
         .await?
         .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))

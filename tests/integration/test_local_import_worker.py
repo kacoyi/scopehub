@@ -73,6 +73,12 @@ def complete_request(content, **header_fields):
     return frames
 
 
+def source_row_request(content, record_number, **header_fields):
+    frames = request(content, record_number=record_number, **header_fields)
+    del frames[0]['row_limit']
+    return frames
+
+
 def worker(data):
     env = {key: value for key, value in os.environ.items() if key.upper() in {'SYSTEMROOT', 'WINDIR', 'TEMP', 'TMP'}}
     # Exercise the locked IANA data with no operating-system zone database.
@@ -105,7 +111,10 @@ class LocalImportWorkerTests(unittest.TestCase):
         hello_line, *replies = stdout.splitlines(keepends=True)
         hello = decode_line(hello_line)
         self.assertEqual((hello['type'], hello['protocol_version'], hello['role']), ('hello', '1.1', 'market'))
-        self.assertEqual(hello['capabilities'], ['market.previewLocalImport', 'market.checkLocalImport'])
+        self.assertEqual(hello['capabilities'], [
+            'market.previewLocalImport', 'market.checkLocalImport', 'market.inspectLocalFolderSource',
+            'market.inspectLocalImportSourceRow',
+        ])
         return replies
 
     def test_child_previews_normalized_and_rejected_rows_using_hash_of_all_chunks(self):
@@ -167,6 +176,41 @@ class LocalImportWorkerTests(unittest.TestCase):
         self.assertEqual(last['bar']['trading_day'], str(dates[-1]))
         self.assertEqual(last['locators'], [{'record_number': 1, 'line_start': 3, 'line_end': 3}])
 
+    def test_source_row_uses_reviewed_encoding_and_counts_quoted_records(self):
+        content = (
+            'Ticker,Date,Open,High,Low,Close,Shares,"备注\r\n原始单位"\r\n'
+            '000071,2026-01-06,8,10,7,9,200,"前一行\r\n不应被返回"\r\n'
+            '000071,2026-01-07,8,10,7,09.00,,"手, 带有""引号""\r\n下一行"\r\n'
+        ).encode('gb18030')
+        frames = source_row_request(content, 2, mapping={**MAPPING, 'encoding': 'gb18030'})
+        process = worker(b''.join(map(line, frames)))
+        self.assertEqual((process.returncode, process.stderr), (0, b''))
+        reply, = self.reply_frames(process.stdout)
+        self.assertEqual(json.loads(reply), {
+            **FRAME_ID, 'ok': True, 'source_row': {
+                'source_sha256': sha256(content).hexdigest(),
+                'locator': {'record_number': 2, 'line_start': 5, 'line_end': 6},
+                'header': ['Ticker', 'Date', 'Open', 'High', 'Low', 'Close', 'Shares', '备注\r\n原始单位'],
+                'raw_fields': ['000071', '2026-01-07', '8', '10', '7', '09.00', '', '手, 带有"引号"\r\n下一行'],
+            },
+        })
+
+    def test_source_row_has_a_separate_frame_limit_and_fails_closed(self):
+        header = b'Ticker,Date,Open,High,Low,Close,Shares,Note\r\n'
+        row = b'000071,2026-01-06,8,10,7,9,200,valid\r\n'
+        oversized = b'000071,2026-01-06,8,10,7,9,200,' + b'x' * (64 * 1024) + b'\r\n'
+        for content, number, expected in (
+            (header + oversized, 1, 'RESOURCE_LIMIT'),
+            (header + row, 2, 'DATA_UNAVAILABLE'),
+            (header + b'"unterminated', 1, 'DATA_UNAVAILABLE'),
+            (header + row, 10_001, 'INVALID_ARGUMENT'),
+        ):
+            with self.subTest(number=number, expected=expected):
+                output = BytesIO()
+                self.assertEqual(run(BytesIO(b''.join(map(line, source_row_request(content, number)))), output), 0)
+                reply, = self.reply_frames(output.getvalue())
+                self.assertEqual(json.loads(reply), {**FRAME_ID, 'ok': False, 'error': expected})
+
     def test_complete_series_holds_late_invalid_or_ambiguous_rows(self):
         content = b'Ticker,Date,Open,High,Low,Close,Shares,Note\n' + b'000071,2026-01-06,8,10,7,9,200,test\n' * 501
         cases = {
@@ -187,6 +231,44 @@ class LocalImportWorkerTests(unittest.TestCase):
                 self.assertEqual(held['issue']['code'], code)
                 self.assertEqual(held['locator'], {'record_number': 502, 'line_start': 503, 'line_end': 503})
                 self.assertNotIn('publication', held)
+
+    def test_folder_inspection_retains_competing_values_and_complete_publication_refuses_them(self):
+        content = (
+            b'Ticker,Date,Open,High,Low,Close,Shares,Note\r\n'
+            b'000071,2026-01-06,5,8,3,6,200,first\r\n'
+            b'000071,2026-01-06,5,8,3,7,200,"competing\r\nvalue"\r\n'
+            b'000071,2026-01-06,5,8,3,6,200,same\r\n'
+        )
+        frames = request(content, inspect_refresh=True)
+        del frames[0]['row_limit']
+        process = worker(b''.join(map(line, frames)))
+        self.assertEqual((process.returncode, process.stderr), (0, b''))
+        reply, = self.reply_frames(process.stdout)
+        result = json.loads(reply)
+        self.assertTrue(result['ok'])
+        self.assertNotIn('publication', result)
+        checked = result['inspection']
+        self.assertEqual(checked['file_sha256'], sha256(content).hexdigest())
+        self.assertEqual(checked['source_record_count'], 3)
+        self.assertEqual([entry['bar']['close'] for entry in checked['bars']], [6, 7])
+        self.assertEqual([entry['locators'] for entry in checked['bars']], [
+            [
+                {'record_number': 1, 'line_start': 2, 'line_end': 2},
+                {'record_number': 3, 'line_start': 5, 'line_end': 5},
+            ],
+            [{'record_number': 2, 'line_start': 3, 'line_end': 4}],
+        ])
+
+        process = worker(b''.join(map(line, complete_request(content))))
+        self.assertEqual((process.returncode, process.stderr), (0, b''))
+        reply, = self.reply_frames(process.stdout)
+        held = json.loads(reply)
+        self.assertFalse(held['ok'])
+        self.assertEqual(held['error'], 'REVIEW_REQUIRED')
+        self.assertEqual(held['issue']['code'], 'conflicting_bar')
+        self.assertEqual(held['locator'], {'record_number': 2, 'line_start': 3, 'line_end': 4})
+        self.assertNotIn('publication', held)
+        self.assertNotIn('inspection', held)
 
     def test_complete_series_fails_closed_at_the_source_record_budget(self):
         content = b'Ticker,Date,Open,High,Low,Close,Shares,Note\n' + b'000071,2026-01-06,8,10,7,9,200,test\n' * (MAX_PUBLICATION_RECORDS + 1)

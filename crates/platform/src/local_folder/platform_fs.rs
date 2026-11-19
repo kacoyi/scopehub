@@ -336,7 +336,7 @@ mod native {
 
     pub(crate) struct Directory;
 
-    #[derive(PartialEq)]
+    #[derive(Clone, Copy, PartialEq)]
     pub(crate) struct FileIdentity;
 
     pub(crate) fn file_identity(_: &File) -> io::Result<FileIdentity> {

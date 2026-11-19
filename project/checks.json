@@ -352,7 +352,7 @@
     {
       "id": "local-import-publication",
       "status": "implemented",
-      "purpose": "Exercise the built UI through the profile-bound Rust desktop state, complete-file normalization, SQLite and the chart adapter. Verify a publication above the preview row limit, retry, held rows, a changed single-file revision, frozen reads after restart and display-right removal. The test supplies the selected directory through a synthetic picker.",
+      "purpose": "Exercise the built UI through the profile-bound Rust desktop state, complete-file normalization, SQLite and the chart adapter. Verify a publication above the preview row limit, retry, held rows, and a changed single-file revision. After restart and source removal, inspect the exact raw fields of a quoted multiline record outside the preview, and verify profile scope, stale selections and display-right removal. The test supplies the selected directory through a synthetic picker.",
       "platforms": "all",
       "command": [
         "{python}",
@@ -362,12 +362,46 @@
       "cadence": "task"
     },
     {
-      "id": "local-folder-import",
-      "status": "planned",
-      "purpose": "Exercise the folder picker, editable mapping, source lineage, idempotent refresh and schema drift through the actual local chart workflow.",
+      "id": "local-folder-refresh-preview",
+      "status": "implemented",
+      "purpose": "Exercise folder review and guarded publication through the built UI, Rust registry, Python checker and SQLite. Observe additions, all alias locators, competing prices, explicit unit, adjustment and venue contradictions, incomplete coverage and discarded late replies. Publish with explicit source and bar withdrawals, recover a lost reply, and reopen and revoke frozen folder revisions after restart.",
       "platforms": "all",
-      "command": null,
-      "timeout_seconds": 1800
+      "command": [
+        "{python}",
+        "scripts/check_local_import_publication.py",
+        "folder-refresh"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
+      "id": "local-folder-manifest-storage",
+      "status": "implemented",
+      "purpose": "Verify the native SQLite v7 migration over populated v6, frozen lineage, source-qualified locators, original byte reuse, scoped retry, and transactional rollback and recovery.",
+      "platforms": "all",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-persistence",
+        "folder_manifest"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
+      "id": "local-folder-import",
+      "status": "implemented",
+      "purpose": "Exercise checked folder admission, editable stock and futures mappings, raw-only quotes, source lineage, idempotent refresh and schema drift through the built UI, Rust registry, Python parser and SQLite. Verify reviewed conflict choices, withdrawals, interrupted publication and frozen source row reads. The harness supplies a synthetic path to the trusted folder chooser callback. Native Windows shell selection and WebView2 remain separate observations.",
+      "platforms": "all",
+      "command": [
+        "{python}",
+        "scripts/check_local_import_publication.py",
+        "folder-import"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
     },
     {
       "id": "workspace-layout",

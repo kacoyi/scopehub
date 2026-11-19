@@ -46,6 +46,13 @@ class CheckedCsv(TypedDict):
     bars: list[PublishedLocalImportBar]
 
 
+class RawCsvSourceRow(TypedDict):
+    source_sha256: str
+    locator: LocalImportRowLocator
+    header: list[str]
+    raw_fields: list[str]
+
+
 class CsvReviewRequired(ValueError):
     def __init__(self, issue: PreviewIssue, locator: LocalImportRowLocator | None = None) -> None:
         self.issue = issue
@@ -55,6 +62,10 @@ class CsvReviewRequired(ValueError):
 
 class CsvPublicationLimit(ValueError):
     """The file exceeded the complete-file analysis budget."""
+
+
+class CsvSourceRowUnavailable(ValueError):
+    """The requested record cannot be verified against the original CSV."""
 
 
 @dataclass
@@ -81,7 +92,7 @@ def _next_csv_record(rows: Iterator[list[str]]) -> list[str]:
             csv.field_size_limit(previous_limit)
 
 
-def _read_csv(content: bytes, mapping: Mapping[str, object]) -> _CsvRead:
+def _read_csv(content: bytes, mapping: Mapping[str, object], *, normalize_rows: bool = True) -> _CsvRead:
     version, revision = mapping.get('version'), mapping.get('revision')
     result: CsvPreview = {
         'file_sha256': sha256(content).hexdigest(), 'header': [], 'raw_header_text': None,
@@ -146,18 +157,19 @@ def _read_csv(content: bytes, mapping: Mapping[str, object]) -> _CsvRead:
     if decode_failed:
         # The header may be known while decoding the source records still failed.
         return _CsvRead(result)
-    native = native_mapping(mapping, header, issues) if not issues else None
-    selected = set(native.indices.values()) if native is not None else set()
-    result['raw_only_columns'] = [
-        {
-            'column': column,
-            'reason': f'Preserved for review as {role}.' if (role := auxiliary_role(column))
-            else 'No supported bar field is mapped to this column.',
-        }
-        for index, column in enumerate(header) if index not in selected
-    ]
-    if native is not None:
-        result['series'] = native.series
+    native = native_mapping(mapping, header, issues) if normalize_rows and not issues else None
+    if normalize_rows:
+        selected = set(native.indices.values()) if native is not None else set()
+        result['raw_only_columns'] = [
+            {
+                'column': column,
+                'reason': f'Preserved for review as {role}.' if (role := auxiliary_role(column))
+                else 'No supported bar field is mapped to this column.',
+            }
+            for index, column in enumerate(header) if index not in selected
+        ]
+        if native is not None:
+            result['series'] = native.series
 
     def source_records() -> Iterator[PreviewRow]:
         record_number = 0
@@ -197,6 +209,12 @@ def _read_csv(content: bytes, mapping: Mapping[str, object]) -> _CsvRead:
     return _CsvRead(result, source_records(), stream, len(decoded))
 
 
+def _locator(row: PreviewRow) -> LocalImportRowLocator:
+    return {
+        'record_number': row['record_number'], 'line_start': row['line_start'], 'line_end': row['line_end'],
+    }
+
+
 def _no_records() -> PreviewIssue:
     return preview_issue('no_records', None, 'The CSV header is present. Supply a file with data records.')
 
@@ -227,6 +245,37 @@ def preview_csv(content: bytes, mapping: Mapping[str, object], *, row_limit: int
 
 def check_complete_csv(content: bytes, mapping: Mapping[str, object]) -> CheckedCsv:
     """Return a fully parsed, single native series or hold the entire file for review."""
+    return _check_complete_csv(content, mapping, retain_conflicts=False)
+
+
+def inspect_folder_csv(content: bytes, mapping: Mapping[str, object]) -> CheckedCsv:
+    """Report every eligible value and locator for read-only folder review."""
+    return _check_complete_csv(content, mapping, retain_conflicts=True)
+
+
+def read_csv_source_row(content: bytes, mapping: Mapping[str, object], record_number: int) -> RawCsvSourceRow:
+    """Read one logical record with the same CSV rules used at publication."""
+    if len(content) > MAX_FILE_BYTES:
+        raise CsvPublicationLimit
+    if type(record_number) is not int or not 1 <= record_number <= MAX_PUBLICATION_RECORDS:
+        raise ValueError('Invalid source record number')
+    read = _read_csv(content, mapping, normalize_rows=False)
+    if read.result['issues']:
+        raise CsvSourceRowUnavailable
+    for row in read.records:
+        if row['issues']:
+            raise CsvSourceRowUnavailable
+        if row['record_number'] == record_number:
+            return {
+                'source_sha256': read.result['file_sha256'], 'locator': _locator(row),
+                'header': read.result['header'], 'raw_fields': row['raw_fields'],
+            }
+    raise CsvSourceRowUnavailable
+
+
+def _check_complete_csv(
+    content: bytes, mapping: Mapping[str, object], *, retain_conflicts: bool,
+) -> CheckedCsv:
     if len(content) > MAX_FILE_BYTES:
         raise CsvPublicationLimit
     read = _read_csv(content, mapping)
@@ -236,16 +285,16 @@ def check_complete_csv(content: bytes, mapping: Mapping[str, object]) -> Checked
     series, version, revision = meta['series'], meta['mapping_version'], meta['mapping_revision']
     assert series is not None and version is not None and revision is not None
 
-    bars: dict[int, PublishedLocalImportBar] = {}
+    bars: dict[
+        int, dict[tuple[str, float, float, float, float, float | None, bool], PublishedLocalImportBar],
+    ] = {}
     first_symbol = None
     record_count = 0
     for row in read.records:
         record_count = row['record_number']
         if record_count > MAX_PUBLICATION_RECORDS:
             raise CsvPublicationLimit
-        locator: LocalImportRowLocator = {
-            'record_number': record_count, 'line_start': row['line_start'], 'line_end': row['line_end'],
-        }
+        locator = _locator(row)
         if row['issues']:
             raise CsvReviewRequired(row['issues'][0], locator)
         symbol, bar = row['symbol'], row['normalized']
@@ -255,17 +304,22 @@ def check_complete_csv(content: bytes, mapping: Mapping[str, object]) -> Checked
         elif symbol != first_symbol:
             issue = preview_issue('multiple_symbols', 'symbol', 'This file contains multiple symbols. Review a file with one native bar series.')
             raise CsvReviewRequired(issue, locator)
-        if prior := bars.get(bar['time_ms']):
-            if prior['bar'] != bar:
-                issue = preview_issue('conflicting_bar', 'timestamp', 'This row disagrees with another bar at the same start time. Review the competing source records.')
-                raise CsvReviewRequired(issue, locator)
+        at_time = bars.setdefault(bar['time_ms'], {})
+        values = (
+            bar['trading_day'], bar['open'], bar['high'], bar['low'], bar['close'],
+            bar['volume'], bar['is_closed'],
+        )
+        if prior := at_time.get(values):
             prior['locators'].append(locator)
         else:
-            bars[bar['time_ms']] = {'bar': bar, 'locators': [locator]}
+            if at_time and not retain_conflicts:
+                issue = preview_issue('conflicting_bar', 'timestamp', 'This row disagrees with another bar at the same start time. Review the competing source records.')
+                raise CsvReviewRequired(issue, locator)
+            at_time[values] = {'bar': bar, 'locators': [locator]}
     if first_symbol is None:
         raise CsvReviewRequired(_no_records())
     return {
         'file_sha256': meta['file_sha256'], 'mapping_version': version, 'mapping_revision': revision,
         'header': meta['header'], 'series': series, 'symbol': first_symbol, 'source_record_count': record_count,
-        'bars': [bars[timestamp] for timestamp in sorted(bars)],
+        'bars': [entry for timestamp in sorted(bars) for entry in bars[timestamp].values()],
     }

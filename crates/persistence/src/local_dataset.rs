@@ -153,6 +153,24 @@ impl LocalDatasetStore for SqliteWorkspace {
         read_local_dataset(&self.connection, revision_id)
     }
 
+    fn read_local_dataset_original(&self, revision_id: &str) -> Result<Option<Vec<u8>>, Error> {
+        check_revision_id(revision_id)?;
+        self.connection
+            .query_row(
+                "SELECT source.original_bytes FROM local_dataset_revisions AS revision
+                 JOIN local_dataset_source_blobs AS source USING (source_sha256)
+                 WHERE revision.revision_id = ?1
+                   AND NOT EXISTS (
+                       SELECT 1 FROM local_dataset_display_revocations AS revocation
+                       WHERE revocation.revision_id = revision.revision_id
+                   )",
+                [revision_id],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(store_error)
+    }
+
     fn revoke_local_dataset(&mut self, revision_id: &str) -> Result<bool, Error> {
         check_revision_id(revision_id)?;
         let transaction = self
@@ -180,7 +198,7 @@ impl LocalDatasetStore for SqliteWorkspace {
     }
 }
 
-fn check_revision_id(revision_id: &str) -> Result<(), Error> {
+pub(super) fn check_revision_id(revision_id: &str) -> Result<(), Error> {
     if !Uuid::parse_str(revision_id).is_ok_and(|id| id.to_string() == revision_id) {
         return Err(failure(ErrorCode::INVALIDARGUMENT));
     }
@@ -202,7 +220,11 @@ pub(super) fn display_allowed(connection: &Connection, revision_id: &str) -> Res
         .map_err(store_error)
 }
 
-fn retain_original(connection: &Connection, digest: &str, original: &[u8]) -> Result<(), Error> {
+pub(super) fn retain_original(
+    connection: &Connection,
+    digest: &str,
+    original: &[u8],
+) -> Result<(), Error> {
     let identical: Option<bool> = connection
         .query_row(
             "SELECT original_bytes = ?2 FROM local_dataset_source_blobs WHERE source_sha256 = ?1",
@@ -233,7 +255,8 @@ pub(super) fn read_local_dataset(
         .query_row(
             "SELECT revision.relative_path, revision.source_sha256, revision.mapping_sha256,
                     revision.review_revision,
-                    CASE WHEN revocation.revision_id IS NULL THEN revision.content_json END
+                    CASE WHEN revocation.revision_id IS NULL THEN revision.content_json END,
+                    revision.source_key
              FROM local_dataset_revisions AS revision
              LEFT JOIN local_dataset_display_revocations AS revocation USING (revision_id)
              WHERE revision.revision_id = ?1",
@@ -245,17 +268,19 @@ pub(super) fn read_local_dataset(
                     row.get::<_, String>(2)?,
                     revision(row, 3)?,
                     row.get::<_, Option<String>>(4)?,
+                    row.get::<_, String>(5)?,
                 ))
             },
         )
         .optional()
         .map_err(store_error)?;
     row.map(
-        |(relative_path, source_sha256, mapping_sha256, review_revision, content)| {
+        |(relative_path, source_sha256, mapping_sha256, review_revision, content, source_key)| {
             let content = content.ok_or_else(|| failure(ErrorCode::PERMISSIONDENIED))?;
             let content =
                 serde_json::from_str(&content).map_err(|_| failure(ErrorCode::INTERNALERROR))?;
             Ok(StoredLocalDataset {
+                source_key,
                 revision_id: revision_id.to_owned(),
                 relative_path,
                 source_sha256,

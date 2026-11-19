@@ -1310,8 +1310,12 @@
       "observation": "The real shared selection advanced to interval A at selection revision 1 while the workspace revision stayed 0. An authenticated generic AI command using those revisions committed the main-chart timeframe at workspace revision 1 despite missing the selected interval's local analysis grant. The operations-workflow regression now requires a denial with no operation or replay row. A separately authorized on-device intent for B can commit through the same registry.",
       "severity": "major",
       "status": "open",
-      "task_ids": ["M2-001"],
-      "regression_checks": ["operations-workflow"],
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "operations-workflow"
+      ],
       "resolution": null,
       "deferral_reason": null
     },
@@ -1366,7 +1370,7 @@
     },
     {
       "id": "windows-idle-local-source-sharing",
-      "source": "Hosted Windows run 44563163301 rust-contracts-workers and independent standard-user Win11 MSVC measurements in .reports/windows-source-sharing/measured/CHANGES.JSON and PINS.JSON.",
+      "source": "Hosted Windows run 44563163301 rust-contracts-workers and independent standard-user Win11 MSVC measurements in .reports/windows-source-sharing/measured/CHANGES.JSON and PINS.JSON. The native Windows follow-up at 875f5e0 is recorded in contracts/reviews/2026-11-19-windows-folder-refresh-source-handles.json.",
       "observation": "The native bridge replay tests failed at bridge_tests.rs:523 and :608 with Win32 error 32. The independent desktop matrix reproduced error 32 for direct-child rename and atomic replacement after selection, preview and publication. Both succeeded before selection and after exit. The isolated handle matrix reproduced the failure with read-only sharing on the selected directory and distinguished that from the expected protection of a file currently being verified.",
       "severity": "major",
       "status": "open",
@@ -1446,6 +1450,69 @@
       ],
       "regression_checks": [
         "local-import-publication"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "folder-refresh-explicit-declaration-drift",
+      "source": "Independent Herdr review t46 at 875f5e0716ec7c53583d9b5d883d70d89f441135 with synthetic CSVs and an in-memory render. A matching integrated Chromium regression failed against f666d83 and passed on the corrected source. Retained results and the pre-fix test patch are under .reports/folder-preview-review/.",
+      "observation": "Same-header, same-symbol CSVs with identical OHLCV and declarations of shares/raw, lots/raw and shares/split_adjusted all normalized as shares/raw without diagnostics through the public CSV parser.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "local-folder-refresh-preview"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "folder-refresh-same-file-competing-values-hidden",
+      "source": "Independent Herdr review t46 at 875f5e0716ec7c53583d9b5d883d70d89f441135 with synthetic CSVs and an in-memory render. A matching integrated Chromium regression failed against f666d83 and passed on the corrected source. Retained results and the pre-fix test patch are under .reports/folder-preview-review/.",
+      "observation": "The complete checker held a two-row correction file with closes 6 and 7 at the accepted close 5, reporting the second conflicting row. In the refresh comparator the held file supplied no alternatives, leaving the accepted overlap labeled unchanged.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "local-folder-refresh-preview"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "folder-refresh-missing-series-units",
+      "source": "Independent Herdr review t46 at 875f5e0716ec7c53583d9b5d883d70d89f441135 with synthetic CSVs and an in-memory render. A matching integrated Chromium regression failed against f666d83 and passed on the corrected source. Retained results and the pre-fix test patch are under .reports/folder-preview-review/.",
+      "observation": "The preview response includes the saved venue, quantity unit and price adjustment, but rendering the comparison at the reviewed commit showed a bare volume value and omitted the series declarations.",
+      "severity": "minor",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "local-folder-refresh-preview"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-revision-library-during-native-workspace-startup",
+      "source": "Standard-user Windows 11 WebView2 on commit 3bad802 after publishing and reopening the same synthetic profile.",
+      "observation": "Opening the revision browser during profile startup returned retryable BUSY for both the single-file and folder lists. The dialog showed a generic read failure. A direct folder list still returned BUSY at 3329 ms and returned the two retained revisions at 4204 ms. An explicit refresh then restored the priced parent and the fully withdrawn child. Reopening the priced revision recovered both line 3 locators and close 104. Revoking its display access left the empty child usable.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "local-import-ui",
+        "local-folder-refresh-preview"
       ],
       "resolution": null,
       "deferral_reason": null

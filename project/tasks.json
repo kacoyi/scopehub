@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-001",
+  "focus_task_id": "M1-008",
   "tasks": [
     {
       "id": "M0-001",
@@ -2745,7 +2745,8 @@
         "0005",
         "0008",
         "0013",
-        "0014"
+        "0014",
+        "0015"
       ],
       "acceptance": [
         "Read only the selected scope. Show raw and normalized rows and a chart preview for equity and futures bar examples with different headers, encodings, units and date conventions. A manual mapping works offline.",
@@ -2758,6 +2759,8 @@
         "chart-history",
         "local-folder-import",
         "local-import-publication",
+        "local-folder-refresh-preview",
+        "local-folder-manifest-storage",
         "project-state",
         "python-contracts-workers",
         "architecture",
@@ -2772,11 +2775,11 @@
         "local-import-ui"
       ],
       "evidence": [],
-      "next_action": "Verify the joined library, recovery and source-sharing implementation. The 150d62d native Windows report confirms ordinary external file updates through idle selection, preview, publication and exit. Complete reviewed multi-file overlap, atomic publication and withdrawal with checked directory membership and frozen prior revisions.",
+      "next_action": "Review the joined portable local-folder-import evidence with the separate native Windows shell-picker and WebView2 observations. Qualify the native library startup, explicit review and interrupted publication, restart, and inspection of frozen single-file and folder source locators.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
-        "outcome": "A person chooses a local CSV directory, reviews the actual rows and explicit mapping offline, then publishes a traceable equity or futures series to the chart. External editors can save, replace, add and remove files while the selection is idle. Compatible refreshes preserve the accepted mapping and earlier snapshots. After restart, the person can browse displayable revisions for the active profile and explicitly reopen a frozen chart without a folder selection or a memorized ID.",
+        "outcome": "A person chooses a local CSV directory, reviews the actual rows and explicit mapping offline, then publishes a traceable equity or futures series to the chart. External editors can save, replace, add and remove files while the selection is idle. Compatible refreshes preserve the accepted mapping and earlier snapshots. After restart, the person can browse displayable revisions for the active profile and explicitly reopen a frozen chart without a folder selection or a memorized ID. From the chart, the person can inspect the original decoded fields at a selected published locator, including records outside the preview.",
         "change_types": [
           "market-fixtures",
           "ui",
@@ -2803,7 +2806,9 @@
           "crates/worker-host/src/local_import.rs",
           "crates/worker-host/src/local_import_windows.rs",
           "contracts/reviews/2026-11-19-windows-published-revision-library.json",
-          "contracts/reviews/2026-11-19-windows-readable-csv-revisions.json"
+          "contracts/reviews/2026-11-19-windows-readable-csv-revisions.json",
+          "contracts/decisions/0015-immutable-local-folder-manifests.json",
+          "crates/persistence/src/chart_evidence.sql"
         ],
         "hypotheses": [
           "Explicit source mappings can normalize native OHLCV bars without inferring a price, volume unit or session from ambiguous financial fields. File identities and row locators can connect every accepted row to its original input.",
@@ -2816,7 +2821,12 @@
           "A bounded keyset projection from the existing v5 revision and revocation tables can show distinguishing source and series summaries without reading the original CSV blob or granting source access. Existing frozen reads can recheck entitlement for every selection.",
           "A single replacement can complete a pure preview on already-frozen bytes after the first worker misses its deadline, when the first worker has been reaped and the selection remains current.",
           "An opt-in list projection of the stored venue, the first and final bars' trading days, and the final bar's close lets a person distinguish same-name corrections such as 305 and 304 before opening either chart. The bar dates describe chart endpoints and carry no publication chronology.",
-          "A metadata-only Windows handle with full sharing can retain the selected directory identity while idle. A short operation can reopen and pin the non-reparse chain, compare identities, then verify source bytes through final commit."
+          "A metadata-only Windows handle with full sharing can retain the selected directory identity while idle. A short operation can reopen and pin the non-reparse chain, compare identities, then verify source bytes through final commit.",
+          "The source identity stored by v5 and its accepted relative path can prove the selected folder even when the original file is absent. A fresh read-only scan can use that live grant and the exact retained mapping without persisting a grant or changing the accepted chart.",
+          "An additive v7 manifest anchored to a known v5 mapping can retain complete reviewed membership and source-qualified locators. One guarded transaction can write the revision, deduplicated original bytes and the scoped retry receipt without updating the accepted parent.",
+          "The retained original bytes and exact reviewed parser settings can independently recover unmapped fields for one validated frozen row. The portable Chromium baseline at 73fd6c0 reopened a synthetic revision after renaming the source folder and displayed record 502 at physical lines 504–505 without an inspection control.",
+          "A private comparison can bind exact user choices to a canonical candidate digest without proving a write. The dedicated durable receipt then proves the chosen manifest and can replay under a matching live root without rereading files.",
+          "The folder source qualified locator, retained file digest and historical anchor mapping can recover one selected raw record through the existing worker. The portable browser can exercise actual Rust picker admission with a supplied synthetic path while the native shell dialog is observed separately."
         ],
         "risks": [
           {
@@ -2938,6 +2948,57 @@
               "local-folder-import",
               "local-import-publication"
             ]
+          },
+          {
+            "failure": "Traversal order chooses an economic correction, aliases lose source row locators, a different directory is accepted as the original, or staged failures or cancellation change the frozen revision.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-folder-refresh-preview"
+            ]
+          },
+          {
+            "failure": "A partial migration changes populated v6 state, a failed or interrupted v7 write leaks staged originals, or a changed retry key discloses or duplicates a revision. Verify the preserved v6 backup and operation receipts, staged transaction rollback, profile isolation and display revocation after reopen.",
+            "checks": [
+              "local-folder-manifest-storage",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An explicitly incompatible unit or price adjustment is overwritten by the saved mapping, then merged into an economically different accepted bar.",
+            "checks": [
+              "python-contracts-workers",
+              "local-folder-refresh-preview"
+            ]
+          },
+          {
+            "failure": "The complete check discards same-file competing prices and their locators, leaving the accepted timestamp labeled unchanged.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-folder-refresh-preview"
+            ]
+          },
+          {
+            "failure": "A person reviewing differing values cannot see the declared quantity unit, venue or price adjustment in the comparison.",
+            "checks": [
+              "local-folder-refresh-preview"
+            ]
+          },
+          {
+            "failure": "An ordinal or quote boundary mismatch returns a different original record, a raw settlement is confused with normalized close, or a delayed response discloses stale or revoked fields. Verify exact fields, full locators, output size, stale selection, restart, and peer revocation with the portable Rust, Python, SQLite, and Chromium path.",
+            "checks": [
+              "local-import-publication",
+              "local-folder-import",
+              "rust-contracts-workers",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A changed file or directory, ambiguous review, lost reply, result revocation or partial SQLite commit publishes or exposes an unauthorized folder revision. Exercise prompt cancellation, recheck of complete digests and membership, exact replay and re-open with no folder grant.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-folder-import",
+              "local-folder-manifest-storage"
+            ]
           }
         ],
         "rollback": "Keep the accepted mapping, immutable source identities and last published revision while staging changes. Rejected rows and unsupported files remain inspectable in the selected local session. Stage a mapping version in the current SQLite transaction and roll it back if cancellation or source revocation wins before commit. Keep the previous reviewed version available after failures. The library is a read-only projection. Its refresh can restart from the first page and the existing direct-ID read remains available if listing fails.",
@@ -2972,7 +3033,18 @@
             "apps/desktop/ui/src/local-revision-dialog.tsx",
             "crates/worker-host/src/local_import_windows.rs",
             "crates/platform/src/local_folder/platform_fs.rs",
-            "crates/platform/tests/local_folder.rs"
+            "crates/platform/tests/local_folder.rs",
+            "apps/desktop/src-tauri/src/local_import/folder_refresh.rs",
+            "apps/desktop/ui/src/folder-refresh-review.tsx",
+            "crates/application/src/folder_refresh.rs",
+            "crates/application/src/folder_manifest.rs",
+            "crates/persistence/src/folder_manifest.rs",
+            "crates/persistence/src/folder_manifest.sql",
+            "python/providers/csv_bar_mapping.py",
+            "apps/desktop/ui/src/local-preview-chart.tsx",
+            "tests/ui/local-import.spec.mjs",
+            "crates/application/src/folder_publication.rs",
+            "scripts/check_local_import_publication.py"
           ],
           "rules": [
             {
@@ -2994,26 +3066,42 @@
             {
               "path": "engineering-contract-v1.json",
               "pointer": "/authorization/replay"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/product/data_onboarding/refresh_conflicts"
+            },
+            {
+              "path": "contracts/decisions/0014-local-folder-operation-handles.json",
+              "pointer": "/decision"
+            },
+            {
+              "path": "contracts/decisions/0015-immutable-local-folder-manifests.json",
+              "pointer": "/decision"
             }
           ],
           "non_goals": [
             "Remote data channels, cloud transmissions, inferred settlement/trade conversions and the separate real-provider connection workflow.",
             "First publication and explicit compatible replacement cover one selected file and one fully resolved native bar series. No persistent folder grant is issued.",
-            "Revision discovery uses v5 snapshots and does not add a migration, change folder access, implement folder-wide refresh or make network requests.",
-            "Repair replay and selected-folder sharing on the current schema v5. Coordinate the checked directory interface with the separately implemented folder review and manifest."
+            "The single-file library reads v5 snapshots alongside the v7 folder library. Neither library preserves a native directory grant or makes network requests.",
+            "Repair replay and selected-folder sharing on the current schema v5. Coordinate the checked directory interface with the separately implemented folder review and manifest.",
+            "Use the existing v7 schema and local profile writer. Keep existing v5 library and shared chart selection behavior. Private records and cross-branch integration belong to their own work.",
+            "Frozen source row inspection remains local human display within the revision entitlement. No new grant or model and external authority changes. The portable gate uses a trusted synthetic path chooser callback and covers native picker admission, registry dispatch, worker execution and profile storage."
           ],
           "open_questions": [
-            "Stage added files and detect byte-identical aliases within a folder without treating an alias as new economic events. Preserve all contributing source locators and prove results are independent of folder enumeration order.",
-            "Hold changed headers, mixed series and competing corrections for review. Support explicit multi-file replacement and missing-file withdrawal with a complete reviewed manifest, atomic publication and restart/retry evidence.",
+            "Compare canonical source membership, alias locators and explicit conflict and withdrawal choices across native Windows and portable release candidates.",
+            "A dedicated trade classification and derived snapshot candles require their own validated source semantics. The current native-bar workflow keeps quote snapshots and unclassified records raw.",
             "Verify that a person can select each same-name revision by its final close in the native Windows library. Use the stored trading days and venue as context and retain the source digest when the visible market summaries are equal.",
-            "Verify the picker, publication, migration and frozen chart path in the native Windows application."
+            "Verify the picker, publication, migration and frozen chart path in the native Windows application.",
+            "Qualify large directory and source record limits in the native review workflow, including partial-coverage diagnostics."
           ]
         },
         "evolution": {
           "kind": "additive",
           "preserve": [
             "Explicit sample selection, source identity, original frozen historical reads and source rights.",
-            "Direct revision-ID opening and its unavailable and denied results."
+            "Direct revision-ID opening and its unavailable and denied results.",
+            "The normalized chart, original source bytes, and reviewed encoding, delimiter, and logical CSV record boundaries remain immutable for each single-file revision."
           ],
           "change": [
             "Add a separately authorized local-folder source with reviewable versioned mappings and snapshots.",
@@ -3028,10 +3116,16 @@
             "Add an explicit, human-only paginated library in Open published CSV. List entitled revisions in stable revision-ID order and read the selected frozen chart through the existing operation.",
             "Retry only a pure local preview once after a five-second worker timeout and confirmed cleanup. Reuse the frozen bytes, fingerprint and mapping, preserve caller deadlines, and stop on a second timeout.",
             "Targeted verification passed on the standard-user Win11 MSVC archive 255ae9138f7a with 16 local-import controls and one separate ownership run. Independent Linux archive a377f77d50d3 passed 12 controls. ADR 0013 records artifact hashes and scope. The phase and cause of the original GUI timeout remain unknown.",
-            "Release strict native directory and file handles after each filesystem operation. Revalidate the selected root and catalogued subdirectory identities under checked traversal before using a path. An exact committed replay still uses the grant and display rights without rereading the source."
+            "Release strict native directory and file handles after each filesystem operation. Revalidate the selected root and catalogued subdirectory identities under checked traversal before using a path. An exact committed replay still uses the grant and display rights without rereading the source.",
+            "Stage a deterministic folder comparison against the immutable accepted v5 single-file revision. Apply the versioned saved mapping only when the ordered header and resolved series agree. Coalesce identical economic bars with every locator and preserve divergent alternatives and the prior bar for review. Show source replacement and withdrawal candidates without committing any.",
+            "Add the v7 owned storage and ordered migration. Bind each accepted folder revision to its v5 anchor, persist reviewed source membership and every selected locator, and store an exact retry receipt in the same SQLite transaction.",
+            "Check explicit per-row quantity unit, price adjustment and venue declarations against the reviewed mapping. Use private complete-source inspection to retain all same-file competing values and source locators. Show the reviewed series context with the comparison and keep strict normalization for single-file publication.",
+            "Bind explicit conflict choices and source and bar withdrawals to a private review. Publish a canonical chosen manifest under the final checked native handles, then return entitled exact receipts. Add frozen folder discovery, chart and source inspection, and independent display revocation through the existing local human workflow.",
+            "Resolve one published source locator through the current profile and revision display entitlement. Parse retained bytes using the historical reviewed mapping, validate the returned digest, locator and header, and return original decoded fields within 64 KiB. Qualify both frozen presenters with their own source revision scope.",
+            "The local-folder-import gate exercises editable, genuinely parsed equity and futures CSVs, distinguishes declared dated and continuous native sources, and holds raw-only and incompatible inputs. It drives reviewed addition, aliases, correction, withdrawal, exact reply replay, final-source rejection and host interruption through the built desktop UI and retained profile. Isolate it from single-file publication, read-only folder staging and the SQLite crash-in-transaction control."
           ],
-          "data_plan": "Keep source bytes, mapping, evidence locators and dataset revisions on the active profile. Migrate long-lived state through its owning Rust writer when publication is introduced. Integrate the profile writer and migration history from af89eff. Preserve workspace schema v1, decision notes v2 and backup and restore v3. Apply reviewed mapping schema v4 transactionally and verify both populated v3 databases and fresh initialization. Persist an opaque per-source association, ordered header digest and reviewed mapping. Derive folder access only from the current trusted selection. Add a transactional v4 to v5 migration owned by the existing profile writer. Test upgrade with populated workspace, decision-note and reviewed mapping data, plus new and reopened profiles. A failed or cancelled publication leaves previous revisions readable without rereading the folder. Recover a failed migration from the preserved pre-upgrade profile. Discover from existing immutable v5 records and revocation markers with no new persisted state.",
-          "cleanup": "Cancel uncommitted staging on failure and close file handles when the selected folder or profile changes. Close the profile writer and cancel uncommitted mapping operations when the host shuts down. Release any uncommitted complete-file data after cancellation, changed bytes or write failure. Discard stale list pages on refresh and remove inaccessible entries after a raced selection. Keep the worker admission permit through the bounded cleanup. A failed cleanup never authorizes a replacement."
+          "data_plan": "Keep source bytes, mapping, evidence locators and dataset revisions on the active profile. Migrate long-lived state through its owning Rust writer when publication is introduced. Integrate the profile writer and migration history from af89eff. Preserve workspace schema v1, decision notes v2 and backup and restore v3. Apply reviewed mapping schema v4 transactionally and verify both populated v3 databases and fresh initialization. Persist an opaque per-source association, ordered header digest and reviewed mapping. Derive folder access only from the current trusted selection. Add a transactional v4 to v5 migration owned by the existing profile writer. Test upgrade with populated workspace, decision-note and reviewed mapping data, plus new and reopened profiles. A failed or cancelled publication leaves previous revisions readable without rereading the folder. Recover a failed migration from the preserved pre-upgrade profile. Discover from existing immutable v5 records and revocation markers with no new persisted state. The read-only folder preview compares those same immutable publications in the joined v6 profile. Folder manifest persistence starts with the v7 migration. Apply v7 as additive schema in the existing immediate migration transaction, with no fabricated folder history for old single-file revisions. Exercise a populated v6 profile and an untouched recovery copy. Keep folder ownership local and store neither directory grants nor absolute source paths. Read frozen raw fields on demand from existing single-file and folder lineage. Retain no new copies in storage or shared workspace records.",
+          "cleanup": "Cancel uncommitted staging on failure and close file handles when the selected folder or profile changes. Close the profile writer and cancel uncommitted mapping operations when the host shuts down. Release any uncommitted complete-file data after cancellation, changed bytes or write failure. Discard stale list pages on refresh and remove inaccessible entries after a raced selection. Keep the worker admission permit through the bounded cleanup. A failed cleanup never authorizes a replacement. Release the private staged files and cancel the current scan or parser on directory grant change or cancellation. The frozen source and its original remain available under existing display rights. Roll back uncommitted v7 rows, shared byte insertions and receipts on cancellation, stale guard, or abrupt process exit. Drop the transient source row on collapse, page change, replacement, or revocation. A failed read leaves the revision and its normalized chart intact."
         }
       }
     },

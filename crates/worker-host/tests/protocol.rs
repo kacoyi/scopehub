@@ -104,6 +104,30 @@ fn shared_vectors_and_generated_types_agree() {
                 Message::ReadLocalImportRevisionRequest(_) => {
                     requests.insert("market.readLocalImportRevision");
                 }
+                Message::ReadLocalImportSourceRowRequest(_) => {
+                    requests.insert("market.readLocalImportSourceRow");
+                }
+                Message::PreviewLocalFolderRefreshRequest(_) => {
+                    requests.insert("market.previewLocalFolderRefresh");
+                }
+                Message::PrepareLocalFolderPublicationRequest(_) => {
+                    requests.insert("market.prepareLocalFolderPublication");
+                }
+                Message::PublishLocalFolderRefreshRequest(_) => {
+                    requests.insert("market.publishLocalFolderRefresh");
+                }
+                Message::ListLocalFolderRevisionsRequest(_) => {
+                    requests.insert("market.listLocalFolderRevisions");
+                }
+                Message::ReadLocalFolderRevisionRequest(_) => {
+                    requests.insert("market.readLocalFolderRevision");
+                }
+                Message::ReadLocalFolderSourceRowRequest(_) => {
+                    requests.insert("market.readLocalFolderSourceRow");
+                }
+                Message::RevokeLocalFolderRevisionRequest(_) => {
+                    requests.insert("market.revokeLocalFolderRevision");
+                }
                 Message::RevokeLocalImportRevisionRequest(_) => {
                     requests.insert("market.revokeLocalImportRevision");
                 }
@@ -165,6 +189,14 @@ fn shared_vectors_and_generated_types_agree() {
                         | "market.publishLocalImport"
                         | "market.listLocalImportRevisions"
                         | "market.readLocalImportRevision"
+                        | "market.readLocalImportSourceRow"
+                        | "market.previewLocalFolderRefresh"
+                        | "market.prepareLocalFolderPublication"
+                        | "market.publishLocalFolderRefresh"
+                        | "market.listLocalFolderRevisions"
+                        | "market.readLocalFolderRevision"
+                        | "market.readLocalFolderSourceRow"
+                        | "market.revokeLocalFolderRevision"
                         | "market.revokeLocalImportRevision"
                 )
             ) {

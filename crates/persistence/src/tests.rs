@@ -1067,8 +1067,18 @@ fn key<'a>(operation: &'a str, idempotency_key: &'a str) -> WorkspaceReplayKey<'
     }
 }
 
+fn current_ledger() -> Vec<i64> {
+    (INITIAL_SCHEMA_VERSION..=SCHEMA_VERSION).collect()
+}
+
 #[path = "reviewed_mapping_tests.rs"]
 mod reviewed_mapping_tests;
 
 #[path = "local_dataset_tests.rs"]
 mod local_dataset_tests;
+
+#[path = "folder_manifest_migration_tests.rs"]
+mod folder_manifest_migration_tests;
+
+#[path = "folder_manifest_tests.rs"]
+mod folder_manifest_tests;

@@ -3,6 +3,7 @@
 mod platform_fs;
 
 use std::{
+    collections::BTreeMap,
     ffi::OsStr,
     fmt,
     fs::{File, Metadata},
@@ -133,6 +134,7 @@ struct FileEntry {
     relative: PathBuf,
     parents: Arc<[FileIdentity]>,
     metadata: FileMetadata,
+    observed: Metadata,
 }
 
 struct Selection {
@@ -140,6 +142,7 @@ struct Selection {
     source_namespace: [u8; 32],
     display_name: String,
     directory: SelectedDirectory,
+    directories: BTreeMap<PathBuf, FileIdentity>,
     files: Vec<FileEntry>,
     revoked: Cancellation,
 }
@@ -188,8 +191,27 @@ impl Selection {
     }
 }
 
-/// Owned by one trusted host session. File reads are identified by a current
-/// folder and its catalog-issued IDs. None of the read methods accept a path.
+/// Private catalog of the selected directory at the start of refresh review.
+pub struct FolderRefreshScan {
+    selection: Arc<Selection>,
+    previous_paths: Vec<PathBuf>,
+    blocked_prior_paths: Vec<String>,
+    directories: BTreeMap<PathBuf, FileIdentity>,
+    files: Vec<FileEntry>,
+}
+
+impl FolderRefreshScan {
+    pub fn files(&self) -> impl Iterator<Item = &FileMetadata> {
+        self.files.iter().map(|entry| &entry.metadata)
+    }
+
+    pub fn blocked_prior_paths(&self) -> impl Iterator<Item = &str> {
+        self.blocked_prior_paths.iter().map(String::as_str)
+    }
+}
+
+/// Owned by one trusted host session. All file reads resolve through the
+/// current native folder selection and its catalog-issued IDs.
 #[derive(Default)]
 pub struct LocalFolderHost {
     active: Mutex<Option<Arc<Selection>>>,
@@ -256,16 +278,10 @@ impl LocalFolderHost {
             .association_path(path)
             .map_err(|_| FolderError::InvalidSelection)?;
         let source_namespace = path_fingerprint(b"scopehub-local-folder-v1", &association);
-        let mut files = Vec::new();
-        let mut visited = 0;
-        scan(
-            &directory,
-            Path::new(""),
-            Arc::from([]),
-            &check,
-            &mut visited,
-            &mut files,
-        )?;
+        let Enumeration {
+            mut files,
+            directories,
+        } = enumerate(&directory, false, None, &check)?;
         files.sort_unstable_by(|left, right| left.relative.cmp(&right.relative));
         let selection = Arc::new(Selection {
             id: FolderId(Uuid::new_v4()),
@@ -275,6 +291,7 @@ impl LocalFolderHost {
                 |name| name.to_string_lossy().into_owned(),
             ),
             directory: selected_directory,
+            directories,
             files,
             revoked: Cancellation::default(),
         });
@@ -334,12 +351,172 @@ impl LocalFolderHost {
             .filter(|selection| selection.id == folder_id)
             .ok_or(FolderError::SelectionUnavailable)?;
         let entry = selection.csv_entry(file_id)?;
-        let relative = path_fingerprint(b"scopehub-local-relative-file-v1", &entry.relative);
-        let mut digest = Sha256::new();
-        digest.update(b"scopehub-local-mapping-source-v1\0");
-        digest.update(selection.source_namespace);
-        digest.update(relative);
-        Ok(format!("{:x}", digest.finalize()))
+        Ok(source_key_for_path(selection, &entry.relative))
+    }
+
+    /// Enumerate the live pinned directory for a private, independent review.
+    /// The saved identity proves the directory association even if the origin
+    /// is absent. Use the requested revision's members to detect opaque paths.
+    pub fn scan_for_refresh<'a>(
+        &self,
+        folder_id: FolderId,
+        accepted_path: &str,
+        accepted_key: &str,
+        previous_paths: impl IntoIterator<Item = &'a str>,
+        cancel: &Cancellation,
+    ) -> Result<FolderRefreshScan, FolderError> {
+        let _admission = self.admit_open(&self.reading)?;
+        let selection = self.selected(folder_id)?;
+        let accepted = Path::new(accepted_path);
+        check_refresh_origin(&selection, accepted, accepted_key)?;
+        let previous_paths = previous_paths
+            .into_iter()
+            .map(PathBuf::from)
+            .collect::<Vec<_>>();
+        let directory = selection.open_directory(cancel)?;
+        let (Enumeration { files, directories }, blocked_prior_paths) = scan_refresh_entries(
+            &selection,
+            &directory,
+            &previous_paths,
+            &selection.directories,
+            cancel,
+        )?;
+        Ok(FolderRefreshScan {
+            selection,
+            previous_paths,
+            blocked_prior_paths,
+            directories,
+            files,
+        })
+    }
+
+    /// Authenticate a receipt's live root association without reading source contents.
+    pub fn verify_refresh_origin(
+        &self,
+        folder_id: FolderId,
+        accepted_path: &str,
+        accepted_key: &str,
+        cancel: &Cancellation,
+    ) -> Result<(), FolderError> {
+        let _admission = self.admit_open(&self.reading)?;
+        let selection = self.selected(folder_id)?;
+        check_refresh_origin(&selection, Path::new(accepted_path), accepted_key)?;
+        let _directory = selection.open_directory(cancel)?;
+        self.with_current(folder_id, || selection.check_live(cancel))?
+    }
+
+    /// Freeze one complete CSV from the staged enumeration without changing
+    /// the original picker catalog or accepting a path from the UI.
+    pub fn read_for_refresh(
+        &self,
+        scan: &FolderRefreshScan,
+        file_id: FileId,
+        cancel: &Cancellation,
+    ) -> Result<FrozenFile, FolderError> {
+        let _admission = self.admit_open(&self.reading)?;
+        let selection = self.selected(scan.selection.id)?;
+        if !Arc::ptr_eq(&selection, &scan.selection) {
+            return Err(FolderError::SelectionUnavailable);
+        }
+        let entry = scan
+            .files
+            .iter()
+            .find(|entry| entry.metadata.file_id == file_id)
+            .ok_or(FolderError::UnknownFile)?;
+        if entry.metadata.kind != FileKind::Csv {
+            return Err(FolderError::UnsupportedFile);
+        }
+        let frozen = read_entry(
+            &selection,
+            entry,
+            None,
+            cancel,
+            ReadMode::Publication,
+            |file, _, checked| {
+                if !same_version(&entry.observed, checked) {
+                    return Err(FolderError::ContentChanged);
+                }
+                Ok(file)
+            },
+        )?;
+        let _active = self.active.lock().map_err(|_| FolderError::Io)?;
+        selection.check_live(cancel)?;
+        Ok(frozen)
+    }
+
+    /// Recheck every staged pathname and each frozen digest against the live
+    /// grant. Keep the verified handles open through the last enumeration and
+    /// while returning a comparison or committing a reviewed revision.
+    pub fn with_verified_refresh_current<T>(
+        &self,
+        scan: &FolderRefreshScan,
+        digests: &[(FileId, String)],
+        cancel: &Cancellation,
+        finish: impl FnOnce() -> T,
+    ) -> Result<T, FolderError> {
+        cancel.check()?;
+        let _admission = self.admit_open(&self.reading)?;
+        let selection = self.selected(scan.selection.id)?;
+        if !Arc::ptr_eq(&selection, &scan.selection) {
+            return Err(FolderError::SelectionUnavailable);
+        }
+        let directory = selection.open_directory(cancel)?;
+        let mut pinned = Vec::with_capacity(digests.len());
+        for (id, digest) in digests {
+            let entry = scan
+                .files
+                .iter()
+                .find(|entry| entry.metadata.file_id == *id)
+                .ok_or(FolderError::UnknownFile)?;
+            let (mut file, pins) = open_entry(&selection, entry, cancel)?;
+            let (_, checked) = read_open_entry(
+                &selection,
+                entry,
+                Some(digest),
+                cancel,
+                ReadMode::Commit,
+                &mut file,
+            )?;
+            if !same_version(&entry.observed, &checked) {
+                return Err(FolderError::ContentChanged);
+            }
+            pinned.push((entry, file, pins, checked));
+        }
+        let (current, blocked_prior_paths) = scan_refresh_entries(
+            &selection,
+            &directory,
+            &scan.previous_paths,
+            &scan.directories,
+            cancel,
+        )?;
+        if blocked_prior_paths != scan.blocked_prior_paths
+            || current.files.len() != scan.files.len()
+            || current
+                .files
+                .iter()
+                .zip(&scan.files)
+                .any(|(current, staged)| {
+                    current.relative != staged.relative
+                        || current.parents != staged.parents
+                        || current.metadata.kind != staged.metadata.kind
+                        || !same_version(&current.observed, &staged.observed)
+                })
+        {
+            return Err(FolderError::ContentChanged);
+        }
+        self.with_current(selection.id, || {
+            // POSIX allows relinking open objects. Reopen through the selected
+            // ancestry and compare handle identity, not just cached metadata.
+            let _current_root = selection.open_directory(cancel)?;
+            let mut current_pins = Vec::with_capacity(pinned.len());
+            for (entry, checked_file, _pins, checked_metadata) in &pinned {
+                let (current_file, pins) = open_entry(&selection, entry, cancel)?;
+                verify_current_file(checked_file, checked_metadata, &current_file)?;
+                current_pins.push((current_file, pins));
+            }
+            selection.check_live(cancel)?;
+            Ok(finish())
+        })?
     }
 
     /// Hash the complete opened file and freeze the very same bytes when within
@@ -428,15 +605,7 @@ impl LocalFolderHost {
             |_, checked_file, checked_metadata| {
                 self.with_current(folder_id, || {
                     let (current, _pins) = open_entry(&selection, entry, cancel)?;
-                    if file_identity(checked_file).map_err(|_| FolderError::Io)?
-                        != file_identity(&current).map_err(|_| FolderError::Io)?
-                        || !same_version(
-                            checked_metadata,
-                            &current.metadata().map_err(|_| FolderError::Io)?,
-                        )
-                    {
-                        return Err(FolderError::ContentChanged);
-                    }
+                    verify_current_file(checked_file, checked_metadata, &current)?;
                     cancel.check()?;
                     Ok(commit())
                 })?
@@ -460,6 +629,26 @@ enum ReadMode {
     Preview,
     Publication,
     Commit,
+}
+
+fn source_key_for_path(selection: &Selection, path: &Path) -> String {
+    let mut digest = Sha256::new();
+    digest.update(b"scopehub-local-mapping-source-v1\0");
+    digest.update(selection.source_namespace);
+    digest.update(path_fingerprint(b"scopehub-local-relative-file-v1", path));
+    format!("{:x}", digest.finalize())
+}
+
+fn check_refresh_origin(selection: &Selection, path: &Path, key: &str) -> Result<(), FolderError> {
+    if path.as_os_str().is_empty()
+        || !path
+            .components()
+            .all(|part| matches!(part, Component::Normal(_)))
+        || source_key_for_path(selection, path) != key
+    {
+        return Err(FolderError::InvalidSelection);
+    }
+    Ok(())
 }
 
 fn path_fingerprint(domain: &[u8], path: &Path) -> [u8; 32] {
@@ -493,76 +682,211 @@ fn admit(slot: &Mutex<()>) -> Result<MutexGuard<'_, ()>, FolderError> {
     })
 }
 
-fn scan(
+#[derive(Default)]
+struct Enumeration {
+    files: Vec<FileEntry>,
+    directories: BTreeMap<PathBuf, FileIdentity>,
+}
+
+struct Scanner<'a, F> {
+    check: &'a F,
+    include_csv_directories: bool,
+    expected_directories: Option<&'a BTreeMap<PathBuf, FileIdentity>>,
+    visited: usize,
+    entries: Enumeration,
+}
+
+fn enumerate(
     directory: &Directory,
-    parent: &Path,
-    parents: Arc<[FileIdentity]>,
+    include_csv_directories: bool,
+    expected_directories: Option<&BTreeMap<PathBuf, FileIdentity>>,
     check: &impl Fn() -> Result<(), FolderError>,
-    visited: &mut usize,
-    files: &mut Vec<FileEntry>,
-) -> Result<(), FolderError> {
-    check()?;
-    for entry in directory.read_dir().map_err(|_| FolderError::Io)? {
-        check()?;
-        *visited += 1;
-        if *visited > MAX_CATALOG_ENTRIES {
-            return Err(FolderError::CatalogLimit);
-        }
-        let entry = entry.map_err(|_| FolderError::Io)?;
-        let name = entry.file_name();
-        let relative = parent.join(&name);
-        let metadata = entry.metadata().map_err(|_| FolderError::Io)?;
-        let redirect = is_redirect(&metadata);
-        let kind = if redirect || name.to_str().is_none() {
-            FileKind::UnsupportedEntry
-        } else if metadata.is_dir() {
-            if parents.len() == MAX_DIRECTORY_DEPTH {
+) -> Result<Enumeration, FolderError> {
+    let mut scanner = Scanner {
+        check,
+        include_csv_directories,
+        expected_directories,
+        visited: 0,
+        entries: Enumeration::default(),
+    };
+    scanner.scan(directory, Path::new(""), Arc::from([]))?;
+    Ok(scanner.entries)
+}
+
+impl<F: Fn() -> Result<(), FolderError>> Scanner<'_, F> {
+    fn scan(
+        &mut self,
+        directory: &Directory,
+        parent: &Path,
+        parents: Arc<[FileIdentity]>,
+    ) -> Result<(), FolderError> {
+        (self.check)()?;
+        for entry in directory.read_dir().map_err(|_| FolderError::Io)? {
+            (self.check)()?;
+            self.visited += 1;
+            if self.visited > MAX_CATALOG_ENTRIES {
                 return Err(FolderError::CatalogLimit);
             }
-            let child = directory
-                .open_directory(&name)
-                .map_err(|_| FolderError::Io)?;
-            let mut child_parents = parents.to_vec();
-            child_parents.push(child.identity().map_err(|_| FolderError::Io)?);
-            scan(
-                &child,
-                &relative,
-                child_parents.into(),
-                check,
-                visited,
-                files,
-            )?;
-            continue;
-        } else if !metadata.is_file() {
-            FileKind::UnsupportedEntry
-        } else if relative
-            .extension()
-            .and_then(OsStr::to_str)
-            .is_some_and(|extension| extension.eq_ignore_ascii_case("csv"))
-        {
-            FileKind::Csv
-        } else {
-            FileKind::UnsupportedExtension
-        };
-        files.push(FileEntry {
-            metadata: FileMetadata {
-                file_id: FileId(Uuid::new_v4()),
-                relative_path: relative
-                    .iter()
-                    .map(|part| part.to_string_lossy())
-                    .collect::<Vec<_>>()
-                    .join("/"),
-                display_name: name.to_string_lossy().into_owned(),
-                byte_count: if metadata.is_file() && !redirect {
-                    metadata.len()
-                } else {
-                    0
+            let entry = entry.map_err(|_| FolderError::Io)?;
+            let name = entry.file_name();
+            let relative = parent.join(&name);
+            let metadata = entry.metadata().map_err(|_| FolderError::Io)?;
+            let redirect = is_redirect(&metadata);
+            let kind = if redirect || name.to_str().is_none() {
+                FileKind::UnsupportedEntry
+            } else if metadata.is_dir() {
+                if parents.len() == MAX_DIRECTORY_DEPTH {
+                    return Err(FolderError::CatalogLimit);
+                }
+                let child = directory
+                    .open_directory(&name)
+                    .map_err(|_| FolderError::Io)?;
+                let identity = child.identity().map_err(|_| FolderError::Io)?;
+                if self
+                    .expected_directories
+                    .and_then(|directories| directories.get(&relative))
+                    .is_some_and(|expected| *expected != identity)
+                {
+                    return Err(FolderError::ContentChanged);
+                }
+                let mut child_parents = parents.to_vec();
+                child_parents.push(identity);
+                self.entries.directories.insert(relative.clone(), identity);
+                self.scan(&child, &relative, child_parents.into())?;
+                if !self.include_csv_directories || !is_csv_path(&relative) {
+                    continue;
+                }
+                FileKind::UnsupportedEntry
+            } else if !metadata.is_file() {
+                FileKind::UnsupportedEntry
+            } else if is_csv_path(&relative) {
+                FileKind::Csv
+            } else {
+                FileKind::UnsupportedExtension
+            };
+            self.entries.files.push(FileEntry {
+                metadata: FileMetadata {
+                    file_id: FileId(Uuid::new_v4()),
+                    relative_path: relative
+                        .iter()
+                        .map(|part| part.to_string_lossy())
+                        .collect::<Vec<_>>()
+                        .join("/"),
+                    display_name: name.to_string_lossy().into_owned(),
+                    byte_count: if metadata.is_file() && !redirect {
+                        metadata.len()
+                    } else {
+                        0
+                    },
+                    kind,
                 },
-                kind,
-            },
-            relative,
-            parents: Arc::clone(&parents),
-        });
+                relative,
+                observed: metadata,
+                parents: Arc::clone(&parents),
+            });
+        }
+        Ok(())
+    }
+}
+
+fn is_csv_path(path: &Path) -> bool {
+    path.extension()
+        .and_then(OsStr::to_str)
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("csv"))
+}
+
+fn scan_refresh_entries(
+    selection: &Selection,
+    directory: &Directory,
+    previous_paths: &[PathBuf],
+    expected_directories: &BTreeMap<PathBuf, FileIdentity>,
+    cancel: &Cancellation,
+) -> Result<(Enumeration, Vec<String>), FolderError> {
+    let mut entries = enumerate(directory, true, Some(expected_directories), &|| {
+        selection.check_live(cancel)
+    })?;
+    // An opaque component can prevent proving that an accepted source is absent.
+    entries.files.retain(|entry| {
+        is_csv_path(&entry.relative)
+            || previous_paths
+                .iter()
+                .any(|path| path.starts_with(&entry.relative))
+    });
+    entries
+        .files
+        .sort_unstable_by(|a, b| a.relative.cmp(&b.relative));
+    #[cfg(windows)]
+    let blocked_prior_paths = windows_opaque_paths(directory, &entries, previous_paths, || {
+        selection.check_live(cancel)
+    })?;
+    #[cfg(not(windows))]
+    let blocked_prior_paths = Vec::new();
+    selection.check_live(cancel)?;
+    Ok((entries, blocked_prior_paths))
+}
+
+#[cfg(windows)]
+fn windows_opaque_paths(
+    root: &Directory,
+    entries: &Enumeration,
+    previous_paths: &[PathBuf],
+    check: impl Fn() -> Result<(), FolderError>,
+) -> Result<Vec<String>, FolderError> {
+    let mut blocked = Vec::new();
+    for path in previous_paths {
+        if path.parent().is_none_or(|parent| {
+            parent.as_os_str().is_empty() || entries.directories.contains_key(parent)
+        }) || entries
+            .files
+            .iter()
+            .any(|entry| path.starts_with(&entry.relative))
+        {
+            continue;
+        }
+        // Windows may resolve a differently spelled component to an opaque
+        // entry. Ask the filesystem through the pinned directory chain, which
+        // also handles directories configured for case-sensitive lookup.
+        let mut components = path.components();
+        components.next_back();
+        let mut parent = None;
+        for component in components {
+            check()?;
+            let Component::Normal(name) = component else {
+                return Err(FolderError::InvalidSelection);
+            };
+            let opened = parent.as_ref().unwrap_or(root).open_directory(name);
+            match opened {
+                Ok(directory) => parent = Some(directory),
+                Err(error) if error.kind() == io::ErrorKind::NotFound => break,
+                Err(error)
+                    if matches!(
+                        error.kind(),
+                        io::ErrorKind::NotADirectory | io::ErrorKind::InvalidData
+                    ) =>
+                {
+                    blocked.push(path.to_string_lossy().into_owned());
+                    break;
+                }
+                Err(_) => return Err(FolderError::Io),
+            }
+        }
+    }
+    Ok(blocked)
+}
+
+fn verify_current_file(
+    checked_file: &File,
+    checked_metadata: &Metadata,
+    current: &File,
+) -> Result<(), FolderError> {
+    if file_identity(checked_file).map_err(|_| FolderError::Io)?
+        != file_identity(current).map_err(|_| FolderError::Io)?
+        || !same_version(
+            checked_metadata,
+            &current.metadata().map_err(|_| FolderError::Io)?,
+        )
+    {
+        return Err(FolderError::ContentChanged);
     }
     Ok(())
 }
@@ -604,6 +928,19 @@ fn read_entry<T>(
     finish: impl FnOnce(FrozenFile, &File, &Metadata) -> Result<T, FolderError>,
 ) -> Result<T, FolderError> {
     let (mut file, _parent_pins) = open_entry(selection, entry, cancel)?;
+    let (frozen, checked) =
+        read_open_entry(selection, entry, expected_sha256, cancel, mode, &mut file)?;
+    finish(frozen, &file, &checked)
+}
+
+fn read_open_entry(
+    selection: &Selection,
+    entry: &FileEntry,
+    expected_sha256: Option<&str>,
+    cancel: &Cancellation,
+    mode: ReadMode,
+    file: &mut File,
+) -> Result<(FrozenFile, Metadata), FolderError> {
     let before = file.metadata().map_err(|_| FolderError::Io)?;
     if mode != ReadMode::Preview && before.len() > MAX_PREVIEW_BYTES as u64 {
         return Err(FolderError::ContentChanged);
@@ -641,16 +978,15 @@ fn read_entry<T>(
     }
     let mut metadata = entry.metadata.clone();
     metadata.byte_count = byte_count;
-    finish(
+    Ok((
         FrozenFile {
             folder_id: selection.id,
             file: metadata,
             sha256,
             content: content.map(Arc::from),
         },
-        &file,
-        &after,
-    )
+        after,
+    ))
 }
 
 fn open_error(error: io::Error) -> FolderError {

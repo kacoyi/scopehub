@@ -3,8 +3,9 @@
 use scopehub_domain::{
     protocol::{
         CsvMappingV1, Error, ErrorCode, ListLocalImportRevisionsInput,
-        ListLocalImportRevisionsOutput, LocalImportRevisionListEntry, PublishLocalImportInput,
-        ReadLocalImportRevisionInput, RevokeLocalImportRevisionInput,
+        ListLocalImportRevisionsOutput, LocalImportRevisionListEntry, LocalImportRowLocator,
+        PublishLocalImportInput, ReadLocalImportRevisionInput, ReadLocalImportSourceRowInput,
+        RevokeLocalImportRevisionInput,
     },
     wire::{max_message_bytes, normalize_integers},
 };
@@ -20,8 +21,10 @@ use crate::{
 pub const PUBLISH_LOCAL_IMPORT: &str = "market.publishLocalImport";
 pub const LIST_LOCAL_IMPORT_REVISIONS: &str = "market.listLocalImportRevisions";
 pub const READ_LOCAL_IMPORT_REVISION: &str = "market.readLocalImportRevision";
+pub const READ_LOCAL_IMPORT_SOURCE_ROW: &str = "market.readLocalImportSourceRow";
 pub const REVOKE_LOCAL_IMPORT_REVISION: &str = "market.revokeLocalImportRevision";
 const MAX_RECORDS: u64 = 10_000;
+const MAX_SOURCE_ROW_BYTES: usize = 64 * 1024;
 
 /// Only a trusted transport can materialize this candidate from an authorized file.
 pub struct LocalDatasetPublication<'a> {
@@ -35,12 +38,53 @@ pub struct LocalDatasetPublication<'a> {
 }
 
 pub struct StoredLocalDataset {
+    pub source_key: String,
     pub revision_id: String,
     pub relative_path: String,
     pub source_sha256: String,
     pub mapping_sha256: String,
     pub review_revision: u64,
     pub content: Value,
+}
+
+/// A single, entitled source row prepared for the private CSV worker.
+pub struct FrozenLocalSourceRow<R = ReadLocalImportSourceRowInput> {
+    pub original: Vec<u8>,
+    pub source_sha256: String,
+    pub mapping: CsvMappingV1,
+    pub(crate) request: R,
+    pub(crate) header_sha256: String,
+}
+
+impl<R> FrozenLocalSourceRow<R> {
+    pub(crate) fn verify(&self, row: &Value, locator: &LocalImportRowLocator) -> Result<(), Error> {
+        let header = row["header"].as_array();
+        if row["source_sha256"] != self.source_sha256
+            || row["locator"] != json!(locator)
+            || header
+                .and_then(|header| ordered_header_digest(header, &self.mapping))
+                .as_deref()
+                != Some(&self.header_sha256)
+            || row["raw_fields"].as_array().map(Vec::len) != header.map(Vec::len)
+        {
+            return Err(failure(ErrorCode::OUTPUTINVALID));
+        }
+        Ok(())
+    }
+}
+
+pub(crate) fn bounded_source_row_output(
+    actor: Actor,
+    name: &str,
+    output: Value,
+) -> Result<Value, Error> {
+    if output.to_string().len() > MAX_SOURCE_ROW_BYTES {
+        return Err(failure(ErrorCode::RESOURCELIMIT));
+    }
+    if !authorized_operation(actor, name)?.output.is_valid(&output) {
+        return Err(failure(ErrorCode::OUTPUTINVALID));
+    }
+    Ok(output)
 }
 
 pub trait LocalDatasetStore: ReviewedMappingStore {
@@ -56,6 +100,7 @@ pub trait LocalDatasetStore: ReviewedMappingStore {
         include_bar_summary: bool,
     ) -> Result<Vec<LocalImportRevisionListEntry>, Error>;
     fn read_local_dataset(&self, revision_id: &str) -> Result<Option<StoredLocalDataset>, Error>;
+    fn read_local_dataset_original(&self, revision_id: &str) -> Result<Option<Vec<u8>>, Error>;
     fn revoke_local_dataset(&mut self, revision_id: &str) -> Result<bool, Error>;
 }
 
@@ -73,6 +118,18 @@ pub fn read_local_import_revision_input(
 ) -> Result<ReadLocalImportRevisionInput, Error> {
     serde_json::from_value(validated_input(actor, READ_LOCAL_IMPORT_REVISION, payload)?)
         .map_err(|_| failure(ErrorCode::INVALIDARGUMENT))
+}
+
+pub fn read_local_import_source_row_input(
+    actor: Actor,
+    payload: Value,
+) -> Result<ReadLocalImportSourceRowInput, Error> {
+    serde_json::from_value(validated_input(
+        actor,
+        READ_LOCAL_IMPORT_SOURCE_ROW,
+        payload,
+    )?)
+    .map_err(|_| failure(ErrorCode::INVALIDARGUMENT))
 }
 
 pub fn list_local_import_revisions_input(
@@ -99,7 +156,11 @@ pub fn revoke_local_import_revision_input(
     .map_err(|_| failure(ErrorCode::INVALIDARGUMENT))
 }
 
-fn validated_input(actor: Actor, name: &str, mut payload: Value) -> Result<Value, Error> {
+pub(crate) fn validated_input(
+    actor: Actor,
+    name: &str,
+    mut payload: Value,
+) -> Result<Value, Error> {
     let operation = authorized_operation(actor, name)?;
     if !operation.input.is_valid(&payload) {
         return Err(failure(ErrorCode::INVALIDARGUMENT));
@@ -140,21 +201,24 @@ pub(crate) fn frozen_output(actor: Actor, revision: &Value, bars: &Value) -> Res
     if output.to_string().len() >= max_message_bytes() {
         return Err(failure(ErrorCode::RESOURCELIMIT));
     }
-    if !operation.output.is_valid(&output) || !valid_records(&output) {
+    if !operation.output.is_valid(&output)
+        || !valid_records(
+            bars,
+            revision["source_record_count"].as_u64().unwrap_or_default(),
+            false,
+        )
+    {
         return Err(failure(ErrorCode::OUTPUTINVALID));
     }
     Ok(output)
 }
 
-fn valid_records(output: &Value) -> bool {
+pub(crate) fn valid_records(bars: &Value, count: u64, retain_conflicts: bool) -> bool {
     let mut previous_time = i64::MIN;
     let mut records = Vec::new();
-    let Some(bars) = output["bars"].as_array() else {
+    let Some(bars) = bars.as_array() else {
         return false;
     };
-    let count = output["revision"]["source_record_count"]
-        .as_u64()
-        .unwrap_or_default();
     if !(1..=MAX_RECORDS).contains(&count) {
         return false;
     }
@@ -163,7 +227,7 @@ fn valid_records(output: &Value) -> bool {
         let Some(time) = bar["time_ms"].as_i64() else {
             return false;
         };
-        if time <= previous_time || !valid_bar(bar) {
+        if time < previous_time || (time == previous_time && !retain_conflicts) || !valid_bar(bar) {
             return false;
         }
         previous_time = time;
@@ -266,6 +330,80 @@ impl<S: LocalDatasetStore> OperationRegistry<S> {
             .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))?;
         let revision = stored.summary();
         frozen_output(access.actor, &revision, &stored.content["bars"])
+    }
+
+    pub fn prepare_frozen_local_source_row(
+        &self,
+        access: &WorkspaceAccess<'_>,
+        request: ReadLocalImportSourceRowInput,
+    ) -> Result<FrozenLocalSourceRow, Error> {
+        self.authorize_local_import(access, READ_LOCAL_IMPORT_SOURCE_ROW)?;
+        self.authorize_local_import(access, READ_LOCAL_IMPORT_REVISION)?;
+        let stored = self
+            .port
+            .read_local_dataset(&request.revision_id)?
+            .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))?;
+        let locator = json!(request.locator);
+        let linked = stored.content["bars"].as_array().is_some_and(|bars| {
+            bars.iter().any(|entry| {
+                entry["locators"]
+                    .as_array()
+                    .is_some_and(|locators| locators.contains(&locator))
+            })
+        });
+        if !linked {
+            return Err(failure(ErrorCode::STALECONTEXT));
+        }
+        let reviewed = self
+            .port
+            .load_mapping_version(&stored.source_key, stored.review_revision)?
+            .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))?;
+        let header = &stored.content["header"];
+        if local_mapping_fingerprint(&reviewed.mapping)? != stored.mapping_sha256
+            || header
+                .as_array()
+                .and_then(|fields| ordered_header_digest(fields, &reviewed.mapping))
+                .as_deref()
+                != Some(&reviewed.header_sha256)
+        {
+            return Err(failure(ErrorCode::OUTPUTINVALID));
+        }
+        let original = self
+            .port
+            .read_local_dataset_original(&request.revision_id)?
+            .ok_or_else(|| failure(ErrorCode::PERMISSIONDENIED))?;
+        Ok(FrozenLocalSourceRow {
+            original,
+            source_sha256: stored.source_sha256,
+            mapping: reviewed.mapping,
+            request,
+            header_sha256: reviewed.header_sha256,
+        })
+    }
+
+    pub fn finish_frozen_local_source_row(
+        &self,
+        access: &WorkspaceAccess<'_>,
+        source: FrozenLocalSourceRow,
+        row: Value,
+    ) -> Result<Value, Error> {
+        self.authorize_local_import(access, READ_LOCAL_IMPORT_SOURCE_ROW)?;
+        let revision_id = &source.request.revision_id;
+        source.verify(&row, &source.request.locator)?;
+        let output = bounded_source_row_output(
+            access.actor,
+            READ_LOCAL_IMPORT_SOURCE_ROW,
+            json!({
+                "version": 1, "revision_id": revision_id, "source_sha256": source.source_sha256,
+                "locator": source.request.locator, "header": row["header"], "raw_fields": row["raw_fields"],
+            }),
+        )?;
+        // The parser ran outside the SQLite lane. Check current display authority
+        // after it returns, including revocations from another profile connection.
+        if !self.evidence_chart_display_allowed(access, revision_id)? {
+            return Err(failure(ErrorCode::PERMISSIONDENIED));
+        }
+        Ok(output)
     }
 
     pub fn list_frozen_local_datasets(

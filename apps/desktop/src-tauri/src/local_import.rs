@@ -1,5 +1,6 @@
 //! Compose the local human's filesystem selection with the private preview worker.
 
+mod folder_refresh;
 mod requests;
 
 use std::{
@@ -14,9 +15,10 @@ use std::{
 };
 
 use scopehub_application::{
-    Actor, DEFAULT_PREVIEW_ROWS, LocalImportPort, MappingCommitGuard, MarketFuture, failure,
-    load_mapping_input, load_mapping_output, preview_local_import, publish_local_import_input,
-    reviewed_preview_header, save_mapping_input,
+    Actor, DEFAULT_PREVIEW_ROWS, FrozenLocalSourceRow, LocalImportPort, MappingCommitGuard,
+    MarketFuture, failure, load_mapping_input, load_mapping_output, preview_local_import,
+    publish_local_import_input, read_local_folder_source_row_input,
+    read_local_import_source_row_input, reviewed_preview_header, save_mapping_input,
 };
 use scopehub_domain::protocol::{CsvMappingV1, Error, ErrorCode, LocalImportPreviewInput};
 use scopehub_platform::local_folder::{
@@ -29,6 +31,7 @@ use sha2::{Digest, Sha256};
 use tokio::sync::{Mutex, MutexGuard, Notify};
 
 use crate::workspace::WorkspaceBridge;
+pub(crate) use folder_refresh::{FolderCommitGuard, PreparedFolderReview};
 use requests::{ImportAttempt, ImportRequests, MutationInput};
 pub(super) use requests::{ImportReceipt, PendingImport};
 
@@ -52,6 +55,7 @@ struct PreviewState {
     active: Option<(Option<String>, Arc<PreviewCancellation>)>,
     early_cancellations: VecDeque<String>,
     reviewed: Option<ReviewedPreview>,
+    reviewed_folder: Option<folder_refresh::FolderReview>,
 }
 
 struct ReviewedPreview {
@@ -202,6 +206,9 @@ impl LocalImport {
         state
             .reviewed
             .take_if(|review| review.binding.folder != catalog.folder_id);
+        state
+            .reviewed_folder
+            .take_if(|review| review.folder() != catalog.folder_id);
         Ok(Some(catalog_metadata(catalog)))
     }
 
@@ -218,6 +225,21 @@ impl LocalImport {
     fn reserve(
         &self,
         request_id: Option<&str>,
+    ) -> Result<(PreviewSlot<'_>, PreviewPort<'_>), Error> {
+        self.reserve_inner(request_id, false)
+    }
+
+    fn reserve_for_receipt(
+        &self,
+        request_id: Option<&str>,
+    ) -> Result<(PreviewSlot<'_>, PreviewPort<'_>), Error> {
+        self.reserve_inner(request_id, true)
+    }
+
+    fn reserve_inner(
+        &self,
+        request_id: Option<&str>,
+        check_durable_receipt: bool,
     ) -> Result<(PreviewSlot<'_>, PreviewPort<'_>), Error> {
         if request_id.is_some_and(|id| !valid_request_id(id)) {
             return Err(failure(ErrorCode::INVALIDARGUMENT));
@@ -241,7 +263,12 @@ impl LocalImport {
                 // Cancellation can arrive after a dropped transport future and
                 // before its blocking writer records the successful commit.
                 if !request_id.is_some_and(|id| self.requests.committed(id)) {
-                    return Err(failure(ErrorCode::CANCELLED));
+                    if !check_durable_receipt {
+                        return Err(failure(ErrorCode::CANCELLED));
+                    }
+                    // A persistent receipt may already exist after a host restart.
+                    // Keep cancellation effective for the new-work path.
+                    cancel.cancel();
                 }
             }
             state.active = Some((request_id.map(str::to_owned), Arc::clone(&cancel)));
@@ -478,6 +505,73 @@ impl LocalImport {
         self.requests.reject_reused(id)
     }
 
+    pub(super) async fn read_frozen_source_row(
+        &self,
+        workspace: &WorkspaceBridge,
+        payload: Value,
+        request_id: Option<&str>,
+    ) -> Result<Value, Error> {
+        let input = read_local_import_source_row_input(Actor::LocalUser, payload)?;
+        let record_number = input.locator.record_number;
+        let (_slot, port) = self.reserve(request_id)?;
+        self.reject_reused_request(request_id)?;
+        let source = workspace.load_local_source_row(input).await?;
+        let row = self
+            .parse_frozen_source_row(&source, record_number, &port.cancel)
+            .await?;
+        let output = workspace.finish_local_source_row(source, row).await?;
+        if port.cancel.is_cancelled() {
+            return Err(failure(ErrorCode::CANCELLED));
+        }
+        Ok(output)
+    }
+
+    pub(super) async fn read_frozen_folder_source_row(
+        &self,
+        workspace: &WorkspaceBridge,
+        payload: Value,
+        request_id: Option<&str>,
+    ) -> Result<Value, Error> {
+        let input = read_local_folder_source_row_input(Actor::LocalUser, payload)?;
+        let record_number = input.source.record_number;
+        let (_slot, port) = self.reserve(request_id)?;
+        self.reject_reused_request(request_id)?;
+        let source = workspace.load_local_folder_source_row(input).await?;
+        let row = self
+            .parse_frozen_source_row(&source, record_number, &port.cancel)
+            .await?;
+        let output = workspace
+            .finish_local_folder_source_row(source, row)
+            .await?;
+        if port.cancel.is_cancelled() {
+            return Err(failure(ErrorCode::CANCELLED));
+        }
+        Ok(output)
+    }
+
+    async fn parse_frozen_source_row<R>(
+        &self,
+        source: &FrozenLocalSourceRow<R>,
+        record_number: u64,
+        cancel: &PreviewCancellation,
+    ) -> Result<Value, Error> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| failure(ErrorCode::PROVIDERNOTCONFIGURED))?;
+        let mapping =
+            serde_json::to_value(&source.mapping).map_err(|_| failure(ErrorCode::INTERNALERROR))?;
+        local_import::read_source_row(
+            config,
+            &source.original,
+            &source.source_sha256,
+            &mapping,
+            record_number,
+            cancel.cancelled(),
+        )
+        .await
+    }
+
     pub(super) fn cancel(&self, request_id: &str) {
         if !valid_request_id(request_id) || self.requests.committed(request_id) {
             return;
@@ -501,6 +595,7 @@ impl LocalImport {
             let mut state = self.state.lock().expect("preview state");
             state.closing = true;
             state.reviewed = None;
+            state.reviewed_folder = None;
             if let Some((_, cancel)) = &state.active {
                 cancel.cancel();
             }
