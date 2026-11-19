@@ -19,5 +19,73 @@
     "observed_terminal": "The market worker timed out.",
     "first_cause": "unconfirmed",
     "later_journey_observed": false
+  },
+  "verified_runs": [
+    {
+      "environment": "baseline",
+      "local_artifacts": "sample-baseline-shutdown-corrected-493238b",
+      "source_commit": "493238bc489f3c4614850850a0cb67a1913f4c88",
+      "archive_sha256": "392a956affa005b72eb57d561c568c915f81166856ed25b97523570c7c766a6e",
+      "executable_sha256": "c614f52855a335fea772429ba44f6cab603a3faf8e08ecbeeb77ffe5652be424",
+      "uv_lock_sha256": "b9c68ec3b7d950cc9d094ddb5c0f732f6dbc2de329c99e989c2676405764035e",
+      "report_sha256": "706080d0db258031cdcb839762138d11c143e9fcdcc7e38ec1c6d2cad7e223c7",
+      "screenshot_sha256": "4a0b5b7f4a07739f69bb352808213716a63efe04c301f0776a4017086644f52b",
+      "direct_worker_trace_sha256": "6cdb17a6aee1ce636dc0cf64a49837626e869f29fd165c7a6ff254f4f2998253",
+      "first_sample_1m_ms": 1072,
+      "switch_to_5m_ms": 116,
+      "reopen_at_5m_ms": 1332
+    },
+    {
+      "environment": "reduced_environment",
+      "local_artifacts": "sample-candidate-shutdown-corrected-493238b",
+      "source_commit": "493238bc489f3c4614850850a0cb67a1913f4c88",
+      "archive_sha256": "392a956affa005b72eb57d561c568c915f81166856ed25b97523570c7c766a6e",
+      "executable_sha256": "c614f52855a335fea772429ba44f6cab603a3faf8e08ecbeeb77ffe5652be424",
+      "uv_lock_sha256": "155121b02d2f804905304ef0bb8a1a252a5e2b02231c5bcae180159f57a42055",
+      "report_sha256": "e46681882e1f3e8fb919a3a867d7dc011d388292c7a3c49a6858bbe2b669dee1",
+      "screenshot_sha256": "4a0b5b7f4a07739f69bb352808213716a63efe04c301f0776a4017086644f52b",
+      "direct_worker_trace_sha256": "7a26bd2608a87a240f8d8ad3b823d33e6b6442ceebc0f612d5c9b2c71991ef6a",
+      "first_sample_1m_ms": 494,
+      "switch_to_5m_ms": 102,
+      "reopen_at_5m_ms": 710
+    },
+    {
+      "environment": "integrated",
+      "local_artifacts": "native-integrated-workspace-sample-68f318a",
+      "source_commit": "68f318ac24791915786db72de602ebc377b21fea",
+      "archive_sha256": "720fec5311f5c2721ec7a95f94c9236c3e21f7d0521cd261f8e8d598a0309b05",
+      "executable_sha256": "e526087baf87a5799405aaa46bd176943cc0b288030d1ab5da09cead461419a3",
+      "uv_lock_sha256": "155121b02d2f804905304ef0bb8a1a252a5e2b02231c5bcae180159f57a42055",
+      "report_sha256": "81c0f289970899037faa2e2b5651a089aab805a51c3dce56dfeb847769c528a2",
+      "screenshot_sha256": "4a0b5b7f4a07739f69bb352808213716a63efe04c301f0776a4017086644f52b",
+      "direct_worker_trace_sha256": "b8dfa1b4923dc61ca79942bc875419e8cbeaffb1142b1d4de1661a9bb4a99923",
+      "first_sample_1m_ms": 540,
+      "switch_to_5m_ms": 150,
+      "reopen_at_5m_ms": 687
+    },
+    {
+      "environment": "integrated_after_guest_reboot",
+      "local_artifacts": "native-fresh-boot-workspace-sample-68f318a",
+      "source_commit": "68f318ac24791915786db72de602ebc377b21fea",
+      "archive_sha256": "720fec5311f5c2721ec7a95f94c9236c3e21f7d0521cd261f8e8d598a0309b05",
+      "executable_sha256": "e526087baf87a5799405aaa46bd176943cc0b288030d1ab5da09cead461419a3",
+      "uv_lock_sha256": "155121b02d2f804905304ef0bb8a1a252a5e2b02231c5bcae180159f57a42055",
+      "report_sha256": "b2bff776d7f3f3397847f027017aa7da042be37d474e7178703bfd06e74a3fde",
+      "screenshot_sha256": "dfc075a85d418ef2da2eb9bec06e741a130caf836a217d9aa9a7de190eba3fde",
+      "direct_worker_trace_sha256": "538e0bbfdecef1a991e7f73c9e9ea71f8e3842c96da2bcca63b7f480b7a58daf",
+      "first_sample_1m_ms": 450,
+      "switch_to_5m_ms": 154,
+      "reopen_at_5m_ms": 711,
+      "guest_build": "26300",
+      "guest_uptime_before_journey_seconds": 313,
+      "boot_observation_sha256": "e43b737fce398c567d12ed65926558f117520f14d0d8e2b150369f9adfa56d44"
+    }
+  ],
+  "shared_observations": {
+    "sample": "The explicitly selected simulated futures sample contained 40 one-minute bars. The same sample restored eight five-minute bars in a second desktop process.",
+    "private_workspace": "The original private workspace held 1m at revision 2 throughout the sample journey. Consuming its original undo restored 5m at revision 3.",
+    "worker_and_shutdown": "Each direct worker returned the expected catalog and history. Both interactive processes exited normally. Their debugger listeners closed and the checkout content and worker environment matched the recorded input audits.",
+    "interpretation": "The paired observations used the same native executable and different locked Python environments. The integrated runs used the revised executable and lock together. Durations are individual observations. The historical timeout did not recur and its first failing stage remains unknown.",
+    "acceptance_scope": "Standard-user Windows 11 development WebView in a disposable KVM guest. Packaged installation and physical Windows product acceptance retain their own gates."
   }
 }

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-024",
+  "focus_task_id": "M2-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -5699,7 +5699,7 @@
       "id": "M1-024",
       "title": "Verify first native sample startup and its isolation from a private workspace",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-009"
       ],
@@ -5732,8 +5732,13 @@
         "desktop-workspace-transport",
         "rust-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Measure the baseline and reviewed reduced worker environment in the same native executable, then test the integrated source and archive results.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-024-c902a0ef0d560f59.json",
+          "sha256": "839f5d23e0fde66034a4a0bf9ffef4086c728024900c8eabf3245b139fae356d"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {

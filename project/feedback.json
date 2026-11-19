@@ -1048,7 +1048,7 @@
       "source": "Standard-user Windows 11 KVM desktop at commit 493238bc489f3c4614850850a0cb67a1913f4c88, after the private 5m and 1m writes.",
       "observation": "The private workspace read back revision 2 and 1m with its original undo. Opening the offline sample displayed a market worker timeout, an empty watchlist and the Retry demo control. The native driver did not reach sample 5m or restart. Linux and hosted Chromium had passed the private/sample separation tests.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-024"
       ],
@@ -1057,7 +1057,11 @@
         "workspace-timeframe",
         "desktop-workspace-transport"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The original guest reported a worker timeout before the catalog appeared. Its first failing stage is unknown. The old worker environment had a separately measured avoidable startup cost.",
+        "correction": "Integrate the reviewed worker dependency reduction and verify the default desktop catalog and history, saved simulated timeframe and original private undo through two actual process launches.",
+        "prevention": "The retained original failure, paired environment trial, integrated run and post-reboot run record scope, immutable inputs, direct worker results and native GUI observations. Existing format checks and production deadlines stay in force."
+      },
       "deferral_reason": null
     },
     {
