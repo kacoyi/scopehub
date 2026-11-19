@@ -40,7 +40,7 @@ pub const CREATE_INDICATOR_DRAFT: &str = "indicator.createDraft";
 pub const RUN_INDICATOR_PREVIEW: &str = "indicator.runPreview";
 pub const CANCEL_INDICATOR_TASK: &str = "task.cancel";
 
-const ENGINE_VERSION: &str = "scopehub-declarative-2";
+const ENGINE_VERSION: &str = "scopehub-declarative-3";
 const MAX_DRAFTS: usize = 16;
 const MAX_JOBS: usize = 8;
 const MAX_RUNNING: usize = 2;
