@@ -74,6 +74,22 @@ def worker(data):
     )
 
 
+class ShortWritingOutput(BytesIO):
+    def __init__(self, *, stall_after=None, stalled_result=0):
+        super().__init__()
+        self.stall_after = stall_after
+        self.stalled_result = stalled_result
+        self.writes = 0
+
+    def write(self, value):
+        self.writes += 1
+        if self.stall_after is not None and self.writes > self.stall_after:
+            if self.writes > self.stall_after + 1:
+                raise AssertionError('retried a write that made no progress')
+            return self.stalled_result
+        return super().write(value[:32_768])
+
+
 class LocalImportWorkerTests(unittest.TestCase):
     def reply_frames(self, stdout):
         hello_line, *replies = stdout.splitlines(keepends=True)
@@ -105,6 +121,60 @@ class LocalImportWorkerTests(unittest.TestCase):
         self.assertEqual((rejected['record_number'], rejected['line_start'], rejected['line_end']), (2, 3, 3))
         self.assertIsNone(rejected['normalized'])
         self.assertEqual(rejected['issues'][0]['code'], 'ohlc_bounds')
+
+    def test_short_writes_drain_the_entire_reply(self):
+        note = b'X' * 90_000
+        content = b'Ticker,Note\nSYNTH,' + note + b'\n'
+        mapping = {**MAPPING, 'record_kind': 'quote_snapshot'}
+        output = ShortWritingOutput()
+        status = run(BytesIO(b''.join(map(line, request(content, mapping=mapping)))), output)
+        self.assertEqual(status, 0)
+        reply, = self.reply_frames(output.getvalue())
+        self.assertTrue(reply.endswith(b'\n'))
+        self.assertGreater(output.writes, 2)
+        result = json.loads(reply)
+        self.assertEqual(result['preview']['file_sha256'], sha256(content).hexdigest())
+        self.assertEqual(result['preview']['rows'][0]['raw_fields'], ['SYNTH', note.decode()])
+
+    def test_zero_progress_is_terminal_for_hello_and_partial_reply(self):
+        content = b'Ticker,Note\nSYNTH,' + b'X' * 90_000 + b'\n'
+        mapping = {**MAPPING, 'record_kind': 'quote_snapshot'}
+        data = b''.join(map(line, request(content, mapping=mapping)))
+        for stall_after in (0, 2):
+            for stalled_result in (0, None):
+                with self.subTest(stall_after=stall_after, stalled_result=stalled_result):
+                    output = ShortWritingOutput(stall_after=stall_after, stalled_result=stalled_result)
+                    self.assertEqual(run(BytesIO(data), output), 2)
+                    self.assertEqual(output.writes, stall_after + 1)
+                    if stall_after:
+                        partial, = self.reply_frames(output.getvalue())
+                        self.assertEqual(len(partial), 32_768)
+                        self.assertFalse(partial.endswith(b'\n'))
+                    else:
+                        self.assertEqual(output.getvalue(), b'')
+
+    def test_child_can_emit_an_exact_limit_reply_including_newline(self):
+        count = 40
+        mapping = {**MAPPING, 'record_kind': 'quote_snapshot'}
+
+        def payload(notes):
+            content = b'Ticker,Note\n' + b''.join(b'SYNTH,' + note + b'\n' for note in notes)
+            self.assertLessEqual(len(content), MAX_BYTES)
+            return b''.join(map(line, request(content, mapping=mapping, row_limit=count)))
+
+        small = BytesIO()
+        self.assertEqual(run(BytesIO(payload([b''] * count)), small), 0)
+        reply, = self.reply_frames(small.getvalue())
+        note_size, extra = divmod(MAX_BYTES - len(reply), count)
+        notes = [b'X' * (note_size + (index < extra)) for index in range(count)]
+        process = worker(payload(notes))
+        self.assertEqual((process.returncode, process.stderr), (0, b''))
+        reply, = self.reply_frames(process.stdout)
+        self.assertEqual(len(reply), MAX_BYTES)
+        self.assertTrue(reply.endswith(b'\n'))
+        preview = json.loads(reply)['preview']
+        self.assertEqual([row['raw_fields'][1] for row in preview['rows']], [note.decode() for note in notes])
+        self.assertFalse(preview['truncated'])
 
     def test_wrong_digest_unordered_or_noncanonical_chunks_and_extra_frames_are_rejected(self):
         header, chunk = request(b'a')

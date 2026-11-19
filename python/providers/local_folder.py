@@ -11,10 +11,12 @@ The importer owns file selection, authorization, mapping revisions and
 publication.
 """
 
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 import csv
 from hashlib import sha256
 from io import StringIO
+from threading import Lock
+
 from contracts.generated.protocol import CsvPreview, PreviewRow
 from providers.csv_bar_mapping import (
     BarFieldError, auxiliary_role, native_mapping, normalize_bar, preview_issue,
@@ -25,6 +27,18 @@ MAX_FILE_BYTES = 4 * 1024 * 1024
 MAX_PREVIEW_ROWS = 500
 _MAX_COLUMNS = 512
 _ENCODINGS = {'utf-8', 'utf-8-sig', 'gb18030'}
+_CSV_READ_LOCK = Lock()
+
+
+def _next_csv_record(rows: Iterator[list[str]]) -> list[str]:
+    # The file budget bounds every field. Keep the interpreter-wide override
+    # scoped to one record and serialize concurrent previews during that read.
+    with _CSV_READ_LOCK:
+        previous_limit = csv.field_size_limit(MAX_FILE_BYTES)
+        try:
+            return next(rows)
+        finally:
+            csv.field_size_limit(previous_limit)
 
 
 def preview_csv(content: bytes, mapping: Mapping[str, object], *, row_limit: int = 100) -> CsvPreview:
@@ -70,7 +84,9 @@ def preview_csv(content: bytes, mapping: Mapping[str, object], *, row_limit: int
     stream = StringIO(decoded, newline='')
     rows = csv.reader(stream, delimiter=delimiter, strict=True)
     try:
-        header = next(rows, [])
+        header = _next_csv_record(rows)
+    except StopIteration:
+        header = []
     except csv.Error as error:
         result['raw_header_text'] = decoded[:stream.tell()]
         issues.append(preview_issue('invalid_header', 'header', f'Check the header delimiter, quoting or field size. {error}'))
@@ -104,7 +120,7 @@ def preview_csv(content: bytes, mapping: Mapping[str, object], *, row_limit: int
             'raw_fields': [], 'raw_text': None, 'symbol': None, 'normalized': None, 'issues': [],
         }
         try:
-            values = next(rows)
+            values = _next_csv_record(rows)
         except StopIteration:
             break
         except csv.Error as error:

@@ -122,7 +122,12 @@ def _encode_frame(payload: dict[str, object]) -> bytes | None:
 
 
 def _write_frame(target: BinaryIO, line: bytes) -> None:
-    target.write(line)
+    remaining = memoryview(line)
+    while remaining:
+        written = target.write(remaining)
+        if written is None or not 0 < written <= len(remaining):
+            raise OSError('Unable to complete the local import output frame')
+        remaining = remaining[written:]
     target.flush()
 
 
