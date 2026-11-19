@@ -1,10 +1,10 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type {
-  LayoutPanel11, NamedWorkspaceLayout11, WorkspaceLayout11, WorkspaceLayoutEdit11, WorkspacePreviewLayoutOutput11,
+  LayoutPanel11, NamedWorkspaceLayout11, WorkspaceLayout11, WorkspaceLayoutEdit11,
 } from '../../../../contracts/generated/protocol';
 import { instrumentName, symbol } from './instrument-display';
 import type { Instrument } from './market';
-import type { LocalWorkspace } from './use-local-workspace';
+import type { LocalWorkspace, PreparedWorkspaceLayout } from './use-local-workspace';
 
 export const layoutDocks = ['left', 'right', 'bottom'] as const;
 export const layoutPanelLabels = { watchlist: 'Watchlist', inspection: 'Data window' } as const;
@@ -15,13 +15,7 @@ type Draft = {
   text?: string;
   revision: number;
 };
-type Preview = WorkspacePreviewLayoutOutput11 & {
-  edit: WorkspaceLayoutEdit11;
-  revision: number;
-};
-
-function layoutFailure(error: unknown) {
-  const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
+function layoutFailure(code: unknown) {
   switch (code) {
     case 'INVALID_ARGUMENT': return 'The layout definition has an invalid name, setting, or version.';
     case 'UNSUPPORTED_CAPABILITY': return 'The layout contains an unsupported panel or binding.';
@@ -35,7 +29,7 @@ function layoutFailure(error: unknown) {
 
 export function useWorkspaceLayout(workspace: LocalWorkspace | undefined) {
   const [draft, setDraft] = useState<Draft>();
-  const [preview, setPreview] = useState<Preview>();
+  const [preview, setPreview] = useState<PreparedWorkspaceLayout>();
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -45,7 +39,7 @@ export function useWorkspaceLayout(workspace: LocalWorkspace | undefined) {
 
   function open(editPreview = false) {
     if (!snapshot || !layout) return;
-    setDraft(editPreview && draft && preview?.edit.action === 'save'
+    setDraft(editPreview && draft && preview?.command.intent.arguments.edit.action === 'save'
       ? { ...draft, revision: snapshot.workspace.revision }
       : { name: layout.name ?? '', definition: layout.definition, revision: snapshot.workspace.revision });
     setPreview(undefined);
@@ -53,15 +47,16 @@ export function useWorkspaceLayout(workspace: LocalWorkspace | undefined) {
     setEditing(true);
   }
 
-  async function run(work: () => Promise<void>, onError?: (error: unknown) => void) {
+  async function run(work: () => Promise<void>, onError?: (code: unknown) => void) {
     if (active.current) return;
     active.current = true;
     setBusy(true);
     setError(undefined);
     try { await work(); }
     catch (failure) {
-      setError(layoutFailure(failure));
-      onError?.(failure);
+      const code = failure && typeof failure === 'object' && 'code' in failure ? failure.code : undefined;
+      setError(layoutFailure(code));
+      onError?.(code);
     } finally {
       active.current = false;
       setBusy(false);
@@ -72,21 +67,23 @@ export function useWorkspaceLayout(workspace: LocalWorkspace | undefined) {
     if (!workspace || !draft) return;
     const { revision } = draft;
     void run(async () => {
-      const result = await workspace.previewLayout(edit, revision);
-      setPreview({ ...result, edit, revision });
+      setPreview(await workspace.previewLayout(edit, revision));
       setEditing(false);
+    }, code => {
+      if (code === 'STALE_CONTEXT') workspace.reload();
     });
   }
 
   function apply() {
     if (!workspace || !preview) return;
     void run(async () => {
-      await workspace.applyLayout(preview.edit, preview.preview_token, preview.revision);
+      await workspace.applyLayout(preview.command);
       setPreview(undefined);
       setDraft(undefined);
-    }, failure => {
-      if (failure && typeof failure === 'object' && 'code' in failure && failure.code === 'STALE_CONTEXT') {
+    }, code => {
+      if (code === 'STALE_CONTEXT' || code === 'PERMISSION_DENIED') {
         setPreview(undefined);
+        setDraft(undefined);
         workspace.reload();
       }
     });

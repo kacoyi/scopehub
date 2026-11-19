@@ -168,7 +168,7 @@ async function operation(page, name, action) {
   expect(frame).toMatchObject({ ok: true });
   const request = accepted.request().postDataJSON();
   expect(frame.result.request_id).toBe(request.request_id);
-  return { request, outcome: frame.result.outcome };
+  return { request, outcome: frame.result.outcome, response: frame.result };
 }
 
 async function observeSample(page, instrument, { defaultPalette = true } = {}) {
@@ -314,9 +314,11 @@ test('previews a real named workspace, retains its linked and pinned panels, and
         await edit.getByLabel('Layout name').fill(recoveredName);
         await operation(page, 'workspace.previewLayout', () => keyboardActivate(edit, 'Preview layout'));
         const actual = Promise.withResolvers();
+        let dropFirstApply = true;
         await page.route(`**${endpoint}`, async route => {
           const request = route.request().postDataJSON();
-          if (request?.intent?.operation !== 'workspace.applyLayout') return route.continue();
+          if (request?.intent?.operation !== 'workspace.applyLayout' || !dropFirstApply) return route.continue();
+          dropFirstApply = false;
           const reply = await route.fetch();
           const { result } = await reply.json();
           await route.abort('connectionreset');
@@ -326,6 +328,20 @@ test('previews a real named workspace, retains its linked and pinned panels, and
         await expect(page.getByRole('alert').filter({ hasText: 'The local layout could not be updated.' })).toBeVisible();
         interrupted = await actual.promise;
         expect(interrupted.outcome).toMatchObject({ state: 'committed', result: { name: recoveredName } });
+        expect(interrupted.request.scope.idempotency_key).not.toBe(accepted.request.scope.idempotency_key);
+        const committedWithoutReply = await snapshot(server);
+        expect(committedWithoutReply.workspace.revision).toBe(saved.workspace.revision + 1);
+
+        const clickedRetry = await operation(page, 'workspace.applyLayout', () => keyboardActivate(page, 'Apply layout'));
+        expect(clickedRetry.request.scope).toEqual(interrupted.request.scope);
+        expect(clickedRetry.request.intent).toEqual(interrupted.request.intent);
+        expect(clickedRetry.request.request_id).not.toBe(interrupted.request.request_id);
+        expect(clickedRetry.request.message_id).not.toBe(interrupted.request.message_id);
+        expect(clickedRetry.outcome).toEqual(interrupted.outcome);
+        await expect(control(page, 'Apply layout')).toHaveCount(0);
+        await expect(page.getByRole('status').filter({ hasText: `Layout ${recoveredName}` })).toBeVisible();
+        expect(await snapshot(server)).toEqual(committedWithoutReply);
+        await testInfo.attach('layout-apply-retry-response', { contentType: 'application/json', body: JSON.stringify(clickedRetry.response) });
       });
       await withBrowser(browser, server, async page => {
         await expect(page.getByText('No data source', { exact: true })).toBeVisible();
@@ -381,6 +397,85 @@ function peerRequest(preview, intent, { target = preview.scope.target, expected 
     scope: { ...preview.scope, target, expected_workspace_revision: expected, idempotency_key: randomUUID() },
   };
 }
+
+test('keeps chart and layout undo independent after restarting the same profile', async ({ browser }, testInfo) => {
+  const definition = { ...expectedDefinition, pinned_instrument: null };
+  const chart = { kind: 'chart', object_id: 'main-chart' };
+  const layout = { kind: 'layout', object_id: 'workspace-layout' };
+  const candidate = receipt => ({
+    operation_id: receipt.operation_id, committed_workspace_revision: receipt.committed_workspace_revision,
+  });
+
+  async function saveLayout(page, name, revision) {
+    const dialog = await openEditor(page);
+    await enterDefinition(dialog, name, definition);
+    await operation(page, 'workspace.previewLayout', () => keyboardActivate(dialog, 'Preview layout'));
+    const { outcome } = await operation(page, 'workspace.applyLayout', () => keyboardActivate(page, 'Apply layout'));
+    expect(outcome).toMatchObject({ state: 'committed', result: { name, definition },
+      receipt: { target: layout, committed_workspace_revision: revision, undoable: true } });
+    await expect(control(page, 'Apply layout')).toHaveCount(0);
+    return outcome.receipt;
+  }
+
+  async function undoLayout(page, receipt, revision, timeframe) {
+    const dialog = await openEditor(page);
+    const { request, outcome } = await operation(page, 'workspace.undo', () => keyboardActivate(dialog, 'Undo layout'));
+    expect(request.intent.arguments).toEqual({ operation_id: receipt.operation_id });
+    expect(request.scope).toMatchObject({ target: layout, expected_workspace_revision: revision - 1, expected_selection_revision: 0 });
+    expect(outcome).toMatchObject({ state: 'committed', result: { timeframe },
+      receipt: { target: layout, committed_workspace_revision: revision, undoable: false } });
+    await expect(dialog).toBeHidden();
+  }
+
+  await withProfile(async profile => {
+    let chartReceipt;
+    let writer;
+    await withService(profile, async server => {
+      writer = server.writerPid;
+      await withBrowser(browser, server, async page => {
+        await expect(page.getByText('No data source', { exact: true })).toBeVisible();
+        const change = await operation(page, 'chart.setTimeframe', () => keyboardActivate(page, '5m'));
+        expect(change.outcome).toMatchObject({ state: 'committed', result: { timeframe: '5m' },
+          receipt: { target: chart, committed_workspace_revision: 1, undoable: true } });
+        chartReceipt = change.outcome.receipt;
+        const firstLayout = await saveLayout(page, 'First layout', 2);
+        await undoLayout(page, firstLayout, 3, '5m');
+        expect(await snapshot(server)).toMatchObject({ workspace: { revision: 3, timeframe: '5m' },
+          layouts: { active: { name: null }, saved: [], undo: null } });
+      });
+    });
+
+    await withService(profile, async server => {
+      expect(server.writerPid).not.toBe(writer);
+      await withBrowser(browser, server, async page => {
+        await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
+        const restored = await snapshot(server);
+        expect(restored).toMatchObject({ workspace: { revision: 3, timeframe: '5m' }, undo: candidate(chartReceipt),
+          layouts: { active: { name: null }, undo: null }, selection_revision: 0 });
+
+        const pendingLayout = await saveLayout(page, 'Second layout', 4);
+        const before = await snapshot(server);
+        expect(before.undo).toEqual(candidate(chartReceipt));
+        expect(before.layouts.undo).toEqual(candidate(pendingLayout));
+        const undone = await operation(page, 'workspace.undo', () => keyboardActivate(page, 'Undo timeframe change'));
+        expect(undone.request.intent.arguments).toEqual({ operation_id: chartReceipt.operation_id });
+        expect(undone.request.scope).toMatchObject({ target: chart, expected_workspace_revision: 4, expected_selection_revision: 0 });
+        expect(undone.outcome).toMatchObject({ state: 'committed', result: { timeframe: '1m' },
+          receipt: { target: chart, committed_workspace_revision: 5, undoable: false } });
+        await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
+        const after = await snapshot(server);
+        expect(after).toMatchObject({ workspace: { revision: 5, timeframe: '1m' }, undo: null,
+          layouts: { active: { name: 'Second layout', definition }, undo: candidate(pendingLayout) } });
+        await undoLayout(page, pendingLayout, 6, '1m');
+        expect(await snapshot(server)).toMatchObject({ workspace: { revision: 6, timeframe: '1m' }, undo: null,
+          layouts: { active: { name: null }, saved: [], undo: null }, selection_revision: 0 });
+        await testInfo.attach('independent-undo', { contentType: 'application/json', body: JSON.stringify({
+          writers: [writer, server.writerPid], chart: restored.undo, layout: after.layouts.undo,
+        }) });
+      });
+    });
+  });
+});
 
 test('rejects unsupported bindings and stale applies, then opens, resets and undoes named layouts', async ({ browser }, testInfo) => {
   const baseline = 'Side-by-side';
@@ -480,6 +575,61 @@ test('rejects unsupported bindings and stale applies, then opens, resets and und
       }) });
     });
   }));
+});
+
+test('reviews changed definitions and retires an apply after a real authorization denial', async ({ browser }, testInfo) => {
+  const name = 'Edited desk';
+  const definition = { ...expectedDefinition, pinned_instrument: null };
+  await withProfile(profile => withService(profile, server => withBrowser(browser, server, async page => {
+    let dialog = await openEditor(page);
+    const original = await snapshot(server);
+    await enterDefinition(dialog, 'First draft', original.layouts.active.definition);
+    const first = await operation(page, 'workspace.previewLayout', () => keyboardActivate(dialog, 'Preview layout'));
+    expect(first.outcome).toMatchObject({ state: 'previewed', result: { layout: { name: 'First draft' } } });
+
+    await keyboardActivate(page, 'Edit preview');
+    await expect(dialog).toBeVisible();
+    await dialog.getByLabel('Layout name').fill(name);
+    await dialog.getByRole('textbox', { name: 'Layout definition', exact: true }).fill(JSON.stringify(definition, null, 2));
+    const changed = await operation(page, 'workspace.previewLayout', () => keyboardActivate(dialog, 'Preview layout'));
+    expect(changed.outcome).toMatchObject({ state: 'previewed', result: { layout: { name, definition } } });
+    expect(changed.outcome.result.preview_token).not.toBe(first.outcome.result.preview_token);
+    expect(await snapshot(server)).toEqual(original);
+
+    const isApply = request => request.postDataJSON()?.intent?.operation === 'workspace.applyLayout';
+    let denyFirst = true;
+    await page.route(`**${endpoint}`, async route => {
+      const request = route.request();
+      if (!denyFirst || !isApply(request)) return route.continue();
+      denyFirst = false;
+      const headers = await request.allHeaders();
+      return route.continue({ headers: { ...headers, authorization: 'Bearer ' + '0'.repeat(64) } });
+    });
+    const [denied] = await Promise.all([
+      page.waitForResponse(reply => new URL(reply.url()).pathname === endpoint && isApply(reply.request())),
+      keyboardActivate(page, 'Apply layout'),
+    ]);
+    const denial = await denied.json();
+    const rejected = denied.request().postDataJSON();
+    expect(denied.status()).toBe(403);
+    expect(denial).toMatchObject({ ok: false, error: { code: 'PERMISSION_DENIED' } });
+    expect(rejected.intent.arguments.preview_token).toBe(changed.outcome.result.preview_token);
+    await expect(page.getByRole('alert').filter({ hasText: /layout action.*authorized/i })).toBeVisible();
+    await expect(control(page, 'Apply layout')).toHaveCount(0);
+    expect(await snapshot(server)).toEqual(original);
+
+    dialog = await openEditor(page);
+    await enterDefinition(dialog, name, definition);
+    const reviewed = await operation(page, 'workspace.previewLayout', () => keyboardActivate(dialog, 'Preview layout'));
+    const fresh = await operation(page, 'workspace.applyLayout', () => keyboardActivate(page, 'Apply layout'));
+    expect(fresh.request.scope.idempotency_key).not.toBe(rejected.scope.idempotency_key);
+    expect(fresh.request.intent.arguments.preview_token).toBe(reviewed.outcome.result.preview_token);
+    expect(fresh.outcome).toMatchObject({ state: 'committed', result: { name, definition },
+      receipt: { committed_workspace_revision: original.workspace.revision + 1 } });
+    await expect(control(page, 'Apply layout')).toHaveCount(0);
+    expect((await snapshot(server)).layouts).toMatchObject({ active: { name, definition }, saved: [name] });
+    await testInfo.attach('layout-authorization-denial', { contentType: 'application/json', body: JSON.stringify(denial) });
+  })));
 });
 
 async function withPublishedCsv(use) {
