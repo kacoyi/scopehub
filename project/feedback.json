@@ -1854,7 +1854,7 @@
       "source": "Independent t3b review and clean b11df1a replay. Retained red browser observations are under .reports/m2-002-interaction-red-b11df1a. Matching Linux regression evidence for d57be7d is archived in project/evidence/M2-002-58c13d0f723275d2.json.",
       "observation": "After a chart timeframe edit and a named layout save, undoing only the layout removed the still-current chart undo. The reopened profile retained 5m and rejected the original chart inverse as STALE_CONTEXT. Linux green coverage exercises both inverse orders, durable replay, and predecessor chart undo history.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-002"
       ],
@@ -1863,7 +1863,11 @@
         "operations-workflow",
         "state-migrations"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Chart undo used a revision query that counted inverse operations for unrelated targets.",
+        "correction": "Associate each chart inverse with the original chart operation in the same workspace.",
+        "prevention": "The browser verifies both undo orders after reopening the same profile. The persistence check preserves predecessor operations even for same-timeframe edits."
+      },
       "deferral_reason": null
     },
     {
@@ -1871,7 +1875,7 @@
       "source": "Independent t3b review and clean b11df1a replay. Retained red browser observations are under .reports/m2-002-interaction-red-b11df1a. Matching Linux regression evidence for d57be7d is archived in project/evidence/M2-002-58c13d0f723275d2.json.",
       "observation": "After the Rust writer committed a layout and its reply was dropped, clicking Apply layout again allocated a new idempotency key and returned STALE_CONTEXT. Linux green coverage uses the ordinary Apply button to recover the original receipt and separately exercises a changed draft, a real conflict and a denied grant.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-002"
       ],
@@ -1879,7 +1883,11 @@
         "workspace-layout",
         "operations-workflow"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "A dropped commit reply cleared the reviewed Apply scope, so a retry generated a different idempotency key.",
+        "correction": "Reuse the original reviewed scope until a definitive outcome or a new layout review.",
+        "prevention": "The real Apply control recovers its original receipt after a lost response. Separate tests verify changed drafts, stale reviews and a real permission denial."
+      },
       "deferral_reason": null
     },
     {
@@ -1887,7 +1895,7 @@
       "source": "Affected protocol regression on the layout and indicator integration at 45bf7ad.",
       "observation": "The Rust wire coverage assertion omitted scoped layout request variants and the shared vector set lacked accepted AI layout preview and application examples. The earlier layout receipt omitted the wire change checks.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-002"
       ],
@@ -1897,7 +1905,11 @@
         "python-contracts-workers",
         "rust-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The shared protocol fixtures and layout task check list omitted scoped human and AI layout intent coverage.",
+        "correction": "Add the scoped layout request cases to the shared vectors and use the generated layouts in Rust, Python and TypeScript checks.",
+        "prevention": "The combined task receipt includes generated contract verification and all three wire implementations alongside the real layout browser and desktop bridge."
+      },
       "deferral_reason": null
     },
     {
