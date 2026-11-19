@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0",
-  "observed_at": "2026-11-19T13:32:23.194091+00:00",
+  "observed_at": "2026-11-19T16:48:42.767844+00:00",
   "lock_sha256": {
-    "Cargo.lock": "a634feb3ddaf50fb6bceeaf2261b5997c73fe7a062f6f1e65c164a333ff0a239",
+    "Cargo.lock": "081b21e42957218b1bdf90c813fd15dcaf2b0cb3895db4e804186a84b1c82970",
     "uv.lock": "628c3231c45d1c644d8909dcf009367266104f5978d3d87976af6760c78c2842",
     "pnpm-lock.yaml": "baa4c0c5c4776cdb58bb3e654f5cadd4e681c9b45f82312b3cfa7a88376ddcfc"
   },
@@ -832,6 +832,13 @@
       "version": "0.17.0",
       "license": "MIT OR Apache-2.0",
       "metadata_url": "https://crates.io/crates/fraction/0.17.0"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "fs-id",
+      "version": "0.2.0",
+      "license": "Zlib",
+      "metadata_url": "https://crates.io/crates/fs-id/0.2.0"
     },
     {
       "ecosystem": "crates.io",

@@ -1,0 +1,66 @@
+{
+  "recorded_at": "2026-11-19",
+  "kind": "native_local_source_sharing",
+  "task_id": "M1-008",
+  "decision_ref": "0014",
+  "source_commit": "150d62d349e08b569fc9e085d54a7481faaf42bf",
+  "baseline_commit": "5b65396a85a37734f22ac05f5ef10d0b52eef504",
+  "baseline_hosted_run": "https://github.com/kacoyi/scopehub/actions/runs/44563163301",
+  "platform": "Windows 11 Enterprise Evaluation 26H2 build 26300.9457, standard-user x64 KVM, NTFS, native MSVC.",
+  "source_archive_sha256": "5e6eef31b8d77630a35356b8ae6a6b0df3d2e0d843c00e637a1b9f0eb6cb2823",
+  "observed": [
+    "The earlier hosted Windows job failed two native save/publication tests with sharing violation 32. An independent standard-user experiment reproduced the effect while the selected directory chain remained open.",
+    "All 14 native filesystem cases and 18 native desktop library cases passed at the repaired source. Cases cover equivalent NTFS selector spellings, junction rejection, source revision replay, legacy mapping reuse, old root and ancestor replacement, cancellation, and a verified commit with pinned handles.",
+    "A separate process renamed, replaced, called Windows ReplaceFile, rewrote, added and removed synthetic files in the selected directory, its child and a sibling. Each operation succeeded before selection, while the selected directory was idle, after preview, after publication and after shutdown. This yielded 90 successful operation results.",
+    "Moving the selected directory and recreating its pathname with identical contents made the prior selection return STALE_CONTEXT. A new native selection could read the replacement."
+  ],
+  "artifacts": [
+    {
+      "file": ".reports/guest/5b65396-source-sharing/PINS.JSON",
+      "sha256": "a45f76cdd15e1b89829f24c022be17f2368b96adee18e7ca9eba73e44deb8e19"
+    },
+    {
+      "file": ".reports/guest/5b65396-source-sharing/CHANGES.JSON",
+      "sha256": "aeb4a89e532edc890690e3c1b88c0e85b7370a3e209d6ba7503803b9f2c04e29"
+    },
+    {
+      "file": ".reports/guest/150d62d-source-sharing/BUILD.JSON",
+      "sha256": "36e72ce2d634b65fe8cf9bb71da7bde79e680ef6e583e6c6afe12fd33910a2db"
+    },
+    {
+      "file": ".reports/guest/150d62d-source-sharing/CASE.JSON",
+      "sha256": "f63f6f79e191dea9577885b9bb7c3761a1835db35cf856598c3bcfc7a4c54df9"
+    },
+    {
+      "file": ".reports/guest/150d62d-source-sharing/MAPBUILD.TXT",
+      "sha256": "0d6e2615f509569595f2424372752c3d10d4dc0dd4b459e7e446653bc16b4bfc"
+    },
+    {
+      "file": ".reports/guest/150d62d-source-sharing/PLATFORM.TXT",
+      "sha256": "1c14d30f80094806e80b1d62bc44ea69c6c861d95312fc365d6d76e945fece9d"
+    },
+    {
+      "file": ".reports/guest/150d62d-source-sharing/DESKTOP.TXT",
+      "sha256": "1346bde2654a83009d5ba6e25f1d76d65232bfe62006e760dcb7a711d3cf5649"
+    },
+    {
+      "file": ".reports/guest/150d62d-source-sharing/PROBE.PY",
+      "sha256": "c075e4c51e5365e4eb4e57864e764e24b6ed3bc8e0644bc2a32aeb6c52539c58"
+    },
+    {
+      "file": ".reports/guest/150d62d-source-sharing/MAP.PS1",
+      "sha256": "27fd6a6279111016d02209b3fbcd74b5f3c1ca8b73ddfc8c6f00ffb228518b04"
+    },
+    {
+      "file": ".reports/guest/150d62d-source-sharing/CHANGES.JSON",
+      "sha256": "aefb7c19aaedc08985614e2d35e6bc9cf4571275dbacccd29b9de60b4138d347"
+    },
+    {
+      "file": ".reports/guest/150d62d-source-sharing/MAPREADY.TXT",
+      "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+    }
+  ],
+  "pending": [
+    "Reviewed multi-file refresh and withdrawal on a single immutable publication, testing the full joined source, physical Windows, packaged acceptance and owner experience review."
+  ]
+}

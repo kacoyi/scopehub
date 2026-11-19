@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=6b2f457b4b2cc72c2d415bf0ecd8609f3825f9f4331a8e80d6bc1ec29130789d. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=d61540f2af5ac6b317afc674d4afe95d3c8e5a30e394b45defeab3f28c07e757. Do not edit.
 // Structural types and literal discriminators: validate schema refinements before deserializing.
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -159,6 +159,14 @@ pub enum OperationName {
     MarketSaveLocalImportMapping,
     #[serde(rename = "market.loadLocalImportMapping")]
     MarketLoadLocalImportMapping,
+    #[serde(rename = "market.listLocalImportRevisions")]
+    MarketListLocalImportRevisions,
+    #[serde(rename = "market.readLocalImportRevision")]
+    MarketReadLocalImportRevision,
+    #[serde(rename = "market.revokeLocalImportRevision")]
+    MarketRevokeLocalImportRevision,
+    #[serde(rename = "market.publishLocalImport")]
+    MarketPublishLocalImport,
     #[serde(rename = "workspace.readChartProjection")]
     WorkspaceReadChartProjection,
     #[serde(rename = "workspace.selectEvidence")]
@@ -200,6 +208,10 @@ impl OperationName {
             Self::MarketPreviewLocalImport => "market.previewLocalImport",
             Self::MarketSaveLocalImportMapping => "market.saveLocalImportMapping",
             Self::MarketLoadLocalImportMapping => "market.loadLocalImportMapping",
+            Self::MarketListLocalImportRevisions => "market.listLocalImportRevisions",
+            Self::MarketReadLocalImportRevision => "market.readLocalImportRevision",
+            Self::MarketRevokeLocalImportRevision => "market.revokeLocalImportRevision",
+            Self::MarketPublishLocalImport => "market.publishLocalImport",
             Self::WorkspaceReadChartProjection => "workspace.readChartProjection",
             Self::WorkspaceSelectEvidence => "workspace.selectEvidence",
             Self::DecisionNoteSave => "decisionNote.save",
@@ -1503,6 +1515,158 @@ pub struct LoadLocalImportMappingError {
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct ListLocalImportRevisionsRequest {
+    pub protocol_version: ListLocalImportRevisionsRequestProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: ListLocalImportRevisionsRequestType,
+    pub request_id: Uuid,
+    pub task_id: Option<Uuid>,
+    pub operation: ListLocalImportRevisionsRequestOperation,
+    pub payload: ListLocalImportRevisionsInput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ListLocalImportRevisionsResponse {
+    pub protocol_version: ListLocalImportRevisionsResponseProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: ListLocalImportRevisionsResponseType,
+    pub request_id: Uuid,
+    pub operation: ListLocalImportRevisionsResponseOperation,
+    pub ok: ConstBool<true>,
+    pub result: ListLocalImportRevisionsOutput,
+    pub error: (),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ListLocalImportRevisionsError {
+    pub protocol_version: ListLocalImportRevisionsErrorProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: ListLocalImportRevisionsErrorType,
+    pub request_id: Uuid,
+    pub operation: ListLocalImportRevisionsErrorOperation,
+    pub ok: ConstBool<false>,
+    pub result: (),
+    pub error: MarketPageFault,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReadLocalImportRevisionRequest {
+    pub protocol_version: ReadLocalImportRevisionRequestProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: ReadLocalImportRevisionRequestType,
+    pub request_id: Uuid,
+    pub task_id: Option<Uuid>,
+    pub operation: ReadLocalImportRevisionRequestOperation,
+    pub payload: ReadLocalImportRevisionInput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReadLocalImportRevisionResponse {
+    pub protocol_version: ReadLocalImportRevisionResponseProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: ReadLocalImportRevisionResponseType,
+    pub request_id: Uuid,
+    pub operation: ReadLocalImportRevisionResponseOperation,
+    pub ok: ConstBool<true>,
+    pub result: ReadLocalImportRevisionOutput,
+    pub error: (),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReadLocalImportRevisionError {
+    pub protocol_version: ReadLocalImportRevisionErrorProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: ReadLocalImportRevisionErrorType,
+    pub request_id: Uuid,
+    pub operation: ReadLocalImportRevisionErrorOperation,
+    pub ok: ConstBool<false>,
+    pub result: (),
+    pub error: MarketPageFault,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RevokeLocalImportRevisionRequest {
+    pub protocol_version: RevokeLocalImportRevisionRequestProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: RevokeLocalImportRevisionRequestType,
+    pub request_id: Uuid,
+    pub task_id: Option<Uuid>,
+    pub operation: RevokeLocalImportRevisionRequestOperation,
+    pub payload: RevokeLocalImportRevisionInput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RevokeLocalImportRevisionResponse {
+    pub protocol_version: RevokeLocalImportRevisionResponseProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: RevokeLocalImportRevisionResponseType,
+    pub request_id: Uuid,
+    pub operation: RevokeLocalImportRevisionResponseOperation,
+    pub ok: ConstBool<true>,
+    pub result: RevokeLocalImportRevisionOutput,
+    pub error: (),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RevokeLocalImportRevisionError {
+    pub protocol_version: RevokeLocalImportRevisionErrorProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: RevokeLocalImportRevisionErrorType,
+    pub request_id: Uuid,
+    pub operation: RevokeLocalImportRevisionErrorOperation,
+    pub ok: ConstBool<false>,
+    pub result: (),
+    pub error: MarketPageFault,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PublishLocalImportRequest {
+    pub protocol_version: PublishLocalImportRequestProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: PublishLocalImportRequestType,
+    pub request_id: Uuid,
+    pub task_id: Option<Uuid>,
+    pub operation: PublishLocalImportRequestOperation,
+    pub payload: PublishLocalImportInput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PublishLocalImportResponse {
+    pub protocol_version: PublishLocalImportResponseProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: PublishLocalImportResponseType,
+    pub request_id: Uuid,
+    pub operation: PublishLocalImportResponseOperation,
+    pub ok: ConstBool<true>,
+    pub result: PublishLocalImportOutput,
+    pub error: (),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PublishLocalImportError {
+    pub protocol_version: PublishLocalImportErrorProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: PublishLocalImportErrorType,
+    pub request_id: Uuid,
+    pub operation: PublishLocalImportErrorOperation,
+    pub ok: ConstBool<false>,
+    pub result: (),
+    pub error: MarketPageFault,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct WorkerHello11 {
     pub protocol_version: ProtocolVersion11,
     pub message_id: Uuid,
@@ -1868,6 +2032,18 @@ pub enum Message {
     LoadLocalImportMappingRequest(Box<LoadLocalImportMappingRequest>),
     LoadLocalImportMappingResponse(Box<LoadLocalImportMappingResponse>),
     LoadLocalImportMappingError(Box<LoadLocalImportMappingError>),
+    ListLocalImportRevisionsRequest(Box<ListLocalImportRevisionsRequest>),
+    ListLocalImportRevisionsResponse(Box<ListLocalImportRevisionsResponse>),
+    ListLocalImportRevisionsError(Box<ListLocalImportRevisionsError>),
+    ReadLocalImportRevisionRequest(Box<ReadLocalImportRevisionRequest>),
+    ReadLocalImportRevisionResponse(Box<ReadLocalImportRevisionResponse>),
+    ReadLocalImportRevisionError(Box<ReadLocalImportRevisionError>),
+    RevokeLocalImportRevisionRequest(Box<RevokeLocalImportRevisionRequest>),
+    RevokeLocalImportRevisionResponse(Box<RevokeLocalImportRevisionResponse>),
+    RevokeLocalImportRevisionError(Box<RevokeLocalImportRevisionError>),
+    PublishLocalImportRequest(Box<PublishLocalImportRequest>),
+    PublishLocalImportResponse(Box<PublishLocalImportResponse>),
+    PublishLocalImportError(Box<PublishLocalImportError>),
     MarketBarUpdateEvent(Box<MarketBarUpdateEvent>),
     MarketBarCorrectionEvent(Box<MarketBarCorrectionEvent>),
     MarketStreamGapEvent(Box<MarketStreamGapEvent>),
@@ -3696,6 +3872,134 @@ pub struct DecisionNoteRestoreBackupReply11 {
     pub outcome: DecisionNoteRestoreBackupOutcome11,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LocalImportRowLocator {
+    pub record_number: u64,
+    pub line_start: u64,
+    pub line_end: u64,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PublishedLocalImportBar {
+    pub bar: Bar,
+    pub locators: Vec<LocalImportRowLocator>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PublishedLocalImportRevision {
+    pub revision_id: Uuid,
+    pub relative_path: String,
+    pub source_sha256: Hash,
+    pub mapping_sha256: Hash,
+    pub review_revision: u64,
+    pub symbol: String,
+    pub series: PreviewSeries,
+    pub bar_count: u64,
+    pub source_record_count: u64,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PublishLocalImportInput {
+    pub version: u64,
+    pub folder_id: Uuid,
+    pub file_id: Uuid,
+    pub expected_sha256: Hash,
+    pub review_revision: u64,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PublishLocalImportOutput {
+    pub version: u64,
+    pub revision: PublishedLocalImportRevision,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LocalImportRevisionBarSummary {
+    pub venue: String,
+    pub first_trading_day: String,
+    pub final_trading_day: String,
+    pub final_close: f64,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LocalImportRevisionListEntry {
+    pub revision_id: CanonicalRevisionCursor,
+    pub relative_path: String,
+    pub symbol: String,
+    pub bar_count: u64,
+    pub source_record_count: u64,
+    pub source_sha256: Hash,
+    pub timeframe: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bar_summary: Option<LocalImportRevisionBarSummary>,
+}
+pub type CanonicalRevisionCursor = String;
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ListLocalImportRevisionsInput {
+    pub version: u64,
+    pub after_revision_id: Option<CanonicalRevisionCursor>,
+    pub limit: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub include_bar_summary: Option<bool>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ListLocalImportRevisionsOutput {
+    pub version: u64,
+    pub revisions: Vec<LocalImportRevisionListEntry>,
+    pub next_after_revision_id: Option<CanonicalRevisionCursor>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum ListLocalImportRevisionsReply11 {
+    ListLocalImportRevisionsResponse(Box<ListLocalImportRevisionsResponse>),
+    ListLocalImportRevisionsError(Box<ListLocalImportRevisionsError>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReadLocalImportRevisionInput {
+    pub version: u64,
+    pub revision_id: Uuid,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReadLocalImportRevisionOutput {
+    pub version: u64,
+    pub revision: PublishedLocalImportRevision,
+    pub bars: Vec<PublishedLocalImportBar>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum PublishLocalImportReply11 {
+    PublishLocalImportResponse(Box<PublishLocalImportResponse>),
+    PublishLocalImportError(Box<PublishLocalImportError>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum ReadLocalImportRevisionReply11 {
+    ReadLocalImportRevisionResponse(Box<ReadLocalImportRevisionResponse>),
+    ReadLocalImportRevisionError(Box<ReadLocalImportRevisionError>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RevokeLocalImportRevisionInput {
+    pub version: u64,
+    pub revision_id: Uuid,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum RevokeLocalImportRevisionReply11 {
+    RevokeLocalImportRevisionResponse(Box<RevokeLocalImportRevisionResponse>),
+    RevokeLocalImportRevisionError(Box<RevokeLocalImportRevisionError>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RevokeLocalImportRevisionOutput {
+    pub version: u64,
+    pub revision_id: Uuid,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum FieldExpressionOp {
     #[serde(rename = "field")]
     Value,
@@ -5249,6 +5553,438 @@ impl LoadLocalImportMappingErrorOperation {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Value => "market.loadLocalImportMapping",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ListLocalImportRevisionsRequestProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl ListLocalImportRevisionsRequestProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ListLocalImportRevisionsRequestType {
+    #[serde(rename = "request")]
+    Value,
+}
+impl ListLocalImportRevisionsRequestType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ListLocalImportRevisionsRequestOperation {
+    #[serde(rename = "market.listLocalImportRevisions")]
+    Value,
+}
+impl ListLocalImportRevisionsRequestOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.listLocalImportRevisions",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ListLocalImportRevisionsResponseProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl ListLocalImportRevisionsResponseProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ListLocalImportRevisionsResponseType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl ListLocalImportRevisionsResponseType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ListLocalImportRevisionsResponseOperation {
+    #[serde(rename = "market.listLocalImportRevisions")]
+    Value,
+}
+impl ListLocalImportRevisionsResponseOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.listLocalImportRevisions",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ListLocalImportRevisionsErrorProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl ListLocalImportRevisionsErrorProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ListLocalImportRevisionsErrorType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl ListLocalImportRevisionsErrorType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ListLocalImportRevisionsErrorOperation {
+    #[serde(rename = "market.listLocalImportRevisions")]
+    Value,
+}
+impl ListLocalImportRevisionsErrorOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.listLocalImportRevisions",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalImportRevisionRequestProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl ReadLocalImportRevisionRequestProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalImportRevisionRequestType {
+    #[serde(rename = "request")]
+    Value,
+}
+impl ReadLocalImportRevisionRequestType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalImportRevisionRequestOperation {
+    #[serde(rename = "market.readLocalImportRevision")]
+    Value,
+}
+impl ReadLocalImportRevisionRequestOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.readLocalImportRevision",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalImportRevisionResponseProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl ReadLocalImportRevisionResponseProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalImportRevisionResponseType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl ReadLocalImportRevisionResponseType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalImportRevisionResponseOperation {
+    #[serde(rename = "market.readLocalImportRevision")]
+    Value,
+}
+impl ReadLocalImportRevisionResponseOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.readLocalImportRevision",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalImportRevisionErrorProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl ReadLocalImportRevisionErrorProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalImportRevisionErrorType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl ReadLocalImportRevisionErrorType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalImportRevisionErrorOperation {
+    #[serde(rename = "market.readLocalImportRevision")]
+    Value,
+}
+impl ReadLocalImportRevisionErrorOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.readLocalImportRevision",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum RevokeLocalImportRevisionRequestProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl RevokeLocalImportRevisionRequestProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum RevokeLocalImportRevisionRequestType {
+    #[serde(rename = "request")]
+    Value,
+}
+impl RevokeLocalImportRevisionRequestType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum RevokeLocalImportRevisionRequestOperation {
+    #[serde(rename = "market.revokeLocalImportRevision")]
+    Value,
+}
+impl RevokeLocalImportRevisionRequestOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.revokeLocalImportRevision",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum RevokeLocalImportRevisionResponseProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl RevokeLocalImportRevisionResponseProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum RevokeLocalImportRevisionResponseType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl RevokeLocalImportRevisionResponseType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum RevokeLocalImportRevisionResponseOperation {
+    #[serde(rename = "market.revokeLocalImportRevision")]
+    Value,
+}
+impl RevokeLocalImportRevisionResponseOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.revokeLocalImportRevision",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum RevokeLocalImportRevisionErrorProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl RevokeLocalImportRevisionErrorProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum RevokeLocalImportRevisionErrorType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl RevokeLocalImportRevisionErrorType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum RevokeLocalImportRevisionErrorOperation {
+    #[serde(rename = "market.revokeLocalImportRevision")]
+    Value,
+}
+impl RevokeLocalImportRevisionErrorOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.revokeLocalImportRevision",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PublishLocalImportRequestProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl PublishLocalImportRequestProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PublishLocalImportRequestType {
+    #[serde(rename = "request")]
+    Value,
+}
+impl PublishLocalImportRequestType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PublishLocalImportRequestOperation {
+    #[serde(rename = "market.publishLocalImport")]
+    Value,
+}
+impl PublishLocalImportRequestOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.publishLocalImport",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PublishLocalImportResponseProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl PublishLocalImportResponseProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PublishLocalImportResponseType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl PublishLocalImportResponseType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PublishLocalImportResponseOperation {
+    #[serde(rename = "market.publishLocalImport")]
+    Value,
+}
+impl PublishLocalImportResponseOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.publishLocalImport",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PublishLocalImportErrorProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl PublishLocalImportErrorProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PublishLocalImportErrorType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl PublishLocalImportErrorType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PublishLocalImportErrorOperation {
+    #[serde(rename = "market.publishLocalImport")]
+    Value,
+}
+impl PublishLocalImportErrorOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.publishLocalImport",
         }
     }
 }

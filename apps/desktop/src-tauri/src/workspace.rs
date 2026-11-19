@@ -6,19 +6,33 @@ use std::{
 };
 
 use scopehub_application::{
-    Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, LOAD_LOCAL_IMPORT_MAPPING,
-    LOCAL_WORKSPACE_OPERATIONS, MappingCommitGuard, OperationRegistry, ReviewedImportMapping,
-    SAVE_LOCAL_IMPORT_MAPPING, WorkspaceAccess, WorkspaceBinding, failure,
+    Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, LIST_LOCAL_IMPORT_REVISIONS,
+    LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS, LocalDatasetPublication,
+    MappingCommitGuard, OperationRegistry, PUBLISH_LOCAL_IMPORT, READ_LOCAL_IMPORT_REVISION,
+    REVOKE_LOCAL_IMPORT_REVISION, ReviewedImportMapping, SAVE_LOCAL_IMPORT_MAPPING,
+    WorkspaceAccess, WorkspaceBinding, failure, list_local_import_revisions_input,
+    local_mapping_fingerprint, read_local_import_revision_input,
+    revoke_local_import_revision_input,
 };
 use scopehub_domain::protocol::{CsvMappingV1, Error, ErrorCode};
 use scopehub_persistence::SqliteWorkspace;
+use scopehub_platform::local_folder::FrozenFile;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use tokio::sync::{Mutex, OwnedMutexGuard};
 
+use crate::local_import::{ImportReceipt, PendingImport};
+
 const WORKSPACE_ID: &str = "main";
 const WORKSPACE_DIRECTORY: &str = "workspace-dev";
-const MAPPING_OPERATIONS: &[&str] = &[LOAD_LOCAL_IMPORT_MAPPING, SAVE_LOCAL_IMPORT_MAPPING];
+const LOCAL_IMPORT_OPERATIONS: &[&str] = &[
+    LOAD_LOCAL_IMPORT_MAPPING,
+    SAVE_LOCAL_IMPORT_MAPPING,
+    PUBLISH_LOCAL_IMPORT,
+    LIST_LOCAL_IMPORT_REVISIONS,
+    READ_LOCAL_IMPORT_REVISION,
+    REVOKE_LOCAL_IMPORT_REVISION,
+];
 const MAX_REQUEST_BYTES: usize = 16 * 1024;
 const MAX_NOTE_REQUEST_BYTES: usize = 32 * 1024;
 const MAX_BACKUP_REQUEST_BYTES: usize = 1024 * 1024;
@@ -62,7 +76,7 @@ impl WorkspaceBridge {
     }
 
     fn admit(&self) -> Result<OwnedMutexGuard<Lane>, Error> {
-        // One writer slot covers both the workspace and import mappings.
+        // The workspace, reviewed mappings and published datasets share one writer slot.
         let lane = Arc::clone(&self.lane)
             .try_lock_owned()
             .map_err(|_| failure(ErrorCode::BUSY))?;
@@ -143,7 +157,7 @@ impl WorkspaceBridge {
         Self::with_bound(self.admit()?, false, move |bound| {
             bound
                 .registry
-                .find_reviewed_mapping(&mapping_access(&bound.profile_id), &source_key)
+                .find_reviewed_mapping(&local_import_access(&bound.profile_id), &source_key)
         })
         .await
         .map(Option::flatten)
@@ -155,18 +169,130 @@ impl WorkspaceBridge {
         header_sha256: String,
         mapping: CsvMappingV1,
         guard: impl MappingCommitGuard + Send + 'static,
+        attempt: Option<PendingImport>,
     ) -> Result<Value, Error> {
         Self::with_bound(self.admit()?, true, move |bound| {
-            bound.registry.save_reviewed_mapping(
-                &mapping_access(&bound.profile_id),
+            let record = bound.registry.save_reviewed_mapping(
+                &local_import_access(&bound.profile_id),
                 &source_key,
                 &header_sha256,
                 &mapping,
                 &guard,
-            )
+            )?;
+            if let Some(attempt) = attempt {
+                attempt.committed(ImportReceipt::Mapping(record.review_revision));
+            }
+            Ok(json!({ "version": 1, "record": record }))
         })
         .await?
         .ok_or_else(|| failure(ErrorCode::INTERNALERROR))
+    }
+
+    pub(super) async fn replay_saved_mapping(
+        &self,
+        source_key: String,
+        revision: u64,
+    ) -> Result<Value, Error> {
+        Self::with_bound(self.admit()?, false, move |bound| {
+            let record = bound.registry.replay_reviewed_mapping(
+                &local_import_access(&bound.profile_id),
+                &source_key,
+                revision,
+            )?;
+            Ok(json!({ "version": 1, "record": record }))
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
+    }
+
+    pub(super) async fn publish(
+        &self,
+        source_key: String,
+        frozen: FrozenFile,
+        reviewed: ReviewedImportMapping,
+        content: Value,
+        guard: impl MappingCommitGuard + Send + 'static,
+        attempt: Option<PendingImport>,
+    ) -> Result<Value, Error> {
+        Self::with_bound(self.admit()?, false, move |bound| {
+            let candidate = LocalDatasetPublication {
+                source_key: &source_key,
+                relative_path: &frozen.file.relative_path,
+                source_sha256: &frozen.sha256,
+                mapping_sha256: &local_mapping_fingerprint(&reviewed.mapping)?,
+                reviewed_mapping: &reviewed,
+                original: frozen
+                    .content
+                    .as_deref()
+                    .ok_or_else(|| failure(ErrorCode::RESOURCELIMIT))?,
+                content: &content,
+            };
+            let access = local_import_access(&bound.profile_id);
+            let revision_id = bound
+                .registry
+                .publish_reviewed_local_dataset(&access, &candidate, &guard)?;
+            if let Some(attempt) = attempt {
+                attempt.committed(ImportReceipt::Publication(revision_id.clone()));
+            }
+            bound
+                .registry
+                .local_dataset_publication_receipt(&access, &revision_id)
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::STALECONTEXT))
+    }
+
+    pub(super) async fn replay_publication(&self, revision_id: String) -> Result<Value, Error> {
+        Self::with_bound(self.admit()?, false, move |bound| {
+            bound.registry.local_dataset_publication_receipt(
+                &local_import_access(&bound.profile_id),
+                &revision_id,
+            )
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
+    }
+
+    pub(super) async fn list_local_revisions(&self, payload: Value) -> Result<Value, Error> {
+        let input = list_local_import_revisions_input(Actor::LocalUser, payload)?;
+        let lane = self.admit().map_err(|error| {
+            if error.code == ErrorCode::PERMISSIONDENIED {
+                failure(ErrorCode::PROVIDERNOTCONFIGURED)
+            } else {
+                error
+            }
+        })?;
+        let result = Self::with_bound(lane, false, move |bound| {
+            bound
+                .registry
+                .list_frozen_local_datasets(&local_import_access(&bound.profile_id), &input)
+        })
+        .await?;
+        Ok(result.unwrap_or_else(
+            || json!({"version": 1, "revisions": [], "next_after_revision_id": null}),
+        ))
+    }
+
+    pub(super) async fn read_local_revision(&self, payload: Value) -> Result<Value, Error> {
+        let input = read_local_import_revision_input(Actor::LocalUser, payload)?;
+        Self::with_bound(self.admit()?, false, move |bound| {
+            bound
+                .registry
+                .read_frozen_local_dataset(&local_import_access(&bound.profile_id), &input)
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
+    }
+
+    pub(super) async fn revoke_local_revision(&self, payload: Value) -> Result<Value, Error> {
+        let input = revoke_local_import_revision_input(Actor::LocalUser, payload)?;
+        Self::with_bound(self.admit()?, false, move |bound| {
+            bound
+                .registry
+                .revoke_frozen_local_dataset(&local_import_access(&bound.profile_id), &input)
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
     }
 
     pub(super) async fn shutdown(&self) {
@@ -235,14 +361,14 @@ impl BoundWorkspace {
     }
 }
 
-fn mapping_access(profile_id: &str) -> WorkspaceAccess<'_> {
+fn local_import_access(profile_id: &str) -> WorkspaceAccess<'_> {
     WorkspaceAccess {
         actor: Actor::LocalUser,
         profile_id,
         principal_id: profile_id,
         paired_client_id: None,
         workspace_id: WORKSPACE_ID,
-        operations: MAPPING_OPERATIONS,
+        operations: LOCAL_IMPORT_OPERATIONS,
         disclose_workspace_state: false,
     }
 }

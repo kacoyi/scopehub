@@ -5,6 +5,7 @@ mod platform_fs;
 use std::{
     ffi::OsStr,
     fmt,
+    fs::{File, Metadata},
     io::{self, Read},
     path::{Component, Path, PathBuf},
     str::FromStr,
@@ -17,7 +18,9 @@ use std::{
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
-use platform_fs::{Directory, is_redirect, same_version};
+use platform_fs::{
+    Directory, FileIdentity, SelectedDirectory, file_identity, is_redirect, same_version,
+};
 
 /// Maximum complete source bytes kept for the current Python CSV preview.
 /// Larger files still get a whole-file digest and byte count.
@@ -128,6 +131,7 @@ impl Cancellation {
 
 struct FileEntry {
     relative: PathBuf,
+    parents: Arc<[FileIdentity]>,
     metadata: FileMetadata,
 }
 
@@ -135,12 +139,24 @@ struct Selection {
     id: FolderId,
     source_namespace: [u8; 32],
     display_name: String,
-    directory: Directory,
+    directory: SelectedDirectory,
     files: Vec<FileEntry>,
     revoked: Cancellation,
 }
 
 impl Selection {
+    fn csv_entry(&self, file_id: FileId) -> Result<&FileEntry, FolderError> {
+        let entry = self
+            .files
+            .iter()
+            .find(|entry| entry.metadata.file_id == file_id)
+            .ok_or(FolderError::UnknownFile)?;
+        if entry.metadata.kind != FileKind::Csv {
+            return Err(FolderError::UnsupportedFile);
+        }
+        Ok(entry)
+    }
+
     fn catalog(&self) -> FolderCatalog {
         FolderCatalog {
             folder_id: self.id,
@@ -159,6 +175,16 @@ impl Selection {
             return Err(FolderError::SelectionUnavailable);
         }
         Ok(())
+    }
+
+    fn open_directory(&self, cancel: &Cancellation) -> Result<Directory, FolderError> {
+        self.check_live(cancel)?;
+        self.directory.pin().map_err(|error| match error.kind() {
+            io::ErrorKind::NotFound | io::ErrorKind::NotADirectory | io::ErrorKind::InvalidData => {
+                FolderError::SelectionUnavailable
+            }
+            _ => FolderError::Io,
+        })
     }
 }
 
@@ -224,7 +250,8 @@ impl LocalFolderHost {
             self.check_open()?;
             cancel.check()
         };
-        let directory = Directory::open_root(path).map_err(|_| FolderError::InvalidSelection)?;
+        let (selected_directory, directory) =
+            SelectedDirectory::adopt(path).map_err(|_| FolderError::InvalidSelection)?;
         let association = directory
             .association_path(path)
             .map_err(|_| FolderError::InvalidSelection)?;
@@ -234,7 +261,7 @@ impl LocalFolderHost {
         scan(
             &directory,
             Path::new(""),
-            0,
+            Arc::from([]),
             &check,
             &mut visited,
             &mut files,
@@ -247,7 +274,7 @@ impl LocalFolderHost {
                 || "Selected folder".into(),
                 |name| name.to_string_lossy().into_owned(),
             ),
-            directory,
+            directory: selected_directory,
             files,
             revoked: Cancellation::default(),
         });
@@ -306,14 +333,7 @@ impl LocalFolderHost {
             .as_ref()
             .filter(|selection| selection.id == folder_id)
             .ok_or(FolderError::SelectionUnavailable)?;
-        let entry = selection
-            .files
-            .iter()
-            .find(|entry| entry.metadata.file_id == file_id)
-            .ok_or(FolderError::UnknownFile)?;
-        if entry.metadata.kind != FileKind::Csv {
-            return Err(FolderError::UnsupportedFile);
-        }
+        let entry = selection.csv_entry(file_id)?;
         let relative = path_fingerprint(b"scopehub-local-relative-file-v1", &entry.relative);
         let mut digest = Sha256::new();
         digest.update(b"scopehub-local-mapping-source-v1\0");
@@ -333,29 +353,113 @@ impl LocalFolderHost {
         expected_sha256: Option<&str>,
         cancel: &Cancellation,
     ) -> Result<FrozenFile, FolderError> {
+        self.read_frozen(
+            folder_id,
+            file_id,
+            expected_sha256,
+            cancel,
+            ReadMode::Preview,
+        )
+    }
+
+    /// A publication already has a reviewed digest within the complete-file
+    /// budget. Reject a larger replacement before spending I/O on it.
+    pub fn read_for_publication(
+        &self,
+        folder_id: FolderId,
+        file_id: FileId,
+        expected_sha256: &str,
+        cancel: &Cancellation,
+    ) -> Result<FrozenFile, FolderError> {
+        self.read_frozen(
+            folder_id,
+            file_id,
+            Some(expected_sha256),
+            cancel,
+            ReadMode::Publication,
+        )
+    }
+
+    fn read_frozen(
+        &self,
+        folder_id: FolderId,
+        file_id: FileId,
+        expected_sha256: Option<&str>,
+        cancel: &Cancellation,
+        mode: ReadMode,
+    ) -> Result<FrozenFile, FolderError> {
         cancel.check()?;
         let _admission = self.admit_open(&self.reading)?;
-        let selection = {
-            let active = self.active.lock().map_err(|_| FolderError::Io)?;
-            active
-                .as_ref()
-                .filter(|selection| selection.id == folder_id)
-                .cloned()
-                .ok_or(FolderError::SelectionUnavailable)?
-        };
-        let entry = selection
-            .files
-            .iter()
-            .find(|entry| entry.metadata.file_id == file_id)
-            .ok_or(FolderError::UnknownFile)?;
-        if entry.metadata.kind != FileKind::Csv {
-            return Err(FolderError::UnsupportedFile);
-        }
-        let frozen = read_entry(&selection, entry, expected_sha256, cancel)?;
+        let selection = self.selected(folder_id)?;
+        let entry = selection.csv_entry(file_id)?;
+        let frozen = read_entry(
+            &selection,
+            entry,
+            expected_sha256,
+            cancel,
+            mode,
+            |file, _, _| Ok(file),
+        )?;
         let _active = self.active.lock().map_err(|_| FolderError::Io)?;
         selection.check_live(cancel)?;
         Ok(frozen)
     }
+
+    /// Recheck the selected entry at the end of a staged transaction. Keep
+    /// native handles pinned and order the final commit against grant changes.
+    pub fn with_verified_current<T>(
+        &self,
+        folder_id: FolderId,
+        file_id: FileId,
+        expected_sha256: &str,
+        cancel: &Cancellation,
+        commit: impl FnOnce() -> T,
+    ) -> Result<T, FolderError> {
+        cancel.check()?;
+        let _admission = self.admit_open(&self.reading)?;
+        let selection = self.selected(folder_id)?;
+        let entry = selection.csv_entry(file_id)?;
+        read_entry(
+            &selection,
+            entry,
+            Some(expected_sha256),
+            cancel,
+            ReadMode::Commit,
+            |_, checked_file, checked_metadata| {
+                self.with_current(folder_id, || {
+                    let (current, _pins) = open_entry(&selection, entry, cancel)?;
+                    if file_identity(checked_file).map_err(|_| FolderError::Io)?
+                        != file_identity(&current).map_err(|_| FolderError::Io)?
+                        || !same_version(
+                            checked_metadata,
+                            &current.metadata().map_err(|_| FolderError::Io)?,
+                        )
+                    {
+                        return Err(FolderError::ContentChanged);
+                    }
+                    cancel.check()?;
+                    Ok(commit())
+                })?
+            },
+        )
+    }
+
+    fn selected(&self, folder_id: FolderId) -> Result<Arc<Selection>, FolderError> {
+        self.active
+            .lock()
+            .map_err(|_| FolderError::Io)?
+            .as_ref()
+            .filter(|selection| selection.id == folder_id)
+            .cloned()
+            .ok_or(FolderError::SelectionUnavailable)
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ReadMode {
+    Preview,
+    Publication,
+    Commit,
 }
 
 fn path_fingerprint(domain: &[u8], path: &Path) -> [u8; 32] {
@@ -392,7 +496,7 @@ fn admit(slot: &Mutex<()>) -> Result<MutexGuard<'_, ()>, FolderError> {
 fn scan(
     directory: &Directory,
     parent: &Path,
-    depth: usize,
+    parents: Arc<[FileIdentity]>,
     check: &impl Fn() -> Result<(), FolderError>,
     visited: &mut usize,
     files: &mut Vec<FileEntry>,
@@ -412,13 +516,22 @@ fn scan(
         let kind = if redirect || name.to_str().is_none() {
             FileKind::UnsupportedEntry
         } else if metadata.is_dir() {
-            if depth == MAX_DIRECTORY_DEPTH {
+            if parents.len() == MAX_DIRECTORY_DEPTH {
                 return Err(FolderError::CatalogLimit);
             }
             let child = directory
                 .open_directory(&name)
                 .map_err(|_| FolderError::Io)?;
-            scan(&child, &relative, depth + 1, check, visited, files)?;
+            let mut child_parents = parents.to_vec();
+            child_parents.push(child.identity().map_err(|_| FolderError::Io)?);
+            scan(
+                &child,
+                &relative,
+                child_parents.into(),
+                check,
+                visited,
+                files,
+            )?;
             continue;
         } else if !metadata.is_file() {
             FileKind::UnsupportedEntry
@@ -448,36 +561,55 @@ fn scan(
                 kind,
             },
             relative,
+            parents: Arc::clone(&parents),
         });
     }
     Ok(())
 }
 
-fn read_entry(
+fn open_entry(
     selection: &Selection,
     entry: &FileEntry,
-    expected_sha256: Option<&str>,
     cancel: &Cancellation,
-) -> Result<FrozenFile, FolderError> {
-    selection.check_live(cancel)?;
+) -> Result<(File, Directory), FolderError> {
+    let mut directory = selection.open_directory(cancel)?;
     let mut components = entry.relative.components();
     let Some(Component::Normal(name)) = components.next_back() else {
         return Err(FolderError::UnsupportedFile);
     };
-    let mut parent = None;
-    for component in components {
+    if components.clone().count() != entry.parents.len() {
+        return Err(FolderError::UnsupportedFile);
+    }
+    for (component, expected) in components.zip(entry.parents.iter()) {
         selection.check_live(cancel)?;
         let Component::Normal(part) = component else {
             return Err(FolderError::UnsupportedFile);
         };
-        let directory = parent.as_ref().unwrap_or(&selection.directory);
-        parent = Some(directory.open_directory(part).map_err(open_error)?);
+        directory = directory.open_directory(part).map_err(open_error)?;
+        if directory.identity().map_err(|_| FolderError::Io)? != *expected {
+            return Err(FolderError::ContentChanged);
+        }
     }
-    let directory = parent.as_ref().unwrap_or(&selection.directory);
-    let mut file = directory.open_file(name).map_err(open_error)?;
+    selection.check_live(cancel)?;
+    let file = directory.open_file(name).map_err(open_error)?;
+    Ok((file, directory))
+}
+
+fn read_entry<T>(
+    selection: &Selection,
+    entry: &FileEntry,
+    expected_sha256: Option<&str>,
+    cancel: &Cancellation,
+    mode: ReadMode,
+    finish: impl FnOnce(FrozenFile, &File, &Metadata) -> Result<T, FolderError>,
+) -> Result<T, FolderError> {
+    let (mut file, _parent_pins) = open_entry(selection, entry, cancel)?;
     let before = file.metadata().map_err(|_| FolderError::Io)?;
+    if mode != ReadMode::Preview && before.len() > MAX_PREVIEW_BYTES as u64 {
+        return Err(FolderError::ContentChanged);
+    }
     let mut digest = Sha256::new();
-    let mut content = (before.len() <= MAX_PREVIEW_BYTES as u64)
+    let mut content = (mode != ReadMode::Commit && before.len() <= MAX_PREVIEW_BYTES as u64)
         .then(|| Vec::with_capacity(before.len() as usize));
     let mut byte_count = 0;
     let mut buffer = [0; 64 * 1024];
@@ -509,12 +641,16 @@ fn read_entry(
     }
     let mut metadata = entry.metadata.clone();
     metadata.byte_count = byte_count;
-    Ok(FrozenFile {
-        folder_id: selection.id,
-        file: metadata,
-        sha256,
-        content: content.map(Arc::from),
-    })
+    finish(
+        FrozenFile {
+            folder_id: selection.id,
+            file: metadata,
+            sha256,
+            content: content.map(Arc::from),
+        },
+        &file,
+        &after,
+    )
 }
 
 fn open_error(error: io::Error) -> FolderError {

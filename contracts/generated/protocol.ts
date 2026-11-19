@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=6b2f457b4b2cc72c2d415bf0ecd8609f3825f9f4331a8e80d6bc1ec29130789d. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=d61540f2af5ac6b317afc674d4afe95d3c8e5a30e394b45defeab3f28c07e757. Do not edit.
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type OpaqueId = string;
 export type Uuid = string;
@@ -8,7 +8,7 @@ export type Metadata = Record<string, JsonValue>;
 export type WorkerRole = "market" | "ai" | "indicator";
 export type ProtocolVersion = "1.0";
 export type ErrorCode = "INVALID_ARGUMENT" | "UNSUPPORTED_CAPABILITY" | "PERMISSION_DENIED" | "CONFIRMATION_REQUIRED" | "CANCELLED" | "TIMEOUT" | "WORKER_EXITED" | "PROTOCOL_MISMATCH" | "DATA_UNAVAILABLE" | "STALE_CONTEXT" | "RESOURCE_LIMIT" | "OUTPUT_INVALID" | "PROVIDER_NOT_CONFIGURED" | "INTERNAL_ERROR" | "BUSY" | "SNAPSHOT_UNAVAILABLE";
-export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "market.previewLocalImport" | "market.saveLocalImportMapping" | "market.loadLocalImportMapping" | "workspace.readChartProjection" | "workspace.selectEvidence" | "decisionNote.save" | "decisionNote.read" | "decisionNote.appendOutcome" | "decisionNote.delete" | "decisionNote.exportBackup" | "decisionNote.previewRestore" | "decisionNote.restoreBackup";
+export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "market.previewLocalImport" | "market.saveLocalImportMapping" | "market.loadLocalImportMapping" | "market.listLocalImportRevisions" | "market.readLocalImportRevision" | "market.revokeLocalImportRevision" | "market.publishLocalImport" | "workspace.readChartProjection" | "workspace.selectEvidence" | "decisionNote.save" | "decisionNote.read" | "decisionNote.appendOutcome" | "decisionNote.delete" | "decisionNote.exportBackup" | "decisionNote.previewRestore" | "decisionNote.restoreBackup";
 export type ChartStyle = "candlestick" | "line";
 export type TaskStatus = "queued" | "running" | "awaiting_confirmation" | "completed" | "failed" | "cancelled";
 export type Tradability = "non_tradable" | "unknown";
@@ -825,6 +825,134 @@ export type LoadLocalImportMappingError = {
   result: null;
   error: MarketPageFault;
 };
+export type ListLocalImportRevisionsRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.listLocalImportRevisions";
+  payload: ListLocalImportRevisionsInput;
+};
+export type ListLocalImportRevisionsResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.listLocalImportRevisions";
+  ok: true;
+  result: ListLocalImportRevisionsOutput;
+  error: null;
+};
+export type ListLocalImportRevisionsError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.listLocalImportRevisions";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type ReadLocalImportRevisionRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.readLocalImportRevision";
+  payload: ReadLocalImportRevisionInput;
+};
+export type ReadLocalImportRevisionResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.readLocalImportRevision";
+  ok: true;
+  result: ReadLocalImportRevisionOutput;
+  error: null;
+};
+export type ReadLocalImportRevisionError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.readLocalImportRevision";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type RevokeLocalImportRevisionRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.revokeLocalImportRevision";
+  payload: RevokeLocalImportRevisionInput;
+};
+export type RevokeLocalImportRevisionResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.revokeLocalImportRevision";
+  ok: true;
+  result: RevokeLocalImportRevisionOutput;
+  error: null;
+};
+export type RevokeLocalImportRevisionError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.revokeLocalImportRevision";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type PublishLocalImportRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.publishLocalImport";
+  payload: PublishLocalImportInput;
+};
+export type PublishLocalImportResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.publishLocalImport";
+  ok: true;
+  result: PublishLocalImportOutput;
+  error: null;
+};
+export type PublishLocalImportError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.publishLocalImport";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
 export type WorkerHello11 = {
   protocol_version: ProtocolVersion11;
   message_id: Uuid;
@@ -1114,7 +1242,7 @@ export type CancelTaskError11 = {
   request_id: Uuid;
   error: WorkspaceFault11;
 };
-export type Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat | MarketHistoryPageRequest | MarketHistoryPageResponse | MarketHistoryPageError | MarketSubscriptionRequest | MarketSubscriptionResponse | MarketSubscriptionError | LocalImportPreviewRequest | LocalImportPreviewResponse | LocalImportPreviewError | SaveLocalImportMappingRequest | SaveLocalImportMappingResponse | SaveLocalImportMappingError | LoadLocalImportMappingRequest | LoadLocalImportMappingResponse | LoadLocalImportMappingError | MarketBarUpdateEvent | MarketBarCorrectionEvent | MarketStreamGapEvent | WorkerHello11 | ScopedMutationRequest11 | ScopedMutationResponse11 | TrustedConfirmationDecision11 | PreviewReady11 | ArtifactChunk11 | TaskTerminalEvent11 | TaskCancelRequest11 | CancelMemberRequest11 | ReadProjectedChart11 | ProjectedChartResponse11 | SharedSelectionEvent11 | SharedSelectionRequest11 | AiToolRequest11 | AiToolResultDelivery11 | AiToolResultAck11 | ProjectedChartError11 | IndicatorCompute11 | IndicatorComputed11 | IndicatorInputSegment11 | SharedSelectionResponse11 | SharedSelectionError11 | SharedContextRequest11 | SharedContextResponse11 | SharedContextError11 | CancelTaskResponse11 | CancelTaskError11;
+export type Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat | MarketHistoryPageRequest | MarketHistoryPageResponse | MarketHistoryPageError | MarketSubscriptionRequest | MarketSubscriptionResponse | MarketSubscriptionError | LocalImportPreviewRequest | LocalImportPreviewResponse | LocalImportPreviewError | SaveLocalImportMappingRequest | SaveLocalImportMappingResponse | SaveLocalImportMappingError | LoadLocalImportMappingRequest | LoadLocalImportMappingResponse | LoadLocalImportMappingError | ListLocalImportRevisionsRequest | ListLocalImportRevisionsResponse | ListLocalImportRevisionsError | ReadLocalImportRevisionRequest | ReadLocalImportRevisionResponse | ReadLocalImportRevisionError | RevokeLocalImportRevisionRequest | RevokeLocalImportRevisionResponse | RevokeLocalImportRevisionError | PublishLocalImportRequest | PublishLocalImportResponse | PublishLocalImportError | MarketBarUpdateEvent | MarketBarCorrectionEvent | MarketStreamGapEvent | WorkerHello11 | ScopedMutationRequest11 | ScopedMutationResponse11 | TrustedConfirmationDecision11 | PreviewReady11 | ArtifactChunk11 | TaskTerminalEvent11 | TaskCancelRequest11 | CancelMemberRequest11 | ReadProjectedChart11 | ProjectedChartResponse11 | SharedSelectionEvent11 | SharedSelectionRequest11 | AiToolRequest11 | AiToolResultDelivery11 | AiToolResultAck11 | ProjectedChartError11 | IndicatorCompute11 | IndicatorComputed11 | IndicatorInputSegment11 | SharedSelectionResponse11 | SharedSelectionError11 | SharedContextRequest11 | SharedContextResponse11 | SharedContextError11 | CancelTaskResponse11 | CancelTaskError11;
 export type ProtocolVersion11 = "1.1";
 export type WorkspaceObject11 = {
   kind: "chart" | "layer" | "layout" | "dataset" | "workspace";
@@ -2179,4 +2307,84 @@ export type DecisionNoteRestoreBackupReply11 = {
   type: "response";
   request_id: DecisionNoteUuid11;
   outcome: DecisionNoteRestoreBackupOutcome11;
+};
+export type LocalImportRowLocator = {
+  record_number: number;
+  line_start: number;
+  line_end: number;
+};
+export type PublishedLocalImportBar = {
+  bar: Bar;
+  locators: Array<LocalImportRowLocator>;
+};
+export type PublishedLocalImportRevision = {
+  revision_id: Uuid;
+  relative_path: string;
+  source_sha256: Hash;
+  mapping_sha256: Hash;
+  review_revision: number;
+  symbol: string;
+  series: PreviewSeries;
+  bar_count: number;
+  source_record_count: number;
+};
+export type PublishLocalImportInput = {
+  version: number;
+  folder_id: Uuid;
+  file_id: Uuid;
+  expected_sha256: Hash;
+  review_revision: number;
+};
+export type PublishLocalImportOutput = {
+  version: number;
+  revision: PublishedLocalImportRevision;
+};
+export type LocalImportRevisionBarSummary = {
+  venue: string;
+  first_trading_day: string;
+  final_trading_day: string;
+  final_close: number;
+};
+export type LocalImportRevisionListEntry = {
+  revision_id: CanonicalRevisionCursor;
+  relative_path: string;
+  symbol: string;
+  bar_count: number;
+  source_record_count: number;
+  source_sha256: Hash;
+  timeframe: string;
+  bar_summary?: LocalImportRevisionBarSummary;
+};
+export type CanonicalRevisionCursor = string;
+export type ListLocalImportRevisionsInput = {
+  version: number;
+  after_revision_id: (CanonicalRevisionCursor | null);
+  limit: number;
+  include_bar_summary?: boolean;
+};
+export type ListLocalImportRevisionsOutput = {
+  version: number;
+  revisions: Array<LocalImportRevisionListEntry>;
+  next_after_revision_id: (CanonicalRevisionCursor | null);
+};
+export type ListLocalImportRevisionsReply11 = ListLocalImportRevisionsResponse | ListLocalImportRevisionsError;
+export type ReadLocalImportRevisionInput = {
+  version: number;
+  revision_id: Uuid;
+};
+export type ReadLocalImportRevisionOutput = {
+  version: number;
+  revision: PublishedLocalImportRevision;
+  bars: Array<PublishedLocalImportBar>;
+};
+export type PublishLocalImportReply11 = PublishLocalImportResponse | PublishLocalImportError;
+export type ReadLocalImportRevisionReply11 = ReadLocalImportRevisionResponse | ReadLocalImportRevisionError;
+export type RevokeLocalImportRevisionInput = {
+  version: number;
+  revision_id: Uuid;
+};
+export type RevokeLocalImportRevisionReply11 = RevokeLocalImportRevisionResponse | RevokeLocalImportRevisionError;
+export type RevokeLocalImportRevisionOutput = {
+  version: number;
+  revision_id: Uuid;
 };

@@ -1,5 +1,6 @@
 //! Profile-bound SQLite workspace storage for the Rust application registry.
 
+mod local_dataset;
 mod note_backup;
 mod notes;
 mod reviewed_import;
@@ -26,7 +27,8 @@ const INITIAL_SCHEMA_VERSION: i64 = 1;
 const DECISION_NOTES_SCHEMA_VERSION: i64 = 2;
 const DECISION_NOTE_RESTORE_SCHEMA_VERSION: i64 = 3;
 const REVIEWED_IMPORT_SCHEMA_VERSION: i64 = 4;
-const SCHEMA_VERSION: i64 = REVIEWED_IMPORT_SCHEMA_VERSION;
+const LOCAL_DATASET_SCHEMA_VERSION: i64 = 5;
+const SCHEMA_VERSION: i64 = LOCAL_DATASET_SCHEMA_VERSION;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum OpenWorkspaceError {
@@ -231,6 +233,10 @@ fn migrate(connection: &Connection, binding: &WorkspaceBinding) -> Result<(), Op
     if version < REVIEWED_IMPORT_SCHEMA_VERSION {
         connection.execute_batch(include_str!("reviewed_import.sql"))?;
         record_migration(connection, REVIEWED_IMPORT_SCHEMA_VERSION)?;
+    }
+    if version < LOCAL_DATASET_SCHEMA_VERSION {
+        connection.execute_batch(include_str!("local_dataset.sql"))?;
+        record_migration(connection, LOCAL_DATASET_SCHEMA_VERSION)?;
     }
     Ok(())
 }

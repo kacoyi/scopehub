@@ -1,6 +1,9 @@
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import type {
+  ListLocalImportRevisionsInput, ListLocalImportRevisionsOutput,
   LoadLocalImportMappingInput, LoadLocalImportMappingOutput, LocalImportPreviewInput, LocalImportPreviewOutput,
+  PublishLocalImportInput, PublishLocalImportOutput, ReadLocalImportRevisionInput, ReadLocalImportRevisionOutput,
+  RevokeLocalImportRevisionInput, RevokeLocalImportRevisionOutput,
   SaveLocalImportMappingInput, SaveLocalImportMappingOutput,
 } from '../../../../contracts/generated/protocol';
 import type { LocalFolderCatalog } from './local-import-editor';
@@ -36,6 +39,34 @@ export async function loadLocalImportMapping(payload: LoadLocalImportMappingInpu
   requireNative();
   return invoke<LoadLocalImportMappingOutput>('execute_operation', {
     operation: 'market.loadLocalImportMapping', payload, requestId,
+  });
+}
+
+export async function publishLocalImport(payload: PublishLocalImportInput, requestId: string) {
+  requireNative();
+  return invoke<PublishLocalImportOutput>('execute_operation', {
+    operation: 'market.publishLocalImport', payload, requestId,
+  });
+}
+
+export async function readLocalImportRevision(payload: ReadLocalImportRevisionInput, requestId: string) {
+  requireNative();
+  return invoke<ReadLocalImportRevisionOutput>('execute_operation', {
+    operation: 'market.readLocalImportRevision', payload, requestId,
+  });
+}
+
+export async function listLocalImportRevisions(payload: ListLocalImportRevisionsInput, requestId: string) {
+  requireNative();
+  return invoke<ListLocalImportRevisionsOutput>('execute_operation', {
+    operation: 'market.listLocalImportRevisions', payload, requestId,
+  });
+}
+
+export async function revokeLocalImportRevision(payload: RevokeLocalImportRevisionInput, requestId: string) {
+  requireNative();
+  return invoke<RevokeLocalImportRevisionOutput>('execute_operation', {
+    operation: 'market.revokeLocalImportRevision', payload, requestId,
   });
 }
 

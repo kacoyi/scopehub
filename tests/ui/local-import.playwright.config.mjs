@@ -1,7 +1,17 @@
 import { defineConfig } from '@playwright/test';
+import { once } from 'node:events';
+import { createServer } from 'node:net';
 import { resolve } from 'node:path';
 
-const port = 17351;
+async function freePort() {
+  const probe = createServer().listen(0, '127.0.0.1');
+  await once(probe, 'listening');
+  const { port } = probe.address();
+  await new Promise((resolve, reject) => probe.close(error => error ? reject(error) : resolve()));
+  return String(port);
+}
+
+const port = process.env.SCOPEHUB_LOCAL_IMPORT_TEST_PORT ??= await freePort();
 const baseURL = `http://127.0.0.1:${port}`;
 const report = resolve(process.env.SCOPEHUB_RUN_DIR ?? '.reports', 'local-import-ui');
 

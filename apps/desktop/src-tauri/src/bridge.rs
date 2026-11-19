@@ -6,8 +6,9 @@ use std::{
 };
 
 use scopehub_application::{
-    Actor, LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS, MarketLifecycle, MarketPort,
-    MarketRegistry, PREVIEW_LOCAL_IMPORT, SAVE_LOCAL_IMPORT_MAPPING, failure,
+    Actor, LIST_LOCAL_IMPORT_REVISIONS, LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS,
+    MarketLifecycle, MarketPort, MarketRegistry, PREVIEW_LOCAL_IMPORT, PUBLISH_LOCAL_IMPORT,
+    READ_LOCAL_IMPORT_REVISION, REVOKE_LOCAL_IMPORT_REVISION, SAVE_LOCAL_IMPORT_MAPPING, failure,
 };
 use scopehub_domain::protocol::{Error, ErrorCode};
 use scopehub_platform::local_folder::LocalFolderHost;
@@ -118,8 +119,12 @@ impl State {
         &self.local_import.folders
     }
 
+    pub fn cancel_local_import(&self, request_id: &str) {
+        self.local_import.cancel(request_id);
+    }
+
     /// The Rust host supplies the picker. WebView callers receive catalog metadata.
-    async fn choose_local_csv_folder<F>(
+    pub async fn choose_local_csv_folder<F>(
         &self,
         pick: impl FnOnce() -> F,
     ) -> Result<Option<Value>, Error>
@@ -148,6 +153,24 @@ impl State {
                     .local_import
                     .save_mapping(&self.workspace, payload, request_id)
                     .await;
+            }
+            PUBLISH_LOCAL_IMPORT => {
+                return self
+                    .local_import
+                    .publish(&self.workspace, payload, request_id)
+                    .await;
+            }
+            LIST_LOCAL_IMPORT_REVISIONS => {
+                self.local_import.reject_reused_request(request_id)?;
+                return self.workspace.list_local_revisions(payload).await;
+            }
+            READ_LOCAL_IMPORT_REVISION => {
+                self.local_import.reject_reused_request(request_id)?;
+                return self.workspace.read_local_revision(payload).await;
+            }
+            REVOKE_LOCAL_IMPORT_REVISION => {
+                self.local_import.reject_reused_request(request_id)?;
+                return self.workspace.revoke_local_revision(payload).await;
             }
             _ => {}
         }
@@ -272,7 +295,7 @@ pub fn cancel_local_import_preview(
     request_id: String,
 ) -> Result<(), Error> {
     authorize_window(window.label())?;
-    state.local_import.cancel(&request_id);
+    state.cancel_local_import(&request_id);
     Ok(())
 }
 

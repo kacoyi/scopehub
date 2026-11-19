@@ -1048,3 +1048,6 @@ fn key<'a>(operation: &'a str, idempotency_key: &'a str) -> WorkspaceReplayKey<'
 
 #[path = "reviewed_mapping_tests.rs"]
 mod reviewed_mapping_tests;
+
+#[path = "local_dataset_tests.rs"]
+mod local_dataset_tests;

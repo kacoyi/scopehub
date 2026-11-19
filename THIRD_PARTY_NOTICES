@@ -478,6 +478,10 @@ crates.io: fraction 0.17.0
 Declared license: MIT OR Apache-2.0
 Upstream metadata: https://crates.io/crates/fraction/0.17.0
 
+crates.io: fs-id 0.2.0
+Declared license: Zlib
+Upstream metadata: https://crates.io/crates/fs-id/0.2.0
+
 crates.io: futures-channel 0.3.34
 Declared license: MIT OR Apache-2.0
 Upstream metadata: https://crates.io/crates/futures-channel/0.3.34
