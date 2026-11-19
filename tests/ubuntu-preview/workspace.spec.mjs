@@ -1,7 +1,7 @@
 import { execFile, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
-import { chmod, mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { chmod, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -498,10 +498,18 @@ test('the opted-in route binds identity, limits input, and drains cancellation w
       expect(await (await post(server, forged)).json()).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } });
       forged.scope.workspace_id = 'other-workspace';
       expect((await post(server, forged)).status).toBe(403);
-      const file = join(profile.root, 'workspace.sqlite3').replaceAll('\\', '/');
-      expect((await stat(file)).isFile()).toBe(true);
-      const sqlite = await fetch(server.url + '/@fs/' + file.replace(/^\//, ''));
-      expect([403, 404]).toContain(sqlite.status);
+      const fallback = await head(server, '/synthetic-missing-page');
+      expect(fallback.status).toBe(200);
+      expect(fallback.contentType).toMatch(/^text\/html\b/);
+      const sqlite = join(profile.root, 'workspace.sqlite3');
+      expect((await stat(sqlite)).isFile()).toBe(true);
+      await assertPrivateResource(server, rawFileRoute(sqlite));
+      for (const suffix of ['', '-wal', '-shm', '-journal']) {
+        await assertPrivateResource(server, '/workspace.sqlite3' + suffix);
+      }
+      const marker = join(profile.root, 'synthetic fixture.txt');
+      await writeFile(marker, 'Synthetic file in the bound profile.', { flag: 'wx', mode: 0o600 });
+      await assertPrivateResource(server, rawFileRoute(marker));
 
       await writerPid(server, 'suspend', writer);
       const abort = new AbortController();
@@ -558,8 +566,9 @@ test('the private launcher handoff is required and a previous launch cannot auth
         expect(denied.status).toBe(403);
         expect(await denied.json()).toEqual({ ok: false, error: { code: 'PERMISSION_DENIED', retryable: false } });
       }
-      const visible = await fetch(server.url + '/workspace-access-' + port + '.html');
-      expect(!(await visible.text()).includes(previous)).toBe(true);
+      await assertPrivateResource(server, '/workspace-access-' + port + '.html');
+      await assertPrivateResource(server, rawFileRoute(handoff));
+      await assertPrivateResource(server, '/.workspace-access-' + port + '.html-' + randomUUID());
       const allowed = await post(server, snapshot);
       const payload = await allowed.text();
       expect(!payload.includes(previous)).toBe(true);
@@ -734,39 +743,55 @@ async function assertPrivateHandoff(handoff) {
   // printing its contents or revealing any local identity in the test log.
   const check = `
     $ErrorActionPreference = 'Stop'
+    $failure = 51
     try {
       function Read-Descriptor($path) {
         $acl = Get-Acl -LiteralPath $path
         return [Security.AccessControl.RawSecurityDescriptor]::new($acl.GetSecurityDescriptorBinaryForm(), 0)
       }
       $path = $env:SCOPEHUB_TEST_HANDOFF
-      if ([IO.File]::GetAttributes($path) -band [IO.FileAttributes]'Directory, ReparsePoint') { exit 1 }
+      $attributes = [int]([IO.File]::GetAttributes($path))
+      $nonFile = [int][IO.FileAttributes]'Directory, ReparsePoint'
+      if (($attributes -band $nonFile) -ne 0) { exit $failure }
+      $failure = 52
       $user = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
       $allowed = @($user, 'S-1-5-18', 'S-1-5-32-544')
       $directory = Read-Descriptor ([IO.Path]::GetDirectoryName($path))
-      if ($directory.Owner.Value -ne $user) { exit 1 }
+      if ($directory.Owner.Value -ne $user) { exit $failure }
+      $failure = 53
       $descriptor = Read-Descriptor $path
-      if ($null -eq $descriptor.DiscretionaryAcl -or $descriptor.Owner.Value -notin $allowed) { exit 1 }
+      if ($null -eq $descriptor.DiscretionaryAcl -or $descriptor.Owner.Value -notin $allowed) { exit $failure }
+      $failure = 54
       $required = [int][Security.AccessControl.FileSystemRights]'Read, Write, Delete'
+      $inherited = [int][Security.AccessControl.AceFlags]::Inherited
+      $inheritOnly = [int][Security.AccessControl.AceFlags]::InheritOnly
       $userInherited = $false
       foreach ($ace in $descriptor.DiscretionaryAcl) {
-        if ($ace -isnot [Security.AccessControl.CommonAce] -or $ace.IsCallback) { exit 1 }
+        if ($ace -isnot [Security.AccessControl.CommonAce] -or $ace.IsCallback) { exit $failure }
         if ($ace.AceQualifier -ne [Security.AccessControl.AceQualifier]::AccessAllowed) { continue }
-        if ($ace.SecurityIdentifier.Value -notin $allowed) { exit 1 }
-        if ($ace.SecurityIdentifier.Value -eq $user -and $ace.IsInherited -and
-            !($ace.AceFlags -band [Security.AccessControl.AceFlags]::InheritOnly) -and
-            ($ace.AccessMask -band $required) -eq $required) { $userInherited = $true }
+        if ($ace.SecurityIdentifier.Value -notin $allowed) { exit $failure }
+        $flags = [int]$ace.AceFlags
+        $access = [int]$ace.AccessMask
+        if ($ace.SecurityIdentifier.Value -eq $user -and
+            ($flags -band $inherited) -ne 0 -and ($flags -band $inheritOnly) -eq 0 -and
+            ($access -band $required) -eq $required) { $userInherited = $true }
       }
-      if (!$userInherited) { exit 1 }
+      if (!$userInherited) { exit $failure }
+      $failure = 55
       $stream = [IO.File]::Open($path, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite)
       $stream.Dispose()
       exit 0
-    } catch { exit 1 }
+    } catch { exit $failure }
   `;
   const powershell = join(process.env.SystemRoot, 'System32/WindowsPowerShell/v1.0/powershell.exe');
-  await exec(powershell, ['-NoProfile', '-NonInteractive', '-NoLogo', '-Command', check], {
-    timeout: 10_000, windowsHide: true, env: { ...process.env, SCOPEHUB_TEST_HANDOFF: handoff },
-  });
+  try {
+    await exec(powershell, ['-NoProfile', '-NonInteractive', '-NoLogo', '-Command', check], {
+      timeout: 10_000, windowsHide: true, env: { ...process.env, SCOPEHUB_TEST_HANDOFF: handoff },
+    });
+  } catch (error) {
+    const stage = ['file type', 'directory owner', 'file owner and DACL', 'inherited access', 'effective read/write'][error.code - 51];
+    throw new Error(`Private handoff ACL verification failed (${stage ?? 'PowerShell execution'}).`);
+  }
 }
 
 async function freePort() {
@@ -859,6 +884,30 @@ function alive(pid) {
     if (error.code === 'ESRCH') return false;
     throw error;
   }
+}
+
+function rawFileRoute(path) {
+  return '/@fs/' + pathToFileURL(path).pathname.replace(/^\//, '');
+}
+
+async function head(server, resource) {
+  const response = await fetch(server.url + resource, {
+    method: 'HEAD', headers: { Accept: 'text/html' }, redirect: 'error', signal: AbortSignal.timeout(5_000),
+  });
+  return {
+    status: response.status,
+    contentType: response.headers.get('content-type'),
+    contentLength: response.headers.get('content-length'),
+    cacheControl: response.headers.get('cache-control'),
+    etag: response.headers.get('etag'),
+    lastModified: response.headers.get('last-modified'),
+  };
+}
+
+async function assertPrivateResource(server, resource) {
+  expect(await head(server, resource)).toEqual({
+    status: 404, contentType: null, contentLength: '0', cacheControl: 'no-store', etag: null, lastModified: null,
+  });
 }
 
 function post(server, body, headers = {}, signal = AbortSignal.timeout(10_000)) {

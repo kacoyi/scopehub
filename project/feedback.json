@@ -1017,6 +1017,36 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "workspace-profile-static-denial",
+      "source": "Hosted Windows workspace-timeframe on a temporary synthetic profile.",
+      "observation": "Hosted Windows run 44528913523 at 4a379d8 returned HTTP 200 for a synthetic workspace file check. The check captured status alone, so the returned representation is unknown. It could not distinguish the ordinary HTML fallback from a file response.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-007"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "workspace-handoff-windows-acl-check",
+      "source": "Hosted Windows workspace-timeframe on a temporary synthetic profile.",
+      "observation": "The independent file-permission check exited at an unspecified stage on Windows PowerShell 5.1 in hosted run 44528913523. It used enum operands in bitwise tests. The production workspace could already create a private profile and restore eligible undo on that runner.",
+      "severity": "minor",
+      "status": "open",
+      "task_ids": [
+        "M2-007"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

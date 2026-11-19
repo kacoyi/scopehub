@@ -5364,9 +5364,13 @@
         {
           "path": "project/evidence/M2-007-33dd2c3a64efc9df.json",
           "sha256": "502dee88879d90abda796484fbd9528af72e0d13c4bdb9057768bf4436ca11ca"
+        },
+        {
+          "path": "project/evidence/M2-007-6ef007cee190bd75.json",
+          "sha256": "a6883b5cfd3fe49824b9a1f07ea0c46dc375d67abb8c4793a9be1169dc3aa76b"
         }
       ],
-      "next_action": "Verify the native ACL correction using ordinary Windows AppLocalData and an abbreviated TEMP path, preserve rejection of shared roots and sidecars, then run the complete workspace checks on Ubuntu and Windows.",
+      "next_action": "Recheck the workspace launcher on hosted Windows, including profile file denial and effective handoff permissions. The native Windows 11 guest has passed private storage, restart, replay and undo. Verify inherited chart startup separately and retain the matching task evidence.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
