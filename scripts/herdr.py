@@ -98,10 +98,11 @@ def launch_argv(root: Path, args: argparse.Namespace) -> list[str]:
     command.extend(['--', 'codex', '--no-daemon', '--model', model, '-c',
                     f'model_reasoning_effort={json.dumps(effort)}'])
     if args.role == 'review':
-        command.extend(['--sandbox', 'read-only'])
+        command.extend(['--sandbox', 'read-only', '--ask-for-approval', 'never'])
         python = './.venv/Scripts/python.exe' if os.name == 'nt' else './.venv/bin/python'
         context = f'{python} -B scripts/project.py context {args.task_id}'
     else:
+        command.append('--approve-for-me')
         context = f'pnpm project:context {args.task_id}'
     prompt = (
         f'ScopeHub task {args.task_id}, role {args.role}.\n'
