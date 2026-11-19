@@ -4654,7 +4654,7 @@
       "id": "M2-005",
       "title": "Align shared-selection and durable mutation revision requirements",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-023"
       ],
@@ -4679,8 +4679,13 @@
         "python-contracts-workers",
         "rust-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Clarify the controlling rule and exercise the existing request and intent schemas through all language validators.",
+      "evidence": [
+        {
+          "path": "project/evidence/M2-005-1ba358dc22044fda.json",
+          "sha256": "bc3bd1d3153da00c54380e4c8b843b2e2d732b2ff9ca0d0f0b0e49c81c0f050b"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {

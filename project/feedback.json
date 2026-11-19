@@ -751,7 +751,7 @@
       "source": "M2-001 implementation planning, product AI tool policy compared with registered protocol 1.1 client and AI selection requests.",
       "observation": "The generic policy requires a workspace revision for every mutation, but workspace.selectEvidence requires the expected selection revision and explicitly allows selection changes without advancing the durable workspace revision.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-005"
       ],
@@ -761,7 +761,11 @@
         "python-contracts-workers",
         "rust-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The generic AI tool instruction predated the versioned shared selection and applied one revision rule to different operations.",
+        "correction": "The contract now specifies the independent selection revision for a shared selection, the durable workspace revision for a write, and both for a selection-bound write. Existing 1.1 clients keep the registered shapes.",
+        "prevention": "Five shared negative vectors exercise omitted and substituted revision fields in human and AI requests. Python, Rust and TypeScript validate the positive and negative cases. Runtime concurrency and projection remain part of M2-001."
+      },
       "deferral_reason": null
     }
   ]
