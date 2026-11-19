@@ -1006,10 +1006,10 @@
     },
     {
       "id": "offline-sample-timeframe-crosses-private-workspace",
-      "source": "Reviewer t2k reproduced on #10 at 096e09b in the opted-in private workspace.",
-      "observation": "Open offline sample, then select 5m. The private workspace timeframe and undo change, and the public simulated sample returns to 1m after refresh.",
+      "source": "Reviewer t2k reproduced on #10 at 096e09b in the opted-in private workspace. Linux task run 20261119T164305.026124Z-004e21c0 reproduced both browser regressions at 31d13c6 with the pending test changes.",
+      "observation": "Selecting 5m in the offline sample dispatched chart.setTimeframe through the preview and substituted Tauri IPC. The Rust writer advanced the private workspace from 1m at revision 2 to 5m at revision 3 and replaced its eligible undo receipt. The public simulated sample reloaded at 1m.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-009"
       ],
@@ -1017,7 +1017,11 @@
         "workspace-timeframe",
         "desktop-workspace-transport"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The active sample chart received the private workspace controls. Its timeframe selection wrote through the private operation path while its public sample preference kept the earlier timeframe.",
+        "correction": "Bind the chart to the private workspace controls only in the ordinary shell. Keep the private session in the parent across sample entry and exit. The sample reads and saves its own timeframe in the existing synthetic preference.",
+        "prevention": "Linux task run 20261119T164809.402758Z-f797923a observed the labeled sample restoring 5m on refresh, with the private 1m revision and undo receipt intact. The linked page executed the original undo after leaving. A same-tab sample reload sent no private requests and browser storage held only the sample preference until exit. The built UI with substituted Tauri IPC sent no workspace mutation during sample selection and used the original undo on return. Native Windows verification remains a separate handoff."
+      },
       "deferral_reason": null
     }
   ]

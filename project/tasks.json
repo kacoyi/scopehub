@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-009",
+  "focus_task_id": "M2-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -5421,7 +5421,7 @@
       "id": "M2-009",
       "title": "Isolate the offline sample timeframe from the durable workspace",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-007"
       ],
@@ -5455,8 +5455,13 @@
         "workspace-timeframe",
         "desktop-workspace-transport"
       ],
-      "evidence": [],
-      "next_action": "Retain the failing real-preview and native-composition regressions, isolate the active sample controls, and archive source-bound local task evidence.",
+      "evidence": [
+        {
+          "path": "project/evidence/M2-009-0baed08382358263.json",
+          "sha256": "2984f4f38c88bcae1c14526c71784c39786f5896a41f04249a99b1057a51c287"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
