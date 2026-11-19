@@ -245,7 +245,7 @@ def freeze_sample(request: MarketHistoryPageInput) -> tuple[FrozenHistory, Strea
     # The epoch identifies immutable fixture replay, so a new worker can resume
     # the same observation. Bump it if the fixture's position mapping changes.
     position: StreamPosition | None = None
-    if (request.get('include_stream_position') and updates
+    if (request.get('include_stream_position') and updates and quality['last_observed_ms'] == cutoff
             and request['from_ms'] <= history['bars'][-1]['time_ms'] < request['to_ms']):
         position = {'stream_id': dataset['id'], 'epoch': 'synthetic-replay-v1', 'sequence': sequence}
     return frozen, position, updates[sequence:]

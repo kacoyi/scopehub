@@ -174,6 +174,23 @@ class HistoryPageTests(unittest.TestCase):
                 execute_page(dict(read, **changes), MAX_MESSAGE_BYTES)
             self.assertEqual(error.exception.code, code)
 
+    def test_a_known_gap_with_late_or_missing_observation_cannot_start_a_stream(self):
+        for observed, freshness in [(1704330545000, 'stale'), (None, 'unknown')]:
+            fixture = build_fixture('SIM.CN.FUTURE.001', '1m', 'gapped')
+            dataset = fixture['history']['dataset']
+            self.assertTrue(fixture['updates'])
+            dataset['provenance']['as_of_ms'] = 1704330570001
+            if observed is None:
+                del dataset['provenance']['last_observed_ms']
+            else:
+                dataset['provenance']['last_observed_ms'] = observed
+            read = self.selection(expected_revision=dataset['revision'], include_stream_position=True)
+            with self.subTest(freshness=freshness), patch('providers.history_pages.build_fixture', return_value=fixture):
+                page = execute_page(read, MAX_MESSAGE_BYTES)
+                self.assertEqual((freshness, 'gapped', 2), (page['quality_state']['freshness'],
+                                 page['quality_state']['coverage'], len(page['quality_state']['gaps'])))
+                self.assertIsNone(page['stream_position'])
+
     def test_versioned_worker_honors_known_revisions_and_binds_pinned_pages(self):
         def read_page(payload):
             data = frame(protocol_version='1.1', type='request', request_id=str(uuid4()), task_id=None,
