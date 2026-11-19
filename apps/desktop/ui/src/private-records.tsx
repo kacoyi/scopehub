@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import type {
   PrivateRecordBackupV1, PrivateRecordContent, PrivateRecordEntry, PrivateRecordKind,
-  PrivateRecordReadOutput, PrivateRecordTurn,
+  PrivateRecordReadOutput, PrivateRecordReceipt11, PrivateRecordTurn,
 } from '../../../../contracts/generated/protocol';
 import {
   exportPrivateRecords, maxPrivateBackupBytes, preparePrivateRecord, readPrivateRecords, recordErrorCode,
-  resolvePrivateRecord, type PrepareRecord, type RecordApproval,
+  resolvePrivateRecord, type PrepareRecord, type RecordApproval, type RecordResolution,
 } from './private-record-transport';
 import type { LocalWorkspace } from './use-local-workspace';
 
@@ -15,6 +15,7 @@ const speakerLabels = { user: 'You', assistant: 'Assistant' };
 type Draft = { id: string; revision: number | null; content: PrivateRecordContent };
 type ReviewTarget = { title: string; kind: PrivateRecordKind; proposedTitle?: string | undefined };
 type PreparedReview = RecordApproval & { target: ReviewTarget | undefined };
+type PendingResolution = RecordResolution & { action: RecordApproval['action'] };
 
 function emptyContent(kind: PrivateRecordKind, title = ''): PrivateRecordContent {
   if (kind === 'conversation') {
@@ -116,34 +117,48 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
   const selection = useRef<string | null>(null);
   const projectionEpoch = useRef(0);
   const observedRevision = useRef<number | undefined>(undefined);
+  const pendingResolution = useRef<PendingResolution | undefined>(undefined);
   const [view, setView] = useState<PrivateRecordReadOutput>();
   const [draft, setDraft] = useState<Draft>();
   const [prepared, setPrepared] = useState<PreparedReview>();
   const [busy, setBusy] = useState(false);
-  const [retrying, setRetrying] = useState(false);
+  const [recovery, setRecovery] = useState<PendingResolution>();
+  const [recoveredOperationId, setRecoveredOperationId] = useState<string>();
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [readError, setReadError] = useState('');
   const workspaceId = workspace.snapshot?.workspace.id;
   const record = view?.record;
-  const recordId = record?.record_id ?? null;
   const changedRecord = record && draft?.id === record.record_id && draft.revision !== record.revision ? record : undefined;
-  const expiredReview = prepared && !retrying && view
+  const expiredReview = prepared && view
     && prepared.scope.expected_workspace_revision !== view.workspace_revision;
   const visibleReview = expiredReview ? undefined : prepared;
 
-  const discardPrivateProjection = useCallback(() => {
+  const rememberRecovery = useCallback((resolution: PendingResolution | undefined) => {
+    pendingResolution.current = resolution;
+    setRecovery(resolution);
+  }, []);
+
+  const discardPrivateProjection = useCallback((missingRecord?: string) => {
     projectionEpoch.current += 1;
     observedRevision.current = undefined;
     setView(undefined);
     setDraft(undefined);
     setPrepared(undefined);
-    setRetrying(false);
+    // A verified missing detail can be the effect of our submitted deletion.
+    // Keep only the original resolve inputs in that case.
+    const pending = pendingResolution.current;
+    if (pending?.action !== 'delete' || !missingRecord || pending.recordId !== missingRecord) {
+      rememberRecovery(undefined);
+    }
+    setRecoveredOperationId(undefined);
     setNotice('');
     setError('');
-  }, []);
+  }, [rememberRecovery]);
 
-  const run = useCallback((work: (signal: AbortSignal) => Promise<void>, background = false) => {
+  const run = useCallback((
+    work: (signal: AbortSignal) => Promise<void>, background = false, retry?: PendingResolution,
+  ) => {
     if (active.current || background && probe.current) return;
     const controller = new AbortController();
     const epoch = projectionEpoch.current;
@@ -156,8 +171,11 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
     const task = (async () => {
       if (!background) await waiting;
       controller.signal.throwIfAborted();
-      // A queued click must not use a selection invalidated by the active read.
-      if (epoch === projectionEpoch.current) await work(controller.signal);
+      // A queued result retry can survive the original detail being removed.
+      // Loss of authority erases its exact pending resolution.
+      if (retry ? pendingResolution.current === retry : epoch === projectionEpoch.current) {
+        await work(controller.signal);
+      }
     })().catch(fault => {
       if (controller.signal.aborted) return;
       if (!background) {
@@ -175,7 +193,7 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
     if (background) probe.current = { controller, task };
   }, [discardPrivateProjection]);
 
-  const load = useCallback(async (id: string | null, signal: AbortSignal) => {
+  const load = useCallback(async function load(id: string | null, signal: AbortSignal): Promise<void> {
     if (!workspaceId) return;
     selection.current = id;
     try {
@@ -187,13 +205,10 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
       if (signal.aborted) return;
       const code = recordErrorCode(fault);
       if (code === 'BUSY') throw fault;
-      discardPrivateProjection();
+      discardPrivateProjection(code === 'DATA_UNAVAILABLE' ? id ?? undefined : undefined);
       if (id && code === 'DATA_UNAVAILABLE') {
-        selection.current = null;
         setError(failureMessage(fault));
-        const current = await readPrivateRecords(workspaceId, null, signal);
-        observedRevision.current = current.workspace_revision;
-        setView(current);
+        await load(null, signal);
         return;
       }
       setReadError(failureMessage(fault));
@@ -285,42 +300,51 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
   }
 
   function finish(decision: 'approve' | 'decline', close = false) {
-    if (!prepared) return;
+    const retry = decision === 'approve' ? recovery : undefined;
+    const approval = retry ?? prepared;
+    if (!approval) return;
+    const { action, scope, challenge, recordId: targetId } = approval;
     run(async signal => {
-      if (decision === 'approve' && !retrying && prepared.scope.expected_workspace_revision !== observedRevision.current) {
+      if (decision === 'approve' && !retry && scope.expected_workspace_revision !== observedRevision.current) {
         setPrepared(undefined);
         throw { code: 'STALE_CONTEXT' };
       }
-      const replacesView = decision === 'approve' && prepared.action !== 'save';
-      if (replacesView) setView(undefined);
+      if (decision === 'approve' && action !== 'save') {
+        setPrepared(undefined);
+        setView(undefined);
+      }
+      let receipt: PrivateRecordReceipt11 | undefined;
       try {
-        await resolvePrivateRecord(prepared, decision, signal);
+        receipt = await resolvePrivateRecord(approval, decision, signal);
       } catch (fault) {
-        if (close && !signal.aborted) {
+        if (signal.aborted) return;
+        if (close) {
           workspace.reload();
           onClose();
           return;
         }
         const code = recordErrorCode(fault);
-        if (!signal.aborted && ['STALE_CONTEXT', 'CONFIRMATION_REQUIRED', 'INVALID_ARGUMENT', 'DATA_UNAVAILABLE'].includes(String(code))) {
+        if (['STALE_CONTEXT', 'CONFIRMATION_REQUIRED', 'INVALID_ARGUMENT', 'DATA_UNAVAILABLE'].includes(String(code))) {
           setPrepared(undefined);
-          setRetrying(false);
-          await load(recordId, signal);
-        } else if (!signal.aborted && decision === 'approve') {
-          setRetrying(true);
+          rememberRecovery(undefined);
+          await load(selection.current, signal);
+        } else if (decision === 'approve') {
+          setPrepared(undefined);
+          rememberRecovery({ action, scope, challenge, recordId: targetId });
         }
         throw fault;
       }
       setPrepared(undefined);
-      setRetrying(false);
+      rememberRecovery(undefined);
       if (close) { onClose(); return; }
       if (decision === 'decline') { setNotice('Action cancelled.'); return; }
       setDraft(undefined);
       const messages = { save: 'Private record saved.', delete: 'Private record deleted.', restore: 'Private records restored.' };
-      setNotice(messages[prepared.action]);
-      await load(prepared.action === 'save' ? prepared.recordId : null, signal);
+      setNotice(messages[action]);
+      setRecoveredOperationId(retry && action === 'delete' ? receipt?.operation_id : undefined);
+      await load(action === 'save' ? targetId : null, signal);
       if (!signal.aborted) workspace.reload();
-    });
+    }, false, retry);
   }
 
   function close() {
@@ -338,7 +362,14 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
     <div className="decision-body private-record-body" aria-busy={busy}>
       {(error || readError) && <p className="note-error" role="alert">{error || readError}</p>}
       {notice && <p role="status">{notice}</p>}
-      {visibleReview ? <section className="note-approval" aria-label="Review private record change">
+      {recoveredOperationId && <p>Deletion receipt <code>{recoveredOperationId}</code></p>}
+      {recovery ? <section className="note-approval" aria-label="Recover private record result">
+        <h3>{recovery.action === 'delete' ? 'Recover deletion result' : 'Recover private record result'}</h3>
+        <p>Retry confirmation to recover the result of the submitted change.</p>
+        <div className="private-record-actions">
+          <button type="button" className="primary" disabled={busy} onClick={() => finish('approve')}>Retry confirmation</button>
+        </div>
+      </section> : visibleReview ? <section className="note-approval" aria-label="Review private record change">
         <h3>{visibleReview.action === 'delete' ? 'Delete this private record?'
           : visibleReview.action === 'restore' ? 'Restore from this local backup?' : 'Save this private record locally?'}</h3>
         {visibleReview.target && <dl className="private-review-target">
@@ -351,12 +382,11 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
           {' '}{visibleReview.summary.suppressed} suppressed by known deletions, {visibleReview.summary.imported_deletions} deletion markers to import.
           An independent older backup may contain records whose deletion history is unavailable.
         </p>}
-        {retrying && <p>Retry confirmation to recover the result of this review.</p>}
         <div className="private-record-actions">
-          {!retrying && <button type="button" ref={cancelReview} className="secondary-button" disabled={busy}
-            onClick={() => finish('decline')}>Cancel review</button>}
+          <button type="button" ref={cancelReview} className="secondary-button" disabled={busy}
+            onClick={() => finish('decline')}>Cancel review</button>
           <button type="button" className="primary" disabled={busy} onClick={() => finish('approve')}>
-            {retrying ? 'Retry confirmation' : { save: 'Save private record', delete: 'Delete private record', restore: 'Restore private records' }[visibleReview.action]}
+            {{ save: 'Save private record', delete: 'Delete private record', restore: 'Restore private records' }[visibleReview.action]}
           </button>
         </div>
       </section> : draft ? <RecordEditor draft={draft} current={changedRecord} disabled={busy || !view} onChange={setDraft} onCancel={() => setDraft(undefined)}

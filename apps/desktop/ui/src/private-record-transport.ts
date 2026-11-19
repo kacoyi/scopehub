@@ -16,6 +16,8 @@ export type RecordApproval = {
   action: PrepareRecord['action'];
 };
 
+export type RecordResolution = Pick<RecordApproval, 'scope' | 'challenge' | 'recordId'>;
+
 export const maxPrivateBackupBytes = 512 * 1024;
 
 function envelope() {
@@ -72,7 +74,7 @@ export function recordErrorCode(error: unknown) {
   return error && typeof error === 'object' && 'code' in error ? error.code : undefined;
 }
 
-export async function resolvePrivateRecord(prepared: RecordApproval, decision: 'approve' | 'decline', signal: AbortSignal) {
+export async function resolvePrivateRecord(prepared: RecordResolution, decision: 'approve' | 'decline', signal: AbortSignal) {
   const { scope, challenge, recordId } = prepared;
   try {
     const outcome = await send<PrivateRecordChangeReply11>({
@@ -82,7 +84,7 @@ export async function resolvePrivateRecord(prepared: RecordApproval, decision: '
     if (decision === 'approve' && outcome.state === 'committed'
       && outcome.receipt?.workspace_id === scope.workspace_id && outcome.receipt.record_id === recordId
       && outcome.receipt.committed_workspace_revision === scope.expected_workspace_revision + 1
-      && outcome.receipt.undoable === false && typeof outcome.receipt.operation_id === 'string') return;
+      && outcome.receipt.undoable === false && typeof outcome.receipt.operation_id === 'string') return outcome.receipt;
     throw { code: 'OUTPUT_INVALID' };
   } catch (error) {
     if (decision === 'decline' && ['CANCELLED', 'CONFIRMATION_REQUIRED'].includes(String(recordErrorCode(error)))) return;
