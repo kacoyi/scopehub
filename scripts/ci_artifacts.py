@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BROWSER_OUTPUTS = {
     'market-live-stream': ('results.json', 'market-stream-', ('synthetic-replay-final.png',)),
     'market-quality-states': ('results.json', 'market-quality-', ('synthetic-market-quality.png',)),
+    'market-workflow': ('results.json', 'market-workflow-', ('synthetic-market-workflow.png',)),
     'chart-history': ('browser-results.json', 'history-', (
         'unconfigured.png', 'history-line.png', 'history-candles.png',
     )),
@@ -228,23 +229,18 @@ def stage_artifacts(root, destination, env):
     if 'integration_validation' in report and report['integration_validation'] != integration_validation(report['checks']):
         raise PublicationError('The integration summary differs from the checked observations.')
 
+    browser_roots = {'chart-history': f'chart-history/{run}', 'ubuntu-preview': f'ubuntu-preview/{run_id}'}
+    for check in BROWSER_OUTPUTS:
+        if check in executed:
+            directory = browser_roots.get(check, f'{run}/{check}')
+            for path in browser_artifacts(reports, directory, check):
+                copy_file(path, destination / path.relative_to(reports))
     if 'chart-history' in executed:
-        relative = f'chart-history/runs/{run_id}'
-        for path in browser_artifacts(reports, relative, 'chart-history'):
-            copy_file(path, destination / path.relative_to(reports))
+        relative = browser_roots['chart-history']
         summary = optional_path(reports, relative + '/summary.json')
         if summary is not None:
             copy_file(summary, destination / relative / 'summary.json')
             copy_file(destination / relative / 'summary.json', destination / 'chart-history/latest.json')
-    browser_runs = {
-        'ubuntu-preview': f'ubuntu-preview/{run_id}',
-        'market-live-stream': f'{run}/market-live-stream',
-        'market-quality-states': f'{run}/market-quality-states',
-    }
-    for check, directory in browser_runs.items():
-        if check in executed:
-            for path in browser_artifacts(reports, directory, check):
-                copy_file(path, destination / path.relative_to(reports))
     candidate = report.get('candidate_artifacts')
     release_check_passed = executed.get('release-artifacts') == 'passed'
     if (candidate is not None and not isinstance(candidate, dict)) or release_check_passed != (candidate is not None):

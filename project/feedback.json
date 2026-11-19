@@ -868,6 +868,26 @@
       "deferral_reason": null
     },
     {
+      "id": "three-chart-replay-evidence",
+      "source": "Independent M1-001 review against the real three-symbol browser journey at b9778f7.",
+      "observation": "An image change at completion and a count of successful replies could pass when a line missed its intermediate close or a failed subscription was followed by success. The single click-to-completion wait also combined real history preparation and stream service.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-001"
+      ],
+      "regression_checks": [
+        "market-workflow",
+        "market-live-stream"
+      ],
+      "resolution": {
+        "cause": "The check observed all legend readings but only compared endpoint images. Its response filter ignored failed requests and its timer covered both operations.",
+        "correction": "Track actual candle bodies and the line endpoint against independent fixture prices, classify every subscription attempt, and observe the stream POST before waiting for its terminal state.",
+        "prevention": "The three-symbol test now distinguishes successive prices at the rendered scale and requires all intermediate and final draws, one accepted stream per selection, and explicit 429 BUSY for any preceding attempts. The clean task run also passed eight replay and thirteen quality cases."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "hosted-restored-chart-deadline",
       "source": "Hosted Windows Verify delivery run 44509534715, market-live-stream, first test after page reload.",
       "observation": "The five-second selected-bar assertion expired. The failure screenshot already shows the restored simulated futures chart, selected line style, open data window, forty bars and the original partial close of 3500.8 with volume 110. The other seven stream cases passed.",
