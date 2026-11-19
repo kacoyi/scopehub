@@ -13,7 +13,7 @@ import { expect, test } from '@playwright/test';
 import { control, leaveSample } from '../ui/workspace-controls.mjs';
 import { painted } from '../ui/chart-pixels.mjs';
 import { startLocalImportBridge } from '../ui/local-import-bridge.mjs';
-import { busy, future, sampleCatalogCall, sampleHistoryCall } from '../ui/sample-startup.mjs';
+import { busy, future, observeSampleRequests, sampleCatalogCall, sampleHistoryCall } from '../ui/sample-startup.mjs';
 import { observeSelectedHistory, operationPath, readMarketAttemptStages, traceHeader, waitForSelectedHistoryTerminal } from '../ui/selected-history.mjs';
 import { assertUnsuitableWindowsHandoffsRejected, assertWindowsPrivateHandoff } from './workspace_test_handoff_acl.mjs';
 
@@ -34,6 +34,7 @@ const service = `
   const [entry, mode, port, faultEnabled] = process.argv.slice(1);
   const { createServer } = await import(entry);
   let interrupted;
+  let heldFirstDisconnect = false;
   const plugins = faultEnabled ? [{
     name: 'scopehub-test-history-response-interruption',
     enforce: 'pre',
@@ -43,7 +44,20 @@ const service = `
         if (request.url !== '${operationPath}' || !request.headers['${traceHeader}'] || !fault) return next();
         const end = response.end;
         response.end = function (...args) {
-          if (fault === 'before-headers' && response.statusCode === 200) return response.destroy();
+          if (fault === 'before-headers' && response.statusCode === 200) {
+            if (heldFirstDisconnect) return response.destroy();
+            heldFirstDisconnect = true;
+            // Keep the real history response pending past the default UI assertion window.
+            const start = performance.now();
+            const timer = setTimeout(() => {
+              console.info('Preview history', JSON.stringify({
+                id: request.headers['${traceHeader}'], stage: 'held-disconnect', elapsed_ms: Math.round(performance.now() - start),
+              }));
+              response.destroy();
+            }, 5500);
+            response.once('close', () => clearTimeout(timer));
+            return response;
+          }
           if (fault === 'during-body-' + response.statusCode) {
             interrupted = response;
             response.write('{');
@@ -856,21 +870,16 @@ const retryHistory = page => control(page, 'Retry history');
 async function sampleStep(page, server, testInfo, label, trigger, {
   timeframe = '1m', catalog = true, error, retryable = false,
 } = {}) {
-  const requests = [];
-  const calls = [];
-  const issued = request => {
-    if (request.method() !== 'POST' || new URL(request.url()).pathname !== operationPath) return;
-    requests.push(request);
-    calls.push(request.postDataJSON());
-  };
+  const observer = observeSampleRequests(page, { marketOnly: true });
   const selection = { id: future, timeframe };
   const history = page.locator(`.history[data-instrument="${future}"][data-timeframe="${timeframe}"]`);
   let terminal;
-  page.on('request', issued);
   try {
     await trigger();
     await expect(page.locator('.connection')).toHaveText('Offline sampleSimulated');
     await expect(control(page, timeframe)).toHaveAttribute('aria-pressed', 'true');
+    if (catalog) await observer.read(sampleCatalogCall.operation);
+    await observer.read('market.readHistoryPage', { allowFailure: Boolean(error) });
     terminal = await waitForSelectedHistoryTerminal(page, history.locator('canvas').first(), selection);
     expect(terminal, label).toEqual(error ? { state: 'error', message: error } : { state: 'chart' });
     await expect(retryHistory(page)).toHaveCount(retryable ? 1 : 0);
@@ -879,9 +888,9 @@ async function sampleStep(page, server, testInfo, label, trigger, {
 
     const expected = [...(catalog ? [sampleCatalogCall] : []), sampleHistoryCall(timeframe)];
     let phase = 0;
-    for (const [index, request] of requests.entries()) {
+    for (const [request, attempt] of observer.attempts) {
       const call = expected[phase];
-      expect(calls[index], label).toEqual(call);
+      expect(attempt.call, label).toEqual(call);
       const response = request.existingResponse();
       if (response?.status() === 429) {
         expect(await response.json()).toEqual(busy);
@@ -909,16 +918,17 @@ async function sampleStep(page, server, testInfo, label, trigger, {
       }
     }
     expect(phase, label).toBe(expected.length);
-    const terminalRequest = requests.at(-1);
+    const terminalRequest = [...observer.attempts.keys()].at(-1);
     // The service's stdout and the browser events arrive independently.
     await expect.poll(() => server.historyStages.get(terminalRequest.headers()[traceHeader])?.at(-1)?.stage)
       .toMatch(/^(finished|closed)$/);
     return terminalRequest;
   } finally {
-    page.off('request', issued);
+    observer.stop();
+    const requests = [...observer.attempts.keys()];
     const stages = await readMarketAttemptStages(page, requests);
     const attempts = stages.map((stage, index) => ({
-      call: calls[index], ...stage, host: server.historyStages.get(stage.trace),
+      call: observer.attempts.get(requests[index]).call, ...stage, host: server.historyStages.get(stage.trace),
     }));
     await testInfo.attach(label, { contentType: 'application/json', body: JSON.stringify({ selection, terminal, attempts }) });
   }
@@ -1039,6 +1049,7 @@ test('the offline sample keeps its own timeframe without replacing the private u
 });
 
 test('the reopened sample recovers its history without consuming the private undo', async ({ browser }, testInfo) => {
+  test.setTimeout(90_000);
   const profile = await makeProfile();
   const port = await freePort();
   const disconnected = 'Disconnected from the local preview. Retry when the connection is restored.';
@@ -1097,7 +1108,11 @@ test('the reopened sample recovers its history without consuming the private und
               client: { stage: 'fetch-rejected', error: 'TypeError', selectionAborted: false },
             });
             expect(request.existingResponse()).toBeNull();
-            const host = server.historyStages.get(attempt.trace);
+            const stages = server.historyStages.get(attempt.trace);
+            const holds = stages.filter(stage => stage.stage === 'held-disconnect');
+            expect(holds).toHaveLength(request === failed ? 1 : 0);
+            if (holds.length) expect(holds[0].elapsed_ms).toBeGreaterThan(5000);
+            const host = stages.filter(stage => stage.stage !== 'held-disconnect');
             expect(host.length).toBeGreaterThanOrEqual(3);
             // Chromium can resend the same HTTP request when a reused socket closes before headers.
             for (let i = 0; i < host.length; i += 3) {
