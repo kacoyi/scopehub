@@ -4780,6 +4780,123 @@
           "cleanup": "Replace the conflicting blanket instruction with the rules already used by the registered commands."
         }
       }
+    },
+    {
+      "id": "M2-006",
+      "title": "Clarify committed replay and shared evidence target forms",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-005"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "tests/fixtures/protocol-cases.json",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/checks.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0010",
+        "0011"
+      ],
+      "acceptance": [
+        "New operations revalidate the current target revisions and required confirmation. An already committed semantic retry recovers only its permitted receipt through the existing scoped replay rules. Both human and AI requests can select an identified workspace object or explicitly clear selection, and omission of the target is rejected."
+      ],
+      "checks": [
+        "project-state",
+        "generated-contracts",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-006-62a25335d312b3d0.json",
+          "sha256": "092d6966e27731642be7c21b242b4919e54d11b59e5213365c2dcabfe4422654"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A caller can recover a lost committed response after its revisions advance and can select or explicitly clear any supported evidence target under its current grant.",
+        "change_types": [
+          "protocol"
+        ],
+        "context": [
+          "contracts/schemas/protocol.schema.json",
+          "contracts/contract.json",
+          "engineering-contract-v1.json",
+          "tests/fixtures/protocol-cases.json"
+        ],
+        "hypotheses": [
+          "The 1.1 target union already supports workspace objects and null. The established replay authorization applies before evaluating new-work revision and confirmation preconditions."
+        ],
+        "risks": [
+          {
+            "failure": "A retry is rejected just because the original commit advanced a revision, or it discloses the earlier result after access was revoked.",
+            "checks": [
+              "python-contracts-workers",
+              "typescript-contracts",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "One caller rejects a workspace object or accepts an omitted target as an explicit clear.",
+            "checks": [
+              "generated-contracts",
+              "python-contracts-workers",
+              "typescript-contracts",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain the accepted 1.1 schema, receipts and examples. Fix only the normative cross-references and examples if an implementation precondition conflicts.",
+        "implementation": {
+          "modules": [
+            "domain",
+            "application",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "engineering-contract-v1.json",
+            "contracts/schemas/protocol.schema.json",
+            "tests/fixtures/protocol-cases.json"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization/replay"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization/durable_operations"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ai/tool_policy"
+            }
+          ],
+          "non_goals": [
+            "Implement durable operations, generalize grants, or publish a release. Runtime transaction ordering is an M2-001 acceptance case."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "The 1.1 target union, scoped idempotency key and current disclosure rules."
+          ],
+          "change": [
+            "Describe committed-retry ordering, all shared target families and explicit clearing consistently."
+          ],
+          "data_plan": "No stored data or wire format changes.",
+          "cleanup": "Remove ambiguous new-work wording from the receipt recovery and object-selection paths."
+        }
+      }
     }
   ]
 }

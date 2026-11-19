@@ -526,7 +526,7 @@
       ]
     },
     {
-      "requirement": "Existing confirmations become invalid when parameters, the code hash, or workspace revision change",
+      "requirement": "For new work, existing confirmations become invalid when parameters, the code hash or a bound workspace or selection revision changes",
       "checks": [
         "operations-workflow"
       ]

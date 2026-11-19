@@ -813,6 +813,28 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "selection-target-and-replay-qualification",
+      "source": "Independent review of engineering contract 1.4.1 against the committed annotation, receipt identities and EvidenceTarget11.",
+      "observation": "The generic revision check can read as applying to an already committed retry despite the original revision having advanced. The selection description omits the object-ID target family and explicit null clearing supported by both 1.1 callers.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-006"
+      ],
+      "regression_checks": [
+        "generated-contracts",
+        "python-contracts-workers",
+        "typescript-contracts",
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "New-work concurrency wording did not distinguish an already committed semantic retry, and the prose target list omitted legitimate variants from the 1.1 union.",
+        "correction": "Scope revision, target and confirmation checks to new work after the committed lookup. Qualify visible receipts and required result fields with current disclosure and data rights. Specify object identity, explicit null clearing and the source locators for the other target forms.",
+        "prevention": "Six new human and AI vectors distinguish object selection, explicit clearing and omitted target. All 162 shared vectors passed in Python, TypeScript and Rust. Independent review checked the original annotation request, advanced committed revision and projected result. Process-level idempotency remains an M2-001 runtime check."
+      },
+      "deferral_reason": null
     }
   ]
 }

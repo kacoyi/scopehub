@@ -768,6 +768,21 @@
     "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"ai.tool_request\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"stream_id\":\"st\",\"sequence\":2,\"payload\":{\"operation\":\"workspace.selectEvidence\",\"workspace_id\":\"desk\",\"expected_selection_revision\":7,\"target\":{\"kind\":\"document_passage\",\"source_id\":\"doc1\",\"source_revision\":\"v1\",\"locator\":\"paragraph-2\"}}}"
   },
   {
+    "name": "1.1 AI selects a workspace object by identity",
+    "valid": true,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"ai.tool_request\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"stream_id\":\"st\",\"sequence\":2,\"payload\":{\"operation\":\"workspace.selectEvidence\",\"workspace_id\":\"desk\",\"expected_selection_revision\":7,\"target\":{\"kind\":\"chart\",\"object_id\":\"primary\"}}}"
+  },
+  {
+    "name": "1.1 AI clears shared selection with explicit null",
+    "valid": true,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"ai.tool_request\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"stream_id\":\"st\",\"sequence\":2,\"payload\":{\"operation\":\"workspace.selectEvidence\",\"workspace_id\":\"desk\",\"expected_selection_revision\":7,\"target\":null}}"
+  },
+  {
+    "name": "1.1 AI selection rejects an omitted target",
+    "valid": false,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"ai.tool_request\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"stream_id\":\"st\",\"sequence\":2,\"payload\":{\"operation\":\"workspace.selectEvidence\",\"workspace_id\":\"desk\",\"expected_selection_revision\":7}}"
+  },
+  {
     "name": "1.1 AI selection rejects a workspace revision in place of the selection revision",
     "valid": false,
     "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"ai.tool_request\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"stream_id\":\"st\",\"sequence\":2,\"payload\":{\"operation\":\"workspace.selectEvidence\",\"workspace_id\":\"desk\",\"target\":{\"kind\":\"document_passage\",\"source_id\":\"doc1\",\"source_revision\":\"v1\",\"locator\":\"paragraph-2\"},\"expected_workspace_revision\":7}}"
@@ -781,6 +796,21 @@
     "name": "1.1 client changes shared selection",
     "valid": true,
     "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"operation\":\"workspace.selectEvidence\",\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"workspace_id\":\"desk\",\"expected_selection_revision\":7,\"target\":{\"kind\":\"document_passage\",\"source_id\":\"doc1\",\"source_revision\":\"v1\",\"locator\":\"paragraph-2\"}}"
+  },
+  {
+    "name": "1.1 client selects a workspace object by identity",
+    "valid": true,
+    "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"operation\":\"workspace.selectEvidence\",\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"workspace_id\":\"desk\",\"expected_selection_revision\":7,\"target\":{\"kind\":\"chart\",\"object_id\":\"primary\"}}"
+  },
+  {
+    "name": "1.1 client clears shared selection with explicit null",
+    "valid": true,
+    "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"operation\":\"workspace.selectEvidence\",\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"workspace_id\":\"desk\",\"expected_selection_revision\":7,\"target\":null}"
+  },
+  {
+    "name": "1.1 client selection rejects an omitted target",
+    "valid": false,
+    "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"operation\":\"workspace.selectEvidence\",\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"workspace_id\":\"desk\",\"expected_selection_revision\":7}"
   },
   {
     "name": "1.1 client selection rejects a workspace revision in place of the selection revision",
