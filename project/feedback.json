@@ -952,7 +952,7 @@
       "source": "Required Windows job 135536750939 at 9d1e403 in run 44517364634.",
       "observation": "Five Rust cases returned TIMEOUT during replacement verification or retry exhaustion. Ten repair-browser cases failed to observe their expected result under the default five-second assertion. The owned process interruption helper rejected its Windows launcher. The thirty-minute job ceiling cancelled the last suite before artifacts could be staged.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-019"
       ],
@@ -962,7 +962,11 @@
         "market-worker-interruption",
         "market-recovery-ui"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Cold worker startup, browser progress assertions and process ownership on Windows exceeded assumptions from the Linux tests. The older hosted time budget also stopped artifact staging.",
+        "correction": "Observe the real accepted worker and its confirmed cursor, verify each preparation and stream result, and isolate the test server from development watchers. Use the bounded Windows change job and retain its results.",
+        "prevention": "Linux and Windows run 44542089017 independently passed Rust recovery and all 12 gap, 18 recovery UI, 13 quality, eight stream and one owned-process interruption cases. The Windows interruption test observed the real replacement and frozen bar."
+      },
       "deferral_reason": null
     },
     {
@@ -1003,7 +1007,7 @@
       "source": "Native Windows report 44524484734 at 6a30e60 and genuine worker hello timings on the dedicated Windows 11 guest.",
       "observation": "The interrupted worker reached reconnecting and resumed, then returned TIMEOUT before the last confirmed bar. Two gap cases also timed out before a cold catalog and its following real history could present a chart. The prior core recovery and closed-bar repair checks passed in the same hosted run.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-019"
       ],
@@ -1013,7 +1017,31 @@
         "market-recovery-ui",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "An unused schema-format dependency compiled a grammar at each Python process start. Browser assertions also started before the cold catalog and history requests had completed.",
+        "correction": "Keep the required format validators without the unused grammar, and observe successful catalog and history requests in order before checking the chart.",
+        "prevention": "The same real Windows bridge recovered twice in about 2.17 seconds with the slimmer environment. Both hosted jobs in run 44542089017 passed the owned-worker, chart startup and schema format regressions."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "hosted-public-publisher-advisory-rate-limit",
+      "source": "GitHub Actions run 44536924867, hosted Linux dependency-review.",
+      "observation": "The locked inventory passed. The approved live GitHub publisher advisory GET returned HTTP 403 with the anonymous REST rate limit exhausted, so dependency-review failed.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-027"
+      ],
+      "regression_checks": [
+        "dependency-review",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The mandatory publisher advisory check shared the anonymous GitHub REST rate limit of the hosted runner.",
+        "correction": "Fetch the one published advisory in an isolated step using the existing job credential at the exact approved TLS endpoint. The dependency checker validates fresh public metadata bound to that checkout, workflow attempt and runner.",
+        "prevention": "Both jobs in run 44542089017 passed the isolated live fetch and online review of 540 locked packages and seven pinned actions. The regression suite covers refused redirects, stale records, unavailable advisories and credential isolation."
+      },
       "deferral_reason": null
     },
     {
@@ -1038,7 +1066,7 @@
       "source": "Independent checkpoint review of the opted-in local workspace at 9bb4647 with temporary synthetic profiles.",
       "observation": "The Vite launcher granted access based on loopback and origin without verifying possession of an owner-only launch credential. With a generally traversable POSIX profile root, database and journal sidecars used broad permissions. A second writer could commit a new workspace revision while the first launcher kept returning its startup snapshot to fresh clients.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-007"
       ],
@@ -1046,7 +1074,11 @@
         "workspace-timeframe",
         "rust-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The launcher treated loopback origin validation as caller authentication and reused the startup snapshot. The store did not enforce a private profile root and private SQLite files before opening storage.",
+        "correction": "Require a per-launch capability issued only through the verified private profile. Validate profile roots and SQLite files in the store. Read current state and eligible undo from Rust for every authorized snapshot.",
+        "prevention": "Hosted run 44543693795 passed workspace-timeframe and rust-contracts-workers on Ubuntu and Windows. The browser cases reject anonymous and expired grants, observe a second writer's commit, and recover from stale context. The native controls verify profile binding, private database and sidecars, restart, replay and scoped undo."
+      },
       "deferral_reason": null
     },
     {
@@ -1054,7 +1086,7 @@
       "source": "Independent foreground terminal and same-port relaunch review of 081c59b.",
       "observation": "A terminal interrupt stopped both Vite and its writer. The private handoff file remained on disk even though the replacement launcher correctly denied its old authority. The Windows regular-file assertion also required a user SID even when a private inheriting ACL permits the elevated token default owner.",
       "severity": "minor",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-007"
       ],
@@ -1062,7 +1094,11 @@
         "workspace-timeframe",
         "rust-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The foreground SIGINT path could exit before Vite's close hooks ran. The original Windows file-owner assertion also assumed a single owner SID for a regular file even when an elevated token can supply an allowed default owner.",
+        "correction": "Await Vite shutdown on terminal interrupt so the workspace close hook revokes the capability, removes the handoff and closes the writer. Require the current SID to own the profile directory and verify the regular file's allowed owner, inherited ACL and effective access independently.",
+        "prevention": "Hosted Ubuntu workspace-timeframe passed the owned CLI SIGINT and SIGTERM case with file removal, writer exit and same-port relaunch. The Windows report separately records the expected POSIX signal skip. Its private handoff case passed, including inherited and effective access checks."
+      },
       "deferral_reason": null
     },
     {
@@ -1070,7 +1106,7 @@
       "source": "Hosted Windows run 44520641312 at 081c59b and the same native storage admission on a clean Windows 11 Enterprise 26H2 guest under a standard local account.",
       "observation": "All five hosted browser workspace cases and three native desktop tests failed while preparing the private profile. On Windows 11 build 26300.9457, both AppLocalData and the real 8.3 TEMP alias failed. Native ACL APIs returned the owner and DACL at every ancestor. The helper instead raised an InvalidCastException while evaluating an ancestor ACE. Five of six native storage library tests failed at ccb9f81.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-007"
       ],
@@ -1078,69 +1114,69 @@
         "workspace-timeframe",
         "rust-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The guest reproduced an InvalidCastException in Windows PowerShell 5.1 when an ancestor ACE flags enum was evaluated with a bitwise mask. Native ACL reads returned the owner and DACL for both normal and short path spellings.",
+        "correction": "Convert ACE flags, access values and comparison masks to integers before bitwise evaluation. Continue to require the current SID and inheritable private rights on the profile root and reject unsafe ancestors, SQLite files and sidecars.",
+        "prevention": "Hosted Windows rust-contracts-workers passed all seven persistence library tests, including ancestor ACL admission and denial, TEMP alias equivalence and private inheritance with shared-root and sidecar denial. All six native desktop library tests passed, including absent AppLocalData provisioning. The Windows 11 guest also verified private startup and the alias path. These results cover hosted and virtualized Windows."
+      },
       "deferral_reason": null
     },
     {
       "id": "note-restore-stage-retention",
-      "source": "Independent ordinary Rust-process and Chromium review of 89401c9 with temporary synthetic profiles.",
-      "observation": "Staging a missing later outcome copied the existing original note body. A second writer deleted the note and the first writer observed the new revision, but the first process retained the redundant staged payload. Expired payloads were collected only during later mutations.",
+      "source": "Synthetic Rust-process review of 89401c9 and independent rerun at 5453889c7e9029c6e80b23612a841abf2c38a9f4, stage_after_peer_deletion in .reports/decision-note-independent-5453889/coordinator-rust.json. The 5453889 decision-note-lifecycle log is in .reports/runs/20261119T133002.616158Z-22e48663/.",
+      "observation": "Staging a missing later outcome copied the existing original note body. A second writer deleted the note and the first writer observed the new revision, but the first process retained the redundant staged payload. Expired payloads were collected only during later mutations. At 5453889, the regression asserted that an outcome-only stage held no original. The independent run observed one added outcome, zero added originals, and after the peer deletion at revision 2, zero live notes and one marker. Both old-stage decisions returned CONFIRMATION_REQUIRED and the detail returned DATA_UNAVAILABLE. Lifecycle regressions passed for observed revision invalidation, deadline expiry without another operation, and disposal.",
       "severity": "major",
       "status": "open",
       "task_ids": [
         "M2-001"
       ],
       "regression_checks": [
-        "workspace-timeframe",
-        "rust-contracts-workers"
+        "decision-note-lifecycle"
       ],
       "resolution": null,
       "deferral_reason": null
     },
     {
       "id": "note-restore-export-capacity",
-      "source": "Independent ordinary Rust-process and Chromium review of 89401c9 with temporary synthetic profiles.",
-      "observation": "Two individually valid backups of the same note with 64 and 65 different later outcomes merged successfully. The resulting 129 outcomes were readable, but exporting the combined note failed with RESOURCE_LIMIT.",
+      "source": "Synthetic Rust-process review of 89401c9 and independent rerun at 5453889c7e9029c6e80b23612a841abf2c38a9f4, complete_backup_capacity in .reports/decision-note-independent-5453889/coordinator-rust.json. The 5453889 decision-note-lifecycle log is in .reports/runs/20261119T133002.616158Z-22e48663/.",
+      "observation": "Two individually valid backups of the same note with 64 and 65 different later outcomes merged successfully. The resulting 129 outcomes were readable, but exporting the combined note failed with RESOURCE_LIMIT. At 5453889, both the independent run and the process regression observed RESOURCE_LIMIT before issuing a stage for the 129-outcome merge, with both archives unchanged. The 128-outcome boundary merged and exported every outcome, and the next append was rejected before approval with the complete export unchanged.",
       "severity": "major",
       "status": "open",
       "task_ids": [
         "M2-001"
       ],
       "regression_checks": [
-        "workspace-timeframe",
-        "rust-contracts-workers"
+        "decision-note-lifecycle"
       ],
       "resolution": null,
       "deferral_reason": null
     },
     {
       "id": "note-unrelated-revision-draft-loss",
-      "source": "Independent ordinary Rust-process and Chromium review of 89401c9 with temporary synthetic profiles.",
-      "observation": "When a peer changed only the chart timeframe, a visible unsaved later-outcome draft and its date were silently discarded.",
+      "source": "Synthetic Chromium review of 89401c9 and independent passing outcome_draft_after_peer_timeframe check at 5453889c7e9029c6e80b23612a841abf2c38a9f4 in .reports/decision-note-independent-5453889/coordinator-browser-draft.json. The 5453889 workspace-timeframe log is in .reports/runs/20261119T133002.616158Z-22e48663/.",
+      "observation": "When a peer changed only the chart timeframe, a visible unsaved later-outcome draft and its date were silently discarded. At 5453889 the independent browser observed a fresh detail read after the peer changed 5m to 1d, preserved both draft fields, approved the outcome, and reopened it with the same text and date. The browser regression also passed for invalidating the older approval while keeping the draft and clearing the draft when its note was deleted.",
       "severity": "major",
       "status": "open",
       "task_ids": [
         "M2-001"
       ],
       "regression_checks": [
-        "workspace-timeframe",
-        "rust-contracts-workers"
+        "workspace-timeframe"
       ],
       "resolution": null,
       "deferral_reason": null
     },
     {
       "id": "note-deleted-list-projection",
-      "source": "Independent ordinary Rust-process and Chromium review of 89401c9 with temporary synthetic profiles.",
-      "observation": "After a peer deleted a note, a focused list still displayed its date and identity suffix across two polling intervals and after clicking the stale entry returned unavailable.",
+      "source": "Synthetic Chromium review of 89401c9 and independent rerun at 5453889c7e9029c6e80b23612a841abf2c38a9f4, deleted_index_rows_and_raced_open in .reports/decision-note-independent-5453889/coordinator-browser-list.json. The 5453889 workspace-timeframe log is in .reports/runs/20261119T133002.616158Z-22e48663/.",
+      "observation": "After a peer deleted a note, a focused list still displayed its date and identity suffix across two polling intervals and after clicking the stale entry returned unavailable. At 5453889 the independent browser and workspace regression observed focus refresh removing the deleted entry and retaining the unrelated entry. A detail read that raced a second deletion returned DATA_UNAVAILABLE, and the list removed the stale entry and showed the empty state.",
       "severity": "major",
       "status": "open",
       "task_ids": [
         "M2-001"
       ],
       "regression_checks": [
-        "workspace-timeframe",
-        "rust-contracts-workers"
+        "workspace-timeframe"
       ],
       "resolution": null,
       "deferral_reason": null
@@ -1174,6 +1210,143 @@
         "rust-contracts-workers",
         "python-contracts-workers",
         "local-folder-import"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "workspace-profile-static-denial",
+      "source": "Hosted Windows workspace-timeframe on a temporary synthetic profile.",
+      "observation": "Hosted Windows run 44528913523 at 4a379d8 returned HTTP 200 for a synthetic workspace file check. The check captured status alone, so the returned representation is unknown. It could not distinguish the ordinary HTML fallback from a file response.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-007"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "Workspace-private paths lacked an explicit response before Vite's static handlers and SPA fallback. A raw path miss could return the application shell. The historical status-only result leaves the response body undetermined.",
+        "correction": "Reject reserved workspace file names and direct raw filesystem URLs inside the bound private profile before Vite static serving or SPA fallback. Return an empty 404 with no-store and keep the private profile outside the served roots.",
+        "prevention": "Hosted workspace-timeframe passed on Ubuntu and Windows. HEAD requests distinguish the ordinary HTML 200 fallback from the empty 404 with no-store for real synthetic SQLite, named sidecars, an ordinary file in the isolated profile and handoff paths."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "workspace-handoff-windows-acl-check",
+      "source": "Hosted Windows workspace-timeframe on a temporary synthetic profile.",
+      "observation": "The independent file-permission check exited at an unspecified stage on Windows PowerShell 5.1 in hosted run 44528913523. It used enum operands in bitwise tests. The production workspace could already create a private profile and restore eligible undo on that runner.",
+      "severity": "minor",
+      "status": "addressed",
+      "task_ids": [
+        "M2-007"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The original Windows assertion used enum operands in PowerShell 5.1 bitwise tests. A later hosted exit 52 combined provider lookup, descriptor read and owner comparison into one stage. A standard-user Windows 11 guest returned the current owner and DACL through both readers in both TEMP spellings, so the precise cause of that hosted exit remains undetermined.",
+        "correction": "Use integer masks and explicitly read the owner and access sections through filesystem APIs. Report descriptor reads independently from owner mismatches. Keep the current-SID directory rule, allowed file owners and trustees, inherited rights and an actual read/write handle.",
+        "prevention": "The Windows 11 guest passed the revised positive check in both TEMP spellings and reached the intended denial for broad access and missing inheritance on empty synthetic files. Hosted Windows workspace-timeframe at 290bd578 passed the same private handoff case with both negative controls."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-sample-startup-aggregate-wait",
+      "source": "PR 12 hosted Windows run 44531620190, market-workflow and ubuntu-preview logs.",
+      "observation": "The three-symbol journey did not find Play sample updates within five seconds. The desktop, narrow-screen, and Retry demo preview paths hit the same five-second limit waiting for the first history chart. The assertions did not distinguish catalog latency, history latency, and rendering.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-020"
+      ],
+      "regression_checks": [
+        "market-workflow",
+        "ubuntu-preview"
+      ],
+      "resolution": {
+        "cause": "One five-second browser assertion covered two serial worker reads and the first chart render. Holding each real reply reproduced startup beyond that assertion's budget.",
+        "correction": "The shared startup verifier checks the real catalog request and reply, then the scoped history request and reply, before waiting for chart readiness. The preview suite exercises each held reply and a typed worker rejection. Product worker deadlines and retry behavior remain unchanged.",
+        "prevention": "Hosted run 44544324678 for PR head cd93f96d076b0b7f0fa45374c646dfa463e199e3 passed market-workflow (1 case) and ubuntu-preview (7 cases) on Linux and Windows. The preview cases covered independently delayed catalog and history replies, offline Retry demo and a real worker rejection. Both task receipts retain their platform and log digests."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "native-reviewed-csv-worker-timeout",
+      "source": "Windows 11 native MSVC/WebView2 engineering run on 2f4a0c0 with a selected synthetic 292-byte CSV, followed by two bounded standalone worker comparisons on the same guest.",
+      "observation": "The actual desktop showed the complete digest after reading three raw rows in 2.17 seconds. The first native OHLCV preview subsequently displayed a worker timeout. The same worker exchange run directly twice returned closes 102 and 105, the incomplete-row diagnostic and process exit in 219 ms each. The native save and restart journey remains pending at this observation.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "local-folder-import",
+        "local-import-ui",
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "local-csv-mapping-save-and-publication-replay",
+      "source": "Independent synthetic native Rust dispatcher replays at 4571353. Probes: /var/tmp/scopehub-local-v5-sOXuzpLM/independent/replay.json and /var/tmp/scopehub-local-v5-sOXuzpLM/minimal-replay/events.jsonl.",
+      "observation": "Replaying the same trusted mapping save with its original request ID, live folder and file, full digest, mapping and preview limit advanced the review revision from 2 to 3. A delayed retry of the already committed publication then returned STALE_CONTEXT. Publishing under revision 3 created a second dataset UUID with the same source and mapping digests, 504 identical bars and 506 source locators. A fresh one-row repro left two reviewed mapping versions, two byte-equivalent frozen revisions and one source blob. Independent lock tests preserved cancellation and changed-source rollback.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "local-import-publication"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-reviewed-mapping-selector-spelling",
+      "source": "Hosted Windows run 44548543796 at e960fd1, rust-contracts-workers log, and the native Win11 MSVC comparison at 2f4a0c0 retained in .reports/guest/2f4a0c0-mapping-path-reopen.",
+      "observation": "The hosted restart test saved through a canonicalized synthetic directory and reselected the same source through the supplied spelling. Loading returned not_saved instead of saved before header comparison. On the Win11 guest, the same unmodified test and NTFS temporary directory passed with the long TEMP name and failed with its real 8.3 alias. The ordinary Win11 GUI observation with its selection spelling remains separately recorded.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "local-folder-import"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "workspace-browser-navigation-observer-lifetime",
+      "source": "Authenticated hosted Windows PR #13 run 44548543796 at e960fd1, workspace-timeframe log and source snapshot.",
+      "observation": "Chromium reported ERR_NO_BUFFER_SPACE on the initial document of the wrong-profile backup visit. The workspace test had already created a response waiter and had not installed a rejection handler. Context teardown also reported that the response waiter rejected when its page closed. Eight browser cases passed and the POSIX signal case skipped.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-008"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "workspace-held-note-read-shares-test-lane",
+      "source": "Local M2-008 task run 20261119T153931.924374Z-c35b457c with temporary synthetic profiles.",
+      "observation": "The peer-deletion browser case timed out while the observer had a pending detail read. A retained screenshot showed the peer on the second note with Local workspace is busy and Review deletion disabled. Both pages used the same single-flight Vite producer, and a page action could fail before the held route entered its release block. The backup restore and both new lifecycle controls passed in the same run.",
+      "severity": "minor",
+      "status": "open",
+      "task_ids": [
+        "M2-008"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
       ],
       "resolution": null,
       "deferral_reason": null

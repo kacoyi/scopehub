@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { painted } from '../ui/chart-pixels.mjs';
 import { replayStage, waitForReplayRequest } from '../ui/replay-stages.mjs';
+import { future, openDefaultSample } from '../ui/sample-startup.mjs';
 import { control, openPanel, watchlistSymbol } from '../ui/workspace-controls.mjs';
 
 const streamPath = '/__scopehub/market-stream';
-const future = 'SIM.CN.FUTURE.001';
 const stock = 'SIM.CN.STOCK.001';
 const chart = page => page.locator('.history');
 const legend = page => page.getByLabel('Selected bar');
@@ -83,11 +83,10 @@ function replayFrames({ after, series, snapshot }) {
 
 async function start(page) {
   await page.addInitScript(injectFuturesReplay, { path: streamPath, instrument: future });
-  await page.goto('/#demo');
-  await expect(chart(page)).toHaveAttribute('data-instrument', future);
+  await openDefaultSample(page);
   await control(page, 'Play sample updates').click();
   await page.mouse.move(1, 1);
-  await page.waitForFunction(() => window.injectedReplays.length === 1);
+  await page.waitForFunction(() => window.injectedReplays.length === 1, undefined, replayStage);
   const { operation, payload } = await page.evaluate(() => {
     const { operation, payload } = window.injectedReplays[0];
     return { operation, payload };
@@ -238,7 +237,7 @@ for (const action of ['stop', 'reselect']) {
       await expectBar(page, 3500.8, 110, 'Partial');
       await expect(control(page, 'Play sample updates')).toBeVisible();
     } else {
-      await expect(chart(page)).toHaveAttribute('data-instrument', stock);
+      await expect(chart(page)).toHaveAttribute('data-instrument', stock, replayStage);
       const request = await waitForReplayRequest(page, () => control(page, 'Play sample updates').click());
       expect(request.postDataJSON().payload.series.instrument_id).toBe(stock);
       await expect(status(page)).toHaveText('Synthetic replay complete', replayStage);

@@ -180,9 +180,8 @@ impl<S: LocalDatasetStore> OperationRegistry<S> {
         access: &WorkspaceAccess<'_>,
         candidate: &LocalDatasetPublication<'_>,
         guard: &impl MappingCommitGuard,
-    ) -> Result<Value, Error> {
+    ) -> Result<String, Error> {
         self.authorize_local_import(access, PUBLISH_LOCAL_IMPORT)?;
-        let operation = authorized_operation(access.actor, PUBLISH_LOCAL_IMPORT)?;
         let mapping = &candidate.reviewed_mapping.mapping;
         let content = candidate.content;
         if candidate.source_sha256 != format!("{:x}", Sha256::digest(candidate.original))
@@ -213,10 +212,19 @@ impl<S: LocalDatasetStore> OperationRegistry<S> {
             content,
         );
         frozen_output(access.actor, &candidate_revision, &content["bars"])?;
-        let id = self.port.publish_local_dataset(candidate, guard)?;
+        self.port.publish_local_dataset(candidate, guard)
+    }
+
+    pub fn local_dataset_publication_receipt(
+        &self,
+        access: &WorkspaceAccess<'_>,
+        id: &str,
+    ) -> Result<Value, Error> {
+        self.authorize_local_import(access, PUBLISH_LOCAL_IMPORT)?;
+        let operation = authorized_operation(access.actor, PUBLISH_LOCAL_IMPORT)?;
         let stored = self
             .port
-            .read_local_dataset(&id)?
+            .read_local_dataset(id)?
             .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))?;
         let revision = stored.summary();
         let output = json!({ "version": 1, "revision": revision });

@@ -362,6 +362,374 @@ async fn execute_import(state: &State, operation: &str, payload: Value) -> Resul
 }
 
 #[cfg(any(target_os = "linux", windows))]
+async fn reviewed_save_input(state: &State, ids: &Value, mapping: Value) -> Value {
+    let mut input = ids.clone();
+    input["mapping"] = mapping;
+    input["row_limit"] = json!(1);
+    let shown = execute_import(state, PREVIEW_LOCAL_IMPORT, input.clone())
+        .await
+        .unwrap();
+    input["expected_sha256"] = shown["sha256"].clone();
+    input
+}
+
+#[cfg(any(target_os = "linux", windows))]
+fn publication_input(save: &Value, receipt: &Value) -> Value {
+    json!({
+        "version": 1,
+        "folder_id": save["folder_id"],
+        "file_id": save["file_id"],
+        "expected_sha256": save["expected_sha256"],
+        "review_revision": receipt["record"]["review_revision"],
+    })
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[tokio::test]
+async fn local_publication_replays_the_minimal_save_publish_chain() {
+    use scopehub_application::REVOKE_LOCAL_IMPORT_REVISION;
+    use std::fs;
+
+    let fixture = ImportFixture::new();
+    let profile = fixture.0.join("profile");
+    let folder = fixture.0.join("source");
+    fs::create_dir(&folder).unwrap();
+    let csv = folder.join("source.csv");
+    let original = b"Ticker,Date,Open,High,Low,Close,Shares\n000418,2026-11-19,4,7,3,5,20\n";
+    fs::write(&csv, original).unwrap();
+    let state = state_with_local_profile(Some(&profile));
+    let ids = select_csv(&state, &folder).await;
+    let save = reviewed_save_input(&state, &ids, equity_mapping()).await;
+    let request = |operation, body: &Value, key| {
+        state.execute_local_operation(operation, body.clone(), Some(key))
+    };
+    let (first, concurrent) = tokio::join!(
+        request(SAVE_LOCAL_IMPORT_MAPPING, &save, "save-a"),
+        request(SAVE_LOCAL_IMPORT_MAPPING, &save, "save-a"),
+    );
+    let saved = first.unwrap();
+    assert_eq!(saved["record"]["review_revision"], 1);
+    match concurrent {
+        Ok(receipt) => assert_eq!(receipt, saved),
+        Err(error) => assert_eq!(error.code, ErrorCode::BUSY),
+    }
+
+    let publish = publication_input(&save, &saved);
+    let (first, concurrent) = tokio::join!(
+        request(PUBLISH_LOCAL_IMPORT, &publish, "publish-p"),
+        request(PUBLISH_LOCAL_IMPORT, &publish, "publish-p"),
+    );
+    let published = first.unwrap();
+    match concurrent {
+        Ok(receipt) => assert_eq!(receipt, published),
+        Err(error) => assert_eq!(error.code, ErrorCode::BUSY),
+    }
+    assert_eq!(published["revision"]["bar_count"], 1);
+    assert_eq!(
+        request(PUBLISH_LOCAL_IMPORT, &publish, "publish-p")
+            .await
+            .unwrap(),
+        published
+    );
+    assert_eq!(
+        request(SAVE_LOCAL_IMPORT_MAPPING, &save, "save-a")
+            .await
+            .unwrap(),
+        saved
+    );
+    assert_eq!(
+        request(SAVE_LOCAL_IMPORT_MAPPING, &save, "equivalent-new-save")
+            .await
+            .unwrap(),
+        saved
+    );
+    assert_eq!(
+        request(PUBLISH_LOCAL_IMPORT, &publish, "publish-p")
+            .await
+            .unwrap(),
+        published
+    );
+    assert_eq!(
+        request(PUBLISH_LOCAL_IMPORT, &publish, "equivalent-new-publish")
+            .await
+            .unwrap(),
+        published
+    );
+    let read = json!({"version": 1, "revision_id": published["revision"]["revision_id"]});
+    let frozen = execute_import(&state, READ_LOCAL_IMPORT_REVISION, read.clone())
+        .await
+        .unwrap();
+    assert_eq!(frozen["bars"][0]["bar"]["close"], 5.0);
+    assert_eq!(
+        frozen["bars"][0]["locators"],
+        json!([{"record_number":1,"line_start":2,"line_end":2}])
+    );
+
+    // A reused write key may never authorize a different request.
+    let mut changed_sample = save.clone();
+    changed_sample["row_limit"] = json!(2);
+    assert_eq!(
+        request(SAVE_LOCAL_IMPORT_MAPPING, &changed_sample, "save-a")
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALIDARGUMENT
+    );
+    assert_eq!(
+        request(PUBLISH_LOCAL_IMPORT, &publish, "save-a")
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALIDARGUMENT
+    );
+    let mut invalid_publish = publish.clone();
+    invalid_publish["revision_id"] = read["revision_id"].clone();
+    assert_eq!(
+        request(PUBLISH_LOCAL_IMPORT, &invalid_publish, "publish-p")
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALIDARGUMENT
+    );
+    let mut changed_digest = publish.clone();
+    changed_digest["expected_sha256"] = json!("0".repeat(64));
+    assert_eq!(
+        request(PUBLISH_LOCAL_IMPORT, &changed_digest, "publish-p")
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALIDARGUMENT
+    );
+    assert_eq!(
+        request(REVOKE_LOCAL_IMPORT_REVISION, &read, "publish-p")
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALIDARGUMENT
+    );
+    state.cancel_local_import("publish-p");
+    assert_eq!(
+        request(PUBLISH_LOCAL_IMPORT, &publish, "publish-p")
+            .await
+            .unwrap(),
+        published
+    );
+    assert_eq!(
+        execute_import(&state, REVOKE_LOCAL_IMPORT_REVISION, read.clone())
+            .await
+            .unwrap(),
+        read
+    );
+    fs::rename(&csv, folder.join("unavailable")).unwrap();
+    assert_eq!(
+        request(PUBLISH_LOCAL_IMPORT, &publish, "publish-p")
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::PERMISSIONDENIED,
+        "a committed replay checks current display rights without rereading the source"
+    );
+    fs::write(&csv, original).unwrap();
+    assert_eq!(
+        request(
+            SAVE_LOCAL_IMPORT_MAPPING,
+            &save,
+            "new-save-after-revocation"
+        )
+        .await
+        .unwrap(),
+        saved
+    );
+    assert_eq!(
+        request(PUBLISH_LOCAL_IMPORT, &publish, "new-id-after-revocation")
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::PERMISSIONDENIED
+    );
+    state.shutdown().await;
+    let restarted = state_with_local_profile(Some(&profile));
+    assert_eq!(
+        execute_import(&restarted, READ_LOCAL_IMPORT_REVISION, read)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::PERMISSIONDENIED
+    );
+    restarted.shutdown().await;
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[tokio::test]
+async fn local_publication_replay_preserves_real_mapping_transitions_and_current_grants() {
+    use std::fs;
+
+    let fixture = ImportFixture::new();
+    let profile = fixture.0.join("profile");
+    let folder = fixture.0.join("source");
+    fs::create_dir(&folder).unwrap();
+    let csv = folder.join("source.csv");
+    let original =
+        "Ticker,Date,Open,High,Low,Close,AltClose,Shares\n000418,2026-11-19,4,7,3,5,6,20\n";
+    fs::write(&csv, original).unwrap();
+    let state = state_with_local_profile(Some(&profile));
+    let ids = select_csv(&state, &folder).await;
+    let a = reviewed_save_input(&state, &ids, equity_mapping()).await;
+    let request = |operation, body: &Value, key| {
+        state.execute_local_operation(operation, body.clone(), Some(key))
+    };
+    let saved_a = request(SAVE_LOCAL_IMPORT_MAPPING, &a, "original-a")
+        .await
+        .unwrap();
+    let publish_a = publication_input(&a, &saved_a);
+    let frozen_a = request(PUBLISH_LOCAL_IMPORT, &publish_a, "publish-a")
+        .await
+        .unwrap();
+    let read_a = json!({"version": 1, "revision_id": frozen_a["revision"]["revision_id"]});
+    let first_read = execute_import(&state, READ_LOCAL_IMPORT_REVISION, read_a.clone())
+        .await
+        .unwrap();
+
+    let mut mapping_b = equity_mapping();
+    mapping_b["columns"]["close"] = json!("AltClose");
+    let b = reviewed_save_input(&state, &ids, mapping_b).await;
+    let saved_b = request(SAVE_LOCAL_IMPORT_MAPPING, &b, "review-b")
+        .await
+        .unwrap();
+    assert_eq!(saved_b["record"]["review_revision"], 2);
+    assert_eq!(
+        request(SAVE_LOCAL_IMPORT_MAPPING, &b, "original-a")
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALIDARGUMENT
+    );
+    let unavailable = folder.join("unavailable");
+    fs::rename(&csv, &unavailable).unwrap();
+    assert_eq!(
+        request(SAVE_LOCAL_IMPORT_MAPPING, &a, "original-a")
+            .await
+            .unwrap(),
+        saved_a
+    );
+    assert_eq!(
+        request(PUBLISH_LOCAL_IMPORT, &publish_a, "publish-a")
+            .await
+            .unwrap(),
+        frozen_a
+    );
+    assert_eq!(
+        request(PUBLISH_LOCAL_IMPORT, &publish_a, "fresh-stale-mapping")
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::STALECONTEXT
+    );
+    assert_eq!(
+        request(
+            PUBLISH_LOCAL_IMPORT,
+            &publication_input(&b, &saved_b),
+            "fresh-missing-source"
+        )
+        .await
+        .unwrap_err()
+        .code,
+        ErrorCode::SNAPSHOTUNAVAILABLE
+    );
+    fs::rename(&unavailable, &csv).unwrap();
+    let loaded = execute_import(&state, LOAD_LOCAL_IMPORT_MAPPING, ids.clone())
+        .await
+        .unwrap();
+    assert_eq!(loaded["record"], saved_b["record"]);
+
+    assert_eq!(reviewed_save_input(&state, &ids, equity_mapping()).await, a);
+    state.cancel_local_import("return-to-a");
+    assert_eq!(
+        request(SAVE_LOCAL_IMPORT_MAPPING, &a, "return-to-a")
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::CANCELLED
+    );
+    let loaded = execute_import(&state, LOAD_LOCAL_IMPORT_MAPPING, ids.clone())
+        .await
+        .unwrap();
+    assert_eq!(loaded["record"], saved_b["record"]);
+    let returned = request(SAVE_LOCAL_IMPORT_MAPPING, &a, "return-to-a")
+        .await
+        .unwrap();
+    assert_eq!(returned["record"]["review_revision"], 3);
+    assert_eq!(returned["record"]["mapping"], saved_a["record"]["mapping"]);
+    assert_eq!(
+        request(SAVE_LOCAL_IMPORT_MAPPING, &a, "original-a")
+            .await
+            .unwrap(),
+        saved_a
+    );
+    let publish_returned = publication_input(&a, &returned);
+    fs::write(&csv, original.replace(",5,6,", ",7,6,")).unwrap();
+    assert_eq!(
+        request(PUBLISH_LOCAL_IMPORT, &publish_returned, "fresh-stale-bytes")
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::SNAPSHOTUNAVAILABLE
+    );
+    let edited = reviewed_save_input(&state, &ids, equity_mapping()).await;
+    assert_eq!(
+        request(SAVE_LOCAL_IMPORT_MAPPING, &edited, "save-edited-source")
+            .await
+            .unwrap(),
+        returned,
+        "a fresh review of changed bytes with the same header and mapping keeps the current mapping"
+    );
+    let edited_publish = publication_input(&edited, &returned);
+    let updated = request(PUBLISH_LOCAL_IMPORT, &edited_publish, "publish-edited")
+        .await
+        .unwrap();
+    assert_ne!(
+        updated["revision"]["revision_id"],
+        frozen_a["revision"]["revision_id"]
+    );
+    assert_ne!(
+        updated["revision"]["source_sha256"],
+        frozen_a["revision"]["source_sha256"]
+    );
+    assert_eq!(
+        updated["revision"]["mapping_sha256"],
+        frozen_a["revision"]["mapping_sha256"]
+    );
+
+    let new_ids = select_csv(&state, &folder).await;
+    assert_eq!(
+        request(PUBLISH_LOCAL_IMPORT, &publish_a, "publish-a")
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::STALECONTEXT
+    );
+    let mut changed_grant = edited_publish;
+    changed_grant["folder_id"] = new_ids["folder_id"].clone();
+    changed_grant["file_id"] = new_ids["file_id"].clone();
+    assert_eq!(
+        request(PUBLISH_LOCAL_IMPORT, &changed_grant, "publish-edited")
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALIDARGUMENT
+    );
+    state.shutdown().await;
+    let restarted = state_with_local_profile(Some(&profile));
+    assert_eq!(
+        execute_import(&restarted, READ_LOCAL_IMPORT_REVISION, read_a)
+            .await
+            .unwrap(),
+        first_read
+    );
+    restarted.shutdown().await;
+}
+
+#[cfg(any(target_os = "linux", windows))]
 #[tokio::test]
 async fn local_publication_keeps_the_prior_chart_after_changed_bytes_and_cancellation() {
     use scopehub_application::REVOKE_LOCAL_IMPORT_REVISION;
@@ -822,6 +1190,90 @@ async fn reviewed_mapping_reuses_live_source_after_restart_and_requires_review_f
         "not_saved"
     );
     restarted.shutdown().await;
+}
+
+#[cfg(windows)]
+#[tokio::test]
+async fn reviewed_mapping_reopens_a_legacy_v4_windows_key() {
+    use scopehub_application::{MappingCommitGuard, mapping_header_digest};
+    use sha2::{Digest, Sha256};
+    use std::{fs, os::windows::ffi::OsStrExt};
+
+    struct FixtureSeed;
+
+    impl MappingCommitGuard for FixtureSeed {
+        fn commit<T>(&self, write: impl FnOnce() -> Result<T, Error>) -> Result<T, Error> {
+            write()
+        }
+    }
+
+    // Reproduce the original v4 key framing for a canonical selector whose
+    // admitted spelling was already the long on-disk path.
+    fn legacy_fingerprint(domain: &[u8], path: &Path) -> [u8; 32] {
+        let mut hash = Sha256::new();
+        hash.update(domain);
+        hash.update([0]);
+        for part in path.components() {
+            let units: Vec<_> = part.as_os_str().encode_wide().collect();
+            hash.update((2 * units.len() as u64).to_be_bytes());
+            for unit in units {
+                hash.update(unit.to_be_bytes());
+            }
+        }
+        hash.finalize().into()
+    }
+
+    let fixture = ImportFixture::new();
+    let source = fixture.0.join("Legacy Mapping Source");
+    let profile = fixture.0.join("profile");
+    fs::create_dir(&source).unwrap();
+    fs::write(
+        source.join("source.csv"),
+        b"Ticker,Date,Open,High,Low,Close,Shares\n000418,2026-11-19,4,6,3,5,20\n",
+    )
+    .unwrap();
+    let canonical = source.canonicalize().unwrap();
+    let mut legacy_key = Sha256::new();
+    legacy_key.update(b"scopehub-local-mapping-source-v1\0");
+    legacy_key.update(legacy_fingerprint(b"scopehub-local-folder-v1", &canonical));
+    legacy_key.update(legacy_fingerprint(
+        b"scopehub-local-relative-file-v1",
+        Path::new("source.csv"),
+    ));
+
+    let first = state_with_local_profile(Some(&profile));
+    let mut payload = select_csv(&first, &canonical).await;
+    payload["mapping"] = equity_mapping();
+    let shown = execute_import(&first, PREVIEW_LOCAL_IMPORT, payload)
+        .await
+        .unwrap();
+    let mapping = serde_json::from_value(equity_mapping()).unwrap();
+    let header = mapping_header_digest(&shown, &mapping).unwrap();
+    // Seed a real SQLite v4 record with the old key, independently of the
+    // corrected host association code.
+    let seeded = first
+        .workspace
+        .save(
+            format!("{:x}", legacy_key.finalize()),
+            header,
+            mapping,
+            FixtureSeed,
+        )
+        .await
+        .unwrap();
+    first.shutdown().await;
+
+    let reopened = state_with_local_profile(Some(&profile));
+    let alternate = source.with_file_name("lEGACY mAPPING sOURCE");
+    assert_eq!(alternate.canonicalize().unwrap(), canonical);
+    let ids = select_csv(&reopened, &alternate).await;
+    let loaded = execute_import(&reopened, LOAD_LOCAL_IMPORT_MAPPING, ids)
+        .await
+        .unwrap();
+    assert_eq!(loaded["status"], "saved");
+    assert_eq!(loaded["record"], seeded["record"]);
+    assert_eq!(loaded["source_sha256"], shown["sha256"]);
+    reopened.shutdown().await;
 }
 
 #[cfg(any(target_os = "linux", windows))]

@@ -92,6 +92,15 @@ fn shared_vectors_and_generated_types_agree() {
                 Message::LoadLocalImportMappingRequest(_) => {
                     requests.insert("market.loadLocalImportMapping");
                 }
+                Message::PublishLocalImportRequest(_) => {
+                    requests.insert("market.publishLocalImport");
+                }
+                Message::ReadLocalImportRevisionRequest(_) => {
+                    requests.insert("market.readLocalImportRevision");
+                }
+                Message::RevokeLocalImportRevisionRequest(_) => {
+                    requests.insert("market.revokeLocalImportRevision");
+                }
                 Message::ReadProjectedChart11(_) => {
                     requests.insert("workspace.readChartProjection");
                 }

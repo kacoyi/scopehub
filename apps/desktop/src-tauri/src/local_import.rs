@@ -1,5 +1,7 @@
 //! Compose the local human's filesystem selection with the private preview worker.
 
+mod requests;
+
 use std::{
     collections::VecDeque,
     future::Future,
@@ -27,6 +29,8 @@ use sha2::{Digest, Sha256};
 use tokio::sync::{Mutex, MutexGuard, Notify};
 
 use crate::workspace::WorkspaceBridge;
+use requests::{ImportAttempt, ImportRequests, MutationInput};
+pub(super) use requests::{ImportReceipt, PendingImport};
 
 const MAX_EARLY_CANCELLATIONS: usize = 64;
 const ACTIVE: u8 = 0;
@@ -39,6 +43,7 @@ pub(super) struct LocalImport {
     picker: Mutex<()>,
     admission: Mutex<()>,
     state: SyncMutex<PreviewState>,
+    requests: ImportRequests,
 }
 
 #[derive(Default)]
@@ -54,7 +59,7 @@ struct ReviewedPreview {
     header_sha256: String,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 struct PreviewBinding {
     folder: FolderId,
     file: FileId,
@@ -116,7 +121,8 @@ struct MappingGuard {
     cancel: Arc<PreviewCancellation>,
     folders: Arc<LocalFolderHost>,
     folder: FolderId,
-    source: Option<(FileId, String)>,
+    file: FileId,
+    source_sha256: String,
 }
 
 impl MappingCommitGuard for MappingGuard {
@@ -128,17 +134,15 @@ impl MappingCommitGuard for MappingGuard {
                 .map_err(|_| failure(ErrorCode::CANCELLED))?;
             apply()
         };
-        match &self.source {
-            Some((file, sha256)) => self.folders.with_verified_current(
+        self.folders
+            .with_verified_current(
                 self.folder,
-                *file,
-                sha256,
+                self.file,
+                &self.source_sha256,
                 &self.cancel.file,
                 apply,
-            ),
-            None => self.folders.with_current(self.folder, apply),
-        }
-        .map_err(folder_failure)?
+            )
+            .map_err(folder_failure)?
     }
 }
 
@@ -164,6 +168,7 @@ impl LocalImport {
             picker: Mutex::new(()),
             admission: Mutex::new(()),
             state: SyncMutex::default(),
+            requests: ImportRequests::default(),
         }
     }
 
@@ -233,7 +238,11 @@ impl LocalImport {
                 .position(|id| Some(id.as_str()) == request_id)
             {
                 state.early_cancellations.remove(index);
-                return Err(failure(ErrorCode::CANCELLED));
+                // Cancellation can arrive after a dropped transport future and
+                // before its blocking writer records the successful commit.
+                if !request_id.is_some_and(|id| self.requests.committed(id)) {
+                    return Err(failure(ErrorCode::CANCELLED));
+                }
             }
             state.active = Some((request_id.map(str::to_owned), Arc::clone(&cancel)));
         }
@@ -250,6 +259,7 @@ impl LocalImport {
         request_id: Option<&str>,
     ) -> Result<Value, Error> {
         let (_slot, mut port) = self.reserve(request_id)?;
+        self.requests.reject_reused(request_id)?;
         let (input, output) = preview_local_import(Actor::LocalUser, payload, &mut port).await?;
         if let Some(header_sha256) = reviewed_preview_header(&input, &output) {
             let folder = folder_id(&input.folder_id)?;
@@ -295,6 +305,18 @@ impl LocalImport {
             &input.mapping,
             input.row_limit,
         )?;
+        let attempt = match self
+            .requests
+            .start(request_id, MutationInput::Save(binding.clone()))?
+        {
+            ImportAttempt::New(attempt) => attempt,
+            ImportAttempt::Committed(ImportReceipt::Mapping(revision)) => {
+                let result = workspace.replay_saved_mapping(source_key, revision).await;
+                port.check_live(folder)?;
+                return result;
+            }
+            ImportAttempt::Committed(_) => return Err(failure(ErrorCode::INTERNALERROR)),
+        };
         let header = self
             .state
             .lock()
@@ -309,16 +331,15 @@ impl LocalImport {
                     "Preview this mapping and review a normalized bar before saving.".into();
                 error
             })?;
-        port.read_file(folder, file, FileRead::Preview(Some(binding.source_sha256)))
-            .await?;
-        let guard = MappingGuard {
-            cancel: Arc::clone(&port.cancel),
-            folders: Arc::clone(&self.folders),
+        port.read_file(
             folder,
-            source: None,
-        };
+            file,
+            FileRead::Checked(binding.source_sha256.clone()),
+        )
+        .await?;
+        let guard = port.commit_guard(folder, file, binding.source_sha256);
         workspace
-            .save(source_key, header, input.mapping, guard)
+            .save(source_key, header, input.mapping, guard, attempt)
             .await
     }
 
@@ -330,6 +351,7 @@ impl LocalImport {
     ) -> Result<Value, Error> {
         let input = load_mapping_input(Actor::LocalUser, payload)?;
         let (_slot, mut port) = self.reserve(request_id)?;
+        self.requests.reject_reused(request_id)?;
         let folder = folder_id(&input.folder_id)?;
         let file = file_id(&input.file_id)?;
         let source_key = self
@@ -375,6 +397,18 @@ impl LocalImport {
             .folders
             .source_key(folder, file)
             .map_err(folder_failure)?;
+        let attempt = match self
+            .requests
+            .start(request_id, MutationInput::Publish(input.clone()))?
+        {
+            ImportAttempt::New(attempt) => attempt,
+            ImportAttempt::Committed(ImportReceipt::Publication(revision_id)) => {
+                let result = workspace.replay_publication(revision_id).await;
+                port.check_live(folder)?;
+                return result;
+            }
+            ImportAttempt::Committed(_) => return Err(failure(ErrorCode::INTERNALERROR)),
+        };
         let reviewed = workspace
             .find(source_key.clone())
             .await?
@@ -412,7 +446,7 @@ impl LocalImport {
             return Err(error);
         }
         let frozen = port
-            .read_file(folder, file, FileRead::Publication(input.expected_sha256))
+            .read_file(folder, file, FileRead::Checked(input.expected_sha256))
             .await?;
         let original = frozen.content.as_deref().ok_or_else(|| {
             let mut error = failure(ErrorCode::RESOURCELIMIT);
@@ -434,19 +468,18 @@ impl LocalImport {
         )
         .await;
         port.check_live(folder)?;
-        let guard = MappingGuard {
-            cancel: Arc::clone(&port.cancel),
-            folders: Arc::clone(&self.folders),
-            folder,
-            source: Some((file, frozen.sha256.clone())),
-        };
+        let guard = port.commit_guard(folder, file, frozen.sha256.clone());
         workspace
-            .publish(source_key, frozen, reviewed, content?, guard)
+            .publish(source_key, frozen, reviewed, content?, guard, attempt)
             .await
     }
 
+    pub(super) fn reject_reused_request(&self, id: Option<&str>) -> Result<(), Error> {
+        self.requests.reject_reused(id)
+    }
+
     pub(super) fn cancel(&self, request_id: &str) {
-        if !valid_request_id(request_id) {
+        if !valid_request_id(request_id) || self.requests.committed(request_id) {
             return;
         }
         let mut state = self.state.lock().expect("preview state");
@@ -517,10 +550,20 @@ struct PreviewPort<'a> {
 
 enum FileRead {
     Preview(Option<String>),
-    Publication(String),
+    Checked(String),
 }
 
 impl PreviewPort<'_> {
+    fn commit_guard(&self, folder: FolderId, file: FileId, source_sha256: String) -> MappingGuard {
+        MappingGuard {
+            cancel: Arc::clone(&self.cancel),
+            folders: Arc::clone(&self.host.folders),
+            folder,
+            file,
+            source_sha256,
+        }
+    }
+
     fn check_live(&self, folder: FolderId) -> Result<(), Error> {
         if self.cancel.is_cancelled() {
             return Err(failure(ErrorCode::CANCELLED));
@@ -556,7 +599,7 @@ impl PreviewPort<'_> {
             FileRead::Preview(digest) => {
                 folders.read(folder, file, digest.as_deref(), &cancel.file)
             }
-            FileRead::Publication(digest) => {
+            FileRead::Checked(digest) => {
                 folders.read_for_publication(folder, file, &digest, &cancel.file)
             }
         });

@@ -1,7 +1,7 @@
 import { execFile, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
-import { chmod, mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { chmod, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -10,6 +10,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { expect, test } from '@playwright/test';
 import { control } from '../ui/workspace-controls.mjs';
+import { assertUnsuitableWindowsHandoffsRejected, assertWindowsPrivateHandoff } from './workspace_test_handoff_acl.mjs';
 
 const exec = promisify(execFile);
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -79,9 +80,7 @@ test('fresh browsers restore committed timeframe and eligible undo after service
         const undo = control(page, 'Undo timeframe change');
         await expect(undo).toBeEnabled();
         await undo.focus();
-        const response = page.waitForResponse(mutationResponse('workspace.undo'));
-        await page.keyboard.press('Enter');
-        const accepted = await response;
+        const accepted = await duringResponse(page, 'workspace.undo', () => page.keyboard.press('Enter'));
         expect(accepted.request().postDataJSON().intent.arguments).toEqual({ operation_id: observation[0].receipt });
         const inverse = (await accepted.json()).result.outcome;
         expect(inverse).toMatchObject({
@@ -136,9 +135,9 @@ test('private decision notes require consent and retain the dated original separ
         await notes.getByLabel('Choice').fill('Synthetic wait decision');
         await notes.getByRole('button', { name: 'Review decision note' }).click();
         await expect(notes.getByRole('heading', { name: 'Save this decision note locally?' })).toBeVisible();
-        const declined = page.waitForResponse(mutationResponse('decisionNote.save'));
-        await notes.getByRole('button', { name: 'Cancel action' }).click();
-        expect((await (await declined).json()).result.outcome).toMatchObject({ state: 'failed', error: { code: 'CANCELLED' } });
+        const declined = await duringResponse(page, 'decisionNote.save', () =>
+          notes.getByRole('button', { name: 'Cancel action' }).click());
+        expect((await declined.json()).result.outcome).toMatchObject({ state: 'failed', error: { code: 'CANCELLED' } });
         await expect(notes.getByText('No saved decision notes.')).toBeVisible();
         await expect(notes.getByLabel('Thesis')).toHaveCount(0);
 
@@ -159,9 +158,9 @@ test('private decision notes require consent and retain the dated original separ
         expect(committed).toMatchObject({ state: 'committed', receipt: { committed_workspace_revision: 2, undoable: false } });
         expect(committed).not.toHaveProperty('result');
         await lost.restore();
-        const replay = page.waitForResponse(mutationResponse('decisionNote.save'));
-        await notes.getByRole('button', { name: 'Retry confirmation' }).click();
-        expect((await (await replay).json()).result.outcome).toEqual(committed);
+        const replay = await duringResponse(page, 'decisionNote.save', () =>
+          notes.getByRole('button', { name: 'Retry confirmation' }).click());
+        expect((await replay.json()).result.outcome).toEqual(committed);
         await expect(notes.getByText(thesis)).toBeVisible();
         await expect(notes.getByText('No later outcomes.')).toBeVisible();
         await notes.getByRole('button', { name: 'Close decision notes' }).click();
@@ -350,9 +349,8 @@ test('decision-note backup restore previews known deletions and independent copi
       await inFreshBrowser(browser, server, async page => {
         await control(page, 'Decision notes').click();
         const notes = page.getByRole('dialog', { name: 'Decision notes' });
-        const rejected = page.waitForResponse(mutationResponse('decisionNote.previewRestore'));
-        await selectBackupFile(notes, untouched);
-        expect((await (await rejected).json()).result.outcome).toMatchObject({ state: 'failed', error: { code: 'PERMISSION_DENIED' } });
+        const rejected = await duringResponse(page, 'decisionNote.previewRestore', () => selectBackupFile(notes, untouched));
+        expect((await rejected.json()).result.outcome).toMatchObject({ state: 'failed', error: { code: 'PERMISSION_DENIED' } });
         await expect(notes.getByText('This backup or action is unavailable for the current local profile.')).toBeVisible();
         await expect(notes.getByRole('region', { name: 'Restore preview' })).toHaveCount(0);
         await expect(notes.getByText('No saved decision notes.')).toBeVisible();
@@ -385,10 +383,10 @@ test('decision-note draft keeps its text and date across peer timeframe changes'
         await outcomeDate.fill(date);
 
         await inFreshBrowser(browser, server, async peer => {
-          const reloaded = observer.waitForResponse(mutationResponse('decisionNote.read'), { timeout: 10_000 });
-          expect((await act(peer, '5m', 'chart.setTimeframe')).result.outcome.state).toBe('committed');
-          await observer.bringToFront();
-          await reloaded;
+          await duringResponse(observer, 'decisionNote.read', async () => {
+            expect((await act(peer, '5m', 'chart.setTimeframe')).result.outcome.state).toBe('committed');
+            await observer.bringToFront();
+          }, 10_000);
           await expect(outcome).toHaveValue(draft);
           await expect(outcomeDate).toHaveValue(date);
 
@@ -445,34 +443,39 @@ test('decision-note list removes peer deletions after focus and a rejected detai
         const secondRow = notes.getByRole('button', { name: new RegExp(second.date) });
         await expect(firstRow).toBeVisible();
         await expect(secondRow).toBeVisible();
-        await inFreshBrowser(browser, server, async peer => {
-          await control(peer, 'Decision notes').click();
-          const peerNotes = peer.getByRole('dialog', { name: 'Decision notes' });
-          await deleteBackupTestNote(peerNotes, first.date);
-          await observer.evaluate(() => window.dispatchEvent(new Event('focus')));
-          await expect(firstRow).toHaveCount(0);
-          await expect(secondRow).toBeVisible();
+        // Both contexts share SQLite, with a separate writer lane for each peer.
+        await inService(await freePort(), profile, 'ubuntu-workspace', async peerServer => {
+          await inFreshBrowser(browser, peerServer, async peer => {
+            expect(await writerPid(peerServer)).not.toBe(await writerPid(server));
+            await control(peer, 'Decision notes').click();
+            const peerNotes = peer.getByRole('dialog', { name: 'Decision notes' });
+            await deleteBackupTestNote(peerNotes, first.date);
+            await observer.evaluate(() => window.dispatchEvent(new Event('focus')));
+            await expect(firstRow).toHaveCount(0);
+            await expect(secondRow).toBeVisible();
 
-          const intercepted = Promise.withResolvers();
-          const resume = Promise.withResolvers();
-          await observer.route(server.url + endpoint, async route => {
-            const intent = route.request().postDataJSON()?.intent;
-            if (intent?.operation === 'decisionNote.read' && intent.arguments.note_id !== null) {
-              intercepted.resolve();
-              await resume.promise;
+            let intercepted = false;
+            const resume = Promise.withResolvers();
+            await observer.route(server.url + endpoint, async route => {
+              const intent = route.request().postDataJSON()?.intent;
+              if (intent?.operation === 'decisionNote.read' && intent.arguments.note_id !== null) {
+                intercepted = true;
+                await resume.promise;
+              }
+              await route.continue();
+            });
+            try {
+              await secondRow.click();
+              await expect.poll(() => intercepted, { message: 'The observer detail read was held before peer deletion.' }).toBe(true);
+              await deleteBackupTestNote(peerNotes, second.date);
+            } finally {
+              resume.resolve();
+              await observer.unrouteAll({ behavior: 'wait' });
             }
-            await route.continue();
+            await expect(notes.getByText('This decision note is unavailable.')).toBeVisible();
+            await expect(secondRow).toHaveCount(0);
+            await expect(notes.getByText('No saved decision notes.')).toBeVisible();
           });
-          await secondRow.click();
-          try {
-            await intercepted.promise;
-            await deleteBackupTestNote(peerNotes, second.date);
-          } finally {
-            resume.resolve();
-          }
-          await expect(notes.getByText('This decision note is unavailable.')).toBeVisible();
-          await expect(secondRow).toHaveCount(0);
-          await expect(notes.getByText('No saved decision notes.')).toBeVisible();
         });
       });
     });
@@ -489,49 +492,62 @@ test('the opted-in route binds identity, limits input, and drains cancellation w
       const writer = await writerPid(server);
       const baseline = await post(server, snapshot);
       expect(state(await baseline.json())).toEqual({ revision: 0, timeframe: '1m', undo: null });
-      const foreign = await post(server, snapshot, { Origin: 'http://localhost' });
-      expect(foreign.status).toBe(403);
-      const oversized = await post(server, { type: 'snapshot', padding: 'x'.repeat(16 * 1024) });
-      expect(oversized.status).toBe(413);
+      expect(await postStatus(server, snapshot, { Origin: 'http://localhost' })).toBe(403);
+      expect(await postStatus(server, { type: 'snapshot', padding: 'x'.repeat(16 * 1024) })).toBe(413);
       const forged = setTimeframe(0, '5m');
       Object.assign(forged.scope, { principal_id: 'forged', client_id: 'forged', profile_root: profile.root, grant: 'all' });
       expect(await (await post(server, forged)).json()).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } });
       forged.scope.workspace_id = 'other-workspace';
-      expect((await post(server, forged)).status).toBe(403);
-      const file = join(profile.root, 'workspace.sqlite3').replaceAll('\\', '/');
-      expect((await stat(file)).isFile()).toBe(true);
-      const sqlite = await fetch(server.url + '/@fs/' + file.replace(/^\//, ''));
-      expect([403, 404]).toContain(sqlite.status);
+      expect(await postStatus(server, forged)).toBe(403);
+      const fallback = await head(server, '/synthetic-missing-page');
+      expect(fallback.status).toBe(200);
+      expect(fallback.contentType).toMatch(/^text\/html\b/);
+      const sqlite = join(profile.root, 'workspace.sqlite3');
+      expect((await stat(sqlite)).isFile()).toBe(true);
+      await assertPrivateResource(server, rawFileRoute(sqlite));
+      for (const suffix of ['', '-wal', '-shm', '-journal']) {
+        await assertPrivateResource(server, '/workspace.sqlite3' + suffix);
+      }
+      const marker = join(profile.root, 'synthetic fixture.txt');
+      await writeFile(marker, 'Synthetic file in the bound profile.', { flag: 'wx', mode: 0o600 });
+      await assertPrivateResource(server, rawFileRoute(marker));
 
       await writerPid(server, 'suspend', writer);
       const abort = new AbortController();
-      const cancelled = post(server, setTimeframe(0, '5m'), {}, abort.signal).catch(error => error);
+      const cancelled = post(server, setTimeframe(0, '5m'), {}, abort.signal).then(responseStatus).catch(error => error);
       try {
-        await expect.poll(async () => (await post(server, admissionProbe)).status).toBe(429);
+        await expect.poll(() => postStatus(server, admissionProbe)).toBe(429);
         abort.abort();
         expect((await cancelled).name).toBe('AbortError');
         // The browser stopped waiting. The admitted line still owns the producer slot.
-        expect((await post(server, admissionProbe)).status).toBe(429);
+        expect(await postStatus(server, admissionProbe)).toBe(429);
       } finally {
+        abort.abort();
         if (alive(writer)) await writerPid(server, 'resume', writer);
       }
       await expect.poll(async () => {
         const reply = await post(server, snapshot);
-        return reply.ok ? state(await reply.json())?.revision : undefined;
+        if (reply.ok) return state(await reply.json())?.revision;
+        await responseStatus(reply);
+        return undefined;
       }).toBe(1);
       expect(await writerPid(server)).toBe(writer);
 
       await writerPid(server, 'suspend', writer);
-      const inFlight = post(server, setTimeframe(1, '1d'));
-      try {
-        await expect.poll(async () => (await post(server, admissionProbe)).status).toBe(429);
-      } finally {
-        if (alive(writer)) await writerPid(server, 'kill', writer);
-      }
-      const disconnected = await inFlight;
+      const inFlight = post(server, setTimeframe(1, '1d')).then(async reply => ({ status: reply.status, body: await reply.json() }));
+      const [reply, interruption] = await Promise.allSettled([inFlight, (async () => {
+        try {
+          await expect.poll(() => postStatus(server, admissionProbe)).toBe(429);
+        } finally {
+          if (alive(writer)) await writerPid(server, 'kill', writer);
+        }
+      })()]);
+      if (interruption.status === 'rejected') throw interruption.reason;
+      if (reply.status === 'rejected') throw reply.reason;
+      const disconnected = reply.value;
       expect(disconnected.status).toBe(503);
-      expect(await disconnected.json()).toMatchObject({ ok: false, error: { code: 'WORKER_EXITED' } });
-      expect((await post(server, snapshot)).status).toBe(503);
+      expect(disconnected.body).toMatchObject({ ok: false, error: { code: 'WORKER_EXITED' } });
+      expect(await postStatus(server, snapshot)).toBe(503);
     });
     await inService(port, profile, 'ubuntu-workspace', async server => {
       const restored = state(await (await post(server, snapshot)).json());
@@ -552,14 +568,16 @@ test('the private launcher handoff is required and a previous launch cannot auth
       previous = server.capability;
       handoff = server.handoff;
       await assertPrivateHandoff(handoff);
+      if (process.platform === 'win32') await assertUnsuitableWindowsHandoffsRejected(profile.root);
 
       for (const request of [snapshot, setTimeframe(0, '5m')]) {
         const denied = await post({ url: server.url }, request);
         expect(denied.status).toBe(403);
         expect(await denied.json()).toEqual({ ok: false, error: { code: 'PERMISSION_DENIED', retryable: false } });
       }
-      const visible = await fetch(server.url + '/workspace-access-' + port + '.html');
-      expect(!(await visible.text()).includes(previous)).toBe(true);
+      await assertPrivateResource(server, '/workspace-access-' + port + '.html');
+      await assertPrivateResource(server, rawFileRoute(handoff));
+      await assertPrivateResource(server, '/.workspace-access-' + port + '.html-' + randomUUID());
       const allowed = await post(server, snapshot);
       const payload = await allowed.text();
       expect(!payload.includes(previous)).toBe(true);
@@ -569,8 +587,7 @@ test('the private launcher handoff is required and a previous launch cannot auth
 
     await inService(port, profile, 'ubuntu-workspace', async server => {
       expect(server.capability !== previous).toBe(true);
-      const expired = await post(server, snapshot, { Authorization: 'Bearer ' + previous });
-      expect(expired.status).toBe(403);
+      expect(await postStatus(server, snapshot, { Authorization: 'Bearer ' + previous })).toBe(403);
 
       const anonymous = await browser.newContext();
       try {
@@ -597,7 +614,7 @@ test('the private launcher handoff is required and a previous launch cannot auth
       await inService(port, profile, 'ubuntu-workspace', async server => {
         await expect.poll(server.handoffRejected).toBe(true);
         await expect(stat(server.handoff)).rejects.toMatchObject({ code: 'ENOENT' });
-        expect((await post(server, snapshot)).status).toBe(403);
+        expect(await postStatus(server, snapshot)).toBe(403);
       }, { expectHandoff: false });
     }
   } finally {
@@ -627,7 +644,7 @@ test('terminal SIGINT and SIGTERM remove the handoff and reap the writer before 
       nextWriter = await writerPid(server);
       expect(nextWriter).not.toBe(previousWriter);
       expect(server.capability !== previousCapability).toBe(true);
-      expect((await post(server, snapshot, { Authorization: 'Bearer ' + previousCapability })).status).toBe(403);
+      expect(await postStatus(server, snapshot, { Authorization: 'Bearer ' + previousCapability })).toBe(403);
       expect(state(await (await post(server, snapshot)).json())).toEqual({ revision: 0, timeframe: '1m', undo: null });
     }, { terminalSignal: 'SIGTERM' });
     await expect(stat(handoff)).rejects.toMatchObject({ code: 'ENOENT' });
@@ -643,8 +660,7 @@ test('two live writers read current undo and a stale browser reload recovers fro
     await inService(await freePort(), profile, 'ubuntu-workspace', async first => {
       await inService(await freePort(), profile, 'ubuntu-workspace', async second => {
         expect(await writerPid(first)).not.toBe(await writerPid(second));
-        const crossLaunch = await post(second, snapshot, { Authorization: 'Bearer ' + first.capability });
-        expect(crossLaunch.status).toBe(403);
+        expect(await postStatus(second, snapshot, { Authorization: 'Bearer ' + first.capability })).toBe(403);
         await inFreshBrowser(browser, first, async (page, initial) => {
           expect(state(initial)).toEqual({ revision: 0, timeframe: '1m', undo: null });
           const changed = (await (await post(second, setTimeframe(0, '5m'))).json()).result.outcome;
@@ -658,9 +674,7 @@ test('two live writers read current undo and a stale browser reload recovers fro
           await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
           await control(page, 'Reload workspace state').click();
           await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
-          const undo = page.waitForResponse(mutationResponse('workspace.undo'));
-          await control(page, 'Undo timeframe change').click();
-          const accepted = await undo;
+          const accepted = await duringResponse(page, 'workspace.undo', () => control(page, 'Undo timeframe change').click());
           expect(accepted.request().postDataJSON().intent.arguments).toEqual({ operation_id: target.operation_id });
           expect((await accepted.json()).result.outcome).toMatchObject({
             state: 'committed', result: { revision: 2, timeframe: '1m' },
@@ -701,7 +715,7 @@ test('ordinary and Ubuntu history startup do not open a writer or dispatch data 
           expect(denied.status).toBe(403);
           expect(await denied.json()).toMatchObject({ ok: false, error: { code: 'PERMISSION_DENIED' } });
         }
-        expect((await post(server, setTimeframe(0, '5m'))).status).toBe(404);
+        expect(await postStatus(server, setTimeframe(0, '5m'))).toBe(404);
         await expect(stat(join(profile.root, 'workspace.sqlite3'))).rejects.toMatchObject({ code: 'ENOENT' });
       });
     }
@@ -724,50 +738,41 @@ async function makeProfile(id = 'synthetic-' + randomUUID()) {
 }
 
 async function assertPrivateHandoff(handoff) {
-  if (process.platform !== 'win32') {
-    const metadata = await stat(handoff);
-    expect(metadata.mode & 0o777).toBe(0o600);
-    expect(metadata.uid).toBe(process.getuid());
+  if (process.platform === 'win32') {
+    await assertWindowsPrivateHandoff(handoff);
     return;
   }
-  // Verify the resulting file's inherited ACL on Windows without reading or
-  // printing its contents or revealing any local identity in the test log.
-  const check = `
-    $ErrorActionPreference = 'Stop'
-    try {
-      function Read-Descriptor($path) {
-        $acl = Get-Acl -LiteralPath $path
-        return [Security.AccessControl.RawSecurityDescriptor]::new($acl.GetSecurityDescriptorBinaryForm(), 0)
-      }
-      $path = $env:SCOPEHUB_TEST_HANDOFF
-      if ([IO.File]::GetAttributes($path) -band [IO.FileAttributes]'Directory, ReparsePoint') { exit 1 }
-      $user = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-      $allowed = @($user, 'S-1-5-18', 'S-1-5-32-544')
-      $directory = Read-Descriptor ([IO.Path]::GetDirectoryName($path))
-      if ($directory.Owner.Value -ne $user) { exit 1 }
-      $descriptor = Read-Descriptor $path
-      if ($null -eq $descriptor.DiscretionaryAcl -or $descriptor.Owner.Value -notin $allowed) { exit 1 }
-      $required = [int][Security.AccessControl.FileSystemRights]'Read, Write, Delete'
-      $userInherited = $false
-      foreach ($ace in $descriptor.DiscretionaryAcl) {
-        if ($ace -isnot [Security.AccessControl.CommonAce] -or $ace.IsCallback) { exit 1 }
-        if ($ace.AceQualifier -ne [Security.AccessControl.AceQualifier]::AccessAllowed) { continue }
-        if ($ace.SecurityIdentifier.Value -notin $allowed) { exit 1 }
-        if ($ace.SecurityIdentifier.Value -eq $user -and $ace.IsInherited -and
-            !($ace.AceFlags -band [Security.AccessControl.AceFlags]::InheritOnly) -and
-            ($ace.AccessMask -band $required) -eq $required) { $userInherited = $true }
-      }
-      if (!$userInherited) { exit 1 }
-      $stream = [IO.File]::Open($path, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite)
-      $stream.Dispose()
-      exit 0
-    } catch { exit 1 }
-  `;
-  const powershell = join(process.env.SystemRoot, 'System32/WindowsPowerShell/v1.0/powershell.exe');
-  await exec(powershell, ['-NoProfile', '-NonInteractive', '-NoLogo', '-Command', check], {
-    timeout: 10_000, windowsHide: true, env: { ...process.env, SCOPEHUB_TEST_HANDOFF: handoff },
-  });
+  const metadata = await stat(handoff);
+  expect(metadata.mode & 0o777).toBe(0o600);
+  expect(metadata.uid).toBe(process.getuid());
 }
+
+test('a failed initial document releases its workspace snapshot observer before closing the context', async ({ browser }) => {
+  const context = await browser.newContext();
+  try {
+    const page = await context.newPage();
+    const url = `http://127.0.0.1:${await freePort()}/`;
+    let navigations = 0;
+    await page.route(url, route => {
+      navigations += 1;
+      return route.abort('failed');
+    });
+    const events = ['response', 'close', 'crash'];
+    const before = events.map(event => page.listenerCount(event));
+    await expect(openWorkspaceSnapshot(page, url)).rejects.toThrow(/page\.goto: net::ERR_FAILED/);
+    expect(events.map(event => page.listenerCount(event))).toEqual(before);
+    expect(navigations).toBe(1);
+  } finally {
+    await context.close();
+  }
+});
+
+test('a status-only probe cancels its unread response body', async () => {
+  let cancelled = false;
+  const body = new ReadableStream({ cancel() { cancelled = true; } });
+  expect(await responseStatus(new Response(body, { status: 429 }))).toBe(429);
+  expect(cancelled).toBe(true);
+});
 
 async function freePort() {
   const server = createServer();
@@ -861,6 +866,30 @@ function alive(pid) {
   }
 }
 
+function rawFileRoute(path) {
+  return '/@fs/' + pathToFileURL(path).pathname.replace(/^\//, '');
+}
+
+async function head(server, resource) {
+  const response = await fetch(server.url + resource, {
+    method: 'HEAD', headers: { Accept: 'text/html' }, redirect: 'error', signal: AbortSignal.timeout(5_000),
+  });
+  return {
+    status: response.status,
+    contentType: response.headers.get('content-type'),
+    contentLength: response.headers.get('content-length'),
+    cacheControl: response.headers.get('cache-control'),
+    etag: response.headers.get('etag'),
+    lastModified: response.headers.get('last-modified'),
+  };
+}
+
+async function assertPrivateResource(server, resource) {
+  expect(await head(server, resource)).toEqual({
+    status: 404, contentType: null, contentLength: '0', cacheControl: 'no-store', etag: null, lastModified: null,
+  });
+}
+
 function post(server, body, headers = {}, signal = AbortSignal.timeout(10_000)) {
   return fetch(server.url + endpoint, {
     method: 'POST', headers: {
@@ -869,6 +898,15 @@ function post(server, body, headers = {}, signal = AbortSignal.timeout(10_000)) 
     },
     body: JSON.stringify(body), signal,
   });
+}
+
+async function responseStatus(response) {
+  await response.body?.cancel();
+  return response.status;
+}
+
+async function postStatus(server, body, headers) {
+  return responseStatus(await post(server, body, headers));
 }
 
 function state(frame) {
@@ -900,14 +938,7 @@ async function inFreshBrowser(browser, server, use) {
     const requests = observeOperations(page);
     let capabilityInRequestUrl = false;
     page.on('request', request => { capabilityInRequestUrl ||= request.url().includes(server.capability); });
-    const initial = page.waitForResponse(response =>
-      new URL(response.url()).pathname === endpoint && response.request().postDataJSON()?.type === 'snapshot');
-    await page.goto(server.url);
-    await expect(control(page, 'Open offline sample')).toBeVisible();
-    await expect(page.getByText('No data source')).toBeVisible();
-    expect(await page.evaluate(() => window.location.hash === '')).toBe(true);
-    expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
-    await use(page, await (await initial).json());
+    await use(page, await openWorkspaceSnapshot(page, server.url));
     expect(requests.every(path => path === endpoint)).toBe(true);
     expect(capabilityInRequestUrl).toBe(false);
   } finally {
@@ -915,9 +946,51 @@ async function inFreshBrowser(browser, server, use) {
   }
 }
 
-function mutationResponse(operation) {
-  return response => new URL(response.url()).pathname === endpoint
-    && response.request().postDataJSON()?.intent?.operation === operation;
+async function openWorkspaceSnapshot(page, url) {
+  const response = await duringPageEvent(page, 'response', response =>
+    new URL(response.url()).pathname === endpoint && response.request().postDataJSON()?.type === 'snapshot', async () => {
+    await page.goto(url);
+    await expect(control(page, 'Open offline sample')).toBeVisible();
+    await expect(page.getByText('No data source')).toBeVisible();
+    expect(await page.evaluate(() => window.location.hash === '')).toBe(true);
+    expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
+  });
+  return response.json();
+}
+
+function duringResponse(page, operation, action, timeout) {
+  return duringPageEvent(page, 'response', response => new URL(response.url()).pathname === endpoint
+    && response.request().postDataJSON()?.intent?.operation === operation, action, timeout);
+}
+
+async function duringPageEvent(page, event, matches, action, timeout) {
+  // A navigation or action can fail before the expected event is possible.
+  // Record event errors without rejecting a detached promise, and preserve the action error.
+  const { promise, resolve } = Promise.withResolvers();
+  const onEvent = value => {
+    try {
+      if (matches(value)) resolve({ value });
+    } catch (error) {
+      resolve({ error });
+    }
+  };
+  const onClose = () => resolve({ error: new Error(`Page closed before the expected ${event}.`) });
+  const onCrash = () => resolve({ error: new Error(`Page crashed before the expected ${event}.`) });
+  page.on(event, onEvent);
+  page.on('close', onClose);
+  page.on('crash', onCrash);
+  const timer = timeout && setTimeout(() => resolve({ error: new Error(`Timed out waiting for ${event}.`) }), timeout);
+  try {
+    await action();
+    const result = await promise;
+    if ('error' in result) throw result.error;
+    return result.value;
+  } finally {
+    clearTimeout(timer);
+    page.off(event, onEvent);
+    page.off('close', onClose);
+    page.off('crash', onCrash);
+  }
 }
 
 async function saveBackupTestNote(notes, fixture) {
@@ -958,9 +1031,8 @@ async function assertBackupTestNote(notes, fixture) {
 }
 
 async function downloadBackupFile(page, notes) {
-  const download = page.waitForEvent('download');
-  await notes.getByRole('button', { name: 'Download backup' }).click();
-  const file = await download;
+  const file = await duringPageEvent(page, 'download', () => true, () =>
+    notes.getByRole('button', { name: 'Download backup' }).click());
   expect(file.suggestedFilename()).toMatch(/^scopehub-decision-notes-.*\.json$/);
   return readFile(await file.path());
 }
@@ -987,19 +1059,23 @@ async function dropApprovalReply(page, server, operation) {
       await route.continue();
       return;
     }
-    const response = await route.fetch();
-    outcome = (await response.json()).result.outcome;
-    await response.dispose();
-    await route.abort();
+    try {
+      const response = await route.fetch();
+      try {
+        outcome = (await response.json()).result.outcome;
+      } finally {
+        await response.dispose();
+      }
+    } finally {
+      await route.abort();
+    }
   };
   await page.route(endpointUrl, handle);
   return { outcome: () => outcome, restore: () => page.unroute(endpointUrl, handle) };
 }
 
 async function act(page, name, operation) {
-  const operationResponse = page.waitForResponse(mutationResponse(operation));
-  await control(page, name).click();
-  const accepted = await operationResponse;
+  const accepted = await duringResponse(page, operation, () => control(page, name).click());
   const json = await accepted.json();
   expect(json.result.request_id).toBe(accepted.request().postDataJSON().request_id);
   return json;

@@ -44,9 +44,10 @@ export async function openDefaultSample(page, { trigger = () => page.goto('/#dem
       && attempt.path === operation && attempt.finished !== undefined && attempt.response && attempt.response.status() !== 429);
     await expect.poll(() => Boolean(completed()), { ...replayStage, message: `Waiting for ${name} during sample startup` }).toBe(true);
     const { response } = completed();
-    expect(response.status(), name).toBe(200);
     const body = await response.json();
-    expect(body.ok, name).toBe(true);
+    const outcome = `${name} returned HTTP ${response.status()}${body.error?.code ? ` (${body.error.code})` : ''}`;
+    expect(response.status(), outcome).toBe(200);
+    expect(body.ok, outcome).toBe(true);
     return body.result;
   };
 
