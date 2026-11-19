@@ -5727,9 +5727,17 @@
         {
           "path": "project/evidence/M2-007-33dd2c3a64efc9df.json",
           "sha256": "502dee88879d90abda796484fbd9528af72e0d13c4bdb9057768bf4436ca11ca"
+        },
+        {
+          "path": "project/evidence/M2-007-6ef007cee190bd75.json",
+          "sha256": "a6883b5cfd3fe49824b9a1f07ea0c46dc375d67abb8c4793a9be1169dc3aa76b"
+        },
+        {
+          "path": "project/evidence/M2-007-7573ba68c670fea4.json",
+          "sha256": "8e5a3c10e0336672df587c439910ac47894e75c3a71dfc123f4f0f2f7ffd6adf"
         }
       ],
-      "next_action": "Verify the native ACL correction using ordinary Windows AppLocalData and an abbreviated TEMP path, preserve rejection of shared roots and sidecars, then run the complete workspace checks on Ubuntu and Windows.",
+      "next_action": "Recheck the workspace launcher on hosted Windows, including profile file denial and effective handoff permissions. The native Windows 11 guest has passed private storage, restart, replay and undo. Verify inherited chart startup separately and retain the matching task evidence.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -5823,6 +5831,59 @@
           ],
           "data_plan": "Only temporary synthetic profiles are used for the browser checks. They are removed after their owned processes exit.",
           "cleanup": "Keep the process probe test-only. Stage named browser results and retain private working databases locally."
+        }
+      }
+    },
+    {
+      "id": "M1-020",
+      "title": "Verify serial catalog and history startup in chart previews",
+      "milestone": "M1",
+      "status": "active",
+      "depends_on": ["M1-001"],
+      "scope": [
+        "tests/ubuntu-preview/market-workflow.spec.mjs",
+        "tests/ubuntu-preview/preview.spec.mjs",
+        "tests/ubuntu-preview/playwright.config.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": ["0004", "0007"],
+      "acceptance": [
+        "Default sample startup verifies the exact real catalog and history requests and their separate successful replies before checking chart readiness in both browser suites.",
+        "Holding each real reply independently reproduces a startup beyond the old five-second aggregate wait. Exact chart, replay, offline retry, and typed worker-error assertions still apply."
+      ],
+      "checks": ["market-workflow", "ubuntu-preview", "project-state", "python-contracts-workers"],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-020-d05ddb38f6fbe253.json",
+          "sha256": "2c3bfc81be3f5e290bacfa225d559024c41b0de1fb06ba944c2d71a30a44ba67"
+        }
+      ],
+      "next_action": "Both affected checks passed on Linux. Run market-workflow and ubuntu-preview on the integrated hosted Windows head, then attach Windows evidence and close the startup feedback.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Separate catalog and history verification from chart paint in the inherited M1-001 browser paths.",
+        "change_types": ["tooling"],
+        "context": ["tests/ui/sample-startup.mjs", "apps/desktop/ui/ubuntu-preview.mjs"],
+        "hypotheses": ["The two serial worker reads can legitimately outlast the former five-second render wait, including after Retry demo."],
+        "risks": [
+          { "failure": "An unsuccessful worker reply, incorrect series, or missing chart passes as slow startup.", "checks": ["market-workflow", "ubuntu-preview"] }
+        ],
+        "rollback": "Retain hosted run 44531620190 and the held-response regression before reopening any failing phase.",
+        "implementation": {
+          "modules": ["development-tooling"],
+          "entrypoints": ["tests/ui/sample-startup.mjs", "tests/ubuntu-preview/preview.spec.mjs", "tests/ubuntu-preview/market-workflow.spec.mjs"],
+          "rules": [{ "path": "project/delivery.json", "pointer": "/scaffold_maintenance" }],
+          "non_goals": ["Worker deadlines, application retry rules, fixtures, and packaged Windows acceptance."],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": ["Explicit synthetic opt-in, replay and chart values, and offline recovery behavior."],
+          "change": ["Use the shared default startup verifier and cover two independently held real replies and a typed worker failure."],
+          "data_plan": "Use only committed synthetic fixtures through the local bridge.",
+          "cleanup": "Keep timeout allowances in browser verification and leave product deadlines intact."
         }
       }
     }
