@@ -181,8 +181,11 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
                 || access.paired_client_id.is_some()
                 || !permits_scope(access, self.port.binding())
                 || request["scope"]["workspace_id"] != access.workspace_id
-                || !access.disclose_workspace_state
             {
+                return Err(failure(ErrorCode::PERMISSIONDENIED));
+            }
+            self.note_restore.observe_local_access(access);
+            if !access.disclose_workspace_state {
                 return Err(failure(ErrorCode::PERMISSIONDENIED));
             }
             match op.name.as_str() {
@@ -216,6 +219,10 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             serde_json::from_value(request).map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
         let args = request.intent.arguments;
         let note_id = args.note_id.as_deref().map(canonical_id).transpose()?;
+        if self.note_restore.is_pending() {
+            let (state, _) = self.port.snapshot(None)?;
+            self.note_restore.observe(state.revision);
+        }
         let result = self.port.read_notes(note_id.as_deref(), args.offset)?;
         reply.validated(json!({
             "state": "completed", "operation": DECISION_NOTE_READ, "result": result,
@@ -287,6 +294,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             }
 
             let state = tx.state()?;
+            self.note_restore.observe(state.revision);
             if state.revision != scope.expected_workspace_revision {
                 return Err(failure(ErrorCode::STALECONTEXT));
             }
@@ -300,6 +308,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             };
             let mutation = arguments.mutation(tx, &receipt)?;
             if confirmation.is_none() {
+                tx.check_note_capacity(&receipt.note_id, &mutation)?;
                 let pending = PendingDecisionNoteConfirmation {
                     id: Uuid::new_v4(),
                     principal_id: key.principal_id.into(),
@@ -328,7 +337,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         })?;
         if matches!(&write, WriteResult::Committed(_)) {
             self.note_confirmation = None;
-            self.note_restore = None;
+            self.note_restore.clear();
         }
         match write {
             WriteResult::Preview(pending, value) => {

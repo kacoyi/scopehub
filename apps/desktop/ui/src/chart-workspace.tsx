@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { ChartCursorMode, ChartStyle, HistoryChartHandle } from './chart-adapter/history';
+import { DecisionNotes } from './decision-notes';
 import { instrumentName, symbol } from './instrument-display';
 import { isClosedBarGapRevision, sampleRevisionInstrument, type ChartHistory, type Instrument, type SampleRevision } from './market';
 import { ReplayGapDetails, replayGapReason } from './market-quality';
 import { PriceChart } from './price-chart';
 import { narrowScreen, readSampleView, saveSampleView } from './sample-view';
 import { SymbolSearch } from './symbol-search';
+import type { LocalWorkspace } from './use-local-workspace';
 import { useHistory, useSampleCatalog } from './use-market-data';
 import { useSampleReplay } from './use-sample-replay';
 import { WorkspaceIcon, type WorkspaceIconName } from './workspace-icons';
@@ -49,12 +51,16 @@ function HistoryStatus({ history, repaired }: { history: ChartHistory; repaired:
   return history.bars.length ? <span className="history-status" role="status">History ready</span> : null;
 }
 
-export function ChartWorkspace({ sample, leaveSample, localActions }: {
+export function ChartWorkspace({ sample, leaveSample, localActions, workspace }: {
   sample: boolean; leaveSample: () => void; localActions: LocalSourceActions | undefined;
+  workspace: LocalWorkspace | undefined;
 }) {
   const [saved] = useState(() => sample ? readSampleView() : undefined);
   const [chosenId, setChosenId] = useState(saved?.symbol ?? '');
-  const [timeframe, setTimeframe] = useState(saved?.timeframe ?? '1m');
+  const [sampleTimeframe, setSampleTimeframe] = useState(saved?.timeframe ?? '1m');
+  const timeframe = workspace ? workspace.snapshot?.workspace.timeframe ?? '' : sampleTimeframe;
+  const workspaceBusy = Boolean(workspace?.pending);
+  const timeframeBlocked = Boolean(workspace && (!workspace.snapshot || workspaceBusy || workspace.error));
   const [revision, setRevision] = useState<SampleRevision>(saved?.sampleRevision ?? 'normal');
   const [date, setDate] = useState(saved?.sampleDate ?? '');
   const [style, setStyle] = useState<ChartStyle>(saved?.style ?? 'candlestick');
@@ -65,6 +71,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions }: {
   });
   const [focusChart, setFocusChart] = useState(saved?.chartOnly ?? false);
   const [searchQuery, setSearchQuery] = useState<string | null>(null);
+  const [notesOpen, setNotesOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
   const chart = useRef<HistoryChartHandle | null>(null);
   const dock = useRef<HTMLElement>(null);
@@ -76,7 +83,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions }: {
   }), [selected]);
   const sampleRevision = selected?.id === sampleRevisionInstrument && (timeframe === '1m' || !isClosedBarGapRevision(revision))
     ? revision : 'normal';
-  const { result, retryHistory } = useHistory(selected, timeframe, sampleRevision, date);
+  const { result, retryHistory } = useHistory(timeframe ? selected : undefined, timeframe, sampleRevision, date);
   const history = result.state === 'ready' ? result.value : undefined;
   const failure = catalog.state === 'error' ? catalog.failure : result.state === 'error' ? result.failure : undefined;
   const { replay, start, stop } = useSampleReplay(history);
@@ -96,10 +103,10 @@ export function ChartWorkspace({ sample, leaveSample, localActions }: {
   const savedRevision = selected ? sampleRevision : revision;
   useEffect(() => {
     if (sample) saveSampleView({
-      symbol: savedSymbol, timeframe, style, cursor, panel, chartOnly: focusChart,
+      symbol: savedSymbol, timeframe: sampleTimeframe, style, cursor, panel, chartOnly: focusChart,
       sampleRevision: savedRevision, sampleDate: date, narrow: window.matchMedia(narrowScreen).matches,
     });
-  }, [sample, savedSymbol, timeframe, style, cursor, panel, focusChart, savedRevision, date]);
+  }, [sample, savedSymbol, sampleTimeframe, style, cursor, panel, focusChart, savedRevision, date]);
 
   const searchWasOpen = useRef(false);
   useEffect(() => {
@@ -118,9 +125,12 @@ export function ChartWorkspace({ sample, leaveSample, localActions }: {
     if (window.matchMedia(narrowScreen).matches) closePanel();
   };
   const chooseTimeframe = (value: string) => {
-    setTimeframe(value);
-    if (value !== '1m' && isClosedBarGapRevision(revision)) setRevision('normal');
+    if (workspace) workspace.chooseTimeframe(value);
+    else setSampleTimeframe(value);
   };
+  useEffect(() => {
+    if (timeframe && timeframe !== '1m' && isClosedBarGapRevision(revision)) setRevision('normal');
+  }, [timeframe, revision]);
   useEffect(() => {
     const media = window.matchMedia(narrowScreen);
     const changed = () => { if (media.matches) setPanel(null); };
@@ -129,7 +139,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions }: {
   }, []);
   useEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.isComposing || searchQuery !== null) return;
+      if (event.defaultPrevented || event.isComposing || searchQuery !== null || notesOpen) return;
       if (event.key === 'Escape') {
         if (focusChart) setFocusChart(false);
         else if (visiblePanel) closePanel();
@@ -144,7 +154,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions }: {
     };
     window.addEventListener('keydown', keyboard);
     return () => window.removeEventListener('keydown', keyboard);
-  }, [searchQuery, focusChart, visiblePanel, closePanel]);
+  }, [searchQuery, notesOpen, focusChart, visiblePanel, closePanel]);
   const openSample = () => { window.location.hash = 'demo'; };
 
   let plot: ReactNode;
@@ -175,12 +185,19 @@ export function ChartWorkspace({ sample, leaveSample, localActions }: {
       <div className="toolbar-group symbol-group"><button type="button" ref={trigger} className="symbol-trigger" aria-label="Search symbols"
         aria-haspopup="dialog" title="Search symbols (/)" onClick={() => setSearchQuery('')}>
         <WorkspaceIcon name="search" /><strong>{selected ? symbol(selected) : 'Symbol search'}</strong><WorkspaceIcon name="chevron" /></button></div>
-      <div className="toolbar-group periods" role="group" aria-label="Timeframe">{['1m', '5m', '1d'].map(value =>
-        <button type="button" key={value} className="period" aria-pressed={timeframe === value} onClick={() => chooseTimeframe(value)}>{value}</button>)}</div>
+      <div className="toolbar-group periods" role="group" aria-label="Timeframe" aria-busy={workspaceBusy || undefined}>
+        {['1m', '5m', '1d'].map(value => <button type="button" key={value} className="period"
+          aria-pressed={timeframe === value} disabled={timeframeBlocked}
+          onClick={() => chooseTimeframe(value)}>{value}</button>)}
+        {workspace && <button type="button" className="period" aria-label="Undo timeframe change"
+          disabled={timeframeBlocked || !workspace.snapshot?.undo} onClick={workspace.undoTimeframe}>Undo</button>}
+      </div>
       <div className="toolbar-group chart-styles" role="group" aria-label="Chart style">
         <Tool name="Candles" icon="candles" active={style === 'candlestick'} onClick={() => setStyle('candlestick')} />
         <Tool name="Close-price line" icon="line" active={style === 'line'} onClick={() => setStyle('line')} />
       </div>
+      {workspace && <div className="toolbar-group"><button type="button" className="period notes-trigger"
+        aria-haspopup="dialog" disabled={timeframeBlocked} onClick={() => setNotesOpen(true)}>Decision notes</button></div>}
       <span className={'connection' + (sample ? ' sample' : '')} role="status"><i aria-hidden="true" />{sample ? <><span>Offline sample</span><b>Simulated</b></> : 'No data source'}</span>
       <Tool name={focusChart ? 'Exit chart-only view' : 'Chart-only view'} icon={focusChart ? 'collapse' : 'expand'} active={focusChart} onClick={() => setFocusChart(!focusChart)} />
     </header>
@@ -196,6 +213,9 @@ export function ChartWorkspace({ sample, leaveSample, localActions }: {
       <section className="plot-workspace" aria-label="Price chart">
         {plot}
         <footer className="chart-footer"><span>{sample ? (date ? date + ' UTC' : 'Jan 2024') : 'ScopeHub'}</span>
+          {workspace?.pending && <span role="status">{workspace.pending === 'open' ? 'Loading local workspace…' : 'Saving timeframe…'}</span>}
+          {workspace?.error && <><span role="alert" className="workspace-error">{workspace.error}</span>
+            <button type="button" className="secondary-button" onClick={workspace.reload}>Reload workspace state</button></>}
           {selected && <span>{selected.timezone}</span>}
           {history && <HistoryStatus history={history} repaired={Boolean(repairedBars)} />}
           {canReplay && <button type="button" className="secondary-button replay-button" onClick={playing ? stop : start}>
@@ -223,5 +243,6 @@ export function ChartWorkspace({ sample, leaveSample, localActions }: {
     </div>
     {searchQuery !== null && <SymbolSearch instruments={instruments} initialQuery={searchQuery} sample={sample}
       onChoose={choose} onClose={closeSearch} openSample={openSample} />}
+    {notesOpen && workspace?.snapshot && <DecisionNotes workspace={workspace} onClose={() => setNotesOpen(false)} />}
   </main>;
 }

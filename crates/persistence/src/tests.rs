@@ -758,7 +758,9 @@ mod decision_note_storage {
         };
         backup.notes.push(retained.clone());
         let plan = live.transact(|tx| tx.plan_note_restore(backup)).unwrap();
-        assert_eq!(plan.notes, vec![retained.clone()]);
+        assert_eq!(plan.originals, vec![retained.original.clone()]);
+        assert_eq!(plan.outcomes[0].note_id, retained.original.note_id);
+        assert_eq!(plan.outcomes[0].outcomes, retained.outcomes);
         assert_eq!(
             (
                 plan.summary.added_notes,
@@ -887,7 +889,12 @@ mod decision_note_storage {
         assert_eq!(plan.summary.added_notes, 0);
         assert!(!plan.summary.independent_copy_warning);
         assert_eq!(plan.summary.added_outcomes, 1);
-        assert_eq!(plan.notes[0].outcomes, vec![additional]);
+        assert!(
+            plan.originals.is_empty(),
+            "an outcome-only stage keeps no copy of the original"
+        );
+        assert_eq!(plan.outcomes[0].note_id, NOTE_ID);
+        assert_eq!(plan.outcomes[0].outcomes, vec![additional]);
         let live_note = live.read_notes(Some(NOTE_ID), 0).unwrap();
         assert_eq!(live_note.note.unwrap().thesis, THESIS);
         assert_eq!(live_note.outcomes[0].outcome, OUTCOME);

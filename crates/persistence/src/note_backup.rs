@@ -2,8 +2,11 @@ use std::collections::HashSet;
 
 use rusqlite::{Connection, OptionalExtension, params};
 use scopehub_application::{
-    DECISION_NOTE_BACKUP_MAX_BYTES, DecisionNoteBackupData, DecisionNoteRestorePlan,
-    WorkspaceBinding, failure,
+    DECISION_NOTE_BACKUP_MAX_BYTES, DECISION_NOTE_BACKUP_MAX_DELETIONS as MAX_BACKUP_DELETIONS,
+    DECISION_NOTE_BACKUP_MAX_NOTES as MAX_BACKUP_NOTES,
+    DECISION_NOTE_BACKUP_MAX_OUTCOMES as MAX_BACKUP_OUTCOMES_PER_NOTE, DecisionNoteBackupData,
+    DecisionNoteMutation, DecisionNoteOutcomeAddition, DecisionNoteRestorePlan, WorkspaceBinding,
+    failure,
 };
 use scopehub_domain::protocol::{
     DecisionNoteBackupDeletion, DecisionNoteBackupEntry, DecisionNoteOutcome,
@@ -11,10 +14,6 @@ use scopehub_domain::protocol::{
 };
 
 use super::{notes, store_error};
-
-const MAX_BACKUP_NOTES: usize = 256;
-const MAX_BACKUP_DELETIONS: usize = 1_024;
-const MAX_BACKUP_OUTCOMES_PER_NOTE: usize = 128;
 
 fn account_for_row(
     total_bytes: &mut usize,
@@ -166,7 +165,8 @@ pub(super) fn plan(
         imported_deletions: 0,
         independent_copy_warning: false,
     };
-    let mut additions = Vec::new();
+    let mut originals = Vec::new();
+    let mut outcomes = Vec::new();
     for entry in backup.notes {
         let note_id = &entry.original.note_id;
         // Compare immutable content only when neither profile copy marks this ID deleted.
@@ -190,15 +190,16 @@ pub(super) fn plan(
                 Some(_) => return Err(failure(ErrorCode::STALECONTEXT)),
             }
         }
-        if new_original {
-            summary.added_notes += 1;
-        }
         summary.added_outcomes += later.len() as Revision;
-        if new_original || !later.is_empty() {
-            additions.push(DecisionNoteBackupEntry {
-                original: entry.original,
+        if !later.is_empty() {
+            outcomes.push(DecisionNoteOutcomeAddition {
+                note_id: note_id.clone(),
                 outcomes: later,
             });
+        }
+        if new_original {
+            summary.added_notes += 1;
+            originals.push(entry.original);
         }
     }
 
@@ -212,11 +213,80 @@ pub(super) fn plan(
     }
     summary.imported_deletions = deletions.len() as Revision;
     summary.independent_copy_warning = summary.added_notes > 0;
-    Ok(DecisionNoteRestorePlan {
-        notes: additions,
+    let plan = DecisionNoteRestorePlan {
+        originals,
+        outcomes,
         deletions,
         summary,
-    })
+    };
+    check_restore_capacity(snapshot, binding, &plan)?;
+    Ok(plan)
+}
+
+fn projected_outcomes<'a>(
+    backup: &'a mut DecisionNoteBackupData,
+    note_id: &str,
+) -> Result<&'a mut Vec<DecisionNoteOutcome>, Error> {
+    backup
+        .notes
+        .iter_mut()
+        .find(|entry| entry.original.note_id == note_id)
+        .map(|entry| &mut entry.outcomes)
+        .ok_or_else(|| failure(ErrorCode::DATAUNAVAILABLE))
+}
+
+pub(super) fn check_note_capacity(
+    snapshot: &Connection,
+    binding: &WorkspaceBinding,
+    note_id: &str,
+    mutation: &DecisionNoteMutation,
+) -> Result<(), Error> {
+    // Deletion remains available even in an older profile above the limit.
+    if matches!(mutation, DecisionNoteMutation::Delete) {
+        return Ok(());
+    }
+    let mut backup = read(snapshot, binding, 0)?;
+    match mutation {
+        DecisionNoteMutation::Save(original) => backup.notes.push(DecisionNoteBackupEntry {
+            original: original.clone(),
+            outcomes: vec![],
+        }),
+        DecisionNoteMutation::Append(outcome) => {
+            projected_outcomes(&mut backup, note_id)?.push(outcome.clone())
+        }
+        DecisionNoteMutation::Delete => unreachable!("deletion has no capacity gate"),
+    }
+    backup.check_capacity(binding)
+}
+
+fn check_restore_capacity(
+    snapshot: &Connection,
+    binding: &WorkspaceBinding,
+    plan: &DecisionNoteRestorePlan,
+) -> Result<(), Error> {
+    let mut backup = read(snapshot, binding, 0)?;
+    let removed: HashSet<_> = plan
+        .deletions
+        .iter()
+        .map(|marker| &marker.note_id)
+        .collect();
+    backup
+        .notes
+        .retain(|entry| !removed.contains(&entry.original.note_id));
+    backup.notes.extend(
+        plan.originals
+            .iter()
+            .cloned()
+            .map(|original| DecisionNoteBackupEntry {
+                original,
+                outcomes: vec![],
+            }),
+    );
+    for addition in &plan.outcomes {
+        projected_outcomes(&mut backup, &addition.note_id)?.extend_from_slice(&addition.outcomes);
+    }
+    backup.deletions.extend_from_slice(&plan.deletions);
+    backup.check_capacity(binding)
 }
 
 pub(super) fn apply(
@@ -227,13 +297,18 @@ pub(super) fn apply(
 ) -> Result<(), Error> {
     let workspace_id = &binding.workspace_id;
     let revision = i64::try_from(revision).map_err(|_| failure(ErrorCode::INTERNALERROR))?;
-    for entry in &plan.notes {
-        let note_id = &entry.original.note_id;
-        if !present(transaction, workspace_id, note_id)? {
-            notes::insert_original(transaction, workspace_id, note_id, &entry.original)?;
-        }
-        for outcome in &entry.outcomes {
-            notes::insert_outcome(transaction, workspace_id, note_id, outcome, revision)?;
+    for original in &plan.originals {
+        notes::insert_original(transaction, workspace_id, &original.note_id, original)?;
+    }
+    for addition in &plan.outcomes {
+        for outcome in &addition.outcomes {
+            notes::insert_outcome(
+                transaction,
+                workspace_id,
+                &addition.note_id,
+                outcome,
+                revision,
+            )?;
         }
     }
     for marker in &plan.deletions {

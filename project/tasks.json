@@ -327,7 +327,7 @@
       "id": "M2-001",
       "title": "Deliver shared operations and durable workspace state",
       "milestone": "M2",
-      "status": "planned",
+      "status": "active",
       "depends_on": [
         "M1-001",
         "M2-005"
@@ -336,7 +336,20 @@
         "crates/application",
         "crates/persistence",
         "apps/desktop",
-        "tests"
+        "contracts",
+        "engineering-contract-v1.json",
+        "tests",
+        "Cargo.toml",
+        "Cargo.lock",
+        "project/development.json",
+        "project/dependency-inventory.json",
+        "THIRD_PARTY_NOTICES",
+        "project/checks.json",
+        "project/delivery.json",
+        "pyproject.toml",
+        "uv.lock",
+        "package.json",
+        "scripts/ci_artifacts.py"
       ],
       "decision_refs": [
         "0001",
@@ -357,17 +370,30 @@
       ],
       "checks": [
         "operations-workflow",
-        "state-migrations"
+        "state-migrations",
+        "decision-note-lifecycle",
+        "architecture",
+        "dependency-review",
+        "rust-contracts-workers",
+        "rust-format",
+        "rust-lints",
+        "ui-build",
+        "workspace-timeframe",
+        "project-state",
+        "python-contracts-workers",
+        "desktop-workspace-transport"
       ],
       "evidence": [],
-      "next_action": "After the chart workflow and revision clarification, implement the first SQLite-backed timeframe round trip through the shared registry. Extend it to scoped idempotency, explicit private saves and tested backup recovery.",
+      "next_action": "Close the remaining shared-operation and state-migration gates. Exercise durable writes bound to a changing shared target, broaden recovery as other workspace records become durable, and retain the local decision-note lifecycle and staged restore regressions.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
         "outcome": "An authorized human or AI change goes through the same Rust registry, survives process restart in the originating local profile and can be undone by operation ID. Accepted results, private records and deletion decisions survive the documented recovery cases.",
         "change_types": [
           "persistence",
-          "permissions"
+          "permissions",
+          "dependencies",
+          "tooling"
         ],
         "context": [
           "engineering-contract-v1.json",
@@ -375,17 +401,23 @@
           "contracts/schemas/protocol.schema.json",
           "crates/application/src/lib.rs",
           "apps/desktop/src-tauri/src/bridge.rs",
-          "apps/desktop/ui/ubuntu-preview.mjs"
+          "apps/desktop/ui/ubuntu-preview.mjs",
+          "crates/application/src/workspace.rs",
+          "crates/persistence/src/lib.rs"
         ],
         "hypotheses": [
           "Start with 1m to 5m, restart the Rust process, undo by the returned operation ID and restart to 1m. Two profiles with the same workspace ID make isolation directly observable.",
-          "A profile-bound, long-lived Rust core can share one transaction owner across the native and explicitly enabled Ubuntu workspace entries."
+          "A profile-bound, long-lived Rust core can share one transaction owner across the native and explicitly enabled Ubuntu workspace entries.",
+          "A synthetic original thesis and a separately dated outcome can be distinguished after restart. Deleting their note can retain a profile-bound marker and redacted operation results without leaving the body available to a live read, undo or idempotent replay.",
+          "A logical backup limited to decision notes can recover missing originals and dated outcomes, keep newer work, and suppress marked notes without copying operation history, grants or SQLite journals.",
+          "Restore stages can retain only pending inserts and release them when the revision changes, a deadline expires or the session ends. Revision-based projection refresh can preserve a surviving note's unsubmitted outcome draft while clearing deleted list entries and details."
         ],
         "risks": [
           {
             "failure": "A lost response, concurrent duplicate or stale selected target applies a change twice or reveals a result after grants change.",
             "checks": [
-              "operations-workflow"
+              "operations-workflow",
+              "decision-note-lifecycle"
             ]
           },
           {
@@ -401,9 +433,25 @@
               "state-migrations",
               "operations-workflow"
             ]
+          },
+          {
+            "failure": "The bundled database or a Rust module dependency cannot be built on a supported target, or the locked license and advisory inventory no longer matches the delivered code.",
+            "checks": [
+              "architecture",
+              "dependency-review",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A new browser loses the eligible undo, an ordinary startup obtains a workspace writer, or a suspended request replays twice.",
+            "checks": [
+              "workspace-timeframe",
+              "rust-contracts-workers",
+              "desktop-workspace-transport"
+            ]
           }
         ],
-        "rollback": "Keep the original database and an untouched local backup through staged migration. Exercise interruption before the atomic cutover and verify forward repair or restoring the previous visible state.",
+        "rollback": "Keep the selected backup file untouched. Stage a revision-bound restore in memory. Cancel, reject or interrupt before committing the SQLite transaction and verify the previous live notes, deletion state and timeframe remain available across process restart.",
         "implementation": {
           "modules": [
             "application",
@@ -417,7 +465,14 @@
             "apps/desktop/src-tauri/src/bridge.rs",
             "apps/desktop/ui/ubuntu-preview.mjs",
             "contracts/schemas/protocol.schema.json",
-            "project/development.json"
+            "project/development.json",
+            "crates/application/src/workspace.rs",
+            "crates/application/src/workspace/notes.rs",
+            "crates/application/src/workspace/backup.rs",
+            "crates/persistence/src/lib.rs",
+            "crates/persistence/src/decision_notes.sql",
+            "crates/persistence/src/decision_note_restore.sql",
+            "apps/desktop/ui/src/decision-notes.tsx"
           ],
           "rules": [
             {
@@ -439,9 +494,14 @@
             {
               "path": "contracts/decisions/0011-local-profiles-and-connected-model-use.json",
               "pointer": "/decision"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence/notes_and_restore"
             }
           ],
           "non_goals": [
+            "The first backup covers saved decision notes, dated outcomes and deletion markers. Broader workspace settings, accepted indicator versions, saved conversations, credentials, grants, audit history, caches and journals are outside this backup format.",
             "Real cloud or voice sessions, financial provider subscriptions, and full indicator computation belong to other tasks."
           ],
           "open_questions": []
@@ -452,10 +512,12 @@
             "Synthetic read-only development grant, existing 1.1 reads, explicitly selected sample preferences, established confirmation and private excerpt rules."
           ],
           "change": [
-            "Add the profile-local transaction owner and versioned storage, then scoped replay and confirmation, explicit private saves and deletes, and staged backup recovery."
+            "The private hosts dispatch decisionNote.save, decisionNote.read, decisionNote.appendOutcome and decisionNote.delete through the Rust registry. Explicit local confirmation authorizes new writes. Reads and redacted receipt replay use current disclosure access.",
+            "Add explicit local decision-note export and revision-bound preview and apply. Recover missing notes and outcomes, preserve other current notes, reject conflicting surviving identities and apply the union of known deletion markers in the same transaction. Warn before approving candidates whose deletion history is unavailable.",
+            "Check complete backup capacity before admitting note additions and restore plans. Keep private drafts separate from refreshed note projections."
           ],
-          "data_plan": "Keep application state inside the bound OS-user profile. Use WAL and foreign keys, a versioned migration, redacted receipts and profile-scoped deletion markers. Validate the original database on failure, independent older backup warnings and cross-profile isolation.",
-          "cleanup": "Keep a single write path. Remove provisional adapters once both hosts reach the same application core. Recover without replaying past AI work or reusing external disclosure grants."
+          "data_plan": "Keep application state inside the bound OS-user profile. The v1 to v2 migration retains chart state, undo and replay and adds immutable originals, separate outcomes and profile-scoped deletion markers. Version 3 preserves outcome order and supports several outcomes under one restore receipt. A versioned logical note backup stays scoped to its originating profile and workspace.",
+          "cleanup": "Delete original and outcome bodies, clear body-derived replay fingerprints, and durably resume SQLite WAL cleanup if a reader blocks it. Restore without replaying past AI work or reusing external disclosure grants."
         }
       }
     },
@@ -5599,6 +5661,149 @@
           ],
           "data_plan": "Private CI diagnostics and temporary synthetic fixtures cover the regression.",
           "cleanup": "Keep one restart sequence and one test-owned process tree. Leave unverified hosted results visible."
+        }
+      }
+    },
+    {
+      "id": "M2-007",
+      "title": "Verify the persisted timeframe and eligible undo across local workspace sessions",
+      "milestone": "M2",
+      "status": "active",
+      "depends_on": [
+        "M1-001",
+        "M2-006"
+      ],
+      "scope": [
+        "crates/persistence",
+        "apps/desktop",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ui/desktop-workspace.spec.mjs",
+        "project/checks.json",
+        "project/tasks.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0010",
+        "0011"
+      ],
+      "acceptance": [
+        "A fresh browser and restarted Rust writer restore the committed timeframe, discover the eligible local undo, and restore the original timeframe exactly once. Independent profiles and rejected callers cannot read or mutate another workspace.",
+        "An ordinary unconfigured launch stays inert. The opted-in local host binds the trusted profile, actor, workspace and database. Actual Rust process and desktop bridge tests cover durable effects. Built UI tests verify native IPC arguments and error handling using a substituted transport.",
+        "The harness exercises the two named checks, records their distinct evidence, validates dependency inventory and retains synthetic verification artifacts."
+      ],
+      "checks": [
+        "project-state",
+        "architecture",
+        "python-contracts-workers",
+        "ui-build",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "dependency-review",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-007-33dd2c3a64efc9df.json",
+          "sha256": "502dee88879d90abda796484fbd9528af72e0d13c4bdb9057768bf4436ca11ca"
+        }
+      ],
+      "next_action": "Verify the native ACL correction using ordinary Windows AppLocalData and an abbreviated TEMP path, preserve rejection of shared roots and sidecars, then run the complete workspace checks on Ubuntu and Windows.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A repeatable, bounded acceptance of the first local workspace write and undo across process and browser restarts.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/checks.json",
+          "apps/desktop/ui/ubuntu-workspace.mjs",
+          "apps/desktop/src-tauri/src/workspace.rs",
+          "crates/persistence/src/lib.rs",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ui/desktop-workspace.spec.mjs"
+        ],
+        "hypotheses": [
+          "A new browser can use the core operation log to discover an eligible undo after a writer restart. The scoped result is independent of browser storage and the synthetic market source."
+        ],
+        "risks": [
+          {
+            "failure": "A restarted client repeats a write, trusts another profile, loses the undo or receives permission from an earlier invocation.",
+            "checks": [
+              "rust-contracts-workers",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A native transport substitute accidentally counts as an actual native runtime or an unconfigured host gains a new grant.",
+            "checks": [
+              "desktop-workspace-transport",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Only one host can execute the regression or its artifacts include the working data directory.",
+            "checks": [
+              "python-contracts-workers",
+              "workspace-timeframe",
+              "dependency-review"
+            ]
+          },
+          {
+            "failure": "A local caller receives another launcher grant, profile storage is created under shared filesystem permissions, or a live writer returns a stale cached snapshot after a concurrent commit.",
+            "checks": [
+              "workspace-timeframe",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep each fixture in an isolated temporary local profile. Preserve failed run evidence and correct the failing boundary before recording completion.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "ui",
+            "desktop",
+            "persistence",
+            "application"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ui/desktop-workspace.spec.mjs",
+            "apps/desktop/src-tauri/src/workspace.rs",
+            "crates/persistence/src/lib.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization/durable_operations"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence"
+            }
+          ],
+          "non_goals": [
+            "Decision-note retention, backup restoration, full production profile selection and packaged Windows experience remain assigned to their owning tasks."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "One Rust authorization path, local data ownership and synthetic source opt-in."
+          ],
+          "change": [
+            "Verify the eligible undo from fresh local sessions and independently exercise both application transports."
+          ],
+          "data_plan": "Only temporary synthetic profiles are used for the browser checks. They are removed after their owned processes exit.",
+          "cleanup": "Keep the process probe test-only. Stage named browser results and retain private working databases locally."
         }
       }
     }

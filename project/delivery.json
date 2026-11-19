@@ -234,7 +234,8 @@
     {
       "id": "workspace-recovery",
       "task_ids": [
-        "M2-001"
+        "M2-001",
+        "M2-007"
       ],
       "user_goal": "Make an authorized change, undo it and recover accepted work after restarting.",
       "given": "A persisted workspace with a known revision and operation history.",
@@ -259,7 +260,10 @@
       ],
       "checks": [
         "operations-workflow",
-        "state-migrations"
+        "state-migrations",
+        "decision-note-lifecycle",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
       ],
       "evidence_boundary": "Versioned local state and recovery; no order execution or account integration."
     },
@@ -519,9 +523,10 @@
         "ai-workflow",
         "ai-replay-evaluations",
         "state-migrations",
+        "decision-note-lifecycle",
         "configured-model-session"
       ],
-      "evidence_boundary": "Replay verifies permissions, provenance and which information was available. Observe the quality of dialogue separately with an authorized configured model. A simulated or realized return is not an acceptance metric."
+      "evidence_boundary": "Local decision-note checks cover explicit retention, dated review, later outcomes, deletion and staged note-only backup recovery. Configured dialogue has its own verification. A simulated or realized return is not an acceptance metric."
     },
     {
       "id": "external-ai-on-the-open-chart",

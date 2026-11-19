@@ -436,7 +436,7 @@
         "M2-001"
       ],
       "delivery": "current-contract",
-      "boundary": "Operations, restoration and migration need integrated acceptance."
+      "boundary": "The Rust profile store supports a scoped timeframe change and undo across process restart. Desktop access, private records, backup and complete migration acceptance remain under M2-001."
     },
     {
       "id": "indicator-workflow",

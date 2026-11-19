@@ -1032,6 +1032,118 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "workspace-launcher-identity-privacy-and-fresh-read",
+      "source": "Independent checkpoint review of the opted-in local workspace at 9bb4647 with temporary synthetic profiles.",
+      "observation": "The Vite launcher granted access based on loopback and origin without verifying possession of an owner-only launch credential. With a generally traversable POSIX profile root, database and journal sidecars used broad permissions. A second writer could commit a new workspace revision while the first launcher kept returning its startup snapshot to fresh clients.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-007"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "workspace-interrupt-handoff-cleanup",
+      "source": "Independent foreground terminal and same-port relaunch review of 081c59b.",
+      "observation": "A terminal interrupt stopped both Vite and its writer. The private handoff file remained on disk even though the replacement launcher correctly denied its old authority. The Windows regular-file assertion also required a user SID even when a private inheriting ACL permits the elevated token default owner.",
+      "severity": "minor",
+      "status": "open",
+      "task_ids": [
+        "M2-007"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-private-workspace-startup",
+      "source": "Hosted Windows run 44520641312 at 081c59b and the same native storage admission on a clean Windows 11 Enterprise 26H2 guest under a standard local account.",
+      "observation": "All five hosted browser workspace cases and three native desktop tests failed while preparing the private profile. On Windows 11 build 26300.9457, both AppLocalData and the real 8.3 TEMP alias failed. Native ACL APIs returned the owner and DACL at every ancestor. The helper instead raised an InvalidCastException while evaluating an ancestor ACE. Five of six native storage library tests failed at ccb9f81.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-007"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "note-restore-stage-retention",
+      "source": "Independent ordinary Rust-process and Chromium review of 89401c9 with temporary synthetic profiles.",
+      "observation": "Staging a missing later outcome copied the existing original note body. A second writer deleted the note and the first writer observed the new revision, but the first process retained the redundant staged payload. Expired payloads were collected only during later mutations.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "note-restore-export-capacity",
+      "source": "Independent ordinary Rust-process and Chromium review of 89401c9 with temporary synthetic profiles.",
+      "observation": "Two individually valid backups of the same note with 64 and 65 different later outcomes merged successfully. The resulting 129 outcomes were readable, but exporting the combined note failed with RESOURCE_LIMIT.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "note-unrelated-revision-draft-loss",
+      "source": "Independent ordinary Rust-process and Chromium review of 89401c9 with temporary synthetic profiles.",
+      "observation": "When a peer changed only the chart timeframe, a visible unsaved later-outcome draft and its date were silently discarded.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "note-deleted-list-projection",
+      "source": "Independent ordinary Rust-process and Chromium review of 89401c9 with temporary synthetic profiles.",
+      "observation": "After a peer deleted a note, a focused list still displayed its date and identity suffix across two polling intervals and after clicking the stale entry returned unavailable.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

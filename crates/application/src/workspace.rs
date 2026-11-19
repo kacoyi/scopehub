@@ -17,10 +17,12 @@ use crate::{Actor, Operation, OperationRegistry, authorized_operation, failure, 
 mod backup;
 mod notes;
 
-pub(crate) use backup::PendingDecisionNoteRestore;
+pub(crate) use backup::DecisionNoteRestoreStaging;
 pub use backup::{
-    DECISION_NOTE_BACKUP_MAX_BYTES, DECISION_NOTE_EXPORT_BACKUP, DECISION_NOTE_PREVIEW_RESTORE,
-    DECISION_NOTE_RESTORE_BACKUP, DecisionNoteBackupData, DecisionNoteRestorePlan,
+    DECISION_NOTE_BACKUP_MAX_BYTES, DECISION_NOTE_BACKUP_MAX_DELETIONS,
+    DECISION_NOTE_BACKUP_MAX_NOTES, DECISION_NOTE_BACKUP_MAX_OUTCOMES, DECISION_NOTE_EXPORT_BACKUP,
+    DECISION_NOTE_PREVIEW_RESTORE, DECISION_NOTE_RESTORE_BACKUP, DecisionNoteBackupData,
+    DecisionNoteOutcomeAddition, DecisionNoteRestorePlan,
 };
 pub(crate) use notes::PendingDecisionNoteConfirmation;
 pub use notes::{
@@ -165,6 +167,11 @@ pub trait WorkspaceTransaction {
         key: &WorkspaceReplayKey<'_>,
     ) -> Result<Option<DecisionNoteReplay>, Error>;
     fn record_note(&mut self, change: &DecisionNoteChange<'_>) -> Result<(), Error>;
+    fn check_note_capacity(
+        &self,
+        note_id: &str,
+        mutation: &DecisionNoteMutation,
+    ) -> Result<(), Error>;
     fn plan_note_restore(
         &self,
         backup: DecisionNoteBackupData,
@@ -234,8 +241,13 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
     ) -> Result<WorkspaceSnapshot, Error> {
         if !matches!(access.actor, Actor::User | Actor::Ai)
             || !permits_scope(access, self.port.binding())
-            || !access.disclose_workspace_state
         {
+            return Err(failure(ErrorCode::PERMISSIONDENIED));
+        }
+        if matches!(access.actor, Actor::User) && access.paired_client_id.is_none() {
+            self.note_restore.observe_local_access(access);
+        }
+        if !access.disclose_workspace_state {
             return Err(failure(ErrorCode::PERMISSIONDENIED));
         }
         let undo = (access.operations.contains(&UNDO)
@@ -246,6 +258,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             paired_client_id: access.paired_client_id,
         });
         let (state, undo) = self.port.snapshot(undo)?;
+        self.note_restore.observe(state.revision);
         Ok(WorkspaceSnapshot {
             workspace: workspace_projection(access.workspace_id, state.revision, state.timeframe),
             selection_revision: state.selection_revision,
@@ -260,13 +273,6 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         access: &WorkspaceAccess<'_>,
         mut request: Value,
     ) -> Result<Value, Error> {
-        if self
-            .note_restore
-            .as_ref()
-            .is_some_and(PendingDecisionNoteRestore::expired)
-        {
-            self.note_restore = None;
-        }
         let name = request["intent"]["operation"]
             .as_str()
             .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
@@ -301,11 +307,19 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
                 return Err(failure(ErrorCode::PERMISSIONDENIED));
             }
             let arguments = &request["intent"]["arguments"];
-            self.port
-                .transact(|tx| execute_mutation(tx, access, &scope, arguments, &reply))
+            self.port.transact(|tx| {
+                execute_mutation(tx, access, &scope, arguments, &reply, &self.note_restore)
+            })
         });
         match result {
-            Ok(value) => Ok(value),
+            Ok(value) => {
+                if let Some(revision) =
+                    value["outcome"]["receipt"]["committed_workspace_revision"].as_u64()
+                {
+                    self.note_restore.observe_commit(revision);
+                }
+                Ok(value)
+            }
             Err(error) => reply.failed(&workspace_failure(error.code)),
         }
     }
@@ -389,6 +403,7 @@ fn execute_mutation(
     scope: &MutationScope11,
     arguments: &Value,
     reply: &WorkspaceReply<'_>,
+    staging: &DecisionNoteRestoreStaging,
 ) -> Result<Value, Error> {
     let operation = reply.operation;
     // Compute semantic identity independently of transport correlation.
@@ -428,6 +443,7 @@ fn execute_mutation(
     }
 
     let current = tx.state()?;
+    staging.observe(current.revision);
     if scope.target != chart_target()
         || scope.expected_workspace_revision != current.revision
         || scope.expected_selection_revision != current.selection_revision

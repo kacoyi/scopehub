@@ -1,10 +1,15 @@
-use std::{collections::HashSet, time::Instant};
+use std::{
+    collections::HashSet,
+    sync::{Arc, Mutex, MutexGuard, mpsc},
+    thread,
+    time::Instant,
+};
 
 use scopehub_domain::protocol::{
     DecisionNoteBackupDeletion, DecisionNoteBackupEntry, DecisionNoteBackupV1,
-    DecisionNoteBackupV1Format, DecisionNoteRestoreBackupInput,
-    DecisionNoteRestoreBackupInputDecision, DecisionNoteRestoreScope11, DecisionNoteRestoreSummary,
-    Error, ErrorCode, Revision,
+    DecisionNoteBackupV1Format, DecisionNoteOriginal, DecisionNoteOutcome,
+    DecisionNoteRestoreBackupInput, DecisionNoteRestoreBackupInputDecision,
+    DecisionNoteRestoreScope11, DecisionNoteRestoreSummary, Error, ErrorCode, Revision,
 };
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -21,6 +26,9 @@ pub const DECISION_NOTE_EXPORT_BACKUP: &str = "decisionNote.exportBackup";
 pub const DECISION_NOTE_PREVIEW_RESTORE: &str = "decisionNote.previewRestore";
 pub const DECISION_NOTE_RESTORE_BACKUP: &str = "decisionNote.restoreBackup";
 pub const DECISION_NOTE_BACKUP_MAX_BYTES: usize = 512 * 1024;
+pub const DECISION_NOTE_BACKUP_MAX_NOTES: usize = 256;
+pub const DECISION_NOTE_BACKUP_MAX_DELETIONS: usize = 1_024;
+pub const DECISION_NOTE_BACKUP_MAX_OUTCOMES: usize = 128;
 
 /// The logical note projection produced by one SQLite read snapshot.
 pub struct DecisionNoteBackupData {
@@ -29,26 +37,157 @@ pub struct DecisionNoteBackupData {
     pub deletions: Vec<DecisionNoteBackupDeletion>,
 }
 
+impl DecisionNoteBackupData {
+    fn into_archive(self, binding: &WorkspaceBinding) -> DecisionNoteBackupV1 {
+        DecisionNoteBackupV1 {
+            format: DecisionNoteBackupV1Format::Value,
+            version: 1,
+            profile_binding: backup_binding(binding),
+            captured_workspace_revision: self.revision,
+            notes: self.notes,
+            deletions: self.deletions,
+        }
+    }
+
+    /// Admit only additions whose resulting state can still be exported in full.
+    pub fn check_capacity(mut self, binding: &WorkspaceBinding) -> Result<(), Error> {
+        if self.notes.len() > DECISION_NOTE_BACKUP_MAX_NOTES
+            // Reserve a marker for each live note, including after a series of deletions.
+            || self.notes.len() + self.deletions.len() > DECISION_NOTE_BACKUP_MAX_DELETIONS
+            || self.notes.iter().any(|entry| entry.outcomes.len() > DECISION_NOTE_BACKUP_MAX_OUTCOMES)
+        {
+            return Err(failure(ErrorCode::RESOURCELIMIT));
+        }
+        // A later chart change can increase the encoded revision length without touching notes.
+        self.revision = MAX_REVISION;
+        check_archive_size(&self.into_archive(binding))
+    }
+}
+
 /// The exact merge that can be applied at the previewed workspace revision.
 /// Marked bodies and already-known deletions are omitted from this plan.
 pub struct DecisionNoteRestorePlan {
-    pub notes: Vec<DecisionNoteBackupEntry>,
+    pub originals: Vec<DecisionNoteOriginal>,
+    pub outcomes: Vec<DecisionNoteOutcomeAddition>,
     pub deletions: Vec<DecisionNoteBackupDeletion>,
     pub summary: DecisionNoteRestoreSummary,
 }
 
-pub(crate) struct PendingDecisionNoteRestore {
+pub struct DecisionNoteOutcomeAddition {
+    pub note_id: String,
+    pub outcomes: Vec<DecisionNoteOutcome>,
+}
+
+struct PendingDecisionNoteRestore {
     id: Uuid,
     principal_id: String,
     idempotency_key: String,
     expected_revision: Revision,
     expires: Instant,
     plan: DecisionNoteRestorePlan,
+    // Dropping the stage wakes its deadline worker without keeping the plan alive.
+    _cancel_deadline: mpsc::Sender<()>,
 }
 
-impl PendingDecisionNoteRestore {
-    pub(super) fn expired(&self) -> bool {
-        Instant::now() >= self.expires
+#[derive(Default)]
+pub(crate) struct DecisionNoteRestoreStaging(Arc<Mutex<Option<PendingDecisionNoteRestore>>>);
+
+impl DecisionNoteRestoreStaging {
+    fn pending(&self) -> MutexGuard<'_, Option<PendingDecisionNoteRestore>> {
+        self.0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    pub(super) fn is_pending(&self) -> bool {
+        self.pending().is_some()
+    }
+
+    pub(super) fn clear(&self) {
+        self.pending().take();
+    }
+
+    pub(super) fn observe(&self, revision: Revision) {
+        let mut pending = self.pending();
+        if pending
+            .as_ref()
+            .is_some_and(|stage| stage.expected_revision != revision)
+        {
+            pending.take();
+        }
+    }
+
+    pub(super) fn observe_commit(&self, revision: Revision) {
+        let mut pending = self.pending();
+        // A replay can expose an older receipt while a current stage is still valid.
+        if pending
+            .as_ref()
+            .is_some_and(|stage| stage.expected_revision < revision)
+        {
+            pending.take();
+        }
+    }
+
+    pub(super) fn observe_local_access(&self, access: &WorkspaceAccess<'_>) {
+        if !access.disclose_workspace_state
+            || ![DECISION_NOTE_READ, DECISION_NOTE_RESTORE_BACKUP]
+                .iter()
+                .all(|operation| access.operations.contains(operation))
+        {
+            let mut pending = self.pending();
+            if pending
+                .as_ref()
+                .is_some_and(|stage| stage.principal_id == access.principal_id)
+            {
+                pending.take();
+            }
+        }
+    }
+
+    fn install(
+        &self,
+        id: Uuid,
+        principal_id: String,
+        scope: DecisionNoteRestoreScope11,
+        expires: Instant,
+        plan: DecisionNoteRestorePlan,
+    ) -> Result<(), Error> {
+        let (cancel_deadline, wait) = mpsc::channel::<()>();
+        let weak = Arc::downgrade(&self.0);
+        let mut pending = self.pending();
+        thread::Builder::new()
+            .name("decision-note-restore-deadline".into())
+            .spawn(move || {
+                if matches!(
+                    wait.recv_timeout(expires.saturating_duration_since(Instant::now())),
+                    Err(mpsc::RecvTimeoutError::Timeout)
+                ) && let Some(state) = weak.upgrade()
+                {
+                    let mut stage = state
+                        .lock()
+                        .unwrap_or_else(std::sync::PoisonError::into_inner);
+                    if stage.as_ref().is_some_and(|stage| stage.id == id) {
+                        stage.take();
+                    }
+                }
+            })
+            .map_err(|_| failure(ErrorCode::INTERNALERROR))?;
+        *pending = Some(PendingDecisionNoteRestore {
+            id,
+            principal_id,
+            idempotency_key: scope.idempotency_key,
+            expected_revision: scope.expected_workspace_revision,
+            expires,
+            plan,
+            _cancel_deadline: cancel_deadline,
+        });
+        Ok(())
+    }
+}
+
+impl Drop for DecisionNoteRestoreStaging {
+    fn drop(&mut self) {
+        self.clear();
     }
 }
 
@@ -66,14 +205,8 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
     ) -> Result<Value, Error> {
         require_operations(access, &[DECISION_NOTE_READ, DECISION_NOTE_EXPORT_BACKUP])?;
         let data = self.port.decision_note_backup()?;
-        let backup = DecisionNoteBackupV1 {
-            format: DecisionNoteBackupV1Format::Value,
-            version: 1,
-            profile_binding: backup_binding(self.port.binding()),
-            captured_workspace_revision: data.revision,
-            notes: data.notes,
-            deletions: data.deletions,
-        };
+        self.note_restore.observe(data.revision);
+        let backup = data.into_archive(self.port.binding());
         check_archive_size(&backup)?;
         reply.validated(json!({
             "state": "completed", "operation": DECISION_NOTE_EXPORT_BACKUP, "result": backup,
@@ -104,7 +237,9 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             if tx.replay(&key)?.is_some() {
                 return Err(failure(ErrorCode::INVALIDARGUMENT));
             }
-            check_revision(tx.state()?.revision, scope.expected_workspace_revision)?;
+            let revision = tx.state()?.revision;
+            self.note_restore.observe(revision);
+            check_revision(revision, scope.expected_workspace_revision)?;
             tx.plan_note_restore(archive)
         })?;
         let id = Uuid::new_v4();
@@ -114,14 +249,13 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             "expires_at_ms": reply.timestamp_ms + CONFIRMATION_TTL.as_millis() as i64,
             "summary": plan.summary,
         }))?;
-        self.note_restore = Some(PendingDecisionNoteRestore {
+        self.note_restore.install(
             id,
-            principal_id: access.principal_id.into(),
-            idempotency_key: scope.idempotency_key,
-            expected_revision: scope.expected_workspace_revision,
-            expires: Instant::now() + CONFIRMATION_TTL,
+            access.principal_id.into(),
+            scope,
+            Instant::now() + CONFIRMATION_TTL,
             plan,
-        });
+        )?;
         Ok(value)
     }
 
@@ -158,15 +292,15 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
                 )?));
             }
             require_operations(access, &[DECISION_NOTE_READ, DECISION_NOTE_RESTORE_BACKUP])?;
-            let stage = self
-                .note_restore
+            let pending = self.note_restore.pending();
+            let stage = pending
                 .as_ref()
                 .filter(|stage| {
                     stage.id == stage_id
                         && stage.principal_id == access.principal_id
                         && stage.idempotency_key == key.idempotency_key
                         && stage.expected_revision == scope.expected_workspace_revision
-                        && !stage.expired()
+                        && Instant::now() < stage.expires
                 })
                 .ok_or_else(|| failure(ErrorCode::CONFIRMATIONREQUIRED))?;
             if args.decision == DecisionNoteRestoreBackupInputDecision::Decline {
@@ -200,11 +334,11 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         });
         match outcome {
             Ok(RestoreResult::Declined(value)) => {
-                self.note_restore = None;
+                self.note_restore.clear();
                 Ok(value)
             }
             Ok(RestoreResult::Committed(value)) => {
-                self.note_restore = None;
+                self.note_restore.clear();
                 self.note_confirmation = None;
                 self.port.clean_deleted_note()?;
                 Ok(value)
@@ -215,7 +349,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             }
             Err(error) => {
                 if error.code == ErrorCode::STALECONTEXT {
-                    self.note_restore = None;
+                    self.note_restore.clear();
                 }
                 Err(error)
             }
@@ -336,4 +470,78 @@ fn restore_receipt(
             "undoable": false,
         },
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use super::*;
+
+    fn staged_content() -> DecisionNoteRestorePlan {
+        DecisionNoteRestorePlan {
+            originals: vec![],
+            outcomes: vec![DecisionNoteOutcomeAddition {
+                note_id: Uuid::new_v4().to_string(),
+                outcomes: vec![DecisionNoteOutcome {
+                    outcome_id: Uuid::new_v4().to_string(),
+                    observed_on: "2026-04-09".into(),
+                    outcome: "synthetic pending outcome".into(),
+                }],
+            }],
+            deletions: vec![],
+            summary: DecisionNoteRestoreSummary {
+                added_notes: 0,
+                added_outcomes: 1,
+                removed_notes: 0,
+                suppressed_notes: 0,
+                imported_deletions: 0,
+                independent_copy_warning: false,
+            },
+        }
+    }
+
+    fn install(staging: &DecisionNoteRestoreStaging, delay: Duration) {
+        staging
+            .install(
+                Uuid::new_v4(),
+                "synthetic-owner".into(),
+                DecisionNoteRestoreScope11 {
+                    workspace_id: "synthetic-workspace".into(),
+                    expected_workspace_revision: 2,
+                    idempotency_key: Uuid::new_v4().to_string(),
+                },
+                Instant::now() + delay,
+                staged_content(),
+            )
+            .unwrap();
+    }
+
+    #[test]
+    fn decision_note_stage_deadline_reclaims_private_content_without_an_operation() {
+        let staging = DecisionNoteRestoreStaging::default();
+        install(&staging, Duration::from_millis(35));
+        // Inspect the owned slot periodically without dispatching or pruning any operation.
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while staging.is_pending() && Instant::now() < deadline {
+            thread::sleep(Duration::from_millis(5));
+        }
+        assert!(!staging.is_pending());
+    }
+
+    #[test]
+    fn decision_note_stage_releases_content_on_observation_and_disposal() {
+        let staging = DecisionNoteRestoreStaging::default();
+        install(&staging, CONFIRMATION_TTL);
+        staging.observe(2);
+        staging.observe_commit(1); // An old, body-free replay cannot invalidate a current stage.
+        assert!(staging.is_pending());
+        staging.observe(3);
+        assert!(!staging.is_pending());
+
+        install(&staging, CONFIRMATION_TTL);
+        let slot = Arc::clone(&staging.0);
+        drop(staging);
+        assert!(slot.lock().unwrap().is_none());
+    }
 }

@@ -6,8 +6,8 @@ use std::{
 };
 
 use scopehub_application::{
-    Actor, LOAD_LOCAL_IMPORT_MAPPING, MarketLifecycle, MarketPort, MarketRegistry,
-    PREVIEW_LOCAL_IMPORT, SAVE_LOCAL_IMPORT_MAPPING, failure,
+    Actor, LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS, MarketLifecycle, MarketPort,
+    MarketRegistry, PREVIEW_LOCAL_IMPORT, SAVE_LOCAL_IMPORT_MAPPING, failure,
 };
 use scopehub_domain::protocol::{Error, ErrorCode};
 use scopehub_platform::local_folder::LocalFolderHost;
@@ -70,16 +70,48 @@ pub fn state() -> State {
 
 /// Only the native desktop launcher supplies the trusted local app-data root.
 pub fn state_with_local_profile(app_local_data: Option<&Path>) -> State {
+    state_with_profile(app_local_data, false)
+}
+
+/// The native launcher explicitly opts this session into private workspace actions.
+pub fn state_with_development_workspace(app_local_data: Option<&Path>) -> State {
+    state_with_profile(app_local_data, true)
+}
+
+fn state_with_profile(app_local_data: Option<&Path>, enable_workspace: bool) -> State {
     State {
         reads: Mutex::new(MarketRegistry::new(MarketWorker::new(development_config()))),
         local_import: LocalImport::new(development_config()),
-        workspace: WorkspaceBridge::development(app_local_data.filter(|_| cfg!(debug_assertions))),
+        workspace: WorkspaceBridge::development(
+            app_local_data.filter(|_| cfg!(debug_assertions)),
+            enable_workspace && cfg!(debug_assertions),
+        ),
         replay: Mutex::new(()),
         cancellation: SyncMutex::default(),
     }
 }
 
 impl State {
+    async fn execute(
+        &self,
+        window_label: &str,
+        operation: Option<&str>,
+        payload: Value,
+        request_id: Option<&str>,
+    ) -> Result<Value, Error> {
+        authorize_window(window_label)?;
+        match operation {
+            None => self.workspace.dispatch(operation, payload).await,
+            Some(name) if LOCAL_WORKSPACE_OPERATIONS.contains(&name) => {
+                self.workspace.dispatch(operation, payload).await
+            }
+            Some(name) => {
+                self.execute_local_operation(name, payload, request_id)
+                    .await
+            }
+        }
+    }
+
     /// Native launcher/picker entry. Webview operation payloads have no access
     /// to directory adoption or this host instance.
     pub fn local_folders(&self) -> &LocalFolderHost {
@@ -192,7 +224,6 @@ impl State {
 
     pub async fn shutdown(&self) {
         self.local_import.shutdown().await;
-        self.workspace.shutdown().await;
         {
             let mut cancellation = self.cancellation.lock().expect("cancellation state");
             cancellation.closing = true;
@@ -200,14 +231,14 @@ impl State {
                 let _ = sender.send(());
             }
         }
+        self.workspace.shutdown().await;
         let _replay = self.replay.lock().await;
         let _ = self.reads.lock().await.shutdown().await;
     }
 }
 
-#[cfg(windows)]
-fn authorize_window(window: &tauri::WebviewWindow) -> Result<(), Error> {
-    if window.label() == "main" {
+fn authorize_window(label: &str) -> Result<(), Error> {
+    if label == "main" {
         Ok(())
     } else {
         Err(failure(ErrorCode::PERMISSIONDENIED))
@@ -219,13 +250,17 @@ fn authorize_window(window: &tauri::WebviewWindow) -> Result<(), Error> {
 pub async fn execute_operation(
     window: tauri::WebviewWindow,
     state: tauri::State<'_, State>,
-    operation: String,
+    operation: Option<String>,
     payload: Value,
     request_id: Option<String>,
 ) -> Result<Value, Error> {
-    authorize_window(&window)?;
     state
-        .execute_local_operation(&operation, payload, request_id.as_deref())
+        .execute(
+            window.label(),
+            operation.as_deref(),
+            payload,
+            request_id.as_deref(),
+        )
         .await
 }
 
@@ -236,7 +271,7 @@ pub fn cancel_local_import_preview(
     state: tauri::State<'_, State>,
     request_id: String,
 ) -> Result<(), Error> {
-    authorize_window(&window)?;
+    authorize_window(window.label())?;
     state.local_import.cancel(&request_id);
     Ok(())
 }
@@ -247,7 +282,7 @@ pub async fn choose_local_csv_folder(
     window: tauri::WebviewWindow,
     state: tauri::State<'_, State>,
 ) -> Result<Option<Value>, Error> {
-    authorize_window(&window)?;
+    authorize_window(window.label())?;
     state
         .choose_local_csv_folder(|| async {
             rfd::AsyncFileDialog::new()
@@ -269,7 +304,7 @@ pub async fn prepare_market_subscription(
     payload: Value,
     progress: Channel<Value>,
 ) -> Result<Value, Error> {
-    authorize_window(&window)?;
+    authorize_window(window.label())?;
     state
         .prepare(
             preparation_id,
@@ -291,7 +326,7 @@ pub fn cancel_market_preparation(
     state: tauri::State<'_, State>,
     preparation_id: String,
 ) -> Result<(), Error> {
-    authorize_window(&window)?;
+    authorize_window(window.label())?;
     state.cancel_replay(ReplayTask::Preparation(preparation_id));
     Ok(())
 }
@@ -305,7 +340,7 @@ pub async fn execute_market_subscription(
     payload: Value,
     progress: Channel<Value>,
 ) -> Result<(), Error> {
-    authorize_window(&window)?;
+    authorize_window(window.label())?;
     let (_slot, receive) = state.begin_replay(ReplayTask::Subscription(subscription_id))?;
     let publish = |frame| {
         progress
@@ -338,7 +373,7 @@ pub fn cancel_market_subscription(
     state: tauri::State<'_, State>,
     subscription_id: String,
 ) -> Result<(), Error> {
-    authorize_window(&window)?;
+    authorize_window(window.label())?;
     state.cancel_replay(ReplayTask::Subscription(subscription_id));
     Ok(())
 }

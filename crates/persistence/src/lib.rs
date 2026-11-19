@@ -11,10 +11,10 @@ use rusqlite::{
     Connection, OpenFlags, OptionalExtension, Row, TransactionBehavior, config::DbConfig, params,
 };
 use scopehub_application::{
-    Actor, DecisionNoteBackupData, DecisionNoteChange, DecisionNoteReplay, DecisionNoteRestorePlan,
-    SET_TIMEFRAME, Timeframe, UNDO, WorkspaceBinding, WorkspaceChange, WorkspaceReceipt,
-    WorkspaceReplay, WorkspaceReplayKey, WorkspaceState, WorkspaceStore, WorkspaceTransaction,
-    WorkspaceUndoAccess, WorkspaceUndoTarget, failure,
+    Actor, DecisionNoteBackupData, DecisionNoteChange, DecisionNoteMutation, DecisionNoteReplay,
+    DecisionNoteRestorePlan, SET_TIMEFRAME, Timeframe, UNDO, WorkspaceBinding, WorkspaceChange,
+    WorkspaceReceipt, WorkspaceReplay, WorkspaceReplayKey, WorkspaceState, WorkspaceStore,
+    WorkspaceTransaction, WorkspaceUndoAccess, WorkspaceUndoTarget, failure,
 };
 use scopehub_domain::protocol::{
     DecisionNoteDate, DecisionNoteReadOutput, Error, ErrorCode, Revision,
@@ -510,6 +510,7 @@ impl WorkspaceTransaction for SqliteTransaction<'_> {
     }
 
     fn record_note(&mut self, change: &DecisionNoteChange<'_>) -> Result<(), Error> {
+        self.check_note_capacity(&change.receipt.note_id, &change.mutation)?;
         let timeframe = self.state()?.timeframe;
         let receipt = &change.receipt;
         let key = &change.key;
@@ -537,6 +538,14 @@ impl WorkspaceTransaction for SqliteTransaction<'_> {
             Some(&receipt.note_id),
         )?;
         notes::apply(self.connection, self.binding, change)
+    }
+
+    fn check_note_capacity(
+        &self,
+        note_id: &str,
+        mutation: &DecisionNoteMutation,
+    ) -> Result<(), Error> {
+        note_backup::check_note_capacity(self.connection, self.binding, note_id, mutation)
     }
 
     fn plan_note_restore(

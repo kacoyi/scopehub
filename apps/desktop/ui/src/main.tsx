@@ -5,6 +5,7 @@ import { LocalImportEditor, type LocalFolderCatalog } from './local-import-edito
 import { cancelLocalPreview, chooseLocalCsvFolder, hasLocalCsvPicker, previewLocalImport } from './local-import-transport';
 import { LocalPreviewChart } from './local-preview-chart';
 import { readSampleView, saveSampleView } from './sample-view';
+import { useLocalWorkspace } from './use-local-workspace';
 import './style.css';
 
 function initialSource(): boolean {
@@ -18,6 +19,7 @@ function App() {
   const [folder, setFolder] = useState<LocalFolderCatalog | null>(null);
   const [choosing, setChoosing] = useState(false);
   const [pickerError, setPickerError] = useState<string>();
+  const workspace = useLocalWorkspace();
   useEffect(() => {
     const navigate = () => {
       const chosen = window.location.hash === '#demo';
@@ -65,7 +67,7 @@ function App() {
 
   return <>
     {!local && <ChartWorkspace key={sample ? 'sample' : 'unconfigured'} sample={sample}
-      leaveSample={leaveSample} localActions={localActions} />}
+      leaveSample={leaveSample} localActions={localActions} workspace={workspace} />}
     {folder && <div hidden={!local}>
       <main className="workstation local-workstation">
         <header className="topbar local-source-bar">

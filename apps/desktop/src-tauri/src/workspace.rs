@@ -6,28 +6,39 @@ use std::{
 };
 
 use scopehub_application::{
-    Actor, LOAD_LOCAL_IMPORT_MAPPING, MappingCommitGuard, OperationRegistry, ReviewedImportMapping,
+    Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, LOAD_LOCAL_IMPORT_MAPPING,
+    LOCAL_WORKSPACE_OPERATIONS, MappingCommitGuard, OperationRegistry, ReviewedImportMapping,
     SAVE_LOCAL_IMPORT_MAPPING, WorkspaceAccess, WorkspaceBinding, failure,
 };
 use scopehub_domain::protocol::{CsvMappingV1, Error, ErrorCode};
 use scopehub_persistence::SqliteWorkspace;
-use serde_json::Value;
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, OwnedMutexGuard};
 
 const WORKSPACE_ID: &str = "main";
 const WORKSPACE_DIRECTORY: &str = "workspace-dev";
 const MAPPING_OPERATIONS: &[&str] = &[LOAD_LOCAL_IMPORT_MAPPING, SAVE_LOCAL_IMPORT_MAPPING];
+const MAX_REQUEST_BYTES: usize = 16 * 1024;
+const MAX_NOTE_REQUEST_BYTES: usize = 32 * 1024;
+const MAX_BACKUP_REQUEST_BYTES: usize = 1024 * 1024;
 
 pub(super) struct WorkspaceBridge {
     lane: Arc<Mutex<Lane>>,
+    workspace_enabled: bool,
 }
 
 enum Lane {
     Disabled,
+    Unavailable,
     Pending(PathBuf),
-    Open(BoundWorkspace),
+    Open(Box<BoundWorkspace>),
     Closed,
+}
+
+enum Request {
+    Snapshot,
+    Operation(Value),
 }
 
 struct BoundWorkspace {
@@ -36,23 +47,38 @@ struct BoundWorkspace {
 }
 
 impl WorkspaceBridge {
-    pub(super) fn development(app_local_data: Option<&Path>) -> Self {
+    pub(super) fn development(app_local_data: Option<&Path>, workspace_enabled: bool) -> Self {
         // The native launcher owns this path. A sample or preview-only session
         // never opens the database.
-        let lane = app_local_data.map_or(Lane::Disabled, |path| Lane::Pending(path.to_owned()));
+        let lane = match app_local_data {
+            Some(path) => Lane::Pending(path.to_owned()),
+            None if workspace_enabled => Lane::Unavailable,
+            None => Lane::Disabled,
+        };
         Self {
             lane: Arc::new(Mutex::new(lane)),
+            workspace_enabled,
+        }
+    }
+
+    fn admit(&self) -> Result<OwnedMutexGuard<Lane>, Error> {
+        // One writer slot covers both the workspace and import mappings.
+        let lane = Arc::clone(&self.lane)
+            .try_lock_owned()
+            .map_err(|_| failure(ErrorCode::BUSY))?;
+        match &*lane {
+            Lane::Disabled => Err(failure(ErrorCode::PERMISSIONDENIED)),
+            Lane::Unavailable => Err(failure(ErrorCode::INTERNALERROR)),
+            Lane::Closed => Err(failure(ErrorCode::CANCELLED)),
+            Lane::Pending(_) | Lane::Open(_) => Ok(lane),
         }
     }
 
     async fn with_bound<T: Send + 'static>(
-        &self,
+        mut lane: OwnedMutexGuard<Lane>,
         create: bool,
         run: impl FnOnce(&mut BoundWorkspace) -> Result<T, Error> + Send + 'static,
     ) -> Result<Option<T>, Error> {
-        let mut lane = Arc::clone(&self.lane)
-            .try_lock_owned()
-            .map_err(|_| failure(ErrorCode::BUSY))?;
         tokio::task::spawn_blocking(move || {
             if let Lane::Pending(path) = &*lane {
                 if !path.is_absolute() {
@@ -66,24 +92,55 @@ impl WorkspaceBridge {
                 {
                     return Ok(None);
                 }
-                *lane = Lane::Open(BoundWorkspace::open(path)?);
+                *lane = Lane::Open(Box::new(BoundWorkspace::open(path)?));
             }
-            match &mut *lane {
-                Lane::Open(bound) => run(bound).map(Some),
-                Lane::Disabled => Err(failure(ErrorCode::PERMISSIONDENIED)),
-                Lane::Closed => Err(failure(ErrorCode::CANCELLED)),
-                Lane::Pending(_) => unreachable!("workspace opening completed"),
-            }
+            let Lane::Open(bound) = &mut *lane else {
+                unreachable!("admission requires an available workspace");
+            };
+            run(bound).map(Some)
         })
         .await
         .map_err(|_| failure(ErrorCode::INTERNALERROR))?
+    }
+
+    pub(super) async fn dispatch(
+        &self,
+        operation: Option<&str>,
+        payload: Value,
+    ) -> Result<Value, Error> {
+        if !self.workspace_enabled {
+            return Err(failure(ErrorCode::PERMISSIONDENIED));
+        }
+        let lane = self.admit()?;
+        let request = match operation {
+            None if payload == json!({"type": "snapshot"}) => Request::Snapshot,
+            Some(operation)
+                if payload["type"] == "request" && payload["intent"]["operation"] == operation =>
+            {
+                let limit = if operation == DECISION_NOTE_PREVIEW_RESTORE {
+                    MAX_BACKUP_REQUEST_BYTES
+                } else if DECISION_NOTE_OPERATIONS.contains(&operation) {
+                    MAX_NOTE_REQUEST_BYTES
+                } else {
+                    MAX_REQUEST_BYTES
+                };
+                if payload.to_string().len() >= limit {
+                    return Err(failure(ErrorCode::RESOURCELIMIT));
+                }
+                Request::Operation(payload)
+            }
+            _ => return Err(failure(ErrorCode::INVALIDARGUMENT)),
+        };
+        Self::with_bound(lane, true, move |bound| bound.dispatch(request))
+            .await?
+            .ok_or_else(|| failure(ErrorCode::INTERNALERROR))
     }
 
     pub(super) async fn find(
         &self,
         source_key: String,
     ) -> Result<Option<ReviewedImportMapping>, Error> {
-        self.with_bound(false, move |bound| {
+        Self::with_bound(self.admit()?, false, move |bound| {
             bound
                 .registry
                 .find_reviewed_mapping(&mapping_access(&bound.profile_id), &source_key)
@@ -99,7 +156,7 @@ impl WorkspaceBridge {
         mapping: CsvMappingV1,
         guard: impl MappingCommitGuard + Send + 'static,
     ) -> Result<Value, Error> {
-        self.with_bound(true, move |bound| {
+        Self::with_bound(self.admit()?, true, move |bound| {
             bound.registry.save_reviewed_mapping(
                 &mapping_access(&bound.profile_id),
                 &source_key,
@@ -150,6 +207,32 @@ impl BoundWorkspace {
             profile_id,
         })
     }
+
+    fn dispatch(&mut self, request: Request) -> Result<Value, Error> {
+        let access = WorkspaceAccess {
+            actor: Actor::User,
+            profile_id: &self.profile_id,
+            principal_id: &self.profile_id,
+            paired_client_id: None,
+            workspace_id: WORKSPACE_ID,
+            operations: LOCAL_WORKSPACE_OPERATIONS,
+            disclose_workspace_state: true,
+        };
+        match request {
+            Request::Snapshot => {
+                let snapshot = self.registry.workspace_snapshot(&access)?;
+                Ok(json!({
+                    "workspace": snapshot.workspace,
+                    "selection_revision": snapshot.selection_revision,
+                    "undo": snapshot.undo.map(|target| json!({
+                        "operation_id": target.operation_id,
+                        "committed_workspace_revision": target.committed_workspace_revision,
+                    })),
+                }))
+            }
+            Request::Operation(payload) => self.registry.execute_workspace(&access, payload),
+        }
+    }
 }
 
 fn mapping_access(profile_id: &str) -> WorkspaceAccess<'_> {
@@ -161,5 +244,88 @@ fn mapping_access(profile_id: &str) -> WorkspaceAccess<'_> {
         workspace_id: WORKSPACE_ID,
         operations: MAPPING_OPERATIONS,
         disclose_workspace_state: false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use super::*;
+
+    #[cfg(windows)]
+    #[tokio::test]
+    async fn native_workspace_provisions_an_absent_local_app_data_directory() {
+        use std::{
+            fs,
+            path::PathBuf,
+            time::{SystemTime, UNIX_EPOCH},
+        };
+
+        struct SyntheticAppData(PathBuf);
+        impl Drop for SyntheticAppData {
+            fn drop(&mut self) {
+                if self.0.is_dir() {
+                    fs::remove_dir_all(&self.0).unwrap();
+                }
+            }
+        }
+
+        let stamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let app_data = SyntheticAppData(
+            PathBuf::from(std::env::var_os("LOCALAPPDATA").unwrap()).join(format!(
+                "ScopeHub ACL fixture {}-{stamp}",
+                std::process::id()
+            )),
+        );
+        assert!(!app_data.0.exists());
+        for _ in 0..2 {
+            let bridge = WorkspaceBridge::development(Some(&app_data.0), true);
+            let snapshot = bridge
+                .dispatch(None, json!({"type": "snapshot"}))
+                .await
+                .unwrap();
+            assert_eq!(snapshot["workspace"]["timeframe"], "1m");
+            assert!(
+                app_data
+                    .0
+                    .join("workspace-dev")
+                    .join("workspace.sqlite3")
+                    .is_file()
+            );
+            bridge.shutdown().await;
+        }
+    }
+
+    #[tokio::test]
+    async fn shutdown_waits_for_the_admitted_slot_and_closes_the_lane() {
+        let bridge = WorkspaceBridge::development(None, true);
+        let admitted = bridge.lane.lock().await;
+        let snapshot = json!({"type": "snapshot"});
+        assert_eq!(
+            bridge
+                .dispatch(None, snapshot.clone())
+                .await
+                .unwrap_err()
+                .code,
+            ErrorCode::BUSY,
+        );
+
+        let shutdown = bridge.shutdown();
+        tokio::pin!(shutdown);
+        assert!(
+            tokio::time::timeout(Duration::from_millis(20), &mut shutdown)
+                .await
+                .is_err()
+        );
+        drop(admitted);
+        shutdown.await;
+        assert_eq!(
+            bridge.dispatch(None, snapshot).await.unwrap_err().code,
+            ErrorCode::CANCELLED,
+        );
     }
 }
