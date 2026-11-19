@@ -982,6 +982,17 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "hosted-public-publisher-advisory-rate-limit",
+      "source": "GitHub Actions run 44536924867, hosted Linux dependency-review.",
+      "observation": "The locked inventory passed. The approved live GitHub publisher advisory GET returned HTTP 403 with the anonymous REST rate limit exhausted, so dependency-review failed.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-027"],
+      "regression_checks": ["dependency-review", "python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
