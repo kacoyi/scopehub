@@ -6047,8 +6047,11 @@
       ],
       "scope": [
         "tests/ubuntu-preview/market-workflow.spec.mjs",
+        "tests/ubuntu-preview/market-workflow.config.mjs",
+        "tests/ubuntu-preview/market-quality.spec.mjs",
         "tests/ui",
         "apps/desktop/ui/ubuntu-preview.mjs",
+        "apps/desktop/ui/src/market.ts",
         "apps/desktop/ui/src/use-market-data.ts",
         "project"
       ],
@@ -6082,12 +6085,15 @@
         ],
         "context": [
           "project/feedback.json",
+          "apps/desktop/ui/src/market.ts",
           "apps/desktop/ui/src/use-market-data.ts",
+          "apps/desktop/ui/ubuntu-preview.mjs",
           "tests/ubuntu-preview/market-workflow.spec.mjs",
-          "tests/ui/sample-startup.mjs"
+          "tests/ubuntu-preview/market-quality.spec.mjs"
         ],
         "hypotheses": [
-          "The screenshot shows the CN stock, 5m, line and Retry history following a disconnected preview. The current assertion waits on a canvas and misses the terminal state and request stage. The original network or worker cause remains unknown."
+          "Windows run 44581311289 at dcafca35796318669c721c53f1a7bff55ef5e46a completed the CN futures step. Its CN stock 5m close-price line screenshot shows Retry history and the current selection's untyped disconnect alert. The canvas assertion timed out after 5000 ms. Playwright was configured without trace and the retained output contains no request, response or bridge admission event. The original socket code and host stage remain unknown.",
+          "A completed non-2xx response without a typed error envelope can reproduce the old disconnect alert without a socket failure. Keep it distinct from a rejected fetch or body transfer. Ignore only cancellation of an obsolete selection whose own signal was aborted."
         ],
         "risks": [
           {
@@ -6112,8 +6118,11 @@
             "development-tooling"
           ],
           "entrypoints": [
+            "apps/desktop/ui/src/market.ts",
             "apps/desktop/ui/src/use-market-data.ts",
-            "tests/ubuntu-preview/market-workflow.spec.mjs"
+            "apps/desktop/ui/ubuntu-preview.mjs",
+            "tests/ubuntu-preview/market-workflow.spec.mjs",
+            "tests/ubuntu-preview/market-quality.spec.mjs"
           ],
           "rules": [
             {
@@ -6125,7 +6134,7 @@
             "Real financial providers and installed desktop acceptance have separate entries."
           ],
           "open_questions": [
-            "Which request failed in the untraced Windows run?"
+            "The original browser transport event and matching host stage were not retained. A source-matched hosted run can verify the repair and capture stages if the Windows symptom recurs."
           ]
         },
         "evolution": {
@@ -6135,7 +6144,8 @@
             "The current explicit retry and all independent financial assertions."
           ],
           "change": [
-            "Observe the selected history across transport completion, terminal UI and a user-initiated retry."
+            "Use a correlated test-only history trace and fail the normal three-instrument journey at the first unexpected selected terminal.",
+            "Report a completed untyped HTTP failure separately from transport loss. Interrupt a selected stock response in an isolated control and verify an explicit retry through the real worker."
           ],
           "data_plan": "Use the existing simulated source and disposable local fixtures.",
           "cleanup": "Keep failed and successful logs and remove temporary listeners with their request scopes."

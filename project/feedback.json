@@ -1074,7 +1074,7 @@
     {
       "id": "hosted-selected-stock-history-disconnected",
       "source": "Windows main verification run 44581311289 at dcafca35796318669c721c53f1a7bff55ef5e46a.",
-      "observation": "The workflow selected SIM.CN.STOCK.001, 5m and the close-price line. The screenshot showed Disconnected from the local preview and Retry history. The assertion waited five seconds for a missing chart canvas. The Windows artifact records no failed HTTP request, socket code or corresponding server event.",
+      "observation": "The CN futures replay step passed. The workflow then selected SIM.CN.STOCK.001, 5m and the close-price line. The screenshot shows Disconnected from the local preview and Retry history for the current selection. The assertion at market-workflow.spec.mjs:315 waited five seconds for a missing chart canvas. The retained Playwright report has no trace or test stdout/stderr and the check log contains no request or host event. The original HTTP status, socket code and bridge admission remain indeterminate.",
       "severity": "major",
       "status": "open",
       "task_ids": [
