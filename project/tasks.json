@@ -2726,7 +2726,7 @@
         "local-import-ui"
       ],
       "evidence": [],
-      "next_action": "Implement and verify bounded cleanup and recovery for the separately observed native CSV worker timeout. The ordinary Windows 11 desktop saved and reopened the reviewed mapping and distinguished data and header errors. Continue immutable dataset publication and folder refresh with their own checks.",
+      "next_action": "Resolve the hosted Windows mapping reopen failure across equivalent directory selector spellings and verify both native selection forms with the same profile. Keep the separate CSV worker timeout, immutable publication and folder refresh on their own checks.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -2755,7 +2755,8 @@
           "Explicit source mappings can normalize native OHLCV bars without inferring a price, volume unit or session from ambiguous financial fields. File identities and row locators can connect every accepted row to its original input.",
           "A stable host-derived source identity and exact ordered header digest can associate a reviewed mapping across restarts while every read still requires a freshly selected folder and file.",
           "A transient host-side fingerprint of an eligible public preview can bind the explicit save to the same active grant, file, checksum, mapping, and preview sample without retaining source rows.",
-          "The first logical CSV record can establish the decoded header even when a later row cannot be decoded, provided the header boundary is verified with the existing CSV parser."
+          "The first logical CSV record can establish the decoded header even when a later row cannot be decoded, provided the header boundary is verified with the existing CSV parser.",
+          "The pre-decode not_saved result after the same-profile restart is consistent with a mapping key derived from different spellings of one directory. Resolve the Windows association path while the admitted non-reparse directory chain is pinned, and retain the existing v4 path-key format."
         ],
         "risks": [
           {
@@ -2823,6 +2824,13 @@
               "local-folder-import",
               "rust-contracts-workers"
             ]
+          },
+          {
+            "failure": "Equivalent native path spellings lose mapping reuse, or canonicalization admits a redirected root or merges distinct sources or profiles.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-folder-import"
+            ]
           }
         ],
         "rollback": "Keep the accepted mapping, immutable source identities and last published revision while staging changes. Rejected rows and unsupported files remain inspectable in the selected local session. Stage a mapping version in the current SQLite transaction and roll it back if cancellation or source revocation wins before commit. Keep the previous reviewed version available after failures.",
@@ -2881,7 +2889,8 @@
             "Add a separately authorized local-folder source with reviewable versioned mappings and snapshots.",
             "Add immutable reviewed mapping versions in the existing profile database, including an explicit review-required result for a changed header.",
             "Require a prior completed public preview before the existing single-click save. Keep the live file reread and guarded SQLite commit.",
-            "Compare the complete ordered decoded header independently of later decode failures. Preserve the source checksum and explicitly identify unverifiable headers."
+            "Compare the complete ordered decoded header independently of later decode failures. Preserve the source checksum and explicitly identify unverifiable headers.",
+            "Normalize the Windows association path only after trusted selection admission. Retain canonical v4 keys, opaque live grants and source and profile separation."
           ],
           "data_plan": "Keep source bytes, mapping, evidence locators and dataset revisions on the active profile. Migrate long-lived state through its owning Rust writer when publication is introduced. Integrate the profile writer and migration history from af89eff. Preserve workspace schema v1, decision notes v2 and backup and restore v3. Apply reviewed mapping schema v4 transactionally and verify both populated v3 databases and fresh initialization. Persist an opaque per-source association, ordered header digest and reviewed mapping. Derive folder access only from the current trusted selection.",
           "cleanup": "Cancel uncommitted staging on failure and close file handles when the selected folder or profile changes. Close the profile writer and cancel uncommitted mapping operations when the host shuts down."
