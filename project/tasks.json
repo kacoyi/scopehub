@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-017",
+  "focus_task_id": "M1-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -5021,7 +5021,7 @@
       "id": "M1-017",
       "title": "Verify replay admission and completion against their separate deadlines",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-006",
         "M1-007"
@@ -5048,8 +5048,13 @@
         "python-contracts-workers",
         "market-quality-states"
       ],
-      "evidence": [],
-      "next_action": "Reproduce the hosted timeout with a delayed real preparation. Check stage boundaries and repair the acceptance harness while retaining the gate on real worker output.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-017-456f99b26e193864.json",
+          "sha256": "5a92b82dc45960b03d3e09f57a6a6e115f9de5a7ce32832a286b19b943cc1a46"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
