@@ -732,14 +732,18 @@
       "source": "Windows hosted verification run 44495516299, check harness after the market-live-stream process returned exit code 1.",
       "observation": "The Windows console could not encode the browser failure text. The harness stopped before writing its report, so the hosted job lacked a downloadable Windows report for the original failure.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-026"
       ],
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Printing the raw Unicode tail on a legacy console could raise a second exception before harness finalization.",
+        "correction": "Escape the short structured console diagnostic while retaining the original bytes, digest and failing exit status in the check log. Preserve the private-check output boundary.",
+        "prevention": "The strict-encoding child-process regression and the private diagnostic test ran locally and on both hosted platforms in run 44498344930. The Windows report, including the successful market replay, was staged and imported. The earlier browser assertion was unavailable in run 44495516299."
+      },
       "deferral_reason": null
     }
   ]

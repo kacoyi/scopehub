@@ -2092,6 +2092,14 @@
         {
           "path": "project/evidence/M1-006-235a2a5920d42aac.json",
           "sha256": "4a9f9713a26d7e79da980ab1964e22ac418fadb7ae8e6ad4c16e183be1f40caa"
+        },
+        {
+          "path": "project/evidence/M1-006-43af3efbc798829e.json",
+          "sha256": "5c214d7c96ec04c31a794088681605f65a72bbe2dbde1a95e593602ca0cc5435"
+        },
+        {
+          "path": "project/evidence/M1-006-cbc6e4d4e3cc7acd.json",
+          "sha256": "5922d04647af64de6c98e37c66e6a1c03a4a5cf28e9433fcb249e19c02e1eb04"
         }
       ],
       "next_action": null,
@@ -4237,6 +4245,14 @@
         {
           "path": "project/evidence/M0-025-235a2a5920d42aac.json",
           "sha256": "49c19f88660e6633ee8aac14f166e4073924e7bf906b70297b566f2669cb6760"
+        },
+        {
+          "path": "project/evidence/M0-025-43af3efbc798829e.json",
+          "sha256": "3624c27cede4646922ca339462ecf4d8f0367712e75780f36ffe7e8031afab4e"
+        },
+        {
+          "path": "project/evidence/M0-025-cbc6e4d4e3cc7acd.json",
+          "sha256": "80b8bf43df25355af04b930140c0d682cca93a7abc91bd6ad1c9639fa0e17888"
         }
       ],
       "next_action": null,
@@ -4356,6 +4372,14 @@
         {
           "path": "project/evidence/M1-016-235a2a5920d42aac.json",
           "sha256": "95e037a7cea271649b9e0ebb56c4e150886beb44764c44dcd813c4977a35454e"
+        },
+        {
+          "path": "project/evidence/M1-016-43af3efbc798829e.json",
+          "sha256": "1958fb283c6ca903cd470aa59ba9b3611637c81a309ae72ef1b37d1b92b0e5a0"
+        },
+        {
+          "path": "project/evidence/M1-016-cbc6e4d4e3cc7acd.json",
+          "sha256": "586f1542f1f12dc730a9f10b307e8eb2d0c1ec73c747bbf476fde919b0620059"
         }
       ],
       "next_action": null,
@@ -4436,7 +4460,7 @@
       "id": "M0-026",
       "title": "Preserve failure diagnostics on Windows consoles",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-025"
       ],
@@ -4458,8 +4482,21 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Reproduce the Windows console failure under a strict legacy encoding, repair the diagnostic boundary, and inspect the next native run for the actual market check result.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-026-552c200a10c71c34.json",
+          "sha256": "9a0f64233e2a4fa4e241837df673f07629c3965cef6e3ebb72380fc8e91f03ae"
+        },
+        {
+          "path": "project/evidence/M0-026-43af3efbc798829e.json",
+          "sha256": "e6af8c09342fd66101703a30a813fa74153e83ed40504e3425717d2d094899c5"
+        },
+        {
+          "path": "project/evidence/M0-026-cbc6e4d4e3cc7acd.json",
+          "sha256": "753bc7d332494bc2d05e2833aacf54e19c4450dbd45ff186d26cde7124851a53"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
