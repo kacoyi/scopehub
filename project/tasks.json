@@ -5365,9 +5365,13 @@
         {
           "path": "project/evidence/M1-019-1139dbf6ff2e06ed.json",
           "sha256": "164c58576a2e1725828a2c9e28f762a4d74d4fa8cbc4a825ac73f3f961e1ffbb"
+        },
+        {
+          "path": "project/evidence/M1-019-a5c00379c62d812b.json",
+          "sha256": "ade7745a3b59b2b08631312c9316857151498898f102c8aaa2480ccf8f7d24b3"
         }
       ],
-      "next_action": "Retain hosted Windows evidence for the final test-server revision. Linux verified all selected checks, and a Windows 11 guest completed two cold worker replacements with the reduced locked environment.",
+      "next_action": "Confirm the repaired hosted Linux advisory read and recheck the integrated Windows run. The isolated Linux scenario and matching hosted Windows scenario passed at f8e8bc3.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -5466,14 +5470,30 @@
       "title": "Isolate the live publisher advisory request in GitHub verification",
       "milestone": "M0",
       "status": "active",
-      "depends_on": ["M0-017"],
-      "scope": [".github/workflows/verify.yml", "scripts/dependencies.py", "scripts/publisher_advisory.py", "tests/project/test_dependencies.py", "project/tasks.json", "project/feedback.json"],
-      "decision_refs": ["0004", "0007"],
+      "depends_on": [
+        "M0-017"
+      ],
+      "scope": [
+        ".github/workflows/verify.yml",
+        "scripts/dependencies.py",
+        "scripts/publisher_advisory.py",
+        "tests/project/test_dependencies.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
       "acceptance": [
         "Hosted verification uses the existing job read token only for the exact approved public publisher advisory GET. No redirect or other dependency client receives it.",
         "The live published advisory is bound to the current job attempt and checkout. Missing, unavailable, stale, malformed, or changed metadata fails review. Inventory, notices, immutable Actions, OSV, npm, and target-scope requirements still apply."
       ],
-      "checks": ["dependency-review", "project-state", "python-contracts-workers"],
+      "checks": [
+        "dependency-review",
+        "project-state",
+        "python-contracts-workers"
+      ],
       "evidence": [
         {
           "path": "project/evidence/M0-027-25105a7b3a4f376a.json",
@@ -5485,25 +5505,65 @@
       "closure_reason": null,
       "plan": {
         "outcome": "Recheck the public publisher advisory under the existing CI identity without transmitting it elsewhere.",
-        "change_types": ["tooling"],
-        "context": ["project/dependencies.json", "scripts/dependencies.py", ".github/workflows/verify.yml"],
-        "hypotheses": ["The Linux runner exhausted its anonymous GitHub REST request quota. A job-scoped authenticated read can avoid that quota when the publisher endpoint accepts the identity."],
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/dependencies.json",
+          "scripts/dependencies.py",
+          ".github/workflows/verify.yml"
+        ],
+        "hypotheses": [
+          "The Linux runner exhausted its anonymous GitHub REST request quota. A job-scoped authenticated read can avoid that quota when the publisher endpoint accepts the identity."
+        ],
         "risks": [
-          { "failure": "A redirect, later check, subprocess, or diagnostic receives the token.", "checks": ["python-contracts-workers"] },
-          { "failure": "An unavailable, stale, or changed publisher reply authorizes a disposition.", "checks": ["dependency-review", "python-contracts-workers"] }
+          {
+            "failure": "A redirect, later check, subprocess, or diagnostic receives the token.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An unavailable, stale, or changed publisher reply authorizes a disposition.",
+            "checks": [
+              "dependency-review",
+              "python-contracts-workers"
+            ]
+          }
         ],
         "rollback": "Retain the run 44536924867 failure. If the approved live endpoint remains unavailable, keep the gate failed and retain its bounded diagnostics.",
         "implementation": {
-          "modules": ["development-tooling"],
-          "entrypoints": [".github/workflows/verify.yml", "scripts/dependencies.py", "scripts/publisher_advisory.py"],
-          "rules": [{ "path": "project/delivery.json", "pointer": "/scaffold_maintenance" }, { "path": "project/dependencies.json", "pointer": "/advisory_dispositions" }],
-          "non_goals": ["Permission expansion, user credentials, product changes, and static advisory waivers."],
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            ".github/workflows/verify.yml",
+            "scripts/dependencies.py",
+            "scripts/publisher_advisory.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/dependencies.json",
+              "pointer": "/advisory_dispositions"
+            }
+          ],
+          "non_goals": [
+            "Permission expansion, user credentials, product changes, and static advisory waivers."
+          ],
           "open_questions": []
         },
         "evolution": {
           "kind": "refactor",
-          "preserve": ["Existing online advisory, target coverage, license, and notice acceptance."],
-          "change": ["Isolate an exact-origin publisher fetch and bind its public result to the current CI invocation."],
+          "preserve": [
+            "Existing online advisory, target coverage, license, and notice acceptance."
+          ],
+          "change": [
+            "Isolate an exact-origin publisher fetch and bind its public result to the current CI invocation."
+          ],
           "data_plan": "Store only reviewed public advisory fields in the runner temporary directory.",
           "cleanup": "The fetch has no child checks. The runner owns temporary public evidence and the built-in job credential lifetime."
         }
