@@ -62,6 +62,7 @@ enum Lane {
 
 enum Request {
     Snapshot,
+    WorkspaceSource(Value),
     FrozenChart(String),
     FrozenChartStatus(String),
     Operation(Value),
@@ -141,6 +142,11 @@ impl WorkspaceBridge {
         let lane = self.admit()?;
         let request = match operation {
             None if payload == json!({"type": "snapshot"}) => Request::Snapshot,
+            None if payload["type"] == "workspace_source"
+                && payload.to_string().len() <= MAX_REQUEST_BYTES =>
+            {
+                Request::WorkspaceSource(payload)
+            }
             None if payload["type"] == "frozen_chart" || chart_status => {
                 let revision_id = payload["revision_id"]
                     .as_str()
@@ -512,11 +518,16 @@ impl BoundWorkspace {
                     "workspace": snapshot.workspace,
                     "selection_revision": snapshot.selection_revision,
                     "chart_evidence": snapshot.chart_evidence,
+                    "layouts": snapshot.layouts_json(),
+                    "source": snapshot.source_json(),
                     "undo": snapshot.undo.map(|target| json!({
                         "operation_id": target.operation_id,
                         "committed_workspace_revision": target.committed_workspace_revision,
                     })),
                 }))
+            }
+            Request::WorkspaceSource(request) => {
+                self.registry.select_workspace_source(&access, &request)
             }
             Request::FrozenChart(revision_id) => self
                 .registry

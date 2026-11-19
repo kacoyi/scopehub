@@ -49,7 +49,8 @@ type OpenedRevision =
 
 const PAGE_SIZE = 8;
 
-export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, nativeLocalImport }: {
+export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, nativeLocalImport, useWorkspaceSource }: {
+  useWorkspaceSource?: ((id: string) => Promise<void>) | undefined;
   onClose: () => void; revisionAccess: PublishedRevisionAccess; workspace: LocalWorkspace | undefined; nativeLocalImport: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -216,6 +217,10 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
         {visibleFrozen.kind === 'folder'
           ? <FrozenFolderChart key={visibleFrozen.result.revision.revision_id} result={visibleFrozen.result} />
           : <FrozenLocalChart key={visibleFrozen.result.revision.revision_id} result={visibleFrozen.result} workspace={workspace} access={revisionAccess} />}
+        {visibleFrozen.kind === 'csv' && useWorkspaceSource && <button type="button" className="secondary-button"
+          disabled={working || Boolean(workspace?.pending)} onClick={() => void request(
+            () => useWorkspaceSource(visibleFrozen.result.revision.revision_id), 'Unable to save the workspace source.',
+          )}>Use as workspace source</button>}
         {nativeLocalImport && <div className="local-import-card">
           <RevisionAccessActions key={visibleFrozen.result.revision.revision_id} folder={visibleFrozen.kind === 'folder'}
             disabled={working} onRevoke={() => void revoke()} />

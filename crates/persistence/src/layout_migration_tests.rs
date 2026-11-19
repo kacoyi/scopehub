@@ -237,7 +237,12 @@ fn populated_v8_layout_migration_rolls_back_and_restores_all_previous_state() {
             assert_eq!(rows, 0);
         }
         assert_legacy_state(&v9);
-        let (_, _, evidence, layouts, source) = v9.snapshot(None, true).unwrap();
+        let StoredWorkspaceView {
+            chart_evidence: evidence,
+            layouts,
+            source,
+            ..
+        } = v9.snapshot(None, true).unwrap();
         assert!(
             matches!(evidence, Some(ChartEvidenceStatus::Available(target)) if target == legacy.displayed)
         );

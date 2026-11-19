@@ -537,7 +537,7 @@
         "M4-001"
       ],
       "delivery": "current-contract",
-      "boundary": "The default chart workspace and user- or AI-edited built-in panel layouts share a versioned definition. Layout acceptance is pending."
+      "boundary": "The built-in workspace chart, watchlist and inspection panel share a typed, editable definition and profile-local layout store. Registered human and scoped AI edits use the same preview, apply, undo and revision checks. Independent comparison uses the selected simulated catalog. Source restoration uses current profile access. Native Windows and owner review remain separate."
     },
     {
       "id": "realtime-voice",

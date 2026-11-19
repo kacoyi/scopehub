@@ -280,6 +280,14 @@ pub trait WorkspaceTransaction {
     ) -> Result<(), Error>;
 }
 
+pub struct StoredWorkspaceView {
+    pub state: WorkspaceState,
+    pub chart_undo: Option<WorkspaceUndoTarget>,
+    pub chart_evidence: Option<ChartEvidenceStatus>,
+    pub layouts: WorkspaceLayoutSnapshot,
+    pub source: Option<WorkspaceSourceView>,
+}
+
 pub trait WorkspaceStore: Send {
     fn binding(&self) -> &WorkspaceBinding;
     /// Restore the state and its currently eligible undo in one read snapshot.
@@ -287,16 +295,7 @@ pub trait WorkspaceStore: Send {
         &self,
         undo: Option<WorkspaceUndoAccess<'_>>,
         disclose_chart_evidence: bool,
-    ) -> Result<
-        (
-            WorkspaceState,
-            Option<WorkspaceUndoTarget>,
-            Option<ChartEvidenceStatus>,
-            WorkspaceLayoutSnapshot,
-            Option<WorkspaceSourceView>,
-        ),
-        Error,
-    >;
+    ) -> Result<StoredWorkspaceView, Error>;
     /// Read the selection token, target and current source entitlement in a single snapshot.
     fn inspect<T>(
         &self,
@@ -371,7 +370,13 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             principal_id: access.principal_id,
             paired_client_id: access.paired_client_id,
         });
-        let (state, undo, chart_evidence, layouts, source) = self.port.snapshot(
+        let StoredWorkspaceView {
+            state,
+            chart_undo,
+            chart_evidence,
+            layouts,
+            source,
+        } = self.port.snapshot(
             undo,
             evidence::local_display(access) && access.operations.contains(&READ_CHART_PROJECTION),
         )?;
@@ -380,7 +385,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         Ok(WorkspaceSnapshot {
             workspace: workspace_projection(access.workspace_id, state.revision, state.timeframe),
             selection_revision: state.selection_revision,
-            undo,
+            undo: chart_undo,
             source: source.filter(|_| evidence::local_display(access)),
             layouts: access
                 .operations

@@ -260,7 +260,7 @@
     {
       "id": "state-migrations",
       "status": "implemented",
-      "purpose": "Run the full SQLite persistence suite against populated v1 through v7 predecessors, transaction interruption and recovery, preserved workspace, note and frozen folder lineage, isolated profiles, logical backups, deletion and WAL cleanup, and rejection of archive-supplied approval or outbound authority. Real model and Windows UI acceptance have separate checks.",
+      "purpose": "Run the full SQLite persistence suite against populated v1 through v8 predecessors, transaction interruption and recovery, preserved workspace, note and frozen folder lineage, additive layout storage, isolated profiles, logical backups, deletion and WAL cleanup, and rejection of archive-supplied approval or outbound authority. Real model and Windows UI acceptance have separate checks.",
       "platforms": "all",
       "command": [
         "cargo",
@@ -407,11 +407,19 @@
     },
     {
       "id": "workspace-layout",
-      "status": "planned",
-      "purpose": "Exercise manual and AI-compatible panel edits, linked and pinned selections, save, restore and undo through the workspace.",
+      "status": "implemented",
+      "purpose": "Exercise keyboard and declarative edits and the real chart and panels through the private workspace bridge and SQLite. Verify revision and preview guards, exactly-once retry, undo, reset, same-profile reopen, simulated sample restoration, and frozen CSV disconnection and revocation with separately enforced access. This browser check is not native WebView2 acceptance.",
       "platforms": "all",
-      "command": null,
-      "timeout_seconds": 1800
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/workspace-layout.config.mjs"
+      ],
+      "timeout_seconds": 1800,
+      "cadence": "task"
     },
     {
       "id": "configured-model-session",

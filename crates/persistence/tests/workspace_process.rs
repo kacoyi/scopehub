@@ -17,10 +17,9 @@ use std::{
 };
 
 use scopehub_application::{
-    Actor, ChartEvidenceStatus, DECISION_NOTE_APPEND_OUTCOME, DECISION_NOTE_DELETE,
-    DECISION_NOTE_READ, DECISION_NOTE_SAVE, DecisionNoteBackupData, LOCAL_WORKSPACE_OPERATIONS,
-    OperationRegistry, WorkspaceAccess, WorkspaceState, WorkspaceStore, WorkspaceTransaction,
-    WorkspaceUndoAccess, WorkspaceUndoTarget,
+    Actor, DECISION_NOTE_APPEND_OUTCOME, DECISION_NOTE_DELETE, DECISION_NOTE_READ,
+    DECISION_NOTE_SAVE, DecisionNoteBackupData, LOCAL_WORKSPACE_OPERATIONS, OperationRegistry,
+    WorkspaceAccess, WorkspaceStore, WorkspaceTransaction, WorkspaceUndoAccess,
 };
 use scopehub_domain::protocol::{DecisionNoteReadOutput, Error};
 use serde_json::{Value, json};
@@ -460,16 +459,7 @@ impl WorkspaceStore for InterruptingStore {
         &self,
         undo: Option<WorkspaceUndoAccess<'_>>,
         disclose_chart_evidence: bool,
-    ) -> Result<
-        (
-            WorkspaceState,
-            Option<WorkspaceUndoTarget>,
-            Option<ChartEvidenceStatus>,
-            scopehub_application::WorkspaceLayoutSnapshot,
-            Option<scopehub_application::WorkspaceSourceView>,
-        ),
-        Error,
-    > {
+    ) -> Result<scopehub_application::StoredWorkspaceView, Error> {
         self.store.snapshot(undo, disclose_chart_evidence)
     }
 

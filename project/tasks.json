@@ -4222,6 +4222,7 @@
         "M2-001"
       ],
       "scope": [
+        "engineering-contract-v1.json",
         "contracts",
         "apps/desktop",
         "crates/application",
@@ -4231,7 +4232,8 @@
       "decision_refs": [
         "0004",
         "0007",
-        "0008"
+        "0008",
+        "0016"
       ],
       "acceptance": [
         "Move, resize, dock or tab panels, configure theme and gain/loss colors, link chart and table selection, and pin an independent comparison. Keep active source and confirmation controls reachable.",
@@ -4243,10 +4245,11 @@
         "operations-workflow",
         "state-migrations",
         "market-workflow",
-        "ui-build"
+        "ui-build",
+        "desktop-workspace-transport"
       ],
       "evidence": [],
-      "next_action": "Validate the additive v8-to-v9 layout store, then exercise manual and declarative layout preview, apply, undo and same-profile reopen with the real chart and source controls.",
+      "next_action": "Archive the matching local layout and compatibility checks. Coordinate shared chart and registry entries with M3 before native Windows and owner review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -4260,7 +4263,8 @@
           "engineering-contract-v1.json",
           "contracts/contract.json",
           "project/delivery.json",
-          "project/development.json"
+          "project/development.json",
+          "contracts/decisions/0016-profile-layout-and-source-restore.json"
         ],
         "hypotheses": [
           "The same versioned built-in panel definition can drive manual controls, declarative edits and scoped registry calls.",

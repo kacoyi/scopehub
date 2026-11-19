@@ -40,7 +40,7 @@ mod os_privacy {
         ] {
             assert_eq!(mode(&profile.0.join(name)), 0o600, "{name}");
         }
-        let state = writer.snapshot(None, false).unwrap().0;
+        let state = writer.snapshot(None, false).unwrap().state;
         assert_eq!(state.timeframe, Timeframe::Minute);
         drop(writer);
         assert_eq!(
@@ -49,7 +49,7 @@ mod os_privacy {
                 .unwrap()
                 .snapshot(None, false)
                 .unwrap()
-                .0
+                .state
                 .revision,
             0
         );
@@ -103,7 +103,7 @@ mod os_privacy {
                 .unwrap()
                 .snapshot(None, false)
                 .unwrap()
-                .0
+                .state
                 .revision,
             17
         );
@@ -206,7 +206,7 @@ fn windows_private_acl_inheritance_rejects_shared_roots_and_sidecars() {
             .unwrap()
             .snapshot(None, false)
             .unwrap()
-            .0
+            .state
             .revision,
         17
     );
@@ -263,7 +263,7 @@ fn windows_ancestor_acl_allows_reading_and_refuses_replaceable_entries() {
     assert_eq!(fs::read(&file).unwrap(), durable);
     grant("*S-1-1-0:(RX)");
     let writer = SqliteWorkspace::open(&profile_root, Profile::binding()).unwrap();
-    assert_eq!(writer.snapshot(None, false).unwrap().0.revision, 19);
+    assert_eq!(writer.snapshot(None, false).unwrap().state.revision, 19);
 }
 
 #[cfg(windows)]
@@ -313,7 +313,7 @@ fn windows_temp_alias_and_full_path_open_the_same_durable_profile() {
     drop(writer);
     for path in [&profile.0, &alias] {
         let writer = SqliteWorkspace::open(path, Profile::binding()).unwrap();
-        assert_eq!(writer.snapshot(None, false).unwrap().0.revision, 23);
+        assert_eq!(writer.snapshot(None, false).unwrap().state.revision, 23);
     }
 }
 
@@ -521,7 +521,11 @@ fn decision_note_migration_rolls_back_and_preserves_v1_timeframe_and_replay() {
         SCHEMA_VERSION
     );
     assert_eq!(integer_pragma(&migrated.connection, "secure_delete"), 1);
-    let (chart, undo, _, _, _) = migrated
+    let StoredWorkspaceView {
+        state: chart,
+        chart_undo: undo,
+        ..
+    } = migrated
         .snapshot(
             Some(WorkspaceUndoAccess {
                 actor: Actor::User,
@@ -793,7 +797,7 @@ mod decision_note_storage {
             ),
             (1, 2, 1, 2, 1, true)
         );
-        assert_eq!(live.snapshot(None, false).unwrap().0.revision, 5);
+        assert_eq!(live.snapshot(None, false).unwrap().state.revision, 5);
         assert!(live.read_notes(Some(MARKED_IN_BACKUP), 0).is_ok());
 
         let change = WorkspaceChange {
@@ -819,7 +823,7 @@ mod decision_note_storage {
             .unwrap();
         let failed = live.transact(|tx| tx.record_note_restore(&change, &plan));
         assert_eq!(failed.unwrap_err().code, ErrorCode::INTERNALERROR);
-        assert_eq!(live.snapshot(None, false).unwrap().0.revision, 5);
+        assert_eq!(live.snapshot(None, false).unwrap().state.revision, 5);
         assert!(live.read_notes(Some(MARKED_IN_BACKUP), 0).is_ok());
         assert_eq!(
             live.read_notes(Some(RETAINED_COPY), 0).unwrap_err().code,
@@ -919,7 +923,7 @@ mod decision_note_storage {
         let live_note = live.read_notes(Some(NOTE_ID), 0).unwrap();
         assert_eq!(live_note.note.unwrap().thesis, THESIS);
         assert_eq!(live_note.outcomes[0].outcome, OUTCOME);
-        assert_eq!(live.snapshot(None, false).unwrap().0.revision, 2);
+        assert_eq!(live.snapshot(None, false).unwrap().state.revision, 2);
     }
 
     #[test]
@@ -945,7 +949,7 @@ mod decision_note_storage {
             delete_note(&mut store).unwrap_err().code,
             ErrorCode::INTERNALERROR
         );
-        assert_eq!(store.snapshot(None, false).unwrap().0.revision, 2);
+        assert_eq!(store.snapshot(None, false).unwrap().state.revision, 2);
         let before = store.read_notes(Some(NOTE_ID), 0).unwrap();
         assert_eq!(before.note.unwrap().evidence_refs[0].locator, LOCATOR);
         assert_eq!(before.outcomes[0].outcome, OUTCOME);
@@ -962,7 +966,7 @@ mod decision_note_storage {
 
         delete_note(&mut store).unwrap();
         store.clean_deleted_note().unwrap();
-        assert_eq!(store.snapshot(None, false).unwrap().0.revision, 3);
+        assert_eq!(store.snapshot(None, false).unwrap().state.revision, 3);
         assert_eq!(
             store.read_notes(Some(NOTE_ID), 0).unwrap_err().code,
             ErrorCode::DATAUNAVAILABLE

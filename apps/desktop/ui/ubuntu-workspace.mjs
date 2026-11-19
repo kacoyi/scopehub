@@ -8,8 +8,12 @@ const route = '/__scopehub/workspace';
 const rawFiles = '/@fs/';
 const privateFile = /^(?:workspace\.sqlite3(?:-(?:wal|shm|journal))?|\.?workspace-access-\d+\.html(?:-[\da-f-]+)?)$/i;
 const chartId = 'main-chart';
+const sourceMutation = 'workspace_source';
 const timeframes = ['1m', '5m', '1d'];
-const mutations = ['chart.setTimeframe', 'workspace.undo'];
+const layoutId = 'workspace-layout';
+const previewLayout = 'workspace.previewLayout';
+const applyLayout = 'workspace.applyLayout';
+const mutations = ['chart.setTimeframe', 'workspace.undo', previewLayout, applyLayout];
 const selectEvidence = 'workspace.selectEvidence';
 const readChartProjection = 'workspace.readChartProjection';
 const evidenceOperations = [selectEvidence, readChartProjection];
@@ -92,13 +96,32 @@ function validUndo(undo, workspace) {
     && undo.committed_workspace_revision <= workspace.revision;
 }
 
+function validNamedLayout(layout) {
+  const plan = layout?.definition;
+  return (layout?.name === null || typeof layout?.name === 'string' && layout.name.length <= 96)
+    && plan?.version === 1 && Array.isArray(plan.panels) && plan.panels.length === 2
+    && new Set(plan.panels.map(panel => panel?.panel)).size === 2
+    && plan.panels.every(panel => ['watchlist', 'inspection'].includes(panel?.panel)
+      && ['left', 'right', 'bottom'].includes(panel.dock) && Number.isInteger(panel.size)
+      && panel.size >= 180 && panel.size <= 480)
+    && ['dark', 'light'].includes(plan.theme) && ['gain_color', 'loss_color'].every(key => /^#[0-9a-f]{6}$/i.test(plan[key]))
+    && typeof plan.link_selection === 'boolean' && (plan.pinned_instrument === null || typeof plan.pinned_instrument === 'string');
+}
+
 function validSnapshot(state, workspaceId) {
+  const source = state?.source;
+  const validSource = source == null || source.kind === 'none' || source.kind === 'sample'
+    && (source.instrument_id === null || typeof source.instrument_id === 'string')
+    || source.kind === 'frozen' && uuid(source.revision_id) && ['available', 'revoked', 'unavailable'].includes(source.status);
   const evidence = state?.chart_evidence;
   const validEvidence = evidence === null || evidence?.unavailable === true || uuid(evidence?.revision_id)
     && Number.isSafeInteger(evidence.range?.from_ms) && Number.isSafeInteger(evidence.range?.to_ms)
     && evidence.range.from_ms < evidence.range.to_ms;
   return validWorkspace(state?.workspace, workspaceId) && revision(state.selection_revision)
-    && validUndo(state.undo, state.workspace) && validEvidence;
+    && validUndo(state.undo, state.workspace) && validEvidence && validSource && (state.layouts == null
+      || validNamedLayout(state.layouts.active) && Array.isArray(state.layouts.saved)
+      && state.layouts.saved.length <= 24 && state.layouts.saved.every(name => typeof name === 'string')
+      && validUndo(state.layouts.undo, state.workspace));
 }
 
 function requestLimit(operation) {
@@ -119,6 +142,12 @@ function requestFrame(command, workspaceId) {
       throw new PreviewFailure(400, 'INVALID_ARGUMENT');
     }
     return JSON.stringify(command) + '\n';
+  }
+  if (command?.type === sourceMutation) {
+    if (!uuid(command.request_id) || !revision(command.expected_selection_revision)) throw new PreviewFailure(400, 'INVALID_ARGUMENT');
+    const line = JSON.stringify(command) + '\n';
+    if (Buffer.byteLength(line) > maxRequestBytes) throw new PreviewFailure(413, 'RESOURCE_LIMIT');
+    return line;
   }
   const evidence = evidenceOperations.includes(command?.operation);
   const name = evidence ? command.operation : command?.intent?.operation;
@@ -258,6 +287,10 @@ function startWriter(root, { path, profileId, workspaceId }) {
           || !(validFailure || frame.ok === true && validSnapshot(frame.result, workspaceId))) throw invalidReply();
       // Keep correlation internal to the trusted stdio transport.
       delete frame.request_id;
+    } else if (job.operation === sourceMutation) {
+      if (frame?.request_id !== job.requestId || !(validFailure || frame?.ok === true
+        && frame.result?.selection_revision === job.selectionRevision + 1)) throw invalidReply();
+      delete frame.request_id;
     } else if (job.operation === 'frozen_chart_status') {
       if (frame?.request_id !== job.requestId || !(validFailure || frame?.ok === true
         && typeof frame.result?.available === 'boolean' && Object.keys(frame.result).length === 1)) throw invalidReply();
@@ -283,12 +316,18 @@ function startWriter(root, { path, profileId, workspaceId }) {
         if (!validNoteOutcome(outcome, job, workspaceId)) throw invalidReply();
       } else if (privateRecordOperations.includes(job.operation)) {
         if (!validPrivateRecordOutcome(outcome, job, workspaceId)) throw invalidReply();
+      } else if (job.operation === previewLayout) {
+        if (outcome?.state !== 'previewed' || outcome.operation !== job.operation
+            || !validNamedLayout(outcome.result?.layout)
+            || !/^[a-f0-9]{64}$/.test(outcome.result?.preview_token)) throw invalidReply();
       } else if (outcome?.state === 'committed') {
         const { result, receipt } = outcome;
-        if (outcome.operation !== job.operation || !validWorkspace(result, workspaceId)
-            || receipt?.workspace_id !== workspaceId || receipt?.target?.kind !== 'chart'
-            || receipt?.target?.object_id !== chartId || !uuid(receipt.operation_id)
-            || result.revision !== receipt.committed_workspace_revision
+        const layout = job.operation === applyLayout || job.operation === 'workspace.undo' && job.layoutTarget;
+        if (outcome.operation !== job.operation
+            || !(job.operation === applyLayout ? validNamedLayout(result) : validWorkspace(result, workspaceId))
+            || receipt?.workspace_id !== workspaceId || receipt?.target?.kind !== (layout ? 'layout' : 'chart')
+            || receipt?.target?.object_id !== (layout ? layoutId : chartId) || !uuid(receipt.operation_id)
+            || receipt.committed_workspace_revision !== (job.operation === applyLayout ? job.workspaceRevision + 1 : result.revision)
             || typeof receipt.undoable !== 'boolean') throw invalidReply();
       } else throw invalidReply();
     } else if (!validFailure) throw invalidReply();
@@ -342,13 +381,15 @@ function startWriter(root, { path, profileId, workspaceId }) {
         : requestFrame(body, workspaceId);
       const reply = Promise.withResolvers();
       const noteId = body?.scope?.target?.object_id ?? body?.intent?.arguments?.note_id;
-      const operation = snapshot || frozenChartControls.includes(body.type) ? body.type : body.operation ?? body.intent?.operation;
+      const operation = snapshot || body.type === sourceMutation || frozenChartControls.includes(body.type)
+        ? body.type : body.operation ?? body.intent?.operation;
       pending = {
         ...reply, requestId, messageId: body.message_id, operation,
         revisionId: body.revision_id, selectionRevision: body.expected_selection_revision,
         recordId: typeof body.intent?.arguments?.record_id === 'string'
           ? body.intent.arguments.record_id.toLowerCase() : body.intent?.arguments?.record_id,
         recordAction: body.intent?.arguments?.action, workspaceRevision: body.scope?.expected_workspace_revision,
+        layoutTarget: body.scope?.target?.kind === 'layout' && body.scope.target.object_id === layoutId,
         noteId: typeof noteId === 'string' ? noteId.toLowerCase() : noteId,
         timer: setTimeout(() => stop(timeout()), commandDeadlineMs),
       };

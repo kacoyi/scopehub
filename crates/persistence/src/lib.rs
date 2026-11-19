@@ -17,11 +17,11 @@ use rusqlite::{
 use scopehub_application::{
     APPLY_LAYOUT, Actor, ChartEvidenceRef, ChartEvidenceStatus, DecisionNoteBackupData,
     DecisionNoteChange, DecisionNoteMutation, DecisionNoteReplay, DecisionNoteRestorePlan,
-    PrivateRecordPlan, SET_TIMEFRAME, StoredLocalDataset, Timeframe, UNDO, WorkspaceBinding,
-    WorkspaceChange, WorkspaceLayoutChange, WorkspaceLayoutSnapshot, WorkspaceLayoutState,
-    WorkspaceReceipt, WorkspaceReplay, WorkspaceReplayKey, WorkspaceSourcePreference,
-    WorkspaceSourceView, WorkspaceState, WorkspaceStore, WorkspaceTransaction, WorkspaceUndoAccess,
-    WorkspaceUndoTarget, failure,
+    PrivateRecordPlan, SET_TIMEFRAME, StoredLocalDataset, StoredWorkspaceView, Timeframe, UNDO,
+    WorkspaceBinding, WorkspaceChange, WorkspaceLayoutChange, WorkspaceLayoutSnapshot,
+    WorkspaceLayoutState, WorkspaceReceipt, WorkspaceReplay, WorkspaceReplayKey,
+    WorkspaceSourcePreference, WorkspaceState, WorkspaceStore, WorkspaceTransaction,
+    WorkspaceUndoAccess, WorkspaceUndoTarget, failure,
 };
 use scopehub_domain::protocol::{
     DecisionNoteDate, DecisionNoteReadOutput, Error, ErrorCode, PrivateRecordArchiveEntry,
@@ -418,16 +418,7 @@ impl WorkspaceStore for SqliteWorkspace {
         &self,
         undo: Option<WorkspaceUndoAccess<'_>>,
         disclose_chart_evidence: bool,
-    ) -> Result<
-        (
-            WorkspaceState,
-            Option<WorkspaceUndoTarget>,
-            Option<ChartEvidenceStatus>,
-            WorkspaceLayoutSnapshot,
-            Option<WorkspaceSourceView>,
-        ),
-        Error,
-    > {
+    ) -> Result<StoredWorkspaceView, Error> {
         let snapshot = self
             .connection
             .unchecked_transaction()
@@ -460,17 +451,17 @@ impl WorkspaceStore for SqliteWorkspace {
             None
         };
         snapshot.commit().map_err(store_error)?;
-        Ok((
+        Ok(StoredWorkspaceView {
             state,
-            target,
-            evidence,
-            WorkspaceLayoutSnapshot {
+            chart_undo: target,
+            chart_evidence: evidence,
+            layouts: WorkspaceLayoutSnapshot {
                 active: layouts.active,
                 saved: layouts.saved.into_keys().collect(),
                 undo: layout_undo,
             },
             source,
-        ))
+        })
     }
 
     fn inspect<T>(
