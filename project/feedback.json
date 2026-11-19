@@ -892,7 +892,7 @@
       "source": "Independent review and owned synthetic bridge probes at bebc1c2.",
       "observation": "Cropping the requested end by one millisecond hid an interior source gap. A replacement worker could change the volume of an earlier closed row under the same revision. A real worker exit during the repair read dropped the disconnection reason.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-003"
       ],
@@ -901,7 +901,11 @@
         "market-worker-interruption",
         "market-recovery"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Completion depended on repair eligibility, resume compared only the latest bar, and a failed repair read discarded the worker error.",
+        "correction": "Track actual in-range gaps independently of repair, compare closed historical rows at the confirmed boundary, and preserve a worker failure after emitting the validated gap.",
+        "prevention": "A one-millisecond crop, altered previously closed row and owned worker termination each have a regression. The ordinary chart retained the gap and the frozen history on a worker failure."
+      },
       "deferral_reason": null
     },
     {
@@ -909,7 +913,7 @@
       "source": "Independent follow-up review of 2d55f0a using the real provider and captured bridge frames.",
       "observation": "A same-hash replacement page declared a new visible gap while recovery still allowed completion. Altering the missing closed bar volume from 90 to 91 on an otherwise genuine repair frame retained its original digest and the chart accepted the altered value.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-003"
       ],
@@ -917,7 +921,11 @@
         "rust-contracts-workers",
         "market-recovery"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The history row digest excludes quality coverage, and the consumer previously validated a repair digest only by its presence and format.",
+        "correction": "Compare visible half-open gap coverage at the resume boundary. Verify the canonical digest of both received repair bars before projecting them after a completed stream.",
+        "prevention": "The real worker probe stops before re-subscribing when visible coverage changes. An altered volume with its prior digest retains the gap and 39 frozen bars. Stopping or changing selection while verification is pending prevents late projection."
+      },
       "deferral_reason": null
     },
     {
