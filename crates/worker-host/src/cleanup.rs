@@ -1,6 +1,10 @@
 use std::{future::Future, io, time::Duration};
 
-use tokio::process::Child;
+use tokio::{
+    process::Child,
+    task::JoinHandle,
+    time::{Instant, timeout_at},
+};
 
 use crate::ProtocolError;
 
@@ -44,14 +48,29 @@ async fn reap(mut process: impl Process, grace: Duration) {
 
 /// The reaper keeps its process and admission permit if its caller's budget
 /// expires or the caller is cancelled while awaiting cleanup.
-pub(super) async fn wait_for_cleanup(
-    cleanup: impl Future<Output = ()> + Send + 'static,
-    deadline: Duration,
-) -> Result<(), ProtocolError> {
-    match tokio::time::timeout(deadline, tokio::spawn(cleanup)).await {
-        Ok(Ok(())) => Ok(()),
-        Ok(Err(_)) => Err(ProtocolError::Io),
-        Err(_) => Err(ProtocolError::Timeout),
+pub(super) struct PendingCleanup {
+    task: JoinHandle<()>,
+    deadline: Instant,
+}
+
+impl PendingCleanup {
+    pub(super) fn start(
+        cleanup: impl Future<Output = ()> + Send + 'static,
+        budget: Duration,
+    ) -> Self {
+        Self {
+            task: tokio::spawn(cleanup),
+            deadline: Instant::now() + budget,
+        }
+    }
+
+    /// Cancelling this wait leaves the same reaper and deadline available to shutdown.
+    pub(super) async fn wait(&mut self) -> Result<(), ProtocolError> {
+        match timeout_at(self.deadline, &mut self.task).await {
+            Ok(Ok(())) => Ok(()),
+            Ok(Err(_)) => Err(ProtocolError::Io),
+            Err(_) => Err(ProtocolError::Timeout),
+        }
     }
 }
 
@@ -104,14 +123,16 @@ mod tests {
             can_reap,
             dropped: Some(dropped),
         };
-        assert_eq!(
-            wait_for_cleanup(
-                reap(process, Duration::from_millis(20)),
-                Duration::from_millis(150)
-            )
-            .await,
-            Err(ProtocolError::Timeout)
+        let mut cleanup = PendingCleanup::start(
+            reap(process, Duration::from_millis(20)),
+            Duration::from_millis(150),
         );
+        tokio::select! {
+            biased;
+            _ = cleanup.wait() => panic!("reaper completed before it was released"),
+            () = std::future::ready(()) => {},
+        }
+        assert_eq!(cleanup.wait().await, Err(ProtocolError::Timeout));
         assert_eq!(
             did_drop.try_recv(),
             Err(oneshot::error::TryRecvError::Empty)
