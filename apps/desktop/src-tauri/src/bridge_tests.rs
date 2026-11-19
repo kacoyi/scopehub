@@ -49,13 +49,52 @@ fn import_request(
 
 #[cfg(any(target_os = "linux", windows))]
 #[tokio::test]
+async fn shutdown_releases_the_selection_and_closes_native_folder_access() {
+    use scopehub_platform::local_folder::{Cancellation, FolderError};
+    use std::fs;
+
+    let fixture = ImportFixture::new();
+    let selected = fixture.0.join("selected");
+    let replacement = fixture.0.join("replacement");
+    fs::create_dir(&selected).unwrap();
+    fs::create_dir(&replacement).unwrap();
+    let source = b"contract,quote\nTEST,7\n";
+    fs::write(selected.join("source.csv"), source).unwrap();
+    let state = state();
+    let folders = state.local_folders();
+    let cancel = Cancellation::default();
+    let before = folders.adopt_selected(&selected, &cancel).unwrap();
+    let file = before.files[0].file_id;
+    let frozen = folders.read(before.folder_id, file, None, &cancel).unwrap();
+
+    state.shutdown().await;
+
+    assert_eq!(
+        folders.check_current(before.folder_id),
+        Err(FolderError::SelectionUnavailable)
+    );
+    assert!(matches!(
+        folders.read(before.folder_id, file, None, &cancel),
+        Err(FolderError::SelectionUnavailable)
+    ));
+    assert!(matches!(
+        folders.adopt_selected(&replacement, &cancel),
+        Err(FolderError::SelectionUnavailable)
+    ));
+    // On Windows this also checks that the old directory pin no longer blocks rename.
+    fs::rename(selected, fixture.0.join("released")).unwrap();
+    assert_eq!(frozen.content.as_deref(), Some(source.as_slice()));
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[tokio::test]
 async fn native_registry_returns_source_bound_raw_and_normalized_previews() {
     use scopehub_platform::local_folder::Cancellation;
     use std::fs;
 
     let fixture = ImportFixture::new();
     let stock = b"Ticker,Date,Open,High,Low,Close,Shares\n000418,2026-11-19,4,6,3,5,20\n000418,2026-11-20,6,7,4,5,\n";
-    let future = b"Contract,LocalStart,TradingDay,Open,High,Low,Close,Contracts,Settlement\nTEST2603,2024-07-19 21:05,2024-07-22,83,85,82,84,0,86\nTEST2603,2024-07-19 21:10,2024-07-22,83,85,82,settlement,6,86\n";
+    let future = b"Contract,LocalStart,TradingDay,Open,High,Low,Close,Contracts,PrevSettlementPrice,is_closed\nTEST2603,2024-07-19 21:05,2024-07-22,100,105,96,102,0,99,true\nTEST2603,2024-07-19 21:10,2024-07-22,83,85,82,settlement,6,84,true\nTEST2603,2024-07-19 21:15,2024-07-22,103,106,98,105,3,102,false\n";
     let stock_path = fixture.0.join("equity.csv");
     fs::write(&stock_path, stock).unwrap();
     fs::write(fixture.0.join("future.csv"), future).unwrap();
@@ -125,20 +164,39 @@ async fn native_registry_returns_source_bound_raw_and_normalized_previews() {
         }),
     );
     let futures_preview = state
-        .execute_local_operation(PREVIEW_LOCAL_IMPORT, import_future, None)
+        .execute_local_operation(PREVIEW_LOCAL_IMPORT, import_future.clone(), None)
         .await
         .unwrap();
     assert_eq!(
         futures_preview["preview"]["file_sha256"],
-        "04f0a9958289976e79243d07ae9bfffabb7a5a7eeff1628ba9871cd2eeaa64cc"
+        "19aebe2d5ed0d9fe68bf7414a6fd1a0a60a2154d5979291c37d7f7f546178074"
     );
     let rows = &futures_preview["preview"]["rows"];
     assert_eq!(rows[0]["normalized"]["time_ms"], 1_721_394_300_000_i64);
     assert_eq!(rows[0]["normalized"]["trading_day"], "2024-07-22");
     assert_eq!(rows[0]["normalized"]["volume"], 0.0);
+    assert_eq!(rows[0]["normalized"]["close"], 102.0);
+    assert_eq!(rows[0]["normalized"]["is_closed"], true);
     assert_eq!(rows[1]["raw_fields"][6], "settlement");
     assert_eq!(rows[1]["issues"][0]["field"], "close");
     assert!(rows[1]["normalized"].is_null());
+
+    let mut mislabelled = import_future;
+    mislabelled["mapping"]["columns"]["close"] = json!("PrevSettlementPrice");
+    let raw_preview = state
+        .execute_local_operation(PREVIEW_LOCAL_IMPORT, mislabelled, None)
+        .await
+        .unwrap();
+    let issue = &raw_preview["preview"]["issues"][0];
+    assert_eq!(issue["code"], "auxiliary_column");
+    assert_eq!(issue["field"], "close");
+    let raw = &raw_preview["preview"]["rows"][0];
+    assert!(raw["normalized"].is_null());
+    assert_eq!(raw["raw_fields"][6], "102");
+    assert_eq!(raw["raw_fields"][8], "99");
+    assert_eq!(rows[2]["raw_fields"][9], "false");
+    assert_eq!(rows[2]["issues"][0]["code"], "bar_incomplete");
+    assert!(rows[2]["normalized"].is_null());
 
     let too_large = import_request(&selected, "large.csv", input["mapping"].clone());
     let limit = state
@@ -170,11 +228,22 @@ async fn native_registry_returns_source_bound_raw_and_normalized_previews() {
 
 #[cfg(any(target_os = "linux", windows))]
 #[tokio::test]
-async fn pending_local_preview_stops_on_cancellation_or_selection_change() {
-    use scopehub_platform::local_folder::Cancellation;
+async fn pending_local_preview_stops_on_cancellation_selection_change_or_shutdown() {
+    use scopehub_platform::local_folder::{Cancellation, FolderError};
     use std::fs;
 
-    for revoke in [false, true] {
+    #[derive(Clone, Copy)]
+    enum Interruption {
+        Cancel,
+        Revoke,
+        Shutdown,
+    }
+
+    for interruption in [
+        Interruption::Cancel,
+        Interruption::Revoke,
+        Interruption::Shutdown,
+    ] {
         let fixture = ImportFixture::new();
         let selected = fixture.0.join("selected");
         fs::create_dir(&selected).unwrap();
@@ -217,18 +286,34 @@ time.sleep(30)
                 while !ready.exists() { tokio::time::sleep(Duration::from_millis(10)).await; }
             }) => assert!(ready.exists(), "controlled worker did not receive the bytes"),
         }
-        let code = if revoke {
-            folders.revoke(catalog.folder_id).unwrap();
-            ErrorCode::STALECONTEXT
-        } else {
-            state.local_import.cancel("preview-1");
-            ErrorCode::CANCELLED
+        let interrupt = async {
+            match interruption {
+                Interruption::Cancel => state.local_import.cancel("preview-1"),
+                Interruption::Revoke => folders.revoke(catalog.folder_id).unwrap(),
+                Interruption::Shutdown => state.shutdown().await,
+            }
         };
-        let error = tokio::time::timeout(Duration::from_secs(3), preview)
-            .await
-            .unwrap()
-            .unwrap_err();
-        assert_eq!(error.code, code);
+        let (result, ()) = tokio::time::timeout(Duration::from_secs(3), async {
+            tokio::join!(preview, interrupt)
+        })
+        .await
+        .unwrap();
+        let code = match interruption {
+            Interruption::Revoke => ErrorCode::STALECONTEXT,
+            Interruption::Cancel | Interruption::Shutdown => ErrorCode::CANCELLED,
+        };
+        assert_eq!(result.unwrap_err().code, code);
+        if matches!(interruption, Interruption::Shutdown) {
+            assert_eq!(
+                folders.check_current(catalog.folder_id),
+                Err(FolderError::SelectionUnavailable)
+            );
+            assert!(matches!(
+                folders.adopt_selected(&selected, &Cancellation::default()),
+                Err(FolderError::SelectionUnavailable)
+            ));
+            fs::rename(selected, fixture.0.join("released")).unwrap();
+        }
         state.shutdown().await;
     }
 }

@@ -121,7 +121,11 @@ impl LocalImport {
                 cancel.cancel();
             }
         }
+        self.folders.begin_shutdown();
+        let folders = Arc::clone(&self.folders);
+        let release = tokio::task::spawn_blocking(move || folders.shutdown());
         let _admission = self.admission.lock().await;
+        release.await.expect("local folder shutdown");
     }
 }
 

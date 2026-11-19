@@ -245,6 +245,89 @@ fn switching_and_revoking_selections_expire_ids_but_keep_frozen_values() {
 }
 
 #[test]
+fn shutdown_revokes_the_selection_and_closes_future_adoptions() {
+    let temp = TempDir::new();
+    let selected_path = temp.directory("selected");
+    write(&selected_path, "equity.csv", EQUITY);
+    let host = LocalFolderHost::default();
+    let cancel = Cancellation::default();
+    let catalog = host.adopt_selected(&selected_path, &cancel).unwrap();
+    let file_id = file(&catalog, "equity.csv").file_id;
+    let frozen = host
+        .read(catalog.folder_id, file_id, None, &cancel)
+        .unwrap();
+
+    #[cfg(target_os = "linux")]
+    assert!(directory_is_pinned(&selected_path));
+
+    host.shutdown();
+    host.shutdown();
+
+    assert_eq!(
+        host.check_current(catalog.folder_id),
+        Err(FolderError::SelectionUnavailable)
+    );
+    assert!(matches!(
+        host.catalog(catalog.folder_id),
+        Err(FolderError::SelectionUnavailable)
+    ));
+    assert!(matches!(
+        host.read(catalog.folder_id, file_id, None, &cancel),
+        Err(FolderError::SelectionUnavailable)
+    ));
+    assert!(matches!(
+        host.adopt_selected(&selected_path, &cancel),
+        Err(FolderError::SelectionUnavailable)
+    ));
+    assert_eq!(frozen.content.as_deref(), Some(EQUITY));
+    #[cfg(target_os = "linux")]
+    assert!(!directory_is_pinned(&selected_path));
+    fs::rename(&selected_path, temp.0.join("released")).unwrap();
+}
+
+#[cfg(target_os = "linux")]
+fn directory_is_pinned(path: &Path) -> bool {
+    fs::read_dir("/proc/self/fd")
+        .unwrap()
+        .filter_map(Result::ok)
+        .any(|entry| fs::read_link(entry.path()).is_ok_and(|target| target == path))
+}
+
+#[test]
+fn shutdown_does_not_leave_a_concurrently_adopted_selection_live() {
+    let temp = TempDir::new();
+    let selected_path = temp.directory("selected");
+    write(&selected_path, "equity.csv", EQUITY);
+    let host = LocalFolderHost::default();
+    let cancel = Cancellation::default();
+    let catalog = host.adopt_selected(&selected_path, &cancel).unwrap();
+    let start = std::sync::Barrier::new(2);
+
+    let attempted = std::thread::scope(|scope| {
+        let adoption = scope.spawn(|| {
+            start.wait();
+            host.adopt_selected(&selected_path, &cancel)
+        });
+        start.wait();
+        host.shutdown();
+        adoption.join().unwrap()
+    });
+    match attempted {
+        Ok(adopted) => assert_eq!(
+            host.check_current(adopted.folder_id),
+            Err(FolderError::SelectionUnavailable)
+        ),
+        Err(error) => assert_eq!(error, FolderError::SelectionUnavailable),
+    }
+    assert_eq!(
+        host.check_current(catalog.folder_id),
+        Err(FolderError::SelectionUnavailable)
+    );
+    #[cfg(target_os = "linux")]
+    assert!(!directory_is_pinned(&selected_path));
+}
+
+#[test]
 fn calculates_digest_to_eof_even_when_no_complete_preview_can_be_retained() {
     let temp = TempDir::new();
     let retained = vec![b'A'; MAX_PREVIEW_BYTES];

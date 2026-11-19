@@ -166,11 +166,48 @@ impl Selection {
 #[derive(Default)]
 pub struct LocalFolderHost {
     active: Mutex<Option<Arc<Selection>>>,
+    closed: Cancellation,
     adopting: Mutex<()>,
     reading: Mutex<()>,
 }
 
 impl LocalFolderHost {
+    /// Revoke the active selection and prevent any further adoption. This does
+    /// not wait for a native operation that already holds a directory handle.
+    pub fn begin_shutdown(&self) {
+        let mut active = self
+            .active
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        // Advance the lifecycle under the same lock that publishes a selection.
+        self.closed.cancel();
+        if let Some(selection) = active.take() {
+            selection.revoked.cancel();
+        }
+    }
+
+    /// Close the host and wait for native operations to release their handles.
+    /// An in-progress filesystem call can only stop after the OS returns.
+    pub fn shutdown(&self) {
+        self.begin_shutdown();
+        drop(self.adopting.lock());
+        drop(self.reading.lock());
+    }
+
+    fn check_open(&self) -> Result<(), FolderError> {
+        if self.closed.is_cancelled() {
+            return Err(FolderError::SelectionUnavailable);
+        }
+        Ok(())
+    }
+
+    fn admit_open<'a>(&self, slot: &'a Mutex<()>) -> Result<MutexGuard<'a, ()>, FolderError> {
+        self.check_open()?;
+        let admission = admit(slot);
+        self.check_open()?;
+        admission
+    }
+
     /// Adopt only a directory chosen by the trusted native launcher or picker.
     /// Scanning is blocking and must run off the UI thread. A failed or
     /// cancelled adoption leaves the active selection usable.
@@ -181,7 +218,11 @@ impl LocalFolderHost {
         cancel: &Cancellation,
     ) -> Result<FolderCatalog, FolderError> {
         cancel.check()?;
-        let _admission = admit(&self.adopting)?;
+        let _admission = self.admit_open(&self.adopting)?;
+        let check = || {
+            self.check_open()?;
+            cancel.check()
+        };
         let directory = Directory::open_root(path).map_err(|_| FolderError::InvalidSelection)?;
         let mut files = Vec::new();
         let mut visited = 0;
@@ -189,7 +230,7 @@ impl LocalFolderHost {
             &directory,
             Path::new(""),
             0,
-            cancel,
+            &check,
             &mut visited,
             &mut files,
         )?;
@@ -206,7 +247,7 @@ impl LocalFolderHost {
         });
         let catalog = selection.catalog();
         let mut active = self.active.lock().map_err(|_| FolderError::Io)?;
-        cancel.check()?;
+        check()?;
         if let Some(previous) = active.replace(selection) {
             previous.revoked.cancel();
         }
@@ -255,7 +296,7 @@ impl LocalFolderHost {
         cancel: &Cancellation,
     ) -> Result<FrozenFile, FolderError> {
         cancel.check()?;
-        let _admission = admit(&self.reading)?;
+        let _admission = self.admit_open(&self.reading)?;
         let selection = {
             let active = self.active.lock().map_err(|_| FolderError::Io)?;
             active
@@ -290,13 +331,13 @@ fn scan(
     directory: &Directory,
     parent: &Path,
     depth: usize,
-    cancel: &Cancellation,
+    check: &impl Fn() -> Result<(), FolderError>,
     visited: &mut usize,
     files: &mut Vec<FileEntry>,
 ) -> Result<(), FolderError> {
-    cancel.check()?;
+    check()?;
     for entry in directory.read_dir().map_err(|_| FolderError::Io)? {
-        cancel.check()?;
+        check()?;
         *visited += 1;
         if *visited > MAX_CATALOG_ENTRIES {
             return Err(FolderError::CatalogLimit);
@@ -315,7 +356,7 @@ fn scan(
             let child = directory
                 .open_directory(&name)
                 .map_err(|_| FolderError::Io)?;
-            scan(&child, &relative, depth + 1, cancel, visited, files)?;
+            scan(&child, &relative, depth + 1, check, visited, files)?;
             continue;
         } else if !metadata.is_file() {
             FileKind::UnsupportedEntry

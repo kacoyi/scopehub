@@ -13,12 +13,15 @@ from contracts.generated.protocol import Bar, PreviewIssue, PreviewSeries
 
 _FIELDS = ('symbol', 'timestamp', 'trading_day', 'open', 'high', 'low', 'close', 'volume')
 _PRICES = ('open', 'high', 'low', 'close')
+_SETTLEMENT_NAMES = {name + suffix for name in ('settle', 'settlement') for suffix in ('', 'price', 'px')}
+_CURRENT_SETTLEMENT = _SETTLEMENT_NAMES | {
+    prefix + name for prefix in ('current', 'today', 'daily', 'final') for name in _SETTLEMENT_NAMES
+} | {'结算', '结算价', '结算价格', '今结算', '今结算价', '今日结算价', '当日结算价'}
+_PRIOR_SETTLEMENT = {
+    prefix + name for prefix in ('pre', 'prev', 'previous', 'prior', 'last', 'yesterday') for name in _SETTLEMENT_NAMES
+} | {'昨结算', '昨结算价', '昨日结算价', '前结算', '前结算价', '前结算价格', '上一结算价', '前一交易日结算价'}
+_CLOSURE_NAMES = {'isclosed', 'barclosed', 'isbarclosed', 'barisclosed'}
 _AUXILIARY_COLUMNS = {
-    'settlement': 'settlement price', 'settlementprice': 'settlement price',
-    'settle': 'settlement price', 'presettlement': 'previous settlement price',
-    'presettlementprice': 'previous settlement price', 'prevsettlement': 'previous settlement price',
-    '结算价': 'settlement price', '结算价格': 'settlement price',
-    '昨结算': 'previous settlement price', '前结算价': 'previous settlement price',
     'lastprice': 'snapshot last price', 'averageprice': 'average price',
     'openinterest': 'open interest', '持仓量': 'open interest',
     'turnover': 'turnover', '成交额': 'turnover', 'multiplier': 'contract multiplier',
@@ -90,10 +93,22 @@ class _NativeMapping:
     trading_day: _DatePattern
     zone: ZoneInfo
     daily_start: time | None
+    closure_indices: tuple[int, ...]
+
+
+def _column_key(column: str) -> str:
+    return ''.join(character for character in column.casefold() if character.isalnum())
 
 
 def auxiliary_role(column: str) -> str | None:
-    return _AUXILIARY_COLUMNS.get(''.join(character for character in column.casefold() if character.isalnum()))
+    key = _column_key(column)
+    if key in _CURRENT_SETTLEMENT:
+        return 'settlement price'
+    if key in _PRIOR_SETTLEMENT:
+        return 'previous settlement price'
+    if key in _CLOSURE_NAMES:
+        return 'bar closure flag'
+    return _AUXILIARY_COLUMNS.get(key)
 
 
 def _column_indices(mapping: object, header: list[str], issues: list[PreviewIssue]) -> dict[str, int]:
@@ -186,7 +201,8 @@ def native_mapping(mapping: Mapping[str, object], header: list[str], issues: lis
     trading_day = formats.get('trading_day')
     if issues or timestamp is None or trading_day is None or zone is None:
         return None
-    return _NativeMapping(series, indices, timestamp, trading_day, zone, daily_start)
+    closure_indices = tuple(index for index, column in enumerate(header) if _column_key(column) in _CLOSURE_NAMES)
+    return _NativeMapping(series, indices, timestamp, trading_day, zone, daily_start, closure_indices)
 
 
 def _resolve_time(value: datetime, zone: ZoneInfo) -> datetime:
@@ -236,6 +252,15 @@ def _number(value: str, field: str) -> Decimal:
 def normalize_bar(values: list[str], mapping: _NativeMapping) -> tuple[str, Bar]:
     def raw(field: str) -> str:
         return values[mapping.indices[field]]
+
+    # A native mapping declares closed historical input. Explicit row evidence
+    # can override that declaration and remains part of the raw preview.
+    if mapping.closure_indices:
+        flags = {values[index].strip().casefold() for index in mapping.closure_indices}
+        if flags <= {'false', '0'}:
+            raise BarFieldError(preview_issue('bar_incomplete', 'is_closed', 'The source marks this bar incomplete. Review its raw values or supply a closed bar.'))
+        if not flags <= {'true', '1'}:
+            raise BarFieldError(preview_issue('bar_closure_ambiguous', 'is_closed', 'Resolve the missing, unrecognized or conflicting source closure flags. Use explicit true or false values.'))
 
     symbol = raw('symbol')
     if not symbol or symbol != symbol.strip():

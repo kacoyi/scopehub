@@ -1,7 +1,6 @@
 //! Open an explicitly selected directory and confine descendant opens to it.
 
 #[cfg(any(target_os = "linux", windows))]
-#[cfg(any(target_os = "linux", windows))]
 use std::{
     ffi::OsStr,
     io,
@@ -10,7 +9,6 @@ use std::{
 
 pub(super) use native::{Directory, is_redirect, same_version};
 
-#[cfg(any(target_os = "linux", windows))]
 #[cfg(any(target_os = "linux", windows))]
 fn require_child(name: &OsStr) -> io::Result<()> {
     let mut components = Path::new(name).components();

@@ -42,6 +42,55 @@ FUTURES_HEADER = (
 
 
 class LocalFolderPreviewTests(unittest.TestCase):
+    def test_current_and_previous_settlement_aliases_never_supply_close(self):
+        for column in ('PrevSettlementPrice', 'previous_settle_price', 'Prior Settlement', 'CurrentSettlementPrice', 'Today Settle', '昨结算价', '今结算价'):
+            with self.subTest(column=column):
+                content = (
+                    f'Contract,LocalStart,SessionDate,Open,High,Low,Close,Quantity,{column}\n'
+                    'DEMO2609,20240719 21:05:00,22-07-2024,101,105,96,102,7,99\n'
+                ).encode()
+                corrected = preview_csv(content, FUTURES_MAPPING)
+                self.assertEqual(corrected['rows'][0]['normalized']['close'], 102)
+                self.assertEqual(corrected['rows'][0]['raw_fields'][-1], '99')
+
+                mapping = {**FUTURES_MAPPING, 'columns': {**FUTURES_COLUMNS, 'close': column}}
+                reviewed = preview_csv(content, mapping)
+                row, = reviewed['rows']
+                self.assertIsNone(row['normalized'])
+                self.assertEqual(row['raw_fields'][6:], ['102', '7', '99'])
+                self.assertEqual(reviewed['issues'][0]['code'], 'auxiliary_column')
+                self.assertEqual(reviewed['issues'][0]['field'], 'close')
+                self.assertIn('settlement price', reviewed['issues'][0]['message'])
+
+    def test_explicit_bar_closure_keeps_incomplete_and_ambiguous_records_raw(self):
+        content = FUTURES_HEADER.rstrip(b'\n') + b',is_closed\n' + (
+            b'DEMO2609,20240719 21:05:00,22-07-2024,101,105,96,102,7,99,800,false\n'
+            b'DEMO2609,20240719 21:10:00,22-07-2024,101,105,96,102,7,99,800,\n'
+            b'DEMO2609,20240719 21:15:00,22-07-2024,101,105,96,102,7,99,800,maybe\n'
+            b'DEMO2609,20240719 21:20:00,22-07-2024,101,105,96,102,7,99,800,true\n'
+        )
+        preview = preview_csv(content, FUTURES_MAPPING)
+        first, second, third, fourth = preview['rows']
+        for row, original, code in (
+            (first, 'false', 'bar_incomplete'), (second, '', 'bar_closure_ambiguous'),
+            (third, 'maybe', 'bar_closure_ambiguous'),
+        ):
+            with self.subTest(original=original):
+                self.assertEqual(row['raw_fields'][-1], original)
+                self.assertIsNone(row['normalized'])
+                self.assertEqual(row['issues'][0]['code'], code)
+                self.assertEqual(row['issues'][0]['field'], 'is_closed')
+        self.assertTrue(fourth['normalized']['is_closed'])
+
+    def test_conflicting_explicit_closure_flags_do_not_produce_a_closed_bar(self):
+        content = FUTURES_HEADER.rstrip(b'\n') + b',is_closed,Bar Closed\n' + (
+            b'DEMO2609,20240719 21:05:00,22-07-2024,101,105,96,102,7,99,800,true,0\n'
+        )
+        row, = preview_csv(content, FUTURES_MAPPING)['rows']
+        self.assertIsNone(row['normalized'])
+        self.assertEqual(row['raw_fields'][-2:], ['true', '0'])
+        self.assertEqual(row['issues'][0]['code'], 'bar_closure_ambiguous')
+
     def test_invalid_quantities_and_prices_are_reviewable_in_source_order(self):
         content = FUTURES_HEADER + (
             b'DEMO2609,20240719 21:05:00,22-07-2024,85.25,86.00,85.1,85.5,9007199254740993,90.5,764\n'
