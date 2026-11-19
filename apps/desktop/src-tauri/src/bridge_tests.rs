@@ -1258,6 +1258,7 @@ async fn reviewed_mapping_reopens_a_legacy_v4_windows_key() {
             header,
             mapping,
             FixtureSeed,
+            None,
         )
         .await
         .unwrap();
