@@ -1518,6 +1518,23 @@
       "deferral_reason": null
     },
     {
+      "id": "folder-refresh-current-alias-points-to-replaced-source",
+      "source": "Independent review of the ordinary folder registry at 3b39f81. Synthetic operation trace /var/tmp/scopehub-015a70a-rows-nknu705w/ops.jsonl line 23. Retained registry and real Chromium reproduction under .reports/folder-alias-identity/red.",
+      "observation": "After daily.csv and z.csv were published with identical bytes, replacing only daily.csv left z.csv labeled as its current alias. The replacement had a different current SHA-256. The economic comparison still reported close 8 and close 9 as competing values.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "local-folder-refresh-preview",
+        "local-folder-import"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
       "id": "csv-declared-trades-reported-as-unclassified",
       "source": "Review of the ordinary CSV editor and Python provider at 3a423ec against product.data_onboarding.financial_content and M1-008.",
       "observation": "An explicitly classified synthetic trade file with two fills at the same reported time returned the same unsupported_record_kind diagnostic as unknown input. The editor offered closed bars, quotes and unclassified rows only. Declared depth, reference and corporate-action inputs also appeared unclassified. Original rows remained available.",
