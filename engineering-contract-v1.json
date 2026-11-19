@@ -43,7 +43,7 @@
     "verification_slices": "A stream implementation, a quality-state transition and the complete three-instrument market workflow require distinct checks. Protocol changes require generator and TypeScript, Python and Rust validation. A passing partial slice cannot establish the full acceptance requirement."
   },
   "product": {
-    "purpose": "A financial workbench for close human\u2013AI collaboration in understanding markets, analysis, decision-making, and authorized operations",
+    "purpose": "A financial workbench for close human–AI collaboration in understanding markets, analysis, decision-making, and authorized operations",
     "design_principles": [
       "AI is an active participant in financial workflows, with capabilities exposed through explicit application operations.",
       "Stocks and futures are the initial asset classes; additional asset classes can be introduced as needs emerge.",
@@ -778,7 +778,67 @@
       ],
       "input_spec": "PreviewLocalFolderRefreshRequest",
       "output_spec": "PreviewLocalFolderRefreshReply11",
-      "schema_requirement": "A trusted local human previews the current authorized directory against the entitled frozen CSV revision from that directory. Reuse its saved mapping for compatible complete native bars. Retain all attributable locators for equal bars and surface competing values, replaced files and withdrawal candidates for review. Staging has no publication effect."
+      "schema_requirement": "A trusted local human previews the current authorized directory against an entitled frozen single-file or folder revision from that directory. Reuse its saved mapping for compatible complete native bars. Retain all attributable locators for equal bars and surface competing values, replaced files and withdrawal candidates for review. Staging has no publication effect."
+    },
+    {
+      "name": "market.prepareLocalFolderPublication",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "PrepareLocalFolderPublicationRequest",
+      "output_spec": "PrepareLocalFolderPublicationReply11",
+      "schema_requirement": "Build the canonical candidate for one live reviewed preview after the local human chooses every competing bar and acknowledges every withdrawn path and bar. Return the candidate fingerprint and counts."
+    },
+    {
+      "name": "market.publishLocalFolderRefresh",
+      "effect": "persist",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "PublishLocalFolderRefreshRequest",
+      "output_spec": "PublishLocalFolderRefreshReply11",
+      "schema_requirement": "An explicit local human action publishes the prepared candidate in one guarded profile transaction. Revalidate current complete files and the selected root. Within the same profile, workspace and root association, an entitled replay matches the idempotency key and canonical candidate digest and returns the committed revision without rereading source content. The renewed local folder grant and the transport request or preview identifiers do not define the durable receipt."
+    },
+    {
+      "name": "market.listLocalFolderRevisions",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "ListLocalFolderRevisionsRequest",
+      "output_spec": "ListLocalFolderRevisionsReply11",
+      "schema_requirement": "List entitled immutable folder revisions in stable revision ID order within the local human profile. Listing needs no directory grant."
+    },
+    {
+      "name": "market.readLocalFolderRevision",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "ReadLocalFolderRevisionRequest",
+      "output_spec": "ReadLocalFolderRevisionReply11",
+      "schema_requirement": "Open an entitled frozen folder revision, chosen bars and source-qualified row locators without reopening the directory. A summary-only request omits file and bar details."
+    },
+    {
+      "name": "market.revokeLocalFolderRevision",
+      "effect": "persist",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "RevokeLocalFolderRevisionRequest",
+      "output_spec": "RevokeLocalFolderRevisionReply11",
+      "schema_requirement": "An explicit local human action removes display rights for a folder revision. Its stored data and separately entitled lineage remain in the profile."
     },
     {
       "name": "market.revokeLocalImportRevision",
@@ -1041,7 +1101,10 @@
       "retention": "Default to ephemeral audio and transcript buffers. Clear the buffers after the active conversation, failure or cancellation. Saving a selected passage to a local note requires a separate user action. Do not put raw audio, transcript, prompts or note bodies in logs, diagnostics or evaluation receipts."
     },
     "model_connections": {
-      "primary_cloud_route": {"task": "M4-002", "check": "configured-model-session"},
+      "primary_cloud_route": {
+        "task": "M4-002",
+        "check": "configured-model-session"
+      },
       "setup": "In AI settings choose a provider and model, supply the credential it needs or select an entitled ScopeHub AI service. Identify the provider or router, destination, processing scope and charge basis before a connection test or first transmission. Resolve credentials in the trusted connector and exclude their values from prompts, tool replies and diagnostics.",
       "session_grant": {
         "activation": "Show the route, ordinary data categories, charge basis and how to disconnect at connection setup. The user’s Connect and enable action grants that scope for their profile. A routine chat turn, follow-up, or in-scope tool result proceeds under this grant without another permission prompt. Connecting a microphone route discloses voice use; the user controls capture and stopping capture stops further audio transmission.",

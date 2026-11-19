@@ -7,7 +7,9 @@ use std::{
     sync::LazyLock,
 };
 
-use scopehub_domain::protocol::{Bar, Error, ErrorCode};
+use scopehub_domain::protocol::{
+    Bar, Error, ErrorCode, PublishedLocalFolderRevision, PublishedLocalImportRevision,
+};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
@@ -57,6 +59,12 @@ pub struct StoredFolderManifest {
     pub parent_revision_id: Option<String>,
     pub sources: Vec<FolderManifestSourceRef>,
     pub bars: Vec<FolderManifestBar>,
+}
+
+/// The immutable mapping and source identity behind an entitled folder revision.
+pub struct FolderManifestAnchor {
+    pub source_key: String,
+    pub revision: PublishedLocalImportRevision,
 }
 
 /// The authenticated local principal and the stable request identity in its workspace.
@@ -140,6 +148,22 @@ pub trait FolderManifestStore {
         &self,
         revision_id: &str,
     ) -> Result<Option<StoredFolderManifest>, Error>;
+
+    fn read_folder_manifest_anchor(
+        &self,
+        revision_id: &str,
+    ) -> Result<Option<FolderManifestAnchor>, Error>;
+
+    fn folder_manifest_summary(
+        &self,
+        revision_id: &str,
+    ) -> Result<Option<PublishedLocalFolderRevision>, Error>;
+
+    fn list_folder_manifest_summaries(
+        &self,
+        after_revision_id: Option<&str>,
+        limit: usize,
+    ) -> Result<Vec<PublishedLocalFolderRevision>, Error>;
 
     fn read_folder_manifest_source(
         &self,

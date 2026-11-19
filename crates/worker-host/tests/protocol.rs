@@ -107,6 +107,21 @@ fn shared_vectors_and_generated_types_agree() {
                 Message::PreviewLocalFolderRefreshRequest(_) => {
                     requests.insert("market.previewLocalFolderRefresh");
                 }
+                Message::PrepareLocalFolderPublicationRequest(_) => {
+                    requests.insert("market.prepareLocalFolderPublication");
+                }
+                Message::PublishLocalFolderRefreshRequest(_) => {
+                    requests.insert("market.publishLocalFolderRefresh");
+                }
+                Message::ListLocalFolderRevisionsRequest(_) => {
+                    requests.insert("market.listLocalFolderRevisions");
+                }
+                Message::ReadLocalFolderRevisionRequest(_) => {
+                    requests.insert("market.readLocalFolderRevision");
+                }
+                Message::RevokeLocalFolderRevisionRequest(_) => {
+                    requests.insert("market.revokeLocalFolderRevision");
+                }
                 Message::RevokeLocalImportRevisionRequest(_) => {
                     requests.insert("market.revokeLocalImportRevision");
                 }
@@ -169,6 +184,11 @@ fn shared_vectors_and_generated_types_agree() {
                         | "market.listLocalImportRevisions"
                         | "market.readLocalImportRevision"
                         | "market.previewLocalFolderRefresh"
+                        | "market.prepareLocalFolderPublication"
+                        | "market.publishLocalFolderRefresh"
+                        | "market.listLocalFolderRevisions"
+                        | "market.readLocalFolderRevision"
+                        | "market.revokeLocalFolderRevision"
                         | "market.revokeLocalImportRevision"
                 )
             ) {

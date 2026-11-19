@@ -30,6 +30,7 @@ use sha2::{Digest, Sha256};
 use tokio::sync::{Mutex, MutexGuard, Notify};
 
 use crate::workspace::WorkspaceBridge;
+pub(crate) use folder_refresh::{FolderCommitGuard, PreparedFolderReview};
 use requests::{ImportAttempt, ImportRequests, MutationInput};
 pub(super) use requests::{ImportReceipt, PendingImport};
 
@@ -53,6 +54,7 @@ struct PreviewState {
     active: Option<(Option<String>, Arc<PreviewCancellation>)>,
     early_cancellations: VecDeque<String>,
     reviewed: Option<ReviewedPreview>,
+    reviewed_folder: Option<folder_refresh::FolderReview>,
 }
 
 struct ReviewedPreview {
@@ -203,6 +205,9 @@ impl LocalImport {
         state
             .reviewed
             .take_if(|review| review.binding.folder != catalog.folder_id);
+        state
+            .reviewed_folder
+            .take_if(|review| review.folder() != catalog.folder_id);
         Ok(Some(catalog_metadata(catalog)))
     }
 
@@ -219,6 +224,21 @@ impl LocalImport {
     fn reserve(
         &self,
         request_id: Option<&str>,
+    ) -> Result<(PreviewSlot<'_>, PreviewPort<'_>), Error> {
+        self.reserve_inner(request_id, false)
+    }
+
+    fn reserve_for_receipt(
+        &self,
+        request_id: Option<&str>,
+    ) -> Result<(PreviewSlot<'_>, PreviewPort<'_>), Error> {
+        self.reserve_inner(request_id, true)
+    }
+
+    fn reserve_inner(
+        &self,
+        request_id: Option<&str>,
+        check_durable_receipt: bool,
     ) -> Result<(PreviewSlot<'_>, PreviewPort<'_>), Error> {
         if request_id.is_some_and(|id| !valid_request_id(id)) {
             return Err(failure(ErrorCode::INVALIDARGUMENT));
@@ -242,7 +262,12 @@ impl LocalImport {
                 // Cancellation can arrive after a dropped transport future and
                 // before its blocking writer records the successful commit.
                 if !request_id.is_some_and(|id| self.requests.committed(id)) {
-                    return Err(failure(ErrorCode::CANCELLED));
+                    if !check_durable_receipt {
+                        return Err(failure(ErrorCode::CANCELLED));
+                    }
+                    // A persistent receipt may already exist after a host restart.
+                    // Keep cancellation effective for the new-work path.
+                    cancel.cancel();
                 }
             }
             state.active = Some((request_id.map(str::to_owned), Arc::clone(&cancel)));
@@ -502,6 +527,7 @@ impl LocalImport {
             let mut state = self.state.lock().expect("preview state");
             state.closing = true;
             state.reviewed = None;
+            state.reviewed_folder = None;
             if let Some((_, cancel)) = &state.active {
                 cancel.cancel();
             }
