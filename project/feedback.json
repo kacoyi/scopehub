@@ -1370,7 +1370,7 @@
     {
       "id": "same-name-frozen-csv-revisions-hard-to-identify",
       "source": "Development verification of the standard-user Windows desktop at 09e89d2. See contracts/reviews/2026-11-19-windows-published-revision-library.json.",
-      "observation": "Two revisions of daily.csv for the same symbol and period share the displayed filename and counts. Their final closes differ. The library shows only hashes and revision identifiers to distinguish them before opening a chart.",
+      "observation": "Two revisions of daily.csv for the same symbol and period share the displayed filename and counts. Their final closes differ. The library shows only hashes and revision identifiers to distinguish them before opening a chart. Native Windows verification of the repaired selection path at b5f4054 is recorded in contracts/reviews/2026-11-19-windows-readable-csv-revisions.json.",
       "severity": "major",
       "status": "open",
       "task_ids": [
