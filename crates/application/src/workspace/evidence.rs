@@ -228,6 +228,16 @@ fn check_target_grant(
     Ok(())
 }
 
+pub(super) fn authorize_analysis_target(
+    tx: &dyn WorkspaceTransaction,
+    target: &ChartEvidenceRef,
+    grant: &LocalChartAnalysisGrant<'_>,
+) -> Result<(), Error> {
+    check_target_grant(target, Some(grant))?;
+    entitled_dataset(tx, &target.revision_id)?;
+    Ok(())
+}
+
 fn select(
     tx: &mut dyn WorkspaceTransaction,
     args: SelectEvidenceArguments11,
@@ -258,8 +268,7 @@ fn select(
             if let Some(grant) = grant
                 && let Some(target) = tx.chart_evidence()?
             {
-                check_target_grant(&target, Some(grant))?;
-                entitled_dataset(tx, &target.revision_id)?;
+                authorize_analysis_target(tx, &target, grant)?;
             }
             None
         }

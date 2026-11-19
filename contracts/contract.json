@@ -61,7 +61,8 @@
       ],
       "input": "ChartSetTimeframeInput",
       "output": "ChartSetTimeframeOutput",
-      "implementation": "planned",
+      "implementation": "implemented",
+      "implementation_scope": "The private protocol 1.1 workspace registry updates the registered main chart. New writes check both revision tokens. A scoped on-device AI intent with selected CSV evidence requires access to that interval. Replay returns the persisted chart-only receipt under current workspace disclosure.",
       "wire_bindings": {
         "1.1": {
           "input": "ChartSetTimeframeCommand11",
@@ -213,7 +214,8 @@
       ],
       "input": "WorkspaceUndoInput",
       "output": "WorkspaceUndoOutput",
-      "implementation": "planned",
+      "implementation": "implemented",
+      "implementation_scope": "The private protocol 1.1 workspace registry can reverse an eligible main-chart timeframe operation in the initiating principal and client scope. Current revisions and the chart's recorded after-state are checked. A committed inverse has its own replayable receipt.",
       "wire_bindings": {
         "1.1": {
           "input": "WorkspaceUndoCommand11",

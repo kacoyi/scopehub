@@ -1,5 +1,7 @@
 #[path = "support/decision_note_restore.rs"]
 mod decision_note_restore;
+#[path = "support/operations_workflow.rs"]
+mod operations_workflow;
 mod support;
 
 use std::{
@@ -721,7 +723,11 @@ fn frames(output: Vec<Value>) -> Vec<Value> {
 }
 
 fn assert_snapshot(snapshot: &Value, revision: u64, timeframe: &str) {
-    assert_eq!(snapshot["selection_revision"], 0);
+    assert_snapshot_at_selection(snapshot, revision, 0, timeframe);
+}
+
+fn assert_snapshot_at_selection(snapshot: &Value, revision: u64, selection: u64, timeframe: &str) {
+    assert_eq!(snapshot["selection_revision"], selection);
     assert_eq!(
         snapshot["workspace"],
         json!({

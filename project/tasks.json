@@ -385,11 +385,11 @@
         "desktop-workspace-transport"
       ],
       "evidence": [],
-      "next_action": "Use the independently versioned published CSV selection as the prerequisite for the next shared-target-bound durable mutation. Exercise stale target rejection, changed grants, lost reply, concurrent retry and undo before broadening target kinds or closing M2-001.",
+      "next_action": "Retain the shared chart operation and decision-note regressions. Close the remaining state-migrations gate for broader durable records and exercise a confirmation-enabled operation against changed targets, grants and revisions as that capability lands.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
-        "outcome": "An authorized human or AI change goes through the same Rust registry, survives process restart in the originating local profile and can be undone by operation ID. Accepted results, private records and deletion decisions survive the documented recovery cases. The next slice lets either authorized participant select two actual frozen chart intervals or explicitly clear the shared target, while each local viewport and the durable workspace revision retain independent ownership.",
+        "outcome": "An authorized human or AI change goes through the same Rust registry, survives process restart in the originating local profile and can be undone by operation ID. Accepted results, private records and deletion decisions survive the documented recovery cases. The next slice proves current local human or scoped on-device AI can change the main chart timeframe under independently versioned shared evidence, recover one authorized receipt after a lost response, and undo an eligible chart edit.",
         "change_types": [
           "persistence",
           "permissions",
@@ -487,7 +487,9 @@
             "crates/persistence/src/decision_note_restore.sql",
             "apps/desktop/ui/src/decision-notes.tsx",
             "apps/desktop/ui/src/use-local-workspace.ts",
-            "apps/desktop/ui/src/local-revision-dialog.tsx"
+            "apps/desktop/ui/src/local-revision-dialog.tsx",
+            "crates/persistence/tests/workspace_process.rs",
+            "crates/persistence/tests/support/operations_workflow.rs"
           ],
           "rules": [
             {
@@ -530,7 +532,7 @@
           "non_goals": [
             "The first backup covers saved decision notes, dated outcomes and deletion markers. Broader workspace settings, accepted indicator versions, saved conversations, credentials, grants, audit history, caches and journals are outside this backup format.",
             "Real cloud or voice sessions, financial provider subscriptions, and full indicator computation belong to other tasks.",
-            "This slice supports chart intervals on entitled published CSV revisions. Workspace object, table row and document passage targets, connected model and external recipients, and shared-target-bound durable writes, undo, commit retry and lost-reply handling remain follow-on work."
+            "Use the registered main chart as the affected object and the existing published CSV interval as shared context. No new persistence version, additional selection kinds, provider transmission, external recipient admission or new confirmation surface."
           ],
           "open_questions": []
         },
@@ -543,7 +545,8 @@
             "The private hosts dispatch decisionNote.save, decisionNote.read, decisionNote.appendOutcome and decisionNote.delete through the Rust registry. Explicit local confirmation authorizes new writes. Reads and redacted receipt replay use current disclosure access.",
             "Add explicit local decision-note export and revision-bound preview and apply. Recover missing notes and outcomes, preserve other current notes, reject conflicting surviving identities and apply the union of known deletion markers in the same transaction. Warn before approving candidates whose deletion history is unavailable.",
             "Check complete backup capacity before admitting note additions and restore plans. Keep private drafts separate from refreshed note projections.",
-            "Add a shared chart interval and an independently increasing selection token; local hover and chart navigation stay in the UI. Recheck current target access and exact requested fields for projected reads."
+            "Add a shared chart interval and an independently increasing selection token; local hover and chart navigation stay in the UI. Recheck current target access and exact requested fields for projected reads.",
+            "Revalidate the main-chart target and both revision tokens for new chart edits. Require an effective local chart analysis grant for AI mutations using a selected interval. Rebuild chart-only replay results from the immutable receipt under current workspace disclosure."
           ],
           "data_plan": "Keep application state inside the bound OS-user profile. The v1 to v2 migration retains chart state, undo and replay and adds immutable originals, separate outcomes and profile-scoped deletion markers. Version 3 preserves outcome order and supports several outcomes under one restore receipt. A versioned logical note backup stays scoped to its originating profile and workspace. Version 6 adds only the selected immutable revision UUID and interval bounds. It preserves the existing selection revision and all workspace, undo, note, mapping, publication and revocation records. The reference restores no disclosure grant.",
           "cleanup": "Delete original and outcome bodies, clear body-derived replay fingerprints, and durably resume SQLite WAL cleanup if a reader blocks it. Restore without replaying past AI work or reusing external disclosure grants. Clear the selected reference explicitly without resetting its token. Deny a revoked target without restoring or exporting its contents."
