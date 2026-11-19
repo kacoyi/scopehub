@@ -465,6 +465,8 @@ impl WorkspaceStore for InterruptingStore {
             WorkspaceState,
             Option<WorkspaceUndoTarget>,
             Option<ChartEvidenceStatus>,
+            scopehub_application::WorkspaceLayoutSnapshot,
+            Option<scopehub_application::WorkspaceSourceView>,
         ),
         Error,
     > {

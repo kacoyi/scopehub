@@ -2886,6 +2886,7 @@ dependencies = [
  "rusqlite",
  "scopehub-application",
  "scopehub-domain",
+ "serde",
  "serde_json",
  "uuid",
 ]
