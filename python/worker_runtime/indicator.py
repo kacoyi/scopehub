@@ -128,4 +128,6 @@ def main() -> int:
 
 
 if __name__ == '__main__':
-    raise SystemExit(main())
+    # The supervisor owns the execution tree. Skip interpreter finalizers
+    # that would otherwise join surviving multiprocessing children.
+    os._exit(main())

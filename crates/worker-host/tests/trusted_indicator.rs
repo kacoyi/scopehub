@@ -40,6 +40,12 @@ const SOURCE: &str = r#"def compute(bars, params):
     }
 "#;
 const LOOP: &str = "def compute(bars, params):\n    while True:\n        1 + 1\n";
+const SPAWNING_LOOP: &str = r#"def compute(bars, params):
+    from indicator_sleep_fixture import start_sleeping
+    start_sleeping()
+    while True:
+        1 + 1
+"#;
 const THROWING: &str =
     "def compute(bars, params):\n    raise ValueError('synthetic private exception')\n";
 const BYTE_BUDGET: &str = r#"def compute(bars, params):
@@ -174,6 +180,15 @@ impl Fixture {
         let module = directory.join("python/worker_runtime/indicator.py");
         fs::create_dir_all(module.parent().unwrap()).unwrap();
         fs::write(module, script).unwrap();
+        for path in [
+            "python/worker_runtime/indicator_guard.py",
+            "scripts/process_tree.py",
+            "scripts/windows_job.py",
+        ] {
+            let destination = directory.join(path);
+            fs::create_dir_all(destination.parent().unwrap()).unwrap();
+            fs::copy(repo().join(path), destination).unwrap();
+        }
         Self { directory, config }
     }
 
@@ -181,7 +196,7 @@ impl Fixture {
         // The fixture records an entry witness outside the scratch directory.
         // The actual selected function only performs synthetic arithmetic.
         let repository = serde_json::to_string(repo().to_str().unwrap()).unwrap();
-        Self::new(&format!(
+        let fixture = Self::new(&format!(
             r#"import json, os, pathlib, runpy, sys, worker_runtime
 repo = pathlib.Path({repository})
 sys.path[:0] = [str(repo), str(repo / 'python')]
@@ -196,9 +211,30 @@ def observe(*args):
         witness.write(json.dumps(facts) + '\n')
     return evaluate(*args)
 serve.__globals__['evaluate'] = observe
-raise SystemExit(worker['main']())
+os._exit(worker['main']())
 "#
-        ))
+        ));
+        fs::write(
+            fixture.directory.join("python/indicator_sleep_fixture.py"),
+            r#"from multiprocessing import get_context
+from pathlib import Path
+from time import sleep
+
+def sleep_with_witness(ready):
+    ready.set()
+    sleep(60)
+
+def start_sleeping():
+    context = get_context('spawn')
+    ready = context.Event()
+    process = context.Process(target=sleep_with_witness, args=(ready,))
+    process.start()
+    assert ready.wait(6)
+    Path(__file__).parents[1].joinpath('spawned').write_text(str(process.pid), encoding='ascii')
+"#,
+        )
+        .unwrap();
+        fixture
     }
 
     async fn witness(&self) -> (u32, u32, PathBuf) {
@@ -218,7 +254,11 @@ raise SystemExit(worker['main']())
     }
 
     fn assert_reaped(&self, pid: u32, parent: u32, scratch: PathBuf) {
-        assert_eq!(parent, std::process::id());
+        assert_ne!(
+            parent,
+            std::process::id(),
+            "the supervisor owns the interpreter"
+        );
         assert!(!scratch.exists(), "the scratch directory must be removed");
         assert_eq!(
             fs::read_to_string(self.directory.join("entered"))
@@ -228,18 +268,45 @@ raise SystemExit(worker['main']())
             1,
             "an interrupted run must never invoke the code again"
         );
-        #[cfg(target_os = "linux")]
-        assert!(!PathBuf::from(format!("/proc/{pid}")).exists());
-        #[cfg(windows)]
-        {
-            let status = std::process::Command::new("tasklist.exe")
-                .args(["/NH", "/FO", "CSV", "/FI", &format!("PID eq {pid}")])
-                .output()
-                .unwrap();
-            assert!(status.status.success());
-            assert!(!String::from_utf8_lossy(&status.stdout).contains(&format!(",\"{pid}\",")));
-        }
         assert_ne!(pid, parent);
+        assert!(!process_exists(pid), "interpreter {pid} survived");
+        assert!(!process_exists(parent), "supervisor {parent} survived");
+    }
+
+    async fn sleeping_child(&self) -> u32 {
+        timeout(Duration::from_secs(8), async {
+            loop {
+                if let Ok(text) = fs::read_to_string(self.directory.join("spawned"))
+                    && let Ok(pid) = text.parse()
+                {
+                    return pid;
+                }
+                sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .expect("the spawned child must have entered its synthetic calculation")
+    }
+}
+
+fn process_exists(pid: u32) -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        PathBuf::from(format!("/proc/{pid}")).exists()
+    }
+    #[cfg(windows)]
+    {
+        let status = std::process::Command::new("tasklist.exe")
+            .args(["/NH", "/FO", "CSV", "/FI", &format!("PID eq {pid}")])
+            .output()
+            .unwrap();
+        assert!(status.status.success());
+        String::from_utf8_lossy(&status.stdout).contains(&format!(",\"{pid}\","))
+    }
+    #[cfg(not(any(target_os = "linux", windows)))]
+    {
+        let _ = pid;
+        false
     }
 }
 
@@ -252,16 +319,17 @@ impl Drop for Fixture {
 #[tokio::test]
 async fn cancels_running_code_reaps_its_interpreter_and_delivers_no_artifact() {
     let fixture = Fixture::observe_real_worker();
-    let request = request(LOOP);
+    let request = request(SPAWNING_LOOP);
     let (cancel, cancelled) = oneshot::channel();
     let operation = compute(&fixture.config, &request, async {
         cancelled.await.unwrap();
     });
     tokio::pin!(operation);
-    let (pid, parent, scratch) = tokio::select! {
+    let ((pid, parent, scratch), sleeping) = tokio::select! {
         result = &mut operation => panic!("computation ended before cancellation: {result:?}"),
-        witness = fixture.witness() => witness,
+        witness = async { tokio::join!(fixture.witness(), fixture.sleeping_child()) } => witness,
     };
+    assert!(process_exists(sleeping));
     cancel.send(()).unwrap();
     let failure = timeout(Duration::from_secs(2), operation)
         .await
@@ -269,25 +337,55 @@ async fn cancels_running_code_reaps_its_interpreter_and_delivers_no_artifact() {
         .unwrap_err();
     assert_eq!(failure.code, ErrorCode::CANCELLED);
     fixture.assert_reaped(pid, parent, scratch);
+    assert!(
+        !process_exists(sleeping),
+        "the sleeping child survived cancellation"
+    );
 }
 
 #[tokio::test]
 async fn a_deadline_reaps_running_code_without_retry_or_artifact() {
     let mut fixture = Fixture::observe_real_worker();
-    fixture.config.deadline = Duration::from_secs(4);
-    let request = request(LOOP);
+    fixture.config.deadline = Duration::from_secs(5);
+    let request = request(SPAWNING_LOOP);
     let operation = compute(&fixture.config, &request, future::pending());
     tokio::pin!(operation);
-    let (pid, parent, scratch) = tokio::select! {
+    let ((pid, parent, scratch), sleeping) = tokio::select! {
         result = &mut operation => panic!("computation ended before entering Python: {result:?}"),
-        witness = fixture.witness() => witness,
+        witness = async { tokio::join!(fixture.witness(), fixture.sleeping_child()) } => witness,
     };
+    assert!(process_exists(sleeping));
     let failure = timeout(Duration::from_secs(5), operation)
         .await
         .unwrap()
         .unwrap_err();
     assert_eq!(failure.code, ErrorCode::TIMEOUT);
     fixture.assert_reaped(pid, parent, scratch);
+    assert!(
+        !process_exists(sleeping),
+        "the sleeping child survived the deadline"
+    );
+}
+
+#[tokio::test]
+async fn succeeds_only_after_reaping_an_ordinary_multiprocessing_child() {
+    let fixture = Fixture::observe_real_worker();
+    let source = SOURCE.replace(
+        "    print(\"synthetic stdout\")",
+        "    from indicator_sleep_fixture import start_sleeping\n    start_sleeping()",
+    );
+    let request = request(&source);
+    let reply = compute(&fixture.config, &request, future::pending())
+        .await
+        .unwrap();
+    assert_result(&serde_json::to_value(reply).unwrap(), &request);
+    let (pid, parent, scratch) = fixture.witness().await;
+    let sleeping = fixture.sleeping_child().await;
+    fixture.assert_reaped(pid, parent, scratch);
+    assert!(
+        !process_exists(sleeping),
+        "the sleeping child survived success"
+    );
 }
 
 #[tokio::test]

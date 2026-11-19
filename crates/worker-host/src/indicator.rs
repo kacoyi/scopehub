@@ -18,7 +18,7 @@ use serde_json::value::RawValue;
 use sha2::{Digest, Sha256};
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
-    process::{Child, Command},
+    process::{Child, ChildStdin, Command},
     runtime::Handle,
     sync::OwnedSemaphorePermit,
     time::{Instant, timeout_at},
@@ -27,7 +27,7 @@ use uuid::Uuid;
 
 use crate::{
     POLICY, ProtocolError,
-    cleanup::{PendingCleanup, reclaim},
+    cleanup::PendingCleanup,
     decode_line,
     market::{WorkerConfig, worker_slot},
     max_message_bytes, negotiate_worker, read_frame,
@@ -67,9 +67,16 @@ pub async fn compute(
             }
             let permit = worker_slot().map_err(|_| error(ErrorCode::BUSY))?;
             let scratch = Scratch::new()?;
-            let child = command(config, &scratch)?.spawn().map_err(worker_io)?;
-            let (child, ..) = process.0.insert((child, scratch, permit, Handle::current()));
-            exchange(child, request, &frame).await
+            let mut child = command(config, &scratch)?.spawn().map_err(worker_io)?;
+            let input = child.stdin.take().expect("piped stdin");
+            let run = process.0.insert(Run {
+                child,
+                input,
+                scratch,
+                permit,
+                runtime: Handle::current(),
+            });
+            exchange(&mut run.child, &mut run.input, request, &frame).await
         }) => outcome.unwrap_or_else(|_| Err(error(ErrorCode::TIMEOUT))),
     };
     if let Some(mut cleanup) = process.cleanup() {
@@ -159,21 +166,21 @@ fn command(config: &WorkerConfig, scratch: &Scratch) -> Result<Command, Error> {
             "-X",
             "utf8",
             "-m",
-            "worker_runtime.indicator",
+            "worker_runtime.indicator_guard",
         ])
+        .arg(max_message_bytes().to_string())
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .kill_on_drop(true);
+        .stderr(Stdio::null());
     Ok(python)
 }
 
 async fn exchange(
     child: &mut Child,
+    input: &mut ChildStdin,
     request: &IndicatorCompute11,
     frame: &[u8],
 ) -> Result<IndicatorComputed11, Error> {
-    let mut input = child.stdin.take().expect("piped stdin");
     let mut output = BufReader::new(child.stdout.take().expect("piped stdout"));
     let hello = read_frame(&mut output).await.map_err(protocol_failure)?;
     let negotiated = negotiate_worker(&hello, "indicator", &[COMPUTE]).map_err(protocol_failure)?;
@@ -187,7 +194,6 @@ async fn exchange(
         return Err(error(ErrorCode::PROTOCOLMISMATCH));
     }
     input.write_all(frame).await.map_err(worker_io)?;
-    drop(input);
 
     let terminal = match read_frame(&mut output).await {
         Ok(frame) => decode_response(&frame, request)?,
@@ -322,17 +328,39 @@ impl Drop for Scratch {
 }
 
 #[derive(Default)]
-struct Process(Option<(Child, Scratch, OwnedSemaphorePermit, Handle)>);
+struct Process(Option<Run>);
+
+struct Run {
+    child: Child,
+    input: ChildStdin,
+    scratch: Scratch,
+    permit: OwnedSemaphorePermit,
+    runtime: Handle,
+}
 
 impl Process {
     fn cleanup(&mut self) -> Option<PendingCleanup> {
-        let (child, scratch, permit, runtime) = self.0.take()?;
+        let Run {
+            mut child,
+            input,
+            scratch,
+            permit,
+            runtime,
+        } = self.0.take()?;
+        // The supervisor owns the process tree and can reclaim it even
+        // when the native caller drops the computation or exits.
+        drop(input);
         let grace =
             Duration::from_millis(POLICY["cancel_grace_ms"].as_u64().expect("cancel grace"));
         let _context = runtime.enter();
         Some(PendingCleanup::start(
             async move {
-                reclaim(child, grace).await;
+                loop {
+                    if child.wait().await.is_ok() {
+                        break;
+                    }
+                    tokio::time::sleep(grace).await;
+                }
                 drop((scratch, permit));
             },
             grace,
