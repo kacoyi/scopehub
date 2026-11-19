@@ -1,0 +1,43 @@
+{
+  "task_id": "M3-001",
+  "base_commit": "45bf7ad",
+  "role": "implement",
+  "outcome": "The native caller can submit one admitted, explicitly confirmed Python indicator computation on frozen inline bars and receive one correlated, validated inline result. Cancelled work produces no artifact.",
+  "change_types": ["indicators", "worker-lifecycle", "verification"],
+  "context": [
+    "engineering-contract-v1.json#/indicators/python_mode",
+    "engineering-contract-v1.json#/indicators/result_budget",
+    "contracts/schemas/protocol.schema.json#/$defs/IndicatorCompute11",
+    "contracts/schemas/protocol.schema.json#/$defs/IndicatorComputed11"
+  ],
+  "hypotheses": [
+    "One bounded NDJSON exchange is sufficient for the existing inline contract.",
+    "The supported Windows development environment can start the actual pinned interpreter directly and preserve the locked virtual environment."
+  ],
+  "risks": [
+    {
+      "failure": "Cancellation or deadline leaves a computation running or exposes a successful result.",
+      "checks": ["rust-contracts-workers"],
+      "recovery": "Keep the actual interpreter and its scratch directory under the host's lifecycle until reaped."
+    },
+    {
+      "failure": "An old, oversized or invalid reply reaches application preview state.",
+      "checks": ["python-contracts-workers", "rust-contracts-workers"],
+      "recovery": "Discard the entire reply and return a fixed failure. Require a new authorized invocation for another computation."
+    }
+  ],
+  "implementation": {
+    "modules": ["indicators", "worker-runtime", "worker-host"],
+    "entrypoints": ["python/indicators/trusted.py", "python/worker_runtime/indicator.py", "crates/worker-host/src/indicator.rs"],
+    "rules": ["Existing protocol 1.1", "Per-run confirmation and admission owned by the caller"],
+    "non_goals": ["Application registry, approval, UI, durable state, remote transport, subprocess isolation and automatic retries"],
+    "open_questions": ["Standard-user Windows execution requires separate observed evidence."]
+  },
+  "evolution": {
+    "kind": "additive",
+    "preserve": ["Existing worker negotiation, market and declarative indicator paths"],
+    "change": ["Add the trusted Python one-shot exchange and private native CLI carrier."],
+    "data_plan": "Carry exact UTF-8 source, resolved parameters and ordered snapshot bars over local pipes. Validate response identity, finite typed output and provenance; compute the authoritative artifact digest from the Rust JSON result.",
+    "cleanup": "Reap the owned interpreter on cancellation, deadline and failures. Remove the run's temporary working directory. Leave acceptance and durable records to the caller."
+  }
+}
