@@ -1,7 +1,7 @@
 {
   "artifact_type": "engineering_contract",
   "contract_id": "market-ai-workbench.v1",
-  "contract_version": "1.0.6",
+  "contract_version": "1.1.0",
   "language": "en-US",
   "normative_terms": {
     "MUST": "MUST be implemented",
@@ -54,9 +54,9 @@
     "collaboration_model": {
       "status": "product_requirements_not_implemented",
       "human_role": "Set objectives, contribute and challenge hypotheses, decide which investment judgments to adopt, and control the scope of authorized actions.",
-      "ai_role": "Participate actively in research, analysis, alternative explanations, indicator creation, and authorized operations; report uncertainty and challenge unsupported assumptions, including its own.",
-      "shared_context": "Ground collaboration in the current workspace, selected instrument and range, data provenance and freshness, explicit research questions, and actual operation results.",
-      "interaction": "Support an iterative cycle of question, evidence, competing hypotheses, computation or preview, human feedback, and revision; keep facts, calculations, inferences, suggestions, and executed actions distinguishable.",
+      "ai_role": "Work as a financial research partner. Investigate evidence, compute and compare scenarios, propose indicators, challenge assumptions and carry out authorized operations. State uncertainty and the basis of each interpretation.",
+      "shared_context": "Ground each turn in the current question, instrument, range, source revision, freshness and relevant operation results. Either participant can point to a chart interval, table row or passage and the other can inspect or correct that selection.",
+      "interaction": "The AI can investigate a question, bring evidence into view, compute, challenge an interpretation and act within the granted scope. Continue the discussion from the object the human selects. Distinguish observations, calculations, inferences, suggestions and executed actions.",
       "decision_ownership": "The human retains ownership of adopted investment judgments and the resulting market exposure. AI assistance and workflow automation do not guarantee profitable outcomes or constitute an independent mandate to manage capital.",
       "authorization_principle": "Treat investment risk acceptance and action authorization as separate concerns. A general statement that the human bears market risk grants no additional capability and does not satisfy operation-specific confirmations.",
       "system_quality": "Distinguish adverse market outcomes from incorrect data, calculation errors, execution defects, and unauthorized actions. The latter require prevention, diagnosis, and correction; human ownership of investment decisions does not relax system correctness requirements.",
@@ -74,11 +74,11 @@
     "release_unit": "A single Windows desktop installer",
     "architecture": "A modular monolithic application core with controlled local workers; not microservices",
     "v1_scope": [
-      "Simulated market data and local historical samples",
-      "A single workspace with one main instrument chart",
+      "Simulated market data and user-selected local CSV directories with repeatable historical imports",
+      "A single workspace with one main instrument chart, rearrangeable panels and saved layout definitions",
       "Switching between candlestick and line charts",
       "Timeframe switching",
-      "AI conversations and tool operations",
+      "Text and opt-in voice conversations, two-way evidence selection and visible AI tool operations",
       "Declarative indicator previews and acceptance",
       "Explicitly authorized previews of trusted Python indicators",
       "Operation history",
@@ -104,7 +104,7 @@
       "Chinese stocks",
       "US stocks"
     ],
-    "real_data_gate": "V1 completes the end-to-end architecture using simulated data; real market data adapters require subsequent verification of sources, permissions, historical coverage, SDKs, and redistribution licenses",
+    "real_data_gate": "Complete the end-to-end v1 workflow on simulated data. Verify user-owned local history against source records and declared market conventions. Qualify external market adapters later for access rights, historical coverage, SDK requirements and permitted use. Sources may coexist.",
     "service_policy": {
       "default": "Installing ScopeHub does not include market data, AI, information or any other financial service subscription.",
       "development_samples": "Owner-provided files and generated fixtures are development/test inputs, not a promised production feed or bundled service.",
@@ -112,6 +112,21 @@
       "commercial_services": "Users obtain needed services separately and bear applicable provider charges; installing ScopeHub does not include a service plan. User-owned local data and independently implemented connections remain supported product requirements. This requirement does not mandate a ScopeHub billing system.",
       "demo": "Offline synthetic examples are explicitly selected and visibly labeled; never substitute them for an unavailable configured source.",
       "capabilities": "Implement data access, charts, AI collaboration, information retrieval and service integrations within the product scope. Unconfigured startup is not a reason to omit these capabilities."
+    },
+    "data_onboarding": {
+      "entry": "Choose a local folder, a provider preset or a custom API. Chinese futures also have a dedicated CTP market-data connection. Show only fields required by the selected source and report instruments, coverage, freshness, units and available operations after a trial read.",
+      "local_files": "Start with read-only access to a directory the user selects. Group files with compatible structures and inspect samples for encoding, delimiter, headers and symbol/date placement across files and subdirectories. CSV is the first reader. Add readers such as TSV, Excel, Parquet or JSON Lines when a user workflow requires them.",
+      "financial_content": {
+        "common": "Identify instruments, native OHLCV bars, trades, quote or depth snapshots and reference or corporate-action data independently of their file format. Show which records the current reader can use.",
+        "us_equities": "Keep listing, market feed coverage, timezone, regular or extended sessions, splits and dividend adjustments identifiable.",
+        "chinese_equities": "Preserve exchange and leading-zero symbols, trading calendars, price adjustment basis, volume in shares or lots and turnover units.",
+        "chinese_futures": "Distinguish dated contracts from continuous series, session date from calendar date, cumulative volume from increments, and last trade from settlement. Preserve open interest, units, multiplier and roll method where supplied. Retain distinct same-time snapshots in source order and label snapshot-derived candles as approximate."
+      },
+      "preview": "Show original records alongside mapped values, a sample chart, rejected rows with reasons and unresolved fields. A user can edit mappings offline. AI may propose a declarative mapping from metadata and a small approved sample. Resolve material ambiguities such as trading day, units or adjustment before publishing affected series. Keep missing values explicit.",
+      "refresh": "Apply the approved versioned mapping deterministically. Preserve original files, record their identities and source row locators, and identify derived dataset revisions. Reuse the mapping for incremental refresh. Duplicate files or retries must not double count. Isolate changed formats for review and retain the last accepted revision on cancellation or failure.",
+      "external_api": "Offer presets for common providers and a bounded read-only HTTP mapping for documented personal or institutional APIs. AI may draft the endpoint, authentication fields, date filters, pagination and response mapping from documentation or a sanitized response. Bind a trial to the configured destination, instrument and range. Use a reviewed adapter for SDKs, signing or streaming outside this format.",
+      "ctp": "Configure the broker identifier, market-data front, environment and required authentication through settings. Establish contract metadata and session rules, then subscribe through the market-data channel. Keep history supplied by files or another API attributable alongside live quotes. Mark gaps and the handoff between sources. Account access and order routing remain outside v1.",
+      "candidates": "Evaluate Alpaca for US market data, Tushare for a documented API and individual AKShare functions for their actual upstream sources. Study vn.py for CTP market-data callbacks and contract metadata. SnapTrade is a candidate for a future brokerage-account workflow. No service subscription is bundled."
     }
   },
   "stack": {
@@ -645,14 +660,14 @@
       "Authorized capabilities",
       "Task-relevant data snapshots"
     ],
-    "context_policy": "Minimize context as needed; complete raw market data, credentials, and account information are excluded from the default context; the user must enable an external AI provider before data is sent to the cloud",
+    "context_policy": "Share only the workspace context needed for the task. Users explicitly enable an external provider and authorize the data scope. Show the fields or sanitized sample before sending local data. Exclude account information and complete raw datasets from default context. Keep credentials out of model context and logs. The trusted connector resolves credential references through the platform store.",
     "claim_policy": "Distinguish facts, calculations, inferences, suggestions, and executed actions; claim successful execution only after a successful core response",
     "tool_policy": "Select only from tool schemas provided by the core; bind every mutation to expected_workspace_revision",
     "loop_limits": {
       "max_tool_calls_per_task": 12,
       "task_timeout_ms": 120000
     },
-    "injection_policy": "Market data text, code comments, and model output are untrusted data; they must not change tool permissions or confirmation rules",
+    "injection_policy": "Treat imported values, API documentation, retrieved pages, snippets, code comments and model output as untrusted content. The core enforces the authorized sources, operations and confirmations.",
     "task_states": [
       "queued",
       "running",
@@ -660,10 +675,16 @@
       "completed",
       "failed",
       "cancelled"
-    ]
+    ],
+    "voice": {
+      "conversation": "Offer text and opt-in two-way speech in the same conversation and workspace context. Show the recognized instrument, dates and numbers before an action uses an ambiguous value. Support interruption, correction and switching to text when audio is unavailable.",
+      "controls": "Make microphone, listening and transmission state visible. Stop capture when the user disables it. Interrupting speech stops playback. Cancelling or changing a task acts through the core and displays the result, including work already completed.",
+      "provider": "Evaluate replaceable realtime model adapters. OpenAI GPT-Realtime-2 and GPT-Realtime-2.1 are candidates. Check availability for the intended region, mixed Chinese/alphanumeric recognition, latency, interruption, tool accuracy and actual session cost before choosing a default.",
+      "data": "Before enabling a cloud session show the destination, scope of audio and workspace data and applicable charges. Local import stays usable offline. ScopeHub keeps no raw audio recording by default."
+    }
   },
   "ui": {
-    "layout": "Top bar: instrument/timeframe/source status; left: AI and tasks; right: main chart; bottom: diagnostics as needed",
+    "layout": "Use TradingView Supercharts as the default reference for layout, color hierarchy and chart gestures. Open into the chart workspace with instrument, timeframe, chart style and source status above the main chart. Place volume and time below price, working chart tools on the left, and instruments and data inspection on the right. Open AI, tasks and diagnostics on demand.",
     "minimal_controls": [
       "Instrument search",
       "Timeframe selection",
@@ -701,7 +722,20 @@
       "awaiting_confirmation"
     ],
     "security": "Render model text as plain text or restricted Markdown with raw HTML disabled; prohibit dynamically generated scripts",
-    "licenses": "Include third-party licenses and NOTICE in releases; verify chart library attribution requirements and do not remove branding notices by default"
+    "licenses": "Include third-party licenses and NOTICE in releases; verify chart library attribution requirements and do not remove branding notices by default",
+    "customization": {
+      "panels": "Let users move, resize, dock, tab and show or hide whole chart, watchlist, data inspection, AI and activity panels. Keep axes, crosshair and zoom inside the chart. Offer light and dark themes and selectable rising/falling colors with accessible state cues.",
+      "links": "Support optional panel selection groups as in Koyfin dashboards. Selecting an instrument or time range updates linked panels and leaves an independent comparison pinned.",
+      "editing": "Direct manipulation, AI requests and user-authored layout definitions edit the same versioned panel settings, data bindings and allowed interaction mappings. Preview changes, save named layouts, restore a previous layout or return to the default. Keep source status, operation visibility and confirmation controls reachable in custom layouts.",
+      "extensibility": "V1 supports a single main instrument chart and declarative customization. Evaluate separately isolated extensions for new panel renderers or interaction code when a concrete need exceeds these bindings. Product source editing or generated scripts in the main WebView remain forbidden."
+    },
+    "shared_evidence": {
+      "pointing": "The human can select a bar or date range, table row or document passage and ask about it. The AI can proactively reveal another authorized page or panel and highlight the precise target. Follow-up turns use the latest selection from either participant.",
+      "navigation": "Show evidence in place or alongside the current view as appropriate. Allow comparison, pinning and return to the prior instrument, timeframe, viewport and layout. Opening temporary evidence preserves unsaved work.",
+      "attribution": "Identify the source, document or dataset revision, locator and relevant publication or market time. Align time zones when comparing a disclosure with a price move. Label search summaries, source statements, calculations and interpretations distinctly. A changed or inaccessible target shows the available reference and the resulting uncertainty.",
+      "external": "For configured research channels, open the permitted original source in a controlled reader or an approved external handoff. A page, its links and its contents cannot authorize navigation, access credentials or call application tools. A discovery service such as Tavily is optional.",
+      "visible_actions": "Show the target, relevant parameters, preview or progress and core result where the user can inspect the affected object. Highlight mapped columns, preview layers or layout changes there. Offer cancellation while applicable, operation-specific confirmation and undo where supported. Retain redacted activity history for later review."
+    }
   },
   "persistence": {
     "owner": "Rust core",
@@ -723,7 +757,7 @@
     "credentials": "Windows Credential Manager; the DB stores references only; mock implementations do not use credentials",
     "cache": "The cache can be cleared without deleting user indicator versions; do not mix different data sources or price adjustment methodologies",
     "log": "Record operations, actors, summaries, statuses, and correlation IDs; redact sensitive fields; do not implement full event sourcing",
-    "undo": "V1 supports undo for layer additions/removals and timeframe changes; undo is itself a new operation; do not claim that all operations are undoable"
+    "undo": "Support undo for layer additions and removals, timeframe changes and applied layout edits. Record undo as a new operation. Advertise undo only for supported actions."
   },
   "fixtures": {
     "instruments": [
@@ -792,7 +826,8 @@
         "Instrument search",
         "Historical chart",
         "Live bar updates",
-        "Status and reconnection"
+        "Status and reconnection",
+        "User-selected CSV directory import and refresh"
       ],
       "gate": [
         "fixture correctness",
@@ -808,7 +843,8 @@
         "Confirmations",
         "revision",
         "SQLite",
-        "undo"
+        "undo",
+        "Versioned panel layouts with preview and restore"
       ],
       "gate": [
         "permission tests",
@@ -841,7 +877,9 @@
         "tools",
         "context",
         "task cancellation",
-        "operation provenance"
+        "operation provenance",
+        "Visible evidence selection across panels",
+        "Opt-in voice and text continuity"
       ],
       "gate": [
         "AI cannot bypass authorization",
@@ -876,7 +914,12 @@
       "Closing and reopening restores the workspace and indicator versions without re-executing previous AI tasks",
       "Logs, the database, and worker environments contain no plaintext credentials",
       "No worker child processes remain alive after application shutdown",
-      "Generated types have no uncommitted differences; schemas and validation in all three languages are consistent"
+      "Generated types have no uncommitted differences; schemas and validation in all three languages are consistent",
+      "Select a local CSV directory, correct an import preview and refresh it with new files. Source revisions and rejected records are inspectable and repeat imports are idempotent.",
+      "Preview, apply, name, restore and revert a single-chart layout. Manual and AI edits use the same panel settings, linked selections and allowed interactions.",
+      "The human and AI can each point to a versioned workspace object, reveal evidence in another panel, refine the selection and return to the previous view.",
+      "AI operations show their target, preview or progress and actual outcome in the affected view. Confirmation, denial, failure and cancellation remain visible.",
+      "An explicitly enabled real voice session supports spoken discussion, interruption and text follow-up under the same operation permissions. A denied or interrupted request has an observable outcome."
     ],
     "performance": {
       "profile": "Record CPU/RAM/Windows/WebView2 versions; release build; 10000 bars; one chart; mock stream at 10 updates/s",

@@ -307,6 +307,31 @@
         "tests/ubuntu-preview/playwright.config.mjs"
       ],
       "timeout_seconds": 900
+    },
+    {
+      "id": "local-folder-import",
+      "status": "planned",
+      "purpose": "Exercise the folder picker, editable mapping, source lineage, idempotent refresh and schema drift through the actual local chart workflow.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 1800
+    },
+    {
+      "id": "workspace-layout",
+      "status": "planned",
+      "purpose": "Exercise manual and AI-compatible panel edits, linked and pinned selections, save, restore and undo through the workspace.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 1800
+    },
+    {
+      "id": "configured-voice-session",
+      "status": "planned",
+      "purpose": "Observe one explicitly authorized real duplex voice session, mixed-language entity correction, visible tool results, cancellation and text continuity.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 1800,
+      "cadence": "release"
     }
   ],
   "milestones": [
@@ -332,14 +357,16 @@
       "checks": [
         "market-workflow",
         "market-fixtures",
-        "market-recovery"
+        "market-recovery",
+        "local-folder-import"
       ]
     },
     {
       "id": "M2",
       "checks": [
         "operations-workflow",
-        "state-migrations"
+        "state-migrations",
+        "workspace-layout"
       ]
     },
     {
@@ -352,7 +379,8 @@
       "id": "M4",
       "checks": [
         "ai-workflow",
-        "ai-replay-evaluations"
+        "ai-replay-evaluations",
+        "configured-voice-session"
       ]
     },
     {
@@ -439,6 +467,41 @@
         "typescript-contracts",
         "python-contracts-workers",
         "rust-contracts-workers"
+      ]
+    },
+    {
+      "requirement": "Select a local CSV directory, correct an import preview and refresh it with new files. Source revisions and rejected records are inspectable and repeat imports are idempotent.",
+      "checks": [
+        "local-folder-import"
+      ]
+    },
+    {
+      "requirement": "Preview, apply, name, restore and revert a single-chart layout. Manual and AI edits use the same panel settings, linked selections and allowed interactions.",
+      "checks": [
+        "workspace-layout",
+        "operations-workflow",
+        "ai-workflow"
+      ]
+    },
+    {
+      "requirement": "The human and AI can each point to a versioned workspace object, reveal evidence in another panel, refine the selection and return to the previous view.",
+      "checks": [
+        "ai-workflow",
+        "ai-replay-evaluations"
+      ]
+    },
+    {
+      "requirement": "AI operations show their target, preview or progress and actual outcome in the affected view. Confirmation, denial, failure and cancellation remain visible.",
+      "checks": [
+        "ai-workflow",
+        "operations-workflow"
+      ]
+    },
+    {
+      "requirement": "An explicitly enabled real voice session supports spoken discussion, interruption and text follow-up under the same operation permissions. A denied or interrupted request has an observable outcome.",
+      "checks": [
+        "configured-voice-session",
+        "credential-boundaries"
       ]
     }
   ],

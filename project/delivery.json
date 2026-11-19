@@ -263,11 +263,13 @@
       ],
       "user_goal": "Investigate a chart with AI, inspect its evidence and revise the result together.",
       "given": "Known workspace context, a versioned mock provider and an explicit research question.",
-      "when": "Request an abnormal-volatility indicator, inspect competing explanations, preview, accept or cancel.",
+      "when": "Select a chart range and discuss an abnormal-volatility indicator. Inspect a source in another panel, correct the selection, then preview, revise, accept or cancel the indicator.",
       "then": [
         "Claims distinguish observations, calculations and inferences.",
         "Execution claims reference actual successful core results.",
-        "Context, tool, prompt, model and dataset identities support replay."
+        "Context, tool, prompt, model and dataset identities support replay.",
+        "The AI reveals the exact row, range or passage for a claim and the user can point back to a different target. Both can return to the previous view.",
+        "The affected chart or table shows the proposed change, any required confirmation and the actual outcome."
       ],
       "failure_cases": [
         "Prompt injection in external text",
@@ -275,7 +277,9 @@
         "Malformed tool output",
         "Cancelled task",
         "Denied authorization",
-        "Tool or time limit reached"
+        "Tool or time limit reached",
+        "Source revision changed or a passage cannot be located",
+        "A reply arrives after the user selected a different target"
       ],
       "checks": [
         "ai-workflow",
@@ -344,6 +348,79 @@
         "windows-native-build"
       ],
       "evidence_boundary": "The chart and development transport checks cover read-only synthetic history. Record observations from an Ubuntu graphical session and the native Windows WebView2 session separately from build results and owner feedback."
+    },
+    {
+      "id": "local-folder-refresh",
+      "task_ids": [
+        "M1-008"
+      ],
+      "user_goal": "Chart data from a purchased or self-produced folder and reuse the same mapping for the next delivery.",
+      "given": "A user-selected directory with differently structured CSV series, duplicates and known expected prices and volumes.",
+      "when": "Preview rows, correct a field or unit, chart the accepted data, add a file and refresh twice.",
+      "then": [
+        "The chart agrees with independently expected values and identifies contributing files and rows.",
+        "A repeated refresh preserves counts. A changed file format requests review and the accepted revision remains available."
+      ],
+      "failure_cases": [
+        "Unknown adjustment basis or night-session date",
+        "Same-time quotes and byte-identical aliases",
+        "Cancelled refresh or malformed rows"
+      ],
+      "checks": [
+        "local-folder-import"
+      ],
+      "evidence_boundary": "Exercise the local product entry. Private owner files and external provider access have independent evidence."
+    },
+    {
+      "id": "workspace-layout-edit",
+      "task_ids": [
+        "M2-002",
+        "M4-001"
+      ],
+      "user_goal": "Arrange a workspace manually or by asking the AI, then revisit the same arrangement.",
+      "given": "One main chart, a watchlist, an inspection panel and a known workspace revision.",
+      "when": "Move the watchlist, link the table, pin a comparison, preview and apply the edit, save a layout and reopen it.",
+      "then": [
+        "The same settings drive direct, declarative and AI edits. Selecting an instrument updates the linked table while preserving the pinned selection.",
+        "The user can undo the change or restore the default. Source, AI activity and confirmation controls stay reachable."
+      ],
+      "failure_cases": [
+        "Unknown panel or interaction binding",
+        "Invalid layout version or stale AI edit",
+        "Interrupted save"
+      ],
+      "checks": [
+        "workspace-layout",
+        "operations-workflow",
+        "state-migrations",
+        "ai-workflow"
+      ],
+      "evidence_boundary": "A single main chart with built-in panels and allowlisted interactions. Executable custom panels have separate later scope."
+    },
+    {
+      "id": "voice-evidence-discussion",
+      "task_ids": [
+        "M4-001",
+        "M4-002"
+      ],
+      "user_goal": "Discuss evidence out loud, correct what the AI understood and continue from that object in text.",
+      "given": "An explicitly configured voice provider, authorized microphone and data scope, and a chart with a known local disclosure fixture.",
+      "when": "Ask whether the disclosure explains a price move, compare the published passage and chart in one timezone, interrupt with a corrected instrument or interval, then continue in text.",
+      "then": [
+        "The chart marks the observed move and publication time. The source view highlights the passage. The AI distinguishes the observed sequence from a causal inference.",
+        "The corrected selection and the confirmed tool outcome are visible. Stopping speech and cancelling work produce their respective states."
+      ],
+      "failure_cases": [
+        "Microphone disabled or network interrupted",
+        "Alphanumeric symbol or price misheard",
+        "Access denied or original target unavailable"
+      ],
+      "checks": [
+        "configured-voice-session",
+        "ai-workflow",
+        "ai-replay-evaluations"
+      ],
+      "evidence_boundary": "A mock or text-only run cannot verify real voice. Keep raw audio private and retain only authorized redacted test observations. The disclosure fixture does not verify a network information channel."
     }
   ],
   "release_policy": {

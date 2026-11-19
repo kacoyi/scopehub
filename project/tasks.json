@@ -361,7 +361,9 @@
       "milestone": "M4",
       "status": "planned",
       "depends_on": [
-        "M3-001"
+        "M3-001",
+        "M1-008",
+        "M2-002"
       ],
       "scope": [
         "python/ai",
@@ -373,20 +375,26 @@
         "0001",
         "0002",
         "0003",
-        "0004"
+        "0004",
+        "0008"
       ],
       "acceptance": [
         "Mock AI uses actual chart context and core tools to create, inspect and revise an indicator draft.",
         "Cancellation and authorization apply to every tool execution, and claims refer to actual results.",
         "Record model, prompt, tool and input versions when they first affect reproducibility; preserve replayable evaluation scenarios.",
-        "Mock acceptance is separate from later real-model and real-data usability validation."
+        "Mock acceptance is separate from later real-model and real-data usability validation.",
+        "From a selected interval, reveal a versioned row or local document passage in another view, highlight the exact evidence and continue after the user corrects the range. Preserve the previous view and surface stale or missing anchors.",
+        "Observe the target and actual core result in the affected chart, column or panel. Check denial, cancellation and stale revisions, and exercise a layout edit through the same core operation as a manual edit.",
+        "Suggest a local CSV mapping from permitted sample fields. Show the proposal for correction and run the approved deterministic rule with the same result as a manually supplied mapping."
       ],
       "checks": [
         "ai-workflow",
-        "ai-replay-evaluations"
+        "ai-replay-evaluations",
+        "workspace-layout",
+        "local-folder-import"
       ],
       "evidence": [],
-      "next_action": "Implement the chosen collaboration scenario with deterministic tool and context evaluations.",
+      "next_action": "Extend the first indicator conversation with a fixture-backed evidence comparison, user correction and visible action results. Exercise the layout and import mapping through their delivered entries.",
       "blocker": null,
       "closure_reason": null
     },
@@ -2243,7 +2251,7 @@
     },
     {
       "id": "M1-008",
-      "title": "Connect user-owned local historical data",
+      "title": "Import and refresh a user-selected historical CSV folder",
       "milestone": "M1",
       "status": "planned",
       "depends_on": [
@@ -2259,23 +2267,27 @@
       "decision_refs": [
         "0007",
         "0004",
-        "0005"
+        "0005",
+        "0008"
       ],
       "acceptance": [
-        "Refine a concrete local import format and experience with the owner, preserve provenance and calendar semantics, and verify no synthetic fallback. No external provider credentials or scraping."
+        "Read only the selected scope. Show raw and normalized rows and a chart preview for equity and futures bar examples with different headers, encodings, units and date conventions. A manual mapping works offline.",
+        "Correct and reuse a versioned mapping. Refresh with an additional file, an identical alias and a changed header. Verify stable results on retry, a visible review of incompatible files and the prior accepted dataset after interruption.",
+        "Trace displayed values to the source file identity and rows. Preserve IDs, trading days and unknown values. Distinguish a futures quote snapshot from a trade and mark unsupported or ambiguous transformations. Never substitute a synthetic series."
       ],
       "checks": [
         "market-fixtures",
-        "chart-history"
+        "chart-history",
+        "local-folder-import"
       ],
       "evidence": [],
-      "next_action": "Refine a concrete local import format and experience with the owner, preserve provenance and calendar semantics, and verify no synthetic fallback. No external provider credentials or scraping.",
+      "next_action": "Use independent CSV fixtures with differing headers and an ambiguous unit. Exercise selection, correction, charting, refresh and failure recovery. Use the futures sample assessment for snapshot counterexamples.",
       "blocker": null,
       "closure_reason": null
     },
     {
       "id": "M4-002",
-      "title": "Evaluate an explicitly configured model connection",
+      "title": "Evaluate an explicitly configured model and realtime voice session",
       "milestone": "M4",
       "status": "planned",
       "depends_on": [
@@ -2290,24 +2302,28 @@
       "decision_refs": [
         "0007",
         "0004",
-        "0005"
+        "0005",
+        "0008"
       ],
       "acceptance": [
-        "Refine connection and data-transmission experience, then evaluate a configured adapter separately from deterministic mock acceptance. Shared resources and credentials need the existing authorization checks."
+        "Show provider, data scope, cost basis and microphone state before audio transmission. Keep secrets outside model input and logs. Confirm application recording defaults and stop capture on disable or disconnect.",
+        "Observe an authorized real voice session with Chinese speech, alphanumeric contracts and spoken numbers. Record correction accuracy, first-audio latency, interruption, tool outcomes and actual metered cost where available.",
+        "Continue the same conversation in text, compare the same tool permissions and confirmation as manual input, and distinguish stopping playback from cancellation acknowledged by the core. Keep a missing authorized connection visibly unverified."
       ],
       "checks": [
         "ai-workflow",
         "ai-replay-evaluations",
-        "credential-boundaries"
+        "credential-boundaries",
+        "configured-voice-session"
       ],
       "evidence": [],
-      "next_action": "Refine connection and data-transmission experience, then evaluate a configured adapter separately from deterministic mock acceptance. Shared resources and credentials need the existing authorization checks.",
+      "next_action": "Define a short bilingual voice evaluation and a denied-action case. Run the offline replay first, then observe an explicitly configured adapter under the authorized transmission scope.",
       "blocker": null,
       "closure_reason": null
     },
     {
       "id": "M4-003",
-      "title": "Refine and deliver the first information-channel workflow",
+      "title": "Reveal attributable external evidence in a research conversation",
       "milestone": "M4",
       "status": "planned",
       "depends_on": [
@@ -2322,17 +2338,19 @@
       "decision_refs": [
         "0007",
         "0004",
-        "0005"
+        "0005",
+        "0008"
       ],
       "acceptance": [
-        "Select an owner-relevant research workflow before choosing independent information adapters; preserve source, time and uncertainty. No provider is a mandatory gateway."
+        "Through an authorized replaceable channel, find a disclosure and open the permitted original at an identifiable passage alongside chart evidence. Distinguish publication, retrieval and market times and label inference separately.",
+        "Exercise snippet-only, inaccessible, corrected, conflicting and untrusted material. Retain the source reference and convey uncertainty when the original or precise anchor is unavailable. Return to the prior workspace context."
       ],
       "checks": [
         "ai-workflow",
         "ai-replay-evaluations"
       ],
       "evidence": [],
-      "next_action": "Select an owner-relevant research workflow before choosing independent information adapters; preserve source, time and uncertainty. No provider is a mandatory gateway.",
+      "next_action": "Register an original-source retrieval and presentation check for the first configured channel before activation. Use the disclosure-versus-price example and record the actual coverage and access scope.",
       "blocker": null,
       "closure_reason": null,
       "delivery": "later"
@@ -2457,7 +2475,7 @@
     },
     {
       "id": "M1-009",
-      "title": "Evaluate a user-configured market API adapter",
+      "title": "Connect a market API through a preset or reviewed HTTP mapping",
       "milestone": "M1",
       "status": "planned",
       "depends_on": [
@@ -2472,17 +2490,20 @@
       "decision_refs": [
         "0007",
         "0004",
-        "0005"
+        "0005",
+        "0008"
       ],
       "acceptance": [
-        "Refine the first required external market source, verify its permissions, coverage and semantics, then implement a replaceable adapter without silent fallback."
+        "Demonstrate a configured provider preset and a custom read-only HTTP mapping from vendor documentation or a sanitized sample. Test the authorized destination, authentication, pagination, rate limits and one bounded instrument/date query.",
+        "Show real permissions, feed coverage, time and units. Credentials stay in the platform store and are absent from model input and logs. Record a real authorized trial separately from replay fixtures."
       ],
       "checks": [
         "market-fixtures",
-        "chart-history"
+        "chart-history",
+        "credential-boundaries"
       ],
       "evidence": [],
-      "next_action": "After local-source delivery, refine the required external-source experience and verify provider fit and authorization before using any service.",
+      "next_action": "Evaluate the first US-equity or Chinese market-data source against the documented workflow. Bind a provider-specific conformance check before activation and retain an authorized trial with its actual coverage.",
       "blocker": null,
       "closure_reason": null,
       "delivery": "later"
@@ -2933,6 +2954,217 @@
       "closure_reason": null
     },
     {
+      "id": "M0-021",
+      "title": "Revise product acceptance for data onboarding and shared AI workspaces",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-013"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "contracts/contract.json",
+        "contracts/decisions",
+        "project/tasks.json",
+        "project/checks.json",
+        "project/delivery.json",
+        "project/development.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "The engineering contract defines directory imports and reusable mappings, configurable market connections, voice and visible shared evidence, and user- or AI-edited layouts. Each first-version outcome has a planned check and a delivery task.",
+        "Current and later work are visible in the product brief. Historical receipts, the operation catalog, protocol version, permissions and default connection state retain their established meanings."
+      ],
+      "checks": [
+        "project-state",
+        "generated-contracts",
+        "architecture",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-021-874efadc10b4fc1a.json",
+          "sha256": "caef6a4ce4e73cb15898eee7b591e1c89a6c37f379a6c216d75e2dbd80808d96"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A developer can locate the agreed user journeys, their acceptance and the revision that introduced them.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/contract.json",
+          "project/checks.json",
+          "project/delivery.json",
+          "project/development.json",
+          "project/assessments/futures-tick-20260109.json"
+        ],
+        "hypotheses": [
+          "The existing registry, source descriptors and task ledger can express the requirements without adding wire operations during design."
+        ],
+        "risks": [
+          {
+            "failure": "A passing synthetic chart check or unavailable provider is counted as acceptance of a new product capability.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A design change silently alters the runtime operation surface.",
+            "checks": [
+              "architecture",
+              "generated-contracts"
+            ]
+          }
+        ],
+        "rollback": "Compare the change against the prior task-branch revision and preserve accepted records. Correct a changed product decision in a subsequent contract revision.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "engineering-contract-v1.json",
+            "contracts/contract.json",
+            "scripts/project.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/iteration_policy"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/implementation_policy/changes"
+            }
+          ],
+          "non_goals": [
+            "Runtime features, external data or model connections, live orders and release acceptance."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "Single main chart, explicit samples, deterministic mock, independent sources and core authorization."
+          ],
+          "change": [
+            "Specify observable onboarding, conversation, evidence and layout behavior in the product contract."
+          ],
+          "data_plan": "Only project records change. No user records, application storage schemas or external data transfers are involved.",
+          "cleanup": "Replace vague acceptance for unfinished tasks. Preserve completed definitions and verify both the task-branch base and the combined working tree."
+        }
+      }
+    },
+    {
+      "id": "M2-002",
+      "title": "Customize and restore a single-chart workspace",
+      "milestone": "M2",
+      "status": "planned",
+      "depends_on": [
+        "M2-001"
+      ],
+      "scope": [
+        "apps/desktop",
+        "crates/application",
+        "crates/persistence",
+        "tests"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "Move, resize, dock or tab panels, configure theme and gain/loss colors, link chart and table selection, and pin an independent comparison. Keep active source and confirmation controls reachable.",
+        "Edit a named layout by hand or with a declarative definition. Preview, apply, undo, restore after restart and return to the default. Reject unsupported bindings or a stale revision while keeping the previous accepted layout."
+      ],
+      "checks": [
+        "workspace-layout",
+        "operations-workflow",
+        "state-migrations"
+      ],
+      "evidence": [],
+      "next_action": "Start with chart, watchlist and inspection panels. Define the narrow layout operations and versioned storage, then validate actor permissions, restoration and a user-authored binding.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M1-015",
+      "title": "Qualify a market-data-only CTP futures connection",
+      "milestone": "M1",
+      "status": "planned",
+      "depends_on": [
+        "M1-008"
+      ],
+      "scope": [
+        "python/providers",
+        "crates",
+        "apps/desktop",
+        "tests"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "Use an authorized market-data front and an identified contract directory to subscribe, disconnect and recover without logging in to a trading front or reading accounts.",
+        "Inspect native session times, snapshot order, cumulative volume, symbols and feed gaps. Pair attributable local or API history with the live source and expose coverage at the boundary."
+      ],
+      "checks": [
+        "market-workflow",
+        "market-recovery",
+        "credential-boundaries"
+      ],
+      "evidence": [],
+      "next_action": "Bind a CTP-specific qualification check before activation. Review vn.py market-data callbacks and metadata dependencies, then verify one authorized subscription and reconnection.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "later"
+    },
+    {
+      "id": "M2-003",
+      "title": "Evaluate isolated user-authored panel code beyond layout bindings",
+      "milestone": "M2",
+      "status": "planned",
+      "depends_on": [
+        "M2-002"
+      ],
+      "scope": [
+        "apps/desktop",
+        "crates/application",
+        "tests"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "Demonstrate a user need outside declarative panels. Document the rendering and interaction boundary, declared permissions, versioning, removal and recovery before proposing runtime execution.",
+        "Any prototype must demonstrate isolation from product code, native credentials and approval controls. A prototype does not authorize installation or execution in a user workspace."
+      ],
+      "checks": [
+        "architecture",
+        "operations-workflow"
+      ],
+      "evidence": [],
+      "next_action": "Select a concrete custom panel that needs a new renderer and compare isolated extension designs against the existing declarative interface.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "later"
+    },
+    {
       "id": "M0-020",
       "title": "Preserve module boundary checks across Windows path aliases",
       "milestone": "M0",
@@ -3049,6 +3281,7 @@
         "M1-003",
         "M1-008",
         "M2-001",
+        "M2-002",
         "M3-001",
         "M4-001",
         "M4-002",
@@ -3067,7 +3300,8 @@
       "acceptance": [
         "Exercise the current contract's live and historical chart journeys on Ubuntu, including interruption and recovery, user-owned local data, shared operations, durable workspace recovery, reproducible indicators and human-AI chart collaboration.",
         "Distinguish deterministic AI execution from an explicitly configured model connection. Follow the owner's authorization for the configured service, credentials and any external transmission. Record outstanding real-connection evidence when configuration or authorization is unavailable.",
-        "Verify the complete applicable Ubuntu experience on a recorded revision and retain end-to-end observations and regression results. Track Windows installation, packaging and native credential evidence on their designated platform. Explicitly later capabilities remain outside this review unless their delivery scope changes."
+        "Verify the complete applicable Ubuntu experience on a recorded revision and retain end-to-end observations and regression results. Track Windows installation, packaging and native credential evidence on their designated platform. Explicitly later capabilities remain outside this review unless their delivery scope changes.",
+        "Observe CSV folder refresh, a restored custom layout, two-way evidence selection and in-place action results. Identify the exact authorized voice session or record why its real-connection evidence is outstanding."
       ],
       "checks": [
         "ubuntu-preview",
@@ -3079,7 +3313,10 @@
         "state-migrations",
         "indicator-workflow",
         "ai-workflow",
-        "ai-replay-evaluations"
+        "ai-replay-evaluations",
+        "local-folder-import",
+        "workspace-layout",
+        "configured-voice-session"
       ],
       "evidence": [],
       "next_action": "After the observed retry repair, resume M1-006 and the existing Ubuntu-capable contract tasks. Track each required capability and record the integrated Ubuntu experience before scheduling M1-011.",

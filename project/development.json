@@ -435,7 +435,7 @@
         "M4-001"
       ],
       "delivery": "current-contract",
-      "boundary": "Manual and cognitive capability coverage is a product direction, not current runtime capability."
+      "boundary": "Planned shared chart, table and passage selections, visible core outcomes and reviewed mapping proposals. Deterministic replay and a configured voice session provide different evidence."
     },
     {
       "id": "installation",
@@ -460,7 +460,7 @@
         "M4-002"
       ],
       "delivery": "current-contract",
-      "boundary": "Local data and explicitly configured model connections need scoped delivery; installing includes no subscription."
+      "boundary": "A local CSV folder can be used offline. Optional cloud assistance and model connections require explicit transmission scope. These onboarding workflows await implementation."
     },
     {
       "id": "information-channels",
@@ -472,19 +472,69 @@
         "M4-003"
       ],
       "delivery": "later",
-      "boundary": "Independent channels remain required; refine the first use case before choosing an adapter."
+      "boundary": "Later research delivery retrieves a permitted original, highlights its evidence, preserves uncertainty and returns to the prior view. Channels are independently replaceable."
     },
     {
       "id": "external-market-api",
       "source": {
         "path": "engineering-contract-v1.json",
-        "pointer": "/product/real_data_gate"
+        "pointer": "/product/data_onboarding/external_api"
       },
       "task_ids": [
-        "M1-009"
+        "M1-009",
+        "M1-015"
       ],
       "delivery": "later",
-      "boundary": "Real provider verification follows the simulated first-version workflow; do not silently expand current release scope."
+      "boundary": "Later delivery covers a preset, a documented custom HTTP mapping and a dedicated CTP market-data connection. Each requires actual source and permissions verification."
+    },
+    {
+      "id": "local-folder-import",
+      "source": {
+        "path": "engineering-contract-v1.json",
+        "pointer": "/product/data_onboarding"
+      },
+      "task_ids": [
+        "M1-008"
+      ],
+      "delivery": "current-contract",
+      "boundary": "CSV directory selection, mapping preview and repeatable refresh require their own integrated check."
+    },
+    {
+      "id": "workspace-layout",
+      "source": {
+        "path": "engineering-contract-v1.json",
+        "pointer": "/ui/customization"
+      },
+      "task_ids": [
+        "M2-002",
+        "M4-001"
+      ],
+      "delivery": "current-contract",
+      "boundary": "The default chart workspace and user- or AI-edited built-in panel layouts share a versioned definition. Layout acceptance is pending."
+    },
+    {
+      "id": "realtime-voice",
+      "source": {
+        "path": "engineering-contract-v1.json",
+        "pointer": "/ai/voice"
+      },
+      "task_ids": [
+        "M4-002"
+      ],
+      "delivery": "current-contract",
+      "boundary": "Opt-in duplex speech shares text context and core permissions. A real session must be observed separately from mock evaluation."
+    },
+    {
+      "id": "custom-panel-code",
+      "source": {
+        "path": "engineering-contract-v1.json",
+        "pointer": "/ui/customization/extensibility"
+      },
+      "task_ids": [
+        "M2-003"
+      ],
+      "delivery": "later",
+      "boundary": "Evaluate a separately isolated renderer only when declarative layouts cannot express a concrete panel. Runtime execution needs a future scoped decision."
     }
   ],
   "improvement_metrics": [
