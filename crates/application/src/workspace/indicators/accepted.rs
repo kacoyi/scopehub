@@ -247,7 +247,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         let deadline = Instant::now();
         let mut newer = std::collections::HashSet::new();
         for job in self.indicator_stage.jobs.iter().rev() {
-            if job.expires <= deadline {
+            if job.expires <= deadline || job.is_cancelled() {
                 continue;
             }
             let status = job.state.lock().expect("indicator job state");

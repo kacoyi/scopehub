@@ -95,8 +95,12 @@ struct Preview {
 }
 
 impl Job {
+    fn is_cancelled(&self) -> bool {
+        self.cancel.load(Ordering::Acquire)
+    }
+
     fn cancel(&self) {
-        self.cancel.store(true, Ordering::Relaxed);
+        self.cancel.store(true, Ordering::Release);
         let mut result = self.state.lock().expect("indicator job state");
         // A computed result is still staged until the core publishes it.
         // Let cancellation win until that publication, even if evaluation ended.
@@ -391,6 +395,9 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         match &mut *result {
             JobResult::Running => Ok(json!({"status": "running", "task_id": task_id})),
             JobResult::Ready(preview) => {
+                if job.is_cancelled() {
+                    return Err(failure(ErrorCode::STALECONTEXT));
+                }
                 self.port.inspect(|tx| {
                     check_context(tx, &job.scope)?;
                     require_compute_right(tx, &job.source)

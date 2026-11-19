@@ -542,10 +542,9 @@ test('indicator-preview uses the bound sample calendar through the normal chart'
         await control(page, 'Data sources').click();
         await sources.getByRole('button', { name: 'Leave sample' }).click();
         await expect(plot.getByRole('region', { name: 'Indicator preview' })).toHaveCount(0);
-        const stale = await (await post(server, {
+        await expect.poll(async () => (await (await post(server, {
           type: 'indicator_preview_status', request_id: randomUUID(), task_id: gapped.task_id,
-        })).json();
-        expect(stale).toMatchObject({ ok: false, error: { code: 'STALE_CONTEXT' } });
+        })).json()).error?.code).toBe('STALE_CONTEXT');
       }, [endpoint, '/__scopehub/operation']);
     });
     await testInfo.attach('sample-indicator-calendar', { body: JSON.stringify(observation), contentType: 'application/json' });
@@ -785,6 +784,158 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
     });
     await testInfo.attach('indicator-preview', { body: JSON.stringify(observation), contentType: 'application/json' });
 
+  } finally {
+    await profile.close();
+  }
+});
+
+test('indicator-preview rejects obsolete inputs and open confirmations without replacing accepted output', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  const port = await freePort();
+  const id = randomUUID();
+  const other = randomUUID();
+  const a = Date.parse('2026-02-04T00:00:00Z');
+  const day = 86_400_000;
+  const bars = [1, 3, 5, 7, 9, 11].map((close, index) => {
+    const time_ms = a + day * index;
+    return {
+      time_ms, trading_day: new Date(time_ms).toISOString().slice(0, 10),
+      open: close, high: close, low: close, close, volume: close * 10, is_closed: true,
+    };
+  });
+  const command = () => ({
+    protocol_version: '1.1', type: 'request', request_id: randomUUID(),
+    message_id: randomUUID(), timestamp_ms: Date.now(),
+  });
+  const respond = challenge_id => ({ ...command(), operation: 'confirmation.respond', decision: 'approve', challenge_id });
+  const status = task_id => ({ type: 'indicator_preview_status', request_id: randomUUID(), task_id });
+  const observation = {};
+  let saved;
+  let readSaved;
+  try {
+    await seedFrozenEvidence(profile, id, a, a + day, bars);
+    const alternative = bars.map(bar => ({ ...bar, close: bar.close + 20, high: bar.high + 20 }));
+    await seedFrozenEvidence(profile, other, a, a + day, alternative);
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      const send = async request => (await post(server, request)).json();
+      await inFreshBrowser(browser, server, async page => {
+        const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+        const editor = dialog.getByRole('region', { name: 'Indicator preview' });
+        const open = async revisionId => {
+          await control(page, 'Open published CSV').click();
+          await dialog.getByLabel('Revision ID').fill(revisionId);
+          await dialog.getByRole('button', { name: 'Open frozen chart' }).click();
+          await expect(editor.getByRole('button', { name: 'Run preview' })).toBeEnabled();
+        };
+        const run = async () => {
+          await editor.getByRole('button', { name: 'Run preview' }).click();
+          await expect(editor.getByRole('button', { name: 'Accept preview' })).toBeEnabled();
+        };
+        const stage = async () => {
+          const reply = await duringPageEvent(page, 'response', response =>
+            response.request().postDataJSON()?.intent?.operation === 'indicator.acceptVersion',
+          () => editor.getByRole('button', { name: 'Accept preview' }).click(), 8_000);
+          await expect(editor.getByRole('button', { name: 'Confirm indicator acceptance' })).toBeEnabled();
+          return (await reply.json()).result.outcome.challenge;
+        };
+        const waitInvalidation = async (task, action) => {
+          const response = await duringPageEvent(page, 'response', response => {
+            const body = response.request().postDataJSON();
+            return body?.operation === 'task.cancel' && body.task_id === task && response.ok();
+          }, action, 8_000);
+          expect((await response.json()).result.task_id).toBe(task);
+        };
+
+        await open(id);
+        await run();
+        await stage();
+        const confirmed = await duringPageEvent(page, 'response', response =>
+          response.request().postDataJSON()?.operation === 'confirmation.respond',
+        () => editor.getByRole('button', { name: 'Confirm indicator acceptance' }).click(), 8_000);
+        saved = (await confirmed.json()).result.outcome.result;
+        await expect(editor.getByText(saved.version_id)).toBeVisible();
+        const request = { type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: saved.layer_id };
+        readSaved = (await send(request)).result;
+
+        const held = Promise.withResolvers();
+        const release = Promise.withResolvers();
+        const routeStatus = async route => {
+          if (route.request().postDataJSON()?.type !== 'indicator_preview_status') return route.continue();
+          const response = await route.fetch();
+          const body = await response.json();
+          if (body.result?.status === 'ready') {
+            held.resolve(body.result);
+            await release.promise;
+          }
+          await route.fulfill({ response }).catch(() => {});
+        };
+        await page.route('**' + endpoint, routeStatus);
+        try {
+          await editor.getByRole('button', { name: 'Run preview' }).click();
+          const waiting = await Promise.race([held.promise, delay(8_000).then(() => { throw new Error('Ready reply was not intercepted'); })]);
+          expect(waiting.resolved_parameters).toEqual({ period: 2 });
+          expect(waiting.event.snapshot.from_ms).toBe(a);
+          await waitInvalidation(waiting.task_id, async () => {
+            await editor.getByLabel('Rolling period').fill('3');
+            await editor.getByLabel('First visible bar').selectOption(String(a + 5 * day));
+          });
+          release.resolve();
+          await expect(editor.getByRole('button', { name: 'Accept preview' })).toHaveCount(0);
+          const withheld = await send(status(waiting.task_id));
+          expect(withheld).toMatchObject({ ok: false, error: { code: 'STALE_CONTEXT' } });
+          const rejected = await send({
+            ...command(), task_id: null, scope: {
+              workspace_id: workspaceId, expected_workspace_revision: 1, expected_selection_revision: 0,
+              idempotency_key: randomUUID(), target: {
+                kind: 'chart_interval', snapshot: waiting.source_snapshot,
+                range: { from_ms: waiting.event.snapshot.from_ms, to_ms: waiting.event.snapshot.to_ms },
+              },
+            }, intent: { operation: 'indicator.acceptVersion', arguments: {
+              preview_id: waiting.event.preview_id, result_hash: waiting.event.artifact.result_hash,
+            } },
+          });
+          expect(rejected.result.outcome).toMatchObject({ state: 'failed', error: { code: 'STALE_CONTEXT' } });
+          observation.lateReady = { task: waiting.task_id, withheld, rejected: rejected.result.outcome };
+        } finally {
+          release.resolve();
+          await page.unroute('**' + endpoint, routeStatus);
+        }
+
+        await run();
+        await expect(editor.getByText('Period 3 · 2 warm-up bars')).toBeVisible();
+        const staged = await stage();
+        await waitInvalidation(staged.task_id, async () => {
+          await editor.getByLabel('Indicator input').selectOption('volume');
+          await editor.getByLabel('Rolling period').fill('2');
+          await editor.getByLabel('First visible bar').selectOption(String(a + 4 * day));
+        });
+        await expect(editor.getByRole('button', { name: 'Confirm indicator acceptance' })).toHaveCount(0);
+        const rejectedDecision = (await send(respond(staged.challenge_id))).result.outcome;
+        expect(rejectedDecision).toMatchObject({ state: 'failed', error: { code: 'STALE_CONTEXT' } });
+        observation.openApproval = rejectedDecision;
+
+        await run();
+        const oldSource = await stage();
+        await waitInvalidation(oldSource.task_id, () => dialog.getByRole('button', { name: 'Close', exact: true }).click());
+        await open(other);
+        const rejectedSource = (await send(respond(oldSource.challenge_id))).result.outcome;
+        expect(rejectedSource).toMatchObject({ state: 'failed', error: { code: 'STALE_CONTEXT' } });
+        observation.sourceChange = rejectedSource;
+        expect((await send(request)).result).toEqual(readSaved);
+      });
+    });
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      const list = await (await post(server, {
+        type: 'indicator_accepted_layers', request_id: randomUUID(), revision_id: id,
+      })).json();
+      expect(list.result.layers).toEqual([{ ...saved, available: true }]);
+      const restored = await (await post(server, {
+        type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: saved.layer_id,
+      })).json();
+      expect(restored.result).toEqual(readSaved);
+      observation.restarted = { version: saved.version_id, input: restored.result.document.snapshot };
+    });
+    await testInfo.attach('obsolete-indicator-inputs', { body: JSON.stringify(observation), contentType: 'application/json' });
   } finally {
     await profile.close();
   }

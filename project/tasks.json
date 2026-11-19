@@ -653,7 +653,7 @@
         "ui-build"
       ],
       "evidence": [],
-      "next_action": "Implement the explicit user-selected trusted-Python slice through the shared registry. Use synthetic fixtures and affirmative source-purpose authorization. Bind separate human approval to each exact code, input snapshot, parameters and execution scope, then complete indicator-preview acceptance.",
+      "next_action": "Implement and verify exact local human approval, source-purpose checks and result restoration for selected trusted Python on synthetic input. Compose the separately owned one-shot runner through the established protocol 1.1 compute and result frames.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -704,6 +704,14 @@
               "indicator-declarative-preview",
               "rust-contracts-workers"
             ]
+          },
+          {
+            "failure": "An unapproved, expired or cancelled Python run is dispatched, a late worker response becomes visible, or reopening an accepted result reruns code.",
+            "checks": [
+              "indicator-workflow",
+              "operations-workflow",
+              "rust-contracts-workers"
+            ]
           }
         ],
         "rollback": "Keep preview state disposable and independent of accepted layers. On failed acceptance roll back all durable changes together. Verify an interrupted v10 migration against the populated v9 layout checkpoint before retrying.",
@@ -742,7 +750,7 @@
           "open_questions": [
             "The verified v9 layout checkpoint b11df1a is composed with v10. Retain populated migration rollback and restore verification.",
             "The bound synthetic chart uses verified sessions through the normal workspace. CSV continues to explain unverified calendar continuity.",
-            "Trusted, user-selected Python and per-run approval remain the following M3-001 slice."
+            "Use selected UTF-8 Python and explicit local per-run approval. The sibling runner owns only process execution, cancellation and cleanup. This slice uses synthetic snapshots and the existing inline transport."
           ]
         },
         "evolution": {
@@ -753,7 +761,8 @@
           "change": [
             "Validate and execute typed declarative drafts with cancellable preview lifetimes.",
             "Accept a matching result at most once and recheck current rights when restoring visible output.",
-            "For an explicitly bound synthetic sample, re-read its exact frozen series through the offline market registry. Validate the chart snapshot and hash the adapter schedule with the computation input. Reuse the chart adapter for the preview."
+            "For an explicitly bound synthetic sample, re-read its exact frozen series through the offline market registry. Validate the chart snapshot and hash the adapter schedule with the computation input. Reuse the chart adapter for the preview.",
+            "Bind trusted Python dispatch to the one-time local decision, exact selected code, resolved parameters, immutable input, scope revisions and affirmative source-purpose rights. Keep runner output untrusted until the registry verifies the full artifact."
           ],
           "data_plan": "Pin the immutable input revision, series, as-of, visible and warm-up bounds, input hash, code identity, engine and resolved typed parameters. Persist validated output and provenance with a workspace operation receipt after coordinating v9.",
           "cleanup": "Dispose cancelled or superseded previews and isolate validation failures. Retain accepted artifacts independently of disposable preview state. Restore only entitled output and never rerun code on restore."
