@@ -1365,18 +1365,39 @@
       "deferral_reason": null
     },
     {
+      "id": "windows-idle-local-source-sharing",
+      "source": "Hosted Windows run 44563163301 rust-contracts-workers and independent standard-user Win11 MSVC measurements in .reports/windows-source-sharing/measured/CHANGES.JSON and PINS.JSON.",
+      "observation": "The native bridge replay tests failed at bridge_tests.rs:523 and :608 with Win32 error 32. The independent desktop matrix reproduced error 32 for direct-child rename and atomic replacement after selection, preview and publication. Both succeeded before selection and after exit. The isolated handle matrix reproduced the failure with read-only sharing on the selected directory and distinguished that from the expected protection of a file currently being verified.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "local-folder-import",
+        "local-import-publication"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
       "id": "workspace-browser-navigation-observer-lifetime",
       "source": "Authenticated hosted Windows PR #13 run 44548543796 at e960fd1, workspace-timeframe log and source snapshot.",
       "observation": "Chromium reported ERR_NO_BUFFER_SPACE on the initial document of the wrong-profile backup visit. The workspace test had already created a response waiter and had not installed a rejection handler. Context teardown also reported that the response waiter rejected when its page closed. Eight browser cases passed and the POSIX signal case skipped.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-008"
       ],
       "regression_checks": [
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The test created a response waiter before navigation and only awaited it after navigation and UI assertions succeeded. Controlled Chromium navigation failure left the waiter live, and context teardown rejected it separately. The origin of the original hosted ERR_NO_BUFFER_SPACE on the document remains undetermined.",
+        "correction": "Scope response and download observations to the triggering action, detach their listeners on exit and preserve the action error. Cancel unread status-only bodies and dispose intercepted API responses during cleanup.",
+        "prevention": "The controlled document failure reports the navigation error and verifies listener cleanup before context close. The status-only control verifies body cancellation. Hosted Verify delivery run 44560917644 at 6540608 passed both controls and the original backup-restore journey on Ubuntu and Windows."
+      },
       "deferral_reason": null
     },
     {
@@ -1384,14 +1405,18 @@
       "source": "Local M2-008 task run 20261119T153931.924374Z-c35b457c with temporary synthetic profiles.",
       "observation": "The peer-deletion browser case timed out while the observer had a pending detail read. A retained screenshot showed the peer on the second note with Local workspace is busy and Review deletion disabled. Both pages used the same single-flight Vite producer, and a page action could fail before the held route entered its release block. The backup restore and both new lifecycle controls passed in the same run.",
       "severity": "minor",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-008"
       ],
       "regression_checks": [
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The observer and deleting peer shared a single-flight Vite producer while an observer detail request was intentionally delayed. The peer entered BUSY in the retained local failure. The route release scope also started after the click, leaving an early action error outside cleanup.",
+        "correction": "Give the peers separately authenticated Rust writers for the same synthetic profile. Verify the detail request has reached the hold before committing the peer deletion. Release the hold and await removal of its route when the action exits.",
+        "prevention": "The browser test establishes distinct writer processes, deletes through the peer and verifies that the released stale detail is unavailable and the remaining list is correct. The joined local run and both hosted platforms in run 44560917644 passed this case."
+      },
       "deferral_reason": null
     },
     {
@@ -1413,7 +1438,7 @@
     {
       "id": "same-name-frozen-csv-revisions-hard-to-identify",
       "source": "Development verification of the standard-user Windows desktop at 09e89d2. See contracts/reviews/2026-11-19-windows-published-revision-library.json.",
-      "observation": "Two revisions of daily.csv for the same symbol and period share the displayed filename and counts. Their final closes differ. The library shows only hashes and revision identifiers to distinguish them before opening a chart.",
+      "observation": "Two revisions of daily.csv for the same symbol and period share the displayed filename and counts. Their final closes differ. The library shows only hashes and revision identifiers to distinguish them before opening a chart. Native Windows verification of the repaired selection path at b5f4054 is recorded in contracts/reviews/2026-11-19-windows-readable-csv-revisions.json.",
       "severity": "major",
       "status": "open",
       "task_ids": [

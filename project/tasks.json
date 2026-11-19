@@ -2744,7 +2744,8 @@
         "0004",
         "0005",
         "0008",
-        "0013"
+        "0013",
+        "0014"
       ],
       "acceptance": [
         "Read only the selected scope. Show raw and normalized rows and a chart preview for equity and futures bar examples with different headers, encodings, units and date conventions. A manual mapping works offline.",
@@ -2771,11 +2772,11 @@
         "local-import-ui"
       ],
       "evidence": [],
-      "next_action": "Verify the same-name revision labels and ordinary external source replacement in native Windows, and continue reviewed folder refresh for additions, aliases, corrections and withdrawals.",
+      "next_action": "Verify the joined library, recovery and source-sharing implementation. The 150d62d native Windows report confirms ordinary external file updates through idle selection, preview, publication and exit. Complete reviewed multi-file overlap, atomic publication and withdrawal with checked directory membership and frozen prior revisions.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
-        "outcome": "A person chooses a local CSV directory, reviews the actual rows and explicit mapping offline, then publishes a traceable equity or futures series to the chart. Compatible refreshes preserve the accepted mapping and earlier snapshots. After restart, the person can browse displayable revisions for the active profile and explicitly reopen a frozen chart without a folder selection or memorized ID.",
+        "outcome": "A person chooses a local CSV directory, reviews the actual rows and explicit mapping offline, then publishes a traceable equity or futures series to the chart. External editors can save, replace, add and remove files while the selection is idle. Compatible refreshes preserve the accepted mapping and earlier snapshots. After restart, the person can browse displayable revisions for the active profile and explicitly reopen a frozen chart without a folder selection or a memorized ID.",
         "change_types": [
           "market-fixtures",
           "ui",
@@ -2801,7 +2802,8 @@
           "apps/desktop/ui/src/local-revision-dialog.tsx",
           "crates/worker-host/src/local_import.rs",
           "crates/worker-host/src/local_import_windows.rs",
-          "contracts/reviews/2026-11-19-windows-published-revision-library.json"
+          "contracts/reviews/2026-11-19-windows-published-revision-library.json",
+          "contracts/reviews/2026-11-19-windows-readable-csv-revisions.json"
         ],
         "hypotheses": [
           "Explicit source mappings can normalize native OHLCV bars without inferring a price, volume unit or session from ambiguous financial fields. File identities and row locators can connect every accepted row to its original input.",
@@ -2813,7 +2815,8 @@
           "The pre-decode not_saved result after the same-profile restart is consistent with a mapping key derived from different spellings of one directory. Resolve the Windows association path while the admitted non-reparse directory chain is pinned, and retain the existing v4 path-key format.",
           "A bounded keyset projection from the existing v5 revision and revocation tables can show distinguishing source and series summaries without reading the original CSV blob or granting source access. Existing frozen reads can recheck entitlement for every selection.",
           "A single replacement can complete a pure preview on already-frozen bytes after the first worker misses its deadline, when the first worker has been reaped and the selection remains current.",
-          "An opt-in list projection of the stored venue, the first and final bars' trading days, and the final bar's close lets a person distinguish same-name corrections such as 305 and 304 before opening either chart. The bar dates describe chart endpoints and carry no publication chronology."
+          "An opt-in list projection of the stored venue, the first and final bars' trading days, and the final bar's close lets a person distinguish same-name corrections such as 305 and 304 before opening either chart. The bar dates describe chart endpoints and carry no publication chronology.",
+          "A metadata-only Windows handle with full sharing can retain the selected directory identity while idle. A short operation can reopen and pin the non-reparse chain, compare identities, then verify source bytes through final commit."
         ],
         "risks": [
           {
@@ -2927,6 +2930,14 @@
               "rust-contracts-workers",
               "generated-contracts"
             ]
+          },
+          {
+            "failure": "An idle Windows selection blocks external atomic saves, or revalidation admits a substituted root or subdirectory under an existing grant. Run the direct and nested file operation matrix, root and branch replacement regressions, and the final commit pin check. On failure preserve the prior frozen revision and require a fresh picker selection for a replaced root.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-folder-import",
+              "local-import-publication"
+            ]
           }
         ],
         "rollback": "Keep the accepted mapping, immutable source identities and last published revision while staging changes. Rejected rows and unsupported files remain inspectable in the selected local session. Stage a mapping version in the current SQLite transaction and roll it back if cancellation or source revocation wins before commit. Keep the previous reviewed version available after failures. The library is a read-only projection. Its refresh can restart from the first page and the existing direct-ID read remains available if listing fails.",
@@ -2959,7 +2970,9 @@
             "crates/persistence/src/local_dataset.rs",
             "crates/application/src/local_publication.rs",
             "apps/desktop/ui/src/local-revision-dialog.tsx",
-            "crates/worker-host/src/local_import_windows.rs"
+            "crates/worker-host/src/local_import_windows.rs",
+            "crates/platform/src/local_folder/platform_fs.rs",
+            "crates/platform/tests/local_folder.rs"
           ],
           "rules": [
             {
@@ -2986,8 +2999,8 @@
           "non_goals": [
             "Remote data channels, cloud transmissions, inferred settlement/trade conversions and the separate real-provider connection workflow.",
             "First publication and explicit compatible replacement cover one selected file and one fully resolved native bar series. No persistent folder grant is issued.",
-            "Repair replay on the current schema v5. Coordinate separately before any schema migration. Defer folder-manifest work until this repair has passed its regressions.",
-            "Revision discovery uses v5 snapshots and does not add a migration, change folder access, implement folder-wide refresh or make network requests."
+            "Revision discovery uses v5 snapshots and does not add a migration, change folder access, implement folder-wide refresh or make network requests.",
+            "Repair replay and selected-folder sharing on the current schema v5. Coordinate the checked directory interface with the separately implemented folder review and manifest."
           ],
           "open_questions": [
             "Stage added files and detect byte-identical aliases within a folder without treating an alias as new economic events. Preserve all contributing source locators and prove results are independent of folder enumeration order.",
@@ -3014,7 +3027,8 @@
             "Normalize the Windows association path only after trusted selection admission. Retain canonical v4 keys, opaque live grants and source and profile separation.",
             "Add an explicit, human-only paginated library in Open published CSV. List entitled revisions in stable revision-ID order and read the selected frozen chart through the existing operation.",
             "Retry only a pure local preview once after a five-second worker timeout and confirmed cleanup. Reuse the frozen bytes, fingerprint and mapping, preserve caller deadlines, and stop on a second timeout.",
-            "Targeted verification passed on the standard-user Win11 MSVC archive 255ae9138f7a with 16 local-import controls and one separate ownership run. Independent Linux archive a377f77d50d3 passed 12 controls. ADR 0013 records artifact hashes and scope. The phase and cause of the original GUI timeout remain unknown."
+            "Targeted verification passed on the standard-user Win11 MSVC archive 255ae9138f7a with 16 local-import controls and one separate ownership run. Independent Linux archive a377f77d50d3 passed 12 controls. ADR 0013 records artifact hashes and scope. The phase and cause of the original GUI timeout remain unknown.",
+            "Release strict native directory and file handles after each filesystem operation. Revalidate the selected root and catalogued subdirectory identities under checked traversal before using a path. An exact committed replay still uses the grant and display rights without rereading the source."
           ],
           "data_plan": "Keep source bytes, mapping, evidence locators and dataset revisions on the active profile. Migrate long-lived state through its owning Rust writer when publication is introduced. Integrate the profile writer and migration history from af89eff. Preserve workspace schema v1, decision notes v2 and backup and restore v3. Apply reviewed mapping schema v4 transactionally and verify both populated v3 databases and fresh initialization. Persist an opaque per-source association, ordered header digest and reviewed mapping. Derive folder access only from the current trusted selection. Add a transactional v4 to v5 migration owned by the existing profile writer. Test upgrade with populated workspace, decision-note and reviewed mapping data, plus new and reopened profiles. A failed or cancelled publication leaves previous revisions readable without rereading the folder. Recover a failed migration from the preserved pre-upgrade profile. Discover from existing immutable v5 records and revocation markers with no new persisted state.",
           "cleanup": "Cancel uncommitted staging on failure and close file handles when the selected folder or profile changes. Close the profile writer and cancel uncommitted mapping operations when the host shuts down. Release any uncommitted complete-file data after cancellation, changed bytes or write failure. Discard stale list pages on refresh and remove inaccessible entries after a raced selection. Keep the worker admission permit through the bounded cleanup. A failed cleanup never authorizes a replacement."
@@ -6218,7 +6232,7 @@
       "id": "M2-008",
       "title": "Own browser response waits in the workspace preview harness",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-007"
       ],
@@ -6245,9 +6259,21 @@
         {
           "path": "project/evidence/M2-008-21f96520ee78a8a1.json",
           "sha256": "db2977baa24757ef29b37284c9230d2a83511e9215b5065e5735e1cbc6d0ea63"
+        },
+        {
+          "path": "project/evidence/M2-008-58367345402022ed.json",
+          "sha256": "a492e7c0727d1af3ee9d5c73e0ab1818e5eb10835c515592de1bbea8c5733389"
+        },
+        {
+          "path": "project/evidence/M2-008-147fd2b169587165.json",
+          "sha256": "33fe3c9305e4bbc2d7e2c9ba2e51096d1536795dff2a182a2ccf9535b20014bb"
+        },
+        {
+          "path": "project/evidence/M2-008-32991f2b48f4105b.json",
+          "sha256": "4c63913412c54b2671a1b992d9b238983e3b389247f62fe73d1c6604da56a758"
         }
       ],
-      "next_action": "Review the locally verified observer cleanup and independent peer writers, then run the browser suite once on the matching Windows source. If the initial document error recurs, correlate its Chromium failure with receipt of the request at the owned Vite listener using bounded synthetic metadata.",
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
