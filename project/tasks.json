@@ -7740,6 +7740,10 @@
         {
           "path": "project/evidence/M2-011-d2a7b9f8f9ce0c13.json",
           "sha256": "66fc4380fb5595752813df072bf8f9d948097a170cfe0125b8026b047ad0c1bc"
+        },
+        {
+          "path": "project/evidence/M2-011-ec1f69ef216071b4.json",
+          "sha256": "b69474c224b9315ee2abc377ba6813a37a74b8ab0811cda7c0f00f8bd7cbbf48"
         }
       ],
       "next_action": "Run the workspace-timeframe and private-record-lifecycle gates on the integrated source, retain matching Linux and Windows evidence, and close the peer-rename feedback when verified.",
