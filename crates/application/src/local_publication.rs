@@ -114,7 +114,7 @@ fn revision_summary(
     })
 }
 
-fn frozen_output(actor: Actor, revision: &Value, bars: &Value) -> Result<Value, Error> {
+pub(crate) fn frozen_output(actor: Actor, revision: &Value, bars: &Value) -> Result<Value, Error> {
     let operation = authorized_operation(actor, READ_LOCAL_IMPORT_REVISION)?;
     let output = json!({ "version": 1, "revision": revision, "bars": bars });
     if output.to_string().len() >= max_message_bytes() {
@@ -254,7 +254,7 @@ impl<S: LocalDatasetStore> OperationRegistry<S> {
 }
 
 impl StoredLocalDataset {
-    fn summary(&self) -> Value {
+    pub(crate) fn summary(&self) -> Value {
         revision_summary(
             &self.revision_id,
             &self.relative_path,

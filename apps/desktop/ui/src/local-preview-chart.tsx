@@ -1,7 +1,9 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
-import type { Bar, LocalImportPreviewOutput, PreviewSeries, ReadLocalImportRevisionOutput } from '../../../../contracts/generated/protocol';
+import type { Bar, LocalImportPreviewOutput, PreviewSeries } from '../../../../contracts/generated/protocol';
 import type { ChartStyle, HistoryChartHandle } from './chart-adapter/history';
+import { FrozenEvidenceControls, type FrozenChartResult } from './frozen-evidence';
 import { PriceChart } from './price-chart';
+import type { LocalWorkspace } from './use-local-workspace';
 
 type ChartProps = {
   title: string;
@@ -76,7 +78,7 @@ export function LocalPreviewChart({ result }: { result: LocalImportPreviewOutput
     </select></label>} />;
 }
 
-export function FrozenLocalChart({ result }: { result: ReadLocalImportRevisionOutput }) {
+export function FrozenLocalChart({ result, workspace }: { result: FrozenChartResult; workspace: LocalWorkspace | undefined }) {
   const [page, setPage] = useState(0);
   const { revision, bars: events } = result;
   const bars = useMemo(() => events.map(event => event.bar), [events]);
@@ -87,6 +89,7 @@ export function FrozenLocalChart({ result }: { result: ReadLocalImportRevisionOu
   return <>
     <LocalBarChart title="Frozen chart" label="Frozen local CSV chart" styleLabel="Frozen chart style"
       series={revision.series} symbol={revision.symbol} bars={bars} />
+    {result.snapshot && workspace && <FrozenEvidenceControls snapshot={result.snapshot} bars={bars} workspace={workspace} />}
     <section className="local-import-card" aria-label="Published source provenance">
       <h2>Published source provenance</h2>
       <div className="local-import-hash"><strong>Dataset revision</strong><code>{revision.revision_id}</code></div>

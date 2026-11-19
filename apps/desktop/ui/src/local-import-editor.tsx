@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type {
   CsvColumnMappingV1, CsvMappingV1, CsvPreview, LocalImportPreviewInput, LocalImportPreviewOutput, PreviewIssue, PreviewRow,
-  PublishedLocalImportRevision, ReadLocalImportRevisionOutput, SavedLocalImportMapping,
+  PublishedLocalImportRevision, SavedLocalImportMapping,
 } from '../../../../contracts/generated/protocol';
 import {
   loadLocalImportMapping, publishLocalImport, readLocalImportRevision, revokeLocalImportRevision, saveLocalImportMapping,
 } from './local-import-transport';
+import { openAuthenticatedFrozenChart, type FrozenChartResult } from './frozen-evidence';
 import { FrozenLocalChart } from './local-preview-chart';
+import type { LocalWorkspace } from './use-local-workspace';
 import { RevisionAccessActions } from './local-revision-dialog';
 import './local-import.css';
 
@@ -31,6 +33,7 @@ type Props = {
   cancelPreview: (requestId: string) => Promise<void>;
   renderChart: (preview: LocalImportPreviewOutput) => ReactNode;
   revokedRevisionId: string | undefined;
+  workspace: LocalWorkspace | undefined;
 };
 
 type Inspection = { output: LocalImportPreviewOutput; draft: CsvMappingV1; mapping: CsvMappingV1; rowLimit: number; raw: boolean };
@@ -202,7 +205,7 @@ function NormalizedBars({ preview }: { preview: CsvPreview }) {
   </section>;
 }
 
-export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport, cancelPreview, renderChart, revokedRevisionId }: Props) {
+export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport, cancelPreview, renderChart, revokedRevisionId, workspace }: Props) {
   const catalog = initialCatalog;
   const [fileId, setFileId] = useState(() => catalog.files.find(file => file.kind === 'csv')?.file_id ?? '');
   const [draft, setDraft] = useState(newMapping);
@@ -210,7 +213,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   const [inspection, setInspection] = useState<Inspection>();
   const [approved, setApproved] = useState<ApprovedMapping>();
   const [published, setPublished] = useState<PublishedLocalImportRevision>();
-  const [frozen, setFrozen] = useState<ReadLocalImportRevisionOutput>();
+  const [frozen, setFrozen] = useState<FrozenChartResult>();
   const [loadedSourceHash, setLoadedSourceHash] = useState<string>();
   const [failure, setFailure] = useState<Failure>();
   const [mappingFailure, setMappingFailure] = useState<Failure>();
@@ -432,7 +435,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
 
   async function openFrozenChart() {
     if (!published) return;
-    await runRequest('read', id => readLocalImportRevision({
+    await runRequest('read', id => workspace ? openAuthenticatedFrozenChart(published.revision_id, id) : readLocalImportRevision({
       version: 1, revision_id: published.revision_id,
     }, id), reply => {
       if (reply.revision.revision_id !== published.revision_id || reply.revision.source_sha256 !== published.source_sha256
@@ -456,6 +459,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       setFrozen(undefined);
       setPublished(undefined);
       setPublicationNotice('Access removed for this published revision.');
+      workspace?.reload();
     });
   }
 
@@ -577,7 +581,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
           </div>
           <RevisionAccessActions key={published.revision_id} disabled={busy} onRevoke={() => void revokeFrozenChart()} />
         </section>}
-        {frozen && <FrozenLocalChart key={frozen.revision.revision_id} result={frozen} />}
+        {frozen && <FrozenLocalChart key={frozen.revision.revision_id} result={frozen} workspace={workspace} />}
         {file && displayedSourceHash && <section className="local-import-card" aria-label={visible ? 'Preview source' : 'Current source'}>
           <h2>{file.relative_path}</h2>
           {visible && <p>{visible.rows.length} source records{visible.truncated ? ' · Preview omits later records' : ''}{mapped && ` · Mapping v${visible.mapping_version} · ${visible.mapping_revision}`}</p>}

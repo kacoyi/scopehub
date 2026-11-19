@@ -23,16 +23,17 @@ pub use reviewed_mapping::{
     reviewed_preview_header, save_mapping_input,
 };
 pub use workspace::{
-    DECISION_NOTE_APPEND_OUTCOME, DECISION_NOTE_BACKUP_MAX_BYTES,
-    DECISION_NOTE_BACKUP_MAX_DELETIONS, DECISION_NOTE_BACKUP_MAX_NOTES,
-    DECISION_NOTE_BACKUP_MAX_OUTCOMES, DECISION_NOTE_DELETE, DECISION_NOTE_EXPORT_BACKUP,
-    DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, DECISION_NOTE_READ,
-    DECISION_NOTE_RESTORE_BACKUP, DECISION_NOTE_SAVE, DecisionNoteBackupData, DecisionNoteChange,
-    DecisionNoteMutation, DecisionNoteOutcomeAddition, DecisionNoteReceipt, DecisionNoteReplay,
-    DecisionNoteRestorePlan, LOCAL_WORKSPACE_OPERATIONS, MAIN_CHART_ID, SET_TIMEFRAME, Timeframe,
-    UNDO, WorkspaceAccess, WorkspaceBinding, WorkspaceChange, WorkspaceReceipt, WorkspaceReplay,
-    WorkspaceReplayKey, WorkspaceSnapshot, WorkspaceState, WorkspaceStore, WorkspaceTransaction,
-    WorkspaceUndoAccess, WorkspaceUndoTarget,
+    ChartEvidenceRef, ChartEvidenceStatus, DECISION_NOTE_APPEND_OUTCOME,
+    DECISION_NOTE_BACKUP_MAX_BYTES, DECISION_NOTE_BACKUP_MAX_DELETIONS,
+    DECISION_NOTE_BACKUP_MAX_NOTES, DECISION_NOTE_BACKUP_MAX_OUTCOMES, DECISION_NOTE_DELETE,
+    DECISION_NOTE_EXPORT_BACKUP, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE,
+    DECISION_NOTE_READ, DECISION_NOTE_RESTORE_BACKUP, DECISION_NOTE_SAVE, DecisionNoteBackupData,
+    DecisionNoteChange, DecisionNoteMutation, DecisionNoteOutcomeAddition, DecisionNoteReceipt,
+    DecisionNoteReplay, DecisionNoteRestorePlan, LOCAL_WORKSPACE_OPERATIONS,
+    LocalChartAnalysisGrant, MAIN_CHART_ID, READ_CHART_PROJECTION, SELECT_EVIDENCE, SET_TIMEFRAME,
+    Timeframe, UNDO, WorkspaceAccess, WorkspaceBinding, WorkspaceChange, WorkspaceReceipt,
+    WorkspaceReplay, WorkspaceReplayKey, WorkspaceSnapshot, WorkspaceState, WorkspaceStore,
+    WorkspaceTransaction, WorkspaceUndoAccess, WorkspaceUndoTarget, evidence_operation_name,
 };
 
 use std::{

@@ -71,7 +71,8 @@ function App() {
 
   return <>
     {!local && <ChartWorkspace key={sample ? 'sample' : 'unconfigured'} sample={sample}
-      leaveSample={leaveSample} localActions={localActions} workspace={workspace} />}
+      leaveSample={leaveSample} localActions={localActions} workspace={workspace}
+      openPublished={workspace ? () => setOpeningRevision(true) : undefined} />}
     {folder && <div hidden={!local}>
       <main className="workstation local-workstation">
         <header className="topbar local-source-bar">
@@ -84,10 +85,11 @@ function App() {
         </header>
         <LocalImportEditor key={folder.folder_id} initialCatalog={folder} chooseFolder={chooseFolder}
           previewImport={previewLocalImport} cancelPreview={cancelLocalPreview} revokedRevisionId={revokedRevisionId}
-          renderChart={result => <LocalPreviewChart result={result} />} />
+          renderChart={result => <LocalPreviewChart result={result} />} workspace={workspace} />
       </main>
     </div>}
-    {openingRevision && <OpenLocalRevisionDialog onClose={() => setOpeningRevision(false)} onRevoked={setRevokedRevisionId} />}
+    {openingRevision && <OpenLocalRevisionDialog onClose={() => setOpeningRevision(false)} onRevoked={setRevokedRevisionId}
+      workspace={workspace} canRevoke={hasLocalCsvPicker()} />}
   </>;
 }
 

@@ -222,7 +222,7 @@ fn v3_upgrade_is_atomic_and_preserves_workspace_notes_and_outcomes() {
         .transaction_with_behavior(TransactionBehavior::Immediate)
         .unwrap();
     migrate(&transaction, &Profile::binding()).unwrap();
-    assert_eq!(ledger(&transaction), [1, 2, 3, 4, 5]);
+    assert_eq!(ledger(&transaction), [1, 2, 3, 4, 5, 6]);
     assert_eq!(integer_pragma(&transaction, "user_version"), SCHEMA_VERSION);
     drop(transaction);
     assert_eq!(ledger(&database), [1, 2, 3]);
@@ -246,8 +246,8 @@ fn v3_upgrade_is_atomic_and_preserves_workspace_notes_and_outcomes() {
     assert_eq!(fs::read(profile.db()).unwrap(), v3_bytes);
 
     let writer = profile.open().unwrap();
-    assert_eq!(ledger(&writer.connection), [1, 2, 3, 4, 5]);
-    let state = writer.snapshot(None).unwrap().0;
+    assert_eq!(ledger(&writer.connection), [1, 2, 3, 4, 5, 6]);
+    let state = writer.snapshot(None, false).unwrap().0;
     assert_eq!(
         (state.revision, state.timeframe),
         (2, Timeframe::FiveMinutes)
@@ -278,7 +278,7 @@ fn v3_with_an_invalid_ledger_is_refused_before_any_upgrade() {
 fn fresh_workspace_has_the_complete_ledger_and_no_reviewed_mapping() {
     let profile = Profile::new();
     let writer = profile.open().unwrap();
-    assert_eq!(ledger(&writer.connection), [1, 2, 3, 4, 5]);
+    assert_eq!(ledger(&writer.connection), [1, 2, 3, 4, 5, 6]);
     assert_eq!(
         integer_pragma(&writer.connection, "user_version"),
         SCHEMA_VERSION

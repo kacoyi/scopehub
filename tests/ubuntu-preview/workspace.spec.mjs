@@ -1,15 +1,17 @@
 import { execFile, spawn } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import { chmod, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { expect, test } from '@playwright/test';
 import { control } from '../ui/workspace-controls.mjs';
+import { painted } from '../ui/chart-pixels.mjs';
 import { assertUnsuitableWindowsHandoffsRejected, assertWindowsPrivateHandoff } from './workspace_test_handoff_acl.mjs';
 
 const exec = promisify(execFile);
@@ -114,6 +116,187 @@ test('fresh browsers restore committed timeframe and eligible undo after service
     await profile.close();
   }
 });
+
+test('frozen chart shares two visible bars and clears the independent selection', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  const port = Number(process.env.SCOPEHUB_EVIDENCE_TEST_PORT ?? await freePort());
+  const id = 'e6cbffaf-8822-4d60-8652-b1e406a1eb20';
+  const a = Date.parse('2026-02-03T00:00:00Z');
+  const b = Date.parse('2026-02-04T00:00:00Z');
+  const observation = [];
+  try {
+    await seedFrozenEvidence(profile, id, a, b);
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      const denied = await post(server, { type: 'frozen_chart', request_id: randomUUID(), revision_id: id }, { Authorization: '' });
+      expect(denied.status).toBe(403);
+      await inFreshBrowser(browser, server, async (page, initial) => {
+        expect(initial.result).toMatchObject({ selection_revision: 0, chart_evidence: null, workspace: { revision: 0 } });
+        await control(page, 'Open published CSV').click();
+        const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+        await dialog.getByLabel('Revision ID').fill(id);
+        const opened = page.waitForResponse(response => response.request().postDataJSON()?.type === 'frozen_chart');
+        await dialog.getByRole('button', { name: 'Open frozen chart' }).click();
+        const source = (await (await opened).json()).result;
+        expect(source.snapshot).toMatchObject({
+          dataset_id: id, dataset_revision: id, from_ms: a, to_ms: b + 1,
+          content_hash: independentEvidenceHash(id, a, b),
+        });
+        await expect(dialog.getByRole('region', { name: 'Frozen local CSV chart' })).toBeVisible();
+        await expect.poll(() => painted(page, 'candlestick')).toBeGreaterThan(20);
+        const evidence = dialog.getByRole('region', { name: 'Shared chart evidence' });
+        const requests = [];
+        page.on('request', request => {
+          const body = request.postDataJSON();
+          if (body?.operation === 'workspace.selectEvidence') requests.push(body);
+        });
+        const share = async (time, revision) => {
+          await evidence.getByLabel('Bar to share').selectOption(String(time));
+          const accepted = page.waitForResponse(evidenceResponse('workspace.selectEvidence'));
+          await evidence.getByRole('button', { name: 'Share selected bar' }).click();
+          const wire = await accepted;
+          const body = wire.request().postDataJSON();
+          expect(body.expected_selection_revision).toBe(revision - 1);
+          expect(body.target).toEqual({ kind: 'chart_interval', snapshot: source.snapshot, range: { from_ms: time, to_ms: time + 1 } });
+          const { result } = await wire.json();
+          expect(result.selection).toEqual({ workspace_id: workspaceId, selection_revision: revision, target: body.target });
+          observation.push({ revision, time, snapshot: source.snapshot.content_hash });
+          return body;
+        };
+        const inspect = async (time, close) => {
+          const projected = page.waitForResponse(evidenceResponse('workspace.readChartProjection'));
+          await evidence.getByRole('button', { name: 'Inspect shared bar' }).click();
+          const reply = (await (await projected).json()).result;
+          expect(reply.result).toEqual({
+            source_reference: id, revision: id, fields: ['time_ms', 'close'], rows: [{ time_ms: time, close }],
+          });
+          await expect(evidence.getByText(`Close ${close}`)).toBeVisible();
+        };
+        const first = await share(a, 1);
+        await inspect(a, 31.5);
+        const canvas = dialog.locator('.chart canvas').first();
+        await canvas.scrollIntoViewIfNeeded();
+        const box = await canvas.boundingBox();
+        await page.mouse.move(box.x + box.width * 0.94, box.y + box.height * 0.4);
+        await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.4, { steps: 10 });
+        await expect(dialog.locator('.bar-detail')).toContainText('C 31.5');
+        expect(requests).toHaveLength(1);
+        const afterHover = (await (await post(server, snapshot)).json()).result;
+        expect(afterHover).toMatchObject({
+          selection_revision: 1, chart_evidence: { revision_id: id, range: { from_ms: a, to_ms: a + 1 } },
+          workspace: { revision: 0 }, undo: null,
+        });
+        await share(b, 2);
+        await inspect(b, 44.25);
+        await inFreshBrowser(browser, server, async (_peer, peer) => {
+          expect(peer.result).toMatchObject({
+            selection_revision: 2, chart_evidence: { revision_id: id, range: { from_ms: b, to_ms: b + 1 } },
+            workspace: { revision: 0 }, undo: null,
+          });
+        });
+        const stale = await post(server, { ...first, request_id: randomUUID(), message_id: randomUUID() });
+        expect((await stale.json()).result.error.code).toBe('STALE_CONTEXT');
+        const cleared = page.waitForResponse(evidenceResponse('workspace.selectEvidence'));
+        await evidence.getByRole('button', { name: 'Clear shared selection' }).click();
+        const clearReply = await cleared;
+        expect(clearReply.request().postDataJSON()).toMatchObject({ expected_selection_revision: 2, target: null });
+        expect((await clearReply.json()).result.selection).toEqual({
+          workspace_id: workspaceId, selection_revision: 3, target: null,
+        });
+        await expect(evidence.getByText('No shared selection.')).toBeVisible();
+        await expect(evidence.getByRole('button', { name: 'Inspect shared bar' })).toBeDisabled();
+        observation.push({ revision: 3, target: null, hoverPreserved: true, stale: 'STALE_CONTEXT' });
+      });
+    });
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async (page, initial) => {
+        expect(initial.result).toMatchObject({ selection_revision: 3, chart_evidence: null, workspace: { revision: 0 }, undo: null });
+        await act(page, '5m', 'chart.setTimeframe');
+        const afterTimeframe = (await (await post(server, snapshot)).json()).result;
+        expect(afterTimeframe).toMatchObject({
+          selection_revision: 3, chart_evidence: null, workspace: { revision: 1, timeframe: '5m' },
+        });
+      });
+    });
+    await testInfo.attach('shared-evidence-observations', {
+      body: JSON.stringify(observation, null, 2), contentType: 'application/json',
+    });
+  } finally {
+    await profile.close();
+  }
+});
+
+function evidenceResponse(operation) {
+  return response => new URL(response.url()).pathname === endpoint
+    && response.request().postDataJSON()?.operation === operation;
+}
+
+const evidenceSeries = {
+  instrument_kind: 'equity', venue: 'FIXTURE', timeframe: '1d', calendar_id: 'fixture-calendar',
+  session_scope: 'regular', timezone: 'UTC', quantity_unit: 'shares', price_adjustment: 'raw', roll_method: null,
+};
+
+function evidenceBars(a, b) {
+  return [
+    { time_ms: a, trading_day: '2026-02-03', open: 30, high: 34, low: 29, close: 31.5, volume: 120, is_closed: true },
+    { time_ms: b, trading_day: '2026-02-04', open: 42, high: 47, low: 40, close: 44.25, volume: null, is_closed: true },
+  ];
+}
+
+async function seedFrozenEvidence(profile, id, a, b) {
+  const create = exec(workspaceBridge, [profile.root, profile.id, workspaceId], { timeout: 12_000 });
+  create.child.stdin.end();
+  await create;
+  // Independent fixture inputs. The application reopens and verifies the actual
+  // SQLite revision. No operation, authorization or chart reply is stubbed.
+  const database = new DatabaseSync(join(profile.root, 'workspace.sqlite3'));
+  const csv = Buffer.from('Date,Symbol,Open,High,Low,Close,Volume\n2026-02-03,FIX,30,34,29,31.5,120\n2026-02-04,FIX,42,47,40,44.25,\n');
+  const digest = createHash('sha256').update(csv).digest('hex');
+  const mappingDigest = 'b'.repeat(64);
+  const bars = evidenceBars(a, b).map((bar, index) => ({
+    bar, locators: [{ record_number: index + 1, line_start: index + 2, line_end: index + 2 }],
+  }));
+  try {
+    database.exec('PRAGMA foreign_keys = ON; BEGIN');
+    database.prepare('INSERT INTO reviewed_import_mappings VALUES (?, ?, ?, ?)').run('source-fixture', 1, 'a'.repeat(64), '{}');
+    database.prepare('INSERT INTO local_dataset_source_blobs VALUES (?, ?)').run(digest, csv);
+    database.prepare('INSERT INTO local_dataset_revisions VALUES (?, ?, ?, ?, ?, ?, ?)').run(
+      id, 'source-fixture', 'frozen-fixture.csv', digest, 1, mappingDigest,
+      JSON.stringify({ symbol: 'FIX', series: evidenceSeries, source_record_count: 2, bars }),
+    );
+    database.exec('COMMIT');
+  } finally {
+    database.close();
+  }
+}
+
+function independentEvidenceHash(id, a, b) {
+  const hash = parts => createHash('sha256').update(Buffer.concat(parts)).digest();
+  const int = value => {
+    const bytes = Buffer.alloc(8);
+    bytes.writeBigInt64BE(BigInt(value));
+    return bytes;
+  };
+  const number = value => {
+    const bytes = Buffer.alloc(8);
+    bytes.writeDoubleBE(value);
+    return bytes;
+  };
+  const text = value => {
+    const utf8 = Buffer.from(value);
+    const length = Buffer.alloc(4);
+    length.writeUInt32BE(utf8.length);
+    return Buffer.concat([length, utf8]);
+  };
+  const identity = [id, 'scopehub.local-csv', '1d', 'raw', 'regular', 'fixture-calendar', 'shares', id, id, 'UTC'];
+  let result = hash([Buffer.from('ScopeHub/history-chain-v1\0'), ...identity.map(text), ...[a, b + 1, 0, b + 1].map(int)]);
+  for (const bar of evidenceBars(a, b)) {
+    result = hash([
+      result, int(bar.time_ms), text(bar.trading_day), ...[bar.open, bar.high, bar.low, bar.close].map(number),
+      ...(bar.volume === null ? [Buffer.of(0)] : [Buffer.of(1), number(bar.volume)]), Buffer.of(1),
+    ]);
+  }
+  return result.toString('hex');
+}
 
 test('private decision notes require consent and retain the dated original separately from outcomes', async ({ browser }) => {
   const profile = await makeProfile();

@@ -13,10 +13,10 @@ use std::{
 };
 
 use scopehub_application::{
-    Actor, DECISION_NOTE_APPEND_OUTCOME, DECISION_NOTE_DELETE, DECISION_NOTE_READ,
-    DECISION_NOTE_SAVE, DecisionNoteBackupData, LOCAL_WORKSPACE_OPERATIONS, OperationRegistry,
-    WorkspaceAccess, WorkspaceState, WorkspaceStore, WorkspaceTransaction, WorkspaceUndoAccess,
-    WorkspaceUndoTarget,
+    Actor, ChartEvidenceStatus, DECISION_NOTE_APPEND_OUTCOME, DECISION_NOTE_DELETE,
+    DECISION_NOTE_READ, DECISION_NOTE_SAVE, DecisionNoteBackupData, LOCAL_WORKSPACE_OPERATIONS,
+    OperationRegistry, WorkspaceAccess, WorkspaceState, WorkspaceStore, WorkspaceTransaction,
+    WorkspaceUndoAccess, WorkspaceUndoTarget,
 };
 use scopehub_domain::protocol::{DecisionNoteReadOutput, Error};
 use serde_json::{Value, json};
@@ -455,8 +455,23 @@ impl WorkspaceStore for InterruptingStore {
     fn snapshot(
         &self,
         undo: Option<WorkspaceUndoAccess<'_>>,
-    ) -> Result<(WorkspaceState, Option<WorkspaceUndoTarget>), Error> {
-        self.store.snapshot(undo)
+        disclose_chart_evidence: bool,
+    ) -> Result<
+        (
+            WorkspaceState,
+            Option<WorkspaceUndoTarget>,
+            Option<ChartEvidenceStatus>,
+        ),
+        Error,
+    > {
+        self.store.snapshot(undo, disclose_chart_evidence)
+    }
+
+    fn inspect<T>(
+        &self,
+        read: impl FnOnce(&dyn WorkspaceTransaction) -> Result<T, Error>,
+    ) -> Result<T, Error> {
+        self.store.inspect(read)
     }
 
     fn read_notes(

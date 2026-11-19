@@ -522,7 +522,7 @@
     {
       "id": "workspace-timeframe",
       "status": "implemented",
-      "purpose": "Exercise the real opted-in local writer through browser and process restart, timeframe undo, terminal cleanup, and human decision-note confirmation, deletion, backup download and staged restore.",
+      "purpose": "Exercise the real opted-in local writer through browser and process restart, timeframe undo, terminal cleanup, decision-note confirmation, deletion, backup and restore, and chart evidence selection and narrow projection of actual frozen profile data.",
       "platforms": "all",
       "command": [
         "pnpm",

@@ -9,8 +9,8 @@ use scopehub_application::{
     Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, LOAD_LOCAL_IMPORT_MAPPING,
     LOCAL_WORKSPACE_OPERATIONS, LocalDatasetPublication, MappingCommitGuard, OperationRegistry,
     PUBLISH_LOCAL_IMPORT, READ_LOCAL_IMPORT_REVISION, REVOKE_LOCAL_IMPORT_REVISION,
-    ReviewedImportMapping, SAVE_LOCAL_IMPORT_MAPPING, WorkspaceAccess, WorkspaceBinding, failure,
-    local_mapping_fingerprint, read_local_import_revision_input,
+    ReviewedImportMapping, SAVE_LOCAL_IMPORT_MAPPING, WorkspaceAccess, WorkspaceBinding,
+    evidence_operation_name, failure, local_mapping_fingerprint, read_local_import_revision_input,
     revoke_local_import_revision_input,
 };
 use scopehub_domain::protocol::{CsvMappingV1, Error, ErrorCode};
@@ -48,6 +48,7 @@ enum Lane {
 
 enum Request {
     Snapshot,
+    FrozenChart(String),
     Operation(Value),
 }
 
@@ -124,8 +125,23 @@ impl WorkspaceBridge {
         let lane = self.admit()?;
         let request = match operation {
             None if payload == json!({"type": "snapshot"}) => Request::Snapshot,
+            None if payload["type"] == "frozen_chart" => {
+                let revision_id = payload["revision_id"]
+                    .as_str()
+                    .filter(|id| {
+                        id.len() == 36
+                            && payload.as_object().is_some_and(|obj| obj.len() == 3)
+                            && payload["request_id"]
+                                .as_str()
+                                .is_some_and(|request_id| request_id.len() == 36)
+                    })
+                    .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
+                Request::FrozenChart(revision_id.to_owned())
+            }
             Some(operation)
-                if payload["type"] == "request" && payload["intent"]["operation"] == operation =>
+                if payload["type"] == "request"
+                    && (payload["intent"]["operation"] == operation
+                        || evidence_operation_name(&payload) == Some(operation)) =>
             {
                 let limit = if operation == DECISION_NOTE_PREVIEW_RESTORE {
                     MAX_BACKUP_REQUEST_BYTES
@@ -287,12 +303,16 @@ impl BoundWorkspace {
                 Ok(json!({
                     "workspace": snapshot.workspace,
                     "selection_revision": snapshot.selection_revision,
+                    "chart_evidence": snapshot.chart_evidence,
                     "undo": snapshot.undo.map(|target| json!({
                         "operation_id": target.operation_id,
                         "committed_workspace_revision": target.committed_workspace_revision,
                     })),
                 }))
             }
+            Request::FrozenChart(revision_id) => self
+                .registry
+                .open_evidence_chart(&local_import_access(&self.profile_id), &revision_id),
             Request::Operation(payload) => self.registry.execute_workspace(&access, payload),
         }
     }

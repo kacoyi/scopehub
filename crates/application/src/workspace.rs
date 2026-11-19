@@ -15,6 +15,7 @@ use uuid::Uuid;
 use crate::{Actor, Operation, OperationRegistry, authorized_operation, failure, operation};
 
 mod backup;
+mod evidence;
 mod notes;
 
 pub(crate) use backup::DecisionNoteRestoreStaging;
@@ -23,6 +24,10 @@ pub use backup::{
     DECISION_NOTE_BACKUP_MAX_NOTES, DECISION_NOTE_BACKUP_MAX_OUTCOMES, DECISION_NOTE_EXPORT_BACKUP,
     DECISION_NOTE_PREVIEW_RESTORE, DECISION_NOTE_RESTORE_BACKUP, DecisionNoteBackupData,
     DecisionNoteOutcomeAddition, DecisionNoteRestorePlan,
+};
+pub use evidence::{
+    ChartEvidenceRef, ChartEvidenceStatus, LocalChartAnalysisGrant, READ_CHART_PROJECTION,
+    SELECT_EVIDENCE, evidence_operation_name,
 };
 pub(crate) use notes::PendingDecisionNoteConfirmation;
 pub use notes::{
@@ -36,6 +41,8 @@ pub const UNDO: &str = "workspace.undo";
 pub const LOCAL_WORKSPACE_OPERATIONS: &[&str] = &[
     SET_TIMEFRAME,
     UNDO,
+    SELECT_EVIDENCE,
+    READ_CHART_PROJECTION,
     DECISION_NOTE_SAVE,
     DECISION_NOTE_READ,
     DECISION_NOTE_APPEND_OUTCOME,
@@ -105,6 +112,7 @@ pub struct WorkspaceSnapshot {
     pub workspace: Workspace,
     pub selection_revision: Revision,
     pub undo: Option<WorkspaceUndoTarget>,
+    pub chart_evidence: Option<Value>,
 }
 
 pub struct WorkspaceUndoTarget {
@@ -151,6 +159,16 @@ pub struct WorkspaceChange<'a> {
 /// A transaction over the single workspace owned by this store.
 pub trait WorkspaceTransaction {
     fn state(&self) -> Result<WorkspaceState, Error>;
+    fn chart_evidence(&self) -> Result<Option<ChartEvidenceRef>, Error>;
+    fn set_chart_evidence(
+        &mut self,
+        selection_revision: Revision,
+        target: Option<&ChartEvidenceRef>,
+    ) -> Result<(), Error>;
+    fn local_evidence_dataset(
+        &self,
+        revision_id: &str,
+    ) -> Result<Option<crate::StoredLocalDataset>, Error>;
     fn chart_revision(&self) -> Result<Revision, Error>;
     fn replay(&self, key: &WorkspaceReplayKey<'_>) -> Result<Option<WorkspaceReplay>, Error>;
     fn undo_candidate(
@@ -189,7 +207,20 @@ pub trait WorkspaceStore: Send {
     fn snapshot(
         &self,
         undo: Option<WorkspaceUndoAccess<'_>>,
-    ) -> Result<(WorkspaceState, Option<WorkspaceUndoTarget>), Error>;
+        disclose_chart_evidence: bool,
+    ) -> Result<
+        (
+            WorkspaceState,
+            Option<WorkspaceUndoTarget>,
+            Option<ChartEvidenceStatus>,
+        ),
+        Error,
+    >;
+    /// Read the selection token, target and current source entitlement in a single snapshot.
+    fn inspect<T>(
+        &self,
+        read: impl FnOnce(&dyn WorkspaceTransaction) -> Result<T, Error>,
+    ) -> Result<T, Error>;
     fn read_notes(
         &self,
         note_id: Option<&str>,
@@ -257,12 +288,21 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             principal_id: access.principal_id,
             paired_client_id: access.paired_client_id,
         });
-        let (state, undo) = self.port.snapshot(undo)?;
+        let (state, undo, chart_evidence) = self.port.snapshot(
+            undo,
+            evidence::local_display(access) && access.operations.contains(&READ_CHART_PROJECTION),
+        )?;
         self.note_restore.observe(state.revision);
         Ok(WorkspaceSnapshot {
             workspace: workspace_projection(access.workspace_id, state.revision, state.timeframe),
             selection_revision: state.selection_revision,
             undo,
+            chart_evidence: chart_evidence.map(|status| match status {
+                ChartEvidenceStatus::Available(target) => json!({
+                    "revision_id": target.revision_id, "range": target.range,
+                }),
+                ChartEvidenceStatus::Unavailable => json!({"unavailable": true}),
+            }),
         })
     }
 
@@ -273,6 +313,9 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         access: &WorkspaceAccess<'_>,
         mut request: Value,
     ) -> Result<Value, Error> {
+        if evidence_operation_name(&request).is_some() {
+            return self.execute_evidence_request(access, request);
+        }
         let name = request["intent"]["operation"]
             .as_str()
             .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
@@ -345,17 +388,21 @@ struct WorkspaceReply<'a> {
     timestamp_ms: i64,
 }
 
+fn timestamp_ms() -> Result<i64, Error> {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .ok()
+        .and_then(|duration| i64::try_from(duration.as_millis()).ok())
+        .ok_or_else(|| failure(ErrorCode::INTERNALERROR))
+}
+
 impl<'a> WorkspaceReply<'a> {
     fn new(operation: &'a Operation, request_id: &'a str) -> Result<Self, Error> {
         Ok(Self {
             operation,
             request_id,
             message_id: Uuid::new_v4(),
-            timestamp_ms: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .ok()
-                .and_then(|duration| i64::try_from(duration.as_millis()).ok())
-                .ok_or_else(|| failure(ErrorCode::INTERNALERROR))?,
+            timestamp_ms: timestamp_ms()?,
         })
     }
 

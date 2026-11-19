@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import type { ReadLocalImportRevisionOutput } from '../../../../contracts/generated/protocol';
 import { readLocalImportRevision, revokeLocalImportRevision } from './local-import-transport';
 import { FrozenLocalChart } from './local-preview-chart';
+import { openAuthenticatedFrozenChart, type FrozenChartResult } from './frozen-evidence';
+import type { LocalWorkspace } from './use-local-workspace';
 
 export function RevisionAccessActions({ disabled, onRevoke }: { disabled: boolean; onRevoke: () => void }) {
   const [confirm, setConfirm] = useState(false);
@@ -23,12 +24,14 @@ function failureMessage(error: unknown, fallback: string) {
   return 'message' in error && typeof error.message === 'string' ? error.message : fallback;
 }
 
-export function OpenLocalRevisionDialog({ onClose, onRevoked }: { onClose: () => void; onRevoked: (revisionId: string) => void }) {
+export function OpenLocalRevisionDialog({ onClose, onRevoked, workspace, canRevoke }: {
+  onClose: () => void; onRevoked: (revisionId: string) => void; workspace: LocalWorkspace | undefined; canRevoke: boolean;
+}) {
   const dialog = useRef<HTMLDialogElement>(null);
   const active = useRef(false);
   const heading = useId();
   const [draft, setDraft] = useState('');
-  const [frozen, setFrozen] = useState<ReadLocalImportRevisionOutput>();
+  const [frozen, setFrozen] = useState<FrozenChartResult>();
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string>();
   const [notice, setNotice] = useState<string>();
@@ -61,7 +64,8 @@ export function OpenLocalRevisionDialog({ onClose, onRevoked }: { onClose: () =>
     if (!validId || active.current) return;
     setFrozen(undefined);
     await request(async () => {
-      const reply = await readLocalImportRevision({ version: 1, revision_id: revisionId }, crypto.randomUUID());
+      const reply = workspace ? await openAuthenticatedFrozenChart(revisionId, crypto.randomUUID())
+        : await readLocalImportRevision({ version: 1, revision_id: revisionId }, crypto.randomUUID());
       if (reply.revision.revision_id !== revisionId || reply.bars.length !== reply.revision.bar_count) {
         throw new Error('The frozen chart reply could not be verified.');
       }
@@ -78,6 +82,7 @@ export function OpenLocalRevisionDialog({ onClose, onRevoked }: { onClose: () =>
       setFrozen(undefined);
       setNotice('Access removed for this published revision.');
       onRevoked(revision_id);
+      workspace?.reload();
     }, 'Unable to remove access to this revision.');
   }
 
@@ -106,10 +111,10 @@ export function OpenLocalRevisionDialog({ onClose, onRevoked }: { onClose: () =>
       {failure && <p className="local-import-error" role="alert">{failure}</p>}
       {notice && <p role="status">{notice}</p>}
       {frozen && <>
-        <FrozenLocalChart key={frozen.revision.revision_id} result={frozen} />
+        <FrozenLocalChart key={frozen.revision.revision_id} result={frozen} workspace={workspace} />
         <div className="local-import-card">
           <p>Source file · {frozen.revision.relative_path}</p>
-          <RevisionAccessActions key={frozen.revision.revision_id} disabled={busy} onRevoke={() => void revoke()} />
+          {canRevoke && <RevisionAccessActions key={frozen.revision.revision_id} disabled={busy} onRevoke={() => void revoke()} />}
         </div>
       </>}
     </div>

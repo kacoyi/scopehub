@@ -699,9 +699,9 @@
     {
       "id": "shared-evidence-selection",
       "owner": "application",
-      "writer": "application",
-      "status": "planned",
-      "rule": "Publish an explicitly chosen versioned evidence target and selection token. Revalidate that token independently of the durable workspace revision for target-dependent operations."
+      "writer": "persistence",
+      "status": "implemented",
+      "rule": "The SQLite writer persists the explicitly selected published CSV revision UUID, interval and independent selection token. The Rust registry revalidates current permissions and source rights for each selection or projection. Other target kinds and general bound durable mutations are pending."
     },
     {
       "id": "local-private-content",

@@ -431,7 +431,8 @@
       ],
       "input": "ProjectedChartArguments11",
       "output": "ProjectedChart11",
-      "implementation": "planned",
+      "implementation": "implemented",
+      "implementation_scope": "Current authorized selection of a published local CSV interval. Return only the requested entitled fields and opaque revision references. Production admission is local profile display. A trusted on-device analysis intent requires separate recipient, revision, interval and field authorization; no connected or external recipient is enabled.",
       "wire_since": "1.1",
       "wire_bindings": {
         "1.1": {
@@ -451,7 +452,8 @@
       ],
       "input": "SelectEvidenceArguments11",
       "output": "SharedSelection11",
-      "implementation": "planned",
+      "implementation": "implemented",
+      "implementation_scope": "Explicit chart interval or null through the shared Rust registry for an entitled published local CSV snapshot. The profile-bound SQLite writer updates only the target reference and selection revision. Workspace object, table row and document passage targets are pending.",
       "wire_since": "1.1",
       "wire_bindings": {
         "1.1": {
