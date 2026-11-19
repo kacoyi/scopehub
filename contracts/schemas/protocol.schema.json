@@ -79,6 +79,7 @@
         "workspace.getContext",
         "market.readHistoryPage",
         "market.subscribe",
+        "market.previewLocalImport",
         "workspace.readChartProjection",
         "workspace.selectEvidence"
       ]
@@ -3701,6 +3702,15 @@
         },
         {
           "$ref": "#/$defs/MarketSubscriptionError"
+        },
+        {
+          "$ref": "#/$defs/LocalImportPreviewRequest"
+        },
+        {
+          "$ref": "#/$defs/LocalImportPreviewResponse"
+        },
+        {
+          "$ref": "#/$defs/LocalImportPreviewError"
         },
         {
           "$ref": "#/$defs/MarketBarUpdateEvent"
@@ -8623,6 +8633,720 @@
         },
         {
           "$ref": "#/$defs/MarketHistoryPageError"
+        }
+      ]
+    },
+    "CsvColumnMappingV1": {
+      "type": "object",
+      "properties": {
+        "symbol": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "timestamp": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "trading_day": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "open": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "high": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "low": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "close": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "volume": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "CsvMappingV1": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "\\S"
+        },
+        "encoding": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "delimiter": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1
+        },
+        "record_kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "columns": {
+          "$ref": "#/$defs/CsvColumnMappingV1"
+        },
+        "instrument_kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "venue": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "timeframe": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "calendar_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "session_scope": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "timezone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "quantity_unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "price_adjustment": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "roll_method": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "volume_semantics": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "timestamp_convention": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "timestamp_format": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "trading_day_format": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "daily_start_time": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        }
+      },
+      "required": [
+        "version",
+        "revision",
+        "encoding",
+        "delimiter",
+        "record_kind"
+      ],
+      "additionalProperties": false,
+      "description": "An editable mapping. Unfinished native declarations may produce diagnostics alongside raw rows."
+    },
+    "PreviewIssue": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "field": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32768
+        }
+      },
+      "required": [
+        "code",
+        "field",
+        "message"
+      ],
+      "additionalProperties": false
+    },
+    "RawOnlyColumn": {
+      "type": "object",
+      "properties": {
+        "column": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 4194304
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32768
+        }
+      },
+      "required": [
+        "column",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "PreviewSeries": {
+      "type": "object",
+      "properties": {
+        "instrument_kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "venue": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "timeframe": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "calendar_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "session_scope": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "timezone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "quantity_unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "price_adjustment": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "roll_method": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "instrument_kind",
+        "venue",
+        "timeframe",
+        "calendar_id",
+        "session_scope",
+        "timezone",
+        "quantity_unit",
+        "price_adjustment",
+        "roll_method"
+      ],
+      "additionalProperties": false
+    },
+    "PreviewRow": {
+      "type": "object",
+      "properties": {
+        "record_number": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500
+        },
+        "line_start": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4194305
+        },
+        "line_end": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4194305
+        },
+        "raw_fields": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 4194304
+          },
+          "maxItems": 512
+        },
+        "raw_text": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 4194304
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "symbol": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4194304
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "normalized": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Bar"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PreviewIssue"
+          },
+          "maxItems": 64
+        }
+      },
+      "required": [
+        "record_number",
+        "line_start",
+        "line_end",
+        "raw_fields",
+        "raw_text",
+        "symbol",
+        "normalized",
+        "issues"
+      ],
+      "additionalProperties": false
+    },
+    "CsvPreview": {
+      "type": "object",
+      "properties": {
+        "file_sha256": {
+          "$ref": "#/$defs/Hash",
+          "maxLength": 64,
+          "type": "string"
+        },
+        "mapping_version": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mapping_revision": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "header": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 4194304
+          },
+          "maxItems": 512
+        },
+        "raw_header_text": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 4194304
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PreviewRow"
+          },
+          "maxItems": 500
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PreviewIssue"
+          },
+          "maxItems": 64
+        },
+        "raw_only_columns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RawOnlyColumn"
+          },
+          "maxItems": 512
+        },
+        "series": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PreviewSeries"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "file_sha256",
+        "mapping_version",
+        "mapping_revision",
+        "header",
+        "raw_header_text",
+        "rows",
+        "issues",
+        "raw_only_columns",
+        "series",
+        "truncated"
+      ],
+      "additionalProperties": false
+    },
+    "LocalImportPreviewInput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "folder_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "file_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "expected_sha256": {
+          "$ref": "#/$defs/Hash",
+          "maxLength": 64,
+          "type": "string"
+        },
+        "mapping": {
+          "$ref": "#/$defs/CsvMappingV1"
+        },
+        "row_limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500
+        }
+      },
+      "required": [
+        "version",
+        "folder_id",
+        "file_id",
+        "mapping"
+      ],
+      "additionalProperties": false
+    },
+    "LocalImportPreviewOutput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "folder_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "file_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "relative_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32768
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "byte_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4194304
+        },
+        "sha256": {
+          "$ref": "#/$defs/Hash",
+          "maxLength": 64,
+          "type": "string"
+        },
+        "preview": {
+          "$ref": "#/$defs/CsvPreview"
+        }
+      },
+      "required": [
+        "version",
+        "folder_id",
+        "file_id",
+        "relative_path",
+        "display_name",
+        "byte_count",
+        "sha256",
+        "preview"
+      ],
+      "additionalProperties": false
+    },
+    "LocalImportPreviewRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.previewLocalImport"
+        },
+        "payload": {
+          "$ref": "#/$defs/LocalImportPreviewInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "LocalImportPreviewResponse": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.previewLocalImport"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": true
+        },
+        "result": {
+          "$ref": "#/$defs/LocalImportPreviewOutput"
+        },
+        "error": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "LocalImportPreviewError": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.previewLocalImport"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": false
+        },
+        "result": {
+          "type": "null"
+        },
+        "error": {
+          "$ref": "#/$defs/MarketPageFault"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "LocalImportPreviewReply11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/LocalImportPreviewResponse"
+        },
+        {
+          "$ref": "#/$defs/LocalImportPreviewError"
         }
       ]
     }

@@ -110,7 +110,7 @@
       ],
       "invariants": [
         "Reject unsupported operations; actor identity comes from trusted transports",
-        "Current history registry is synthetic-only; generalize source policy before real adapters"
+        "History reads use explicit synthetic sources. Local CSV preview requires the trusted desktop human transport and a live file selection"
       ],
       "checks": [
         "rust-contracts-workers"
@@ -125,6 +125,7 @@
       "responsibility": "Controlled worker lifecycle and correlated, bounded transport.",
       "public_entries": [
         "crates/worker-host/src/lib.rs",
+        "crates/worker-host/src/local_import.rs",
         "crates/worker-host/src/market.rs"
       ],
       "dependencies": [
@@ -231,6 +232,7 @@
       "responsibility": "Validated protocol dispatch for controlled worker roles.",
       "public_entries": [
         "python/worker_runtime/__main__.py",
+        "python/worker_runtime/local_import.py",
         "python/worker_runtime/protocol.py"
       ],
       "dependencies": [

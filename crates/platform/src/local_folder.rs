@@ -4,8 +4,10 @@ mod platform_fs;
 
 use std::{
     ffi::OsStr,
+    fmt,
     io::{self, Read},
     path::{Component, Path, PathBuf},
+    str::FromStr,
     sync::{
         Arc, Mutex, MutexGuard, TryLockError,
         atomic::{AtomicBool, Ordering},
@@ -28,6 +30,34 @@ pub struct FolderId(Uuid);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct FileId(Uuid);
+
+impl FromStr for FolderId {
+    type Err = uuid::Error;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        value.parse().map(Self)
+    }
+}
+
+impl fmt::Display for FolderId {
+    fn fmt(&self, output: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(output)
+    }
+}
+
+impl FromStr for FileId {
+    type Err = uuid::Error;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        value.parse().map(Self)
+    }
+}
+
+impl fmt::Display for FileId {
+    fn fmt(&self, output: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(output)
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FileKind {
@@ -84,7 +114,7 @@ impl Cancellation {
         self.0.store(true, Ordering::Release);
     }
 
-    fn is_cancelled(&self) -> bool {
+    pub fn is_cancelled(&self) -> bool {
         self.0.load(Ordering::Acquire)
     }
 
@@ -199,6 +229,18 @@ impl LocalFolderHost {
             .ok_or(FolderError::SelectionUnavailable)?;
         selection.revoked.cancel();
         Ok(())
+    }
+
+    pub fn check_current(&self, folder_id: FolderId) -> Result<(), FolderError> {
+        let active = self.active.lock().map_err(|_| FolderError::Io)?;
+        if active
+            .as_ref()
+            .is_some_and(|selection| selection.id == folder_id)
+        {
+            Ok(())
+        } else {
+            Err(FolderError::SelectionUnavailable)
+        }
     }
 
     /// Hash the complete opened file and freeze the very same bytes when within

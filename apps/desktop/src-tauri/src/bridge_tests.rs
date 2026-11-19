@@ -7,39 +7,230 @@ use tokio::sync::oneshot::error::TryRecvError;
 use super::*;
 
 #[cfg(any(target_os = "linux", windows))]
-#[test]
-fn trusted_launcher_can_adopt_and_read_a_local_selection() {
-    use scopehub_platform::local_folder::Cancellation;
-    use std::{fs, time::SystemTime};
+struct ImportFixture(PathBuf);
 
-    let path = std::env::temp_dir().join(format!(
-        "scopehub-launcher-{}-{}",
-        std::process::id(),
-        SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
-    fs::create_dir(&path).unwrap();
-    let path = path.canonicalize().unwrap();
-    let fixture = b"Ticker,Date,Open,High,Low,Close,Shares\n000418,2026-11-19,4,6,3,5,20\n";
-    fs::write(path.join("launch.csv"), fixture).unwrap();
+#[cfg(any(target_os = "linux", windows))]
+impl ImportFixture {
+    fn new() -> Self {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let path = std::env::temp_dir().join(format!(
+            "scopehub-launcher-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir(&path).unwrap();
+        Self(path.canonicalize().unwrap())
+    }
+}
+
+#[cfg(any(target_os = "linux", windows))]
+impl Drop for ImportFixture {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+#[cfg(any(target_os = "linux", windows))]
+fn import_request(
+    catalog: &scopehub_platform::local_folder::FolderCatalog,
+    name: &str,
+    mapping: Value,
+) -> Value {
+    let file = catalog
+        .files
+        .iter()
+        .find(|file| file.relative_path == name)
+        .unwrap();
+    json!({"version": 1, "folder_id": catalog.folder_id.to_string(), "file_id": file.file_id.to_string(), "mapping": mapping})
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[tokio::test]
+async fn native_registry_returns_source_bound_raw_and_normalized_previews() {
+    use scopehub_platform::local_folder::Cancellation;
+    use std::fs;
+
+    let fixture = ImportFixture::new();
+    let stock = b"Ticker,Date,Open,High,Low,Close,Shares\n000418,2026-11-19,4,6,3,5,20\n000418,2026-11-20,6,7,4,5,\n";
+    let future = b"Contract,LocalStart,TradingDay,Open,High,Low,Close,Contracts,Settlement\nTEST2603,2024-07-19 21:05,2024-07-22,83,85,82,84,0,86\nTEST2603,2024-07-19 21:10,2024-07-22,83,85,82,settlement,6,86\n";
+    let stock_path = fixture.0.join("equity.csv");
+    fs::write(&stock_path, stock).unwrap();
+    fs::write(fixture.0.join("future.csv"), future).unwrap();
+    fs::File::create(fixture.0.join("large.csv"))
+        .unwrap()
+        .set_len(4_194_305)
+        .unwrap();
 
     let state = state();
-    let launcher = state.local_folders();
-    let cancel = Cancellation::default();
-    let selected = launcher.adopt_selected(&path, &cancel).unwrap();
-    let [entry] = selected.files.as_slice() else {
-        panic!("the selection must expose exactly the one fixture")
-    };
-    let frozen = launcher
-        .read(selected.folder_id, entry.file_id, None, &cancel)
+    let folders = state.local_folders();
+    let selected = folders
+        .adopt_selected(&fixture.0, &Cancellation::default())
         .unwrap();
-    assert_eq!(entry.relative_path, "launch.csv");
-    assert_eq!(frozen.content.as_deref(), Some(fixture.as_slice()));
+    let equity_mapping = json!({
+        "version":1,"revision":"equity-fixture-2","encoding":"utf-8","delimiter":",","record_kind":"native_ohlcv",
+        "columns":{"symbol":"Ticker","timestamp":"Date","trading_day":"Date","open":"Open","high":"High","low":"Low","close":"Close","volume":"Shares"},
+        "instrument_kind":"equity","venue":"TEST","timezone":"UTC","calendar_id":"fixture-calendar-1","session_scope":"regular",
+        "timeframe":"1d","quantity_unit":"shares","price_adjustment":"raw","volume_semantics":"per_bar",
+        "timestamp_convention":"bar_start","timestamp_format":"%Y-%m-%d","trading_day_format":"%Y-%m-%d","daily_start_time":"09:30:00"
+    });
+    let mut input = import_request(&selected, "equity.csv", equity_mapping);
+    input["expected_sha256"] =
+        json!("92eb8b04506ac61dd43097b78e5ff15d4aa89b4c525a014b8816e3fa7b21ee1e");
+    input["row_limit"] = json!(1);
+    let stock_preview = state
+        .execute_local_operation(PREVIEW_LOCAL_IMPORT, input.clone(), None)
+        .await
+        .unwrap();
+    assert_eq!(stock_preview["sha256"], input["expected_sha256"]);
+    assert_eq!(stock_preview["byte_count"], stock.len());
+    assert_eq!(stock_preview["relative_path"], "equity.csv");
+    assert_eq!(stock_preview["preview"]["truncated"], true);
+    let row = &stock_preview["preview"]["rows"][0];
+    assert_eq!(row["symbol"], "000418");
+    assert_eq!(row["raw_fields"][0], "000418");
+    assert_eq!(row["line_start"], 2);
+    assert_eq!(row["normalized"]["volume"], 20.0);
 
-    launcher.revoke(selected.folder_id).unwrap();
-    fs::remove_dir_all(path).unwrap();
+    let mut generic = MarketRegistry::new(worker());
+    for actor in [Actor::User, Actor::Ai, Actor::System] {
+        let error = generic
+            .execute(actor, PREVIEW_LOCAL_IMPORT, input.clone())
+            .await
+            .unwrap_err();
+        assert_eq!(error.code, ErrorCode::PERMISSIONDENIED);
+    }
+    let mut spoof = input.clone();
+    spoof["path"] = json!("equity.csv");
+    assert_eq!(
+        state
+            .execute_local_operation(PREVIEW_LOCAL_IMPORT, spoof, None)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALIDARGUMENT
+    );
+
+    let import_future = import_request(
+        &selected,
+        "future.csv",
+        json!({
+            "version":1,"revision":"future-fixture-1","encoding":"utf-8","delimiter":",","record_kind":"native_ohlcv",
+            "columns":{"symbol":"Contract","timestamp":"LocalStart","trading_day":"TradingDay","open":"Open","high":"High","low":"Low","close":"Close","volume":"Contracts"},
+            "instrument_kind":"dated_future","venue":"TEST","timezone":"Asia/Shanghai","calendar_id":"fixture-calendar-2","session_scope":"night",
+            "timeframe":"5m","quantity_unit":"contracts","price_adjustment":"raw","volume_semantics":"per_bar",
+            "timestamp_convention":"bar_start","timestamp_format":"%Y-%m-%d %H:%M","trading_day_format":"%Y-%m-%d"
+        }),
+    );
+    let futures_preview = state
+        .execute_local_operation(PREVIEW_LOCAL_IMPORT, import_future, None)
+        .await
+        .unwrap();
+    assert_eq!(
+        futures_preview["preview"]["file_sha256"],
+        "04f0a9958289976e79243d07ae9bfffabb7a5a7eeff1628ba9871cd2eeaa64cc"
+    );
+    let rows = &futures_preview["preview"]["rows"];
+    assert_eq!(rows[0]["normalized"]["time_ms"], 1_721_394_300_000_i64);
+    assert_eq!(rows[0]["normalized"]["trading_day"], "2024-07-22");
+    assert_eq!(rows[0]["normalized"]["volume"], 0.0);
+    assert_eq!(rows[1]["raw_fields"][6], "settlement");
+    assert_eq!(rows[1]["issues"][0]["field"], "close");
+    assert!(rows[1]["normalized"].is_null());
+
+    let too_large = import_request(&selected, "large.csv", input["mapping"].clone());
+    let limit = state
+        .execute_local_operation(PREVIEW_LOCAL_IMPORT, too_large, None)
+        .await
+        .unwrap_err();
+    assert_eq!(limit.code, ErrorCode::RESOURCELIMIT);
+    assert_eq!(limit.details["byte_count"], 4_194_305);
+    fs::write(stock_path, b"changed source").unwrap();
+    assert_eq!(
+        state
+            .execute_local_operation(PREVIEW_LOCAL_IMPORT, input.clone(), None)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::SNAPSHOTUNAVAILABLE
+    );
+    folders.revoke(selected.folder_id).unwrap();
+    assert_eq!(
+        state
+            .execute_local_operation(PREVIEW_LOCAL_IMPORT, input, None)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::STALECONTEXT
+    );
+    assert_eq!(row["normalized"]["close"], 5.0);
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[tokio::test]
+async fn pending_local_preview_stops_on_cancellation_or_selection_change() {
+    use scopehub_platform::local_folder::Cancellation;
+    use std::fs;
+
+    for revoke in [false, true] {
+        let fixture = ImportFixture::new();
+        let selected = fixture.0.join("selected");
+        fs::create_dir(&selected).unwrap();
+        fs::write(selected.join("source.csv"), b"contract,quote\nTEST,7\n").unwrap();
+        let module = fixture.0.join("python").join("worker_runtime");
+        fs::create_dir_all(&module).unwrap();
+        fs::write(module.join("local_import.py"), r#"
+import json, pathlib, sys, time
+print(json.dumps({'protocol_version':'1.1','type':'hello','message_id':'74237caa-395f-4d71-a07f-bb15f86fda88',
+    'timestamp_ms':0,'role':'market','worker_version':'fixture','supported_protocols':['1.0','1.1'],
+    'capabilities':['market.previewLocalImport']}), flush=True)
+sys.stdin.buffer.read()
+pathlib.Path('received').touch()
+time.sleep(30)
+"#).unwrap();
+        let config = development_config().expect("development worker");
+        let state = State {
+            local_import: LocalImport::new(Some(WorkerConfig {
+                root: fixture.0.clone(),
+                ..config
+            })),
+            ..state()
+        };
+        let folders = state.local_folders();
+        let catalog = folders
+            .adopt_selected(&selected, &Cancellation::default())
+            .unwrap();
+        let request = import_request(
+            &catalog,
+            "source.csv",
+            json!({"version":1,"revision":"1","encoding":"utf-8","delimiter":",","record_kind":"quote_snapshot"}),
+        );
+        let preview =
+            state.execute_local_operation(PREVIEW_LOCAL_IMPORT, request, Some("preview-1"));
+        tokio::pin!(preview);
+        let ready = fixture.0.join("received");
+        tokio::select! {
+            result = &mut preview => panic!("preview ended before it could be interrupted: {result:?}"),
+            _ = tokio::time::timeout(Duration::from_secs(3), async {
+                while !ready.exists() { tokio::time::sleep(Duration::from_millis(10)).await; }
+            }) => assert!(ready.exists(), "controlled worker did not receive the bytes"),
+        }
+        let code = if revoke {
+            folders.revoke(catalog.folder_id).unwrap();
+            ErrorCode::STALECONTEXT
+        } else {
+            state.local_import.cancel("preview-1");
+            ErrorCode::CANCELLED
+        };
+        let error = tokio::time::timeout(Duration::from_secs(3), preview)
+            .await
+            .unwrap()
+            .unwrap_err();
+        assert_eq!(error.code, code);
+        state.shutdown().await;
+    }
 }
 
 struct DelayedPage {
@@ -103,7 +294,7 @@ async fn new_history_loads_while_preparation_is_held_and_only_its_owner_can_canc
     };
     let mut input = history("SIM.CN.FUTURE.001", "1m", "contracts");
     let frozen = state
-        .read("market.readHistoryPage", input.clone())
+        .execute_local_operation("market.readHistoryPage", input.clone(), None)
         .await
         .unwrap();
     input["snapshot"] = frozen["snapshot"].clone();
@@ -137,9 +328,10 @@ async fn new_history_loads_while_preparation_is_held_and_only_its_owner_can_canc
 
     let replacement = tokio::time::timeout(
         Duration::from_secs(4),
-        state.read(
+        state.execute_local_operation(
             "market.readHistoryPage",
             history("SIM.CN.STOCK.001", "5m", "shares"),
+            None,
         ),
     )
     .await

@@ -1,4 +1,4 @@
-# Generated from contracts/schemas/protocol.schema.json; sha256=00d5588197a5635a218a3f20f558086ee5336b4d0663fe40557e3abe3a6b950a. Do not edit.
+# Generated from contracts/schemas/protocol.schema.json; sha256=4d769c506985548abe56216be160277edf713d08c250c5ccbe9d061470e4b501. Do not edit.
 from __future__ import annotations
 from typing import Literal, NotRequired, TypedDict
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
@@ -10,7 +10,7 @@ Metadata = dict[str, JsonValue]
 WorkerRole = Literal['market', 'ai', 'indicator']
 ProtocolVersion = Literal['1.0']
 ErrorCode = Literal['INVALID_ARGUMENT', 'UNSUPPORTED_CAPABILITY', 'PERMISSION_DENIED', 'CONFIRMATION_REQUIRED', 'CANCELLED', 'TIMEOUT', 'WORKER_EXITED', 'PROTOCOL_MISMATCH', 'DATA_UNAVAILABLE', 'STALE_CONTEXT', 'RESOURCE_LIMIT', 'OUTPUT_INVALID', 'PROVIDER_NOT_CONFIGURED', 'INTERNAL_ERROR', 'BUSY', 'SNAPSHOT_UNAVAILABLE']
-OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'market.subscribe', 'workspace.readChartProjection', 'workspace.selectEvidence']
+OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'market.subscribe', 'market.previewLocalImport', 'workspace.readChartProjection', 'workspace.selectEvidence']
 ChartStyle = Literal['candlestick', 'line']
 TaskStatus = Literal['queued', 'running', 'awaiting_confirmation', 'completed', 'failed', 'cancelled']
 Tradability = Literal['non_tradable', 'unknown']
@@ -627,6 +627,35 @@ class MarketStreamGapEvent(TypedDict):
     sequence: Revision
     event: Literal['market.stream_gap']
     payload: MarketStreamGap
+class LocalImportPreviewRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.previewLocalImport']
+    payload: LocalImportPreviewInput
+class LocalImportPreviewResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.previewLocalImport']
+    ok: Literal[True]
+    result: LocalImportPreviewOutput
+    error: None
+class LocalImportPreviewError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.previewLocalImport']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
 class WorkerHello11(TypedDict):
     protocol_version: ProtocolVersion11
     message_id: Uuid
@@ -889,7 +918,7 @@ class CancelTaskError11(TypedDict):
     operation: Literal['task.cancel']
     request_id: Uuid
     error: WorkspaceFault11
-Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat | MarketHistoryPageRequest | MarketHistoryPageResponse | MarketHistoryPageError | MarketSubscriptionRequest | MarketSubscriptionResponse | MarketSubscriptionError | MarketBarUpdateEvent | MarketBarCorrectionEvent | MarketStreamGapEvent | WorkerHello11 | ScopedMutationRequest11 | ScopedMutationResponse11 | TrustedConfirmationDecision11 | PreviewReady11 | ArtifactChunk11 | TaskTerminalEvent11 | TaskCancelRequest11 | CancelMemberRequest11 | ReadProjectedChart11 | ProjectedChartResponse11 | SharedSelectionEvent11 | SharedSelectionRequest11 | AiToolRequest11 | AiToolResultDelivery11 | AiToolResultAck11 | ProjectedChartError11 | IndicatorCompute11 | IndicatorComputed11 | IndicatorInputSegment11 | SharedSelectionResponse11 | SharedSelectionError11 | SharedContextRequest11 | SharedContextResponse11 | SharedContextError11 | CancelTaskResponse11 | CancelTaskError11
+Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat | MarketHistoryPageRequest | MarketHistoryPageResponse | MarketHistoryPageError | MarketSubscriptionRequest | MarketSubscriptionResponse | MarketSubscriptionError | LocalImportPreviewRequest | LocalImportPreviewResponse | LocalImportPreviewError | MarketBarUpdateEvent | MarketBarCorrectionEvent | MarketStreamGapEvent | WorkerHello11 | ScopedMutationRequest11 | ScopedMutationResponse11 | TrustedConfirmationDecision11 | PreviewReady11 | ArtifactChunk11 | TaskTerminalEvent11 | TaskCancelRequest11 | CancelMemberRequest11 | ReadProjectedChart11 | ProjectedChartResponse11 | SharedSelectionEvent11 | SharedSelectionRequest11 | AiToolRequest11 | AiToolResultDelivery11 | AiToolResultAck11 | ProjectedChartError11 | IndicatorCompute11 | IndicatorComputed11 | IndicatorInputSegment11 | SharedSelectionResponse11 | SharedSelectionError11 | SharedContextRequest11 | SharedContextResponse11 | SharedContextError11 | CancelTaskResponse11 | CancelTaskError11
 ProtocolVersion11 = Literal['1.1']
 class WorkspaceObject11(TypedDict):
     kind: Literal['chart', 'layer', 'layout', 'dataset', 'workspace']
@@ -1410,3 +1439,87 @@ class WorkspaceUndoReply11(TypedDict):
     request_id: Uuid
     outcome: WorkspaceUndoOutcome11
 HistoryPageReply11 = MarketHistoryPageResponse | MarketHistoryPageError
+class CsvColumnMappingV1(TypedDict):
+    symbol: NotRequired[str]
+    timestamp: NotRequired[str]
+    trading_day: NotRequired[str]
+    open: NotRequired[str]
+    high: NotRequired[str]
+    low: NotRequired[str]
+    close: NotRequired[str]
+    volume: NotRequired[str | None]
+class CsvMappingV1(TypedDict):
+    version: int
+    revision: str
+    encoding: str
+    delimiter: str
+    record_kind: str
+    columns: NotRequired[CsvColumnMappingV1]
+    instrument_kind: NotRequired[str]
+    venue: NotRequired[str]
+    timeframe: NotRequired[str]
+    calendar_id: NotRequired[str]
+    session_scope: NotRequired[str]
+    timezone: NotRequired[str]
+    quantity_unit: NotRequired[str]
+    price_adjustment: NotRequired[str]
+    roll_method: NotRequired[str]
+    volume_semantics: NotRequired[str]
+    timestamp_convention: NotRequired[str]
+    timestamp_format: NotRequired[str]
+    trading_day_format: NotRequired[str]
+    daily_start_time: NotRequired[str]
+class PreviewIssue(TypedDict):
+    code: str
+    field: str | None
+    message: str
+class RawOnlyColumn(TypedDict):
+    column: str
+    reason: str
+class PreviewSeries(TypedDict):
+    instrument_kind: str
+    venue: str
+    timeframe: str
+    calendar_id: str
+    session_scope: str
+    timezone: str
+    quantity_unit: str
+    price_adjustment: str
+    roll_method: str | None
+class PreviewRow(TypedDict):
+    record_number: int
+    line_start: int
+    line_end: int
+    raw_fields: list[str]
+    raw_text: str | None
+    symbol: str | None
+    normalized: Bar | None
+    issues: list[PreviewIssue]
+class CsvPreview(TypedDict):
+    file_sha256: Hash
+    mapping_version: int | None
+    mapping_revision: str | None
+    header: list[str]
+    raw_header_text: str | None
+    rows: list[PreviewRow]
+    issues: list[PreviewIssue]
+    raw_only_columns: list[RawOnlyColumn]
+    series: PreviewSeries | None
+    truncated: bool
+class LocalImportPreviewInput(TypedDict):
+    version: int
+    folder_id: Uuid
+    file_id: Uuid
+    expected_sha256: NotRequired[Hash]
+    mapping: CsvMappingV1
+    row_limit: NotRequired[int]
+class LocalImportPreviewOutput(TypedDict):
+    version: int
+    folder_id: Uuid
+    file_id: Uuid
+    relative_path: str
+    display_name: str
+    byte_count: int
+    sha256: Hash
+    preview: CsvPreview
+LocalImportPreviewReply11 = LocalImportPreviewResponse | LocalImportPreviewError

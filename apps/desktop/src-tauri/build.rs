@@ -7,6 +7,7 @@ fn main() {
             "cancel_market_subscription",
             "prepare_market_subscription",
             "cancel_market_preparation",
+            "cancel_local_import_preview",
         ]),
     ))
     .expect("build desktop manifest");

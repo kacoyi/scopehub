@@ -7,6 +7,7 @@
     "allow-execute-market-subscription",
     "allow-cancel-market-subscription",
     "allow-prepare-market-subscription",
-    "allow-cancel-market-preparation"
+    "allow-cancel-market-preparation",
+    "allow-cancel-local-import-preview"
   ]
 }

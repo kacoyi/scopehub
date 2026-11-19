@@ -816,5 +816,80 @@
     "name": "1.1 client selection rejects a workspace revision in place of the selection revision",
     "valid": false,
     "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"operation\":\"workspace.selectEvidence\",\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"workspace_id\":\"desk\",\"target\":{\"kind\":\"document_passage\",\"source_id\":\"doc1\",\"source_revision\":\"v1\",\"locator\":\"paragraph-2\"},\"expected_workspace_revision\":7}"
+  },
+  {
+    "name": "1.1 local CSV preview request with editable mapping",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.previewLocalImport\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-1\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"volume\":null}},\"row_limit\":30}}\n"
+  },
+  {
+    "name": "1.1 local CSV preview retains source locator and raw diagnostics",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.previewLocalImport\",\"ok\":true,\"result\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"relative_path\":\"equities/synthetic.csv\",\"display_name\":\"synthetic.csv\",\"byte_count\":25,\"sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"preview\":{\"file_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping_version\":1,\"mapping_revision\":\"synthetic-1\",\"header\":[\"Symbol\",\"Close\"],\"raw_header_text\":null,\"rows\":[{\"record_number\":1,\"line_start\":2,\"line_end\":2,\"raw_fields\":[\"000012\",\"6.50\"],\"raw_text\":null,\"symbol\":null,\"normalized\":null,\"issues\":[]}],\"issues\":[{\"code\":\"column_required\",\"field\":\"timestamp\",\"message\":\"Select the source header for this field.\"}],\"raw_only_columns\":[{\"column\":\"Close\",\"reason\":\"No supported bar field is mapped to this column.\"}],\"series\":null,\"truncated\":false}},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local CSV preview retains a normalized bar with unknown volume",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.previewLocalImport\",\"ok\":true,\"result\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"relative_path\":\"futures/synthetic.csv\",\"display_name\":\"synthetic.csv\",\"byte_count\":99,\"sha256\":\"928d4512a367173eaae364f13f91e9959beceb5c5fa3a4ba77cdd61e1491eb1b\",\"preview\":{\"file_sha256\":\"928d4512a367173eaae364f13f91e9959beceb5c5fa3a4ba77cdd61e1491eb1b\",\"mapping_version\":1,\"mapping_revision\":\"synthetic-1\",\"header\":[\"Symbol\",\"Timestamp\",\"TradingDay\",\"Open\",\"High\",\"Low\",\"Close\",\"Volume\"],\"raw_header_text\":null,\"rows\":[{\"record_number\":1,\"line_start\":2,\"line_end\":2,\"raw_fields\":[\"TEST-A\",\"2023-11-14 17:00\",\"2023-11-15\",\"6\",\"8\",\"5\",\"7\",\"\"],\"raw_text\":null,\"symbol\":\"TEST-A\",\"normalized\":{\"time_ms\":1699981200000,\"trading_day\":\"2023-11-15\",\"open\":6,\"high\":8,\"low\":5,\"close\":7,\"volume\":null,\"is_closed\":true},\"issues\":[]}],\"issues\":[],\"raw_only_columns\":[],\"series\":{\"instrument_kind\":\"dated_future\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-overnight\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"contracts\",\"price_adjustment\":\"raw\",\"roll_method\":null},\"truncated\":false}},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local CSV preview stale selection failure",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.previewLocalImport\",\"ok\":false,\"result\":null,\"error\":{\"code\":\"STALE_CONTEXT\",\"message\":\"The folder selection superseded this preview.\",\"retryable\":false,\"details\":{}}}\n"
+  },
+  {
+    "name": "local CSV preview is unavailable in 1.0",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.previewLocalImport\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-1\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"volume\":null}},\"row_limit\":30}}\n"
+  },
+  {
+    "name": "local CSV preview rejects request path",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.previewLocalImport\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-1\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"volume\":null}},\"row_limit\":30,\"path\":\"/tmp/unknown.csv\"}}\n"
+  },
+  {
+    "name": "local CSV preview rejects request actor",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.previewLocalImport\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-1\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"volume\":null}},\"row_limit\":30,\"actor\":\"user\"}}\n"
+  },
+  {
+    "name": "local CSV preview rejects request grant",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.previewLocalImport\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-1\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"volume\":null}},\"row_limit\":30,\"grant\":\"00000000-0000-4000-8000-000000000003\"}}\n"
+  },
+  {
+    "name": "local CSV preview rejects request principal",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.previewLocalImport\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-1\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"volume\":null}},\"row_limit\":30,\"principal\":\"00000000-0000-4000-8000-000000000003\"}}\n"
+  },
+  {
+    "name": "local CSV preview rejects request row_limit",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.previewLocalImport\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-1\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"volume\":null}},\"row_limit\":501}}\n"
+  },
+  {
+    "name": "local CSV preview rejects request expected_sha256",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.previewLocalImport\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"invalid\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-1\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"volume\":null}},\"row_limit\":30}}\n"
+  },
+  {
+    "name": "local CSV preview mapping cannot select a path",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.previewLocalImport\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-1\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"volume\":null},\"path\":\"/tmp/unknown.csv\"},\"row_limit\":30}}\n"
+  },
+  {
+    "name": "local CSV preview response requires physical row locator",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.previewLocalImport\",\"ok\":true,\"result\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"relative_path\":\"equities/synthetic.csv\",\"display_name\":\"synthetic.csv\",\"byte_count\":25,\"sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"preview\":{\"file_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping_version\":1,\"mapping_revision\":\"synthetic-1\",\"header\":[\"Symbol\",\"Close\"],\"raw_header_text\":null,\"rows\":[{\"record_number\":1,\"line_end\":2,\"raw_fields\":[\"000012\",\"6.50\"],\"raw_text\":null,\"symbol\":null,\"normalized\":null,\"issues\":[]}],\"issues\":[{\"code\":\"column_required\",\"field\":\"timestamp\",\"message\":\"Select the source header for this field.\"}],\"raw_only_columns\":[{\"column\":\"Close\",\"reason\":\"No supported bar field is mapped to this column.\"}],\"series\":null,\"truncated\":false}},\"error\":null}\n"
+  },
+  {
+    "name": "local CSV preview has no AI tool lane in 1.1",
+    "valid": false,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"ai.tool_request\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"stream_id\":\"st\",\"sequence\":2,\"payload\":{\"operation\":\"market.previewLocalImport\",\"arguments\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-1\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"volume\":null}},\"row_limit\":30}}}\n"
+  },
+  {
+    "name": "local CSV preview digest cannot have a trailing newline",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.previewLocalImport\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\\n\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-1\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"volume\":null}},\"row_limit\":30}}\n"
   }
 ]

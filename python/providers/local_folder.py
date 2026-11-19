@@ -15,11 +15,9 @@ from collections.abc import Mapping
 import csv
 from hashlib import sha256
 from io import StringIO
-from typing import TypedDict
-
-from contracts.generated.protocol import Bar
+from contracts.generated.protocol import CsvPreview, PreviewRow
 from providers.csv_bar_mapping import (
-    BarFieldError, PreviewIssue, PreviewSeries, auxiliary_role, native_mapping, normalize_bar, preview_issue,
+    BarFieldError, auxiliary_role, native_mapping, normalize_bar, preview_issue,
 )
 
 
@@ -27,35 +25,6 @@ MAX_FILE_BYTES = 4 * 1024 * 1024
 MAX_PREVIEW_ROWS = 500
 _MAX_COLUMNS = 512
 _ENCODINGS = {'utf-8', 'utf-8-sig', 'gb18030'}
-
-
-class RawOnlyColumn(TypedDict):
-    column: str
-    reason: str
-
-
-class PreviewRow(TypedDict):
-    record_number: int
-    line_start: int
-    line_end: int
-    raw_fields: list[str]
-    raw_text: str | None
-    symbol: str | None
-    normalized: Bar | None
-    issues: list[PreviewIssue]
-
-
-class CsvPreview(TypedDict):
-    file_sha256: str
-    mapping_version: int | None
-    mapping_revision: str | None
-    header: list[str]
-    raw_header_text: str | None
-    rows: list[PreviewRow]
-    issues: list[PreviewIssue]
-    raw_only_columns: list[RawOnlyColumn]
-    series: PreviewSeries | None
-    truncated: bool
 
 
 def preview_csv(content: bytes, mapping: Mapping[str, object], *, row_limit: int = 100) -> CsvPreview:

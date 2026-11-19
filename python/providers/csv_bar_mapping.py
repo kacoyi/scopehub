@@ -6,10 +6,9 @@ from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 import math
 import re
-from typing import TypedDict
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from contracts.generated.protocol import Bar
+from contracts.generated.protocol import Bar, PreviewIssue, PreviewSeries
 
 
 _FIELDS = ('symbol', 'timestamp', 'trading_day', 'open', 'high', 'low', 'close', 'volume')
@@ -35,24 +34,6 @@ _CLOCK = {'%H', '%M'}
 _NUMBER = re.compile(r'[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?')
 _EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 _MILLISECOND = timedelta(milliseconds=1)
-
-
-class PreviewIssue(TypedDict):
-    code: str
-    field: str | None
-    message: str
-
-
-class PreviewSeries(TypedDict):
-    instrument_kind: str
-    venue: str
-    timeframe: str
-    calendar_id: str
-    session_scope: str
-    timezone: str
-    quantity_unit: str
-    price_adjustment: str
-    roll_method: str | None
 
 
 def preview_issue(code: str, field: str | None, message: str) -> PreviewIssue:

@@ -148,7 +148,7 @@ def declared_source_boundaries(root):
 def desktop_capability_errors(root):
     errors = []
     commands = ['execute_operation', 'execute_market_subscription', 'cancel_market_subscription',
-                'prepare_market_subscription', 'cancel_market_preparation']
+                'prepare_market_subscription', 'cancel_market_preparation', 'cancel_local_import_preview']
     permissions = ['allow-' + command.replace('_', '-') for command in commands]
     directory = root / 'apps/desktop/src-tauri'
     capabilities = list((directory / 'capabilities').glob('*'))
