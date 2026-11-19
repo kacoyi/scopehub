@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-001",
+  "focus_task_id": "M2-009",
   "tasks": [
     {
       "id": "M0-001",
@@ -327,7 +327,7 @@
       "id": "M2-001",
       "title": "Deliver shared operations and durable workspace state",
       "milestone": "M2",
-      "status": "active",
+      "status": "planned",
       "depends_on": [
         "M1-001",
         "M2-005"
@@ -336,18 +336,7 @@
         "crates/application",
         "crates/persistence",
         "apps/desktop",
-        "tests",
-        "Cargo.toml",
-        "Cargo.lock",
-        "project/development.json",
-        "project/dependency-inventory.json",
-        "THIRD_PARTY_NOTICES",
-        "project/checks.json",
-        "project/delivery.json",
-        "pyproject.toml",
-        "uv.lock",
-        "package.json",
-        "scripts/ci_artifacts.py"
+        "tests"
       ],
       "decision_refs": [
         "0001",
@@ -368,29 +357,17 @@
       ],
       "checks": [
         "operations-workflow",
-        "state-migrations",
-        "architecture",
-        "dependency-review",
-        "rust-contracts-workers",
-        "rust-format",
-        "rust-lints",
-        "ui-build",
-        "workspace-timeframe",
-        "project-state",
-        "python-contracts-workers",
-        "desktop-workspace-transport"
+        "state-migrations"
       ],
       "evidence": [],
-      "next_action": "Validate native transport for the persisted timeframe and undo, then deliver selected note retention, deletion and scoped backup recovery from the active local profile.",
+      "next_action": "After the chart workflow and revision clarification, implement the first SQLite-backed timeframe round trip through the shared registry. Extend it to scoped idempotency, explicit private saves and tested backup recovery.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
         "outcome": "An authorized human or AI change goes through the same Rust registry, survives process restart in the originating local profile and can be undone by operation ID. Accepted results, private records and deletion decisions survive the documented recovery cases.",
         "change_types": [
           "persistence",
-          "permissions",
-          "dependencies",
-          "tooling"
+          "permissions"
         ],
         "context": [
           "engineering-contract-v1.json",
@@ -423,22 +400,6 @@
             "checks": [
               "state-migrations",
               "operations-workflow"
-            ]
-          },
-          {
-            "failure": "The bundled database or a Rust module dependency cannot be built on a supported target, or the locked license and advisory inventory no longer matches the delivered code.",
-            "checks": [
-              "architecture",
-              "dependency-review",
-              "rust-contracts-workers"
-            ]
-          },
-          {
-            "failure": "A new browser loses the eligible undo, an ordinary startup obtains a workspace writer, or a suspended request replays twice.",
-            "checks": [
-              "workspace-timeframe",
-              "rust-contracts-workers",
-              "desktop-workspace-transport"
             ]
           }
         ],
@@ -5453,6 +5414,128 @@
           ],
           "data_plan": "Only temporary synthetic profiles are used for the browser checks. They are removed after their owned processes exit.",
           "cleanup": "Keep the process probe test-only. Stage named browser results and retain private working databases locally."
+        }
+      }
+    },
+    {
+      "id": "M2-009",
+      "title": "Isolate the offline sample timeframe from the durable workspace",
+      "milestone": "M2",
+      "status": "active",
+      "depends_on": [
+        "M2-007"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/main.tsx",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ui/desktop-workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/delivery.json",
+        "contracts/reviews/2026-11-19-workspace-timeframe-scope.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0010",
+        "0011"
+      ],
+      "acceptance": [
+        "Through the real preview and Rust writer, an explicitly opened and labeled simulated sample can save 5m and restore it on refresh while the bound workspace retains its independent 1m revision and existing undo receipt.",
+        "Leaving the sample in the launched page restores the durable controls and permits the original undo through the fragment-scrubbed in-memory grant. Refreshing the scrubbed shell requires a new handoff to use durable controls.",
+        "The built desktop UI with opted-in substituted Tauri IPC routes sample controls to the sample preference and retains the private timeframe and undo on return. Unconfigured startup remains inert and keeps explicit sample opt-in."
+      ],
+      "checks": [
+        "project-state",
+        "architecture",
+        "python-contracts-workers",
+        "ui-build",
+        "market-workflow",
+        "rust-contracts-workers",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "evidence": [],
+      "next_action": "Retain the failing real-preview and native-composition regressions, isolate the active sample controls, and archive source-bound local task evidence.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The active synthetic chart and private workspace have independent timeframe ownership across entry, leave and browser reload.",
+        "change_types": [
+          "ui",
+          "tooling"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-19-workspace-timeframe-scope.json",
+          "apps/desktop/ui/src/main.tsx",
+          "apps/desktop/ui/src/chart-workspace.tsx",
+          "apps/desktop/ui/src/sample-view.ts",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "The composed chart binds the local workspace controls while the sample is active. Giving the active source ownership of the controls keeps both stored states independent."
+        ],
+        "risks": [
+          {
+            "failure": "Opening the sample changes a durable revision or replaces the existing private undo.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "Leaving or refreshing the sample loses the expected timeframe, activates a private grant in a new browser document, or loses the grant in the original launched document.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport",
+              "market-workflow"
+            ]
+          }
+        ],
+        "rollback": "Retain red and green runs using isolated synthetic profiles. Revert the UI routing change on the task branch if the ordinary durable path or synthetic startup regresses.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/main.tsx",
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ui/desktop-workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "contracts/decisions/0010-reproducible-operations-and-acceptance.json",
+              "pointer": "/decision"
+            },
+            {
+              "path": "contracts/decisions/0011-local-profiles-and-connected-model-use.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Private decision notes, evidence selection, general operation replay, profile backup and migration recovery continue under their own development scope.",
+            "Keep the existing SQLite schema and local authorization contract. Native IPC substitution and portable Rust bridge tests leave installed Windows WebView acceptance to its own gate."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Explicit sample opt-in, existing sample preference format and leave behavior.",
+            "Private snapshot, durable write and undo through the same Rust registry and profile store.",
+            "Page-local preview grants and unconfigured startup without a private write path."
+          ],
+          "change": [
+            "Bind chart controls and sample reads to the selected source while retaining the existing local workspace session in the parent UI."
+          ],
+          "data_plan": "Reuse the public sample preference. Use temporary synthetic SQLite profiles for verification.",
+          "cleanup": "Remove generated synthetic profiles after their writers exit. Retain red and green reports with synthetic observations and keep launch grants out of artifacts."
         }
       }
     }

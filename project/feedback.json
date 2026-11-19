@@ -1003,6 +1003,22 @@
         "prevention": "The Windows 11 guest passed the revised positive check in both TEMP spellings and reached the intended denial for broad access and missing inheritance on empty synthetic files. Hosted Windows workspace-timeframe at 290bd578 passed the same private handoff case with both negative controls."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "offline-sample-timeframe-crosses-private-workspace",
+      "source": "Reviewer t2k reproduced on #10 at 096e09b in the opted-in private workspace.",
+      "observation": "Open offline sample, then select 5m. The private workspace timeframe and undo change, and the public simulated sample returns to 1m after refresh.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-009"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
