@@ -9,6 +9,7 @@ mod workspace;
 
 pub use local_import::{
     DEFAULT_PREVIEW_ROWS, LocalImportPort, PREVIEW_LOCAL_IMPORT, preview_local_import,
+    validate_csv_preview,
 };
 pub use local_publication::{
     LocalDatasetPublication, LocalDatasetStore, PUBLISH_LOCAL_IMPORT, READ_LOCAL_IMPORT_REVISION,
