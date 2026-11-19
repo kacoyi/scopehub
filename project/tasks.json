@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-010",
+  "focus_task_id": "M2-011",
   "tasks": [
     {
       "id": "M0-001",
@@ -7444,6 +7444,105 @@
           ],
           "data_plan": "Use a disposable synthetic local profile and fixture.",
           "cleanup": "Release test interception and response listeners on every path; retain bounded diagnostics without profile credentials."
+        }
+      }
+    },
+    {
+      "id": "M2-011",
+      "title": "Verify a deletion receipt after a peer corrects the original private record",
+      "milestone": "M2",
+      "status": "active",
+      "depends_on": [
+        "M2-001"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "apps/desktop/ui/src/private-records.tsx",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "After a genuinely busy pre-commit deletion, observe the intended peer correction and the originating window recovery through the normal private workspace UI.",
+        "Keep uncertain deletion recovery body-free. An explicit retry reuses its original confirmation, fails stale after the peer correction, reveals the current record to its authorized viewer, and leaves the corrected record intact.",
+        "Distinguish peer authorization, peer commit, focus and current-read observations in a bounded test. A failed peer action or transport terminal has an attributed outcome and leaves no outstanding waiter. Preserve the Windows artifact and verify the affected checks on the integrated source."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe",
+        "private-record-lifecycle"
+      ],
+      "evidence": [],
+      "next_action": "Run the workspace-timeframe and private-record-lifecycle gates on the integrated source, retain matching Linux and Windows evidence, and close the peer-rename feedback when verified.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A user can resolve an uncertain deletion after another authorized window edits the same record and see the correct outcome.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "apps/desktop/ui/src/private-records.tsx",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The archived Windows waiter expired without identifying the peer action or origin read. The original Windows trigger remains unknown.",
+          "An admitted focus read occupies the single preview producer. In the controlled Linux reproduction the authorized peer then received HTTP 429 BUSY and the old panel reported only a generic failure."
+        ],
+        "risks": [
+          {
+            "failure": "An observer outlives a failed peer navigation, edit or read, hiding the first actionable failure.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "Retrying an uncertain receipt deletes the corrected record, leaks the superseded title or body, or abandons a legitimately committed receipt.",
+            "checks": [
+              "workspace-timeframe",
+              "private-record-lifecycle"
+            ]
+          }
+        ],
+        "rollback": "Keep the original Windows artifact and the independently reproduced failure. Revert an ineffective change without weakening receipt, authorization or deletion assertions.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "ui"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "apps/desktop/ui/src/private-records.tsx"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing deletion policy, granting a new reader, or replaying a mutation automatically."
+          ],
+          "open_questions": [
+            "Does the staged recovery and the shared-producer negative control pass on the integrated Windows source?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Body-free recovery, explicit confirmation, original operation identity, peer access checks, stale revision handling and single tombstones."
+          ],
+          "change": [
+            "Expose a real BUSY as contention in the private records panel.",
+            "Observe the peer read, review, approval and stored correction independently of the origin focus and exact deletion retry. Prove shared-producer contention separately from the two-service recovery."
+          ],
+          "data_plan": "Use only synthetic records in disposable profiles.",
+          "cleanup": "Release the test-owned read observer, writer transaction and browser contexts on every outcome."
         }
       }
     }

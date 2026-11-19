@@ -1701,7 +1701,7 @@ function duringResponse(page, operation, action, timeout) {
     && response.request().postDataJSON()?.intent?.operation === operation, action, timeout);
 }
 
-async function duringPageEvent(page, event, matches, action, timeout) {
+async function duringPageEvent(page, event, matches, action, timeout, failedRequestMatches) {
   // A navigation or action can fail before the expected event is possible.
   // Record event errors without rejecting a detached promise, and preserve the action error.
   const { promise, resolve } = Promise.withResolvers();
@@ -1714,9 +1714,21 @@ async function duringPageEvent(page, event, matches, action, timeout) {
   };
   const onClose = () => resolve({ error: new Error(`Page closed before the expected ${event}.`) });
   const onCrash = () => resolve({ error: new Error(`Page crashed before the expected ${event}.`) });
+  const onRequestFailed = request => {
+    try {
+      if (failedRequestMatches(request)) {
+        const response = request.existingResponse();
+        const status = response ? ` after HTTP ${response.status()}` : '';
+        resolve({ error: new Error(`Workspace request failed${status}: ${request.failure()?.errorText}`) });
+      }
+    } catch (error) {
+      resolve({ error });
+    }
+  };
   page.on(event, onEvent);
   page.on('close', onClose);
   page.on('crash', onCrash);
+  if (failedRequestMatches) page.on('requestfailed', onRequestFailed);
   const timer = timeout && setTimeout(() => resolve({ error: new Error(`Timed out waiting for ${event}.`) }), timeout);
   try {
     await action();
@@ -1728,6 +1740,7 @@ async function duringPageEvent(page, event, matches, action, timeout) {
     page.off(event, onEvent);
     page.off('close', onClose);
     page.off('crash', onCrash);
+    if (failedRequestMatches) page.off('requestfailed', onRequestFailed);
   }
 }
 
@@ -2169,7 +2182,7 @@ test('private record review counts current survivors absent from an empty backup
   } finally { await profile.close(); }
 });
 
-function deleteResolution(payload) {
+function isPrivateApproval(payload) {
   return payload?.intent?.operation === 'privateRecord.change'
     && payload.intent.arguments.action === 'resolve' && payload.intent.arguments.decision === 'approve';
 }
@@ -2189,6 +2202,82 @@ function assertSameDeleteResolution(before, retry) {
   expect(Object.keys(retry.intent.arguments).sort()).toEqual(['action', 'challenge_id', 'decision']);
 }
 
+function privateRequestMatches(operation, argumentsMatch = () => true) {
+  return payload => payload?.intent?.operation === operation && argumentsMatch(payload.intent.arguments, payload);
+}
+
+async function privateReplyDuring(page, stages, step, matches, action) {
+  return test.step(step, async () => {
+    const matchesRequest = request => new URL(request.url()).pathname === endpoint && matches(request.postDataJSON());
+    const observed = { step };
+    stages.push(observed);
+    try {
+      const request = await duringPageEvent(page, 'requestfinished', matchesRequest, action, 8_000, matchesRequest);
+      const response = await request.response();
+      observed.http = response.status();
+      const frame = await response.json();
+      const payload = request.postDataJSON();
+      const outcome = frame.result?.outcome;
+      observed.state = outcome?.state;
+      observed.code = outcome?.error?.code ?? frame.error?.code;
+      if (frame.ok) expect(frame.result.request_id).toBe(payload.request_id);
+      return { payload, outcome, observed };
+    } catch (error) {
+      observed.error = error.message.split('\n')[0];
+      throw error;
+    }
+  });
+}
+
+function clickPrivate(panel, name) {
+  return panel.getByRole('button', { name, exact: true }).click({ timeout: 5_000 });
+}
+
+async function assertPrivateHidden(panel, ...values) {
+  for (const value of values) {
+    await expect(panel.getByText(value, { exact: true })).toHaveCount(0);
+  }
+}
+
+test('an authorized peer sees shared producer BUSY and its failed step detaches the observer', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  const stages = [];
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async origin => {
+        await openPrivateRecords(origin);
+        await inFreshBrowser(browser, server, async peer => {
+          const writer = await writerPid(server);
+          const listenerEvents = ['requestfinished', 'requestfailed', 'close', 'crash'];
+          const listenerCounts = () => listenerEvents.map(event => origin.listenerCount(event));
+          const before = listenerCounts();
+          const read = privateRequestMatches('privateRecord.read');
+          const observedPeerFailure = privateReplyDuring(origin, stages, 'abandoned origin observer', read, async () => {
+            await writerPid(server, 'suspend', writer);
+            try {
+              await focusPrivateRecords(origin);
+              await expect.poll(() => postStatus(server, admissionProbe), { timeout: 3_000 }).toBe(429);
+              const reply = await privateReplyDuring(peer, stages, 'peer opens private records during origin poll', read,
+                () => control(peer, 'Private records').click({ timeout: 5_000 }));
+              expect(reply.observed).toMatchObject({ http: 429, code: 'BUSY' });
+              throw new Error(`Peer private record read returned HTTP ${reply.observed.http} ${reply.observed.code}`);
+            } finally {
+              await writerPid(server, 'resume', writer);
+            }
+          });
+          await expect(observedPeerFailure).rejects.toThrow('Peer private record read returned HTTP 429 BUSY');
+          expect(listenerCounts()).toEqual(before);
+          stages.push({ step: 'observer cleanup', listenersRestored: true, sharedWriter: writer });
+          await expect(peer.getByRole('alert')).toContainText('The local workspace is busy.');
+        });
+      });
+    });
+  } finally {
+    await testInfo.attach('shared-private-writer', { body: JSON.stringify(stages), contentType: 'application/json' });
+    await profile.close();
+  }
+});
+
 for (const fault of ['lost reply', 'blocked checkpoint']) {
   test(`private record delete recovers after detail disappears with ${fault}`, async ({ browser }) => {
     const profile = await makeProfile();
@@ -2204,19 +2293,19 @@ for (const fault of ['lost reply', 'blocked checkpoint']) {
           const snapshot = fault === 'blocked checkpoint' ? new DatabaseSync(databasePath, { readOnly: true }) : null;
           try {
             const id = inspector.prepare('SELECT record_id FROM private_records').get().record_id;
-            const resolution = page.waitForRequest(request => deleteResolution(request.postDataJSON()));
+            const resolution = page.waitForRequest(request => isPrivateApproval(request.postDataJSON()));
             const gone = privateDetailReply(page, id, outcome => outcome?.error?.code === 'DATA_UNAVAILABLE');
             await panel.getByRole('button', { name: 'Review deletion' }).click();
             let initialReceipt;
             if (snapshot) {
               snapshot.exec('BEGIN');
               expect(snapshot.prepare('SELECT revision FROM private_records').get().revision).toBe(1);
-              const approval = page.waitForResponse(response => deleteResolution(response.request().postDataJSON()));
+              const approval = page.waitForResponse(response => isPrivateApproval(response.request().postDataJSON()));
               await panel.getByRole('button', { name: 'Delete private record', exact: true }).click();
               expect((await (await approval).json()).result.outcome.error.code).toBe('BUSY');
               expect(inspector.prepare('SELECT revision FROM private_record_cleanup').get().revision).toBe(2);
             } else {
-              const dropped = await dropApprovalReply(page, server, 'privateRecord.change', deleteResolution);
+              const dropped = await dropApprovalReply(page, server, 'privateRecord.change', isPrivateApproval);
               await panel.getByRole('button', { name: 'Delete private record', exact: true }).click();
               await expect.poll(dropped.outcome).toMatchObject({ state: 'committed' });
               initialReceipt = dropped.outcome().receipt;
@@ -2237,7 +2326,7 @@ for (const fault of ['lost reply', 'blocked checkpoint']) {
 
             const retry = panel.getByRole('button', { name: 'Retry confirmation' });
             await expect(retry).toBeEnabled();
-            const replay = page.waitForResponse(response => deleteResolution(response.request().postDataJSON()));
+            const replay = page.waitForResponse(response => isPrivateApproval(response.request().postDataJSON()));
             await retry.click();
             const response = await replay;
             assertSameDeleteResolution(first, response.request().postDataJSON());
@@ -2266,56 +2355,165 @@ for (const fault of ['lost reply', 'blocked checkpoint']) {
   });
 }
 
-test('private record delete recovery hides its old title after pre-commit busy and peer rename', async ({ browser }) => {
+test('private record delete recovery hides its old title after pre-commit busy and peer rename', async ({ browser }, testInfo) => {
   const profile = await makeProfile();
+  const stages = [];
   try {
-    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
-      await inFreshBrowser(browser, server, async pageA => {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async origin => {
+      await inFreshBrowser(browser, origin, async pageA => {
         const first = await openPrivateRecords(pageA);
         const title = 'Synthetic old title';
         const renamed = 'Synthetic peer title';
         const text = 'Synthetic original body';
+        const corrected = 'Synthetic corrected body';
         await saveMemory(first, title, text);
-        await first.getByRole('button', { name: 'Review deletion' }).click();
+        await clickPrivate(first, 'Review deletion');
         const writerLock = new DatabaseSync(join(profile.root, 'workspace.sqlite3'));
         try {
           const id = writerLock.prepare('SELECT record_id FROM private_records').get().record_id;
+          const readDetail = privateRequestMatches('privateRecord.read', args => args.record_id === id);
+          const retry = first.getByRole('button', { name: 'Retry confirmation' });
+          const state = () => {
+            const row = writerLock.prepare('SELECT revision, content FROM private_records WHERE record_id = ?').get(id);
+            return {
+              revision: writerLock.prepare('SELECT revision FROM workspaces').get().revision,
+              record: row && { revision: row.revision, content: JSON.parse(row.content) },
+              deletions: writerLock.prepare('SELECT count(*) AS count FROM private_record_deletions').get().count,
+              pendingCleanup: writerLock.prepare('SELECT count(*) AS count FROM private_record_cleanup').get().count,
+              receipts: writerLock.prepare('SELECT count(*) AS count FROM private_record_receipts').get().count,
+            };
+          };
+          const originalContent = { kind: 'memory', title, text };
+          const correctedContent = { kind: 'memory', title: renamed, text: corrected };
+          const originalState = { revision: 1, record: { revision: 1, content: originalContent },
+            deletions: 0, pendingCleanup: 0, receipts: 1 };
+          const correctedState = { revision: 2, record: { revision: 2, content: correctedContent },
+            deletions: 0, pendingCleanup: 0, receipts: 2 };
+          const expectCorrectedRead = reply => {
+            expect(reply.observed.http).toBe(200);
+            expect(reply.outcome, JSON.stringify(reply.observed)).toEqual({
+              state: 'completed', operation: 'privateRecord.read', result: {
+                workspace_revision: 2, records: [], record: { record_id: id, revision: 2, content: correctedContent },
+              },
+            });
+          };
           writerLock.exec('BEGIN IMMEDIATE');
-          const response = pageA.waitForResponse(reply => deleteResolution(reply.request().postDataJSON()));
-          await first.getByRole('button', { name: 'Delete private record', exact: true }).click();
-          const rejected = await response;
-          expect((await rejected.json()).result.outcome.error.code).toBe('BUSY');
-          expect(writerLock.prepare('SELECT revision FROM workspaces').get().revision).toBe(1);
-          writerLock.exec('COMMIT');
-          await expect(first.getByRole('button', { name: 'Retry confirmation' })).toBeEnabled();
+          const rejected = await privateReplyDuring(pageA, stages, 'origin deletion under SQLite writer reservation',
+            isPrivateApproval, () => clickPrivate(first, 'Delete private record'));
+          expect(rejected.observed).toMatchObject({ http: 200, state: 'failed', code: 'BUSY' });
+          expect(state()).toEqual(originalState);
+          writerLock.exec('ROLLBACK');
+          await expect(retry).toBeEnabled();
+          await assertPrivateHidden(first, title, text);
 
-          const observedRename = privateDetailReply(pageA, id, outcome => outcome?.result?.record?.content?.title === renamed);
-          await inFreshBrowser(browser, server, async pageB => {
-            const peer = await openPrivateRecords(pageB);
-            await peer.getByRole('button', { name: new RegExp(title) }).click();
-            await peer.getByRole('button', { name: 'Correct record' }).click();
-            await peer.getByRole('textbox', { name: 'Title', exact: true }).fill(renamed);
-            await peer.getByRole('button', { name: 'Review save' }).click();
-            await peer.getByRole('button', { name: 'Save private record', exact: true }).click();
-            await expect(peer.getByRole('heading', { name: renamed })).toBeVisible();
+          await inService(await freePort(), profile, 'ubuntu-workspace', async peerService => {
+            const originWriter = await writerPid(origin);
+            const peerWriter = await writerPid(peerService);
+            expect(peerWriter).not.toBe(originWriter);
+            expect(peerService.capability === origin.capability).toBe(false);
+            stages.push({ step: 'independent authorized services', originWriter, peerWriter });
+            await inFreshBrowser(browser, peerService, async (pageB, initial) => {
+              expect(initial.result?.workspace.revision, initial.error?.code).toBe(1);
+              const index = await privateReplyDuring(pageB, stages, 'authorized peer opens the private record index',
+                privateRequestMatches('privateRecord.read', args => args.record_id === null),
+                () => control(pageB, 'Private records').click({ timeout: 5_000 }));
+              expect(index.outcome, JSON.stringify(index.observed)).toMatchObject({
+                state: 'completed', result: { workspace_revision: 1, record: null, records: [{ record_id: id, title, revision: 1 }] },
+              });
+              const peer = pageB.getByRole('dialog', { name: 'Private records' });
+              const detail = await privateReplyDuring(pageB, stages, 'authorized peer reads original record', readDetail,
+                () => peer.getByRole('button', { name: new RegExp(title) }).click({ timeout: 5_000 }));
+              expect(detail.outcome, JSON.stringify(detail.observed)).toMatchObject({
+                state: 'completed', result: { workspace_revision: 1, record: { record_id: id, revision: 1, content: originalContent } },
+              });
+              await clickPrivate(peer, 'Correct record');
+              await peer.getByRole('textbox', { name: 'Title', exact: true }).fill(renamed);
+              await peer.getByRole('textbox', { name: 'Memory', exact: true }).fill(corrected);
+              const prepared = await privateReplyDuring(pageB, stages, 'peer prepares correction',
+                privateRequestMatches('privateRecord.change', args => args.action === 'save' && args.record_id === id),
+                () => clickPrivate(peer, 'Review save'));
+              expect(prepared.observed).toMatchObject({ http: 200, state: 'confirmation_required' });
+              expect(prepared.outcome.summary.corrected).toBe(1);
+
+              let committed;
+              try {
+                committed = await privateReplyDuring(pageB, stages, 'peer approves correction', isPrivateApproval,
+                  () => clickPrivate(peer, 'Save private record'));
+              } finally {
+                const { record, ...stored } = state();
+                stages.push({ step: 'stored after peer approval', ...stored, recordRevision: record?.revision });
+              }
+              expect(committed.observed).toMatchObject({ http: 200, state: 'committed' });
+              expect(committed.payload.scope).toEqual(prepared.payload.scope);
+              expect(committed.payload.intent.arguments.challenge_id).toBe(prepared.outcome.challenge_id);
+              expect(committed.outcome.receipt).toMatchObject({
+                workspace_id: workspaceId, record_id: id, committed_workspace_revision: 2, undoable: false,
+              });
+              expect(state()).toEqual(correctedState);
+              await expect(peer.getByRole('heading', { name: renamed })).toBeVisible();
+              await expect(peer.getByText(corrected, { exact: true })).toBeVisible();
+
+              const denied = await post(peerService, { ...detail.payload, request_id: randomUUID(), message_id: randomUUID() },
+                { Authorization: '' });
+              expect(denied.status).toBe(403);
+              expect(await denied.json()).toEqual({ ok: false, error: { code: 'PERMISSION_DENIED', retryable: false } });
+              stages.push({ step: 'ungranted current read', http: 403, code: 'PERMISSION_DENIED' });
+            });
           });
 
-          await focusPrivateRecords(pageA);
-          await observedRename;
-          await expect(first.getByText(title, { exact: true })).toHaveCount(0);
-          await expect(first.getByText(text, { exact: true })).toHaveCount(0);
+          const focused = await privateReplyDuring(pageA, stages, 'origin reads the corrected revision around focus', readDetail,
+            async () => {
+              await focusPrivateRecords(pageA);
+              stages.push({ step: 'origin focus dispatched' });
+            });
+          expectCorrectedRead(focused);
+          await assertPrivateHidden(first, title, text, renamed, corrected);
           await expect(first.getByRole('button', { name: 'Delete private record', exact: true })).toHaveCount(0);
-          const replay = pageA.waitForResponse(reply => deleteResolution(reply.request().postDataJSON()));
-          await first.getByRole('button', { name: 'Retry confirmation' }).click();
-          const retried = await replay;
-          assertSameDeleteResolution(rejected.request().postDataJSON(), retried.request().postDataJSON());
-          expect((await retried.json()).result.outcome.error.code).toBe('STALE_CONTEXT');
+
+          let retrySent = false;
+          let gatedRead;
+          const releaseRead = Promise.withResolvers();
+          const endpointUrl = origin.url + endpoint;
+          const gateCurrentRead = async route => {
+            const payload = route.request().postDataJSON();
+            if (isPrivateApproval(payload)) retrySent = true;
+            if (retrySent && !gatedRead && readDetail(payload)) {
+              gatedRead = payload.request_id;
+              await releaseRead.promise;
+            }
+            await route.continue();
+          };
+          await pageA.route(endpointUrl, gateCurrentRead);
+          try {
+            const current = await privateReplyDuring(pageA, stages, 'authorized reread after stale deletion retry',
+              payload => readDetail(payload) && payload.request_id === gatedRead, async () => {
+                const retried = await privateReplyDuring(pageA, stages, 'origin retries the original deletion resolution',
+                  isPrivateApproval, () => clickPrivate(first, 'Retry confirmation'));
+                assertSameDeleteResolution(rejected.payload, retried.payload);
+                expect(retried.observed).toMatchObject({ http: 200, state: 'failed', code: 'STALE_CONTEXT' });
+                await expect.poll(() => Boolean(gatedRead)).toBe(true);
+                await assertPrivateHidden(first, title, text, renamed, corrected);
+                await expect(first.getByRole('button', { name: 'Delete private record', exact: true })).toHaveCount(0);
+                stages.push({ step: 'before corrected detail response', contentHidden: true, sameResolution: true });
+                releaseRead.resolve();
+              });
+            expectCorrectedRead(current);
+          } finally {
+            releaseRead.resolve();
+            await pageA.unrouteAll({ behavior: 'wait' });
+          }
           await expect(first.getByRole('alert')).toContainText('changed');
           await expect(first.getByRole('heading', { name: renamed })).toBeVisible();
-          expect(writerLock.prepare('SELECT revision FROM workspaces').get().revision).toBe(2);
-          expect(writerLock.prepare('SELECT count(*) AS count FROM private_record_deletions').get().count).toBe(0);
+          await expect(first.getByText(corrected, { exact: true })).toBeVisible();
+          await assertPrivateHidden(first, title, text);
+          await expect(retry).toHaveCount(0);
+          expect(state()).toEqual(correctedState);
+          stages.push({ step: 'corrected detail displayed', revision: 2, deletions: 0 });
         } finally { writerLock.close(); }
       });
     });
-  } finally { await profile.close(); }
+  } finally {
+    await testInfo.attach('private-deletion-peer-recovery', { body: JSON.stringify(stages), contentType: 'application/json' });
+    await profile.close();
+  }
 });

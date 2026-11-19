@@ -1879,6 +1879,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "private-delete-uncertainty-peer-rename-wait",
+      "source": "Hosted Windows PR run 44601667278, head 4aeddf2, CI checkout 611de0d, workspace-timeframe final peer-rename case.",
+      "observation": "The screenshot shows a body-free Recover deletion result view. A wait for the renamed detail at workspace.spec.mjs line 2039 ended with the 60-second test. The original evidence does not confirm the peer write or the subsequent read stage. Both adjacent lost-reply and committed-WAL cleanup cases passed. The Windows browser results in the original integration artifact have SHA-256 763a0fac3d83d1bb0583376fdbfe41e320ba15fa8600a946b8226a11d6e1bd58. The same original journey passed locally in .reports/M2-011-baseline/workspace-timeframe/results.json. The controlled Linux red in .reports/M2-011-red/workspace-timeframe/results.json (SHA-256 ad5610583c570fdd40ff9b572b7b232d0f66281754f5e1961dac6ba0e36e3d15) retained the peer's HTTP 429 BUSY during an origin read, the observer cleanup, and the old generic panel error. The focused green in .reports/M2-011-green/workspace-timeframe/results.json (SHA-256 0999bb4ce106813f885788390212414e7fa915691f4b34d1d42ba06a5caa4e2c) reported contention explicitly and passed the two-service path with a committed peer correction, unchanged retry returning STALE_CONTEXT, body-free recovery until the authorized reload, and zero deletions. Both committed deletion controls passed in that run. Integrated Windows verification remains open.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-011"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "private-record-lifecycle"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
