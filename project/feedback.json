@@ -911,14 +911,18 @@
       "source": "Coordinator inspection of the active implementation and review terminals on 2026-11-19, including a linked worktree awaiting an assigned local Git merge.",
       "observation": "The launcher left the writer approval policy implicit. Routine project checks and previously assigned local Git operations waited at interactive approval prompts in multiple terminals.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-028"
       ],
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The writer launch command omitted the approval reviewer, and read-only reviews inherited the interactive approval setting.",
+        "correction": "Writers and coordinators request the standard workspace-write automatic reviewer. Read-only review returns a denial directly. The selected checkout and model travel with each assignment.",
+        "prevention": "The 11 focused launcher tests cover the role arguments and worktree selection. A real Herdr implementation session completed its scoped commit without a human prompt. See contracts/reviews/2026-11-19-herdr-delegated-approvals.json."
+      },
       "deferral_reason": null
     }
   ]

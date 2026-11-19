@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-028",
+  "focus_task_id": "M1-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -5262,7 +5262,7 @@
       "id": "M0-028",
       "title": "Route delegated Herdr work through bounded approval policies",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-025"
       ],
@@ -5283,8 +5283,13 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Reproduce the inherited approval policy, update per-role invocation and verify the ordinary launcher on a linked worktree.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-028-6db9900ad8dc0a0d.json",
+          "sha256": "13f544a77afbf39f7f633b35e4e9b76d0e054594652a1b367df47b2e69949438"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
