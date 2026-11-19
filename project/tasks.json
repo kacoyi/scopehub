@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-007",
+  "focus_task_id": "M2-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -381,7 +381,7 @@
         "desktop-workspace-transport"
       ],
       "evidence": [],
-      "next_action": "Validate native transport for the persisted timeframe and undo, then deliver selected note retention, deletion and scoped backup recovery from the active local profile.",
+      "next_action": "Deliver an explicit local decision-note save, dated review and separate later outcome through the Rust registry. Exercise decline, restart, deletion, profile isolation and body-free audit records. Follow with staged recovery using known deletion markers and the independent-backup warning.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -398,11 +398,14 @@
           "contracts/schemas/protocol.schema.json",
           "crates/application/src/lib.rs",
           "apps/desktop/src-tauri/src/bridge.rs",
-          "apps/desktop/ui/ubuntu-preview.mjs"
+          "apps/desktop/ui/ubuntu-preview.mjs",
+          "crates/application/src/workspace.rs",
+          "crates/persistence/src/lib.rs"
         ],
         "hypotheses": [
           "Start with 1m to 5m, restart the Rust process, undo by the returned operation ID and restart to 1m. Two profiles with the same workspace ID make isolation directly observable.",
-          "A profile-bound, long-lived Rust core can share one transaction owner across the native and explicitly enabled Ubuntu workspace entries."
+          "A profile-bound, long-lived Rust core can share one transaction owner across the native and explicitly enabled Ubuntu workspace entries.",
+          "A synthetic original thesis and a separately dated outcome can be distinguished after restart. Deleting their note can retain a profile-bound marker and redacted operation results without leaving the body available to a live read, undo or idempotent replay."
         ],
         "risks": [
           {
@@ -456,7 +459,9 @@
             "apps/desktop/src-tauri/src/bridge.rs",
             "apps/desktop/ui/ubuntu-preview.mjs",
             "contracts/schemas/protocol.schema.json",
-            "project/development.json"
+            "project/development.json",
+            "crates/application/src/workspace.rs",
+            "crates/persistence/src/lib.rs"
           ],
           "rules": [
             {
@@ -478,6 +483,10 @@
             {
               "path": "contracts/decisions/0011-local-profiles-and-connected-model-use.json",
               "pointer": "/decision"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence/notes_and_restore"
             }
           ],
           "non_goals": [
