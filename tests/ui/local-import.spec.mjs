@@ -1479,22 +1479,27 @@ base('keeps the selected folder library independent of an admitted CSV listing',
   }
 });
 
-base('keeps the selected folder library available after a delayed workspace bootstrap', {
+base('keeps the selected folder library available during workspace startup and refresh', {
   tag: '@profile-folder-refresh',
 }, async ({ page }) => {
   const releaseSnapshot = Promise.withResolvers();
+  const releaseRefresh = Promise.withResolvers();
+  const workspaceId = randomUUID();
   const calls = [];
   let openingWorkspace = true;
   await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
     expect(command).toBe('execute_operation');
     if (args?.payload?.type === 'snapshot') {
+      const refresh = calls.includes('snapshot');
+      openingWorkspace = true;
       calls.push('snapshot');
-      await releaseSnapshot.promise;
+      await (refresh ? releaseRefresh : releaseSnapshot).promise;
       openingWorkspace = false;
-      return { result: { workspace: { id: randomUUID(), revision: 0, timeframe: '1d' }, selection_revision: 0, undo: null } };
+      return { result: { workspace: { id: workspaceId, revision: 0, timeframe: '1d' },
+        selection_revision: 3, undo: null, chart_evidence: { unavailable: true } } };
     }
     calls.push(args?.operation);
-    if (openingWorkspace) return { error: { code: 'BUSY', message: 'The market worker is busy.', retryable: true } };
+    if (args.operation === 'workspace.selectEvidence' || openingWorkspace) return { error: { code: 'BUSY', message: 'The market worker is busy.', retryable: true } };
     return { result: { version: 1, revisions: [], next_after_revision_id: null } };
   });
   await page.addInitScript(() => {
@@ -1523,8 +1528,22 @@ base('keeps the selected folder library available after a delayed workspace boot
     await expect(dialog.getByText('No published folder revisions are available in this profile.')).toBeVisible();
     await expect(dialog.getByRole('alert')).toHaveCount(0);
     expect(calls).toEqual(['snapshot', 'market.listLocalFolderRevisions']);
+
+    await dialog.getByRole('button', { name: 'Clear shared selection' }).click();
+    await dialog.getByRole('button', { name: 'Refresh shared selection' }).click();
+    const before = ['snapshot', 'market.listLocalFolderRevisions', 'workspace.selectEvidence', 'snapshot'];
+    await expect.poll(() => calls).toEqual(before);
+    await dialog.getByRole('button', { name: 'Single-file revisions' }).click();
+    await expect(dialog.getByText('Loading published revisions…')).toBeVisible();
+    expect(calls).toEqual(before);
+
+    releaseRefresh.resolve();
+    await expect(dialog.getByText('No published CSV revisions are available in this profile.')).toBeVisible();
+    await expect(dialog.getByRole('alert')).toHaveCount(0);
+    expect(calls).toEqual([...before, 'market.listLocalImportRevisions']);
   } finally {
     releaseSnapshot.resolve();
+    releaseRefresh.resolve();
   }
 });
 

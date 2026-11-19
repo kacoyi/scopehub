@@ -1532,6 +1532,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "revision-library-during-profile-reload",
+      "source": "Joined native inspection on Windows 11 and the effect that submits revision list requests in local-revision-dialog.tsx.",
+      "observation": "After removing access to a folder revision and immediately switching to its independently entitled single-file source, an initial Windows journey timed out. The retained profile could open that source on a fresh launch, and an instrumented same-window repeat passed. The original timeout did not capture a terminal operation code. The revision browser waits for an initial snapshot but submits a list immediately during a subsequent reload of a known workspace on the same single-flight host.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "local-folder-refresh-preview",
+        "local-folder-import"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
