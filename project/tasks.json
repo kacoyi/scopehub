@@ -770,7 +770,7 @@
       "id": "M1-003",
       "title": "Verify market interruption and recovery through the chart",
       "milestone": "M1",
-      "status": "planned",
+      "status": "active",
       "depends_on": [
         "M1-001"
       ],
@@ -803,7 +803,7 @@
         "architecture"
       ],
       "evidence": [],
-      "next_action": "After the simulated chart journey, interrupt the real synthetic worker after its first confirmed update, resume from the same series and frozen observation, then exercise a recoverable missing closed bar.",
+      "next_action": "Retain the last confirmed futures update across a real worker exit, resume from its validated position, then verify the chart and closed-bar repair.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
