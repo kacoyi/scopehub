@@ -13,7 +13,9 @@ from uuid import UUID
 
 from jsonschema import Draft202012Validator, FormatChecker
 
+from providers.history_pages import execute_page
 from providers.simulated import Session, aggregate_minutes, build_fixture, fixture_bytes
+from worker_runtime.protocol import MAX_MESSAGE_BYTES
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = ROOT / 'tests/fixtures/market'
@@ -61,6 +63,36 @@ class MarketFixtureTests(unittest.TestCase):
                 identities.add(dataset['id'])
                 for update in fixture['updates']:
                     self.validators['Bar'].validate(update['bar'])
+
+    def test_history_pages_preserve_committed_bars_and_report_independent_quality(self):
+        expected_axes = {
+            'normal': ('open', 'current', 'observed', []),
+            'gapped': ('open', 'current', 'gapped', [
+                {'from_ms': 1704200520000, 'to_ms': 1704200580000},
+                {'from_ms': 1704200700000, 'to_ms': 1704201000000},
+            ]),
+            'stale': ('closed', 'stale', 'observed', []),
+        }
+        for fixture in self.bundle['fixtures']:
+            dataset = fixture['history']['dataset']
+            scenario = fixture['scenario']
+            series = {key: dataset[key] for key in ('instrument_id', 'provider_id', 'timeframe',
+                                                    'price_adjustment', 'calendar_id', 'quantity_unit')}
+            series['session_scope'] = 'sample-sessions'
+            with self.subTest(series=series, scenario=scenario):
+                page = execute_page({
+                    'series': series, 'from_ms': 0, 'to_ms': 2_000_000_000_000,
+                    'warmup_bars': 0, 'expected_revision': dataset['revision'],
+                }, MAX_MESSAGE_BYTES)
+                session, freshness, coverage, gaps = expected_axes[scenario]
+                self.assertEqual({
+                    'session_state': session, 'freshness': freshness, 'coverage': coverage,
+                    'connection': 'offline', 'source_kind': 'synthetic', 'gaps': gaps,
+                    'as_of_ms': dataset['provenance']['as_of_ms'],
+                    'last_observed_ms': dataset['provenance']['last_observed_ms'],
+                }, page['quality_state'])
+                self.assertEqual(dataset, page['dataset'])
+                self.assertEqual(fixture['history']['bars'], page['bars'])
 
     def test_bar_invariants_and_tick_units(self):
         for fixture in self.bundle['fixtures']:

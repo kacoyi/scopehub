@@ -403,7 +403,10 @@
         "M1-003",
         "M1-005",
         "M1-010",
-        "M1-014"
+        "M1-014",
+        "M1-006",
+        "M1-007",
+        "M1-016"
       ],
       "delivery": "current-contract",
       "boundary": "Synthetic history is implemented. M1-010 covers local browser access for development. Streaming and recovery remain pending."

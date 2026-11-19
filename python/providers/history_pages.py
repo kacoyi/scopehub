@@ -6,13 +6,17 @@ from dataclasses import dataclass
 from hashlib import sha256
 import json
 from struct import pack
+from typing import Literal
 
 from contracts.generated.protocol import (
-    Bar, DatasetDescriptor, FrozenSnapshot, HistoryCursor, MarketHistoryPageInput,
+    Bar, DataQuality, DatasetDescriptor, FrozenSnapshot, HistoryCursor, MarketHistoryPageInput,
     MarketHistoryPageOutput, MarketQualityState, SeriesKey, VisibleRange,
 )
 from providers.history import HistoryError
-from providers.simulated import MINUTE_MS, PROVIDER_ID, TIMEFRAMES, build_fixture, instruments
+from providers.simulated import (
+    MINUTE_MS, OBSERVATION_INTERVAL_MS, PROVIDER_ID, SOURCE_DELAY_BUDGET_MS, TIMEFRAMES,
+    build_fixture, fixture_scenario, instruments,
+)
 
 # The protocol counts framing as well as payload. Account for the longest valid
 # timestamp and UUIDs so every emitted response fits at its actual request time.
@@ -133,6 +137,20 @@ class FrozenHistory:
         return output
 
 
+def _freshness(schedule: list[tuple[int, int]], last: int, cutoff: int) -> Literal['current', 'delayed', 'stale']:
+    for start, end in sorted(schedule):
+        if last >= end:
+            continue
+        elapsed = max(0, last - start)
+        # Observations are due at the sample cadence and at the closing boundary.
+        # Use the first due observation so a newer deadline cannot mask a stall.
+        due = min(end, start + (elapsed // OBSERVATION_INTERVAL_MS + 1) * OBSERVATION_INTERVAL_MS)
+        if cutoff < due:
+            break
+        return 'stale' if cutoff - due > SOURCE_DELAY_BUDGET_MS else 'delayed'
+    return 'current'
+
+
 def sample_quality(dataset: DatasetDescriptor, cutoff: int) -> MarketQualityState:
     provenance = dataset['provenance']
     observed = provenance.get('last_observed_ms')
@@ -141,7 +159,7 @@ def sample_quality(dataset: DatasetDescriptor, cutoff: int) -> MarketQualityStat
         raise HistoryError('OUTPUT_INVALID')
     state: MarketQualityState = {
         'as_of_ms': cutoff, 'last_observed_ms': last, 'session_state': 'unknown',
-        'freshness': 'unknown' if last is None else 'stale' if dataset['quality'] == 'stale' else 'current',
+        'freshness': 'unknown',
         'connection': 'offline', 'coverage': 'unknown', 'gaps': [], 'source_kind': 'synthetic',
     }
     windows = provenance.get('sessions')
@@ -154,6 +172,8 @@ def sample_quality(dataset: DatasetDescriptor, cutoff: int) -> MarketQualityStat
                     schedule.append((start, end))
         if len(schedule) == len(windows):
             state['session_state'] = 'open' if any(start <= cutoff < end for start, end in schedule) else 'closed'
+            if last is not None:
+                state['freshness'] = _freshness(schedule, last, cutoff)
     missing = provenance.get('missing_minute_starts_ms')
     if isinstance(missing, list):
         minutes = [time for time in missing if type(time) is int]
@@ -170,6 +190,16 @@ def sample_quality(dataset: DatasetDescriptor, cutoff: int) -> MarketQualityStat
     return state
 
 
+def _legacy_summary(quality: MarketQualityState) -> DataQuality:
+    if quality['coverage'] == 'gapped':
+        return 'gapped'
+    if quality['freshness'] == 'stale':
+        return 'stale'
+    if quality['coverage'] == 'unknown' or quality['connection'] == 'disconnected':
+        return 'degraded'
+    return 'fresh'
+
+
 def execute_page(request: MarketHistoryPageInput, frame_budget: int) -> MarketHistoryPageOutput:
     series = request['series']
     if series['provider_id'] != PROVIDER_ID:
@@ -181,12 +211,18 @@ def execute_page(request: MarketHistoryPageInput, frame_budget: int) -> MarketHi
             or series['session_scope'] != 'sample-sessions' or series['calendar_id'] != instrument['calendar_id']
             or series['quantity_unit'] != instrument['quantity_unit']):
         raise HistoryError('UNSUPPORTED_CAPABILITY')
-    fixture = build_fixture(series['instrument_id'], series['timeframe'])
+    pinned = request.get('snapshot')
+    revision = request.get('expected_revision')
+    if pinned is not None:
+        if revision is not None and revision != pinned['dataset_revision']:
+            raise HistoryError('SNAPSHOT_UNAVAILABLE')
+        revision = pinned['dataset_revision']
+    scenario = fixture_scenario(series['instrument_id'], revision)
+    if scenario is None:
+        raise HistoryError('SNAPSHOT_UNAVAILABLE')
+    fixture = build_fixture(series['instrument_id'], series['timeframe'], scenario)
     history = fixture['history']
     dataset = history['dataset']
-    pinned = request.get('snapshot')
-    if request.get('expected_revision', dataset['revision']) != dataset['revision']:
-        raise HistoryError('SNAPSHOT_UNAVAILABLE')
     observed = dataset['provenance']['as_of_ms']
     assert isinstance(observed, int)
     cutoff = request.get('as_of_ms', pinned['as_of_ms'] if pinned is not None else observed)
@@ -198,6 +234,7 @@ def execute_page(request: MarketHistoryPageInput, frame_budget: int) -> MarketHi
         dataset['provenance']['as_of_ms'] = cutoff
         dataset['provenance']['last_observed_ms'] = cutoff
     quality = sample_quality(dataset, cutoff)
+    dataset['quality'] = _legacy_summary(quality)
     frozen = FrozenHistory.freeze(dataset, quality, series, history['bars'],
                                   request['from_ms'], request['to_ms'], request['warmup_bars'])
     return frozen.page(request, frame_budget)

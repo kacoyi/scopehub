@@ -681,6 +681,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "quality-summary-masks-stale-data",
+      "source": "Independent read-only inspection and local synthetic probe while preparing market-quality acceptance.",
+      "observation": "The history provider inferred freshness from one legacy label. With a known gap and a missed observation, the gapped label made stale data appear current. Existing stale and gapped sample revisions could not be explicitly retrieved through the versioned history operation.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-016"
+      ],
+      "regression_checks": [
+        "market-fixtures",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

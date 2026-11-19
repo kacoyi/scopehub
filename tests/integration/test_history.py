@@ -4,9 +4,10 @@ import os
 import subprocess
 import sys
 import unittest
+from unittest.mock import patch
 from uuid import uuid4
 
-from tests.integration.test_worker import ROOT, frame
+from tests.integration.test_worker import ROOT, frame, worker
 from providers.history import HistoryError, execute
 from providers.history_pages import FrozenHistory, PAGE_ENVELOPE, execute_page, sample_quality
 from providers.simulated import PROVIDER_ID, build_fixture, instruments
@@ -88,22 +89,60 @@ class HistoryPageTests(unittest.TestCase):
                   'calendar_id': instrument['calendar_id'], 'quantity_unit': instrument['quantity_unit']}
         return {'series': series, 'from_ms': 0, 'to_ms': 2_000_000_000_000, 'warmup_bars': 0, **fields}
 
-    def test_quality_keeps_calendar_gaps_and_observation_time_independent(self):
-        data = build_fixture(instruments()[0]['id'], '1m', 'gapped')['history']['dataset']
-        session = data['provenance']['sessions'][0]
-        data['provenance']['last_observed_ms'] = session['start_ms'] + 2 * 60_000
-        state = sample_quality(data, session['start_ms'] + 2 * 60_000)
-        self.assertEqual('open', state['session_state'])
-        self.assertEqual(('gapped', 'offline'), (state['coverage'], state['connection']))
-        self.assertEqual(2, len(state['gaps']))
-        self.assertEqual(5 * 60_000, state['gaps'][1]['to_ms'] - state['gaps'][1]['from_ms'])
-        data['quality'] = 'stale'
-        state = sample_quality(data, session['end_ms'])
-        self.assertEqual(('closed', 'stale', 'gapped'), (state['session_state'], state['freshness'], state['coverage']))
-        del data['provenance']['last_observed_ms']
-        state = sample_quality(data, session['end_ms'])
-        self.assertIsNone(state['last_observed_ms'])
-        self.assertEqual('unknown', state['freshness'])
+    def test_missed_observation_deadline_keeps_known_gaps_visible(self):
+        # Keep the existing gapped bars and vary only the synthetic observation evidence.
+        read = self.selection(expected_revision='scopehub-synthetic-v1:20241013:gapped')
+        last = 1704330570000
+        for observed, cutoff, session, freshness in (
+            (last, 1704330584999, 'open', 'current'),
+            (last, 1704330585000, 'open', 'delayed'),
+            (last, 1704330600000, 'closed', 'delayed'),
+            (last, 1704330600001, 'closed', 'stale'),
+            (1704330540000, 1704330585000, 'open', 'stale'),
+        ):
+            with self.subTest(observed=observed, cutoff=cutoff):
+                fixture = build_fixture('SIM.CN.FUTURE.001', '1m', 'gapped')
+                dataset = fixture['history']['dataset']
+                dataset['provenance'].update(as_of_ms=cutoff, last_observed_ms=observed)
+                with patch('providers.history_pages.build_fixture', return_value=fixture):
+                    page = execute_page(read, MAX_MESSAGE_BYTES)
+                self.assertEqual('gapped', page['dataset']['quality'])
+                self.assertEqual({
+                    'session_state': session, 'freshness': freshness, 'coverage': 'gapped',
+                    'connection': 'offline', 'source_kind': 'synthetic',
+                    'as_of_ms': cutoff, 'last_observed_ms': observed,
+                    'gaps': [
+                        {'from_ms': 1704200520000, 'to_ms': 1704200580000},
+                        {'from_ms': 1704200700000, 'to_ms': 1704201000000},
+                    ],
+                }, page['quality_state'])
+
+    def test_missing_evidence_stays_unknown_on_its_own_axis(self):
+        read = self.selection()
+        for missing, session, freshness, coverage, summary, observed in (
+            ('sessions', 'unknown', 'unknown', 'observed', 'fresh', 1704330570000),
+            ('last_observed_ms', 'open', 'unknown', 'observed', 'fresh', None),
+            ('missing_minute_starts_ms', 'open', 'current', 'unknown', 'degraded', 1704330570000),
+        ):
+            with self.subTest(missing=missing):
+                fixture = build_fixture('SIM.CN.FUTURE.001', '1m')
+                del fixture['history']['dataset']['provenance'][missing]
+                with patch('providers.history_pages.build_fixture', return_value=fixture):
+                    page = execute_page(read, MAX_MESSAGE_BYTES)
+                self.assertEqual({
+                    'session_state': session, 'freshness': freshness, 'coverage': coverage,
+                    'connection': 'offline', 'source_kind': 'synthetic',
+                    'as_of_ms': 1704330570000, 'last_observed_ms': observed, 'gaps': [],
+                }, page['quality_state'])
+                self.assertEqual(summary, page['dataset']['quality'])
+
+    def test_valid_empty_slice_preserves_frozen_source_quality(self):
+        read = self.selection(from_ms=1704200520000, to_ms=1704200580000,
+                              expected_revision='scopehub-synthetic-v1:20241013:gapped')
+        page = execute_page(read, MAX_MESSAGE_BYTES)
+        self.assertEqual(([], 0, 0, None), (page['bars'], page['total_bars'], page['offset'], page['next_cursor']))
+        self.assertEqual(('current', 'gapped'), (page['quality_state']['freshness'], page['quality_state']['coverage']))
+        self.assertEqual(page, execute_page(dict(read, snapshot=page['snapshot']), MAX_MESSAGE_BYTES))
 
     def test_partial_and_closed_observations_have_different_replayable_inputs(self):
         read = self.selection()
@@ -112,12 +151,20 @@ class HistoryPageTests(unittest.TestCase):
         updated = execute_page(dict(read, as_of_ms=cutoff + 30_000), MAX_MESSAGE_BYTES)
         self.assertEqual((3500.8, 110, False), tuple(initial['bars'][-1][key] for key in ('close','volume','is_closed')))
         self.assertEqual((3501, 130, True), tuple(updated['bars'][-1][key] for key in ('close','volume','is_closed')))
-        self.assertNotEqual(initial['snapshot']['content_hash'], updated['snapshot']['content_hash'])
+        self.assertEqual('a7d14a98552ee57f245c341f63e5c4242ee24613d3c4086f63430c0eec8bb766',
+                         initial['snapshot']['content_hash'])
+        self.assertEqual('dfe41df98529e7ab90508b88beeaf00cdbc77b967024e8a13f1049ee066b21c3',
+                         updated['snapshot']['content_hash'])
         self.assertEqual(initial, execute_page(dict(read, snapshot=initial['snapshot']), MAX_MESSAGE_BYTES))
         self.assertEqual(updated, execute_page(dict(read, snapshot=updated['snapshot']), MAX_MESSAGE_BYTES))
-        self.assertEqual('offline', initial['quality_state']['connection'])
-        self.assertEqual('open', initial['quality_state']['session_state'])
-        self.assertEqual('closed', updated['quality_state']['session_state'])
+        closed = {
+            'as_of_ms': 1704330600000, 'last_observed_ms': 1704330600000, 'session_state': 'closed',
+            'freshness': 'current', 'connection': 'offline', 'coverage': 'observed',
+            'gaps': [], 'source_kind': 'synthetic',
+        }
+        self.assertEqual(closed, updated['quality_state'])
+        self.assertEqual(dict(closed, as_of_ms=1704332370000),
+                         sample_quality(updated['dataset'], 1704332370000))
         self.assertIsNone(updated['stream_position'])
         for changes, code in [({'expected_revision':'gone'}, 'SNAPSHOT_UNAVAILABLE'),
                               ({'as_of_ms':cutoff + 1}, 'SNAPSHOT_UNAVAILABLE'),
@@ -126,6 +173,47 @@ class HistoryPageTests(unittest.TestCase):
             with self.subTest(changes=changes), self.assertRaises(HistoryError) as error:
                 execute_page(dict(read, **changes), MAX_MESSAGE_BYTES)
             self.assertEqual(error.exception.code, code)
+
+    def test_versioned_worker_honors_known_revisions_and_binds_pinned_pages(self):
+        def read_page(payload):
+            data = frame(protocol_version='1.1', type='request', request_id=str(uuid4()), task_id=None,
+                         operation='market.readHistoryPage', payload=payload)
+            code, replies, stderr = worker(data, extra_args=('--wire-version', '1.1', '--demo'))
+            self.assertEqual((0, b''), (code, stderr))
+            self.assertEqual('market.readHistoryPage', replies[1]['operation'])
+            return replies[1]
+
+        read = self.selection()
+        for scenario, total, second_time in (('gapped', 34, 1704200580000), ('stale', 40, 1704200520000)):
+            with self.subTest(scenario=scenario):
+                revision = f'scopehub-synthetic-v1:20241013:{scenario}'
+                first = read_page(dict(read, expected_revision=revision, page_size=2))['result']
+                self.assertEqual(revision, first['snapshot']['dataset_revision'])
+                self.assertEqual(read['series'], first['snapshot']['series'])
+                self.assertEqual([1704200400000, 1704200460000], [bar['time_ms'] for bar in first['bars']])
+                second = read_page(dict(read, snapshot=first['snapshot'], cursor=first['next_cursor']))['result']
+                self.assertEqual(first['snapshot'], second['snapshot'])
+                self.assertEqual(first['quality_state'], second['quality_state'])
+                self.assertEqual((2, total, total - 2, second_time, None),
+                                 (second['offset'], second['total_bars'], len(second['bars']),
+                                  second['bars'][0]['time_ms'], second['next_cursor']))
+
+        pinned = read_page(dict(read, expected_revision='scopehub-synthetic-v1:20241013:stale'))['result']['snapshot']
+        stock = instruments()[1]
+        stock_series = dict(read['series'], instrument_id=stock['id'], calendar_id=stock['calendar_id'],
+                            quantity_unit=stock['quantity_unit'])
+        for modified in (
+            {'snapshot': dict(pinned, dataset_revision='unknown')},
+            {'snapshot': pinned, 'expected_revision': 'scopehub-synthetic-v1:20241013:normal'},
+            {'snapshot': pinned, 'series': dict(read['series'], timeframe='5m')},
+            {'snapshot': pinned, 'series': stock_series},
+            {'series': stock_series, 'expected_revision': pinned['dataset_revision']},
+            {'series': stock_series, 'expected_revision': 'scopehub-synthetic-v1:20241014:gapped'},
+        ):
+            with self.subTest(modified=modified):
+                response = read_page(dict(read, **modified))
+                self.assertFalse(response['ok'])
+                self.assertEqual('SNAPSHOT_UNAVAILABLE', response['error']['code'])
 
     def test_warmup_range_and_continuation_bind_exact_input(self):
         full = execute_page(self.selection(), MAX_MESSAGE_BYTES)

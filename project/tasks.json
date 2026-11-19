@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-025",
+  "focus_task_id": "M1-016",
   "tasks": [
     {
       "id": "M0-001",
@@ -2170,7 +2170,8 @@
       "milestone": "M1",
       "status": "planned",
       "depends_on": [
-        "M1-006"
+        "M1-006",
+        "M1-016"
       ],
       "scope": [
         "crates",
@@ -2194,7 +2195,7 @@
         "architecture"
       ],
       "evidence": [],
-      "next_action": "Exercise observable loading, ready, empty, stale, disconnected and error states against deterministic event sequences.",
+      "next_action": "Use the normal chart to observe ready data with independent quality, a real empty slice, delayed loading and recoverable connection failures. Reuse the M1-016 sample revisions.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -2210,7 +2211,7 @@
           "crates/worker-host/src/market.rs"
         ],
         "hypotheses": [
-          "Separate streaming and state slices expose event identity and failure uncertainty before full workflow closure."
+          "Frozen history can remain ready while its freshness and coverage independently report stale and gapped. Typed errors distinguish a lost connection, invalid data, and a valid empty interval."
         ],
         "risks": [
           {
@@ -2234,7 +2235,10 @@
             "apps/desktop/ui/src/chart-adapter/history.ts",
             "crates/application/src/lib.rs",
             "crates/worker-host/src/market.rs",
-            "python/providers/history.py"
+            "python/providers/history.py",
+            "apps/desktop/ui/src/chart-workspace.tsx",
+            "apps/desktop/ui/src/use-market-data.ts",
+            "apps/desktop/ui/src/workspace-panels.tsx"
           ],
           "rules": [
             {
@@ -2248,14 +2252,16 @@
             {
               "path": "engineering-contract-v1.json",
               "pointer": "/ui"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/domain/market_quality"
             }
           ],
           "non_goals": [
             "No real feed, local import, persistence or packaged Windows acceptance."
           ],
-          "open_questions": [
-            "Refine concrete state presentation before implementation."
-          ]
+          "open_questions": []
         },
         "evolution": {
           "kind": "additive",
@@ -4268,6 +4274,115 @@
           ],
           "data_plan": "Use repository code and synthetic fixtures for all development, subprocess and hosted verification. Keep owned product records and backups in local application storage.",
           "cleanup": "Reuse the task ledger and native Herdr terminals. Inspect delivered changes, retire only owned temporary sessions and restore the product focus."
+        }
+      }
+    },
+    {
+      "id": "M1-016",
+      "title": "Correct synthetic market freshness and read explicit quality revisions",
+      "milestone": "M1",
+      "status": "active",
+      "depends_on": [
+        "M1-005",
+        "M1-013"
+      ],
+      "scope": [
+        "python/providers",
+        "tests/fixtures/market",
+        "tests/integration",
+        "project/tasks.json",
+        "project/development.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0007",
+        "0010"
+      ],
+      "acceptance": [
+        "Derive freshness from the declared observation schedule, cutoff and source delay independently of known gaps or loss of connection. A scheduled close, old historical date or missing evidence alone never implies stale. Preserve existing normal snapshot hashes and normal legacy metadata semantics.",
+        "Read the known explicit stale and gapped fixture revisions through the existing versioned history request, retain exact series and snapshot identity, and reject unknown revisions. A known stale series with a gap preserves both facts under the legacy gapped summary."
+      ],
+      "checks": [
+        "market-fixtures",
+        "python-contracts-workers",
+        "python-types",
+        "architecture",
+        "generated-contracts"
+      ],
+      "evidence": [],
+      "next_action": "Reproduce simultaneous stale and gapped metadata, implement independent quality derivation and pinned sample selection, and compare frozen history against the existing fixture oracle.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Consumers of a frozen history page can distinguish coverage and freshness and explicitly replay the supplied sample revision through the existing operation.",
+        "change_types": [
+          "market-fixtures"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "python/providers/history_pages.py",
+          "python/providers/simulated.py",
+          "tests/integration/test_history.py",
+          "tests/fixtures/market/series.json"
+        ],
+        "hypotheses": [
+          "A typed expectation for the synthetic sample and a bounded mapping to its revisions suffice without a new operation or provider. The data change can be completed independently of the replay UI."
+        ],
+        "risks": [
+          {
+            "failure": "A gap hides a missed update or missing evidence invents an open or stale state.",
+            "checks": [
+              "market-fixtures",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A pinned sample silently resolves to different bars or a normal snapshot changes.",
+            "checks": [
+              "market-fixtures",
+              "python-contracts-workers",
+              "generated-contracts"
+            ]
+          }
+        ],
+        "rollback": "Retain failed vectors and revert the affected sample selector or derivation. No user files or stored data need migration.",
+        "implementation": {
+          "modules": [
+            "providers",
+            "worker-runtime"
+          ],
+          "entrypoints": [
+            "python/providers/history_pages.py",
+            "python/providers/simulated.py",
+            "python/worker_runtime/__main__.py"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/domain/market_quality"
+            },
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/MarketQualityState"
+            }
+          ],
+          "non_goals": [
+            "Real market access, UI presentation, native process lifetime and subscription transport."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Normal 1.0 and 1.1 synthetic history, stable frozen bar digests and explicit sample opt-in."
+          ],
+          "change": [
+            "Derive independent freshness and coverage and honor recognized explicitly pinned quality revisions."
+          ],
+          "data_plan": "Existing frozen normal inputs keep their identities. Only checked-in synthetic data is involved.",
+          "cleanup": "Use a single quality derivation and remove reliance on a legacy display label as input."
         }
       }
     }
