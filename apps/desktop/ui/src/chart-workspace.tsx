@@ -68,7 +68,7 @@ export function ChartWorkspace({ sample, leaveSample }: { sample: boolean; leave
   const { replay, start, stop } = useSampleReplay(history);
   const playing = replay?.state === 'starting' || replay?.state === 'playing';
   const replayFailure = replay?.state === 'failed' ? replay.failure : undefined;
-  const replayGap = replay?.state === 'gap' ? replay.gap : undefined;
+  const replayGap = replay?.gap;
   const visiblePanel = focusChart ? null : panel;
   const lastBar = history?.bars.at(-1);
   const canInspect = Boolean(lastBar);
@@ -177,14 +177,16 @@ export function ChartWorkspace({ sample, leaveSample }: { sample: boolean; leave
           {canReplay && <button type="button" className="secondary-button replay-button" onClick={playing ? stop : start}>
             {playing ? 'Stop replay' : replayFailure ? 'Retry replay' : 'Play sample updates'}
           </button>}
-          {replay && <span role={replay.state === 'failed' ? 'alert' : 'status'} className={'replay-status ' + replay.state}>
+          {replay && (!replayGap || replayFailure) && <span role={replay.state === 'failed' ? 'alert' : 'status'} className={'replay-status ' + replay.state}>
             {replay.state === 'starting' ? 'Preparing synthetic replay…'
               : replay.state === 'playing' ? 'Synthetic replay in progress'
               : replay.state === 'complete' ? 'Synthetic replay complete'
-              : replay.state === 'gap' ? `Replay gap. ${replayGapReason(replay.gap)}`
               : replayFailure && `Replay failed. ${replayFailure.message}`}
           </span>}
-          {replayGap && <ReplayGapDetails gap={replayGap} />}
+          {replayGap && <>
+            <span role="status" className="replay-status gap">Replay gap. {replayGapReason(replayGap)}</span>
+            <ReplayGapDetails gap={replayGap} />
+          </>}
           <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">Charts by TradingView Lightweight Charts™</a></footer>
       </section>
       {visiblePanel && <>

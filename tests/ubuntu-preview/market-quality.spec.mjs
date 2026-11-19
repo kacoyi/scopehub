@@ -394,6 +394,35 @@ for (const [code, instrument, label] of readFailures) {
   });
 }
 
+function knownGapFrames({ series, after }) {
+  return [
+    { subscription: { status: 'accepted', from_position: after } },
+    { event: {
+      protocol_version: '1.1', type: 'event', event: 'market.stream_gap',
+      message_id: 'a24c04c8-2439-40b5-9761-2fd5b858c82b', timestamp_ms: Date.parse(closed),
+      stream_id: after.stream_id, epoch: after.epoch, sequence: after.sequence + 1,
+      payload: {
+        series, reason: 'source_gap', expected_sequence: after.sequence + 1, lost_count: 2,
+        affected: { from_ms: Date.parse(observed), to_ms: Date.parse(closed) },
+      },
+    } },
+  ];
+}
+
+const ndjson = frames => frames.map(frame => JSON.stringify(frame) + '\n').join('');
+const replayGap = page => sources(page).getByRole('region', { name: 'Replay gap' });
+const replayGapDetails = page => plot(page).getByRole('group', { name: 'Replay gap details' });
+
+async function expectReplayGap(page, known) {
+  const reason = known ? 'The source reported missing updates.' : 'The stream restarted.';
+  await expect(plot(page).getByText(`Replay gap. ${reason}`, { exact: true })).toBeVisible();
+  const interval = '[2024-01-04 01:09:30, 2024-01-04 01:10:00) UTC';
+  await expect(replayGapDetails(page)).toHaveText(known ? `Affected range ${interval} · 2 lost updates` : 'Affected range unknown · Lost updates unknown');
+  await expect(replayGap(page)).toBeVisible();
+  await expectFacts(page, { Reason: reason, 'Affected range (UTC)': known ? interval : 'Unknown', 'Lost updates': known ? '2' : 'Unknown' });
+  expect(await replayGap(page).locator('time').evaluateAll(times => times.map(time => time.dateTime))).toEqual(known ? [observed, closed] : []);
+}
+
 for (const known of [true, false]) {
   test(`a replay gap preserves ${known ? 'its reported interval and count' : 'unknown interval and count'}`, async ({ page }) => {
     await page.goto('/#demo');
@@ -401,41 +430,108 @@ for (const known of [true, false]) {
     await openPanel(page, 'Data sources');
     await page.route(`**${streamPath}`, route => {
       const call = route.request().postDataJSON();
-      const { series, after } = call.payload;
       if (!known) {
         // A prior epoch yields a real core backfill response without a stream-gap event.
         call.payload.after.epoch = 'prior-epoch';
         return route.continue({ postData: JSON.stringify(call) });
       }
-      const event = {
-        protocol_version: '1.1', type: 'event', event: 'market.stream_gap',
-        message_id: 'a24c04c8-2439-40b5-9761-2fd5b858c82b', timestamp_ms: Date.parse(closed),
-        stream_id: after.stream_id, epoch: after.epoch, sequence: after.sequence + 1,
-        payload: {
-          series, reason: 'source_gap', expected_sequence: after.sequence + 1, lost_count: 2,
-          affected: { from_ms: Date.parse(observed), to_ms: Date.parse(closed) },
-        },
-      };
-      const frames = [
-        { subscription: { status: 'accepted', from_position: after } },
-        { event }, { ok: true, result: { status: 'gapped', reason: 'source_gap' } },
-      ];
-      return route.fulfill({ contentType: 'application/x-ndjson', body: frames.map(frame => JSON.stringify(frame) + '\n').join('') });
+      const frames = [...knownGapFrames(call.payload), { ok: true, result: { status: 'gapped', reason: 'source_gap' } }];
+      return route.fulfill({ contentType: 'application/x-ndjson', body: ndjson(frames) });
     });
 
     await control(page, 'Play sample updates').click();
-    const reason = known ? 'The source reported missing updates.' : 'The stream restarted.';
-    await expect(plot(page).getByText(`Replay gap. ${reason}`, { exact: true })).toBeVisible();
-    const interval = '[2024-01-04 01:09:30, 2024-01-04 01:10:00) UTC';
-    const details = plot(page).getByRole('group', { name: 'Replay gap details' });
-    await expect(details).toHaveText(known ? `Affected range ${interval} · 2 lost updates` : 'Affected range unknown · Lost updates unknown');
-    const replay = sources(page).getByRole('region', { name: 'Replay gap' });
-    await expect(replay).toBeVisible();
-    await expectFacts(page, { 'Reason': reason, 'Affected range (UTC)': known ? interval : 'Unknown', 'Lost updates': known ? '2' : 'Unknown' });
-    expect(await replay.locator('time').evaluateAll(times => times.map(time => time.dateTime))).toEqual(known ? [observed, closed] : []);
+    await expectReplayGap(page, known);
     await expectReady(page, future, '1m', normal.bars);
     await expectProvenance(page, normal);
     await page.mouse.move(1, 1);
     await expect(page.getByLabel('Selected bar')).toContainText(/C 3500\.8Volume 110.*Partial bar/);
   });
 }
+
+test('a validated gap survives a held replay timeout and clears on retry or a new selection', async ({ page }) => {
+  await page.addInitScript(path => {
+    const release = Promise.withResolvers();
+    window.releaseReplayTerminal = release.resolve;
+    const fetch = window.fetch;
+    window.fetch = async (...args) => {
+      const response = await fetch(...args);
+      if (new URL(response.url).pathname !== path || !response.headers.has('x-hold-replay-terminal')) return response;
+      const lines = (await response.text()).trimEnd().split('\n');
+      const terminal = lines.pop();
+      const encoder = new TextEncoder();
+      // Keep the browser's ordinary NDJSON reader, but hold its final line until the test releases it.
+      const body = new ReadableStream({
+        start(controller) { controller.enqueue(encoder.encode(lines.join('\n') + '\n')); },
+        async pull(controller) {
+          await release.promise;
+          controller.enqueue(encoder.encode(terminal + '\n'));
+          controller.close();
+        },
+      });
+      return new Response(body, { headers: { 'Content-Type': 'application/x-ndjson' } });
+    };
+  }, streamPath);
+  await page.goto('/#demo');
+  await expectReady(page, future, '1m', normal.bars);
+  await openPanel(page, 'Data sources');
+  await page.route(`**${streamPath}`, route => {
+    const { payload } = route.request().postDataJSON();
+    const frames = [...knownGapFrames(payload), { ok: false, error: { code: 'TIMEOUT', retryable: true } }];
+    return route.fulfill({ headers: { 'Content-Type': 'application/x-ndjson', 'X-Hold-Replay-Terminal': '1' }, body: ndjson(frames) });
+  }, { times: 1 });
+
+  try {
+    await control(page, 'Play sample updates').click();
+    await expectReplayGap(page, true);
+    await expect(plot(page).getByRole('alert')).toHaveCount(0);
+    await expect(control(page, 'Stop replay')).toBeVisible();
+    await expectProvenance(page, normal);
+  } finally {
+    await page.evaluate(() => window.releaseReplayTerminal());
+  }
+  await expect(plot(page).getByRole('alert')).toHaveText('Replay failed. The market worker timed out.');
+  await expectReplayGap(page, true);
+  await expectPaintedHistory(page, future, '1m', normal.bars);
+  await expectProvenance(page, normal);
+  await expectNoConnectionFailure(page);
+  await page.mouse.move(1, 1);
+  await expect(page.getByLabel('Selected bar')).toContainText(/C 3500\.8Volume 110.*Partial bar/);
+
+  await control(page, 'Retry replay').click();
+  await expect(replayGap(page)).toHaveCount(0);
+  await expect(replayGapDetails(page)).toHaveCount(0);
+  await expect(plot(page).getByRole('alert')).toHaveCount(0);
+  await expect(plot(page).getByText('Synthetic replay complete', { exact: true })).toBeVisible();
+  await page.mouse.move(1, 1);
+  await expect(page.getByLabel('Selected bar')).toContainText(/C 3501Volume 130.*Closed bar/);
+  await expectProvenance(page, normal);
+
+  await page.route(`**${streamPath}`, route => {
+    const { payload } = route.request().postDataJSON();
+    const { series, snapshot } = payload;
+    const frames = knownGapFrames(payload);
+    const update = {
+      ...frames[1].event, event: 'market.bar_update', message_id: '4d38b382-8db5-4d46-8ab8-849450f7d6fe',
+      payload: {
+        series, dataset_revision: snapshot.dataset_revision, observed_at_ms: Date.parse(closed),
+        bar: {
+          time_ms: Date.parse('2024-01-04T01:09:00.000Z'), trading_day: '2024-01-04',
+          open: 3501.6, high: 3502, low: 3500.8, close: 3501, volume: 130, is_closed: true,
+        },
+      },
+    };
+    const terminal = { ok: true, result: { status: 'gapped', reason: 'source_gap' } };
+    return route.fulfill({ contentType: 'application/x-ndjson', body: ndjson([...frames, { event: update }, terminal]) });
+  }, { times: 1 });
+  await control(page, 'Play sample updates').click();
+  await expect(plot(page).getByRole('alert')).toHaveText('Replay failed. The data response failed validation.');
+  await expectReplayGap(page, true);
+  await page.mouse.move(1, 1);
+  await expect(page.getByLabel('Selected bar')).toContainText(/C 3500\.8Volume 110.*Partial bar/);
+  await expectProvenance(page, normal);
+
+  await selectStock(page);
+  await expectReady(page, stock, '1m', normal.bars);
+  await expect(replayGap(page)).toHaveCount(0);
+  await expect(replayGapDetails(page)).toHaveCount(0);
+});

@@ -765,10 +765,13 @@
       ],
       "scope": [
         "python/providers",
+        "python/worker_runtime",
         "crates",
-        "apps/desktop/ui",
-        "tests/fixtures",
-        "tests/integration"
+        "apps/desktop",
+        "tests",
+        "project/checks.json",
+        "project/development.json",
+        "scripts/ci_artifacts.py"
       ],
       "decision_refs": [
         "0001",
@@ -780,12 +783,107 @@
         "Reconnect without duplicate subscriptions and preserve final bar state under update coalescing."
       ],
       "checks": [
-        "market-recovery"
+        "market-recovery",
+        "market-fixtures",
+        "market-live-stream",
+        "market-quality-states",
+        "rust-contracts-workers",
+        "ui-build",
+        "architecture"
       ],
       "evidence": [],
-      "next_action": "Refine the task plan and implement its check when its dependencies are satisfied.",
+      "next_action": "After the simulated chart journey, interrupt the real synthetic worker after its first confirmed update, resume from the same series and frozen observation, then exercise a recoverable missing closed bar.",
       "blocker": null,
-      "closure_reason": null
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A user can see a worker interruption, retain the last verified bar and recover without duplicated subscriptions. A missing closed bar appears only after a bounded, verified backfill, or the gap stays visible.",
+        "change_types": [
+          "market",
+          "stream-slice"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "crates/application/src/replay.rs",
+          "crates/worker-host/src/market.rs",
+          "python/worker_runtime/replay.py",
+          "python/providers/history_pages.py",
+          "apps/desktop/ui/src/use-sample-replay.ts"
+        ],
+        "hypotheses": [
+          "Keep the confirmed series, snapshot, epoch, sequence, observation and boundary bar in one Rust-owned logical subscription across worker replacement. A fresh negotiation can reproduce the confirmed synthetic boundary before replay resumes.",
+          "The chart can apply a verified repaired range while keeping its original frozen input available for inspection."
+        ],
+        "risks": [
+          {
+            "failure": "An epoch change, duplicate or superseded selection splices unrelated updates or starts a second active worker.",
+            "checks": [
+              "market-recovery",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Recovery loses a closed bar, hides uncertainty or mutates the frozen history used for comparison.",
+            "checks": [
+              "market-recovery",
+              "market-quality-states",
+              "market-fixtures"
+            ]
+          }
+        ],
+        "rollback": "Retain the failed event trace from synthetic data, stop the replacement worker, preserve the last validated bar and show the unresolved gap. A known-good frozen chart remains available while the recovery path is repaired.",
+        "implementation": {
+          "modules": [
+            "application",
+            "worker-host",
+            "providers",
+            "worker-runtime",
+            "desktop",
+            "ui",
+            "chart-adapter"
+          ],
+          "entrypoints": [
+            "crates/application/src/replay.rs",
+            "crates/worker-host/src/market.rs",
+            "crates/worker-host/examples/history_bridge.rs",
+            "python/worker_runtime/replay.py",
+            "python/providers/history_pages.py",
+            "apps/desktop/ui/src/use-sample-replay.ts"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/domain/stream_handoff"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/domain/market_quality"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/runtime/cancellation"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/runtime/defaults"
+            }
+          ],
+          "non_goals": [
+            "Real feeds, persisted subscriptions, trading, and product fault-injection controls."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Finite sample replay, exact confirmed epochs and sequences, single-worker admission, independent quality facts and immutable source history."
+          ],
+          "change": [
+            "Exercise child replacement, bounded re-handshake, verified backfill and cancellation on one logical subscription."
+          ],
+          "data_plan": "Recovery state belongs to the active subscription in local memory. Do not persist user input or add grants.",
+          "cleanup": "Release old process handles before starting a replacement; one cancellation stops pending recovery, backoff and subsequent frames."
+        }
+      }
     },
     {
       "id": "M0-005",

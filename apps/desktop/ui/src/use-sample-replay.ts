@@ -10,10 +10,9 @@ export type ReplayGap = {
 };
 
 type ReplayStatus =
-  | { state: 'starting' | 'playing' | 'complete' }
-  | { state: 'gap'; gap: ReplayGap }
+  | { state: 'starting' | 'playing' | 'complete' | 'gap' }
   | { state: 'failed'; failure: MarketFailure };
-type Replay = ReplayStatus & { history: ChartHistory; bar?: Bar };
+type Replay = ReplayStatus & { history: ChartHistory; bar?: Bar; gap: ReplayGap | undefined };
 
 export function useSampleReplay(history: ChartHistory | undefined) {
   const [replay, setReplay] = useState<Replay>();
@@ -35,15 +34,17 @@ export function useSampleReplay(history: ChartHistory | undefined) {
     const { signal } = controller;
     let bar = initial;
     let hasUpdate = false;
+    let gap: ReplayGap | undefined;
     const update = (status: ReplayStatus) => {
-      if (!signal.aborted) setReplay({ history, ...status, ...(hasUpdate ? { bar } : {}) });
+      if (!signal.aborted) setReplay({ history, ...status, gap, ...(hasUpdate ? { bar } : {}) });
     };
     update({ state: 'starting' });
     try {
       const snapshot = history.snapshot;
       const after = await readStreamPosition(snapshot, signal);
       if (!after) {
-        update({ state: 'gap', gap: { reason: 'coverage_unknown', affected: null, lostCount: null } });
+        gap = { reason: 'coverage_unknown', affected: null, lostCount: null };
+        update({ state: 'gap' });
         return;
       }
       const matchesSeries = (series: typeof snapshot.series | undefined) => series
@@ -51,10 +52,9 @@ export function useSampleReplay(history: ChartHistory | undefined) {
       let accepted = false;
       let sequence = after.sequence;
       let observed = snapshot.as_of_ms;
-      let reportedGap: MarketStreamGap | undefined;
       const result = await subscribeSample({ series: snapshot.series, snapshot, after }, signal, frame => {
         if (signal.aborted) return;
-        if (reportedGap) throw invalidMarketData();
+        if (gap) throw invalidMarketData();
         if ('subscription' in frame) {
           if (!frame.subscription) throw invalidMarketData();
           if (frame.subscription.status === 'accepted') {
@@ -68,14 +68,16 @@ export function useSampleReplay(history: ChartHistory | undefined) {
         const event = frame.event;
         if (!event || !accepted || event.stream_id !== after.stream_id || event.epoch !== after.epoch) throw invalidMarketData();
         if (event.event === 'market.stream_gap') {
-          const gap = event.payload;
-          const affected = gap?.affected;
-          if (!matchesSeries(gap?.series) || typeof gap.reason !== 'string'
-            || !Number.isSafeInteger(event.sequence) || event.sequence < sequence + 1 || gap.expected_sequence !== sequence + 1
-            || !Number.isSafeInteger(gap.lost_count) || gap.lost_count < 1
+          const reported = event.payload;
+          const affected = reported?.affected;
+          if (!matchesSeries(reported?.series) || typeof reported.reason !== 'string'
+            || !Number.isSafeInteger(event.sequence) || event.sequence < sequence + 1 || reported.expected_sequence !== sequence + 1
+            || !Number.isSafeInteger(reported.lost_count) || reported.lost_count < 1
             || !affected || !Number.isSafeInteger(affected.from_ms) || !Number.isSafeInteger(affected.to_ms)
             || affected.from_ms >= affected.to_ms) throw invalidMarketData();
-          reportedGap = gap;
+          gap = { reason: reported.reason, affected, lostCount: reported.lost_count };
+          // The stream can still fail while reaching its terminal frame.
+          update({ state: 'playing' });
           return;
         }
         if (event.event !== 'market.bar_update') throw invalidMarketData();
@@ -92,13 +94,10 @@ export function useSampleReplay(history: ChartHistory | undefined) {
         update({ state: 'playing' });
       });
       if (result?.status === 'gapped' && typeof result.reason === 'string') {
-        if (reportedGap && reportedGap.reason !== result.reason) throw invalidMarketData();
-        update({ state: 'gap', gap: {
-          reason: reportedGap?.reason ?? result.reason,
-          affected: reportedGap?.affected ?? null,
-          lostCount: reportedGap?.lost_count ?? null,
-        } });
-      } else if (result?.status === 'complete' && accepted && bar.is_closed && !reportedGap) {
+        if (gap && gap.reason !== result.reason) throw invalidMarketData();
+        gap ??= { reason: result.reason, affected: null, lostCount: null };
+        update({ state: 'gap' });
+      } else if (result?.status === 'complete' && accepted && bar.is_closed && !gap) {
         update({ state: 'complete' });
       } else throw invalidMarketData();
     } catch (error) {
