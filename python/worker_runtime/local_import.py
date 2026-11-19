@@ -15,7 +15,8 @@ from uuid import UUID, uuid4
 
 from contracts.generated.protocol import WorkerHello11
 from providers.local_folder import (
-    MAX_FILE_BYTES, MAX_PREVIEW_ROWS, CsvPublicationLimit, CsvReviewRequired, check_complete_csv, preview_csv,
+    MAX_FILE_BYTES, MAX_PREVIEW_ROWS, CsvPublicationLimit, CsvReviewRequired,
+    check_complete_csv, inspect_folder_csv, preview_csv,
 )
 from worker_runtime.protocol import MAX_MESSAGE_BYTES, ProtocolError, assert_finite, encode_message
 
@@ -106,8 +107,9 @@ def _analyze(source: BinaryIO, header: dict[str, object], request_id: str) -> di
     ):
         raise _InvalidFrame
     complete = header.keys() == _HEADER_FIELDS | {'complete'} and header['complete'] is True
+    inspect_refresh = header.keys() == _HEADER_FIELDS | {'inspect_refresh'} and header['inspect_refresh'] is True
     row_limit = header.get('row_limit')
-    if not complete and (
+    if not (complete or inspect_refresh) and (
         header.keys() != _HEADER_FIELDS | {'row_limit'}
         or type(row_limit) is not int or not 1 <= row_limit <= MAX_PREVIEW_ROWS
     ):
@@ -117,6 +119,8 @@ def _analyze(source: BinaryIO, header: dict[str, object], request_id: str) -> di
         raise _InvalidFrame
     if complete:
         return {'publication': check_complete_csv(content, mapping)}
+    if inspect_refresh:
+        return {'inspection': inspect_folder_csv(content, mapping)}
     assert isinstance(row_limit, int)
     return {'preview': preview_csv(content, mapping, row_limit=row_limit)}
 
@@ -147,7 +151,9 @@ def _advertise(target: BinaryIO) -> None:
         'protocol_version': '1.1', 'type': 'hello', 'message_id': str(uuid4()),
         'timestamp_ms': time_ns() // 1_000_000, 'role': 'market', 'worker_version': '0.1.0',
         'supported_protocols': ['1.0', '1.1'],
-        'capabilities': ['market.previewLocalImport', 'market.checkLocalImport'],
+        'capabilities': [
+            'market.previewLocalImport', 'market.checkLocalImport', 'market.inspectLocalFolderSource',
+        ],
     }
     _write_frame(target, encode_message(hello))
 

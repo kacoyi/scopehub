@@ -37,12 +37,14 @@ const MAX_SOURCE_BYTES: usize = 4 * 1024 * 1024;
 const CHUNK_BYTES: usize = 192 * 1024;
 const VERSION: u8 = 1;
 const CHECK_LOCAL_IMPORT: &str = "market.checkLocalImport";
+const INSPECT_LOCAL_FOLDER_SOURCE: &str = "market.inspectLocalFolderSource";
 
 #[derive(Clone, Copy, Serialize)]
 #[serde(untagged)]
 enum Check {
     Preview { row_limit: u32 },
     Complete { complete: bool },
+    InspectRefresh { inspect_refresh: bool },
 }
 
 impl Check {
@@ -50,6 +52,7 @@ impl Check {
         match self {
             Self::Preview { .. } => PREVIEW_LOCAL_IMPORT,
             Self::Complete { .. } => CHECK_LOCAL_IMPORT,
+            Self::InspectRefresh { .. } => INSPECT_LOCAL_FOLDER_SOURCE,
         }
     }
 }
@@ -70,6 +73,7 @@ struct Header<'a> {
 enum Response {
     Preview(PreviewFrame),
     Complete(CompleteFrame),
+    Inspection(InspectionFrame),
     Review(ReviewFrame),
     Failure(FailureFrame),
 }
@@ -90,6 +94,15 @@ struct CompleteFrame {
     request_id: String,
     ok: bool,
     publication: Value,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct InspectionFrame {
+    version: u8,
+    request_id: String,
+    ok: bool,
+    inspection: Value,
 }
 
 #[derive(Deserialize)]
@@ -352,6 +365,28 @@ pub async fn complete(
     })
 }
 
+/// Inspect the complete authorized file for folder review, retaining competing values.
+pub async fn inspect_folder_source(
+    config: &WorkerConfig,
+    content: &[u8],
+    sha256: &str,
+    mapping: &Value,
+    cancelled: impl Future<Output = ()>,
+) -> Result<Value, Error> {
+    analyze(
+        config,
+        content,
+        sha256,
+        mapping,
+        Check::InspectRefresh {
+            inspect_refresh: true,
+        },
+        cancelled,
+        None::<fn() -> Result<(), Error>>,
+    )
+    .await
+}
+
 async fn analyze(
     config: &WorkerConfig,
     content: &[u8],
@@ -448,10 +483,12 @@ async fn exchange(
     let negotiated = negotiate_worker(&hello, "market", &[request.check.capability()])
         .map_err(protocol_failure)?;
     if negotiated.version != "1.1"
-        || negotiated
-            .capabilities
-            .iter()
-            .any(|name| !matches!(name.as_str(), PREVIEW_LOCAL_IMPORT | CHECK_LOCAL_IMPORT))
+        || negotiated.capabilities.iter().any(|name| {
+            !matches!(
+                name.as_str(),
+                PREVIEW_LOCAL_IMPORT | CHECK_LOCAL_IMPORT | INSPECT_LOCAL_FOLDER_SOURCE
+            )
+        })
     {
         return Err(failure(ErrorCode::PROTOCOLMISMATCH));
     }
@@ -528,7 +565,15 @@ fn decode(frame: &[u8], request: &Header<'_>) -> Result<Value, Error> {
         {
             Ok(reply.publication)
         }
-        (Check::Complete { .. }, Response::Review(reply))
+        (Check::InspectRefresh { .. }, Response::Inspection(reply))
+            if reply.version == VERSION
+                && reply.request_id == request.request_id
+                && reply.ok
+                && reply.inspection["file_sha256"].as_str() == Some(request.sha256) =>
+        {
+            Ok(reply.inspection)
+        }
+        (Check::Complete { .. } | Check::InspectRefresh { .. }, Response::Review(reply))
             if reply.version == VERSION && reply.request_id == request.request_id && !reply.ok =>
         {
             Err(csv_review_required(reply))

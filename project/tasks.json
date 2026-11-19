@@ -2816,7 +2816,7 @@
         "local-import-ui"
       ],
       "evidence": [],
-      "next_action": "Hand off the verified v7 folder manifest migration for private records v8. Correct explicit source declaration drift, inspect every same-file economic alternative while publication remains held, and show quantity unit, venue and price adjustment in the comparison. Retain failing and passing integrated evidence before wiring public folder publication.",
+      "next_action": "Wire explicit folder publication and withdrawal decisions to the v7 store and ADR 0014 final source guard. Keep conflicting or contradictory previews in review and preserve the prior frozen revision. Verify publication, restart and native Windows behavior with the updated declaration and provenance comparison. Source handle evidence at 875f5e0 is retained separately.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -3060,7 +3060,8 @@
             "crates/application/src/folder_refresh.rs",
             "crates/application/src/folder_manifest.rs",
             "crates/persistence/src/folder_manifest.rs",
-            "crates/persistence/src/folder_manifest.sql"
+            "crates/persistence/src/folder_manifest.sql",
+            "python/providers/csv_bar_mapping.py"
           ],
           "rules": [
             {
@@ -3108,8 +3109,7 @@
             "Hold changed headers, mixed series and competing corrections for review. Support explicit multi-file replacement and missing-file withdrawal with a complete reviewed manifest, atomic publication and restart/retry evidence.",
             "Verify that a person can select each same-name revision by its final close in the native Windows library. Use the stored trading days and venue as context and retain the source digest when the visible market summaries are equal.",
             "Verify the picker, publication, migration and frozen chart path in the native Windows application.",
-            "Establish a bounded complete scan and normalized output size. A failed or over-limit scan must make partial coverage explicit or return no preview.",
-            "Bind explicit retained CSV declarations to the saved native mapping, project every same-file competing bar for read-only review without relaxing strict publication, and show the saved series context next to values. Reproduce and rerun all three through the integrated synthetic folder journey."
+            "Establish a bounded complete scan and normalized output size. A failed or over-limit scan must make partial coverage explicit or return no preview."
           ]
         },
         "evolution": {
@@ -3133,7 +3133,8 @@
             "Targeted verification passed on the standard-user Win11 MSVC archive 255ae9138f7a with 16 local-import controls and one separate ownership run. Independent Linux archive a377f77d50d3 passed 12 controls. ADR 0013 records artifact hashes and scope. The phase and cause of the original GUI timeout remain unknown.",
             "Release strict native directory and file handles after each filesystem operation. Revalidate the selected root and catalogued subdirectory identities under checked traversal before using a path. An exact committed replay still uses the grant and display rights without rereading the source.",
             "Stage a deterministic folder comparison against the immutable accepted v5 single-file revision. Apply the versioned saved mapping only when the ordered header and resolved series agree. Coalesce identical economic bars with every locator and preserve divergent alternatives and the prior bar for review. Show source replacement and withdrawal candidates without committing any.",
-            "Add the v7 owned storage and ordered migration. Bind each accepted folder revision to its v5 anchor, persist reviewed source membership and every selected locator, and store an exact retry receipt in the same SQLite transaction."
+            "Add the v7 owned storage and ordered migration. Bind each accepted folder revision to its v5 anchor, persist reviewed source membership and every selected locator, and store an exact retry receipt in the same SQLite transaction.",
+            "Check explicit per-row quantity unit, price adjustment and venue declarations against the reviewed mapping. Use private complete-source inspection to retain all same-file competing values and source locators. Show the reviewed series context with the comparison and keep strict normalization for publication."
           ],
           "data_plan": "Keep source bytes, mapping, evidence locators and dataset revisions on the active profile. Migrate long-lived state through its owning Rust writer when publication is introduced. Integrate the profile writer and migration history from af89eff. Preserve workspace schema v1, decision notes v2 and backup and restore v3. Apply reviewed mapping schema v4 transactionally and verify both populated v3 databases and fresh initialization. Persist an opaque per-source association, ordered header digest and reviewed mapping. Derive folder access only from the current trusted selection. Add a transactional v4 to v5 migration owned by the existing profile writer. Test upgrade with populated workspace, decision-note and reviewed mapping data, plus new and reopened profiles. A failed or cancelled publication leaves previous revisions readable without rereading the folder. Recover a failed migration from the preserved pre-upgrade profile. Discover from existing immutable v5 records and revocation markers with no new persisted state. The read-only folder preview compares those same immutable publications in the joined v6 profile. Folder manifest persistence starts with the v7 migration. Apply v7 as additive schema in the existing immediate migration transaction, with no fabricated folder history for old single-file revisions. Exercise a populated v6 profile and an untouched recovery copy. Keep folder ownership local and store neither directory grants nor absolute source paths.",
           "cleanup": "Cancel uncommitted staging on failure and close file handles when the selected folder or profile changes. Close the profile writer and cancel uncommitted mapping operations when the host shuts down. Release any uncommitted complete-file data after cancellation, changed bytes or write failure. Discard stale list pages on refresh and remove inaccessible entries after a raced selection. Keep the worker admission permit through the bounded cleanup. A failed cleanup never authorizes a replacement. Release the private staged files and cancel the current scan or parser on directory grant change or cancellation. The frozen source and its original remain available under existing display rights. Roll back uncommitted v7 rows, shared byte insertions and receipts on cancellation, stale guard, or abrupt process exit."
