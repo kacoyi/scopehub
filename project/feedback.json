@@ -745,7 +745,7 @@
     {
       "id": "market-quality-attribution",
       "source": "Independent M1-007 chart review with held ordinary history, controlled transport failures and a typed gap event.",
-      "observation": "Without a snapshot, a failed worker read populated the source connection as disconnected. With a frozen snapshot, loss of the local preview transport could instead be presented as a worker exit. The UI also discarded known UTC ranges and loss counts when a stream gap arrived.",
+      "observation": "Without a snapshot, a failed worker read populated the source connection as disconnected. With a frozen snapshot, loss of the local preview transport could instead be presented as a worker exit. The UI also discarded known UTC ranges and loss counts when a stream gap arrived. A validated replay gap can arrive before a later cleanup error. Preserve the reported facts even if the terminal says TIMEOUT or the local transport then disconnects.",
       "severity": "major",
       "status": "open",
       "task_ids": [
