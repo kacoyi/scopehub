@@ -4,12 +4,14 @@ import type {
 } from '../../../../contracts/generated/protocol';
 import { invalidMarketData } from './market';
 import { retryMarketAdmission } from './market-admission';
+import type { RepairProgress } from './market-repair';
 
 export type ReplayRecoveryStatus = 'reconnecting' | 'resumed';
 type Recovery = { status: ReplayRecoveryStatus; position: StreamPosition };
 type Progress = { subscription: MarketSubscriptionOutput }
   | { event: MarketBarUpdateEvent | MarketStreamGapEvent }
-  | { recovery: Recovery };
+  | { recovery: Recovery }
+  | { repair: RepairProgress };
 type Outcome = { status: 'complete' } | { status: 'gapped'; reason: string };
 type Terminal = { ok: true; result: Outcome } | { ok: false; error: unknown };
 type Publish = (frame: Progress) => void;
@@ -41,6 +43,11 @@ function readReplayFrame(value: unknown): Progress | Terminal {
     if (isRecord(recovery) && Object.keys(recovery).length === 2
       && (recovery.status === 'reconnecting' || recovery.status === 'resumed') && isPosition(recovery.position)) {
       return { recovery: { status: recovery.status, position: recovery.position } };
+    }
+    const repair = value.repair;
+    if (isRecord(repair) && Object.keys(repair).length === 4 && isPosition(repair.position)
+      && Array.isArray(repair.bars) && isRecord(repair.snapshot) && isRecord(repair.quality_state)) {
+      return { repair: repair as RepairProgress };
     }
   }
   throw invalidMarketData();

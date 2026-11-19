@@ -14,6 +14,7 @@ export interface HistoryChartHandle {
   zoomOut(): void;
   setCursor(mode: ChartCursorMode): void;
   setStyle(style: ChartStyle): void;
+  replaceBars(bars: readonly Bar[]): void;
   updateLast(bar: Bar): void;
 }
 
@@ -22,7 +23,7 @@ export function mountHistoryChart(
   element: HTMLElement, history: MarketGetBarsOutput, instrument: Instrument,
   style: ChartStyle, select: (bar: Bar) => void,
 ): HistoryChartHandle {
-  const bars = [...history.bars];
+  let bars = [...history.bars];
   const lookup = new Map(bars.map(bar => [bar.time_ms / 1000, bar]));
   const localTime = new Intl.DateTimeFormat('en-GB', {
     timeZone: history.dataset.timezone, month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
@@ -53,6 +54,7 @@ export function mountHistoryChart(
     const priceFormat = { type: 'price' as const, precision: tick.split('.')[1]?.length ?? 0, minMove: Number(tick) || 0.01 };
     const timestamp = (bar: Bar) => (bar.time_ms / 1000) as UTCTimestamp;
     const candle = (bar: Bar) => ({ time: timestamp(bar), open: bar.open, high: bar.high, low: bar.low, close: bar.close });
+    const linePoint = (bar: Bar) => ({ time: timestamp(bar), value: bar.close });
     const volume = (bar: Bar) => bar.volume === null
       ? { time: timestamp(bar) }
       : { time: timestamp(bar), value: bar.volume, color: bar.close >= bar.open ? 'rgba(67,212,172,0.42)' : 'rgba(241,125,133,0.42)' };
@@ -67,7 +69,7 @@ export function mountHistoryChart(
           series.setData(bars.map(candle));
         } else {
           series = chart.addSeries(LineSeries, { priceFormat, color: '#73b8f6', lineWidth: 2 });
-          series.setData(bars.map(bar => ({ time: timestamp(bar), value: bar.close })));
+          series.setData(bars.map(linePoint));
         }
         return series;
       } catch (error) {
@@ -84,10 +86,10 @@ export function mountHistoryChart(
 
     function zoom(factor: number) {
       const range = timeScale.getVisibleLogicalRange();
-      if (!range || history.bars.length < 2) return;
-      const count = Math.min(history.bars.length, Math.max(2, (range.to - range.from + 1) * factor));
+      if (!range || bars.length < 2) return;
+      const count = Math.min(bars.length, Math.max(2, (range.to - range.from + 1) * factor));
       const center = (range.from + range.to) / 2;
-      const from = Math.max(0, Math.min(center - (count - 1) / 2, history.bars.length - count));
+      const from = Math.max(0, Math.min(center - (count - 1) / 2, bars.length - count));
       timeScale.setVisibleLogicalRange({ from, to: from + count - 1 });
     }
 
@@ -135,6 +137,22 @@ export function mountHistoryChart(
         priceSeries = next;
         style = nextStyle;
         if (range) timeScale.setVisibleLogicalRange(range);
+      },
+      replaceBars(nextBars) {
+        const range = timeScale.getVisibleLogicalRange();
+        const lastIndex = bars.length - 1;
+        bars = [...nextBars];
+        lookup.clear();
+        for (const bar of bars) lookup.set(timestamp(bar), bar);
+        priceSeries.setData(style === 'candlestick' ? bars.map(candle) : bars.map(linePoint));
+        volumes.setData(bars.map(volume));
+        if (!range || (range.from <= 0 && range.to >= lastIndex)) timeScale.fitContent();
+        else {
+          const shift = range.to >= lastIndex ? bars.length - 1 - lastIndex : 0;
+          timeScale.setVisibleLogicalRange({ from: range.from + shift, to: range.to + shift });
+        }
+        const selected = (inspectedTime === undefined ? undefined : lookup.get(inspectedTime / 1000)) ?? bars.at(-1);
+        if (selected) select(selected);
       },
       updateLast(bar) {
         const previous = bars.at(-1);

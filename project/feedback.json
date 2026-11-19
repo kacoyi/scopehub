@@ -886,6 +886,23 @@
         "prevention": "The three-symbol test now distinguishes successive prices at the rendered scale and requires all intermediate and final draws, one accepted stream per selection, and explicit 429 BUSY for any preceding attempts. The clean task run also passed eight replay and thirteen quality cases."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "market-recovery-gap-and-snapshot-integrity",
+      "source": "Independent review and owned synthetic bridge probes at bebc1c2.",
+      "observation": "Cropping the requested end by one millisecond hid an interior source gap. A replacement worker could change the volume of an earlier closed row under the same revision. A real worker exit during the repair read dropped the disconnection reason.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-003"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "market-worker-interruption",
+        "market-recovery"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

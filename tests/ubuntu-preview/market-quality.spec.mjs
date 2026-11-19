@@ -123,7 +123,9 @@ test('real history keeps provenance and painted bars across normal, stale, missi
   await control(page, 'Open offline sample').click();
   await expect(page.getByText('Offline sample', { exact: true })).toBeVisible();
   await openPanel(page, 'Data sources');
-  await expect(revision.locator('option')).toHaveText(['Normal', 'Stale observations', 'Missing bars']);
+  await expect(revision.locator('option')).toHaveText([
+    'Normal', 'Stale observations', 'Missing bars', 'Repairable closed-bar gap', 'Unrepairable closed-bar gap',
+  ]);
   await expect(revision.locator('option:checked')).toHaveText('Normal');
   await expect(date).toHaveValue('');
   await expectProvenance(page, normal);

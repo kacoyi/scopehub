@@ -14,6 +14,11 @@ const ui = join(root, 'apps', 'desktop', 'ui');
 const python = join(root, '.venv', ...(process.platform === 'win32' ? ['Scripts', 'python.exe'] : ['bin', 'python']));
 const port = Number(process.env.SCOPEHUB_INTERRUPTION_PORT ?? 1428);
 const entry = createRequire(join(ui, 'package.json')).resolve('vite');
+const frozenBar = { time_ms: 1704330540000, trading_day: '2024-01-04', open: 3501.6, high: 3502, low: 3500.8,
+  close: 3500.8, volume: 110, is_closed: false };
+const confirmedBar = { ...frozenBar, close: 3501.2, volume: 120 };
+const finalBar = { ...frozenBar, close: 3501, volume: 130, is_closed: true };
+const barLegend = bar => `O ${bar.open}H ${bar.high}L ${bar.low}C ${bar.close}Volume ${bar.volume}Trading day ${bar.trading_day}${bar.is_closed ? 'Closed' : 'Partial'} bar`;
 let server;
 
 test.beforeAll(async ({}, info) => {
@@ -75,14 +80,16 @@ test('resumes one real chart stream after its confirmed worker exits', async ({ 
     await openPanel(page, 'Data sources');
     await page.mouse.move(1, 1);
     const legend = page.getByLabel('Selected bar');
-    await expect(legend).toContainText(/C 3500\.8Volume 110.*Partial bar/);
+    await expect(legend).toHaveText(barLegend(frozenBar));
     await waitForReplayRequest(page, () => control(page, 'Play sample updates').press('Enter'));
     await expect(page.locator('.replay-status')).toHaveText('Synthetic replay complete', replayStage);
-    await expect(legend).toContainText(/C 3501Volume 130.*Closed bar/);
+    await expect(legend).toHaveText(barLegend(finalBar));
     const states = await page.evaluate(() => window.interruptionStates);
     for (const state of ['Market worker reconnecting…', 'Market worker resumed']) {
-      expect(states).toContainEqual({ state, legend: expect.stringMatching(/C 3501\.2Volume 120/), connection: 'Offline' });
+      expect(states).toContainEqual({ state, legend: barLegend(confirmedBar), connection: 'Offline' });
     }
+    const legends = states.map(observation => observation.legend);
+    expect(legends.filter((value, index) => value !== legends[index - 1])).toEqual([frozenBar, confirmedBar, finalBar].map(barLegend));
     expect(attempts).toHaveLength(1);
     const bodies = await page.evaluate(() => Promise.all(window.interruptionBodies));
     expect(bodies).toHaveLength(1);
@@ -94,11 +101,13 @@ test('resumes one real chart stream after its confirmed worker exits', async ({ 
     expect(frames[2]).toEqual({ recovery: { status: 'reconnecting', position: confirmed } });
     expect(frames[3]).toEqual({ recovery: { status: 'resumed', position: confirmed } });
     expect(frames[5]).toEqual({ ok: true, result: { status: 'complete' } });
-    for (const [index, sequence, close, volume, is_closed] of [[1, 1, 3501.2, 120, false], [4, 2, 3501, 130, true]]) {
-      expect(frames[index].event).toMatchObject({
+    for (const [index, sequence, observed_at_ms, bar] of [[1, 1, 1704330585000, confirmedBar], [4, 2, 1704330600000, finalBar]]) {
+      const event = frames[index].event;
+      expect(event).toMatchObject({
         event: 'market.bar_update', stream_id: after.stream_id, epoch: after.epoch, sequence,
-        payload: { bar: { time_ms: 1704330540000, close, volume, is_closed } },
+        payload: { observed_at_ms },
       });
+      expect(event.payload.bar).toEqual(bar);
     }
     await openPanel(page, 'Data window');
     const row = page.getByRole('table', { name: 'Historical bars' }).locator('tbody tr').last();

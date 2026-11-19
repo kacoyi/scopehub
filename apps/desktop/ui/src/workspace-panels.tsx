@@ -1,6 +1,6 @@
 import { assetLabel, instrumentName, price, symbol, unitLabel } from './instrument-display';
 import {
-  isSampleRevision, sampleDateStart, sampleRevisionInstrument, sampleRevisions,
+  isClosedBarGapRevision, isSampleRevision, sampleDateStart, sampleRevisionInstrument, sampleRevisions,
   type ChartHistory, type Instrument, type MarketFailure, type SampleRevision,
 } from './market';
 import { MarketQualityFacts, ReplayGapFacts } from './market-quality';
@@ -70,7 +70,7 @@ function DataWindow({ history }: { history: ChartHistory | undefined }) {
 }
 
 type SampleFilters = {
-  revision: SampleRevision; date: string;
+  revision: SampleRevision; timeframe: string; date: string;
   setRevision: (value: SampleRevision) => void; setDate: (value: string) => void;
 };
 
@@ -93,7 +93,8 @@ function DataSources({ sample, selected, history, failureKind, workerRecovery, r
             const value = event.currentTarget.value;
             if (isSampleRevision(value)) filters.setRevision(value);
           }}>
-            {Object.entries(sampleRevisions).map(([value, { label }]) => <option key={value} value={value}>{label}</option>)}
+            {Object.entries(sampleRevisions).filter(([value]) => filters.timeframe === '1m' || !isClosedBarGapRevision(value))
+              .map(([value, { label }]) => <option key={value} value={value}>{label}</option>)}
           </select>
         </>}
         <label htmlFor="sample-date">Sample date (UTC)</label>

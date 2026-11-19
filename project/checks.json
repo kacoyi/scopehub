@@ -233,11 +233,19 @@
     },
     {
       "id": "market-recovery",
-      "status": "planned",
-      "purpose": "Validate bounded reconnect, subscriptions and data quality transitions",
+      "status": "implemented",
+      "purpose": "Verify closed-bar repair and unresolved gaps on the ordinary chart through the real worker, including frozen history and rejection of invalid or interrupted repairs.",
       "platforms": "all",
-      "command": null,
-      "timeout_seconds": 900
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-closed-bar-repair.config.mjs"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "change"
     },
     {
       "id": "state-migrations",
@@ -491,7 +499,9 @@
         "market-workflow",
         "market-fixtures",
         "market-recovery",
-        "local-folder-import"
+        "local-folder-import",
+        "market-worker-interruption",
+        "market-recovery-ui"
       ]
     },
     {
@@ -702,7 +712,8 @@
     "market-quality-states",
     "market-workflow",
     "market-worker-interruption",
-    "market-recovery-ui"
+    "market-recovery-ui",
+    "market-recovery"
   ],
   "gate_changes": []
 }

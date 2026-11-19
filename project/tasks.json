@@ -813,7 +813,7 @@
         "project-state"
       ],
       "evidence": [],
-      "next_action": "Finish bounded recovery for an actually missing closed bar and validate its chart projection against the immutable historical comparison. Retain the independent process-interruption and injected UI checks.",
+      "next_action": "Verify the three independent review findings against the final ordinary chart, then archive the interruption, recovery and frozen snapshot evidence together.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -857,6 +857,14 @@
             "checks": [
               "market-worker-interruption",
               "market-recovery-ui"
+            ]
+          },
+          {
+            "failure": "A cropped interval hides a known gap, a replacement changes already closed history, or a worker exit during repair hides disconnection.",
+            "checks": [
+              "rust-contracts-workers",
+              "market-recovery",
+              "market-worker-interruption"
             ]
           }
         ],

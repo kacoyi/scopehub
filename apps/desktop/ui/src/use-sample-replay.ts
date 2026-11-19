@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import type { MarketStreamGap, MarketSubscriptionOutput } from '../../../../contracts/generated/protocol';
+import type { MarketStreamGap, MarketStreamGapEvent, MarketSubscriptionOutput } from '../../../../contracts/generated/protocol';
 import { describeMarketFailure, invalidMarketData, readStreamPosition, type Bar, type ChartHistory, type MarketFailure } from './market';
+import { projectClosedBarRepair } from './market-repair';
 import { samePosition, subscribeSample, type ReplayRecoveryStatus } from './market-replay';
 
 export type ReplayGap = {
@@ -12,7 +13,7 @@ export type ReplayGap = {
 type ReplayStatus =
   | { state: 'starting' | 'playing' | 'complete' | 'gap' | ReplayRecoveryStatus }
   | { state: 'failed'; failure: MarketFailure };
-type Replay = ReplayStatus & { history: ChartHistory; bar?: Bar; gap: ReplayGap | undefined };
+type Replay = ReplayStatus & { history: ChartHistory; bar?: Bar; repairedBars?: readonly Bar[]; gap: ReplayGap | undefined };
 
 export function useSampleReplay(history: ChartHistory | undefined) {
   const [replay, setReplay] = useState<Replay>();
@@ -35,8 +36,10 @@ export function useSampleReplay(history: ChartHistory | undefined) {
     let bar = initial;
     let hasUpdate = false;
     let gap: ReplayGap | undefined;
-    const update = (status: ReplayStatus) => {
-      if (!signal.aborted) setReplay({ history, ...status, gap, ...(hasUpdate ? { bar } : {}) });
+    const update = (status: ReplayStatus, repairedBars?: readonly Bar[]) => {
+      if (!signal.aborted) setReplay({ history, ...status, gap,
+        ...(repairedBars ? { repairedBars } : hasUpdate ? { bar } : {}),
+      });
     };
     update({ state: 'starting' });
     try {
@@ -49,11 +52,21 @@ export function useSampleReplay(history: ChartHistory | undefined) {
       }
       const matchesSeries = (series: typeof snapshot.series | undefined) => series
         && Object.entries(snapshot.series).every(([key, value]) => series[key as keyof typeof series] === value);
-      const stream: { subscription?: MarketSubscriptionOutput; recovery?: ReplayRecoveryStatus } = {};
+      const stream: {
+        subscription?: MarketSubscriptionOutput;
+        recovery?: ReplayRecoveryStatus;
+        gapEvent?: MarketStreamGapEvent;
+        repairedBars?: readonly Bar[];
+      } = {};
       let sequence = after.sequence;
       let observed = snapshot.as_of_ms;
       const result = await subscribeSample({ series: snapshot.series, snapshot, after }, signal, frame => {
         if (signal.aborted) return;
+        if ('repair' in frame) {
+          if (!stream.gapEvent || stream.repairedBars) throw invalidMarketData();
+          stream.repairedBars = projectClosedBarRepair(frame.repair, history, stream.gapEvent, bar, observed);
+          return;
+        }
         if (gap) throw invalidMarketData();
         if ('subscription' in frame) {
           const reply = frame.subscription;
@@ -91,6 +104,7 @@ export function useSampleReplay(history: ChartHistory | undefined) {
             || !affected || !Number.isSafeInteger(affected.from_ms) || !Number.isSafeInteger(affected.to_ms)
             || affected.from_ms >= affected.to_ms) throw invalidMarketData();
           gap = { reason: reported.reason, affected, lostCount: reported.lost_count };
+          stream.gapEvent = event;
           // The stream can still fail while reaching its terminal frame.
           update({ state: 'playing' });
           return;
@@ -109,7 +123,11 @@ export function useSampleReplay(history: ChartHistory | undefined) {
         hasUpdate = true;
         update({ state: stream.recovery === 'resumed' ? 'resumed' : 'playing' });
       });
-      if (result?.status === 'gapped' && typeof result.reason === 'string') {
+      if (stream.repairedBars) {
+        if (result?.status !== 'complete') throw invalidMarketData();
+        gap = undefined;
+        update({ state: 'complete' }, stream.repairedBars);
+      } else if (result?.status === 'gapped' && typeof result.reason === 'string') {
         if ((gap && gap.reason !== result.reason)
           || (stream.subscription?.status === 'backfill_required' && stream.subscription.reason !== result.reason)) {
           throw invalidMarketData();
