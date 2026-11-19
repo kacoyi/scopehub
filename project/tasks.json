@@ -6095,7 +6095,7 @@
       "id": "M2-008",
       "title": "Own browser response waits in the workspace preview harness",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-007"
       ],
@@ -6122,9 +6122,21 @@
         {
           "path": "project/evidence/M2-008-21f96520ee78a8a1.json",
           "sha256": "db2977baa24757ef29b37284c9230d2a83511e9215b5065e5735e1cbc6d0ea63"
+        },
+        {
+          "path": "project/evidence/M2-008-58367345402022ed.json",
+          "sha256": "a492e7c0727d1af3ee9d5c73e0ab1818e5eb10835c515592de1bbea8c5733389"
+        },
+        {
+          "path": "project/evidence/M2-008-147fd2b169587165.json",
+          "sha256": "33fe3c9305e4bbc2d7e2c9ba2e51096d1536795dff2a182a2ccf9535b20014bb"
+        },
+        {
+          "path": "project/evidence/M2-008-32991f2b48f4105b.json",
+          "sha256": "4c63913412c54b2671a1b992d9b238983e3b389247f62fe73d1c6604da56a758"
         }
       ],
-      "next_action": "Review the locally verified observer cleanup and independent peer writers, then run the browser suite once on the matching Windows source. If the initial document error recurs, correlate its Chromium failure with receipt of the request at the owned Vite listener using bounded synthetic metadata.",
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
