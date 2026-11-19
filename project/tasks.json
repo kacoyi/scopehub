@@ -5927,6 +5927,106 @@
           "cleanup": "The successful React mount replaces the temporary markup. Recover by explicitly reloading the same document."
         }
       }
+    },
+    {
+      "id": "M0-028",
+      "title": "Route delegated Herdr work through bounded approval policies",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-025"
+      ],
+      "scope": [
+        "scripts/herdr.py",
+        "tests/project/test_herdr.py",
+        "project"
+      ],
+      "decision_refs": [
+        "0007",
+        "0011"
+      ],
+      "acceptance": [
+        "The normal Herdr launcher sends implementation and coordination tasks to the automatic approval reviewer with the workspace-write sandbox. Review tasks use the read-only sandbox and return a denial directly. Both paths preserve the assigned checkout, model, reasoning effort and literal task.",
+        "Exercise the installed CLI through a real local Herdr session in a synthetic or task worktree. Retain the effective arguments and an independently checked outcome. Keep approval refusals visible to the coordinator."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-028-6db9900ad8dc0a0d.json",
+          "sha256": "13f544a77afbf39f7f633b35e4e9b76d0e054594652a1b367df47b2e69949438"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A bounded development assignment can finish routine work without a developer at each child terminal.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/development.json",
+          "project/delivery.json",
+          "scripts/herdr.py",
+          "tests/project/test_herdr.py"
+        ],
+        "hypotheses": [
+          "The launcher inherited interactive approvals for implementation and coordination. The installed CLI supports automatic review in its normal workspace sandbox."
+        ],
+        "risks": [
+          {
+            "failure": "A writer silently gains unrestricted access or a reviewer becomes writable.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A real policy refusal is hidden, or quoting the assignment changes its meaning.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Preserve the previous launcher commit and incomplete assignments in their existing worktrees. If the chosen CLI mode is unavailable, report the terminal failure and retain the task.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/herdr.py",
+            "tests/project/test_herdr.py"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/herdr"
+            },
+            {
+              "path": "contracts/decisions/0007-ai-led-development.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Changing global Codex settings, extending product-user permissions, or publishing a release."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Role-specific models, read-only review, current worktree selection, verbatim assignments, and the explicit local Herdr space."
+          ],
+          "change": [
+            "Route elevated development requests to the built-in automatic reviewer. Surface denials and missing inputs directly."
+          ],
+          "data_plan": "Use repository code and synthetic local probes. The launcher does not persist credentials or user content.",
+          "cleanup": "Only newly started sessions receive new launch arguments. Preserve pending work and retire coordinator-owned test sessions after verification."
+        }
+      }
     }
   ]
 }

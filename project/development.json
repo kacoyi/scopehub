@@ -696,7 +696,8 @@
     "parallel": [
       "Choose a single terminal for a small change. For independent bounded work, open local Herdr tabs and assign each a task, scope, public boundary and the expected check. Choose the supervision profile for coordination or independent review when warranted.",
       "Use separate Git worktrees for overlapping writers or independent test runs. Writers sharing a checkout own disjoint paths. One integrating developer owns shared task state, schema generation, evidence recording and source publication. Verify and reconcile actual diffs at one revision.",
-      "Inspect the actual terminal result and tests, recover interrupted work from the ledger, and keep working on ready product slices while other jobs run. Retire only work sessions created for the completed assignment."
+      "Inspect the actual terminal result and tests, recover interrupted work from the ledger, and keep working on ready product slices while other jobs run. Retire only work sessions created for the completed assignment.",
+      "Start each assignment in the checkout that owns its paths. Implementation and coordination use Codex automatic approval review with workspace-write. Independent review is read-only and returns a blocked operation directly. Report a denial with the requested action and reason to the coordinator, and continue other permitted work. Changes in authorization, paid access and product acceptance stay with the owner."
     ],
     "tooling": [
       "Acquire and install software, MCP servers, skills and plugins needed for an authorized task, using the existing trusted distribution and pinned project setup where applicable. Test the capability before relying on it.",
