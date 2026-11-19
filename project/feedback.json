@@ -1756,25 +1756,31 @@
       "deferral_reason": null
     },
     {
-<<<<<<< HEAD
       "id": "indicator-obsolete-draft-acceptance",
       "source": "Independent browser replays on 12c73d8. The original changed-draft, restarted and open-confirmation observations are retained under /var/tmp/scopehub-m3-001-12c73d8-lwPVz1fn/results.",
       "observation": "A delayed ready reply for an earlier period and interval could be accepted after editing the form. Changing the settings after opening the confirmation also left the old approval actionable. The repaired real-browser regression rejects the late result and old confirmation after parameter, interval, input expression and source changes, and restores the previously accepted bytes after restart. Local report .reports/indicator-stale/formal-retry/results.json.",
-=======
-      "id": "rolling-deviation-retains-expired-price",
-      "source": "Independent Chromium and Rust registry review of the published three-row CSV on 12c73d8.",
-      "observation": "After 133.33 leaves a two-close window containing 120.21 twice, the complete-range preview calculated a nonzero population standard deviation, a reciprocal of 2652710.767830974 and a nonzero-volatility marker. The identical last day with one warm-up bar correctly returned zero.",
->>>>>>> 4f1667f5a37edf5603e26b794218546988bf2255
       "severity": "major",
       "status": "open",
       "task_ids": [
         "M3-001"
       ],
       "regression_checks": [
-<<<<<<< HEAD
-=======
+        "indicator-declarative-preview"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "rolling-deviation-retains-expired-price",
+      "source": "Independent Chromium and Rust registry review of the published three-row CSV on 12c73d8.",
+      "observation": "After 133.33 leaves a two-close window containing 120.21 twice, the complete-range preview calculated a nonzero population standard deviation, a reciprocal of 2652710.767830974 and a nonzero-volatility marker. The identical last day with one warm-up bar correctly returned zero.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M3-001"
+      ],
+      "regression_checks": [
         "rust-contracts-workers",
->>>>>>> 4f1667f5a37edf5603e26b794218546988bf2255
         "indicator-declarative-preview"
       ],
       "resolution": null,
