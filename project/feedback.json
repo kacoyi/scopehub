@@ -1278,6 +1278,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "local-csv-mapping-save-and-publication-replay",
+      "source": "Independent synthetic native Rust dispatcher replays at 4571353. Probes: /var/tmp/scopehub-local-v5-sOXuzpLM/independent/replay.json and /var/tmp/scopehub-local-v5-sOXuzpLM/minimal-replay/events.jsonl.",
+      "observation": "Replaying the same trusted mapping save with its original request ID, live folder and file, full digest, mapping and preview limit advanced the review revision from 2 to 3. A delayed retry of the already committed publication then returned STALE_CONTEXT. Publishing under revision 3 created a second dataset UUID with the same source and mapping digests, 504 identical bars and 506 source locators. A fresh one-row repro left two reviewed mapping versions, two byte-equivalent frozen revisions and one source blob. Independent lock tests preserved cancellation and changed-source rollback.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "local-import-publication"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
