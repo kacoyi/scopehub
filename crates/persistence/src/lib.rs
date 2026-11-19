@@ -1,5 +1,6 @@
 //! Profile-bound SQLite workspace storage for the Rust application registry.
 
+mod folder_manifest;
 mod local_dataset;
 mod note_backup;
 mod notes;
@@ -30,7 +31,8 @@ const DECISION_NOTE_RESTORE_SCHEMA_VERSION: i64 = 3;
 const REVIEWED_IMPORT_SCHEMA_VERSION: i64 = 4;
 const LOCAL_DATASET_SCHEMA_VERSION: i64 = 5;
 const CHART_EVIDENCE_SCHEMA_VERSION: i64 = 6;
-const SCHEMA_VERSION: i64 = CHART_EVIDENCE_SCHEMA_VERSION;
+const FOLDER_MANIFEST_SCHEMA_VERSION: i64 = 7;
+const SCHEMA_VERSION: i64 = FOLDER_MANIFEST_SCHEMA_VERSION;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum OpenWorkspaceError {
@@ -243,6 +245,10 @@ fn migrate(connection: &Connection, binding: &WorkspaceBinding) -> Result<(), Op
     if version < CHART_EVIDENCE_SCHEMA_VERSION {
         connection.execute_batch(include_str!("chart_evidence.sql"))?;
         record_migration(connection, CHART_EVIDENCE_SCHEMA_VERSION)?;
+    }
+    if version < FOLDER_MANIFEST_SCHEMA_VERSION {
+        connection.execute_batch(include_str!("folder_manifest.sql"))?;
+        record_migration(connection, FOLDER_MANIFEST_SCHEMA_VERSION)?;
     }
     Ok(())
 }

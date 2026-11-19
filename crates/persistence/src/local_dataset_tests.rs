@@ -60,7 +60,7 @@ fn populated_v4_dataset_migration_is_atomic_and_preserves_existing_state() {
         .transaction_with_behavior(TransactionBehavior::Immediate)
         .unwrap();
     migrate(&transaction, &Profile::binding()).unwrap();
-    assert_eq!(ledger(&transaction), [1, 2, 3, 4, 5, 6]);
+    assert_eq!(ledger(&transaction), current_ledger());
     assert_eq!(integer_pragma(&transaction, "user_version"), SCHEMA_VERSION);
     assert_eq!(dataset_counts(&transaction), (0, 0));
     drop(transaction);
@@ -79,7 +79,7 @@ fn populated_v4_dataset_migration_is_atomic_and_preserves_existing_state() {
         integer_pragma(&writer.connection, "user_version"),
         SCHEMA_VERSION
     );
-    assert_eq!(ledger(&writer.connection), [1, 2, 3, 4, 5, 6]);
+    assert_eq!(ledger(&writer.connection), current_ledger());
     let state = writer.snapshot(None, false).unwrap().0;
     assert_eq!(
         (state.revision, state.timeframe),
@@ -514,7 +514,7 @@ fn chart_evidence_migrates_populated_v5_and_rechecks_scope_grants_and_frozen_tar
         .transaction_with_behavior(TransactionBehavior::Immediate)
         .unwrap();
     migrate(&transaction, &Profile::binding()).unwrap();
-    assert_eq!(ledger(&transaction), [1, 2, 3, 4, 5, 6]);
+    assert_eq!(ledger(&transaction), current_ledger());
     drop(transaction);
     assert_eq!(ledger(&v5.connection), [1, 2, 3, 4, 5]);
     assert_eq!(dataset_counts(&v5.connection), (2, 2));
@@ -526,7 +526,7 @@ fn chart_evidence_migrates_populated_v5_and_rechecks_scope_grants_and_frozen_tar
     drop(v5);
 
     let mut store = profile.open().unwrap();
-    assert_eq!(ledger(&store.connection), [1, 2, 3, 4, 5, 6]);
+    assert_eq!(ledger(&store.connection), current_ledger());
     assert_eq!(store.load_mapping(SOURCE_KEY).unwrap().unwrap(), reviewed);
     assert_eq!(
         store.read_local_dataset(&id).unwrap().unwrap().content,

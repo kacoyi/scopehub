@@ -2745,7 +2745,8 @@
         "0005",
         "0008",
         "0013",
-        "0014"
+        "0014",
+        "0015"
       ],
       "acceptance": [
         "Read only the selected scope. Show raw and normalized rows and a chart preview for equity and futures bar examples with different headers, encodings, units and date conventions. A manual mapping works offline.",
@@ -2759,6 +2760,7 @@
         "local-folder-import",
         "local-import-publication",
         "local-folder-refresh-preview",
+        "local-folder-manifest-storage",
         "project-state",
         "python-contracts-workers",
         "architecture",
@@ -2773,7 +2775,7 @@
         "local-import-ui"
       ],
       "evidence": [],
-      "next_action": "Verify the joined read-only folder refresh preview on native Windows using the checked root, ancestor identities and revalidated manifest from ADR 0014. Preserve the reviewed source-sharing, revision discovery, chart selection and retry behavior. Continue the M1-008 v7 folder manifest migration over a populated v6 profile before durable multi-file publication.",
+      "next_action": "Hand off the verified v7 folder manifest migration for private records v8. Correct explicit source declaration drift, inspect every same-file economic alternative while publication remains held, and show quantity unit, venue and price adjustment in the comparison. Retain failing and passing integrated evidence before wiring public folder publication.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -2804,7 +2806,9 @@
           "crates/worker-host/src/local_import.rs",
           "crates/worker-host/src/local_import_windows.rs",
           "contracts/reviews/2026-11-19-windows-published-revision-library.json",
-          "contracts/reviews/2026-11-19-windows-readable-csv-revisions.json"
+          "contracts/reviews/2026-11-19-windows-readable-csv-revisions.json",
+          "contracts/decisions/0015-immutable-local-folder-manifests.json",
+          "crates/persistence/src/chart_evidence.sql"
         ],
         "hypotheses": [
           "Explicit source mappings can normalize native OHLCV bars without inferring a price, volume unit or session from ambiguous financial fields. File identities and row locators can connect every accepted row to its original input.",
@@ -2818,7 +2822,8 @@
           "A single replacement can complete a pure preview on already-frozen bytes after the first worker misses its deadline, when the first worker has been reaped and the selection remains current.",
           "An opt-in list projection of the stored venue, the first and final bars' trading days, and the final bar's close lets a person distinguish same-name corrections such as 305 and 304 before opening either chart. The bar dates describe chart endpoints and carry no publication chronology.",
           "A metadata-only Windows handle with full sharing can retain the selected directory identity while idle. A short operation can reopen and pin the non-reparse chain, compare identities, then verify source bytes through final commit.",
-          "The source identity stored by v5 and its accepted relative path can prove the selected folder even when the original file is absent. A fresh read-only scan can use that live grant and the exact retained mapping without persisting a grant or changing the accepted chart."
+          "The source identity stored by v5 and its accepted relative path can prove the selected folder even when the original file is absent. A fresh read-only scan can use that live grant and the exact retained mapping without persisting a grant or changing the accepted chart.",
+          "An additive v7 manifest anchored to a known v5 mapping can retain complete reviewed membership and source-qualified locators. One guarded transaction can write the revision, deduplicated original bytes and the scoped retry receipt without updating the accepted parent."
         ],
         "risks": [
           {
@@ -2947,6 +2952,33 @@
               "rust-contracts-workers",
               "local-folder-refresh-preview"
             ]
+          },
+          {
+            "failure": "A partial migration changes populated v6 state, a failed or interrupted v7 write leaks staged originals, or a changed retry key discloses or duplicates a revision. Verify the preserved v6 backup and operation receipts, staged transaction rollback, profile isolation and display revocation after reopen.",
+            "checks": [
+              "local-folder-manifest-storage",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An explicitly incompatible unit or price adjustment is overwritten by the saved mapping, then merged into an economically different accepted bar.",
+            "checks": [
+              "python-contracts-workers",
+              "local-folder-refresh-preview"
+            ]
+          },
+          {
+            "failure": "The complete check discards same-file competing prices and their locators, leaving the accepted timestamp labeled unchanged.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-folder-refresh-preview"
+            ]
+          },
+          {
+            "failure": "A person reviewing differing values cannot see the declared quantity unit, venue or price adjustment in the comparison.",
+            "checks": [
+              "local-folder-refresh-preview"
+            ]
           }
         ],
         "rollback": "Keep the accepted mapping, immutable source identities and last published revision while staging changes. Rejected rows and unsupported files remain inspectable in the selected local session. Stage a mapping version in the current SQLite transaction and roll it back if cancellation or source revocation wins before commit. Keep the previous reviewed version available after failures. The library is a read-only projection. Its refresh can restart from the first page and the existing direct-ID read remains available if listing fails.",
@@ -2984,7 +3016,10 @@
             "crates/platform/tests/local_folder.rs",
             "apps/desktop/src-tauri/src/local_import/folder_refresh.rs",
             "apps/desktop/ui/src/folder-refresh-review.tsx",
-            "crates/application/src/folder_refresh.rs"
+            "crates/application/src/folder_refresh.rs",
+            "crates/application/src/folder_manifest.rs",
+            "crates/persistence/src/folder_manifest.rs",
+            "crates/persistence/src/folder_manifest.sql"
           ],
           "rules": [
             {
@@ -3014,6 +3049,10 @@
             {
               "path": "contracts/decisions/0014-local-folder-operation-handles.json",
               "pointer": "/decision"
+            },
+            {
+              "path": "contracts/decisions/0015-immutable-local-folder-manifests.json",
+              "pointer": "/decision"
             }
           ],
           "non_goals": [
@@ -3021,14 +3060,15 @@
             "First publication and explicit compatible replacement cover one selected file and one fully resolved native bar series. No persistent folder grant is issued.",
             "Revision discovery uses v5 snapshots and does not add a migration, change folder access, implement folder-wide refresh or make network requests.",
             "Repair replay and selected-folder sharing on the current schema v5. Coordinate the checked directory interface with the separately implemented folder review and manifest.",
-            "This preview slice has no durable multi-file manifest, batch publication, inferred corrections or discovery UI. Coordinate any v7 migration atop the landed chart-evidence v6 separately."
+            "The read-only preview remains available. The native v7 storage checkpoint does not publish through the desktop, infer corrections, change shared chart selection or migrate private records."
           ],
           "open_questions": [
             "Stage added files and detect byte-identical aliases within a folder without treating an alias as new economic events. Preserve all contributing source locators and prove results are independent of folder enumeration order.",
             "Hold changed headers, mixed series and competing corrections for review. Support explicit multi-file replacement and missing-file withdrawal with a complete reviewed manifest, atomic publication and restart/retry evidence.",
             "Verify that a person can select each same-name revision by its final close in the native Windows library. Use the stored trading days and venue as context and retain the source digest when the visible market summaries are equal.",
             "Verify the picker, publication, migration and frozen chart path in the native Windows application.",
-            "Establish a bounded complete scan and normalized output size. A failed or over-limit scan must make partial coverage explicit or return no preview."
+            "Establish a bounded complete scan and normalized output size. A failed or over-limit scan must make partial coverage explicit or return no preview.",
+            "Bind explicit retained CSV declarations to the saved native mapping, project every same-file competing bar for read-only review without relaxing strict publication, and show the saved series context next to values. Reproduce and rerun all three through the integrated synthetic folder journey."
           ]
         },
         "evolution": {
@@ -3051,10 +3091,11 @@
             "Retry only a pure local preview once after a five-second worker timeout and confirmed cleanup. Reuse the frozen bytes, fingerprint and mapping, preserve caller deadlines, and stop on a second timeout.",
             "Targeted verification passed on the standard-user Win11 MSVC archive 255ae9138f7a with 16 local-import controls and one separate ownership run. Independent Linux archive a377f77d50d3 passed 12 controls. ADR 0013 records artifact hashes and scope. The phase and cause of the original GUI timeout remain unknown.",
             "Release strict native directory and file handles after each filesystem operation. Revalidate the selected root and catalogued subdirectory identities under checked traversal before using a path. An exact committed replay still uses the grant and display rights without rereading the source.",
-            "Stage a deterministic folder comparison against the immutable accepted v5 single-file revision. Apply the versioned saved mapping only when the ordered header and resolved series agree. Coalesce identical economic bars with every locator and preserve divergent alternatives and the prior bar for review. Show source replacement and withdrawal candidates without committing any."
+            "Stage a deterministic folder comparison against the immutable accepted v5 single-file revision. Apply the versioned saved mapping only when the ordered header and resolved series agree. Coalesce identical economic bars with every locator and preserve divergent alternatives and the prior bar for review. Show source replacement and withdrawal candidates without committing any.",
+            "Add the v7 owned storage and ordered migration. Bind each accepted folder revision to its v5 anchor, persist reviewed source membership and every selected locator, and store an exact retry receipt in the same SQLite transaction."
           ],
-          "data_plan": "Keep source bytes, mapping, evidence locators and dataset revisions on the active profile. Migrate long-lived state through its owning Rust writer when publication is introduced. Integrate the profile writer and migration history from af89eff. Preserve workspace schema v1, decision notes v2 and backup and restore v3. Apply reviewed mapping schema v4 transactionally and verify both populated v3 databases and fresh initialization. Persist an opaque per-source association, ordered header digest and reviewed mapping. Derive folder access only from the current trusted selection. Add a transactional v4 to v5 migration owned by the existing profile writer. Test upgrade with populated workspace, decision-note and reviewed mapping data, plus new and reopened profiles. A failed or cancelled publication leaves previous revisions readable without rereading the folder. Recover a failed migration from the preserved pre-upgrade profile. Discover from existing immutable v5 records and revocation markers with no new persisted state. The read-only folder preview compares those same immutable publications in the joined v6 profile. Folder manifest persistence starts with the v7 migration.",
-          "cleanup": "Cancel uncommitted staging on failure and close file handles when the selected folder or profile changes. Close the profile writer and cancel uncommitted mapping operations when the host shuts down. Release any uncommitted complete-file data after cancellation, changed bytes or write failure. Discard stale list pages on refresh and remove inaccessible entries after a raced selection. Keep the worker admission permit through the bounded cleanup. A failed cleanup never authorizes a replacement. Release the private staged files and cancel the current scan or parser on directory grant change or cancellation. The frozen source and its original remain available under existing display rights."
+          "data_plan": "Keep source bytes, mapping, evidence locators and dataset revisions on the active profile. Migrate long-lived state through its owning Rust writer when publication is introduced. Integrate the profile writer and migration history from af89eff. Preserve workspace schema v1, decision notes v2 and backup and restore v3. Apply reviewed mapping schema v4 transactionally and verify both populated v3 databases and fresh initialization. Persist an opaque per-source association, ordered header digest and reviewed mapping. Derive folder access only from the current trusted selection. Add a transactional v4 to v5 migration owned by the existing profile writer. Test upgrade with populated workspace, decision-note and reviewed mapping data, plus new and reopened profiles. A failed or cancelled publication leaves previous revisions readable without rereading the folder. Recover a failed migration from the preserved pre-upgrade profile. Discover from existing immutable v5 records and revocation markers with no new persisted state. The read-only folder preview compares those same immutable publications in the joined v6 profile. Folder manifest persistence starts with the v7 migration. Apply v7 as additive schema in the existing immediate migration transaction, with no fabricated folder history for old single-file revisions. Exercise a populated v6 profile and an untouched recovery copy. Keep folder ownership local and store neither directory grants nor absolute source paths.",
+          "cleanup": "Cancel uncommitted staging on failure and close file handles when the selected folder or profile changes. Close the profile writer and cancel uncommitted mapping operations when the host shuts down. Release any uncommitted complete-file data after cancellation, changed bytes or write failure. Discard stale list pages on refresh and remove inaccessible entries after a raced selection. Keep the worker admission permit through the bounded cleanup. A failed cleanup never authorizes a replacement. Release the private staged files and cancel the current scan or parser on directory grant change or cancellation. The frozen source and its original remain available under existing display rights. Roll back uncommitted v7 rows, shared byte insertions and receipts on cancellation, stale guard, or abrupt process exit."
         }
       }
     },

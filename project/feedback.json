@@ -1310,8 +1310,12 @@
       "observation": "The real shared selection advanced to interval A at selection revision 1 while the workspace revision stayed 0. An authenticated generic AI command using those revisions committed the main-chart timeframe at workspace revision 1 despite missing the selected interval's local analysis grant. The operations-workflow regression now requires a denial with no operation or replay row. A separately authorized on-device intent for B can commit through the same registry.",
       "severity": "major",
       "status": "open",
-      "task_ids": ["M2-001"],
-      "regression_checks": ["operations-workflow"],
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "operations-workflow"
+      ],
       "resolution": null,
       "deferral_reason": null
     },
@@ -1446,6 +1450,53 @@
       ],
       "regression_checks": [
         "local-import-publication"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "folder-refresh-explicit-declaration-drift",
+      "source": "Independent Herdr review t46 at 875f5e0716ec7c53583d9b5d883d70d89f441135 with synthetic CSVs and an in-memory render.",
+      "observation": "Same-header, same-symbol CSVs with identical OHLCV and declarations of shares/raw, lots/raw and shares/split_adjusted all normalized as shares/raw without diagnostics through the public CSV parser.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "local-folder-refresh-preview"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "folder-refresh-same-file-competing-values-hidden",
+      "source": "Independent Herdr review t46 at 875f5e0716ec7c53583d9b5d883d70d89f441135 with synthetic CSVs and an in-memory render.",
+      "observation": "The complete checker held a two-row correction file with closes 6 and 7 at the accepted close 5, reporting the second conflicting row. In the refresh comparator the held file supplied no alternatives, leaving the accepted overlap labeled unchanged.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "local-folder-refresh-preview"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "folder-refresh-missing-series-units",
+      "source": "Independent Herdr review t46 at 875f5e0716ec7c53583d9b5d883d70d89f441135 with synthetic CSVs and an in-memory render.",
+      "observation": "The preview response includes the saved venue, quantity unit and price adjustment, but rendering the comparison at the reviewed commit showed a bare volume value and omitted the series declarations.",
+      "severity": "minor",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "local-folder-refresh-preview"
       ],
       "resolution": null,
       "deferral_reason": null

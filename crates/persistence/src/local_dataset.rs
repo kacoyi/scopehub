@@ -180,7 +180,7 @@ impl LocalDatasetStore for SqliteWorkspace {
     }
 }
 
-fn check_revision_id(revision_id: &str) -> Result<(), Error> {
+pub(super) fn check_revision_id(revision_id: &str) -> Result<(), Error> {
     if !Uuid::parse_str(revision_id).is_ok_and(|id| id.to_string() == revision_id) {
         return Err(failure(ErrorCode::INVALIDARGUMENT));
     }
@@ -202,7 +202,11 @@ pub(super) fn display_allowed(connection: &Connection, revision_id: &str) -> Res
         .map_err(store_error)
 }
 
-fn retain_original(connection: &Connection, digest: &str, original: &[u8]) -> Result<(), Error> {
+pub(super) fn retain_original(
+    connection: &Connection,
+    digest: &str,
+    original: &[u8],
+) -> Result<(), Error> {
     let identical: Option<bool> = connection
         .query_row(
             "SELECT original_bytes = ?2 FROM local_dataset_source_blobs WHERE source_sha256 = ?1",

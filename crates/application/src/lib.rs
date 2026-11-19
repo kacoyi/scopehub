@@ -1,5 +1,6 @@
 //! Shared operation entry for trusted transports.
 
+mod folder_manifest;
 mod folder_refresh;
 mod history;
 mod local_import;
@@ -8,6 +9,10 @@ mod replay;
 mod reviewed_mapping;
 mod workspace;
 
+pub use folder_manifest::{
+    FolderManifestBar, FolderManifestLocator, FolderManifestPublication, FolderManifestRequest,
+    FolderManifestSource, FolderManifestSourceRef, FolderManifestStore, StoredFolderManifest,
+};
 pub use folder_refresh::{
     FolderRefreshBase, FolderRefreshCheck, FolderRefreshFile, MAX_STAGED_RECORDS,
     PREVIEW_LOCAL_FOLDER_REFRESH, folder_refresh_input, folder_refresh_output,

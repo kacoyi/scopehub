@@ -375,6 +375,22 @@
       "cadence": "task"
     },
     {
+      "id": "local-folder-manifest-storage",
+      "status": "implemented",
+      "purpose": "Verify the native SQLite v7 migration over populated v6, frozen lineage, source-qualified locators, original byte reuse, scoped retry, and transactional rollback and recovery.",
+      "platforms": "all",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-persistence",
+        "folder_manifest"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
       "id": "local-folder-import",
       "status": "planned",
       "purpose": "Exercise the folder picker, editable mapping, source lineage, idempotent refresh and schema drift through the actual local chart workflow.",
