@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=7d5aeb935ac213ef7068481ce24b63fdbd75b882c0e6f348025408473fca7584. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=acb92ba543b60bb8b84d16396f18bf9abf94bcfedcfe825fc227536791b5c8a2. Do not edit.
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type OpaqueId = string;
 export type Uuid = string;
@@ -7,8 +7,8 @@ export type Timestamp = number;
 export type Metadata = Record<string, JsonValue>;
 export type WorkerRole = "market" | "ai" | "indicator";
 export type ProtocolVersion = "1.0";
-export type ErrorCode = "INVALID_ARGUMENT" | "UNSUPPORTED_CAPABILITY" | "PERMISSION_DENIED" | "CONFIRMATION_REQUIRED" | "CANCELLED" | "TIMEOUT" | "WORKER_EXITED" | "PROTOCOL_MISMATCH" | "DATA_UNAVAILABLE" | "STALE_CONTEXT" | "RESOURCE_LIMIT" | "OUTPUT_INVALID" | "PROVIDER_NOT_CONFIGURED" | "INTERNAL_ERROR";
-export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext";
+export type ErrorCode = "INVALID_ARGUMENT" | "UNSUPPORTED_CAPABILITY" | "PERMISSION_DENIED" | "CONFIRMATION_REQUIRED" | "CANCELLED" | "TIMEOUT" | "WORKER_EXITED" | "PROTOCOL_MISMATCH" | "DATA_UNAVAILABLE" | "STALE_CONTEXT" | "RESOURCE_LIMIT" | "OUTPUT_INVALID" | "PROVIDER_NOT_CONFIGURED" | "INTERNAL_ERROR" | "BUSY" | "SNAPSHOT_UNAVAILABLE";
+export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "workspace.readChartProjection" | "workspace.selectEvidence";
 export type ChartStyle = "candlestick" | "line";
 export type TaskStatus = "queued" | "running" | "awaiting_confirmation" | "completed" | "failed" | "cancelled";
 export type Tradability = "non_tradable" | "unknown";
@@ -138,7 +138,7 @@ export type Workspace = {
 };
 export type Context = {
   workspace: Workspace;
-  authorized_operations: Array<OperationName>;
+  authorized_operations: Array<LegacyOperationName>;
   bars: Array<Bar>;
 };
 export type FieldExpression = {
@@ -481,7 +481,7 @@ export type Hello = {
   role: WorkerRole;
   worker_version: string;
   supported_protocols: Array<string>;
-  capabilities: Array<OperationName>;
+  capabilities: Array<LegacyOperationName>;
 };
 export type ErrorResponse = {
   protocol_version: ProtocolVersion;
@@ -528,4 +528,1115 @@ export type Heartbeat = {
   timestamp_ms: Timestamp;
   type: "heartbeat";
 };
-export type Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat;
+export type SeriesKey = {
+  instrument_id: OpaqueId;
+  provider_id: OpaqueId;
+  timeframe: OpaqueId;
+  price_adjustment: OpaqueId;
+  session_scope: OpaqueId;
+  calendar_id: OpaqueId;
+  quantity_unit: OpaqueId;
+};
+export type FrozenSnapshot = {
+  series: SeriesKey;
+  dataset_id: Uuid;
+  dataset_revision: OpaqueId;
+  from_ms: Timestamp;
+  to_ms: Timestamp;
+  warmup_bars: number;
+  as_of_ms: Timestamp;
+  content_hash: Hash;
+};
+export type HistoryCursor = {
+  snapshot_hash: Hash;
+  next_index: number;
+  prefix_hash: Hash;
+  previous_time_ms: Timestamp;
+};
+export type StreamPosition = {
+  stream_id: OpaqueId;
+  epoch: OpaqueId;
+  sequence: Revision;
+};
+export type MarketQualityState = {
+  as_of_ms: Timestamp;
+  last_observed_ms: (Timestamp | null);
+  session_state: "open" | "closed" | "unknown";
+  freshness: "current" | "delayed" | "stale" | "unknown";
+  connection: "offline" | "connected" | "disconnected";
+  coverage: "observed" | "gapped" | "unknown";
+  gaps: Array<VisibleRange>;
+  source_kind: "native_bars" | "snapshot_approximation" | "synthetic";
+};
+export type MarketHistoryPageInput = {
+  series: SeriesKey;
+  from_ms: Timestamp;
+  to_ms: Timestamp;
+  warmup_bars: number;
+  as_of_ms?: Timestamp;
+  expected_revision?: OpaqueId;
+  snapshot?: FrozenSnapshot;
+  cursor?: HistoryCursor;
+  page_size?: number;
+};
+export type MarketHistoryPageOutput = {
+  dataset: DatasetDescriptor;
+  bars: Array<Bar>;
+  snapshot: FrozenSnapshot;
+  quality_state: MarketQualityState;
+  stream_position: (StreamPosition | null);
+  next_cursor: (HistoryCursor | null);
+  total_bars: number;
+  offset: number;
+};
+export type MarketPageFault = {
+  code: ErrorCode;
+  message: string;
+  retryable: boolean;
+  details: Metadata;
+};
+export type MarketHistoryPageRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.readHistoryPage";
+  payload: MarketHistoryPageInput;
+};
+export type MarketHistoryPageResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.readHistoryPage";
+  ok: true;
+  result: MarketHistoryPageOutput;
+  error: null;
+};
+export type MarketHistoryPageError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.readHistoryPage";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type MarketSubscriptionInput = {
+  series: SeriesKey;
+  after: StreamPosition;
+  snapshot: FrozenSnapshot;
+};
+export type StreamResumeAccepted = {
+  status: "accepted";
+  from_position: StreamPosition;
+};
+export type StreamBackfillRequired = {
+  status: "backfill_required";
+  reason: "epoch_changed" | "history_evicted" | "coverage_unknown" | "sequence_gap";
+  recover_from_ms: Timestamp;
+};
+export type MarketSubscriptionOutput = StreamResumeAccepted | StreamBackfillRequired;
+export type MarketSubscriptionRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.subscribe";
+  payload: MarketSubscriptionInput;
+};
+export type MarketSubscriptionResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.subscribe";
+  ok: true;
+  result: MarketSubscriptionOutput;
+  error: null;
+};
+export type MarketSubscriptionError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.subscribe";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type MarketStreamBarUpdate = {
+  series: SeriesKey;
+  dataset_revision: OpaqueId;
+  observed_at_ms: Timestamp;
+  bar: Bar;
+};
+export type MarketStreamBarCorrection = {
+  series: SeriesKey;
+  dataset_revision: OpaqueId;
+  observed_at_ms: Timestamp;
+  bar: Bar;
+  supersedes_revision: OpaqueId;
+};
+export type MarketStreamGap = {
+  series: SeriesKey;
+  reason: "sequence_gap" | "overflow" | "epoch_reset" | "source_gap";
+  expected_sequence: Revision;
+  lost_count: number;
+  affected: VisibleRange;
+};
+export type MarketBarUpdateEvent = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "event";
+  stream_id: OpaqueId;
+  epoch: OpaqueId;
+  sequence: Revision;
+  event: "market.bar_update";
+  payload: MarketStreamBarUpdate;
+};
+export type MarketBarCorrectionEvent = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "event";
+  stream_id: OpaqueId;
+  epoch: OpaqueId;
+  sequence: Revision;
+  event: "market.bar_correction";
+  payload: MarketStreamBarCorrection;
+};
+export type MarketStreamGapEvent = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "event";
+  stream_id: OpaqueId;
+  epoch: OpaqueId;
+  sequence: Revision;
+  event: "market.stream_gap";
+  payload: MarketStreamGap;
+};
+export type WorkerHello11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "hello";
+  role: WorkerRole;
+  worker_version: string;
+  supported_protocols: Array<string>;
+  capabilities: Array<string>;
+};
+export type ScopedMutationRequest11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  scope: MutationScope11;
+  intent: MutationIntent11;
+};
+export type ScopedMutationResponse11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  outcome: MutationOutcome11;
+};
+export type TrustedConfirmationDecision11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  operation: "confirmation.respond";
+  challenge_id: Uuid;
+  decision: "approve" | "deny";
+};
+export type PreviewReady11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "event";
+  event: "indicator.preview_ready";
+  task_id: Uuid;
+  draft_id: OpaqueId;
+  preview_id: OpaqueId;
+  stream_id: OpaqueId;
+  sequence: Revision;
+  snapshot: FrozenSnapshot;
+  code_hash: Hash;
+  params_hash: Hash;
+  engine_version: OpaqueId;
+  artifact: IndicatorArtifact11;
+};
+export type ArtifactChunk11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "event";
+  event: "indicator.result_segment";
+  task_id: Uuid;
+  artifact_id: OpaqueId;
+  result_hash: Hash;
+  stream_id: OpaqueId;
+  sequence: Revision;
+  segment_index: number;
+  bytes_base64: string;
+};
+export type TaskTerminalEvent11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "event";
+  event: "task.terminal";
+  task_id: Uuid;
+  stream_id: OpaqueId;
+  sequence: Revision;
+  outcome: TerminalState11;
+  committed_effects: Array<TaskEffectSummary11>;
+};
+export type TaskCancelRequest11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  operation: "task.cancel";
+  request_id: Uuid;
+  task_id: Uuid;
+};
+export type CancelMemberRequest11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "cancel";
+  request_id: Uuid;
+  task_id: Uuid;
+};
+export type ReadProjectedChart11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  operation: "workspace.readChartProjection";
+  request_id: Uuid;
+  workspace_id: OpaqueId;
+  selection_revision: Revision;
+  requested_fields: Array<ExportField11>;
+};
+export type ProjectedChartResponse11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  operation: "workspace.readChartProjection";
+  request_id: Uuid;
+  result: ProjectedChart11;
+};
+export type SharedSelectionEvent11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "event";
+  event: "workspace.selection_changed";
+  stream_id: OpaqueId;
+  sequence: Revision;
+  selection: SharedSelection11;
+};
+export type SharedSelectionRequest11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  operation: "workspace.selectEvidence";
+  request_id: Uuid;
+  workspace_id: OpaqueId;
+  expected_selection_revision: Revision;
+  target: (EvidenceTarget11 | null);
+};
+export type AiToolRequest11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "event";
+  event: "ai.tool_request";
+  stream_id: OpaqueId;
+  sequence: Revision;
+  task_id: Uuid;
+  call_id: Uuid;
+  payload: AiRequestedAction11;
+};
+export type AiToolResultDelivery11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  operation: "ai.tool_result";
+  request_id: Uuid;
+  task_id: Uuid;
+  call_id: Uuid;
+  outcome: AiToolOutcome11;
+};
+export type AiToolResultAck11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  operation: "ai.tool_result";
+  request_id: Uuid;
+  task_id: Uuid;
+  call_id: Uuid;
+  status: "received" | "already_received" | "task_terminal";
+};
+export type ProjectedChartError11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  operation: "workspace.readChartProjection";
+  request_id: Uuid;
+  error: WorkspaceFault11;
+};
+export type IndicatorCompute11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  operation: "indicator.compute";
+  request_id: Uuid;
+  task_id: Uuid;
+  draft_id: OpaqueId;
+  source: DraftSource11;
+  resolved_params: Metadata;
+  code_hash: Hash;
+  params_hash: Hash;
+  snapshot: FrozenSnapshot;
+  input: IndicatorBarsInput11;
+};
+export type IndicatorComputed11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  operation: "indicator.compute";
+  request_id: Uuid;
+  task_id: Uuid;
+  draft_id: OpaqueId;
+  snapshot_hash: Hash;
+  artifact: IndicatorArtifact11;
+};
+export type IndicatorInputSegment11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "event";
+  event: "indicator.input_segment";
+  stream_id: OpaqueId;
+  sequence: Revision;
+  task_id: Uuid;
+  request_id: Uuid;
+  snapshot_hash: Hash;
+  offset: Revision;
+  bars: Array<Bar>;
+};
+export type SharedSelectionResponse11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  operation: "workspace.selectEvidence";
+  request_id: Uuid;
+  selection: SharedSelection11;
+};
+export type SharedSelectionError11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  operation: "workspace.selectEvidence";
+  request_id: Uuid;
+  error: WorkspaceFault11;
+};
+export type SharedContextRequest11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  operation: "workspace.getContext";
+  request_id: Uuid;
+  workspace_id: OpaqueId;
+};
+export type SharedContextResponse11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  operation: "workspace.getContext";
+  request_id: Uuid;
+  context: SharedContext11;
+};
+export type SharedContextError11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  operation: "workspace.getContext";
+  request_id: Uuid;
+  error: WorkspaceFault11;
+};
+export type CancelTaskResponse11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  operation: "task.cancel";
+  request_id: Uuid;
+  task_id: Uuid;
+  outcome: TerminalState11;
+  committed_effects: Array<TaskEffectSummary11>;
+};
+export type CancelTaskError11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  operation: "task.cancel";
+  request_id: Uuid;
+  error: WorkspaceFault11;
+};
+export type Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat | MarketHistoryPageRequest | MarketHistoryPageResponse | MarketHistoryPageError | MarketSubscriptionRequest | MarketSubscriptionResponse | MarketSubscriptionError | MarketBarUpdateEvent | MarketBarCorrectionEvent | MarketStreamGapEvent | WorkerHello11 | ScopedMutationRequest11 | ScopedMutationResponse11 | TrustedConfirmationDecision11 | PreviewReady11 | ArtifactChunk11 | TaskTerminalEvent11 | TaskCancelRequest11 | CancelMemberRequest11 | ReadProjectedChart11 | ProjectedChartResponse11 | SharedSelectionEvent11 | SharedSelectionRequest11 | AiToolRequest11 | AiToolResultDelivery11 | AiToolResultAck11 | ProjectedChartError11 | IndicatorCompute11 | IndicatorComputed11 | IndicatorInputSegment11 | SharedSelectionResponse11 | SharedSelectionError11 | SharedContextRequest11 | SharedContextResponse11 | SharedContextError11 | CancelTaskResponse11 | CancelTaskError11;
+export type ProtocolVersion11 = "1.1";
+export type WorkspaceObject11 = {
+  kind: "chart" | "layer" | "layout" | "dataset" | "workspace";
+  object_id: OpaqueId;
+};
+export type ChartInterval11 = {
+  kind: "chart_interval";
+  snapshot: FrozenSnapshot;
+  range: VisibleRange;
+};
+export type SourceLocation11 = {
+  kind: "table_row" | "document_passage";
+  source_id: OpaqueId;
+  source_revision: OpaqueId;
+  locator: OpaqueId;
+};
+export type EvidenceTarget11 = WorkspaceObject11 | ChartInterval11 | SourceLocation11;
+export type SharedSelection11 = {
+  workspace_id: OpaqueId;
+  selection_revision: Revision;
+  target: (EvidenceTarget11 | null);
+};
+export type MutationScope11 = {
+  workspace_id: OpaqueId;
+  target: EvidenceTarget11;
+  expected_workspace_revision: Revision;
+  expected_selection_revision: Revision;
+  idempotency_key: Uuid;
+};
+export type OperationReceipt11 = {
+  operation_id: OpaqueId;
+  workspace_id: OpaqueId;
+  target: EvidenceTarget11;
+  committed_workspace_revision: Revision;
+  undoable: boolean;
+};
+export type NumberParameter11 = {
+  type: "number";
+  name: string;
+  default: number;
+};
+export type IntegerParameter11 = {
+  type: "integer";
+  name: string;
+  default: number;
+};
+export type BooleanParameter11 = {
+  type: "boolean";
+  name: string;
+  default: boolean;
+};
+export type ParameterDeclaration11 = NumberParameter11 | IntegerParameter11 | BooleanParameter11;
+export type NumericOverride11 = {
+  name: string;
+  value: number;
+};
+export type BooleanOverride11 = {
+  name: string;
+  value: boolean;
+};
+export type ParameterOverride11 = NumericOverride11 | BooleanOverride11;
+export type NumberReference11 = {
+  op: "number_parameter";
+  name: string;
+};
+export type BooleanReference11 = {
+  op: "boolean_parameter";
+  name: string;
+};
+export type WindowLiteral11 = {
+  periods: number;
+};
+export type WindowParameter11 = {
+  parameter: string;
+};
+export type WindowLength11 = WindowLiteral11 | WindowParameter11;
+export type Arithmetic11 = {
+  op: "add" | "subtract" | "multiply" | "divide";
+  left: NumberExpression11;
+  right: NumberExpression11;
+};
+export type Absolute11 = {
+  op: "abs";
+  value: NumberExpression11;
+};
+export type Delay11 = {
+  op: "lag";
+  value: NumberExpression11;
+  periods: number;
+};
+export type Rolling11 = {
+  op: "rolling_mean" | "rolling_std";
+  value: NumberExpression11;
+  window: WindowLength11;
+};
+export type NumberExpression11 = FieldExpression | ConstantExpression | NumberReference11 | Arithmetic11 | Absolute11 | Delay11 | Rolling11;
+export type BooleanConstant11 = {
+  op: "boolean";
+  value: boolean;
+};
+export type Comparison11 = {
+  op: "gt" | "lt";
+  left: NumberExpression11;
+  right: NumberExpression11;
+};
+export type BooleanBinary11 = {
+  op: "and" | "or";
+  left: BooleanExpression11;
+  right: BooleanExpression11;
+};
+export type BooleanExpression11 = BooleanConstant11 | BooleanReference11 | Comparison11 | BooleanBinary11;
+export type NumericSeries11 = {
+  kind: "line" | "histogram";
+  id: OpaqueId;
+  pane: OpaqueId;
+  value: NumberExpression11;
+  style: Style;
+};
+export type ConditionalMarker11 = {
+  kind: "marker_when";
+  when: BooleanExpression11;
+  position: MarkerPosition;
+  label: string;
+  color: string;
+};
+export type IndicatorOutputSpec11 = NumericSeries11 | ConditionalMarker11;
+export type DeclarativeSource11 = {
+  parameters: Array<ParameterDeclaration11>;
+  outputs: Array<IndicatorOutputSpec11>;
+};
+export type DeclarativeDraft11 = {
+  language: "declarative";
+  source: DeclarativeSource11;
+};
+export type PythonDraft11 = {
+  language: "python";
+  source: string;
+  params: Metadata;
+};
+export type DraftSource11 = DeclarativeDraft11 | PythonDraft11;
+export type SnapshotPreview11 = {
+  draft_id: OpaqueId;
+  snapshot: FrozenSnapshot;
+  parameters: Array<ParameterOverride11>;
+};
+export type PythonSnapshotPreview11 = {
+  draft_id: OpaqueId;
+  snapshot: FrozenSnapshot;
+  python_params: Metadata;
+};
+export type PreviewArguments11 = SnapshotPreview11 | PythonSnapshotPreview11;
+export type AcceptPreview11 = {
+  preview_id: OpaqueId;
+  result_hash: Hash;
+};
+export type OpenSeries11 = {
+  series: SeriesKey;
+  dataset_revision: (OpaqueId | null);
+};
+export type WorkspaceOpenInstrumentIntent11 = {
+  operation: "workspace.openInstrument";
+  arguments: OpenSeries11;
+};
+export type ChartSetTimeframeArguments11 = {
+  timeframe: string;
+};
+export type ChartSetTimeframeIntent11 = {
+  operation: "chart.setTimeframe";
+  arguments: ChartSetTimeframeArguments11;
+};
+export type ChartSetStyleArguments11 = {
+  style: ChartStyle;
+};
+export type ChartSetStyleIntent11 = {
+  operation: "chart.setStyle";
+  arguments: ChartSetStyleArguments11;
+};
+export type ChartAddAnnotationArguments11 = {
+  annotation: Annotation;
+};
+export type ChartAddAnnotationIntent11 = {
+  operation: "chart.addAnnotation";
+  arguments: ChartAddAnnotationArguments11;
+};
+export type ChartRemoveLayerArguments11 = {
+  layer_id: OpaqueId;
+};
+export type ChartRemoveLayerIntent11 = {
+  operation: "chart.removeLayer";
+  arguments: ChartRemoveLayerArguments11;
+};
+export type IndicatorCreateDraftIntent11 = {
+  operation: "indicator.createDraft";
+  arguments: DraftSource11;
+};
+export type IndicatorRunPreviewIntent11 = {
+  operation: "indicator.runPreview";
+  arguments: PreviewArguments11;
+};
+export type IndicatorAcceptVersionIntent11 = {
+  operation: "indicator.acceptVersion";
+  arguments: AcceptPreview11;
+};
+export type IndicatorRemoveArguments11 = {
+  layer_id: OpaqueId;
+};
+export type IndicatorRemoveIntent11 = {
+  operation: "indicator.remove";
+  arguments: IndicatorRemoveArguments11;
+};
+export type WorkspaceUndoArguments11 = {
+  operation_id: OpaqueId;
+};
+export type WorkspaceUndoIntent11 = {
+  operation: "workspace.undo";
+  arguments: WorkspaceUndoArguments11;
+};
+export type MutationIntent11 = WorkspaceOpenInstrumentIntent11 | ChartSetTimeframeIntent11 | ChartSetStyleIntent11 | ChartAddAnnotationIntent11 | ChartRemoveLayerIntent11 | IndicatorCreateDraftIntent11 | IndicatorRunPreviewIntent11 | IndicatorAcceptVersionIntent11 | IndicatorRemoveIntent11 | WorkspaceUndoIntent11;
+export type ScopedFailure11 = {
+  state: "failed";
+  error: WorkspaceFault11;
+};
+export type WorkspaceFault11 = {
+  code: ErrorCode;
+  message: string;
+  retryable: boolean;
+};
+export type PythonExecutionScope11 = {
+  code_hash: Hash;
+  parameters_hash: Hash;
+  snapshot_hash: Hash;
+  trust_mode: "trusted_user_code_no_sandbox";
+  input_use: "trusted_code_permitted";
+};
+export type ConfirmationChallenge11 = {
+  challenge_id: Uuid;
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: OperationName;
+  principal_id: OpaqueId;
+  session_id: OpaqueId;
+  workspace_id: OpaqueId;
+  target: EvidenceTarget11;
+  workspace_revision: Revision;
+  selection_revision: Revision;
+  parameters_hash: Hash;
+  expires_at_ms: Timestamp;
+  python: (PythonExecutionScope11 | null);
+};
+export type NeedsHumanDecision11 = {
+  state: "awaiting_confirmation";
+  challenge: ConfirmationChallenge11;
+};
+export type WorkspaceOpenInstrumentCommitted11 = {
+  state: "committed";
+  operation: "workspace.openInstrument";
+  receipt: OperationReceipt11;
+  result: WorkspaceOpenInstrumentOutput;
+};
+export type ChartSetTimeframeCommitted11 = {
+  state: "committed";
+  operation: "chart.setTimeframe";
+  receipt: OperationReceipt11;
+  result: ChartSetTimeframeOutput;
+};
+export type ChartSetStyleCommitted11 = {
+  state: "committed";
+  operation: "chart.setStyle";
+  receipt: OperationReceipt11;
+  result: ChartSetStyleOutput;
+};
+export type ChartAddAnnotationCommitted11 = {
+  state: "committed";
+  operation: "chart.addAnnotation";
+  receipt: OperationReceipt11;
+  result: ChartAddAnnotationOutput;
+};
+export type ChartRemoveLayerCommitted11 = {
+  state: "committed";
+  operation: "chart.removeLayer";
+  receipt: OperationReceipt11;
+  result: ChartRemoveLayerOutput;
+};
+export type IndicatorCreateDraftCommitted11 = {
+  state: "committed";
+  operation: "indicator.createDraft";
+  receipt: OperationReceipt11;
+  result: IndicatorCreateDraftOutput;
+};
+export type IndicatorRunPreviewCommitted11 = {
+  state: "committed";
+  operation: "indicator.runPreview";
+  receipt: OperationReceipt11;
+  result: IndicatorRunPreviewOutput;
+};
+export type IndicatorAcceptVersionCommitted11 = {
+  state: "committed";
+  operation: "indicator.acceptVersion";
+  receipt: OperationReceipt11;
+  result: IndicatorAcceptVersionOutput;
+};
+export type IndicatorRemoveCommitted11 = {
+  state: "committed";
+  operation: "indicator.remove";
+  receipt: OperationReceipt11;
+  result: IndicatorRemoveOutput;
+};
+export type WorkspaceUndoCommitted11 = {
+  state: "committed";
+  operation: "workspace.undo";
+  receipt: OperationReceipt11;
+  result: WorkspaceUndoOutput;
+};
+export type MutationOutcome11 = WorkspaceOpenInstrumentCommitted11 | ChartSetTimeframeCommitted11 | ChartSetStyleCommitted11 | ChartAddAnnotationCommitted11 | ChartRemoveLayerCommitted11 | IndicatorCreateDraftCommitted11 | IndicatorRunPreviewCommitted11 | IndicatorAcceptVersionCommitted11 | IndicatorRemoveCommitted11 | WorkspaceUndoCommitted11 | NeedsHumanDecision11 | ScopedFailure11;
+export type InlineIndicatorArtifact11 = {
+  storage: "inline";
+  result_hash: Hash;
+  result: IndicatorResult;
+};
+export type IndexedIndicatorArtifact11 = {
+  storage: "core_artifact";
+  artifact_id: OpaqueId;
+  result_hash: Hash;
+  byte_length: number;
+  segment_count: number;
+};
+export type IndicatorArtifact11 = InlineIndicatorArtifact11 | IndexedIndicatorArtifact11;
+export type TaskEffectSummary11 = {
+  operation_id: OpaqueId;
+  workspace_id: OpaqueId;
+  committed_workspace_revision: Revision;
+};
+export type TaskCompleted11 = {
+  status: "completed";
+};
+export type TaskCancelled11 = {
+  status: "cancelled";
+};
+export type TaskFailed11 = {
+  status: "failed";
+  error: WorkspaceFault11;
+};
+export type TerminalState11 = TaskCompleted11 | TaskCancelled11 | TaskFailed11;
+export type ExportedBar11 = {
+  time_ms?: Timestamp;
+  trading_day?: string;
+  open?: number;
+  high?: number;
+  low?: number;
+  close?: number;
+  volume?: (number | null);
+  is_closed?: boolean;
+};
+export type ExportField11 = "time_ms" | "trading_day" | "open" | "high" | "low" | "close" | "volume" | "is_closed";
+export type ProjectedChart11 = {
+  source_reference: OpaqueId;
+  revision: OpaqueId;
+  fields: Array<ExportField11>;
+  rows: Array<ExportedBar11>;
+};
+export type ProjectedReadIntent11 = {
+  operation: "workspace.readChartProjection";
+  workspace_id: OpaqueId;
+  selection_revision: Revision;
+  requested_fields: Array<ExportField11>;
+};
+export type BoundMutationIntent11 = {
+  scope: MutationScope11;
+  intent: MutationIntent11;
+};
+export type MarketHistoryPageToolCall11 = {
+  operation: "market.readHistoryPage";
+  arguments: MarketHistoryPageInput;
+};
+export type SelectEvidenceIntent11 = {
+  operation: "workspace.selectEvidence";
+  workspace_id: OpaqueId;
+  expected_selection_revision: Revision;
+  target: (EvidenceTarget11 | null);
+};
+export type AiRequestedAction11 = BoundMutationIntent11 | ProjectedReadIntent11 | InstrumentSearchToolCall | MarketGetBarsToolCall | WorkspaceGetContextToolCall | TaskCancelToolCall | MarketHistoryPageToolCall11 | SelectEvidenceIntent11;
+export type ToolReadResult11 = {
+  status: "read";
+  view: ProjectedChart11;
+};
+export type ToolCommittedResult11 = {
+  status: "committed";
+  operation_id: OpaqueId;
+  committed_workspace_revision: Revision;
+  undoable: boolean;
+};
+export type ToolRefResult11 = {
+  status: "available";
+  result_ref: OpaqueId;
+};
+export type ToolDeniedResult11 = {
+  status: "denied" | "failed" | "cancelled";
+  error: WorkspaceFault11;
+};
+export type AiToolOutcome11 = ToolReadResult11 | ToolCommittedResult11 | ToolRefResult11 | ToolDeniedResult11;
+export type InlineIndicatorBars11 = {
+  mode: "inline";
+  bars: Array<Bar>;
+};
+export type SegmentedIndicatorBars11 = {
+  mode: "segmented";
+  total_bars: number;
+  segment_count: number;
+};
+export type IndicatorBarsInput11 = InlineIndicatorBars11 | SegmentedIndicatorBars11;
+export type LegacyOperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext";
+export type ProjectedChartArguments11 = {
+  workspace_id: OpaqueId;
+  selection_revision: Revision;
+  requested_fields: Array<ExportField11>;
+};
+export type SelectEvidenceArguments11 = {
+  workspace_id: OpaqueId;
+  expected_selection_revision: Revision;
+  target: (EvidenceTarget11 | null);
+};
+export type ProjectedChartReply11 = ProjectedChartResponse11 | ProjectedChartError11;
+export type SelectEvidenceReply11 = SharedSelectionResponse11 | SharedSelectionError11;
+export type SharedContext11 = {
+  workspace_id: OpaqueId;
+  workspace_revision: Revision;
+  selection: SharedSelection11;
+  chart: (ProjectedChart11 | null);
+  authorized_operations: Array<OperationName>;
+};
+export type SharedContextReply11 = SharedContextResponse11 | SharedContextError11;
+export type CancelTaskReply11 = CancelTaskResponse11 | CancelTaskError11;
+export type WorkspaceOpenInstrumentCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  scope: MutationScope11;
+  intent: WorkspaceOpenInstrumentIntent11;
+};
+export type WorkspaceOpenInstrumentOutcome11 = WorkspaceOpenInstrumentCommitted11 | NeedsHumanDecision11 | ScopedFailure11;
+export type WorkspaceOpenInstrumentReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  outcome: WorkspaceOpenInstrumentOutcome11;
+};
+export type ChartSetTimeframeCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  scope: MutationScope11;
+  intent: ChartSetTimeframeIntent11;
+};
+export type ChartSetTimeframeOutcome11 = ChartSetTimeframeCommitted11 | NeedsHumanDecision11 | ScopedFailure11;
+export type ChartSetTimeframeReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  outcome: ChartSetTimeframeOutcome11;
+};
+export type ChartSetStyleCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  scope: MutationScope11;
+  intent: ChartSetStyleIntent11;
+};
+export type ChartSetStyleOutcome11 = ChartSetStyleCommitted11 | NeedsHumanDecision11 | ScopedFailure11;
+export type ChartSetStyleReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  outcome: ChartSetStyleOutcome11;
+};
+export type ChartAddAnnotationCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  scope: MutationScope11;
+  intent: ChartAddAnnotationIntent11;
+};
+export type ChartAddAnnotationOutcome11 = ChartAddAnnotationCommitted11 | NeedsHumanDecision11 | ScopedFailure11;
+export type ChartAddAnnotationReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  outcome: ChartAddAnnotationOutcome11;
+};
+export type ChartRemoveLayerCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  scope: MutationScope11;
+  intent: ChartRemoveLayerIntent11;
+};
+export type ChartRemoveLayerOutcome11 = ChartRemoveLayerCommitted11 | NeedsHumanDecision11 | ScopedFailure11;
+export type ChartRemoveLayerReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  outcome: ChartRemoveLayerOutcome11;
+};
+export type IndicatorCreateDraftCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  scope: MutationScope11;
+  intent: IndicatorCreateDraftIntent11;
+};
+export type IndicatorCreateDraftOutcome11 = IndicatorCreateDraftCommitted11 | NeedsHumanDecision11 | ScopedFailure11;
+export type IndicatorCreateDraftReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  outcome: IndicatorCreateDraftOutcome11;
+};
+export type IndicatorRunPreviewCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  scope: MutationScope11;
+  intent: IndicatorRunPreviewIntent11;
+};
+export type IndicatorRunPreviewOutcome11 = IndicatorRunPreviewCommitted11 | NeedsHumanDecision11 | ScopedFailure11;
+export type IndicatorRunPreviewReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  outcome: IndicatorRunPreviewOutcome11;
+};
+export type IndicatorAcceptVersionCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  scope: MutationScope11;
+  intent: IndicatorAcceptVersionIntent11;
+};
+export type IndicatorAcceptVersionOutcome11 = IndicatorAcceptVersionCommitted11 | NeedsHumanDecision11 | ScopedFailure11;
+export type IndicatorAcceptVersionReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  outcome: IndicatorAcceptVersionOutcome11;
+};
+export type IndicatorRemoveCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  scope: MutationScope11;
+  intent: IndicatorRemoveIntent11;
+};
+export type IndicatorRemoveOutcome11 = IndicatorRemoveCommitted11 | NeedsHumanDecision11 | ScopedFailure11;
+export type IndicatorRemoveReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  outcome: IndicatorRemoveOutcome11;
+};
+export type WorkspaceUndoCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  scope: MutationScope11;
+  intent: WorkspaceUndoIntent11;
+};
+export type WorkspaceUndoOutcome11 = WorkspaceUndoCommitted11 | NeedsHumanDecision11 | ScopedFailure11;
+export type WorkspaceUndoReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  outcome: WorkspaceUndoOutcome11;
+};
+export type HistoryPageReply11 = MarketHistoryPageResponse | MarketHistoryPageError;

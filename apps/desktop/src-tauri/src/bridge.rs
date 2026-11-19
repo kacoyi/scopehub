@@ -29,8 +29,6 @@ pub async fn execute_operation(
         return Err(failure(ErrorCode::PERMISSIONDENIED));
     }
     // Do not create an unbounded queue of requests in the native process.
-    let mut registry = state
-        .try_lock()
-        .map_err(|_| failure(ErrorCode::RESOURCELIMIT))?;
+    let mut registry = state.try_lock().map_err(|_| failure(ErrorCode::BUSY))?;
     registry.execute(Actor::User, &operation, payload).await
 }

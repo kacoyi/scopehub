@@ -70,6 +70,30 @@ fn shared_vectors_and_generated_types_agree() {
                     assert_eq!(operation, original["payload"]["operation"]);
                     tools.insert(operation);
                 }
+                Message::MarketHistoryPageRequest(_) => {
+                    requests.insert("market.readHistoryPage");
+                }
+                Message::ReadProjectedChart11(_) => {
+                    requests.insert("workspace.readChartProjection");
+                }
+                Message::SharedSelectionRequest11(_) => {
+                    requests.insert("workspace.selectEvidence");
+                }
+                Message::AiToolRequest11(call) => {
+                    use scopehub_domain::protocol::AiRequestedAction11;
+                    match &call.payload {
+                        AiRequestedAction11::MarketHistoryPageToolCall11(_) => {
+                            tools.insert("market.readHistoryPage");
+                        }
+                        AiRequestedAction11::ProjectedReadIntent11(_) => {
+                            tools.insert("workspace.readChartProjection");
+                        }
+                        AiRequestedAction11::SelectEvidenceIntent11(_) => {
+                            tools.insert("workspace.selectEvidence");
+                        }
+                        _ => {}
+                    }
+                }
                 Message::Heartbeat(heartbeat) if example.get("expected_timestamp").is_some() => {
                     assert_eq!(
                         heartbeat.timestamp_ms,
@@ -86,6 +110,13 @@ fn shared_vectors_and_generated_types_agree() {
                 example["name"]
             );
             let serialized: Value = serde_json::from_slice(&encoded).unwrap();
+            if original["operation"] == "workspace.readChartProjection"
+                && original["type"] == "response"
+            {
+                // Missing fields are withheld. A granted field with explicit null is
+                // an unknown observation and must survive deserialization distinctly.
+                assert_eq!(serialized["result"], original["result"]);
+            }
             if original.get("operation").is_some() {
                 assert_eq!(serialized["operation"], original["operation"]);
             }

@@ -43,7 +43,8 @@
       "Protect domain rules with independent examples, module collaboration with contract tests and critical user journeys with actual integrated behavior.",
       "Test boundary, failure, cancellation and recovery behavior proportional to risk. Builds and schema validation establish only their own scope.",
       "Keep expected values independent of implementation; do not refresh golden outputs merely to pass. Changed requirements need explicit rationale and revised relevant assertions.",
-      "Architecture checks enforce declared imports and dependencies, not complete design quality; inspect the actual diff and behavior."
+      "Architecture checks enforce declared imports and dependencies, not complete design quality; inspect the actual diff and behavior.",
+      "Use current-contract task dependencies to schedule work. Complete physical Windows experience after Ubuntu-local acceptance; external-session and packaged-release gates require independent evidence."
     ],
     "evolution": [
       "For a refactor, replacement, migration or requirement reset, identify preserved and intentionally changed behavior, affected callers, data handling and cleanup before activation.",
@@ -251,7 +252,8 @@
       "responsibility": "Synthetic market acquisition and future replaceable data adapters.",
       "public_entries": [
         "python/providers/history.py",
-        "python/providers/simulated.py"
+        "python/providers/simulated.py",
+        "python/providers/history_pages.py"
       ],
       "dependencies": [
         "domain"
@@ -396,7 +398,8 @@
         "M1-001",
         "M1-003",
         "M1-005",
-        "M1-010"
+        "M1-010",
+        "M1-014"
       ],
       "delivery": "current-contract",
       "boundary": "Synthetic history is implemented. M1-010 covers local browser access for development. Streaming and recovery remain pending."
@@ -624,7 +627,7 @@
       "owner": "ui",
       "writer": "ui",
       "status": "implemented",
-      "rule": "Current selection controls presentation; delayed responses cannot change newer intent."
+      "rule": "The UI owns hover, focus, pan, unsaved viewport and current visual intent. Ignore superseded asynchronous reads. Published evidence selection and mutation targets belong to the application."
     },
     {
       "id": "chart-resources",
@@ -639,6 +642,13 @@
       "writer": "development-tooling",
       "status": "implemented",
       "rule": "Validate definitions and archive observed evidence; preserve accepted history."
+    },
+    {
+      "id": "shared-evidence-selection",
+      "owner": "application",
+      "writer": "application",
+      "status": "planned",
+      "rule": "Publish an explicitly chosen versioned evidence target and selection token. Revalidate that token independently of the durable workspace revision for target-dependent operations."
     }
   ]
 }

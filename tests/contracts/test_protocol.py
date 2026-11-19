@@ -43,6 +43,28 @@ class ProtocolTests(unittest.TestCase):
                 list(validator.iter_errors(None))
         Draft202012Validator.check_schema(SCHEMA)
 
+    def test_versioned_discovery_retains_legacy_payloads_and_selects_the_exact_command(self):
+        registry = Registry().with_resource(SCHEMA['$id'], Resource.from_contents(SCHEMA))
+        manifest = json.loads((ROOT / 'contracts/contract.json').read_text())
+        examples = {case['name']: json.loads(case['wire']) for case in json.loads(
+            (ROOT / 'tests/fixtures/protocol-cases.json').read_text()) if case.get('valid')}
+        for operation in manifest['operations']:
+            for version, binding in operation.get('wire_bindings', {}).items():
+                for direction, definition in binding.items():
+                    file = ROOT / 'contracts/schemas/operations' / f'{operation["name"]}.v{version}.{direction}.schema.json'
+                    self.assertEqual(json.loads(file.read_text())['$ref'], f'{SCHEMA["$id"]}#/$defs/{definition}')
+        def validates(name, direction, message):
+            file = ROOT / 'contracts/schemas/operations' / f'{name}.v1.1.{direction}.schema.json'
+            return Draft202012Validator(json.loads(file.read_text()), registry=registry).is_valid(message)
+        self.assertTrue(validates('chart.addAnnotation','input',examples['1.1 scoped annotation']))
+        self.assertTrue(validates('chart.addAnnotation','output',examples['1.1 committed annotation supplies undo identity']))
+        self.assertFalse(validates('chart.setStyle','input',examples['1.1 scoped annotation']))
+        self.assertFalse(validates('chart.setStyle','output',examples['1.1 committed annotation supplies undo identity']))
+        self.assertTrue(validates('indicator.runPreview','input',examples['1.1 frozen indicator input']))
+        self.assertTrue(validates('indicator.acceptVersion','input',examples['1.1 immutable preview acceptance']))
+        self.assertTrue(validates('workspace.readChartProjection','output',examples['1.1 only permitted quote field exported']))
+        self.assertFalse(validates('chart.addAnnotation','input',examples['1.1 human confirms a core-issued challenge']))
+
 
 if __name__ == '__main__':
     unittest.main()

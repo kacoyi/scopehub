@@ -16,11 +16,11 @@ def frame(**payload):
     return (json.dumps({**BASE, **payload}) + '\n').encode()
 
 
-def worker(data, role='market'):
+def worker(data, role='market', extra_args=()):
     env = {key: value for key, value in os.environ.items() if key.upper() in {'SYSTEMROOT', 'WINDIR', 'TEMP', 'TMP'}}
     env['PYTHONPATH'] = os.pathsep.join([str(ROOT), str(ROOT / 'python')])
     env['PYTHONIOENCODING'] = 'utf-8'
-    with subprocess.Popen([sys.executable, '-m', 'worker_runtime', '--role', role], cwd=ROOT,
+    with subprocess.Popen([sys.executable, '-m', 'worker_runtime', '--role', role, *extra_args], cwd=ROOT,
                           env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
         try:
             stdout, stderr = process.communicate(data, timeout=10)
@@ -40,6 +40,32 @@ class WorkerTests(unittest.TestCase):
                 self.assertEqual(len(messages), 1)
                 self.assertEqual(messages[0]['role'], role)
                 self.assertEqual(messages[0]['capabilities'], [])
+
+    def test_old_host_and_negotiated_worker_advertise_only_working_operations(self):
+        legacy = worker(b'', extra_args=('--demo',))[1][0]
+        self.assertEqual(legacy['protocol_version'], '1.0')
+        self.assertEqual(legacy['supported_protocols'], ['1.0'])
+        self.assertEqual(set(legacy['capabilities']), {'instrument.search', 'market.getBars'})
+        current = worker(b'', extra_args=('--wire-version', '1.1', '--demo'))[1][0]
+        self.assertEqual(current['protocol_version'], '1.1')
+        self.assertEqual(set(current['capabilities']), {'instrument.search', 'market.getBars', 'market.readHistoryPage'})
+        for role in ['ai','indicator']:
+            hello = worker(b'', role, ('--wire-version', '1.1'))[1][0]
+            self.assertEqual(hello['capabilities'], [])
+
+    def test_task_cancel_is_bound_to_the_owned_read_request(self):
+        example = next(x for x in json.loads((ROOT/'tests/fixtures/protocol-cases.json').read_text()) if x['name']=='versioned history page')
+        request = json.loads(example['wire'])
+        task = '00000000-0000-4000-8000-000000000099'
+        request['task_id'] = task
+        cancel = dict(BASE, protocol_version='1.1', type='cancel', task_id=task,request_id=request['request_id'])
+        def line(message):
+            return json.dumps(message).encode() + b'\n'
+        code, replies, _ = worker(line(cancel)+line(request)+line(dict(cancel,task_id=REQUEST_ID)), extra_args=('--wire-version','1.1','--demo'))
+        self.assertEqual(code, 0)
+        self.assertEqual(replies[1]['error']['code'], 'CANCELLED')
+        self.assertEqual(replies[1], replies[2])
+        self.assertEqual(replies[3]['error']['code'], 'PERMISSION_DENIED')
 
     def test_heartbeat(self):
         code, messages, _ = worker(frame(type='heartbeat'))

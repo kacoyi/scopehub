@@ -358,6 +358,59 @@
       "command": null,
       "timeout_seconds": 1800,
       "cadence": "release"
+    },
+    {
+      "id": "market-live-stream",
+      "status": "planned",
+      "purpose": "Verify the identity and sequence of one bounded stream through the shared registry and rendered chart, including selection changes and final bar.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 900,
+      "cadence": "change"
+    },
+    {
+      "id": "market-quality-states",
+      "status": "planned",
+      "purpose": "Verify each market connection and data-quality transition independently of the full three-instrument workflow.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 900,
+      "cadence": "change"
+    },
+    {
+      "id": "ubuntu-workspace-observation",
+      "status": "implemented",
+      "purpose": "Validate the retained actual Ubuntu-local integrated workspace observation, offline journeys and external-session disposition.",
+      "platforms": "all",
+      "command": [
+        "{python}",
+        "scripts/verification_evidence.py",
+        "ubuntu-workspace-observation"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
+      "id": "physical-windows-workspace",
+      "status": "implemented",
+      "purpose": "Validate the physical Windows dual-boot native WebView2 session, inputs, observed actions, OS build, screenshots and source revision.",
+      "platforms": "windows-x64",
+      "command": [
+        "{python}",
+        "scripts/verification_evidence.py",
+        "physical-windows-workspace"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
+      "id": "configured-market-source",
+      "status": "planned",
+      "purpose": "Observe an authorized real market source, specific route, dataset revision and permitted use.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 900,
+      "cadence": "task"
     }
   ],
   "milestones": [

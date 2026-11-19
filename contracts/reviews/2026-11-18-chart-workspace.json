@@ -1,0 +1,16 @@
+{
+  "recorded_at": "2026-11-18",
+  "kind": "owner_product_experience_decision",
+  "task_id": "M1-014",
+  "reference": {
+    "name": "TradingView Supercharts",
+    "url": "https://www.tradingview.com/chart/",
+    "use": "First-screen organization and familiar chart interactions."
+  },
+  "owner_direction": "The workspace sketch was far from the intended experience. Open into the chart workspace and follow the Supercharts layout and interaction model. Include icons only for actions ScopeHub actually offers.",
+  "contract": "engineering-contract-v1.json#/ui",
+  "startup": "A bare, unconfigured launch presents the chart workspace and an explicit Open offline sample action. It does not issue application operations. Choosing the sample or deliberately opening #demo loads the labeled synthetic data through the existing registry.",
+  "presentation": "Use the main area for chart and volume. Put instrument, timeframe and chart style above it, with instrument selection and data inspection on the right and essential chart tools on the left. AI, tasks and diagnostics use space when requested.",
+  "observed_feedback": "The owner evaluated the discussion sketch. The implemented workspace still requires engineering observation and any subsequent owner feedback.",
+  "platform_sequence": "Continue on Ubuntu. The physical Windows trial remains planned after overall Ubuntu verification in M1-012."
+}

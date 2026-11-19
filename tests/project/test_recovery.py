@@ -220,7 +220,7 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual(original, (snapshot.parent / 'originals/project/tasks.json').read_bytes())
 
     def test_harness_import_failures_preserve_original_error_and_old_report(self):
-        self.scripts('check.py', 'recovery.py', 'doctor.py', 'processes.py')
+        self.scripts('check.py', 'recovery.py', 'doctor.py', 'processes.py', 'verification_evidence.py')
         latest = (self.root / '.reports/test-report.json').read_bytes()
         for source, expected in [('import jsonschema\n', 'ModuleNotFoundError'),
                                  ('not valid Python !!!\n', 'SyntaxError')]:
@@ -238,11 +238,11 @@ class RecoveryTests(unittest.TestCase):
                 self.assertEqual((self.root / '.reports/test-report.json').read_bytes(), latest)
 
     def test_failure_before_run_creation_is_preserved(self):
-        self.scripts('check.py', 'recovery.py', 'doctor.py', 'processes.py')
+        self.scripts('check.py', 'recovery.py', 'doctor.py', 'processes.py', 'verification_evidence.py')
         # A minimal project interface isolates the entry point from the live task ledger.
         (self.root / 'scripts/project.py').write_text(
             'class ProjectError(Exception): pass\n'
-            'file_digest = project_definition_hash = product_progress = None\n'
+            'file_digest = project_definition_hash = product_progress = local_path = read_json = None\n'
             'source_identity = task_definition_hash = validate_model = windows_x64 = None\n'
             'def load_project(root): raise ProjectError("malformed task ledger")\n', encoding='utf-8')
         process = self.invoke('check.py')
@@ -254,7 +254,7 @@ class RecoveryTests(unittest.TestCase):
         self.assertFalse((self.root / '.reports/runs').exists())
 
     def test_bootstrap_failure_retains_explicit_task_instead_of_unrelated_focus(self):
-        self.scripts('check.py', 'recovery.py', 'doctor.py', 'processes.py')
+        self.scripts('check.py', 'recovery.py', 'doctor.py', 'processes.py', 'verification_evidence.py')
         (self.root / 'scripts/project.py').write_text('import jsonschema\n', encoding='utf-8')
         for arguments in [('--task', 'TEST-002'), ('--task=TEST-002',)]:
             with self.subTest(arguments=arguments):

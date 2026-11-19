@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "id": "0010",
+  "title": "Bind calculation, authorization and acceptance to identifiable inputs",
+  "status": "accepted",
+  "recorded_at": "2026-11-18",
+  "context": "The whole-contract review found that a mutable dataset descriptor, a request ID and an arbitrary passing report could each identify multiple different outcomes.",
+  "decision": "Use immutable bounded market inputs, correlated asynchronous terminal messages and a separate core-authorized mutation identity. Bind task and release evidence to effective owner decisions, the actual platform, source revision and retained observations. Preserve explicit synthetic selection as a local preference. Never substitute an unavailable source.",
+  "authority": "ADR 0007 assigns engineering choices to the development AI. The owner selected restart behavior, deletion and backup handling, permitted data uses and platform qualification order on 2026-11-18.",
+  "alternatives": [
+    {
+      "option": "Identify inputs by dataset revision alone.",
+      "reason": "A selected window, warm-up range or open-bar observation can change the calculation even within one dataset revision."
+    },
+    {
+      "option": "Gate Windows exploration on all paid real sessions.",
+      "reason": "The owner requires local Ubuntu qualification first and requires the paid or connected real sessions at release."
+    }
+  ],
+  "consequences": [
+    "New wire behavior must negotiate support and keep legacy reads usable. Registration, authorization and implemented behavior have separate states.",
+    "Current synthetic reads and release qualification logic get executable regressions. Future product journeys retain distinct implementation and real-environment gates."
+  ],
+  "supersedes": [],
+  "related_decisions": [
+    "0002",
+    "0004",
+    "0007",
+    "0008",
+    "0009"
+  ],
+  "revisit_when": "A concrete provider cannot freeze or identify its input, a new data use is proposed, or live qualification requires a different evidence chain.",
+  "references": {
+    "owner_decisions": [
+      "contracts/reviews/2026-11-18-contract-closure.json"
+    ],
+    "engineering": [
+      "engineering-contract-v1.json",
+      "contracts/schemas/protocol.schema.json",
+      "project/delivery.json"
+    ]
+  }
+}

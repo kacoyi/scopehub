@@ -5,6 +5,7 @@ from datetime import date, datetime, timezone
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 
@@ -61,6 +62,8 @@ def project_definition_hash(project):
     # Definitions and decisions must not change underneath the observed checks.
     definition = {'tasks': {key: task_definition_hash(task) for key, task in project['tasks'].items()},
                   'decisions': project['decisions']}
+    if project.get('owner_decisions'):
+        definition['owner_decisions'] = project['owner_decisions']
     return digest(json.dumps(definition, sort_keys=True, separators=(',', ':')).encode('utf-8'))
 
 
@@ -281,6 +284,25 @@ def load_project(root=ROOT):
     project = {'spec': spec, 'ledger': ledger, 'catalog': catalog, 'tasks': tasks, 'checks': checks,
                'decisions': decisions, 'decision_paths': decision_paths, 'replacements': replacements}
     validate_delivery(root, project)
+    decision_inputs = spec.get('repository', {}).get('owner_decision_inputs', [])
+    if decision_inputs:
+        if __package__:
+            from .development import resolve_source
+        else:
+            from development import resolve_source
+        project['owner_decisions'] = {}
+        for ref in decision_inputs:
+            if (not isinstance(ref, dict) or not isinstance(ref.get('path'), str)
+                    or not ref['path'].startswith('contracts/reviews/') or not isinstance(ref.get('pointer'), str)
+                    or not ref['pointer'].startswith('/')):
+                raise ProjectError('Expected a repository owner-decision field reference')
+            key = ref['path'] + '#' + ref['pointer']
+            if key in project['owner_decisions']:
+                raise ProjectError(f'Duplicate owner-decision input: {key}')
+            try:
+                project['owner_decisions'][key] = resolve_source(root, ref)
+            except (OSError, ValueError, TypeError) as error:
+                raise ProjectError(f'Invalid owner decision input {key}: {error}') from error
     development_path = spec.get('repository', {}).get('development')
     if development_path:
         if __package__:
@@ -401,14 +423,14 @@ def maintenance_status(root=ROOT, today=None):
             'next_action': 'Open a bounded maintenance task when due; run fresh dependency-review for integration.'}
 
 
-def workfront(root=ROOT):
+def workfront(root=ROOT, *, report_path=None):
     if __package__:
         from .development import evidence_view
     else:
         from development import evidence_view
     project = load_project(root)
     source = source_identity(root)
-    report_path = root / '.reports/test-report.json'
+    report_path = report_path or root / '.reports/test-report.json'
     report_error = None
     report = None
     try:
@@ -519,11 +541,160 @@ def checkpoint(root=ROOT):
     }
 
 
-def readiness(root=ROOT):
+def verified_main(root, candidate, ci):
+    if __package__:
+        from .ci import WORKFLOW, classify_runs, command, github_identity
+    else:
+        from ci import WORKFLOW, classify_runs, command, github_identity
+    repository = github_identity(root)
+    policy = read_json(root / 'project/branch-protection.json')
+    if repository != policy['repository'] or (ci and ci['repository'] != repository):
+        raise ProjectError('Release evidence belongs to another repository')
+    branch = policy['branch']
+    endpoint = f'repos/{repository}'
+
+    def main_head():
+        return command(['gh', 'api', f'{endpoint}/git/ref/heads/{branch}', '--jq', '.object.sha'], root)
+
+    if main_head() != candidate:
+        raise ProjectError('The candidate is not the current main commit')
+    response = json.loads(
+        command(
+            [
+                'gh',
+                'api',
+                '--method',
+                'GET',
+                f'{endpoint}/actions/runs',
+                '-f',
+                f'branch={branch}',
+                '-f',
+                'event=push',
+                '-f',
+                f'head_sha={candidate}',
+                '-f',
+                'per_page=100',
+            ],
+            root,
+        )
+    )
+    runs = [
+        run
+        for run in response['workflow_runs']
+        if run.get('head_branch') == branch and run.get('event') == 'push'
+    ]
+    observed = classify_runs(runs, candidate)
+    if observed['status'] != 'passed':
+        raise ProjectError('Main push verification for the candidate has not passed')
+    if ci:
+        run = json.loads(
+            command(
+                ['gh', 'api', f'{endpoint}/actions/runs/{ci["run_id"]}/attempts/{ci["run_attempt"]}'], root
+            )
+        )
+        if (
+            str(run.get('id')) != ci['run_id']
+            or str(run.get('run_attempt')) != ci['run_attempt']
+            or run.get('path') != WORKFLOW
+            or run.get('event') != 'workflow_dispatch'
+            or run.get('head_sha') != candidate
+            or run.get('head_branch') != branch
+            or run.get('status') != 'completed'
+            or run.get('conclusion') != 'success'
+        ):
+            raise ProjectError('The downloaded run does not match successful release CI for this candidate')
+    if main_head() != candidate:
+        raise ProjectError('Main changed during candidate verification')
+    return observed['run']
+
+
+def verified_candidate_files(root, project, report, results, source, report_path, artifact_root, candidate):
+    if __package__:
+        from .verification_evidence import (
+            release_artifacts,
+            collect_session,
+            integration_validation,
+            SESSION_CHECKS,
+        )
+    else:
+        from verification_evidence import (
+            release_artifacts,
+            collect_session,
+            integration_validation,
+            SESSION_CHECKS,
+        )
+    reports_root = (root / '.reports').resolve()
+    origin = reports_root
+    protected_download = report_path.is_relative_to(reports_root / 'ci')
+    if artifact_root is not None:
+        if not report.get('ci'):
+            raise ProjectError('A downloaded release report requires CI provenance')
+        origin = (root / artifact_root).resolve()
+        expected_dir = reports_root / 'ci' / report['ci']['run_id'] / 'windows'
+        if origin != expected_dir or report_path != origin / 'test-report.json':
+            raise ProjectError('Expected the isolated Windows artifact for the observed workflow run')
+        if (
+            report['ci']['event'] != 'workflow_dispatch'
+            or report['ci']['head_sha'] != candidate
+            or report['ci']['checkout_sha'] != candidate
+        ):
+            raise ProjectError(
+                'Hosted release evidence must describe this candidate and its release workflow'
+            )
+    elif protected_download or report.get('ci') and report_path != reports_root / 'test-report.json':
+        raise ProjectError('Specify the downloaded CI artifact root')
+    run_id = report['run_id']
+    if not re.fullmatch(r'[a-zA-Z0-9_-][a-zA-Z0-9._-]*', run_id):
+        raise ProjectError('Invalid release run identifier')
+    run_dir = local_path(origin, 'runs/' + run_id)
+    if artifact_root is None and report_path not in {
+        reports_root / 'test-report.json',
+        run_dir / 'test-report.json',
+    }:
+        raise ProjectError('Expected the retained local report or its original per-run copy')
+    applicable = {
+        key
+        for key, item in project['checks'].items()
+        if item['status'] != 'retired' and item.get('cadence') != 'task'
+    }
+    if set(report['selection'].get('checks', [])) != applicable:
+        raise ProjectError('The release report did not select all applicable candidate checks')
+    for key in applicable:
+        check = project['checks'][key]
+        result = results.get(key, {})
+        command = [
+            report['environment']['python_executable'] if arg == '{python}' else arg
+            for arg in check['command'] or []
+        ]
+        if (
+            check['status'] != 'implemented'
+            or result.get('status') != 'passed'
+            or result.get('command') != command
+            or result.get('exit_code') != 0
+            or result.get('log') != f'.reports/runs/{run_id}/{key}.log'
+            or file_digest(local_path(run_dir, key + '.log')) != result.get('log_sha256')
+        ):
+            raise ProjectError(f'Missing or changed release check evidence: {key}')
+        if key in SESSION_CHECKS and result.get('observation') != collect_session(run_dir, key, source):
+            raise ProjectError(f'Changed external-session evidence: {key}')
+    if report.get('integration_validation') != integration_validation(results.values()):
+        raise ProjectError('The integration summary does not match the observed sessions')
+    if not isinstance(report.get('candidate_artifacts'), dict):
+        raise ProjectError('Release report lacks bound installer and manifest digests')
+    return release_artifacts(
+        run_dir, source, project['spec']['acceptance']['performance'], expected=report['candidate_artifacts']
+    )
+
+
+def readiness(root=ROOT, *, report_path=None, artifact_root=None, candidate=None):
     project = load_project(root)
-    state = workfront(root)
+    report_path = (root / (report_path or '.reports/test-report.json')).resolve()
+    reports_root = (root / '.reports').resolve()
+    if not report_path.is_relative_to(reports_root):
+        raise ProjectError('Release reports must be retained under .reports/')
+    state = workfront(root, report_path=report_path)
     current = state['verification']['current']
-    report = read_json(root / '.reports/test-report.json') if current else {}
+    report = read_json(report_path) if current else {}
     results = indexed(report.get('checks', []), 'check result')
     scenarios = [{**item, 'verification': summarize_verification(item['checks'], results)}
                  for item in project['delivery']['scenarios']]
@@ -553,7 +724,20 @@ def readiness(root=ROOT):
         blockers.append('Contract acceptance is incomplete.')
     if any(item['status'] == 'failed' for item in results.values()):
         blockers.append('The current report contains failed checks.')
+    candidate = candidate or state['source']['git_head']
+    if (not isinstance(candidate, str) or not re.fullmatch(r'(?:[a-f0-9]{40}|[a-f0-9]{64})', candidate)
+            or candidate != state['source']['git_head']):
+        blockers.append('Expected the exact candidate commit checked out locally.')
+    verified_candidate = None
+    if not blockers:
+        try:
+            verified_candidate = verified_candidate_files(root, project, report, results, state['source'],
+                                                         report_path, artifact_root, candidate)
+            verified_candidate['main_ci'] = verified_main(root, candidate, report.get('ci'))
+        except (ProjectError, OSError, subprocess.SubprocessError, ValueError, TypeError, KeyError) as error:
+            blockers.append(str(error))
     return {'status': 'blocked' if blockers else 'passed', 'release_ready': not blockers,
+            'candidate_commit': candidate, 'candidate_evidence': verified_candidate if not blockers else None,
             'technical_ready': not blockers, 'authorization': 'not_evaluated',
             'recommendation': 'complete_release_gates' if blockers else 'present_release_proposal',
             'verification': state['verification'], 'scenarios': scenarios, 'blockers': blockers,
@@ -678,7 +862,12 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
     if any(project['tasks'][key]['status'] != 'done' for key in task['depends_on']):
         raise ProjectError('Task completion has unfinished dependencies')
     results = indexed(report['checks'], 'report check')
+    if __package__:
+        from .verification_evidence import FIELD_ACTIONS, field_observation
+    else:
+        from verification_evidence import FIELD_ACTIONS, field_observation
     selected = []
+    field_records = {}
     for key in task['checks']:
         result = results.get(key, {})
         if project['checks'][key]['status'] != 'implemented' or result.get('status') != 'passed' or result.get('exit_code') != 0:
@@ -695,6 +884,11 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
                if artifact_root is not None else local_path(root, result['log']))
         if not log.is_file():
             raise ProjectError(f'Missing verification log: {key}')
+        if key in FIELD_ACTIONS:
+            observed = field_observation(root, key, artifact_root)
+            if result.get('field_observation') != observed:
+                raise ProjectError(f'Field observation changed after verification: {key}')
+            field_records[key] = observed
         log_hash = file_digest(log)
         if result.get('log_sha256') != log_hash:
             raise ProjectError(f'Verification log changed after the run: {key}')
@@ -708,6 +902,8 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
         'project_definition_sha256': report['project_definition_sha256'],
         'claim_scope': 'Completed task at the recorded execution inputs; not a release or current-worktree guarantee.',
     }
+    if field_records:
+        receipt['field_observations'] = field_records
     if ci:
         receipt['ci'] = ci
     validate_model(root, 'Evidence', receipt)
@@ -740,7 +936,10 @@ def main():
     source = sub.add_parser('source', help='Read one authoritative JSON section without expanding unrelated records')
     source.add_argument('path')
     source.add_argument('pointer', nargs='?', default='')
-    sub.add_parser('readiness')
+    ready = sub.add_parser('readiness')
+    ready.add_argument('--candidate', help='Exact release candidate commit')
+    ready.add_argument('--report', type=Path, help='Retained Windows release report')
+    ready.add_argument('--artifact-root', type=Path, help='Isolated downloaded Windows CI artifact directory')
     sub.add_parser('checkpoint')
     history = sub.add_parser('history')
     history.add_argument('--base', default=os.environ.get('SCOPEHUB_REVIEW_BASE'))
@@ -779,7 +978,7 @@ def main():
             except ValueError as error:
                 raise ProjectError(str(error)) from error
         elif args.command == 'readiness':
-            result = readiness()
+            result = readiness(report_path=args.report, artifact_root=args.artifact_root, candidate=args.candidate)
         elif args.command == 'history':
             result = review_history(ROOT, args.base)
             checkpoint_base = os.environ.get('SCOPEHUB_CHECKPOINT_BASE')

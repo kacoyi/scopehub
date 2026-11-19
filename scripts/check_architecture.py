@@ -213,7 +213,9 @@ def main():
         for direction in ['input', 'output']:
             if actual[name][direction] not in schema['$defs']:
                 errors.append(f'Missing operation schema: {name}.{direction}')
-    if schema['$defs']['ProtocolVersion']['const'] != spec['protocol']['version']:
+    if (schema['$defs']['ProtocolVersion11']['const'] != spec['protocol']['version']
+            or schema['$defs']['ProtocolVersion']['const'] != '1.0'
+            or manifest['protocol_version'] != spec['protocol']['version']):
         errors.append('Protocol version drift')
     for name, definition in schema['$defs'].items():
         if definition.get('type') == 'object' and name != 'Metadata' and definition.get('additionalProperties') is not False:

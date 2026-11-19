@@ -1,15 +1,25 @@
 //! Shared operation entry for trusted transports. Historical reads only.
 
+mod history;
+
 use std::{collections::HashSet, future::Future, pin::Pin, sync::LazyLock};
 
 use scopehub_domain::{
-    protocol::{Error, ErrorCode, InstrumentSearchOutput, MarketGetBarsInput, MarketGetBarsOutput},
+    protocol::{
+        DatasetDescriptor, Error, ErrorCode, Instrument, InstrumentSearchOutput,
+        MarketGetBarsInput, MarketGetBarsOutput, MarketHistoryPageInput, MarketHistoryPageOutput,
+    },
     wire::{SCHEMA, normalize_integers},
 };
 use serde_json::{Value, json};
 
 pub const DEMO_PROVIDER: &str = "scopehub.synthetic";
-pub const READ_OPERATIONS: [&str; 2] = ["instrument.search", "market.getBars"];
+pub const LEGACY_READ_OPERATIONS: [&str; 2] = ["instrument.search", "market.getBars"];
+pub const READ_OPERATIONS: [&str; 3] = [
+    "instrument.search",
+    "market.getBars",
+    "market.readHistoryPage",
+];
 
 /// Assigned by the transport, never deserialized from a worker or UI payload.
 #[derive(Clone, Copy)]
@@ -40,11 +50,16 @@ pub fn failure(code: ErrorCode) -> Error {
         ErrorCode::WORKEREXITED => "The market worker is unavailable.",
         ErrorCode::OUTPUTINVALID => "The market response failed validation.",
         ErrorCode::PROTOCOLMISMATCH => "The market worker is incompatible.",
+        ErrorCode::BUSY => "The market worker is busy.",
+        ErrorCode::SNAPSHOTUNAVAILABLE => "The requested market snapshot is unavailable.",
         ErrorCode::RESOURCELIMIT => "The market request exceeded a resource limit.",
         _ => "The operation could not be completed.",
     };
     Error {
-        retryable: matches!(code, ErrorCode::TIMEOUT | ErrorCode::WORKEREXITED),
+        retryable: matches!(
+            code,
+            ErrorCode::TIMEOUT | ErrorCode::WORKEREXITED | ErrorCode::BUSY
+        ),
         code,
         message: message.into(),
         details: Default::default(),
@@ -142,22 +157,132 @@ impl<P: MarketPort> MarketRegistry<P> {
             return Err(failure(ErrorCode::INVALIDARGUMENT));
         }
         normalize_integers(&mut payload);
-        if name == "market.getBars" {
-            if payload["from_ms"].as_f64() >= payload["to_ms"].as_f64() {
-                return Err(failure(ErrorCode::INVALIDARGUMENT));
-            }
-            if payload["provider_id"] != DEMO_PROVIDER {
-                return Err(failure(ErrorCode::PROVIDERNOTCONFIGURED));
-            }
+        if name == "instrument.search" {
+            let (value, _) = self.catalog(&payload).await?;
+            return Ok(value);
         }
-        let output = self.port.request(name, &payload).await?;
+        let series = if name == "market.getBars" {
+            &payload
+        } else {
+            &payload["series"]
+        };
+        if series["provider_id"] != DEMO_PROVIDER {
+            return Err(failure(ErrorCode::PROVIDERNOTCONFIGURED));
+        }
+        if payload["from_ms"].as_i64() >= payload["to_ms"].as_i64() {
+            return Err(failure(ErrorCode::INVALIDARGUMENT));
+        }
+        let page_input = if name == "market.readHistoryPage" {
+            let input: MarketHistoryPageInput = serde_json::from_value(payload.clone())
+                .map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
+            history::validate_page_input(&input)?;
+            Some(input)
+        } else {
+            None
+        };
+        let pinned = page_input
+            .as_ref()
+            .is_some_and(|i| i.snapshot.is_some() || i.expected_revision.is_some());
+        let read_error = |error: Error| {
+            if pinned
+                && matches!(
+                    error.code,
+                    ErrorCode::DATAUNAVAILABLE | ErrorCode::PROVIDERNOTCONFIGURED
+                )
+            {
+                failure(ErrorCode::SNAPSHOTUNAVAILABLE)
+            } else {
+                error
+            }
+        };
+        // Every read, including a direct AI call without a preceding search, is
+        // checked against a catalog entry from the same authorized source.
+        let (_, catalog) = self
+            .catalog(&json!({"query":series["instrument_id"],"limit":50}))
+            .await
+            .map_err(read_error)?;
+        let instrument = catalog
+            .instruments
+            .into_iter()
+            .find(|item| series["instrument_id"] == item.id)
+            .ok_or_else(|| read_error(failure(ErrorCode::DATAUNAVAILABLE)))?;
+        if let Some(input) = &page_input {
+            history::validate_series(&input.series, &instrument)?;
+        }
+        let (output, checked) = self
+            .checked_request(op, &payload)
+            .await
+            .map_err(read_error)?;
+        if let Some(input) = page_input {
+            let page: MarketHistoryPageOutput =
+                serde_json::from_value(checked).map_err(|_| failure(ErrorCode::OUTPUTINVALID))?;
+            validate_dataset(
+                &page.dataset,
+                &instrument,
+                &input.series.provider_id,
+                &input.series.timeframe,
+            )?;
+            history::validate_page(&input, &page)?;
+        } else {
+            let input: MarketGetBarsInput =
+                serde_json::from_value(payload).map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
+            let result: MarketGetBarsOutput =
+                serde_json::from_value(checked).map_err(|_| failure(ErrorCode::OUTPUTINVALID))?;
+            validate_dataset(
+                &result.dataset,
+                &instrument,
+                &input.provider_id,
+                &input.timeframe,
+            )?;
+            history::validate_bars(
+                &result.bars,
+                input.from_ms,
+                input.to_ms,
+                0,
+                0,
+                result.bars.len() as u64,
+            )?;
+        }
+        Ok(output)
+    }
+
+    async fn checked_request(
+        &mut self,
+        op: &Operation,
+        payload: &Value,
+    ) -> Result<(Value, Value), Error> {
+        let output = self.port.request(&op.name, payload).await?;
         if !op.output.is_valid(&output) {
             return Err(failure(ErrorCode::OUTPUTINVALID));
         }
         let mut checked = output.clone();
         normalize_integers(&mut checked);
-        validate_market(name, &payload, &checked)?;
-        Ok(output)
+        Ok((output, checked))
+    }
+
+    async fn catalog(&mut self, payload: &Value) -> Result<(Value, InstrumentSearchOutput), Error> {
+        let op = OPERATIONS
+            .iter()
+            .find(|op| op.name == "instrument.search")
+            .expect("catalog operation");
+        let (value, checked) = self.checked_request(op, payload).await?;
+        let catalog: InstrumentSearchOutput =
+            serde_json::from_value(checked).map_err(|_| failure(ErrorCode::OUTPUTINVALID))?;
+        let mut ids = HashSet::new();
+        if catalog.instruments.len() > payload["limit"].as_u64().unwrap_or(0) as usize
+            || catalog.instruments.iter().any(|item| {
+                !ids.insert(&item.id)
+                    || item.tradability.as_str() != "non_tradable"
+                    || item.metadata.get("synthetic") != Some(&json!(true))
+                    || !item
+                        .provider_mappings
+                        .iter()
+                        .any(|mapping| mapping.provider_id == DEMO_PROVIDER)
+            })
+        {
+            return Err(failure(ErrorCode::OUTPUTINVALID));
+        }
+        Ok((value, catalog))
     }
 }
 
@@ -171,59 +296,23 @@ impl<P: MarketPort + MarketLifecycle> MarketRegistry<P> {
     }
 }
 
-fn validate_market(name: &str, payload: &Value, output: &Value) -> Result<(), Error> {
-    let invalid = || failure(ErrorCode::OUTPUTINVALID);
-    if name == "instrument.search" {
-        let result: InstrumentSearchOutput =
-            serde_json::from_value(output.clone()).map_err(|_| invalid())?;
-        let mut ids = HashSet::new();
-        if result.instruments.len() > payload["limit"].as_u64().unwrap_or(0) as usize
-            || result.instruments.iter().any(|item| {
-                !ids.insert(&item.id)
-                    || item.tradability.as_str() != "non_tradable"
-                    || item.metadata.get("synthetic") != Some(&json!(true))
-                    || !item
-                        .provider_mappings
-                        .iter()
-                        .any(|mapping| mapping.provider_id == DEMO_PROVIDER)
-            })
-        {
-            return Err(invalid());
-        }
-    } else {
-        let input: MarketGetBarsInput = serde_json::from_value(payload.clone())
-            .map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
-        let result: MarketGetBarsOutput =
-            serde_json::from_value(output.clone()).map_err(|_| invalid())?;
-        let data = &result.dataset;
-        if data.instrument_id != input.instrument_id
-            || data.provider_id != input.provider_id
-            || data.timeframe != input.timeframe
-            || data.mode.as_str() != "simulated"
-            || data.price_adjustment != "raw"
-            || data.provenance.get("synthetic") != Some(&json!(true))
-        {
-            return Err(invalid());
-        }
-        let mut previous = None;
-        for (index, bar) in result.bars.iter().enumerate() {
-            if [bar.open, bar.high, bar.low, bar.close]
-                .iter()
-                .any(|price| !price.is_finite())
-                || bar
-                    .volume
-                    .is_some_and(|volume| !volume.is_finite() || volume < 0.0)
-                || bar.time_ms < input.from_ms
-                || bar.time_ms >= input.to_ms
-                || previous.is_some_and(|time| time >= bar.time_ms)
-                || bar.low > bar.open.min(bar.close)
-                || bar.high < bar.open.max(bar.close)
-                || (!bar.is_closed && index + 1 != result.bars.len())
-            {
-                return Err(invalid());
-            }
-            previous = Some(bar.time_ms);
-        }
+fn validate_dataset(
+    data: &DatasetDescriptor,
+    instrument: &Instrument,
+    provider: &str,
+    timeframe: &str,
+) -> Result<(), Error> {
+    if data.instrument_id != instrument.id
+        || data.provider_id != provider
+        || data.timeframe != timeframe
+        || data.mode.as_str() != "simulated"
+        || data.price_adjustment != "raw"
+        || data.provenance.get("synthetic") != Some(&json!(true))
+        || data.timezone != instrument.timezone
+        || data.calendar_id != instrument.calendar_id
+        || data.quantity_unit != instrument.quantity_unit
+    {
+        return Err(failure(ErrorCode::OUTPUTINVALID));
     }
     Ok(())
 }

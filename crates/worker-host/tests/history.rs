@@ -25,9 +25,17 @@ fn fixture() -> Value {
 }
 struct Fixed(Value, Arc<AtomicUsize>);
 impl MarketPort for Fixed {
-    fn request<'a>(&'a mut self, _: &'a str, _: &'a Value) -> MarketFuture<'a> {
+    fn request<'a>(&'a mut self, operation: &'a str, payload: &'a Value) -> MarketFuture<'a> {
         self.1.fetch_add(1, Ordering::SeqCst);
-        Box::pin(std::future::ready(Ok(self.0.clone())))
+        let reply = if operation == "instrument.search" && payload["query"] == "SIM.CN.FUTURE.001" {
+            let bundle: Value =
+                serde_json::from_str(include_str!("../../../tests/fixtures/market/series.json"))
+                    .unwrap();
+            json!({"instruments":[bundle["fixtures"][0]["instrument"]]})
+        } else {
+            self.0.clone()
+        };
+        Box::pin(std::future::ready(Ok(reply)))
     }
 }
 
@@ -123,6 +131,9 @@ async fn rejects_wrong_operation_identity_duplicate_order_ohlc_and_partial_outpu
         ("timeframe", "5m"),
         ("mode", "historical"),
         ("price_adjustment", "adjusted"),
+        ("timezone", "Europe/London"),
+        ("calendar_id", "other.calendar"),
+        ("quantity_unit", "shares"),
     ] {
         let mut changed = base.clone();
         changed["dataset"][key] = json!(value);
@@ -370,4 +381,74 @@ async fn malformed_correlation_direction_frames_capabilities_and_deadlines_close
         );
         assert_eq!(worker.process_id(), None);
     }
+}
+
+fn paged_input() -> Value {
+    json!({"series":{"instrument_id":"SIM.CN.FUTURE.001","provider_id":"scopehub.synthetic","timeframe":"1m","price_adjustment":"raw","session_scope":"sample-sessions","calendar_id":"SIM.CN.FUTURE.001.sample-calendar.v1","quantity_unit":"contracts"},"from_ms":0,"to_ms":2000000000000_i64,"warmup_bars":0})
+}
+
+#[tokio::test]
+async fn paged_worker_replays_pinned_input_and_registry_verifies_digest_and_identity() {
+    let mut core = MarketRegistry::new(MarketWorker::new(Some(WorkerConfig::development(&root()))));
+    let full = core
+        .execute(Actor::Ai, "market.readHistoryPage", paged_input())
+        .await
+        .unwrap();
+    assert_eq!(full["bars"], fixture()["bars"]);
+    assert!(full["next_cursor"].is_null());
+    let mut args = paged_input();
+    args["page_size"] = json!(17);
+    let mut all = Vec::new();
+    loop {
+        let page = core
+            .execute(Actor::User, "market.readHistoryPage", args.clone())
+            .await
+            .unwrap();
+        assert_eq!(page["snapshot"], full["snapshot"]);
+        assert_eq!(page["offset"].as_u64().unwrap() as usize, all.len());
+        all.extend(page["bars"].as_array().unwrap().iter().cloned());
+        if page["next_cursor"].is_null() {
+            break;
+        }
+        args["snapshot"] = page["snapshot"].clone();
+        args["cursor"] = page["next_cursor"].clone();
+    }
+    assert_eq!(all, *full["bars"].as_array().unwrap());
+    for key in ["content_hash", "timezone", "volume"] {
+        let mut forged = full.clone();
+        match key {
+            "content_hash" => forged["snapshot"]["content_hash"] = json!("a".repeat(64)),
+            "timezone" => forged["dataset"]["timezone"] = json!("Europe/London"),
+            _ => forged["bars"][0]["volume"] = json!(9999),
+        }
+        let mut fake = MarketRegistry::new(Fixed(forged, Arc::default()));
+        assert_eq!(
+            fake.execute(Actor::Ai, "market.readHistoryPage", paged_input())
+                .await
+                .unwrap_err()
+                .code,
+            ErrorCode::OUTPUTINVALID
+        );
+    }
+    let mut offline = MarketRegistry::new(MarketWorker::new(None));
+    let mut pinned = paged_input();
+    pinned["snapshot"] = full["snapshot"].clone();
+    assert_eq!(
+        offline
+            .execute(Actor::Ai, "market.readHistoryPage", pinned)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::SNAPSHOTUNAVAILABLE
+    );
+    let mut missing = paged_input();
+    missing["expected_revision"] = json!("expired");
+    assert_eq!(
+        core.execute(Actor::Ai, "market.readHistoryPage", missing)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::SNAPSHOTUNAVAILABLE
+    );
+    core.shutdown().await;
 }

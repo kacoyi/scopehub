@@ -206,7 +206,8 @@
         "cadence": {
           "enum": [
             "change",
-            "release"
+            "release",
+            "task"
           ]
         }
       },
@@ -586,6 +587,54 @@
         },
         "ci": {
           "$ref": "#/$defs/CIProvenance"
+        },
+        "field_observations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "kind",
+              "commit",
+              "surface",
+              "observation_sha256"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "ubuntu-workspace-observation",
+                  "physical-windows-workspace"
+                ]
+              },
+              "commit": {
+                "type": "string",
+                "pattern": "^(?:[a-f0-9]{40}|[a-f0-9]{64})$"
+              },
+              "surface": {
+                "type": "string",
+                "minLength": 1
+              },
+              "observation_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "external_sessions": {
+                "type": "object",
+                "required": [
+                  "text",
+                  "voice",
+                  "cli",
+                  "desktop"
+                ],
+                "additionalProperties": {
+                  "enum": [
+                    "pending",
+                    "observed-separately"
+                  ]
+                }
+              }
+            },
+            "additionalProperties": false
+          }
         }
       },
       "required": [

@@ -600,6 +600,43 @@
         "prevention": "A clean browser session loses its local connection while loading the catalog and again while changing timeframe, then retries each path on the same server. It checks the data after quick subsequent selections."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "owner-chart-workspace-reference",
+      "source": "Owner review of the workspace discussion sketch on 2026-11-18.",
+      "observation": "The owner found the sketch far from the intended product and selected TradingView Supercharts as the reference for the first-screen layout and chart interactions. Include icons according to ScopeHub's actual actions.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-014"
+      ],
+      "regression_checks": [
+        "ubuntu-preview",
+        "chart-history"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "contract-closure-review",
+      "source": "Complete contract audit and four owner decisions on 2026-11-18.",
+      "observation": "The active chart failed to compile; catalog and history validation disagreed, and hard limits appeared retryable. Market and operation contracts could not identify exact inputs, approvals and outputs, while the verification pipeline could attribute partial or stale results to a qualified product.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-023"
+      ],
+      "regression_checks": [
+        "project-state",
+        "generated-contracts",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "chart-history",
+        "ubuntu-preview"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

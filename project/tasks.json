@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-006",
+  "focus_task_id": "M0-023",
   "tasks": [
     {
       "id": "M0-001",
@@ -208,7 +208,9 @@
         "ui-build",
         "market-fixtures",
         "python-types",
-        "architecture"
+        "architecture",
+        "market-live-stream",
+        "market-quality-states"
       ],
       "evidence": [],
       "next_action": "After M1-006 and M1-007, verify the complete simulated chart slice; M1-003 separately establishes interruption/recovery. Local import remains M1-008.",
@@ -313,7 +315,9 @@
         "Human and AI actions use the same registry, permissions, confirmations, revisions and idempotency semantics.",
         "Workspace restoration and undo preserve accepted state; restart does not replay prior AI operations.",
         "Introduce versioned database migrations and recovery tests when persistent state is first introduced.",
-        "A user-selected local decision note retains the dated rationale and evidence references across restart. Append later outcomes separately. Exercise deletion and recovery, and verify that declining to save leaves no decision note."
+        "A user-selected local decision note retains the dated rationale and evidence references across restart. Append later outcomes separately. Exercise deletion and recovery, and verify that declining to save leaves no decision note.",
+        "Exercise commit, lost reply, concurrent replay, fresh disclosure authorization, target selection conflict, undo and rollback. Verify note deletion across restart and restoration with and without known deletion markers.",
+        "Provide an explicitly enabled Ubuntu development entry for versioned workspace operations. Exercise a local authorized change, undo and restart against the same Rust authorization and persistence core. Keep the existing synthetic history-only grant restricted and keep the Windows release target."
       ],
       "checks": [
         "operations-workflow",
@@ -347,7 +351,8 @@
       "acceptance": [
         "Declarative previews have deterministic results, bounded execution and validated output.",
         "A failed preview leaves accepted indicators and market data usable.",
-        "Trusted Python remains opt-in with operation-specific authorization and accurately described isolation."
+        "Trusted Python remains opt-in with operation-specific authorization and accurately described isolation.",
+        "Pin the visible and warm-up windows, exact snapshot and resolved typed parameters through confirmation, preview terminal result and durable acceptance. Run the independent numeric and approved trusted-Python examples in indicator-preview. Inspect output after cache clearing, revocation and restart without rerunning Python."
       ],
       "checks": [
         "indicator-workflow"
@@ -390,7 +395,9 @@
         "Observe the target and actual core result in the affected chart, column or panel. Check denial, cancellation and stale revisions, and exercise a layout edit through the same core operation as a manual edit.",
         "Suggest a local CSV mapping from permitted sample fields. Show the proposal for correction and run the approved deterministic rule with the same result as a manually supplied mapping.",
         "From a buy question, compare two explanations using workspace data and a reproducible calculation. Show contrary evidence and update the conclusion when the user corrects a premise. Seek clarification about a possible behavioral pattern. The discussion itself authorizes no mutation.",
-        "In the same conversation, carry out a separately scoped chart action. Offer to save the user's choice, including inaction, with the original evidence and disagreement. Reopen the note after a later price move, assess reasoning using information known at the time and surface any data or execution defect separately."
+        "In the same conversation, carry out a separately scoped chart action. Offer to save the user's choice, including inaction, with the original evidence and disagreement. Reopen the note after a later price move, assess reasoning using information known at the time and surface any data or execution defect separately.",
+        "Correlate interleaved tool calls and terminal outcomes; selection changes, pending confirmations and cancellation preserve attributable committed effects. A first question on an unconfigured model offers configuration or an explicit labeled mock without dispatch.",
+        "Exercise portable provider settings, source and purpose disclosure, consent, denial, microphone stop and revocation on Ubuntu with explicit local fixtures. No paid or Windows-only connection is needed for these local cases. Real text and duplex qualification and native credentials retain independent release gates."
       ],
       "checks": [
         "ai-workflow",
@@ -427,7 +434,8 @@
         "A clean Windows machine can install and run without Python or Node, with the stated WebView2 installation behavior.",
         "Verify packaged worker cleanup, stability, credential boundaries and dependency notices.",
         "Bind release artifacts to a committed source revision, lockfiles, build environment and actual acceptance evidence.",
-        "Validate user-data backup/restore and upgrade migration before distributing an upgrade that changes persisted data; define recovery when downgrade is unsupported."
+        "Validate user-data backup/restore and upgrade migration before distributing an upgrade that changes persisted data; define recovery when downgrade is unsupported.",
+        "Bind the same release installer and independent clean-install and upgrade observations for representative Windows 10 and Windows 11 client builds. Retain the raw startup, presented-frame and process-tree samples and the performance verdict for this candidate."
       ],
       "checks": [
         "windows-installation",
@@ -2060,11 +2068,15 @@
         "Add a bounded live-update contract and one rendered stream; reject delayed events after selection changes and preserve final bar state. Record protocol evolution before implementation."
       ],
       "checks": [
-        "market-workflow",
+        "market-live-stream",
         "market-fixtures",
         "ui-build",
         "python-types",
-        "architecture"
+        "architecture",
+        "generated-contracts",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers"
       ],
       "evidence": [],
       "next_action": "Define the synthetic bar event and cross-language fixtures, then pass the worker updates through the shared Rust core into a cancellable Ubuntu chart session. Exercise selection changes during an update and the final closed bar.",
@@ -2073,8 +2085,9 @@
       "plan": {
         "outcome": "Add a bounded live-update contract and one rendered stream; reject delayed events after selection changes and preserve final bar state. Record protocol evolution before implementation.",
         "change_types": [
-          "ui",
-          "market-fixtures"
+          "stream-slice",
+          "market-fixtures",
+          "protocol"
         ],
         "context": [
           "project/development.json",
@@ -2094,7 +2107,7 @@
           {
             "failure": "A later selection renders a delayed old update or loses the final bar.",
             "checks": [
-              "market-workflow"
+              "market-live-stream"
             ]
           }
         ],
@@ -2170,7 +2183,7 @@
         "Exercise observable loading, ready, empty, stale, disconnected and error states against deterministic event sequences."
       ],
       "checks": [
-        "market-workflow",
+        "market-quality-states",
         "ui-build",
         "market-fixtures",
         "python-types",
@@ -2183,7 +2196,7 @@
       "plan": {
         "outcome": "Exercise observable loading, ready, empty, stale, disconnected and error states against deterministic event sequences.",
         "change_types": [
-          "ui",
+          "quality-slice",
           "market-fixtures"
         ],
         "context": [
@@ -2199,7 +2212,7 @@
           {
             "failure": "A later selection renders a delayed old update or loses the final bar.",
             "checks": [
-              "market-workflow"
+              "market-quality-states"
             ]
           }
         ],
@@ -2278,7 +2291,8 @@
       "acceptance": [
         "Read only the selected scope. Show raw and normalized rows and a chart preview for equity and futures bar examples with different headers, encodings, units and date conventions. A manual mapping works offline.",
         "Correct and reuse a versioned mapping. Refresh with an additional file, an identical alias and a changed header. Verify stable results on retry, a visible review of incompatible files and the prior accepted dataset after interruption.",
-        "Trace displayed values to the source file identity and rows. Preserve IDs, trading days and unknown values. Distinguish a futures quote snapshot from a trade and mark unsupported or ambiguous transformations. Never substitute a synthetic series."
+        "Trace displayed values to the source file identity and rows. Preserve IDs, trading days and unknown values. Distinguish a futures quote snapshot from a trade and mark unsupported or ambiguous transformations. Never substitute a synthetic series.",
+        "Check source-ordered overlaps, unresolved corrections, replaced and withdrawn files, mapping migration, crash-before-publication and frozen reread following refresh. Test unsupported or ambiguous financial fields as raw inspectable data."
       ],
       "checks": [
         "market-fixtures",
@@ -2316,12 +2330,13 @@
         "Observe an authorized real voice session with Chinese speech, alphanumeric contracts and spoken numbers. Record correction accuracy, first-audio latency, interruption, tool outcomes and actual metered cost where available.",
         "Continue the same conversation in text, compare the same tool permissions and confirmation as manual input, and distinguish stopping playback from cancellation acknowledged by the core. Keep a missing authorized connection visibly unverified.",
         "Select a provider and model separately from a synthetic or user-owned data source. Show the enabled text, tool and audio capabilities, destination and charge basis. A text-only adapter remains usable when voice is unavailable. Reject a silent provider or paid fallback and redact the configured secret in failures.",
-        "Observe at least one configured model discussing evidence and revising an interpretation after a correction. Record the actual provider, route where available, model and operation outcomes. Credential-free replay covers a second adapter profile without implying a second live integration. One authorized session may supply both text and voice evidence if each path is actually exercised."
+        "Observe at least one configured model discussing evidence and revising an interpretation after a correction. Record the actual provider, route where available, model and operation outcomes. Credential-free replay covers a second adapter profile without implying a second live integration. One authorized session may supply both text and voice evidence if each path is actually exercised.",
+        "Use the fixed critical-field, correction, ambiguity, interruption, cost/destination and authorization cases in /ai/qualified_session_acceptance. Keep real text and voice outcomes independently attributable.",
+        "Validate the authorized text and voice sessions here. Native credential storage and release-wide credential checks remain mandatory under M5-001 on Windows."
       ],
       "checks": [
         "ai-workflow",
         "ai-replay-evaluations",
-        "credential-boundaries",
         "configured-model-session",
         "configured-voice-session"
       ],
@@ -2386,7 +2401,8 @@
       ],
       "acceptance": [
         "Enable and pair a local client from settings. Through the delivered stdio entry, discover allowed tools and read the desktop's selected instrument, range, source and revision. Return only authorized fields and identify the client at the affected chart.",
-        "Grant a chart annotation, apply it once to the visible workspace, then undo it. Exercise duplicate requests, simultaneous human edits, grant revocation, closed workspaces, cross-workspace requests and restricted source fields. The core decides scope and any required confirmation."
+        "Grant a chart annotation, apply it once to the visible workspace, then undo it. Exercise duplicate requests, simultaneous human edits, grant revocation, closed workspaces, cross-workspace requests and restricted source fields. The core decides scope and any required confirmation.",
+        "Project each result, diagnostic and replay against current field, purpose and client grants. Exercise a close-only grant, unknown but authorized volume, a selection change and a revoked reconnect."
       ],
       "checks": [
         "external-ai-bridge",
@@ -2639,7 +2655,8 @@
       "checks": [
         "market-fixtures",
         "chart-history",
-        "credential-boundaries"
+        "credential-boundaries",
+        "configured-market-source"
       ],
       "evidence": [],
       "next_action": "Evaluate the first US-equity or Chinese market-data source against the documented workflow. Bind a provider-specific conformance check before activation and retain an authorized trial with its actual coverage.",
@@ -3081,11 +3098,13 @@
       "acceptance": [
         "Open the Ubuntu-reviewed revision using pnpm desktop:dev on the physical Windows 10/11 x64 desktop and observe the native WebView2 window.",
         "Exercise the unconfigured entry, synthetic chart, selection, timeframe, chart style, resizing, crosshair, table and exit. Retain the revision, Windows runtime and on-screen observations with screenshots.",
-        "Record any experience feedback supplied by the owner in their own terms and retain any engineering defects for correction."
+        "Record any experience feedback supplied by the owner in their own terms and retain any engineering defects for correction.",
+        "Link the Windows observation to the Ubuntu-reviewed commit and match its execution-input digest. A bookkeeping-only commit that attaches an Ubuntu receipt is recorded separately. Changed executable inputs require a renewed Ubuntu observation before the physical trial."
       ],
       "checks": [
         "windows-native-build",
-        "chart-history"
+        "chart-history",
+        "physical-windows-workspace"
       ],
       "evidence": [],
       "next_action": "Wait for M1-012 to establish completion of the overall Ubuntu experience. Then use the Ubuntu-reviewed revision on the physical Windows desktop and record the native GUI trial.",
@@ -3354,7 +3373,8 @@
       ],
       "acceptance": [
         "Move, resize, dock or tab panels, configure theme and gain/loss colors, link chart and table selection, and pin an independent comparison. Keep active source and confirmation controls reachable.",
-        "Edit a named layout by hand or with a declarative definition. Preview, apply, undo, restore after restart and return to the default. Reject unsupported bindings or a stale revision while keeping the previous accepted layout."
+        "Edit a named layout by hand or with a declarative definition. Preview, apply, undo, restore after restart and return to the default. Reject unsupported bindings or a stale revision while keeping the previous accepted layout.",
+        "Restore a previously selected source, a labeled explicit sample, unavailable media and revoked grants independently. Preserve layout and accepted artifacts, including under interrupted restore."
       ],
       "checks": [
         "workspace-layout",
@@ -3392,7 +3412,8 @@
       "checks": [
         "market-workflow",
         "market-recovery",
-        "credential-boundaries"
+        "credential-boundaries",
+        "configured-market-source"
       ],
       "evidence": [],
       "next_action": "Bind a CTP-specific qualification check before activation. Review vn.py market-data callbacks and metadata dependencies, then verify one authorized subscription and reconnection.",
@@ -3553,8 +3574,8 @@
         "M3-001",
         "M4-001",
         "M4-004",
-        "M4-002",
-        "M1-013"
+        "M1-013",
+        "M1-014"
       ],
       "scope": [
         "project/tasks.json",
@@ -3572,7 +3593,8 @@
         "Distinguish deterministic AI execution from an explicitly configured model connection. Follow the owner's authorization for the configured service, credentials and any external transmission. Record outstanding real-connection evidence when configuration or authorization is unavailable.",
         "Verify the complete applicable Ubuntu experience on a recorded revision and retain end-to-end observations and regression results. Track Windows installation, packaging and native credential evidence on their designated platform. Explicitly later capabilities remain outside this review unless their delivery scope changes.",
         "Observe CSV folder refresh, a restored custom layout, two-way evidence selection and in-place action results. Identify the exact authorized voice session or record why its real-connection evidence is outstanding.",
-        "Exercise the local bridge against the visible Ubuntu chart and review a saved decision. Track actual CLI and desktop client observations under M4-005 on supported hosts, including Windows when required."
+        "Exercise the local bridge against the visible Ubuntu chart and review a saved decision. Track actual CLI and desktop client observations under M4-005 on supported hosts, including Windows when required.",
+        "Complete all Ubuntu-local scenarios through an explicitly enabled development entry sharing the Rust state and operation permissions. Retain the observed revision and screenshots, with a separate status for actual model, audio and external client observations. Passing the Ubuntu-local task permits the physical Windows trial while real-session release gates remain independent."
       ],
       "checks": [
         "ubuntu-preview",
@@ -3588,11 +3610,10 @@
         "local-folder-import",
         "workspace-layout",
         "external-ai-bridge",
-        "configured-model-session",
-        "configured-voice-session"
+        "ubuntu-workspace-observation"
       ],
       "evidence": [],
-      "next_action": "After the observed retry repair, resume M1-006 and the existing Ubuntu-capable contract tasks. Track each required capability and record the integrated Ubuntu experience before scheduling M1-011.",
+      "next_action": "Deliver the chart workspace in M1-014, then continue M1-006 and the existing Ubuntu-capable contract tasks. Track each required capability and record the integrated Ubuntu experience before scheduling M1-011.",
       "blocker": null,
       "closure_reason": null
     },
@@ -3705,6 +3726,273 @@
           ],
           "data_plan": "The repair changes displayed guidance and tests. It creates no persisted user data.",
           "cleanup": "Run the normal preview, preserve the reproduction and archive the verified correction."
+        }
+      }
+    },
+    {
+      "id": "M1-014",
+      "title": "Open directly into the chart workspace",
+      "milestone": "M1",
+      "status": "active",
+      "depends_on": [
+        "M1-013"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "contracts/reviews/2026-11-18-chart-workspace.json",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/delivery.json",
+        "project/development.json",
+        "apps/desktop/ui",
+        "tests/ui",
+        "tests/ubuntu-preview"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0007"
+      ],
+      "acceptance": [
+        "The normal unconfigured entry opens a usable chart workspace with a visible Open offline sample action. It displays the unconfigured source state and sends zero application operations until the user selects a source or sample.",
+        "Selecting Open offline sample or deliberately navigating to #demo loads the synthetic instruments and bars through the Rust operation registry. Instrument selection, timeframe, chart style, volume, crosshair and data inspection work. The source remains visibly identified as synthetic.",
+        "The first screen places instrument, timeframe and chart-style controls above the main chart, with volume and the time axis below price. The instrument list and data inspection are accessible from the right. Use the left edge only for chart tools that have a working action. On narrow screens controls and data inspection remain usable.",
+        "Exercise the default and explicit sample entries on Ubuntu, retain desktop and narrow screenshots, and compare the actual workspace with the owner's reference. Record feedback from the owner when available.",
+        "With a clean profile establish zero operations, then explicitly choose the sample, relaunch at the bare entry, verify the Simulated label, leave it and relaunch again with zero operations."
+      ],
+      "checks": [
+        "project-state",
+        "chart-history",
+        "ubuntu-preview",
+        "market-fixtures",
+        "architecture",
+        "python-types",
+        "ui-build",
+        "rust-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Replace the separate start screen with the chart workspace and keep sample activation explicit. Test the normal entry and #demo through the registry, inspect both viewport sizes on Ubuntu and retain observations.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Launching ScopeHub lands in the same chart workspace used for synthetic history. The chart, controls and side panels follow the Supercharts arrangement selected by the owner.",
+        "change_types": [
+          "chart-history"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/reviews/2026-11-18-chart-workspace.json",
+          "apps/desktop/ui/src/main.tsx",
+          "apps/desktop/ui/src/style.css",
+          "apps/desktop/ui/src/market.ts",
+          "apps/desktop/ui/src/chart-adapter/history.ts",
+          "tests/ubuntu-preview/preview.spec.mjs",
+          "tests/ui/history.spec.mjs"
+        ],
+        "hypotheses": [
+          "The existing registry, chart adapter and transport can support the new layout without changing wire operations or activating a service at startup."
+        ],
+        "risks": [
+          {
+            "failure": "A bare visit dispatches market reads, shows fabricated prices or hides the synthetic origin of a sample.",
+            "checks": [
+              "ubuntu-preview",
+              "chart-history"
+            ]
+          },
+          {
+            "failure": "Moving controls breaks chart sizing, keyboard access, data inspection, retry or rapid selection at a supported viewport.",
+            "checks": [
+              "ubuntu-preview",
+              "chart-history",
+              "ui-build"
+            ]
+          }
+        ],
+        "rollback": "Retain before-and-after observations and the previous source checkpoint. If an entry bypasses explicit source selection, disable that entry until the no-operation startup and sample identity regressions pass.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "chart-adapter"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/main.tsx",
+            "apps/desktop/ui/src/market.ts",
+            "apps/desktop/ui/src/chart-adapter/history.ts"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/layout"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/workspace_entry"
+            },
+            {
+              "path": "contracts/reviews/2026-11-18-chart-workspace.json",
+              "pointer": "/owner_direction"
+            }
+          ],
+          "non_goals": [
+            "A TradingView service connection, copied icons, placeholder commands, real data, live updates, new AI operations and the physical Windows trial."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "Explicit synthetic source selection and visible provenance",
+            "Shared registry authorization, retry, chart navigation and data inspection"
+          ],
+          "change": [
+            "Chart workspace at startup, on-demand secondary panels and toolbar affordances grouped around the main chart"
+          ],
+          "data_plan": "The versioned local sample preference stores the explicit synthetic choice, symbol, timeframe, style, cursor and visible panel. Leaving clears it. M2 owns migration to a core-owned durable workspace when adding configured data, grants or accepted user work.",
+          "cleanup": "Remove the superseded landing screen and obsolete layout paths. Verify the ordinary and explicit sample entries on the same delivered UI."
+        }
+      }
+    },
+    {
+      "id": "M0-023",
+      "title": "Repair market, operation and acceptance contracts from the full review",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-022",
+        "M1-013"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "contracts",
+        "project",
+        "scripts",
+        "apps/desktop",
+        "crates",
+        "python",
+        "tests"
+      ],
+      "decision_refs": [
+        "0002",
+        "0004",
+        "0007",
+        "0008",
+        "0009",
+        "0010"
+      ],
+      "acceptance": [
+        "Both manifests, canonical wire definitions, generated projections, delivery plans and acceptance rules resolve the full contract review. Every reviewed outcome has an identified implementation or acceptance gate.",
+        "The current history entry, registry and preview produce correct metadata, bounded reproducible input, usable startup and actionable errors. Independent vectors and end-to-end checks cover regressions.",
+        "Project verification distinguishes partial and whole workflows, effective owner decisions, real and mock observations, native platform acceptance and the exact release candidate."
+      ],
+      "checks": [
+        "project-state",
+        "generated-contracts",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "chart-history",
+        "market-fixtures",
+        "architecture",
+        "python-types",
+        "ui-build",
+        "rust-format",
+        "rust-lints",
+        "ubuntu-preview",
+        "dependency-review"
+      ],
+      "evidence": [],
+      "next_action": "Apply the four owner decisions, repair canonical definitions and current paths, then verify all cross-language, runtime and governance regressions.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "An implementer can complete every reviewed journey with consistent wire objects and verification gates; each current failure has a tested repair.",
+        "change_types": [
+          "protocol",
+          "tooling",
+          "chart-history",
+          "dependencies"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/contract.json",
+          "contracts/schemas/protocol.schema.json",
+          "contracts/reviews/2026-11-18-contract-closure.json",
+          "project/delivery.json",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "Existing read-only registry and preview can retain legacy reads while gaining immutable inputs. Portable workflows and real-session qualification can have independent gates."
+        ],
+        "risks": [
+          {
+            "failure": "New contracts cannot round-trip in one of the three generated bindings or mix observations across pages.",
+            "checks": [
+              "generated-contracts",
+              "typescript-contracts",
+              "python-contracts-workers",
+              "rust-contracts-workers",
+              "market-fixtures"
+            ]
+          },
+          {
+            "failure": "A chart or acceptance route shows a successful but stale, unconfigured or unauthorized result.",
+            "checks": [
+              "project-state",
+              "chart-history",
+              "ubuntu-preview",
+              "ui-build",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Preserve historical receipts and prior accepted ADRs. Revert the coherent source checkpoint if compatibility checks fail and retain the failing report.",
+        "implementation": {
+          "modules": [
+            "domain",
+            "application",
+            "worker-host",
+            "worker-runtime",
+            "providers",
+            "ui",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "engineering-contract-v1.json",
+            "contracts/schemas/protocol.schema.json",
+            "crates/application/src/lib.rs",
+            "scripts/project.py",
+            "apps/desktop/ui/src/main.tsx"
+          ],
+          "rules": [
+            {
+              "path": "contracts/reviews/2026-11-18-contract-closure.json",
+              "pointer": "/owner_direction"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/protocol"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/release_policy"
+            }
+          ],
+          "non_goals": [
+            "Implementing planned market subscriptions, persistence, AI sessions or trading merely to register their contract."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "Existing supported synthetic reads, historical task receipts and centralized authorization."
+          ],
+          "change": [
+            "Repair ambiguous identities, authorization, lifecycle, source restoration and release verification."
+          ],
+          "data_plan": "Use synthetic input for all regressions. Persist only an explicit local sample preference in the current preview. Specify migration and recovery for future persisted user data.",
+          "cleanup": "Replace the broken entry and ambiguous contracts, regenerate all projections and verify history, checks and support claims."
         }
       }
     }

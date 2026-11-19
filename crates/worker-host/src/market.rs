@@ -55,12 +55,15 @@ impl WorkerConfig {
                     .expect("trusted paths"),
             )
             .env("PYTHONIOENCODING", "utf-8")
+            .env("SCOPEHUB_WORKER_WIRE_VERSION", "1.1")
             .args(["-m", "worker_runtime", "--role", "market", "--demo"]);
         command
     }
 }
 
 struct Session {
+    version: String,
+    capabilities: Vec<String>,
     child: Child,
     input: ChildStdin,
     output: BufReader<ChildStdout>,
@@ -122,24 +125,19 @@ impl MarketWorker {
             child,
             input,
             output,
+            version: String::new(),
+            capabilities: Vec::new(),
         });
         let session = self.session.as_mut().expect("started session");
         let result = tokio::time::timeout(deadline, async {
             let frame = read_frame(&mut session.output).await?;
-            let Message::Hello(hello) = decode_line(&frame)? else {
-                return Err(ProtocolError::IncompatibleWorker);
-            };
-            let capabilities: Vec<_> = hello.capabilities.iter().map(|op| op.as_str()).collect();
-            if hello.role.as_str() != "market"
-                || !hello
-                    .supported_protocols
-                    .iter()
-                    .any(|version| version == "1.0")
-                || capabilities.len() != READ_OPERATIONS.len()
-                || READ_OPERATIONS.iter().any(|op| !capabilities.contains(op))
-            {
-                return Err(ProtocolError::IncompatibleWorker);
-            }
+            let hello = crate::negotiate_worker(
+                &frame,
+                "market",
+                &["instrument.search", "market.getBars"],
+            )?;
+            session.version = hello.version;
+            session.capabilities = hello.capabilities;
             Ok(())
         })
         .await
@@ -158,10 +156,17 @@ impl MarketWorker {
         if self.session.is_none() {
             self.start().await?;
         }
+        let paged = operation == "market.readHistoryPage";
+        let session = self.session.as_ref().expect("started session");
+        if !session.capabilities.iter().any(|name| name == operation)
+            || paged && session.version != "1.1"
+        {
+            return Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY));
+        }
         let deadline = self.config.as_ref().expect("configured session").deadline;
         let id = Uuid::new_v4().to_string();
         let request = json!({
-            "protocol_version": "1.0", "type": "request", "message_id": Uuid::new_v4().to_string(),
+            "protocol_version": if paged { "1.1" } else { "1.0" }, "type": "request", "message_id": Uuid::new_v4().to_string(),
             "request_id": id, "task_id": null, "timestamp_ms": SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64,
             "operation": operation, "payload": payload,
         });
@@ -182,7 +187,17 @@ impl MarketWorker {
             session.input.flush().await.map_err(|_| ProtocolError::Io)?;
             let response = decode_line(&read_frame(&mut session.output).await?)?;
             match response {
-                Message::Response(response) => match *response {
+                Message::MarketHistoryPageResponse(response)
+                    if paged && response.request_id == id =>
+                {
+                    serde_json::to_value(response.result)
+                        .map(Ok)
+                        .map_err(|_| ProtocolError::InvalidMessage)
+                }
+                Message::MarketHistoryPageError(response) if paged && response.request_id == id => {
+                    Ok(Err(failure(response.error.code)))
+                }
+                Message::Response(response) if !paged => match *response {
                     Response::SuccessResponse(response) if response.request_id == id => {
                         serde_json::to_value(response.result)
                             .map(Ok)

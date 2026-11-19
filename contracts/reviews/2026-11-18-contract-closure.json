@@ -1,0 +1,217 @@
+{
+  "recorded_at": "2026-11-18",
+  "kind": "owner_product_decision",
+  "task_id": "M0-023",
+  "owner_direction": {
+    "sample_restart": "Restore a previously explicitly chosen offline sample on restart and label it as simulated. Restore layout and accepted indicators. Preserve the selected identity and show the cause when a local source is missing or its authorization has been revoked.",
+    "deletion_and_restore": "Delete decision-note bodies from live state and keep no transcript by default. Preserve known deletions when restoring backups. Warn before restoring an independent older backup that may bring back a deleted body.",
+    "data_uses": "Keep authorized local display when another purpose is unknown or forbidden. Trusted Python, cloud models and external clients each require affirmative source entitlement for the specific purpose and explicit user authorization.",
+    "platform_sequence": "After all locally testable Ubuntu workflows pass, physical Windows experience may proceed with unavailable authorized model or voice sessions recorded separately. Real sessions remain mandatory before the first release."
+  },
+  "findings": [
+    {
+      "id": "F01",
+      "repair": "Select and reread an exact market series",
+      "rule": "engineering-contract-v1.json#/domain/series_identity",
+      "task": "M1-008",
+      "check": "chart-history"
+    },
+    {
+      "id": "F02",
+      "repair": "Freeze analysis and its observable input",
+      "rule": "engineering-contract-v1.json#/domain/history_snapshots",
+      "task": "M3-001",
+      "check": "market-fixtures"
+    },
+    {
+      "id": "F03",
+      "repair": "Resolve overlapping imports, corrections and withdrawal",
+      "rule": "engineering-contract-v1.json#/product/data_onboarding/refresh_conflicts",
+      "task": "M1-008",
+      "check": "local-folder-import"
+    },
+    {
+      "id": "F04",
+      "repair": "Specify financial units, aggregation eligibility and source fields",
+      "rule": "engineering-contract-v1.json#/product/data_onboarding/csv_v1_capabilities",
+      "task": "M1-008",
+      "check": "local-folder-import"
+    },
+    {
+      "id": "F05",
+      "repair": "Separate freshness, clock, gaps, session and connection",
+      "rule": "engineering-contract-v1.json#/domain/market_quality",
+      "task": "M1-007",
+      "check": "market-quality-states"
+    },
+    {
+      "id": "F06",
+      "repair": "Detect a lost update at the history-to-stream boundary",
+      "rule": "engineering-contract-v1.json#/domain/stream_handoff",
+      "task": "M1-006",
+      "check": "market-live-stream"
+    },
+    {
+      "id": "F07",
+      "repair": "Page large reads within the actual encoded frame limit",
+      "rule": "engineering-contract-v1.json#/domain/history_snapshots/pagination",
+      "task": "M0-023",
+      "check": "rust-contracts-workers"
+    },
+    {
+      "id": "F08",
+      "repair": "Deliver the asynchronous preview and bind its acceptance",
+      "rule": "engineering-contract-v1.json#/indicators/preview",
+      "task": "M3-001",
+      "check": "indicator-workflow"
+    },
+    {
+      "id": "F09",
+      "repair": "Return a private correlated tool outcome",
+      "rule": "engineering-contract-v1.json#/protocol/ai_channel",
+      "task": "M4-001",
+      "check": "ai-workflow"
+    },
+    {
+      "id": "F10",
+      "repair": "Replay a committed write and undo by receipt",
+      "rule": "engineering-contract-v1.json#/authorization/durable_operations",
+      "task": "M2-001",
+      "check": "operations-workflow"
+    },
+    {
+      "id": "F11",
+      "repair": "Enforce client- and purpose-specific field projection",
+      "rule": "engineering-contract-v1.json#/authorization/data_purposes",
+      "task": "M4-004",
+      "check": "external-ai-bridge"
+    },
+    {
+      "id": "F12",
+      "repair": "Define cancellation scope, human wait and committed effects",
+      "rule": "engineering-contract-v1.json#/runtime/cancellation",
+      "task": "M2-001",
+      "check": "operations-workflow"
+    },
+    {
+      "id": "F13",
+      "repair": "Bind typed indicator parameters and define window and null semantics",
+      "rule": "engineering-contract-v1.json#/indicators/parameter_and_output",
+      "task": "M3-001",
+      "check": "indicator-workflow"
+    },
+    {
+      "id": "F14",
+      "repair": "Require eligible data and separate approval on every trusted run",
+      "rule": "engineering-contract-v1.json#/indicators/python_mode",
+      "task": "M3-001",
+      "check": "indicator-workflow"
+    },
+    {
+      "id": "F15",
+      "repair": "Delete decision content and honor known deletions on restore",
+      "rule": "engineering-contract-v1.json#/persistence/notes_and_restore",
+      "task": "M2-001",
+      "check": "state-migrations"
+    },
+    {
+      "id": "F16",
+      "repair": "Bind a shared selection independently of presentation and stored revision",
+      "rule": "engineering-contract-v1.json#/ui/shared_evidence/selection_ownership",
+      "task": "M4-004",
+      "check": "external-ai-bridge"
+    },
+    {
+      "id": "F17",
+      "repair": "Restore an explicit sample and recover unavailable sources",
+      "rule": "engineering-contract-v1.json#/ui/workspace_entry",
+      "task": "M1-014",
+      "check": "ubuntu-preview"
+    },
+    {
+      "id": "F18",
+      "repair": "Require measured and independently scored text and voice outcomes",
+      "rule": "engineering-contract-v1.json#/ai/qualified_session_acceptance",
+      "task": "M4-002",
+      "check": "configured-voice-session"
+    },
+    {
+      "id": "F19",
+      "repair": "Follow dependencies across milestone groups",
+      "rule": "engineering-contract-v1.json#/implementation_instructions/0",
+      "task": "M0-023",
+      "check": "project-state"
+    },
+    {
+      "id": "F20",
+      "repair": "Decouple Ubuntu-local experience and authorized real-session release gates",
+      "rule": "engineering-contract-v1.json#/delivery/verification_evidence",
+      "task": "M1-012",
+      "check": "ubuntu-workspace-observation"
+    },
+    {
+      "id": "F21",
+      "repair": "Keep stream and quality slices independent of full market acceptance",
+      "rule": "engineering-contract-v1.json#/implementation_policy/verification_slices",
+      "task": "M1-001",
+      "check": "market-workflow"
+    },
+    {
+      "id": "F22",
+      "repair": "Bind physical WebView2 and packaged client environments to observed evidence",
+      "rule": "engineering-contract-v1.json#/delivery/verification_evidence/field_input",
+      "task": "M1-011",
+      "check": "physical-windows-workspace"
+    },
+    {
+      "id": "F23",
+      "repair": "Verify an isolated release report against the actual main candidate and packaged bytes",
+      "rule": "engineering-contract-v1.json#/delivery/verification_evidence/candidate_input",
+      "task": "M5-001",
+      "check": "release-artifacts"
+    },
+    {
+      "id": "F24",
+      "repair": "Score cold and warm frame timings and process-tree memory",
+      "rule": "engineering-contract-v1.json#/acceptance/performance",
+      "task": "M5-001",
+      "check": "runtime-stability"
+    },
+    {
+      "id": "F25",
+      "repair": "Bind effective owner decisions while allowing independent observation updates",
+      "rule": "engineering-contract-v1.json#/repository/owner_decision_inputs",
+      "task": "M0-023",
+      "check": "project-state"
+    },
+    {
+      "id": "F26",
+      "repair": "Derive real integration status only from the observed modality and revision",
+      "rule": "engineering-contract-v1.json#/delivery/verification_evidence/session_input",
+      "task": "M0-023",
+      "check": "python-contracts-workers"
+    },
+    {
+      "id": "F27",
+      "repair": "Negotiate worker role, minor version and actual capabilities",
+      "rule": "engineering-contract-v1.json#/protocol/compatibility",
+      "task": "M0-023",
+      "check": "rust-contracts-workers"
+    }
+  ],
+  "current_defects": [
+    {
+      "repair": "Mount the working chart workspace, clean up chart resources and restore keyboard focus after closing search.",
+      "check": "ubuntu-preview"
+    },
+    {
+      "repair": "Check history against authoritative catalog metadata inside the common Rust registry, including direct calls before search.",
+      "check": "rust-contracts-workers"
+    },
+    {
+      "repair": "Distinguish retryable admission pressure from a hard request budget in native, loopback and chart paths.",
+      "check": "chart-history"
+    }
+  ],
+  "evidence_boundary": "The rules and negotiated schemas resolve the reviewed contract gaps. A product scenario obtains its own verification only through its implemented task and retained evidence. The raw reports and screenshots remain separately attributable."
+}

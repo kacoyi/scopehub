@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0",
-  "observed_at": "2026-10-29T04:15:08.225818+00:00",
+  "observed_at": "2026-11-19T07:00:31.549379+00:00",
   "lock_sha256": {
-    "Cargo.lock": "5b3e8c18c029becf7f755c8cc9b894eb239253054c59c156574432963f8fe10c",
+    "Cargo.lock": "fb96c547affdbcb2b650ae84222f267c8a1365823061eda2d592e4abf88d4dca",
     "uv.lock": "1eabda828953130061f49ac7928853066b4d87440e229ad07e7d9bdce1550eeb",
     "pnpm-lock.yaml": "baa4c0c5c4776cdb58bb3e654f5cadd4e681c9b45f82312b3cfa7a88376ddcfc"
   },

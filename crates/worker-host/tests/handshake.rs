@@ -74,3 +74,54 @@ async fn timeout_and_oversized_or_invalid_hello_are_reaped() {
         // probe_handshake waits for the child after killing it; returning proves it was reaped.
     }
 }
+
+#[test]
+fn worker_versions_and_optional_capabilities_preserve_the_legacy_lane() {
+    use scopehub_worker_host::negotiate_worker;
+    use serde_json::json;
+    let required = ["instrument.search", "market.getBars"];
+    let mut hello = json!({
+        "type":"hello","message_id":"00000000-0000-4000-8000-000000000001","timestamp_ms":0,
+        "protocol_version":"1.0","supported_protocols":["1.0"],"role":"market",
+        "worker_version":"0.1","capabilities":required
+    });
+    let negotiate = |value: &serde_json::Value| {
+        negotiate_worker(
+            serde_json::to_string(value).unwrap().as_bytes(),
+            "market",
+            &required,
+        )
+    };
+    assert_eq!(negotiate(&hello).unwrap().version, "1.0");
+    hello["protocol_version"] = json!("1.1");
+    hello["supported_protocols"] = json!(["1.0", "1.1"]);
+    hello["capabilities"] = json!([
+        "market.getBars",
+        "instrument.search",
+        "vendor.optional",
+        "market.readHistoryPage"
+    ]);
+    assert_eq!(negotiate(&hello).unwrap().version, "1.1");
+    hello["supported_protocols"] = json!(["1.1"]);
+    assert!(matches!(
+        negotiate(&hello),
+        Err(ProtocolError::IncompatibleWorker)
+    ));
+    hello["supported_protocols"] = json!(["1.0", "1.1"]);
+    hello["capabilities"] = json!(["market.getBars", "vendor.optional"]);
+    assert!(matches!(
+        negotiate(&hello),
+        Err(ProtocolError::IncompatibleWorker)
+    ));
+    hello["capabilities"] = json!(["market.getBars", "instrument.search", "workspace.undo"]);
+    assert!(matches!(
+        negotiate(&hello),
+        Err(ProtocolError::IncompatibleWorker)
+    ));
+    hello["capabilities"] = json!(required);
+    hello["protocol_version"] = json!("2.0");
+    assert!(matches!(
+        negotiate(&hello),
+        Err(ProtocolError::IncompatibleWorker)
+    ));
+}

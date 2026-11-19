@@ -2,6 +2,9 @@
 
 from contextlib import redirect_stdout
 from io import StringIO
+import json
+import shutil
+import base64
 import subprocess
 import sys
 from unittest.mock import patch
@@ -9,10 +12,11 @@ from unittest.mock import patch
 from scripts import check as harness
 from scripts.project import (
     ProjectError, archive_evidence, digest, json_bytes, load_project, product_progress, readiness,
-    read_json, review_history, task_context, workfront,
+    read_json, review_history, task_context, workfront, verified_main, source_identity,
 )
 from tests.project.test_continuity import ProjectFixture
 from tests.project.fixtures import task_by_id
+from scripts.verification_evidence import integration_validation, release_artifacts, collect_session, performance_verdict, field_observation
 
 
 class DeliveryTests(ProjectFixture):
@@ -115,18 +119,367 @@ class DeliveryTests(ProjectFixture):
         self.commit_fixture()
         report_path = self.report(system='Windows')
         report = read_json(report_path)
-        report.update(selection={'profile': 'release', 'task_id': None},
-                      native_requirement={'requested': True, 'satisfied': True})
+        report.update(
+            selection={'profile': 'release', 'task_id': None, 'checks': [c['id'] for c in report['checks']]},
+            native_requirement={'requested': True, 'satisfied': True},
+            integration_validation=integration_validation(report['checks']),
+        )
+        run_dir = self.root / '.reports/runs/fixture'
+        folder = run_dir / 'candidate'
+        folder.mkdir()
+        identity = {'commit': report['source']['git_head'], 'inputs_sha256': report['source']['sha256']}
+        data = b'Synthetic installer data for tests.'
+        (folder / 'fixture.exe').write_bytes(data)
+        installer = {'path': 'fixture.exe', 'sha256': digest(data)}
+
+        def save(name, value):
+            content = json_bytes(value)
+            (folder / name).write_bytes(content)
+            return {'path': name, 'sha256': digest(content)}
+
+        observations = []
+        for name, build in [('Windows 10', 19045), ('Windows 11', 22631)]:
+            host = {'family': name, 'product_type': 1, 'arch': 'x64', 'build': build, 'webview2': 'fixture'}
+            observation = dict(
+                identity,
+                installer_sha256=installer['sha256'],
+                host=host,
+                operator='synthetic',
+                observed_at='2026-01-01T12:00:00Z',
+                clean_install='passed',
+                upgrade='passed',
+            )
+            observations.append(save(str(build) + '.json', observation))
+        host.update(cpu='fixture', ram='fixture', display_scale='fixture', refresh_rate='fixture')
+        performance = save(
+            'performance.json',
+            dict(
+                identity,
+                host=host,
+                installer_sha256=installer['sha256'],
+                cold_first_frame_ms=[1000] * 20,
+                warm_first_frame_ms=[1000] * 20,
+                update_to_present_ms=[200] * 72000,
+                private_bytes_per_minute=[1024] * 120,
+                final_bar_presented=True,
+            ),
+        )
+        save(
+            'build-manifest.json',
+            dict(identity, installer=installer, windows_observations=observations, performance=performance),
+        )
+        report['candidate_artifacts'] = release_artifacts(
+            run_dir, report['source'], load_project(self.root)['spec']['acceptance']['performance']
+        )
         report_path.write_bytes(json_bytes(report))
         return report_path, report
 
     def test_release_technical_pass_does_not_authorize_publication(self):
         self.completed_release_fixture()
-        result = readiness(self.root)
+        with patch('scripts.project.verified_main', return_value={'id': 'synthetic observed main run'}):
+            result = readiness(self.root)
         self.assertEqual([], result['blockers'])
         self.assertTrue(result['technical_ready'])
         self.assertEqual('not_evaluated', result['authorization'])
         self.assertEqual('present_release_proposal', result['recommendation'])
+
+    def test_bound_hosted_release_and_main_provenance(self):
+        latest, report = self.completed_release_fixture()
+        head = report['source']['git_head']
+        base = self.root / '.reports/ci/402/windows'
+        base.mkdir(parents=True)
+        shutil.copytree(self.root / '.reports/runs', base / 'runs')
+        report['ci'] = {
+            'provider': 'github-actions',
+            'repository': 'owner/repo',
+            'run_id': '402',
+            'run_attempt': '1',
+            'event': 'workflow_dispatch',
+            'head_sha': head,
+            'checkout_sha': head,
+            'run_url': 'https://github.com/owner/repo/actions/runs/402',
+        }
+        hosted = base / 'test-report.json'
+        hosted.write_bytes(json_bytes(report))
+        latest.write_bytes(json_bytes(dict(report, selection={'profile': 'fast', 'task_id': None})))
+        with patch('scripts.project.verified_main', return_value={'id': 'main run'}):
+            self.assertFalse(readiness(self.root)['technical_ready'])
+            self.assertTrue(
+                readiness(self.root, report_path=hosted, artifact_root=base, candidate=head)[
+                    'technical_ready'
+                ]
+            )
+            self.assertFalse(readiness(self.root, report_path=hosted, candidate=head)['technical_ready'])
+            self.assertFalse(
+                readiness(self.root, report_path=hosted, artifact_root=base, candidate='a' * 40)[
+                    'technical_ready'
+                ]
+            )
+            payload = base / 'runs/fixture/candidate/fixture.exe'
+            payload.write_bytes(b'changed')
+            self.assertFalse(
+                readiness(self.root, report_path=hosted, artifact_root=base, candidate=head)[
+                    'technical_ready'
+                ]
+            )
+        self.assertEqual('fast', read_json(latest)['selection']['profile'])
+
+    def test_release_requires_both_windows_families_and_a_measured_installer(self):
+        path, report = self.completed_release_fixture()
+        manifest_path = self.root / '.reports/runs/fixture/candidate/build-manifest.json'
+        manifest = read_json(manifest_path)
+        manifest['windows_observations'] = [manifest['windows_observations'][1]] * 2
+        manifest_path.write_bytes(json_bytes(manifest))
+        with patch('scripts.project.verified_main', return_value={'id': 'main run'}):
+            self.assertFalse(readiness(self.root, report_path=path)['technical_ready'])
+
+    def test_owner_rule_hash_includes_authority_and_excludes_supplementary_observations(self):
+        path = self.root / 'contracts/reviews/example.json'
+        path.parent.mkdir()
+        path.write_bytes(json_bytes({'owner_direction': 'use A', 'screenshot': 1}))
+        spec_path = self.root / 'engineering-contract-v1.json'
+        spec = read_json(spec_path)
+        spec['repository'] = {
+            'owner_decision_inputs': [
+                {'path': 'contracts/reviews/example.json', 'pointer': '/owner_direction'}
+            ]
+        }
+        spec_path.write_bytes(json_bytes(spec))
+        self.report()
+        path.write_bytes(json_bytes({'owner_direction': 'use A', 'screenshot': 2}))
+        self.assertTrue(workfront(self.root)['verification']['current'])
+        path.write_bytes(json_bytes({'owner_direction': 'use B', 'screenshot': 2}))
+        self.assertFalse(workfront(self.root)['verification']['current'])
+
+    def test_modality_evidence_is_independent_of_mock_results_and_default_settings(self):
+        directory = self.root / 'observations'
+        directory.mkdir()
+        source = {'git_head': 'b' * 40, 'sha256': 'a' * 64}
+        from tests.contracts.test_qualification import observed_case
+
+        original = {
+            'qualification': observed_case(),
+            'commit': source['git_head'],
+            'inputs_sha256': source['sha256'],
+            'provider': 'fixture',
+            'route': 'route',
+            'data_revision': 'revision',
+            'authorized_scope': 'fixture scope',
+            'observed_at': '2026-11-18T12:00:00Z',
+            'model': 'fixture',
+            'deployment': 'cloud',
+        }
+        results = []
+        self.assertEqual('not_evaluated', integration_validation(results)['cloud_models']['status'])
+        results.append({'id': 'ai-replay-evaluations', 'status': 'passed'})
+        mock = integration_validation(results)
+        self.assertTrue(mock['mock_ai_evaluated'])
+        self.assertEqual('not_evaluated', mock['cloud_models']['status'])
+        for key, modality in [('configured-model-session', 'text'), ('configured-voice-session', 'voice')]:
+            (directory / (key + '.observation.json')).write_bytes(
+                json_bytes(dict(original, check=key, modality=modality))
+            )
+            observed = collect_session(directory, key, source)
+            results.append({'id': key, 'status': 'passed', 'observation': observed})
+            self.assertEqual(
+                [r['observation'] for r in results if 'observation' in r],
+                integration_validation(results)['cloud_models']['observations'],
+            )
+            with self.assertRaisesRegex(ProjectError, 'another revision'):
+                collect_session(directory, key, dict(source, git_head='c' * 40))
+        self.assertEqual('not_evaluated', integration_validation(results)['real_market_data']['status'])
+        key = 'configured-model-session'
+        filename = directory / (key + '.observation.json')
+        filename.write_bytes(json_bytes(dict(original, check=key, modality='text', deployment='local')))
+        local = integration_validation(
+            [{'id': key, 'status': 'passed', 'observation': collect_session(directory, key, source)}]
+        )
+        self.assertEqual('observed', local['configured_models']['status'])
+        self.assertEqual('not_evaluated', local['cloud_models']['status'])
+        self.assertEqual('local', local['configured_models']['observations'][0]['deployment'])
+        filename.write_bytes(json_bytes(dict(original, check=key, modality='text', deployment='unknown')))
+        with self.assertRaisesRegex(ProjectError, 'local or cloud'):
+            collect_session(directory, key, source)
+
+    def test_client_family_name_does_not_qualify_a_server_build(self):
+        from scripts.verification_evidence import windows_client
+        host = {'family': 'Windows 11', 'build': 26100, 'arch': 'x64', 'webview2': 'fixture'}
+        for wrong in (None, True, 2, 3):
+            with self.subTest(product_type=wrong), self.assertRaises(ProjectError):
+                windows_client(dict(host, product_type=wrong))
+        self.assertEqual('Windows 11', windows_client(dict(host, product_type=1)))
+
+    def test_memory_and_latency_verdicts(self):
+        profile = {'initial_bars_to_chart_p95_ms': 1000, 'chart_update_p95_ms': 200}
+        data = {
+            'cold_first_frame_ms': [1000] * 20,
+            'warm_first_frame_ms': [999] * 20,
+            'update_to_present_ms': [200] * 72000,
+            'private_bytes_per_minute': [40 * 1024**2] * 120,
+            'final_bar_presented': True,
+        }
+        self.assertEqual('passed', performance_verdict(data, profile)['status'])
+        data['private_bytes_per_minute'] = [i * 1024**2 for i in range(120)]
+        self.assertEqual('failed', performance_verdict(data, profile)['status'])
+        data['private_bytes_per_minute'] = [1024**2] * 110 + [100 * 1024**2] * 10
+        self.assertEqual('inconclusive', performance_verdict(data, profile)['status'])
+        data['cold_first_frame_ms'][-2:] = [1001, 1002]
+        self.assertEqual('failed', performance_verdict(data, profile)['status'])
+
+    def test_main_requires_current_official_main_push_and_candidate_release_run(self):
+        path = self.root / 'project/branch-protection.json'
+        path.write_bytes(json_bytes({'repository': 'owner/repo', 'branch': 'main'}))
+        head = 'b' * 40
+        run = {
+            'head_branch': 'main',
+            'head_sha': head,
+            'id': 4,
+            'run_attempt': 1,
+            'event': 'push',
+            'path': '.github/workflows/verify.yml',
+            'status': 'completed',
+            'conclusion': 'success',
+        }
+
+        def command(argv, root):
+            if 'git/ref' in ' '.join(argv):
+                return head
+            if any(x.endswith('/attempts/1') for x in argv):
+                return json.dumps(dict(run, id=5, event='workflow_dispatch'))
+            return json.dumps({'workflow_runs': [run]})
+
+        with (
+            patch('scripts.ci.github_identity', return_value='owner/repo'),
+            patch('scripts.ci.command', side_effect=command),
+        ):
+            self.assertEqual(
+                4,
+                verified_main(
+                    self.root, head, {'repository': 'owner/repo', 'run_id': '5', 'run_attempt': '1'}
+                )['id'],
+            )
+            with self.assertRaisesRegex(ProjectError, 'not the current main'):
+                verified_main(self.root, 'c' * 40, None)
+            run['event'] = 'pull_request'
+            with self.assertRaisesRegex(ProjectError, 'push verification'):
+                verified_main(self.root, head, None)
+
+    def test_graphical_ubuntu_requires_retained_screenshots_and_reports_pending_modalities(self):
+        self.commit_fixture()
+        source = source_identity(self.root)
+        key = 'ubuntu-workspace-observation'
+        directory = self.root / '.reports/observations' / key
+        directory.mkdir(parents=True)
+        image = base64.b64decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAF/gL+XxGCPgAAAABJRU5ErkJggg=='
+        )
+        (directory / 'fixture.png').write_bytes(image)
+        names = [
+            'history',
+            'live',
+            'reconnect',
+            'folder-refresh',
+            'undo-and-restore',
+            'layout',
+            'indicator',
+            'mock-ai',
+            'evidence-selection',
+            'decision-review',
+            'local-bridge',
+        ]
+        obs = {
+            'kind': key,
+            'commit': source['git_head'],
+            'inputs_sha256': source['sha256'],
+            'operator': 'synthetic operator',
+            'observed_at': '2026-01-01T12:00:00Z',
+            'surface': 'ubuntu-graphical-workspace',
+            'actions': dict.fromkeys(names, {'status': 'passed', 'observed': 'Observed synthetic test outcome.'}),
+            'external_sessions': dict.fromkeys(['text', 'voice', 'cli', 'desktop'], 'pending'),
+            'screenshots': [{'path': 'fixture.png', 'sha256': digest(image)}],
+        }
+        (directory / 'observation.json').write_bytes(json_bytes(obs))
+        result = field_observation(self.root, key)
+        self.assertEqual(obs['external_sessions'], result['external_sessions'])
+        failed = dict(obs, actions={**obs['actions'], 'reconnect': {'status': 'failed', 'observed': 'No chart'}})
+        (directory / 'observation.json').write_bytes(json_bytes(failed))
+        with self.assertRaisesRegex(ProjectError, 'Field action did not pass: reconnect'):
+            field_observation(self.root, key)
+        (directory / 'observation.json').write_bytes(json_bytes(obs))
+        (directory / 'fixture.png').unlink()
+        with self.assertRaisesRegex(ProjectError, 'Missing or changed'):
+            field_observation(self.root, key)
+
+    def test_physical_trial_requires_matching_ubuntu_receipt_and_native_surface(self):
+        self.commit_fixture()
+        source = source_identity(self.root)
+        key = 'physical-windows-workspace'
+        directory = self.root / '.reports/observations' / key
+        directory.mkdir(parents=True)
+        image = base64.b64decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAF/gL+XxGCPgAAAABJRU5ErkJggg=='
+        )
+        (directory / 'fixture.png').write_bytes(image)
+        actions = [
+            'unconfigured-entry',
+            'sample',
+            'instrument',
+            'timeframe',
+            'style',
+            'resize',
+            'crosshair',
+            'data-inspection',
+            'exit',
+        ]
+        win = {
+            'kind': key,
+            'commit': source['git_head'],
+            'inputs_sha256': source['sha256'],
+            'operator': 'test operator',
+            'observed_at': '2026-11-18T12:01:00Z',
+            'host': {'family': 'Windows 11', 'product_type': 1, 'build': 22631, 'arch': 'x64', 'webview2': 'fixture'},
+            'surface': 'physical-dual-boot-native-webview2',
+            'screenshots': [{'path': 'fixture.png', 'sha256': digest(image)}],
+            'actions': dict.fromkeys(actions, {'status': 'passed', 'observed': 'Synthetic fixture outcome.'}),
+            'ubuntu_reviewed_commit': 'c' * 40,
+        }
+        obs_path = directory / 'observation.json'
+        obs_path.write_bytes(json_bytes(win))
+        ubuntu_path = self.root / '.reports/ubuntu-receipt.json'
+        receipt = {
+            'source': dict(source, git_head='c' * 40),
+            'field_observations': {'ubuntu-workspace-observation': {}},
+        }
+        ubuntu_path.write_bytes(json_bytes(receipt))
+        ledger = {
+            'tasks': {'M1-012': {'status': 'done', 'evidence': [{'path': '.reports/ubuntu-receipt.json'}]}}
+        }
+        with patch('scripts.verification_evidence.load_project', return_value=ledger):
+            self.assertEqual(key, field_observation(self.root, key)['kind'])
+            obs_path.write_bytes(json_bytes(dict(win, surface='hosted-build-only')))
+            with self.assertRaisesRegex(ProjectError, 'physical native WebView2'):
+                field_observation(self.root, key)
+            obs_path.write_bytes(json_bytes(win))
+            receipt['source']['sha256'] = 'd' * 64
+            ubuntu_path.write_bytes(json_bytes(receipt))
+            with self.assertRaisesRegex(ProjectError, 'matching Ubuntu'):
+                field_observation(self.root, key)
+
+    def test_task_only_observations_do_not_enter_change_or_release_selection(self):
+        project = load_project(self.root)
+        key = 'one-observed-session'
+        project['checks'][key] = {'id': key, 'status': 'implemented', 'cadence': 'task'}
+        project['tasks']['M0-001']['checks'].append(key)
+        self.assertNotIn(key, harness.select_checks(project))
+        self.assertNotIn(key, harness.select_checks(project, profile='release'))
+        self.assertIn(key, harness.select_checks(project, task_id='M0-001'))
+
+    def test_single_stream_and_quality_checks_cannot_pass_full_market_acceptance(self):
+        project = load_project(self.root)
+        project['catalog']['acceptance']=[{'requirement':'all instruments and timeframes','checks':['market-workflow']}]
+        partial=[{'id':name,'status':'passed'} for name in ['market-live-stream','market-quality-states']]
+        self.assertEqual('blocked',product_progress(project,partial)[1][0]['status'])
+        self.assertEqual('passed',product_progress(project,partial+[{'id':'market-workflow','status':'passed'}])[1][0]['status'])
 
     def test_ordinary_or_non_native_report_cannot_become_release_acceptance(self):
         path, report = self.completed_release_fixture()

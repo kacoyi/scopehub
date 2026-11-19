@@ -25,10 +25,12 @@ try:
         from .doctor import tool_version
         from .processes import log_tail, run_logged
         from .project import ProjectError, file_digest, load_project, project_definition_hash, product_progress, source_identity, task_definition_hash, validate_model, windows_x64
+        from .verification_evidence import FIELD_ACTIONS, SESSION_CHECKS, field_observation, collect_session, integration_validation, release_artifacts
     else:
         from doctor import tool_version
         from processes import log_tail, run_logged
         from project import ProjectError, file_digest, load_project, project_definition_hash, product_progress, source_identity, task_definition_hash, validate_model, windows_x64
+        from verification_evidence import FIELD_ACTIONS, SESSION_CHECKS, field_observation, collect_session, integration_validation, release_artifacts
 except Exception as error:
     if __name__ != '__main__':
         raise
@@ -63,6 +65,9 @@ def execute(name, argv, env, run_dir, timeout=900):
     exit_code, reason = run_logged([executable, *argv[1:]], cwd=ROOT, env=env,
                                   log_path=log_path, timeout=timeout)
     status = 'passed' if exit_code == 0 and reason is None else 'failed'
+    if exit_code == 77 and reason is None and name in {*FIELD_ACTIONS, *SESSION_CHECKS}:
+        status = 'blocked'
+        reason = 'observation_unavailable'
     record = {'id': name, 'status': status, 'command': argv, 'exit_code': exit_code,
               'duration_seconds': round(time.monotonic() - started, 3), 'log': log_path.relative_to(ROOT).as_posix(),
               'log_sha256': file_digest(log_path)}
@@ -81,7 +86,7 @@ def select_checks(project, *, profile=None, task_id=None):
         return set(project['tasks'][task_id]['checks']) | {'environment', 'project-state'}
     if profile:
         if profile == 'release':
-            return {key for key, check in project['checks'].items() if check['status'] != 'retired'}
+            return {key for key, check in project['checks'].items() if check['status'] != 'retired' and check.get('cadence') != 'task'}
         if profile not in project['catalog'].get('profiles', {}):
             raise ProjectError(f'Unknown check profile: {profile}')
         return set(project['catalog']['profiles'][profile])
@@ -106,6 +111,7 @@ def main():
     run_dir = REPORTS / 'runs' / run_id
     run_dir.mkdir(parents=True)
     env = dict(os.environ)
+    env['SCOPEHUB_RUN_DIR'] = str(run_dir)
     env['PYTHONPATH'] = os.pathsep.join([str(ROOT), str(ROOT / 'python')])
     env['SCOPEHUB_PYTHON'] = sys.executable
     env['PYTHONUNBUFFERED'] = '1'
@@ -115,6 +121,7 @@ def main():
         'tools': {name: tool_version(name) for name in ['node', 'pnpm', 'rustc', 'cargo', 'uv']},
     }
     results = []
+    candidate_artifacts = None
     stopped = False
     for check in project['catalog']['checks']:
         command = [sys.executable if arg == '{python}' else arg for arg in check['command'] or []]
@@ -131,6 +138,16 @@ def main():
                             'reason_code': 'unsupported_platform', 'reason': 'Requires native Windows x64.'})
         else:
             result = execute(check['id'], command, env, run_dir, check['timeout_seconds'])
+            if result['status'] == 'passed':
+                try:
+                    if check['id'] in SESSION_CHECKS:
+                        result['observation'] = collect_session(run_dir, check['id'], source)
+                    elif check['id'] in FIELD_ACTIONS:
+                        result['field_observation'] = field_observation(ROOT, check['id'])
+                    elif check['id'] == 'release-artifacts':
+                        candidate_artifacts = release_artifacts(run_dir, source, project['spec']['acceptance']['performance'])
+                except (OSError, KeyError, ValueError, TypeError) as error:
+                    result.update(status='failed', reason_code='missing_acceptance_evidence', reason=str(error))
             results.append(result)
             if result.get('reason_code') in {'interrupted', 'cleanup_failed'} or (
                     result['status'] != 'passed' and (args.fail_fast or args.profile == 'fast' or check['id'] == 'environment')):
@@ -181,7 +198,8 @@ def main():
         'status': 'failed' if failed else ('passed' if passed else 'blocked'), 'checks': results,
         'milestones': milestones, 'acceptance': acceptance,
         'product_complete': not failed and all(item['status'] == 'passed' for item in [*milestones, *acceptance]),
-        'integration_validation': {'real_market_data': 'not_evaluated', 'cloud_models': 'not_evaluated'},
+        'integration_validation': integration_validation(results),
+        'candidate_artifacts': candidate_artifacts,
         'limitations': [
             'Task completion is supported only by archived evidence for its recorded definition.',
             'Mock and local checks do not establish real-provider coverage or real-model usability.',

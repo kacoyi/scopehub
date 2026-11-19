@@ -19,7 +19,7 @@ function failureResponse(request, response, failure) {
   response.writeHead(failure.status, {
     'Content-Type': 'application/json', 'Cache-Control': 'no-store', Connection: 'close',
   });
-  response.end(JSON.stringify({ ok: false, error: { code: failure.code } }), () => {
+  response.end(JSON.stringify({ ok: false, error: { code: failure.code, retryable: ['BUSY', 'TIMEOUT', 'WORKER_EXITED'].includes(failure.code) } }), () => {
     if (!request.complete) request.destroy();
   });
 }
@@ -42,10 +42,13 @@ async function readOperation(request) {
       || Array.isArray(body.payload) || Object.keys(body).length !== 2) {
     throw new PreviewFailure(400, 'INVALID_ARGUMENT');
   }
-  if (body.operation !== 'instrument.search' && body.operation !== 'market.getBars') {
+  if (!['instrument.search', 'market.getBars', 'market.readHistoryPage'].includes(body.operation)) {
     throw new PreviewFailure(403, 'PERMISSION_DENIED');
   }
   if (body.operation === 'market.getBars' && body.payload.provider_id !== 'scopehub.synthetic') {
+    throw new PreviewFailure(403, 'PERMISSION_DENIED');
+  }
+  if (body.operation === 'market.readHistoryPage' && body.payload.series?.provider_id !== 'scopehub.synthetic') {
     throw new PreviewFailure(403, 'PERMISSION_DENIED');
   }
   // Encode one frame, including when a caller formatted the HTTP JSON over multiple lines.
@@ -147,7 +150,7 @@ export function ubuntuPreview() {
         if (!/^application\/json(?:\s*;\s*charset=(?:utf-8|"utf-8"))?$/i.test(request.headers['content-type'] ?? '')
             || request.headers['content-encoding']) return reject(415, 'INVALID_ARGUMENT');
         if (Number(request.headers['content-length']) > maxRequestBytes) return reject(413, 'RESOURCE_LIMIT');
-        if (cancelActive) return reject(429, 'RESOURCE_LIMIT');
+        if (cancelActive) return reject(429, 'BUSY');
 
         const controller = new AbortController();
         const cancel = failure => {

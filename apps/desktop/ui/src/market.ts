@@ -1,9 +1,9 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { InstrumentSearchInput, InstrumentSearchOutput, MarketGetBarsInput, MarketGetBarsOutput } from '../../../../contracts/generated/protocol';
+import type { InstrumentSearchInput, InstrumentSearchOutput, MarketHistoryPageInput, MarketHistoryPageOutput } from '../../../../contracts/generated/protocol';
 
 export type { Bar, DatasetDescriptor, Instrument, MarketGetBarsOutput } from '../../../../contracts/generated/protocol';
-type Inputs = { 'instrument.search': InstrumentSearchInput; 'market.getBars': MarketGetBarsInput };
-type Outputs = { 'instrument.search': InstrumentSearchOutput; 'market.getBars': MarketGetBarsOutput };
+type Inputs = { 'instrument.search': InstrumentSearchInput; 'market.readHistoryPage': MarketHistoryPageInput };
+type Outputs = { 'instrument.search': InstrumentSearchOutput; 'market.readHistoryPage': MarketHistoryPageOutput };
 type Job = {
   operation: keyof Inputs; payload: Inputs[keyof Inputs]; signal: AbortSignal;
   resolve: (value: unknown) => void; reject: (reason: unknown) => void;
@@ -59,6 +59,14 @@ export const historyReader = new HistoryReader();
 export const demoProvider = 'scopehub.synthetic';
 export const sampleRange = { from_ms: Date.UTC(2024, 0, 1), to_ms: Date.UTC(2024, 0, 6) };
 
+export function canRetry(error: unknown): boolean {
+  if (error && typeof error === 'object') {
+    if ('retryable' in error && typeof error.retryable === 'boolean') return error.retryable;
+    if ('code' in error) return ['BUSY', 'TIMEOUT', 'WORKER_EXITED'].includes(String(error.code));
+  }
+  return true; // A failed local transport can be reconnected.
+}
+
 export function errorText(error: unknown): string {
   const code = typeof error === 'object' && error !== null && 'code' in error ? error.code : undefined;
   switch (code) {
@@ -66,10 +74,49 @@ export function errorText(error: unknown): string {
     case 'TIMEOUT': return 'The market worker timed out. Retry to start a new session.';
     case 'PROVIDER_NOT_CONFIGURED': return 'The offline demo runtime is not available in this build.';
     case 'OUTPUT_INVALID': case 'PROTOCOL_MISMATCH': return 'The data response failed validation. No chart was loaded.';
-    case 'RESOURCE_LIMIT': return 'The market worker is busy. Please retry.';
+    case 'BUSY': return 'The market worker is busy. Retry when the current read finishes.';
+    case 'RESOURCE_LIMIT': return 'This request exceeds the data limit. Select a narrower time range.';
+    case 'SNAPSHOT_UNAVAILABLE': return 'The selected historical revision is unavailable.';
+    case 'UNSUPPORTED_CAPABILITY': return 'This worker needs an update to read frozen history.';
+    case 'PERMISSION_DENIED': return 'Access to this source is denied.';
     case 'DATA_UNAVAILABLE': return 'No history is available for this instrument.';
     default: return import.meta.env.SCOPEHUB_UBUNTU_PREVIEW
       ? 'Cannot reach the local preview. Retry when the connection is restored.'
       : 'Unable to load the preview. Open the desktop development app and retry.';
+  }
+}
+
+export type ChartHistory = Pick<MarketHistoryPageOutput, 'dataset' | 'bars' | 'snapshot' | 'quality_state'>;
+
+export async function readSampleHistory(instrument: InstrumentSearchOutput['instruments'][number], timeframe: string, signal: AbortSignal): Promise<ChartHistory> {
+  const series = {
+    instrument_id: instrument.id, provider_id: demoProvider, timeframe, price_adjustment: 'raw',
+    session_scope: 'sample-sessions', calendar_id: instrument.calendar_id, quantity_unit: instrument.quantity_unit,
+  };
+  const query = { series, ...sampleRange, warmup_bars: 0 };
+  const invalid = () => ({ code: 'OUTPUT_INVALID', retryable: false });
+  let page = await historyReader.read('market.readHistoryPage', query, signal);
+  const { snapshot, dataset, quality_state, total_bars } = page;
+  if (Object.entries(series).some(([field, value]) => snapshot.series[field as keyof typeof series] !== value)
+    || snapshot.from_ms !== query.from_ms || snapshot.to_ms !== query.to_ms || snapshot.warmup_bars !== 0
+    || dataset.instrument_id !== instrument.id || dataset.timeframe !== timeframe || dataset.provider_id !== demoProvider
+    || dataset.mode !== 'simulated' || dataset.timezone !== instrument.timezone || dataset.calendar_id !== instrument.calendar_id
+    || dataset.quantity_unit !== instrument.quantity_unit || dataset.revision !== snapshot.dataset_revision
+    || dataset.id !== snapshot.dataset_id || !Number.isSafeInteger(total_bars) || total_bars < 0 || total_bars > 100_000) throw invalid();
+  const bars: ChartHistory['bars'] = [];
+  for (;;) {
+    if (signal.aborted) throw aborted();
+    const previous = bars.at(-1);
+    const first = page.bars[0];
+    if (page.offset !== bars.length || page.total_bars !== total_bars || page.snapshot.content_hash !== snapshot.content_hash
+      || bars.length + page.bars.length > total_bars || (previous && first && first.time_ms <= previous.time_ms)) throw invalid();
+    for (const bar of page.bars) bars.push(bar);
+    if (page.next_cursor === null) {
+      if (bars.length !== total_bars) throw invalid();
+      return { dataset, bars, snapshot, quality_state };
+    }
+    if (!page.bars.length || bars.length >= total_bars || page.next_cursor.next_index !== bars.length
+      || page.next_cursor.snapshot_hash !== snapshot.content_hash) throw invalid();
+    page = await historyReader.read('market.readHistoryPage', { ...query, snapshot, cursor: page.next_cursor }, signal);
   }
 }
