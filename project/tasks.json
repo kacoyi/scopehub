@@ -328,7 +328,12 @@
         "crates/application",
         "crates/persistence",
         "apps/desktop",
-        "tests"
+        "tests",
+        "Cargo.toml",
+        "Cargo.lock",
+        "project/development.json",
+        "project/dependency-inventory.json",
+        "THIRD_PARTY_NOTICES"
       ],
       "decision_refs": [
         "0001",
@@ -349,7 +354,13 @@
       ],
       "checks": [
         "operations-workflow",
-        "state-migrations"
+        "state-migrations",
+        "architecture",
+        "dependency-review",
+        "rust-contracts-workers",
+        "rust-format",
+        "rust-lints",
+        "ui-build"
       ],
       "evidence": [],
       "next_action": "Implement the profile-bound timeframe write, restart and undo against the real SQLite transaction owner, then connect the same core to the desktop and opted-in Ubuntu workspace.",
@@ -359,7 +370,8 @@
         "outcome": "An authorized human or AI change goes through the same Rust registry, survives process restart in the originating local profile and can be undone by operation ID. Accepted results, private records and deletion decisions survive the documented recovery cases.",
         "change_types": [
           "persistence",
-          "permissions"
+          "permissions",
+          "dependencies"
         ],
         "context": [
           "engineering-contract-v1.json",
@@ -392,6 +404,14 @@
             "checks": [
               "state-migrations",
               "operations-workflow"
+            ]
+          },
+          {
+            "failure": "The bundled database or a Rust module dependency cannot be built on a supported target, or the locked license and advisory inventory no longer matches the delivered code.",
+            "checks": [
+              "architecture",
+              "dependency-review",
+              "rust-contracts-workers"
             ]
           }
         ],
