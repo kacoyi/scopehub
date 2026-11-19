@@ -5446,7 +5446,13 @@
         ".github/workflows/verify.yml",
         "project/tasks.json",
         "project/feedback.json",
-        "tests/project/test_market_probe_owner.py"
+        "tests/project/test_market_probe_owner.py",
+        "pyproject.toml",
+        "uv.lock",
+        "project/dependency-inventory.json",
+        "THIRD_PARTY_NOTICES",
+        "tests/integration/test_worker.py",
+        "tests/project/test_dependencies.py"
       ],
       "decision_refs": [
         "0004",
@@ -5456,7 +5462,8 @@
         "A cold native Windows runner can verify recovery, preserve a visible gap on mismatched replacement and exhaust the bounded retry sequence while preserving the expected terminal cause. Independent request, cleanup and cancellation limits remain enforced.",
         "The real chart interruption reaches only the admitted worker under the test-owned preview. The test observes its confirmed progress, one final projection and unchanged frozen data. Closed-bar browser checks observe preparation and stream progress separately and still reject every altered or incomplete frame.",
         "The hosted change verification leaves enough bounded time for the full Windows check sequence and retained evidence, including failures. Linux and native Windows outcomes are observed separately.",
-        "A provisioned Linux runner launches the pinned Chromium before the chart suites. When required system libraries are absent, install them and verify the same browser starts before continuing."
+        "A provisioned Linux runner launches the pinned Chromium before the chart suites. When required system libraries are absent, install them and verify the same browser starts before continuing.",
+        "Default sample startup verifies the completed catalog and its subsequent history before asserting the chart. The real interrupted worker resumes inside the original product budget, and the minimal locked dependency environment enforces every format declared by the protocol and project schemas."
       ],
       "checks": [
         "rust-contracts-workers",
@@ -5469,17 +5476,33 @@
         "python-contracts-workers",
         "project-state",
         "market-fixtures",
-        "python-types"
+        "python-types",
+        "dependency-review",
+        "market-quality-states",
+        "market-live-stream",
+        "ui-build"
       ],
-      "evidence": [],
-      "next_action": "Repair the process ownership and observable timing failures from Windows run 44517364634, then verify the complete affected checks on both hosts.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-019-9b158d1aa2e3299c.json",
+          "sha256": "ccfe770fa2f4d38ecb4797143c98dfe0b8811f394d1da1e773872ff60b7c969f"
+        },
+        {
+          "path": "project/evidence/M1-019-da1cca2453fa7f86.json",
+          "sha256": "77d244a24ecb44fef4d4f406d0b3dc633880ff7f3a06b4a0a6abbc3bd73d8f91"
+        }
+      ],
+      "next_action": "Compare real Windows interruption and resume across the original and minimal locked environments, then verify the scoped checks with complete Windows and Ubuntu evidence.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
         "outcome": "One credible cross-platform verification of owned replay interruption and closed-bar repair, with diagnostics retained after failed checks.",
         "change_types": [
           "tooling",
-          "market-fixtures"
+          "market-fixtures",
+          "dependencies",
+          "quality-slice",
+          "stream-slice"
         ],
         "context": [
           "crates/worker-host/src/market.rs",
@@ -5491,7 +5514,8 @@
         ],
         "hypotheses": [
           "The Windows redirector adds a process between the helper and its owning Node test. Cold worker startup, retries and browser preparation can individually succeed while a check waiting across them expires.",
-          "Runs 44520641312 and 44521481949 stopped fetching Ubuntu font packages before executing any project check. Starting the pinned browser verifies the existing host runtime and reserves package installation for missing dependencies."
+          "Runs 44520641312 and 44521481949 stopped fetching Ubuntu font packages before executing any project check. Starting the pinned browser verifies the existing host runtime and reserves package installation for missing dependencies.",
+          "The native Windows runner observed reconnecting and resumed before the real stream timed out. The optional schema extra compiles an unused grammar on every worker start. Compare fresh locked environments with the same owned bridge, fixture and monotonic deadlines."
         ],
         "risks": [
           {
@@ -5507,6 +5531,15 @@
               "rust-contracts-workers",
               "market-recovery-ui"
             ]
+          },
+          {
+            "failure": "Removing an optional grammar silently disables a format the wire protocol or project evidence uses, or a chart startup assertion waits across multiple cold operations.",
+            "checks": [
+              "python-contracts-workers",
+              "dependency-review",
+              "market-quality-states",
+              "market-live-stream"
+            ]
           }
         ],
         "rollback": "Retain the cancelled hosted run and its surviving check tails. Exercise controlled missing, delayed or incorrect results before accepting replacement evidence.",
@@ -5520,7 +5553,10 @@
             "crates/worker-host/src/market.rs",
             "tests/ubuntu-preview/interrupt_owned_worker.py",
             "tests/ubuntu-preview/market-closed-bar-repair.spec.mjs",
-            ".github/workflows/verify.yml"
+            ".github/workflows/verify.yml",
+            "python/worker_runtime/protocol.py",
+            "pyproject.toml",
+            "tests/ui/sample-startup.mjs"
           ],
           "rules": [
             {

@@ -997,6 +997,24 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "cold-worker-restart-and-sample-startup",
+      "source": "Native Windows report 44524484734 at 6a30e60 and genuine worker hello timings on the dedicated Windows 11 guest.",
+      "observation": "The interrupted worker reached reconnecting and resumed, then returned TIMEOUT before the last confirmed bar. Two gap cases also timed out before a cold catalog and its following real history could present a chart. The prior core recovery and closed-bar repair checks passed in the same hosted run.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-019"
+      ],
+      "regression_checks": [
+        "market-worker-interruption",
+        "market-quality-states",
+        "market-recovery-ui",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

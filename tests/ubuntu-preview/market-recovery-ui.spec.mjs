@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { painted } from '../ui/chart-pixels.mjs';
+import { replayStage, waitForReplayRequest } from '../ui/replay-stages.mjs';
 import { control, openPanel, watchlistSymbol } from '../ui/workspace-controls.mjs';
 
 const streamPath = '/__scopehub/market-stream';
@@ -238,8 +239,9 @@ for (const action of ['stop', 'reselect']) {
       await expect(control(page, 'Play sample updates')).toBeVisible();
     } else {
       await expect(chart(page)).toHaveAttribute('data-instrument', stock);
-      await control(page, 'Play sample updates').click();
-      await expect(status(page)).toHaveText('Synthetic replay complete');
+      const request = await waitForReplayRequest(page, () => control(page, 'Play sample updates').click());
+      expect(request.postDataJSON().payload.series.instrument_id).toBe(stock);
+      await expect(status(page)).toHaveText('Synthetic replay complete', replayStage);
       await expect(legend(page).locator('span').nth(3)).toHaveText('C 12.16');
     }
   });

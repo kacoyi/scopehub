@@ -1,11 +1,11 @@
 import { expect, test as base } from '@playwright/test';
+import { future, openDefaultSample } from '../ui/sample-startup.mjs';
 import { painted } from '../ui/chart-pixels.mjs';
 import { replayStage, waitForReplayRequest } from '../ui/replay-stages.mjs';
 import { control, openPanel } from '../ui/workspace-controls.mjs';
 
 const operationPath = '/__scopehub/operation';
 const streamPath = '/__scopehub/market-stream';
-const future = 'SIM.CN.FUTURE.001';
 const stock = 'SIM.CN.STOCK.001';
 const revisionId = suffix => `scopehub-synthetic-v1:20241013:${suffix}`;
 const observed = '2024-01-04T01:09:30.000Z';
@@ -120,7 +120,7 @@ test('real history keeps provenance and painted bars across normal, stale, missi
   expect(calls).toEqual([]);
 
   const normalResponse = page.waitForResponse(response => historyRequest(response.request())?.payload.expected_revision === revisionId('normal'));
-  await control(page, 'Open offline sample').click();
+  await openDefaultSample(page, { trigger: () => control(page, 'Open offline sample').click() });
   await expect(page.getByText('Offline sample', { exact: true })).toBeVisible();
   await openPanel(page, 'Data sources');
   await expect(revision.locator('option')).toHaveText([
@@ -199,7 +199,12 @@ test('a real closed sample remains current when its final observation arrived', 
     // Select the real final observation through the ordinary operation. Keep the core reply intact.
     return route.continue({ postData: JSON.stringify({ ...call, payload: { ...call.payload, as_of_ms: Date.parse(closed) } }) });
   });
-  await page.goto('/#demo');
+  const [pinned] = await Promise.all([
+    page.waitForResponse(response => response.status() === 200
+      && historyRequest(response.request())?.payload.as_of_ms === Date.parse(closed), replayStage),
+    page.goto('/#demo'),
+  ]);
+  expect((await pinned.json()).ok).toBe(true);
   await openPanel(page, 'Data sources');
   await expectProvenance(page, closedCurrent);
   await expectReady(page, future, '1m', closedCurrent.bars);
@@ -208,7 +213,7 @@ test('a real closed sample remains current when its final observation arrived', 
 });
 
 test('a replacement chart is ready while the cancelled old history reply is still held', async ({ page, calls }) => {
-  await page.goto('/#demo');
+  await openDefaultSample(page);
   await expectReady(page, future, '1m', normal.bars);
   await openPanel(page, 'Data sources');
   await expectProvenance(page, normal);
@@ -294,7 +299,7 @@ async function expectNoConnectionFailure(page) {
 
 for (const failure of connectionFailures) {
   test(`${failure.name} leaves source connection unknown when selected history is unavailable`, async ({ page, calls }) => {
-    await page.goto('/#demo');
+    await openDefaultSample(page);
     await expectReady(page, future, '1m', normal.bars);
     await openPanel(page, 'Data sources');
     let injected = false;
@@ -324,7 +329,7 @@ for (const failure of connectionFailures) {
   });
 
   test(`${failure.name} during replay preserves the frozen source and chart`, async ({ page, calls }) => {
-    await page.goto('/#demo');
+    await openDefaultSample(page);
     await expectReady(page, future, '1m', normal.bars);
     await openPanel(page, 'Data sources');
     await expectProvenance(page, normal);
@@ -356,7 +361,7 @@ const readFailures = [
 
 for (const [code, instrument, label] of readFailures) {
   test(`${code} reports a distinct failure for the selected history`, async ({ page }) => {
-    await page.goto('/#demo');
+    await openDefaultSample(page);
     await expectReady(page, future, '1m', normal.bars);
     await openPanel(page, 'Data sources');
     const isTarget = request => {
@@ -428,7 +433,7 @@ async function expectReplayGap(page, known) {
 
 for (const known of [true, false]) {
   test(`a replay gap preserves ${known ? 'its reported interval and count' : 'unknown interval and count'}`, async ({ page }) => {
-    await page.goto('/#demo');
+    await openDefaultSample(page);
     await expectReady(page, future, '1m', normal.bars);
     await openPanel(page, 'Data sources');
     await page.route(`**${streamPath}`, route => {
@@ -474,7 +479,7 @@ test('a validated gap survives a held replay timeout and clears on retry or a ne
       return new Response(body, { headers: { 'Content-Type': 'application/x-ndjson' } });
     };
   }, streamPath);
-  await page.goto('/#demo');
+  await openDefaultSample(page);
   await expectReady(page, future, '1m', normal.bars);
   await openPanel(page, 'Data sources');
   await page.route(`**${streamPath}`, route => {
