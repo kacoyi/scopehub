@@ -1278,6 +1278,36 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "workspace-browser-navigation-observer-lifetime",
+      "source": "Authenticated hosted Windows PR #13 run 44548543796 at e960fd1, workspace-timeframe log and source snapshot.",
+      "observation": "Chromium reported ERR_NO_BUFFER_SPACE on the initial document of the wrong-profile backup visit. The workspace test had already created a response waiter and had not installed a rejection handler. Context teardown also reported that the response waiter rejected when its page closed. Eight browser cases passed and the POSIX signal case skipped.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-008"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "workspace-held-note-read-shares-test-lane",
+      "source": "Local M2-008 task run 20261119T153931.924374Z-c35b457c with temporary synthetic profiles.",
+      "observation": "The peer-deletion browser case timed out while the observer had a pending detail read. A retained screenshot showed the peer on the second note with Local workspace is busy and Review deletion disabled. Both pages used the same single-flight Vite producer, and a page action could fail before the held route entered its release block. The backup restore and both new lifecycle controls passed in the same run.",
+      "severity": "minor",
+      "status": "open",
+      "task_ids": [
+        "M2-008"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

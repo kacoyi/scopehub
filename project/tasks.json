@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-008",
+  "focus_task_id": "M2-008",
   "tasks": [
     {
       "id": "M0-001",
@@ -6038,6 +6038,103 @@
           ],
           "data_plan": "Store only reviewed public advisory fields in the runner temporary directory.",
           "cleanup": "The fetch has no child checks. The runner owns temporary public evidence and the built-in job credential lifetime."
+        }
+      }
+    },
+    {
+      "id": "M2-008",
+      "title": "Own browser response waits in the workspace preview harness",
+      "milestone": "M2",
+      "status": "active",
+      "depends_on": [
+        "M2-007"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "A controlled initial document failure in real Chromium reports its navigation error and releases the pending workspace snapshot observation before context teardown.",
+        "Response and download observations in the workspace suite are scoped to the browser action. Test-only HTTP probes consume or cancel the bodies they own. Existing success and rejection assertions continue to pass without retries or extended timeouts.",
+        "Retain the original hosted Windows error and report the harness finding separately from the unresolved origin of that Chromium navigation error."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-008-21f96520ee78a8a1.json",
+          "sha256": "db2977baa24757ef29b37284c9230d2a83511e9215b5065e5735e1cbc6d0ea63"
+        }
+      ],
+      "next_action": "Review the locally verified observer cleanup and independent peer writers, then run the browser suite once on the matching Windows source. If the initial document error recurs, correlate its Chromium failure with receipt of the request at the owned Vite listener using bounded synthetic metadata.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A real navigation error remains the primary assertion failure and leaves no workspace snapshot observer behind.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ubuntu-preview/workspace.config.mjs",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The response promise created before navigation was observed only after successful navigation and UI assertions. Closing the context on failure rejects that abandoned promise."
+        ],
+        "risks": [
+          {
+            "failure": "A snapshot listener survives a rejected action or captures the wrong response.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A test helper masks the original document error or changes a notes authorization assertion.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Keep the original hosted failure and the controlled red result. Scope any repair to the workspace harness and compare the original operation assertions.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changes to product operations, grants, SQLite, public registries, timeouts or runner settings."
+          ],
+          "open_questions": [
+            "The origin of the isolated hosted Chromium document error remains unverified."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Real Chromium, Vite, Rust persistence, the existing test deadlines, and independent synthetic profiles."
+          ],
+          "change": [
+            "Tie the lifetimes of test observations and response bodies to the operations that own them."
+          ],
+          "data_plan": "Use a unique local port and a controlled browser route or temporary synthetic profile.",
+          "cleanup": "Detach pending listeners when an action fails. Consume or cancel owned HTTP response bodies and close the owned browser contexts."
         }
       }
     }
