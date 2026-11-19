@@ -6,6 +6,42 @@ use tokio::sync::oneshot::error::TryRecvError;
 
 use super::*;
 
+#[cfg(any(target_os = "linux", windows))]
+#[test]
+fn trusted_launcher_can_adopt_and_read_a_local_selection() {
+    use scopehub_platform::local_folder::Cancellation;
+    use std::{fs, time::SystemTime};
+
+    let path = std::env::temp_dir().join(format!(
+        "scopehub-launcher-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    fs::create_dir(&path).unwrap();
+    let path = path.canonicalize().unwrap();
+    let fixture = b"Ticker,Date,Open,High,Low,Close,Shares\n000418,2026-11-19,4,6,3,5,20\n";
+    fs::write(path.join("launch.csv"), fixture).unwrap();
+
+    let state = state();
+    let launcher = state.local_folders();
+    let cancel = Cancellation::default();
+    let selected = launcher.adopt_selected(&path, &cancel).unwrap();
+    let [entry] = selected.files.as_slice() else {
+        panic!("the selection must expose exactly the one fixture")
+    };
+    let frozen = launcher
+        .read(selected.folder_id, entry.file_id, None, &cancel)
+        .unwrap();
+    assert_eq!(entry.relative_path, "launch.csv");
+    assert_eq!(frozen.content.as_deref(), Some(fixture.as_slice()));
+
+    launcher.revoke(selected.folder_id).unwrap();
+    fs::remove_dir_all(path).unwrap();
+}
+
 struct DelayedPage {
     worker: MarketWorker,
     reached_page: Option<oneshot::Sender<u32>>,

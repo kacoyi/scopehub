@@ -300,12 +300,14 @@
     },
     {
       "id": "platform",
-      "status": "planned",
+      "status": "implemented",
       "paths": [
         "crates/platform"
       ],
-      "responsibility": "Windows credentials, paths and process limits.",
-      "public_entries": [],
+      "responsibility": "Native resources, including read-only access to a directory explicitly selected by the trusted host.",
+      "public_entries": [
+        "crates/platform/src/local_folder.rs"
+      ],
       "dependencies": [
         "domain",
         "application"
@@ -314,10 +316,12 @@
         "OS-specific resources"
       ],
       "invariants": [
-        "Credentials remain outside database and logs"
+        "Credentials remain outside database and logs",
+        "Local import reads resolve catalog-issued file IDs inside the current native selection"
       ],
       "checks": [
-        "credential-boundaries"
+        "credential-boundaries",
+        "rust-contracts-workers"
       ]
     },
     {

@@ -2,6 +2,7 @@ use std::{sync::Mutex as SyncMutex, time::Duration};
 
 use scopehub_application::{Actor, MarketLifecycle, MarketPort, MarketRegistry, failure};
 use scopehub_domain::protocol::{Error, ErrorCode};
+use scopehub_platform::local_folder::LocalFolderHost;
 use scopehub_worker_host::market::{MarketWorker, WorkerConfig};
 use serde_json::Value;
 #[cfg(windows)]
@@ -12,6 +13,7 @@ use {scopehub_worker_host::market::run_subscription, serde_json::json};
 
 pub struct State {
     reads: Mutex<MarketRegistry<MarketWorker>>,
+    local_folders: LocalFolderHost,
     replay: Mutex<()>,
     cancellation: SyncMutex<Cancellation>,
 }
@@ -54,12 +56,19 @@ fn development_config() -> Option<WorkerConfig> {
 pub fn state() -> State {
     State {
         reads: Mutex::new(MarketRegistry::new(MarketWorker::new(development_config()))),
+        local_folders: LocalFolderHost::default(),
         replay: Mutex::new(()),
         cancellation: SyncMutex::default(),
     }
 }
 
 impl State {
+    /// Native launcher/picker entry. Webview operation payloads have no access
+    /// to directory adoption or this host instance.
+    pub fn local_folders(&self) -> &LocalFolderHost {
+        &self.local_folders
+    }
+
     async fn read(&self, operation: &str, payload: Value) -> Result<Value, Error> {
         // Do not create an unbounded queue of requests in the native process.
         let mut registry = self

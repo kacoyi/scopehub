@@ -2788,6 +2788,7 @@ version = "0.1.0"
 dependencies = [
  "scopehub-application",
  "scopehub-domain",
+ "scopehub-platform",
  "scopehub-worker-host",
  "serde_json",
  "tauri",
@@ -2802,6 +2803,15 @@ dependencies = [
  "jsonschema",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "scopehub-platform"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "sha2",
+ "uuid",
 ]
 
 [[package]]

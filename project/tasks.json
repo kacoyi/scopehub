@@ -2659,7 +2659,7 @@
         "state-migrations"
       ],
       "evidence": [],
-      "next_action": "Implement the offline raw and normalized preview for explicitly mapped equity and futures bars. Then bind the selected-folder capability, versioned refresh and verified historical chart to the Rust application and local storage.",
+      "next_action": "Connect the trusted local-folder catalog and frozen file reads to the Rust application registry and the offline CSV preview over bounded UTF-8 NDJSON. Then integrate the native selection UI, versioned refresh and historical chart publication.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -2675,7 +2675,8 @@
           "engineering-contract-v1.json",
           "project/assessments/futures-tick-20260109.json",
           "scripts/inspect_futures_ticks.py",
-          "python/providers/history.py",
+          "python/providers/local_folder.py",
+          "crates/platform/src/local_folder.rs",
           "crates/application/src/lib.rs",
           "project/development.json"
         ],
@@ -2718,6 +2719,7 @@
             "providers",
             "worker-runtime",
             "worker-host",
+            "platform",
             "application",
             "persistence",
             "desktop",
@@ -2725,8 +2727,10 @@
             "chart-adapter"
           ],
           "entrypoints": [
-            "python/providers/history.py",
+            "python/providers/local_folder.py",
+            "crates/platform/src/local_folder.rs",
             "crates/application/src/lib.rs",
+            "apps/desktop/src-tauri/src/bridge.rs",
             "apps/desktop/ui/src/chart-workspace.tsx",
             "scripts/inspect_futures_ticks.py",
             "contracts/schemas/protocol.schema.json"
