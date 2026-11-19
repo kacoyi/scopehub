@@ -39,6 +39,10 @@ mod native {
     pub(crate) struct Directory(File);
 
     impl Directory {
+        pub(crate) fn association_path<'a>(&'a self, selected: &'a Path) -> &'a Path {
+            selected
+        }
+
         pub(crate) fn open_root(path: &Path) -> io::Result<Self> {
             let mut components = path.components();
             if components.next() != Some(Component::RootDir) {
@@ -134,6 +138,10 @@ mod native {
     }
 
     impl Directory {
+        pub(crate) fn association_path<'a>(&'a self, _: &Path) -> &'a Path {
+            &self.path
+        }
+
         pub(crate) fn open_root(path: &Path) -> io::Result<Self> {
             let mut components = path.components();
             let Some(Component::Prefix(prefix)) = components.next() else {
@@ -145,7 +153,7 @@ mod native {
             if components.next() != Some(Component::RootDir) {
                 return Err(io::ErrorKind::InvalidInput.into());
             }
-            let root = PathBuf::from(format!(r"\\?\{}:\", char::from(drive)));
+            let root = PathBuf::from(format!(r"\\?\{}:\", char::from(drive.to_ascii_uppercase())));
             let mut directory = Self {
                 pins: vec![Arc::new(pin_directory(&root)?)],
                 path: root,
@@ -230,6 +238,10 @@ mod native {
     pub(crate) struct Directory;
 
     impl Directory {
+        pub(crate) fn association_path<'a>(&'a self, selected: &'a Path) -> &'a Path {
+            selected
+        }
+
         pub(crate) fn open_root(_: &Path) -> io::Result<Self> {
             Err(io::ErrorKind::Unsupported.into())
         }

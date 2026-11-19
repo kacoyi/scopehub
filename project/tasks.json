@@ -2663,7 +2663,7 @@
         "state-migrations"
       ],
       "evidence": [],
-      "next_action": "Implement reviewed mapping save and restart reuse through the profile-bound Rust SQLite writer. Verify changed headers request review, cancellation rolls back, and a different profile cannot load saved mappings. Stage dataset publication and folder refresh in a separate slice.",
+      "next_action": "Verify reviewed mapping reuse on the native Windows desktop. In a separate slice, stage dataset publication and folder refresh, then verify immutable revision reads, retry, alias handling and interruption recovery.",
       "blocker": null,
       "closure_reason": null,
       "plan": {

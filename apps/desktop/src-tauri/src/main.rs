@@ -11,7 +11,6 @@ fn main() {
     use tauri::Manager;
 
     tauri::Builder::default()
-        .manage(bridge::state())
         .invoke_handler(tauri::generate_handler![
             bridge::execute_operation,
             bridge::execute_market_subscription,
@@ -22,6 +21,8 @@ fn main() {
             bridge::choose_local_csv_folder
         ])
         .setup(|app| {
+            let local_data = app.path().app_local_data_dir().ok();
+            app.manage(bridge::state_with_local_profile(local_data.as_deref()));
             tauri::WebviewWindowBuilder::from_config(app, &app.config().app.windows[0])?
                 .on_navigation(|url| {
                     let local_asset = (url.scheme() == "tauri"

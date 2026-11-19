@@ -1,7 +1,13 @@
-use std::{future::Future, path::PathBuf, sync::Mutex as SyncMutex, time::Duration};
+use std::{
+    future::Future,
+    path::{Path, PathBuf},
+    sync::Mutex as SyncMutex,
+    time::Duration,
+};
 
 use scopehub_application::{
-    Actor, MarketLifecycle, MarketPort, MarketRegistry, PREVIEW_LOCAL_IMPORT, failure,
+    Actor, LOAD_LOCAL_IMPORT_MAPPING, MarketLifecycle, MarketPort, MarketRegistry,
+    PREVIEW_LOCAL_IMPORT, SAVE_LOCAL_IMPORT_MAPPING, failure,
 };
 use scopehub_domain::protocol::{Error, ErrorCode};
 use scopehub_platform::local_folder::LocalFolderHost;
@@ -13,11 +19,12 @@ use tokio::sync::{Mutex, MutexGuard, oneshot};
 #[cfg(windows)]
 use {scopehub_worker_host::market::run_subscription, serde_json::json};
 
-use crate::local_import::LocalImport;
+use crate::{local_import::LocalImport, workspace::WorkspaceBridge};
 
 pub struct State {
     reads: Mutex<MarketRegistry<MarketWorker>>,
     local_import: LocalImport,
+    workspace: WorkspaceBridge,
     replay: Mutex<()>,
     cancellation: SyncMutex<Cancellation>,
 }
@@ -58,9 +65,15 @@ fn development_config() -> Option<WorkerConfig> {
 }
 
 pub fn state() -> State {
+    state_with_local_profile(None)
+}
+
+/// Only the native desktop launcher supplies the trusted local app-data root.
+pub fn state_with_local_profile(app_local_data: Option<&Path>) -> State {
     State {
         reads: Mutex::new(MarketRegistry::new(MarketWorker::new(development_config()))),
         local_import: LocalImport::new(development_config()),
+        workspace: WorkspaceBridge::development(app_local_data.filter(|_| cfg!(debug_assertions))),
         replay: Mutex::new(()),
         cancellation: SyncMutex::default(),
     }
@@ -90,8 +103,21 @@ impl State {
         payload: Value,
         request_id: Option<&str>,
     ) -> Result<Value, Error> {
-        if operation == PREVIEW_LOCAL_IMPORT {
-            return self.local_import.preview(payload, request_id).await;
+        match operation {
+            PREVIEW_LOCAL_IMPORT => return self.local_import.preview(payload, request_id).await,
+            LOAD_LOCAL_IMPORT_MAPPING => {
+                return self
+                    .local_import
+                    .load_mapping(&self.workspace, payload, request_id)
+                    .await;
+            }
+            SAVE_LOCAL_IMPORT_MAPPING => {
+                return self
+                    .local_import
+                    .save_mapping(&self.workspace, payload, request_id)
+                    .await;
+            }
+            _ => {}
         }
         // Do not create an unbounded queue of requests in the native process.
         let mut registry = self
@@ -166,6 +192,7 @@ impl State {
 
     pub async fn shutdown(&self) {
         self.local_import.shutdown().await;
+        self.workspace.shutdown().await;
         {
             let mut cancellation = self.cancellation.lock().expect("cancellation state");
             cancellation.closing = true;

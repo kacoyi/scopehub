@@ -133,6 +133,7 @@ struct FileEntry {
 
 struct Selection {
     id: FolderId,
+    source_namespace: [u8; 32],
     display_name: String,
     directory: Directory,
     files: Vec<FileEntry>,
@@ -237,6 +238,10 @@ impl LocalFolderHost {
         files.sort_unstable_by(|left, right| left.relative.cmp(&right.relative));
         let selection = Arc::new(Selection {
             id: FolderId(Uuid::new_v4()),
+            source_namespace: path_fingerprint(
+                b"scopehub-local-folder-v1",
+                directory.association_path(path),
+            ),
             display_name: path.file_name().map_or_else(
                 || "Selected folder".into(),
                 |name| name.to_string_lossy().into_owned(),
@@ -273,15 +278,47 @@ impl LocalFolderHost {
     }
 
     pub fn check_current(&self, folder_id: FolderId) -> Result<(), FolderError> {
+        self.with_current(folder_id, || ())
+    }
+
+    /// Order native grant revocation against an authorized final commit.
+    pub fn with_current<T>(
+        &self,
+        folder_id: FolderId,
+        commit: impl FnOnce() -> T,
+    ) -> Result<T, FolderError> {
         let active = self.active.lock().map_err(|_| FolderError::Io)?;
         if active
             .as_ref()
             .is_some_and(|selection| selection.id == folder_id)
         {
-            Ok(())
+            Ok(commit())
         } else {
             Err(FolderError::SelectionUnavailable)
         }
+    }
+
+    /// Stable association metadata derived from a currently authorized file.
+    pub fn source_key(&self, folder_id: FolderId, file_id: FileId) -> Result<String, FolderError> {
+        let active = self.active.lock().map_err(|_| FolderError::Io)?;
+        let selection = active
+            .as_ref()
+            .filter(|selection| selection.id == folder_id)
+            .ok_or(FolderError::SelectionUnavailable)?;
+        let entry = selection
+            .files
+            .iter()
+            .find(|entry| entry.metadata.file_id == file_id)
+            .ok_or(FolderError::UnknownFile)?;
+        if entry.metadata.kind != FileKind::Csv {
+            return Err(FolderError::UnsupportedFile);
+        }
+        let relative = path_fingerprint(b"scopehub-local-relative-file-v1", &entry.relative);
+        let mut digest = Sha256::new();
+        digest.update(b"scopehub-local-mapping-source-v1\0");
+        digest.update(selection.source_namespace);
+        digest.update(relative);
+        Ok(format!("{:x}", digest.finalize()))
     }
 
     /// Hash the complete opened file and freeze the very same bytes when within
@@ -318,6 +355,30 @@ impl LocalFolderHost {
         selection.check_live(cancel)?;
         Ok(frozen)
     }
+}
+
+fn path_fingerprint(domain: &[u8], path: &Path) -> [u8; 32] {
+    let mut digest = Sha256::new();
+    digest.update(domain);
+    digest.update(b"\0");
+    for component in path.components() {
+        let name = component.as_os_str();
+        #[cfg(unix)]
+        let bytes = {
+            use std::os::unix::ffi::OsStrExt;
+            name.as_bytes()
+        };
+        #[cfg(windows)]
+        let bytes: Vec<u8> = {
+            use std::os::windows::ffi::OsStrExt;
+            name.encode_wide().flat_map(u16::to_be_bytes).collect()
+        };
+        #[cfg(not(any(unix, windows)))]
+        let bytes = name.as_encoded_bytes();
+        digest.update((bytes.len() as u64).to_be_bytes());
+        digest.update(bytes);
+    }
+    digest.finalize().into()
 }
 
 fn admit(slot: &Mutex<()>) -> Result<MutexGuard<'_, ()>, FolderError> {

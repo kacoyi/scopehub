@@ -21,8 +21,19 @@ impl ImportFixture {
                 .unwrap()
                 .as_nanos()
         ));
+        #[cfg(target_os = "linux")]
+        {
+            use std::os::unix::fs::DirBuilderExt;
+            std::fs::DirBuilder::new()
+                .mode(0o700)
+                .create(&path)
+                .unwrap();
+        }
+        #[cfg(windows)]
         std::fs::create_dir(&path).unwrap();
-        Self(path.canonicalize().unwrap())
+        #[cfg(target_os = "linux")]
+        let path = path.canonicalize().unwrap();
+        Self(path)
     }
 }
 
@@ -208,14 +219,7 @@ async fn native_registry_returns_source_bound_raw_and_normalized_previews() {
     let selected = folders
         .catalog(granted["folder_id"].as_str().unwrap().parse().unwrap())
         .unwrap();
-    let equity_mapping = json!({
-        "version":1,"revision":"equity-fixture-2","encoding":"utf-8","delimiter":",","record_kind":"native_ohlcv",
-        "columns":{"symbol":"Ticker","timestamp":"Date","trading_day":"Date","open":"Open","high":"High","low":"Low","close":"Close","volume":"Shares"},
-        "instrument_kind":"equity","venue":"TEST","timezone":"UTC","calendar_id":"fixture-calendar-1","session_scope":"regular",
-        "timeframe":"1d","quantity_unit":"shares","price_adjustment":"raw","volume_semantics":"per_bar",
-        "timestamp_convention":"bar_start","timestamp_format":"%Y-%m-%d","trading_day_format":"%Y-%m-%d","daily_start_time":"09:30:00"
-    });
-    let mut input = import_request(&selected, "equity.csv", equity_mapping);
+    let mut input = import_request(&selected, "equity.csv", equity_mapping());
     input["expected_sha256"] =
         json!("92eb8b04506ac61dd43097b78e5ff15d4aa89b4c525a014b8816e3fa7b21ee1e");
     input["row_limit"] = json!(1);
@@ -327,8 +331,190 @@ async fn native_registry_returns_source_bound_raw_and_normalized_previews() {
 }
 
 #[cfg(any(target_os = "linux", windows))]
+fn equity_mapping() -> Value {
+    json!({
+        "version":1,"revision":"equity-fixture-2","encoding":"utf-8","delimiter":",","record_kind":"native_ohlcv",
+        "columns":{"symbol":"Ticker","timestamp":"Date","trading_day":"Date","open":"Open","high":"High","low":"Low","close":"Close","volume":"Shares"},
+        "instrument_kind":"equity","venue":"TEST","timezone":"UTC","calendar_id":"fixture-calendar-1","session_scope":"regular",
+        "timeframe":"1d","quantity_unit":"shares","price_adjustment":"raw","volume_semantics":"per_bar",
+        "timestamp_convention":"bar_start","timestamp_format":"%Y-%m-%d","trading_day_format":"%Y-%m-%d","daily_start_time":"09:30:00"
+    })
+}
+
+#[cfg(any(target_os = "linux", windows))]
+async fn select_csv(state: &State, folder: &Path) -> Value {
+    let catalog = state
+        .choose_local_csv_folder(|| async { Some(folder.to_owned()) })
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(catalog["files"][0]["kind"], "csv");
+    json!({
+        "version": 1,
+        "folder_id": catalog["folder_id"],
+        "file_id": catalog["files"][0]["file_id"],
+    })
+}
+
+#[cfg(any(target_os = "linux", windows))]
 #[tokio::test]
-async fn pending_local_preview_stops_on_cancellation_selection_change_or_shutdown() {
+async fn reviewed_mapping_reuses_live_source_after_restart_and_requires_review_for_changed_header()
+{
+    use sha2::{Digest, Sha256};
+    use std::fs;
+
+    let fixture = ImportFixture::new();
+    let profile = fixture.0.join("profile");
+    let other_profile = fixture.0.join("other-profile");
+    let source = fixture.0.join("source");
+    let other_source = fixture.0.join("other-source");
+    fs::create_dir(&source).unwrap();
+    fs::create_dir(&other_source).unwrap();
+    let csv = source.join("source.csv");
+    let content = b"Ticker,Date,Open,High,Low,Close,Shares\n000418,2026-11-19,4,6,3,5,20\n000418,2026-11-20,6,7,4,5,21\n";
+    fs::write(&csv, content).unwrap();
+    fs::write(other_source.join("source.csv"), content).unwrap();
+
+    let first = state_with_local_profile(Some(&profile));
+    let selected = source.canonicalize().unwrap();
+    let first_ids = select_csv(&first, &selected).await;
+    let mut uncorrected = first_ids.clone();
+    uncorrected["row_limit"] = json!(1);
+    uncorrected["mapping"] = equity_mapping();
+    uncorrected["mapping"]["columns"]["close"] = json!("WrongClose");
+    let raw = first
+        .execute_local_operation(PREVIEW_LOCAL_IMPORT, uncorrected.clone(), None)
+        .await
+        .unwrap();
+    assert!(raw["preview"]["rows"][0]["normalized"].is_null());
+    assert!(
+        !profile.exists(),
+        "opening a preview must not provision a workspace"
+    );
+    uncorrected["expected_sha256"] = raw["sha256"].clone();
+    assert_eq!(
+        first
+            .execute_local_operation(SAVE_LOCAL_IMPORT_MAPPING, uncorrected.clone(), None)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALIDARGUMENT
+    );
+    assert!(
+        !profile.exists(),
+        "a failed review must not provision a workspace"
+    );
+
+    let mut corrected = uncorrected;
+    corrected["mapping"] = equity_mapping();
+    first.local_import.cancel("cancel-before-admission");
+    assert_eq!(
+        first
+            .execute_local_operation(
+                SAVE_LOCAL_IMPORT_MAPPING,
+                corrected.clone(),
+                Some("cancel-before-admission")
+            )
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::CANCELLED
+    );
+    assert!(!profile.exists());
+    let saved = first
+        .execute_local_operation(SAVE_LOCAL_IMPORT_MAPPING, corrected.clone(), None)
+        .await
+        .unwrap();
+    assert_eq!(saved["record"]["review_revision"], 1);
+    assert_eq!(saved["record"]["mapping"], equity_mapping());
+    assert_eq!(saved["record"]["header_sha256"].as_str().unwrap().len(), 64);
+    assert!(profile.join("workspace-dev/workspace.sqlite3").is_file());
+    first.shutdown().await;
+    drop(first);
+
+    let restarted = state_with_local_profile(Some(&profile));
+    assert_eq!(
+        restarted
+            .execute_local_operation(LOAD_LOCAL_IMPORT_MAPPING, first_ids, None)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::STALECONTEXT
+    );
+    let ids = select_csv(&restarted, &source).await;
+    // A data row changed beyond the review sample. Header reuse remains valid
+    // but neither the save nor the load may silently reuse the old digest.
+    let updated = b"Ticker,Date,Open,High,Low,Close,Shares\n000418,2026-11-19,4,6,3,5,20\n000418,2026-11-20,6,7,4,5,22\n";
+    fs::write(&csv, updated).unwrap();
+    let loaded = restarted
+        .execute_local_operation(LOAD_LOCAL_IMPORT_MAPPING, ids.clone(), None)
+        .await
+        .unwrap();
+    assert_eq!(loaded["status"], "saved");
+    assert_eq!(loaded["record"], saved["record"]);
+    assert_eq!(
+        loaded["source_sha256"],
+        format!("{:x}", Sha256::digest(updated))
+    );
+    assert_ne!(loaded["source_sha256"], raw["sha256"]);
+    corrected["folder_id"] = ids["folder_id"].clone();
+    corrected["file_id"] = ids["file_id"].clone();
+    assert_eq!(
+        restarted
+            .execute_local_operation(SAVE_LOCAL_IMPORT_MAPPING, corrected.clone(), None)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::SNAPSHOTUNAVAILABLE
+    );
+    let mut preview = ids.clone();
+    preview["expected_sha256"] = loaded["source_sha256"].clone();
+    preview["mapping"] = loaded["record"]["mapping"].clone();
+    let bar = restarted
+        .execute_local_operation(PREVIEW_LOCAL_IMPORT, preview, None)
+        .await
+        .unwrap();
+    assert_eq!(bar["preview"]["rows"][0]["normalized"]["close"], 5.0);
+    assert_eq!(bar["preview"]["rows"][0]["raw_fields"][0], "000418");
+
+    let isolated = state_with_local_profile(Some(&other_profile));
+    let isolated_ids = select_csv(&isolated, &source).await;
+    assert_eq!(
+        isolated
+            .execute_local_operation(LOAD_LOCAL_IMPORT_MAPPING, isolated_ids, None)
+            .await
+            .unwrap()["status"],
+        "not_saved"
+    );
+    isolated.shutdown().await;
+    assert!(!other_profile.exists());
+
+    fs::write(
+        &csv,
+        b"Ticker,Date,Open,High,Low,Last,Shares\n000418,2026-11-19,4,6,3,5,20\n",
+    )
+    .unwrap();
+    let changed = restarted
+        .execute_local_operation(LOAD_LOCAL_IMPORT_MAPPING, ids, None)
+        .await
+        .unwrap();
+    assert_eq!(changed["status"], "review_required");
+    assert!(changed["record"].is_null());
+    assert_ne!(changed["source_sha256"], loaded["source_sha256"]);
+    let other_ids = select_csv(&restarted, &other_source).await;
+    assert_eq!(
+        restarted
+            .execute_local_operation(LOAD_LOCAL_IMPORT_MAPPING, other_ids, None)
+            .await
+            .unwrap()["status"],
+        "not_saved"
+    );
+    restarted.shutdown().await;
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[tokio::test]
+async fn pending_local_import_stops_on_cancellation_selection_change_or_shutdown() {
     use scopehub_platform::local_folder::{Cancellation, FolderError};
     use std::fs;
 
@@ -337,17 +523,20 @@ async fn pending_local_preview_stops_on_cancellation_selection_change_or_shutdow
         Cancel,
         Revoke,
         Shutdown,
+        CancelSave,
     }
 
     for interruption in [
         Interruption::Cancel,
         Interruption::Revoke,
         Interruption::Shutdown,
+        Interruption::CancelSave,
     ] {
         let fixture = ImportFixture::new();
         let selected = fixture.0.join("selected");
         fs::create_dir(&selected).unwrap();
-        fs::write(selected.join("source.csv"), b"contract,quote\nTEST,7\n").unwrap();
+        let content = b"contract,quote\nTEST,7\n";
+        fs::write(selected.join("source.csv"), content).unwrap();
         let module = fixture.0.join("python").join("worker_runtime");
         fs::create_dir_all(&module).unwrap();
         fs::write(module.join("local_import.py"), r#"
@@ -360,24 +549,32 @@ pathlib.Path('received').touch()
 time.sleep(30)
 "#).unwrap();
         let config = development_config().expect("development worker");
+        let profile = fixture.0.join("profile");
         let state = State {
             local_import: LocalImport::new(Some(WorkerConfig {
                 root: fixture.0.clone(),
                 ..config
             })),
-            ..state()
+            ..state_with_local_profile(Some(&profile))
         };
         let folders = state.local_folders();
         let catalog = folders
             .adopt_selected(&selected, &Cancellation::default())
             .unwrap();
-        let request = import_request(
+        let mut request = import_request(
             &catalog,
             "source.csv",
             json!({"version":1,"revision":"1","encoding":"utf-8","delimiter":",","record_kind":"quote_snapshot"}),
         );
-        let preview =
-            state.execute_local_operation(PREVIEW_LOCAL_IMPORT, request, Some("preview-1"));
+        let operation = if matches!(interruption, Interruption::CancelSave) {
+            use sha2::{Digest, Sha256};
+            request["mapping"] = equity_mapping();
+            request["expected_sha256"] = json!(format!("{:x}", Sha256::digest(content)));
+            SAVE_LOCAL_IMPORT_MAPPING
+        } else {
+            PREVIEW_LOCAL_IMPORT
+        };
+        let preview = state.execute_local_operation(operation, request, Some("preview-1"));
         tokio::pin!(preview);
         let ready = fixture.0.join("received");
         tokio::select! {
@@ -388,7 +585,9 @@ time.sleep(30)
         }
         let interrupt = async {
             match interruption {
-                Interruption::Cancel => state.local_import.cancel("preview-1"),
+                Interruption::Cancel | Interruption::CancelSave => {
+                    state.local_import.cancel("preview-1")
+                }
                 Interruption::Revoke => folders.revoke(catalog.folder_id).unwrap(),
                 Interruption::Shutdown => state.shutdown().await,
             }
@@ -400,7 +599,9 @@ time.sleep(30)
         .unwrap();
         let code = match interruption {
             Interruption::Revoke => ErrorCode::STALECONTEXT,
-            Interruption::Cancel | Interruption::Shutdown => ErrorCode::CANCELLED,
+            Interruption::Cancel | Interruption::Shutdown | Interruption::CancelSave => {
+                ErrorCode::CANCELLED
+            }
         };
         assert_eq!(result.unwrap_err().code, code);
         if matches!(interruption, Interruption::Shutdown) {
@@ -412,9 +613,23 @@ time.sleep(30)
                 folders.adopt_selected(&selected, &Cancellation::default()),
                 Err(FolderError::SelectionUnavailable)
             ));
-            fs::rename(selected, fixture.0.join("released")).unwrap();
+            fs::rename(&selected, fixture.0.join("released")).unwrap();
         }
         state.shutdown().await;
+        if matches!(interruption, Interruption::CancelSave) {
+            assert!(!profile.exists());
+            let restarted = state_with_local_profile(Some(&profile));
+            let ids = select_csv(&restarted, &selected).await;
+            assert_eq!(
+                restarted
+                    .execute_local_operation(LOAD_LOCAL_IMPORT_MAPPING, ids, None)
+                    .await
+                    .unwrap()["status"],
+                "not_saved"
+            );
+            restarted.shutdown().await;
+            assert!(!profile.exists());
+        }
     }
 }
 
