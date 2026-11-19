@@ -253,9 +253,10 @@
       "paths": [
         "python/providers"
       ],
-      "responsibility": "Synthetic market acquisition and future replaceable data adapters.",
+      "responsibility": "Market-data adapters for synthetic acquisition and bounded local file preview.",
       "public_entries": [
         "python/providers/history.py",
+        "python/providers/local_folder.py",
         "python/providers/simulated.py",
         "python/providers/history_pages.py",
         "python/providers/replay.py"
