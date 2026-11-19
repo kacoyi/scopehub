@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-008",
+  "focus_task_id": "M1-023",
   "tasks": [
     {
       "id": "M0-001",
@@ -5817,6 +5817,109 @@
           ],
           "data_plan": "Keep only same-run synthetic responses in test worker memory and use ordinary sanitized reports.",
           "cleanup": "Close the baseline page and its context after capture. Let Playwright dispose of each case's routes and fixture context."
+        }
+      }
+    },
+    {
+      "id": "M1-023",
+      "title": "Show workspace startup and offer manual recovery before the application mounts",
+      "milestone": "M1",
+      "status": "active",
+      "depends_on": [
+        "M1-021"
+      ],
+      "scope": [
+        "apps/desktop/ui/index.html",
+        "apps/desktop/ui/public",
+        "apps/desktop/ui/src/main.tsx",
+        "apps/desktop/ui/src/style.css",
+        "tests/ubuntu-preview/market-quality.spec.mjs",
+        "project"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "An already delivered desktop or preview document shows an accessible startup state when its application entry fails or remains pending. The user can explicitly reload the same location and reach the ordinary workspace once the entry is available.",
+        "A healthy mount replaces the startup state. Failed and pending entries issue zero market operations and perform no automatic navigation. Startup verification still requires a real chart workspace and reports its original terminal failure.",
+        "Retain the original hosted screenshot and distinguish the historical trigger from the verified rendered-document behavior."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "ui-build",
+        "market-workflow",
+        "market-quality-states"
+      ],
+      "evidence": [],
+      "next_action": "Verify the absent recovery control on an independently failed application entry, implement a document-level startup state, and exercise normal and manual-reload paths on Linux and Windows.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A person can see and recover from an unmounted workspace even while its main JavaScript module is unavailable.",
+        "change_types": [
+          "ui",
+          "tooling"
+        ],
+        "context": [
+          "apps/desktop/ui/index.html",
+          "apps/desktop/ui/src/main.tsx",
+          "apps/desktop/src-tauri/tauri.conf.json",
+          "tests/ubuntu-preview/market-quality.spec.mjs",
+          "tests/ui/workspace-controls.mjs"
+        ],
+        "hypotheses": [
+          "The HTML document currently supplies an empty root. A controlled failure of the first application module leaves no visible workspace or recovery action. The old hosted screenshot alone cannot identify a particular failed request."
+        ],
+        "risks": [
+          {
+            "failure": "The startup notice is mistaken for a mounted chart or causes background navigation, market traffic or an opaque error.",
+            "checks": [
+              "market-quality-states"
+            ]
+          },
+          {
+            "failure": "Reload loses the current location or the fallback remains in the loaded application.",
+            "checks": [
+              "ui-build",
+              "market-workflow",
+              "market-quality-states"
+            ]
+          }
+        ],
+        "rollback": "Keep the bounded diagnostic tests and earlier failure reports. Revert the startup markup and helper together if ordinary mounting regresses.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/index.html",
+            "apps/desktop/ui/src/main.tsx",
+            "tests/ubuntu-preview/market-quality.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Replacing the desktop host, increasing worker timeouts or diagnosing the historical Windows incident from a screenshot."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "The active URL, explicit sample opt-in, default idle workspace, existing Content Security Policy and independent market worker deadlines."
+          ],
+          "change": [
+            "Provide startup status independently of the application bundle and a user-initiated retry."
+          ],
+          "data_plan": "Keep startup state in this document. The recovery control only reloads the current location.",
+          "cleanup": "The successful React mount replaces the temporary markup. Recover by explicitly reloading the same document."
         }
       }
     }

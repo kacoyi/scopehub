@@ -199,18 +199,37 @@ for (const [name, reject, reason] of [
 ]) {
   test(`preview startup reports an entry-module ${name} without retrying`, async ({ page, baseURL, calls }) => {
     let moduleRequests = 0;
-    await page.route('**/src/main.tsx', async route => {
+    let navigations = 0;
+    page.on('request', request => {
+      if (request.isNavigationRequest() && request.frame() === page.mainFrame()) navigations++;
+    });
+    const rejectEntry = async route => {
       moduleRequests++;
       await reject(route);
-    });
+    };
+    await page.route('**/src/main.tsx', rejectEntry);
     await expect(openUnconfiguredPreview(page, baseURL)).rejects.toThrow(reason);
     await expect(control(page, 'Data sources')).toHaveCount(0);
+    const startup = page.getByRole('main', { name: 'Workspace startup' });
+    await expect(startup).toBeVisible();
+    await expect(startup.getByRole('button', { name: 'Reload window' })).toBeEnabled();
     expect(moduleRequests).toBe(1);
+    expect(navigations).toBe(1);
+    expect(calls).toEqual([]);
+
+    const location = page.url();
+    await page.unroute('**/src/main.tsx', rejectEntry);
+    await startup.getByRole('button', { name: 'Reload window' }).click();
+    await expect(control(page, 'Open offline sample')).toBeVisible({ timeout: 10_000 });
+    await expect(startup).toHaveCount(0);
+    expect(page.url()).toBe(location);
+    expect(navigations).toBe(2);
     expect(calls).toEqual([]);
   });
 }
 
 test('preview startup reports the bounded wait for a stalled entry module', async ({ page, baseURL, calls }) => {
+  await page.clock.install();
   const release = Promise.withResolvers();
   let moduleRequests = 0;
   await page.route('**/src/main.tsx', async route => {
@@ -223,6 +242,10 @@ test('preview startup reports the bounded wait for a stalled entry module', asyn
       /application mount\. Startup exceeded 2500 ms\. Document HTTP 200, entry no response/,
     );
     await expect(control(page, 'Data sources')).toHaveCount(0);
+    const startup = page.getByRole('main', { name: 'Workspace startup' });
+    await expect(startup.getByRole('button', { name: 'Reload window' })).toBeVisible();
+    await page.clock.fastForward(10_000);
+    await expect(startup.getByRole('heading')).toHaveText('The workspace hasn’t opened yet');
     expect(moduleRequests).toBe(1);
     expect(calls).toEqual([]);
   } finally {

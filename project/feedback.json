@@ -997,8 +997,13 @@
       "observation": "The locked inventory passed. The approved live GitHub publisher advisory GET returned HTTP 403 with the anonymous REST rate limit exhausted, so dependency-review failed.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M0-027"],
-      "regression_checks": ["dependency-review", "python-contracts-workers"],
+      "task_ids": [
+        "M0-027"
+      ],
+      "regression_checks": [
+        "dependency-review",
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "The mandatory publisher advisory check shared the anonymous GitHub REST rate limit of the hosted runner.",
         "correction": "Fetch the one published advisory in an isolated step using the existing job credential at the exact approved TLS endpoint. The dependency checker validates fresh public metadata bound to that checkout, workflow attempt and runner.",
@@ -1013,7 +1018,8 @@
       "severity": "major",
       "status": "open",
       "task_ids": [
-        "M1-021"
+        "M1-021",
+        "M1-023"
       ],
       "regression_checks": [
         "market-quality-states"
