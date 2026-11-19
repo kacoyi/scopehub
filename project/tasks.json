@@ -2726,7 +2726,7 @@
         "local-import-ui"
       ],
       "evidence": [],
-      "next_action": "Trace the native Windows timeout observed after a successful raw read of three rows. Verify explicit save, process restart, source re-selection and reuse against valid edits, malformed data and a changed header. Continue immutable dataset publication and folder refresh in the separate implementation slice.",
+      "next_action": "Implement and verify bounded cleanup and recovery for the separately observed native CSV worker timeout. The ordinary Windows 11 desktop saved and reopened the reviewed mapping and distinguished data and header errors. Continue immutable dataset publication and folder refresh with their own checks.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -2748,7 +2748,8 @@
           "project/development.json",
           "crates/persistence/src/lib.rs",
           "apps/desktop/src-tauri/src/workspace.rs",
-          "apps/desktop/ui/src/local-import-editor.tsx"
+          "apps/desktop/ui/src/local-import-editor.tsx",
+          "contracts/reviews/2026-11-19-windows-reviewed-mapping.json"
         ],
         "hypotheses": [
           "Explicit source mappings can normalize native OHLCV bars without inferring a price, volume unit or session from ambiguous financial fields. File identities and row locators can connect every accepted row to its original input.",
