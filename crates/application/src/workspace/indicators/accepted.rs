@@ -113,7 +113,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             let challenge = json!({
                 "challenge_id": new_id(), "request_id": request_id, "task_id": document["task_id"],
                 "operation": ACCEPT_INDICATOR_VERSION, "principal_id": access.principal_id,
-                "session_id": access.principal_id, "workspace_id": scope.workspace_id,
+                "session_id": self.indicator_stage.session_id.get_or_init(new_id), "workspace_id": scope.workspace_id,
                 "target": scope.target, "workspace_revision": scope.expected_workspace_revision,
                 "selection_revision": scope.expected_selection_revision,
                 "parameters_hash": hash(&json!([args, document["snapshot"], document["resolved_parameters"],

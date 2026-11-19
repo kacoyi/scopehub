@@ -10,7 +10,7 @@ pub use accepted::{
 use std::{
     collections::VecDeque,
     sync::{
-        Arc, LazyLock, Mutex,
+        Arc, LazyLock, Mutex, OnceLock,
         atomic::{AtomicBool, AtomicUsize, Ordering},
     },
     time::{Duration, Instant},
@@ -115,6 +115,7 @@ pub(crate) struct IndicatorStage {
     jobs: VecDeque<Job>,
     workers: Arc<AtomicUsize>,
     approval: Option<accepted::Approval>,
+    session_id: OnceLock<String>,
 }
 
 impl Drop for IndicatorStage {

@@ -530,6 +530,7 @@ fn indicator_preview_binds_local_source_grants_and_frozen_input() {
         .unwrap()["outcome"]["challenge"]
         .clone();
     assert_eq!(challenge["task_id"], task);
+    assert!(Uuid::parse_str(challenge["session_id"].as_str().unwrap()).is_ok());
     let approval = json!({
         "type": "request", "protocol_version": "1.1", "operation": INDICATOR_CONFIRMATION,
         "message_id": Uuid::new_v4().to_string(), "request_id": Uuid::new_v4().to_string(),
