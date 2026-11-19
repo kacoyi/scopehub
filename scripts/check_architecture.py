@@ -30,10 +30,18 @@ def rust_boundaries(root):
         packages = workspace_packages(root)
     except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
         return [str(error)]
+    allowed = ALLOWED_INTERNAL
+    development = root / 'project/development.json'
+    if development.is_file():
+        modules = json.loads(development.read_text(encoding='utf-8'))['modules']
+        rust_modules = {item['id']: item for item in modules
+                        if any(path.startswith('crates/') or path == 'apps/desktop/src-tauri' for path in item['paths'])}
+        allowed = {f'scopehub-{key}': {f'scopehub-{dependency}' for dependency in item['dependencies']}
+                   for key, item in rust_modules.items()}
     members = {Path(package['manifest_path']).resolve().parent for package in packages}
     for package in packages:
         name = package['name']
-        if name not in ALLOWED_INTERNAL:
+        if name not in allowed:
             errors.append(f'Unregistered internal layer: {name}')
             continue
         for value in package['dependencies']:
@@ -44,10 +52,125 @@ def rust_boundaries(root):
                     errors.append(f'Local dependency outside the reviewed repository: {name} -> {dependency}')
                 elif dependency_path not in members:
                     errors.append(f'Local dependency is not a reviewed workspace member: {name} -> {dependency}')
-            if dependency.startswith('scopehub-') and dependency not in ALLOWED_INTERNAL[name]:
+            if dependency.startswith('scopehub-') and dependency not in allowed[name]:
                 errors.append(f'Forbidden internal dependency: {name} -> {dependency}')
             if name in {'scopehub-domain', 'scopehub-application'} and dependency in {'tauri', 'rusqlite', 'sqlx'}:
                 errors.append(f'Infrastructure dependency in {name}: {dependency}')
+    return errors
+
+
+def declared_source_boundaries(root):
+    """Check statically visible TS/Python module crossings and public entries.
+
+    This intentionally does not claim to detect dynamic imports or all semantic
+    coupling. Existing capability checks and code review remain necessary.
+    """
+    root = root.resolve()
+    record = root / 'project/development.json'
+    if not record.is_file():
+        return []  # Small synthetic workspaces exercise independent Rust rules.
+    modules = json.loads(record.read_text(encoding='utf-8'))['modules']
+    errors = []
+
+    def owner(path):
+        relative = path.resolve().relative_to(root)
+        candidates = [(len(Path(base).parts), item) for item in modules for base in item['paths']
+                      if relative.is_relative_to(Path(base))]
+        return max(candidates, key=lambda item: item[0])[1] if candidates else None
+
+    def crossing(source, target):
+        target = target.resolve()
+        if not target.is_relative_to(root):
+            errors.append(f'Import outside repository: {source.relative_to(root)}')
+            return
+        caller = owner(source)
+        relative = target.relative_to(root).as_posix()
+        if relative.startswith('contracts/generated/'):
+            dependency, public = 'domain', True
+        else:
+            callee = owner(target)
+            if callee is None:
+                errors.append(f'Unowned internal import: {relative}')
+                return
+            dependency = callee['id']
+            public = relative in callee['public_entries']
+        if caller is None:
+            errors.append(f'Unowned source: {source.relative_to(root)}')
+        elif caller['id'] != dependency:
+            if dependency not in caller['dependencies']:
+                errors.append(f'Forbidden module dependency: {caller["id"]} -> {dependency}')
+            elif not public:
+                errors.append(f'Private module entry: {caller["id"]} -> {relative}')
+
+    ui = root / 'apps/desktop/ui/src'
+    for path in ui.rglob('*'):
+        if path.suffix not in {'.ts', '.tsx', '.js', '.mjs'}:
+            continue
+        # Include re-exports and static/dynamic literal imports. Computed imports
+        # remain a review concern, not a claimed parser capability.
+        pattern = r'''(?:from\s*|import\s*\(\s*|import\s*)['"]([^'"]+)['"]'''
+        for imported in re.findall(pattern, path.read_text(encoding='utf-8')):
+            if not imported.startswith('.'):
+                continue
+            target = (path.parent / imported).resolve()
+            if target.suffix == '.css':
+                continue
+            candidates = [target, *[Path(str(target) + suffix) for suffix in ['.ts','.tsx','.js','.mjs']], target / 'index.ts']
+            target = next((item for item in candidates if item.is_file()), target)
+            crossing(path, target)
+    python = root / 'python'
+    known = {item.name for item in python.iterdir() if item.is_dir()} if python.exists() else set()
+    for path in python.rglob('*.py'):
+        for node in ast.walk(ast.parse(path.read_text(encoding='utf-8'))):
+            imported = []
+            if isinstance(node, ast.Import):
+                imported = [alias.name for alias in node.names]
+            elif isinstance(node, ast.ImportFrom):
+                if node.level:
+                    base = path.parent
+                    for _ in range(node.level - 1):
+                        base = base.parent
+                    target = base / (node.module or '').replace('.', '/')
+                    target = target.with_suffix('.py') if target.with_suffix('.py').is_file() else target / '__init__.py'
+                    crossing(path, target)
+                else:
+                    imported = [node.module or '']
+            for name in imported:
+                if name.startswith('contracts.generated.'):
+                    crossing(path, root / (name.replace('.', '/') + '.py'))
+                elif name.split('.')[0] in known:
+                    target = python / name.replace('.', '/')
+                    target = target.with_suffix('.py') if target.with_suffix('.py').is_file() else target / '__init__.py'
+                    crossing(path, target)
+    return errors
+
+
+def desktop_capability_errors(root):
+    errors = []
+    commands = ['execute_operation', 'execute_market_subscription', 'cancel_market_subscription',
+                'prepare_market_subscription', 'cancel_market_preparation']
+    permissions = ['allow-' + command.replace('_', '-') for command in commands]
+    directory = root / 'apps/desktop/src-tauri'
+    capabilities = list((directory / 'capabilities').glob('*'))
+    if {path.name for path in capabilities} != {'main.json'}:
+        errors.append('Desktop capabilities must be limited to the reviewed main window')
+    for path in capabilities:
+        if path.suffix != '.json':
+            errors.append(f'Unreviewed capability format: {path.name}')
+            continue
+        capability = json.loads(path.read_text())
+        if (capability.get('remote') is not None or capability.get('windows') != ['main']
+                or capability.get('webviews') or capability.get('local', True) is not True
+                or capability.get('identifier') != 'main'
+                or capability.get('permissions') != permissions):
+            errors.append(f'Desktop capability exceeds the local operation registry: {path.name}')
+    config = json.loads((directory / 'tauri.conf.json').read_text())
+    if config['app']['security'].get('capabilities') != ['main']:
+        errors.append('Desktop capability configuration must select only main')
+    build = (directory / 'build.rs').read_text()
+    manifest = re.search(r'AppManifest::new\(\)\.commands\(&\[([^\]]*)\]\)', build)
+    if manifest is None or re.findall(r'"([^"]+)"', manifest[1]) != commands:
+        errors.append('Desktop commands must use the reviewed application ACL')
     return errors
 
 
@@ -60,6 +183,7 @@ def main():
         if not (ROOT / path).is_file():
             errors.append(f'Missing required artifact: {path}')
     errors.extend(rust_boundaries(ROOT))
+    errors.extend(declared_source_boundaries(ROOT))
     source_root = ROOT / 'apps/desktop/ui/src'
     for path in source_root.rglob('*'):
         if path.suffix not in {'.ts', '.tsx', '.js', '.mjs'}:
@@ -90,10 +214,15 @@ def main():
         for key in ['effect', 'confirmation', 'undoable', 'actors']:
             if actual[name][key] != expected[name][key]:
                 errors.append(f'Operation policy drift: {name}.{key}')
+        binding = actual[name].get('wire_bindings', {}).get(manifest['protocol_version'], actual[name])
         for direction in ['input', 'output']:
+            if expected[name][direction + '_spec'] != binding[direction] or binding[direction] not in schema['$defs']:
+                errors.append(f'Engineering operation binding differs from the negotiated schema: {name}.{direction}')
             if actual[name][direction] not in schema['$defs']:
                 errors.append(f'Missing operation schema: {name}.{direction}')
-    if schema['$defs']['ProtocolVersion']['const'] != spec['protocol']['version']:
+    if (schema['$defs']['ProtocolVersion11']['const'] != spec['protocol']['version']
+            or schema['$defs']['ProtocolVersion']['const'] != '1.0'
+            or manifest['protocol_version'] != spec['protocol']['version']):
         errors.append('Protocol version drift')
     for name, definition in schema['$defs'].items():
         if definition.get('type') == 'object' and name != 'Metadata' and definition.get('additionalProperties') is not False:
@@ -103,12 +232,7 @@ def main():
     errors.extend(f'Tauri configuration: {error.message}' for error in validators.validator_for(tauri_schema)(tauri_schema).iter_errors(tauri))
     if not tauri['app']['security']['csp']:
         errors.append('Release CSP missing')
-    for path in (ROOT / 'apps/desktop/src-tauri/capabilities').glob('*.json'):
-        capability = json.loads(path.read_text())
-        if capability.get('remote'):
-            errors.append(f'Remote Tauri capability: {path.name}')
-        if capability.get('permissions'):
-            errors.append(f'M0 must expose no commands: {path.name}')
+    errors.extend(desktop_capability_errors(ROOT))
     if errors:
         raise SystemExit('\n'.join(errors))
     print(json.dumps({'status': 'passed', 'operations': len(actual), 'boundary_check': 'declared dependencies and source imports'}))

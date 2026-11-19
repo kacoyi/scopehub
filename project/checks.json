@@ -118,7 +118,7 @@
     {
       "id": "rust-contracts-workers",
       "status": "implemented",
-      "purpose": "Test every eligible Cargo workspace member, including native desktop tests",
+      "purpose": "Test eligible Cargo workspace members, including the portable desktop bridge on non-Windows hosts and the full native desktop tests on Windows x64",
       "platforms": "all",
       "command": [
         "{python}",
@@ -234,7 +234,7 @@
     {
       "id": "state-migrations",
       "status": "planned",
-      "purpose": "Validate versioned migration, backup/restore and interruption recovery",
+      "purpose": "Validate versioned migration, backup/restore and interruption recovery Exercise isolated local user profiles, private records and derived indexes, deletion and restoration without replaying a past disclosure grant.",
       "platforms": "all",
       "command": null,
       "timeout_seconds": 900
@@ -267,6 +267,164 @@
       ],
       "timeout_seconds": 900,
       "cadence": "change"
+    },
+    {
+      "id": "futures-tick-inspection",
+      "status": "implemented",
+      "purpose": "Verify offline snapshot diagnostics and bounded observed-price aggregation using synthetic counterexamples",
+      "platforms": "all",
+      "command": [
+        "{python}",
+        "-m",
+        "unittest",
+        "tests.project.test_futures_ticks",
+        "-v"
+      ],
+      "timeout_seconds": 900
+    },
+    {
+      "id": "chart-history",
+      "status": "implemented",
+      "purpose": "Exercise opt-in historical chart, real Rust/Python read operations and browser selection/error behavior; excludes live recovery and packaged desktop execution",
+      "platforms": "all",
+      "command": [
+        "{python}",
+        "scripts/check_chart_history.py"
+      ],
+      "timeout_seconds": 900
+    },
+    {
+      "id": "ubuntu-preview",
+      "status": "implemented",
+      "purpose": "Exercise the local development entry in a clean Chromium session, verify synthetic history through the loopback endpoint and enforce its read-only scope",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/playwright.config.mjs"
+      ],
+      "timeout_seconds": 900
+    },
+    {
+      "id": "local-folder-import",
+      "status": "planned",
+      "purpose": "Exercise the folder picker, editable mapping, source lineage, idempotent refresh and schema drift through the actual local chart workflow.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 1800
+    },
+    {
+      "id": "workspace-layout",
+      "status": "planned",
+      "purpose": "Exercise manual and AI-compatible panel edits, linked and pinned selections, save, restore and undo through the workspace.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 1800
+    },
+    {
+      "id": "configured-model-session",
+      "status": "planned",
+      "purpose": "Independently verify model and data selection, declared capabilities, transmission scope, contrary evidence, corrections and tool outcomes in an authorized real text session. Record provider, route, model and observed charges where available. Check ordinary connected turns and exact per-request private excerpts at the actual connector. Report the observed local or cloud deployment.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 1800,
+      "cadence": "release"
+    },
+    {
+      "id": "configured-voice-session",
+      "status": "planned",
+      "purpose": "Observe one explicitly authorized real duplex voice session, mixed-language entity correction, visible tool results, cancellation and text continuity.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 1800,
+      "cadence": "release"
+    },
+    {
+      "id": "external-ai-bridge",
+      "status": "planned",
+      "purpose": "Exercise a local MCP session against the running desktop core using bounded synthetic chart data. Verify visible attribution, grant and entitlement filtering, idempotent annotation, concurrent edits, undo and revocation.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 1800
+    },
+    {
+      "id": "configured-external-ai-clients",
+      "status": "planned",
+      "purpose": "Observe an authorized Codex CLI session and a compatible desktop AI client on supported hosts using the delivered local bridge. Check the same open chart, attributed annotations, denied operations and undo.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 1800,
+      "cadence": "release"
+    },
+    {
+      "id": "market-live-stream",
+      "status": "implemented",
+      "purpose": "Exercise explicit synthetic replay through the ordinary development chart, loopback bridge, shared registry and market worker, including selection cancellation, a visible gap and final canvas update.",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-stream.config.mjs"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "change"
+    },
+    {
+      "id": "market-quality-states",
+      "status": "implemented",
+      "purpose": "Exercise the chart with real frozen normal, stale, gapped and empty sample reads, independent session and freshness states, delayed selection, distinct typed failures and retry.",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-quality.config.mjs"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "change"
+    },
+    {
+      "id": "ubuntu-workspace-observation",
+      "status": "implemented",
+      "purpose": "Validate the retained actual Ubuntu-local integrated workspace observation, offline journeys and external-session disposition.",
+      "platforms": "all",
+      "command": [
+        "{python}",
+        "scripts/verification_evidence.py",
+        "ubuntu-workspace-observation"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
+      "id": "physical-windows-workspace",
+      "status": "implemented",
+      "purpose": "Validate the physical Windows dual-boot native WebView2 session, inputs, observed actions, OS build, screenshots and source revision.",
+      "platforms": "windows-x64",
+      "command": [
+        "{python}",
+        "scripts/verification_evidence.py",
+        "physical-windows-workspace"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
+      "id": "configured-market-source",
+      "status": "planned",
+      "purpose": "Observe an authorized real market source, specific route, dataset revision and permitted use.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 900,
+      "cadence": "task"
     }
   ],
   "milestones": [
@@ -292,14 +450,16 @@
       "checks": [
         "market-workflow",
         "market-fixtures",
-        "market-recovery"
+        "market-recovery",
+        "local-folder-import"
       ]
     },
     {
       "id": "M2",
       "checks": [
         "operations-workflow",
-        "state-migrations"
+        "state-migrations",
+        "workspace-layout"
       ]
     },
     {
@@ -312,7 +472,11 @@
       "id": "M4",
       "checks": [
         "ai-workflow",
-        "ai-replay-evaluations"
+        "ai-replay-evaluations",
+        "configured-voice-session",
+        "external-ai-bridge",
+        "configured-external-ai-clients",
+        "configured-model-session"
       ]
     },
     {
@@ -342,7 +506,8 @@
     {
       "requirement": "After disconnecting the market worker, its status is visible and recovery uses bounded retries without duplicate subscriptions",
       "checks": [
-        "market-workflow"
+        "market-workflow",
+        "market-recovery"
       ]
     },
     {
@@ -361,7 +526,7 @@
       ]
     },
     {
-      "requirement": "Existing confirmations become invalid when parameters, the code hash, or workspace revision change",
+      "requirement": "For new work, existing confirmations become invalid when parameters, the code hash or a bound workspace or selection revision changes",
       "checks": [
         "operations-workflow"
       ]
@@ -399,6 +564,70 @@
         "python-contracts-workers",
         "rust-contracts-workers"
       ]
+    },
+    {
+      "requirement": "Select a local CSV directory, correct an import preview and refresh it with new files. Source revisions and rejected records are inspectable and repeat imports are idempotent.",
+      "checks": [
+        "local-folder-import"
+      ]
+    },
+    {
+      "requirement": "Preview, apply, name, restore and revert a single-chart layout. Manual and AI edits use the same panel settings, linked selections and allowed interactions.",
+      "checks": [
+        "workspace-layout",
+        "operations-workflow",
+        "ai-workflow"
+      ]
+    },
+    {
+      "requirement": "The human and AI can each point to a versioned workspace object, reveal evidence in another panel, refine the selection and return to the previous view.",
+      "checks": [
+        "ai-workflow",
+        "ai-replay-evaluations"
+      ]
+    },
+    {
+      "requirement": "AI operations show their target, preview or progress and actual outcome in the affected view. Confirmation, denial, failure and cancellation remain visible.",
+      "checks": [
+        "ai-workflow",
+        "operations-workflow"
+      ]
+    },
+    {
+      "requirement": "An explicitly enabled real voice session supports spoken discussion, interruption and text follow-up under the same operation permissions. A denied or interrupted request has an observable outcome.",
+      "checks": [
+        "configured-voice-session",
+        "credential-boundaries"
+      ]
+    },
+    {
+      "requirement": "Starting from a buy question, compare evidence, revise a challenged premise, and perform only a separately authorized workspace change. Reopen a user-saved decision and distinguish the original rationale from the later outcome.",
+      "checks": [
+        "ai-workflow",
+        "ai-replay-evaluations",
+        "state-migrations"
+      ]
+    },
+    {
+      "requirement": "Choose a provider and model independently of market data. Show verified capabilities, destination and applicable charges, handle an unsupported feature, and exercise a configured model on an evidence-based discussion.",
+      "checks": [
+        "configured-model-session",
+        "ai-replay-evaluations",
+        "credential-boundaries"
+      ]
+    },
+    {
+      "requirement": "An opted-in local MCP client reads the selected chart and, with a write grant, adds a reversible annotation to the same open workspace. The UI attributes the action. Denied, stale and revoked requests preserve the workspace and respect output permissions.",
+      "checks": [
+        "external-ai-bridge",
+        "operations-workflow"
+      ]
+    },
+    {
+      "requirement": "Observe Codex CLI and one compatible desktop AI client separately reading the open chart and applying a scoped annotation. Verify the visible result and undo on each supported test host.",
+      "checks": [
+        "configured-external-ai-clients"
+      ]
     }
   ],
   "profiles": {
@@ -425,7 +654,12 @@
     "rust-lints",
     "windows-native-build",
     "dependency-review",
-    "market-fixtures"
+    "market-fixtures",
+    "futures-tick-inspection",
+    "chart-history",
+    "ubuntu-preview",
+    "market-live-stream",
+    "market-quality-states"
   ],
   "gate_changes": []
 }

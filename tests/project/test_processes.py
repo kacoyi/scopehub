@@ -1,7 +1,8 @@
 """Real subprocess regressions for diagnostics and bounded check lifetimes."""
 
 from contextlib import redirect_stdout
-from io import StringIO
+from io import BytesIO, StringIO, TextIOWrapper
+import json
 import os
 import hashlib
 from pathlib import Path
@@ -36,6 +37,34 @@ class ProcessTests(unittest.TestCase):
         log = (self.root / result['log']).read_text()
         self.assertIn('diagnostic before timeout', log)
         self.assertIn('Check stopped: timeout', log)
+
+    def test_unicode_failure_on_legacy_console_preserves_log_and_result(self):
+        raw = 'Synthetic chart failure \u2502 \u903e\u671f'.encode()
+        script = self.root / 'unicode_probe.py'
+        script.write_text(f'import os\nos.write(2, {raw!r})\nraise SystemExit(3)\n', encoding='ascii')
+        console = BytesIO()
+        stream = TextIOWrapper(console, encoding='cp1252', errors='strict', write_through=True)
+        with patch.object(harness, 'ROOT', self.root), redirect_stdout(stream):
+            result = harness.execute('fixture', [sys.executable, str(script)], dict(os.environ),
+                                     self.root / '.reports/runs/fixture')
+        self.assertEqual(('failed', 3), (result['status'], result['exit_code']))
+        self.assertEqual(raw, (self.root / result['log']).read_bytes())
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), result['log_sha256'])
+        self.assertEqual(raw.decode(), json.loads(console.getvalue().decode('cp1252').splitlines()[-1])['log_tail'])
+
+    def test_private_checks_preserve_exit_evidence_without_capturing_either_output_stream(self):
+        child = self.root / 'probe.py'
+        child.write_text("import sys\nprint('synthetic private message')\n"
+                         "print('synthetic private error', file=sys.stderr)\nsys.exit(int(sys.argv[1]))\n")
+        log_dir = self.root / '.reports/runs/fixture'
+        for name, code in [('configured-model-session', 0), ('configured-voice-session', 7),
+                           ('physical-windows-workspace', 77), ('configured-external-ai-clients', 0)]:
+            printed = StringIO()
+            with self.subTest(check=name, code=code), patch.object(harness, 'ROOT', self.root), redirect_stdout(printed):
+                result = harness.execute(name, [sys.executable, str(child), str(code)], dict(os.environ), log_dir)
+                self.assertEqual(code, result['exit_code'])
+                self.assertNotIn('synthetic private', printed.getvalue())
+                self.assertEqual(f'{{"exit_code": {code}}}\n'.encode('ascii'), (self.root / result['log']).read_bytes())
 
     def descendant_command(self, *, exit_code=0, wait=False):
         ready = self.root / 'descendant-ready'

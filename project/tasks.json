@@ -185,13 +185,16 @@
       "milestone": "M1",
       "status": "planned",
       "depends_on": [
-        "M1-002"
+        "M1-007"
       ],
       "scope": [
         "apps/desktop/ui",
         "crates",
         "python/providers",
-        "tests"
+        "tests",
+        "project/checks.json",
+        "project/development.json",
+        "scripts/ci_artifacts.py"
       ],
       "decision_refs": [
         "0001",
@@ -204,12 +207,102 @@
         "Loading, ready, empty, stale, disconnected and error states have observable UI behavior."
       ],
       "checks": [
-        "market-workflow"
+        "market-workflow",
+        "ui-build",
+        "market-fixtures",
+        "python-types",
+        "architecture",
+        "market-live-stream",
+        "market-quality-states"
       ],
       "evidence": [],
-      "next_action": "After fixture semantics are verified, connect one instrument through the core to the chart, then expand to the specified instruments and timeframes.",
+      "next_action": "After M1-006 and M1-007, verify the complete simulated chart slice; M1-003 separately establishes interruption/recovery. Local import remains M1-008.",
       "blocker": null,
-      "closure_reason": null
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Open the unconfigured chart, explicitly select the offline sample, search all three instruments, and observe the correct frozen and streaming bars after choosing a timeframe and chart style.",
+        "change_types": [
+          "ui",
+          "market-fixtures"
+        ],
+        "context": [
+          "project/development.json",
+          "apps/desktop/ui/src/main.tsx",
+          "crates/application/src/lib.rs",
+          "crates/worker-host/src/market.rs",
+          "tests/fixtures/market/series.json",
+          "tests/ubuntu-preview/market-stream.spec.mjs",
+          "tests/ubuntu-preview/market-quality.spec.mjs"
+        ],
+        "hypotheses": [
+          "A single uninterrupted browser session can select a China future (1m candles), China stock (5m line) and US stock (1d candles). The existing worker fixtures support all three with independently known partial and final values."
+        ],
+        "risks": [
+          {
+            "failure": "Changing symbols or timeframes renders an old partial bar, starts an extra subscription, loses an update or mutates the frozen source table.",
+            "checks": [
+              "market-workflow",
+              "market-live-stream"
+            ]
+          },
+          {
+            "failure": "A visible quote lacks a simulated source label, confuses an unknown volume with zero, or loses stale, empty and disconnected states.",
+            "checks": [
+              "market-workflow",
+              "market-quality-states"
+            ]
+          }
+        ],
+        "rollback": "Keep the per-step browser evidence and fixture values, isolate the failing UI, application or worker path, repair it and rerun the same three selections.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "chart-adapter",
+            "application",
+            "worker-host",
+            "providers"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/market.ts",
+            "apps/desktop/ui/src/chart-adapter/history.ts",
+            "crates/application/src/lib.rs",
+            "crates/worker-host/src/market.rs",
+            "python/providers/history.py"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/runtime"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/domain"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui"
+            }
+          ],
+          "non_goals": [
+            "Real feeds, paid subscriptions, automatic backfill after interruption, local import, durable workspace mutations and physical Windows acceptance have separate tasks."
+          ],
+          "open_questions": [
+            "Refine visible connection and staleness presentation while implementing the state slice."
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Explicit synthetic entry and history semantics",
+            "Selection-race and cleanup guarantees"
+          ],
+          "change": [
+            "Bind the already implemented history, replay and chart-state paths into one repeatable three-instrument user journey with explicit expected prices, volumes, times and source identity."
+          ],
+          "data_plan": "No durable user format change.",
+          "cleanup": "Keep one active subscription per selection; remove temporary stream harness paths after integrated acceptance."
+        }
+      }
     },
     {
       "id": "M2-001",
@@ -217,7 +310,8 @@
       "milestone": "M2",
       "status": "planned",
       "depends_on": [
-        "M1-001"
+        "M1-001",
+        "M2-005"
       ],
       "scope": [
         "crates/application",
@@ -229,21 +323,122 @@
         "0001",
         "0002",
         "0003",
-        "0004"
+        "0004",
+        "0009",
+        "0011"
       ],
       "acceptance": [
         "Human and AI actions use the same registry, permissions, confirmations, revisions and idempotency semantics.",
         "Workspace restoration and undo preserve accepted state; restart does not replay prior AI operations.",
-        "Introduce versioned database migrations and recovery tests when persistent state is first introduced."
+        "Introduce versioned database migrations and recovery tests when persistent state is first introduced.",
+        "A user-selected local decision note retains the dated rationale and evidence references across restart. Append later outcomes separately. Exercise deletion and recovery, and verify that declining to save leaves no decision note.",
+        "Exercise commit, lost reply, concurrent replay, fresh disclosure authorization, target selection conflict, undo and rollback. Verify note deletion across restart and restoration with and without known deletion markers.",
+        "Provide an explicitly enabled Ubuntu development entry for versioned workspace operations. Exercise a local authorized change, undo and restart against the same Rust authorization and persistence core. Keep the existing synthetic history-only grant restricted and keep the Windows release target.",
+        "Keep saved conversation content, memory, strategy material and derived indexes in the active local user profile. Test two distinct user profiles, local backup and recovery, deletion and cache cleanup. Opening one profile or restoring an older copy never reveals the other user’s data or restores an outbound excerpt grant."
       ],
       "checks": [
         "operations-workflow",
         "state-migrations"
       ],
       "evidence": [],
-      "next_action": "Implement operation ownership, persistence and failure-oriented tests.",
+      "next_action": "After the chart workflow and revision clarification, implement the first SQLite-backed timeframe round trip through the shared registry. Extend it to scoped idempotency, explicit private saves and tested backup recovery.",
       "blocker": null,
-      "closure_reason": null
+      "closure_reason": null,
+      "plan": {
+        "outcome": "An authorized human or AI change goes through the same Rust registry, survives process restart in the originating local profile and can be undone by operation ID. Accepted results, private records and deletion decisions survive the documented recovery cases.",
+        "change_types": [
+          "persistence",
+          "permissions"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/contract.json",
+          "contracts/schemas/protocol.schema.json",
+          "crates/application/src/lib.rs",
+          "apps/desktop/src-tauri/src/bridge.rs",
+          "apps/desktop/ui/ubuntu-preview.mjs"
+        ],
+        "hypotheses": [
+          "Start with 1m to 5m, restart the Rust process, undo by the returned operation ID and restart to 1m. Two profiles with the same workspace ID make isolation directly observable.",
+          "A profile-bound, long-lived Rust core can share one transaction owner across the native and explicitly enabled Ubuntu workspace entries."
+        ],
+        "risks": [
+          {
+            "failure": "A lost response, concurrent duplicate or stale selected target applies a change twice or reveals a result after grants change.",
+            "checks": [
+              "operations-workflow"
+            ]
+          },
+          {
+            "failure": "A crash during migration or restore exposes a half-applied workspace, revives a known deleted note, or carries a grant into a different local profile.",
+            "checks": [
+              "state-migrations",
+              "operations-workflow"
+            ]
+          },
+          {
+            "failure": "A private body is retained in a receipt, undo payload, index, app-controlled export or log after deletion.",
+            "checks": [
+              "state-migrations",
+              "operations-workflow"
+            ]
+          }
+        ],
+        "rollback": "Keep the original database and an untouched local backup through staged migration. Exercise interruption before the atomic cutover and verify forward repair or restoring the previous visible state.",
+        "implementation": {
+          "modules": [
+            "application",
+            "domain",
+            "persistence",
+            "desktop",
+            "ui"
+          ],
+          "entrypoints": [
+            "crates/application/src/lib.rs",
+            "apps/desktop/src-tauri/src/bridge.rs",
+            "apps/desktop/ui/ubuntu-preview.mjs",
+            "contracts/schemas/protocol.schema.json",
+            "project/development.json"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization/durable_operations"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization/replay"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence/private_content"
+            },
+            {
+              "path": "contracts/decisions/0011-local-profiles-and-connected-model-use.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Real cloud or voice sessions, financial provider subscriptions, and full indicator computation belong to other tasks."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Synthetic read-only development grant, existing 1.1 reads, explicitly selected sample preferences, established confirmation and private excerpt rules."
+          ],
+          "change": [
+            "Add the profile-local transaction owner and versioned storage, then scoped replay and confirmation, explicit private saves and deletes, and staged backup recovery."
+          ],
+          "data_plan": "Keep application state inside the bound OS-user profile. Use WAL and foreign keys, a versioned migration, redacted receipts and profile-scoped deletion markers. Validate the original database on failure, independent older backup warnings and cross-profile isolation.",
+          "cleanup": "Keep a single write path. Remove provisional adapters once both hosts reach the same application core. Recover without replaying past AI work or reusing external disclosure grants."
+        }
+      }
     },
     {
       "id": "M3-001",
@@ -268,7 +463,8 @@
       "acceptance": [
         "Declarative previews have deterministic results, bounded execution and validated output.",
         "A failed preview leaves accepted indicators and market data usable.",
-        "Trusted Python remains opt-in with operation-specific authorization and accurately described isolation."
+        "Trusted Python remains opt-in with operation-specific authorization and accurately described isolation.",
+        "Pin the visible and warm-up windows, exact snapshot and resolved typed parameters through confirmation, preview terminal result and durable acceptance. Run the independent numeric and approved trusted-Python examples in indicator-preview. Inspect output after cache clearing, revocation and restart without rerunning Python."
       ],
       "checks": [
         "indicator-workflow"
@@ -284,7 +480,9 @@
       "milestone": "M4",
       "status": "planned",
       "depends_on": [
-        "M3-001"
+        "M3-001",
+        "M1-008",
+        "M2-002"
       ],
       "scope": [
         "python/ai",
@@ -296,20 +494,33 @@
         "0001",
         "0002",
         "0003",
-        "0004"
+        "0004",
+        "0008",
+        "0009",
+        "0011"
       ],
       "acceptance": [
         "Mock AI uses actual chart context and core tools to create, inspect and revise an indicator draft.",
         "Cancellation and authorization apply to every tool execution, and claims refer to actual results.",
         "Record model, prompt, tool and input versions when they first affect reproducibility; preserve replayable evaluation scenarios.",
-        "Mock acceptance is separate from later real-model and real-data usability validation."
+        "Mock acceptance is separate from later real-model and real-data usability validation.",
+        "From a selected interval, reveal a versioned row or local document passage in another view, highlight the exact evidence and continue after the user corrects the range. Preserve the previous view and surface stale or missing anchors.",
+        "Observe the target and actual core result in the affected chart, column or panel. Check denial, cancellation and stale revisions, and exercise a layout edit through the same core operation as a manual edit.",
+        "Suggest a local CSV mapping from permitted sample fields. Show the proposal for correction and run the approved deterministic rule with the same result as a manually supplied mapping.",
+        "From a buy question, compare two explanations using workspace data and a reproducible calculation. Show contrary evidence and update the conclusion when the user corrects a premise. Seek clarification about a possible behavioral pattern. The discussion itself authorizes no mutation.",
+        "In the same conversation, carry out a separately scoped chart action. Offer to save the user's choice, including inaction, with the original evidence and disagreement. Reopen the note after a later price move, assess reasoning using information known at the time and surface any data or execution defect separately.",
+        "Correlate interleaved tool calls and terminal outcomes; selection changes, pending confirmations and cancellation preserve attributable committed effects. A first question on an unconfigured model offers configuration or an explicit labeled mock without dispatch.",
+        "Exercise portable provider settings, source and purpose disclosure, consent, denial, microphone stop and revocation on Ubuntu with explicit local fixtures. No paid or Windows-only connection is needed for these local cases. Real text and duplex qualification and native credentials retain independent release gates.",
+        "Through the normal UI and final request builder, activate a disclosed route once and complete successive ordinary turns and authorized tool calls with no repeated consent. A saved conversation, memory or strategy adds only the exact selected excerpt for its named request and recipient. Exercise edits, cancellation, previous-turn attachments, other users, restore and revoked grants, including a provider conversation handle that would otherwise retain private context."
       ],
       "checks": [
         "ai-workflow",
-        "ai-replay-evaluations"
+        "ai-replay-evaluations",
+        "workspace-layout",
+        "local-folder-import"
       ],
       "evidence": [],
-      "next_action": "Implement the chosen collaboration scenario with deterministic tool and context evaluations.",
+      "next_action": "Exercise the indicator, evidence, layout and import journeys through their normal entries. Add a buy-discussion replay with a correction, an authorized chart annotation and an optional decision note.",
       "blocker": null,
       "closure_reason": null
     },
@@ -337,7 +548,8 @@
         "A clean Windows machine can install and run without Python or Node, with the stated WebView2 installation behavior.",
         "Verify packaged worker cleanup, stability, credential boundaries and dependency notices.",
         "Bind release artifacts to a committed source revision, lockfiles, build environment and actual acceptance evidence.",
-        "Validate user-data backup/restore and upgrade migration before distributing an upgrade that changes persisted data; define recovery when downgrade is unsupported."
+        "Validate user-data backup/restore and upgrade migration before distributing an upgrade that changes persisted data; define recovery when downgrade is unsupported.",
+        "Bind the same release installer and independent clean-install and upgrade observations for representative Windows 10 and Windows 11 client builds. Retain the raw startup, presented-frame and process-tree samples and the performance verdict for this candidate."
       ],
       "checks": [
         "windows-installation",
@@ -553,10 +765,13 @@
       ],
       "scope": [
         "python/providers",
+        "python/worker_runtime",
         "crates",
-        "apps/desktop/ui",
-        "tests/fixtures",
-        "tests/integration"
+        "apps/desktop",
+        "tests",
+        "project/checks.json",
+        "project/development.json",
+        "scripts/ci_artifacts.py"
       ],
       "decision_refs": [
         "0001",
@@ -568,12 +783,107 @@
         "Reconnect without duplicate subscriptions and preserve final bar state under update coalescing."
       ],
       "checks": [
-        "market-recovery"
+        "market-recovery",
+        "market-fixtures",
+        "market-live-stream",
+        "market-quality-states",
+        "rust-contracts-workers",
+        "ui-build",
+        "architecture"
       ],
       "evidence": [],
-      "next_action": "Refine the task plan and implement its check when its dependencies are satisfied.",
+      "next_action": "After the simulated chart journey, interrupt the real synthetic worker after its first confirmed update, resume from the same series and frozen observation, then exercise a recoverable missing closed bar.",
       "blocker": null,
-      "closure_reason": null
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A user can see a worker interruption, retain the last verified bar and recover without duplicated subscriptions. A missing closed bar appears only after a bounded, verified backfill, or the gap stays visible.",
+        "change_types": [
+          "market",
+          "stream-slice"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "crates/application/src/replay.rs",
+          "crates/worker-host/src/market.rs",
+          "python/worker_runtime/replay.py",
+          "python/providers/history_pages.py",
+          "apps/desktop/ui/src/use-sample-replay.ts"
+        ],
+        "hypotheses": [
+          "Keep the confirmed series, snapshot, epoch, sequence, observation and boundary bar in one Rust-owned logical subscription across worker replacement. A fresh negotiation can reproduce the confirmed synthetic boundary before replay resumes.",
+          "The chart can apply a verified repaired range while keeping its original frozen input available for inspection."
+        ],
+        "risks": [
+          {
+            "failure": "An epoch change, duplicate or superseded selection splices unrelated updates or starts a second active worker.",
+            "checks": [
+              "market-recovery",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Recovery loses a closed bar, hides uncertainty or mutates the frozen history used for comparison.",
+            "checks": [
+              "market-recovery",
+              "market-quality-states",
+              "market-fixtures"
+            ]
+          }
+        ],
+        "rollback": "Retain the failed event trace from synthetic data, stop the replacement worker, preserve the last validated bar and show the unresolved gap. A known-good frozen chart remains available while the recovery path is repaired.",
+        "implementation": {
+          "modules": [
+            "application",
+            "worker-host",
+            "providers",
+            "worker-runtime",
+            "desktop",
+            "ui",
+            "chart-adapter"
+          ],
+          "entrypoints": [
+            "crates/application/src/replay.rs",
+            "crates/worker-host/src/market.rs",
+            "crates/worker-host/examples/history_bridge.rs",
+            "python/worker_runtime/replay.py",
+            "python/providers/history_pages.py",
+            "apps/desktop/ui/src/use-sample-replay.ts"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/domain/stream_handoff"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/domain/market_quality"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/runtime/cancellation"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/runtime/defaults"
+            }
+          ],
+          "non_goals": [
+            "Real feeds, persisted subscriptions, trading, and product fault-injection controls."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Finite sample replay, exact confirmed epochs and sequences, single-worker admission, independent quality facts and immutable source history."
+          ],
+          "change": [
+            "Exercise child replacement, bounded re-handshake, verified backfill and cancellation on one logical subscription."
+          ],
+          "data_plan": "Recovery state belongs to the active subscription in local memory. Do not persist user input or add grants.",
+          "cleanup": "Release old process handles before starting a replacement; one cancellation stops pending recovery, backoff and subsequent frames."
+        }
+      }
     },
     {
       "id": "M0-005",
@@ -1508,6 +1818,3425 @@
           }
         ],
         "rollback": "Preserve the observed PR and failed checks; revert only the new assessment and lifecycle extension if needed. Keep existing required checks, live branch protection, accepted records and publication boundaries unchanged, and resume M1-002 after validated closure."
+      }
+    },
+    {
+      "id": "M1-004",
+      "title": "Assess supplied futures tick snapshots for chart reconstruction",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M0-003"
+      ],
+      "scope": [
+        "scripts/inspect_futures_ticks.py",
+        "tests/project/test_futures_ticks.py",
+        "project/assessments",
+        "project/checks.json",
+        "project/delivery.json",
+        "project/tasks.json"
+      ],
+      "decision_refs": [
+        "0001",
+        "0004",
+        "0005"
+      ],
+      "acceptance": [
+        "Scan every supplied tick CSV read-only; retain file identities and structural, timestamp, counter, missing-value and duplicate observations locally without uploading supplied quotes.",
+        "Demonstrate minute and daily observed-price aggregation with explicit session-relative ordering, cumulative-volume baselines, invalid-value handling and independently calculated regression cases.",
+        "Record which intraday and candle features the sample supports and which require additional metadata, native bars or historical coverage; make no official-price, complete trade-tape or delivered chart-application claim."
+      ],
+      "checks": [
+        "futures-tick-inspection",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-004-2cd3252954e3dcbf.json",
+          "sha256": "ab21b988fc80fe120c39fb8989c3f874c1454bed9824b974d394c83ae017f498"
+        },
+        {
+          "path": "project/evidence/M1-004-50711c0cac858f91.json",
+          "sha256": "50af749f53ba7b9221867961c11f613d177838a4a5abfd3d9077801fb3cf0533"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "An evidence-backed decision about the supplied tick snapshots, with a reusable local diagnostic and bounded chart-data proof, before committing to a real-data integration.",
+        "change_types": [
+          "offline-data",
+          "tooling"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "project/delivery.json",
+          "project/checks.json",
+          "python/providers/simulated.py"
+        ],
+        "hypotheses": [
+          "The fifteen-column snapshot CSV format contains enough observed prices and cumulative counters for intraday price, volume, open-interest and approximate candle series.",
+          "A trading-day label and time-of-day require explicit night-session ordering; they do not establish an absolute calendar timestamp without a session calendar.",
+          "Counter deltas, sentinel filtering and duplicate detection can be validated locally without source-price verification, provider access or raw-data publication.",
+          "The first full scan found mixed source trading-day labels in 158 files. An explicit one-day assignment based on this delivery folder can test relative continuity while preserving every raw date; it is not an exchange-calendar validation."
+        ],
+        "risks": [
+          {
+            "failure": "Snapshot prices are misrepresented as complete individual trades or exact exchange OHLC.",
+            "checks": [
+              "futures-tick-inspection"
+            ]
+          },
+          {
+            "failure": "Night sessions, counter resets, a nonzero initial counter or invalid prices silently fabricate candles or volume.",
+            "checks": [
+              "futures-tick-inspection"
+            ]
+          },
+          {
+            "failure": "Data files are altered, source quotes are uploaded, or assessment completion is confused with product acceptance.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Continuous aliases are double counted, same-time snapshots are collapsed, or non-monotonic turnover is treated as reliable per-trade cash flow.",
+            "checks": [
+              "futures-tick-inspection"
+            ]
+          }
+        ],
+        "rollback": "Keep the owner files read-only and detailed results in ignored local reports. Preserve failed diagnostic outputs, repair against small synthetic counterexamples and rerun affected inspection. A negative finding limits the supported scope instead of weakening the checks or modifying source data."
+      }
+    },
+    {
+      "id": "M1-005",
+      "title": "Connect opt-in synthetic history to the desktop chart",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-002",
+        "M0-015"
+      ],
+      "scope": [
+        "apps/desktop",
+        "crates",
+        "python/worker_runtime",
+        "python/providers",
+        "tests",
+        "scripts",
+        "project",
+        "contracts/contract.json",
+        "engineering-contract-v1.json",
+        "AGENTS.md",
+        "Cargo.toml",
+        "Cargo.lock",
+        "package.json",
+        "pnpm-lock.yaml",
+        ".github/workflows/verify.yml",
+        "THIRD_PARTY_NOTICES",
+        "contracts/references.json",
+        "pnpm-workspace.yaml",
+        ".gitignore"
+      ],
+      "decision_refs": [
+        "0001",
+        "0003",
+        "0004",
+        "0005",
+        "0006"
+      ],
+      "acceptance": [
+        "Start with no configured data, AI or information service; only an explicit offline-demo action requests synthetic history. Supplied owner files remain development samples and are not bundled or uploaded.",
+        "Read the three specified synthetic instruments and 1m/5m/1d histories through the Rust read-operation registry and a controlled Python market worker; render candles, close-price line and volume with visible provenance, trading day and partial status.",
+        "Validate operation-specific inputs and outputs, actor and worker capabilities, response correlation and market identity; bound frames and deadlines and clean up failed workers.",
+        "Exercise real Python-to-Rust history retrieval and browser chart rendering, selection races, empty/error states and resource cleanup. Keep live updates, reconnect, workspace persistence, local files/API adapters and packaged Windows acceptance explicitly pending."
+      ],
+      "checks": [
+        "chart-history",
+        "market-fixtures",
+        "project-state",
+        "python-contracts-workers",
+        "python-types",
+        "architecture",
+        "ui-build",
+        "typescript-contracts",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "windows-native-build",
+        "dependency-review"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-005-472023bcc5521645.json",
+          "sha256": "0508149fc7dbef9fa3d275390c3e38a9f7dc550e76315e2373224a9e0345ccf9"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A runnable opt-in synthetic history chart with a narrow shared Rust read registry, explicit unconfigured startup and reproducible integration evidence; a prerequisite slice of M1, not completion of live-market acceptance.",
+        "change_types": [
+          "chart-history",
+          "tooling",
+          "dependencies",
+          "packaging"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/contract.json",
+          "project/delivery.json",
+          "project/checks.json",
+          "python/providers/simulated.py",
+          "project/assessments/futures-tick-20260109.json"
+        ],
+        "hypotheses": [
+          "The existing instrument.search and market.getBars request/response contracts suffice for historical exploration without adding streaming protocol or changing accepted language/process/permission boundaries.",
+          "A shared read registry can reject unsupported operations and validate provider output before a chart adapter receives it; native desktop and browser harnesses can use the same Rust/Python path.",
+          "An explicit demo entry keeps generated examples distinct from user-configured data and paid external services; a focused history check can establish this slice while full live workflow and recovery gates remain planned."
+        ],
+        "risks": [
+          {
+            "failure": "Unconfigured startup silently enables data or AI services, or owner samples become a bundled/default feed.",
+            "checks": [
+              "chart-history",
+              "architecture"
+            ]
+          },
+          {
+            "failure": "Wrong provider, operation, response or range is accepted; malformed or duplicate bars silently reach the chart.",
+            "checks": [
+              "chart-history",
+              "rust-contracts-workers",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Slow workers, repeated requests or rapid instrument changes leak processes or render old data under a new identity.",
+            "checks": [
+              "chart-history",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "New chart dependencies, desktop ACL or fixtures undermine existing boundaries or create unsupported acceptance claims.",
+            "checks": [
+              "dependency-review",
+              "architecture",
+              "windows-native-build",
+              "market-fixtures",
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Retain failed harness reports and source checkpoints. Repair using small malformed-response and selection-race regressions. Revert this history slice if needed; preserve the previously passing scaffold and fixtures. Do not label live recovery, actual packaged Windows execution, local import or API integration as completed."
+      }
+    },
+    {
+      "id": "M0-015",
+      "title": "Allow validated append-only evidence on completed tasks",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-014"
+      ],
+      "scope": [
+        "scripts/project.py",
+        "tests/project/test_delivery.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/delivery.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005"
+      ],
+      "acceptance": [
+        "Appending a new validated receipt to a completed task preserves accepted history; the original task definition, state and ordered evidence references remain unchanged.",
+        "Reject deleted, reordered, replaced or mismatched evidence and any completed/cancelled task or accepted ADR rewrite; retain the failing CI observation and resume M1-005."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-015-75a7e9305a0c1a8e.json",
+          "sha256": "3bf67e190c53ff2746744c636a024033c9ca107ea048b39deb6dc8978fd0fdbd"
+        },
+        {
+          "path": "project/evidence/M0-015-472023bcc5521645.json",
+          "sha256": "a6020c54c83026843c0508d41e203044b89d3c46b7fe32382ed3c1db2091cf8e"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Restore CI history verification for legitimate supplementary acceptance evidence without allowing accepted work or original evidence to be rewritten.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "contracts/decisions/0004-project-continuity.json",
+          "project/delivery.json",
+          "scripts/project.py",
+          "tests/project/test_delivery.py"
+        ],
+        "hypotheses": [
+          "The whole-task equality check conflates adding independently validated evidence with changing accepted task meaning.",
+          "Comparing all non-evidence fields exactly, preserving the evidence prefix and validating added receipts against the same task definition retains the existing history guarantee."
+        ],
+        "risks": [
+          {
+            "failure": "A permissive evidence exception also allows definition changes, old evidence removal or cancelled-task rewrites.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Added evidence is for another task definition or omits required successful checks.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Preserve CI run 38569288074 and the recovery snapshot. Restore strict history comparison if the append-only regression fails; retain the supplementary receipt separately until the gate is repaired. Never erase or rewrite accepted evidence to obtain a pass."
+      }
+    },
+    {
+      "id": "M0-016",
+      "title": "Make AI-led development navigable, evolvable and evidence-driven",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-015"
+      ],
+      "scope": [
+        "AGENTS.md",
+        "engineering-contract-v1.json",
+        "contracts",
+        "project",
+        "scripts",
+        "tests",
+        "crates/application",
+        "crates/worker-host",
+        "apps/desktop/src-tauri",
+        "package.json"
+      ],
+      "decision_refs": [
+        "0007",
+        "0004",
+        "0005",
+        "0006"
+      ],
+      "acceptance": [
+        "Separate owner/development-AI responsibilities from product-AI behavior, delegate technical planning, and preserve product, permission and publication decisions.",
+        "Provide validated module ownership, public entrypoints, capability delivery mapping and task-local change/transition plans without rewriting accepted history.",
+        "Default task context is bounded, navigates implementation and authoritative rules, and supports detailed and phase-specific views.",
+        "Explain latest verification omissions and historical task evidence without promoting historical receipts to current or release acceptance.",
+        "Protect the workflow with independent regressions and replace mutable worker-port exposure with explicit lifecycle access."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture",
+        "generated-contracts",
+        "python-types",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "typescript-contracts",
+        "ui-build",
+        "windows-native-build",
+        "chart-history",
+        "market-fixtures"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-016-25cab197f2948446.json",
+          "sha256": "da6ef63e13e0e4039c7418a9fce8ef66ffcf9c1f24e4ffea0cc43b97aa84b242"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A working, tested development loop in which an incoming agent can identify product scope, code ownership, next slice, checks and evidence limits, while ordinary technical choices stay autonomous.",
+        "change_types": [
+          "tooling",
+          "chart-history"
+        ],
+        "context": [
+          "AGENTS.md",
+          "engineering-contract-v1.json",
+          "project/delivery.json",
+          "scripts/project.py",
+          "scripts/check_architecture.py",
+          "tests/project/fixtures.py",
+          "project/development.json"
+        ],
+        "hypotheses": [
+          "Existing JSON records and commands can support this need without an external knowledge system.",
+          "Historical verification can be displayed independently without weakening current release gates."
+        ],
+        "risks": [
+          {
+            "failure": "Large summaries hide constraints or stale receipts appear current.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          },
+          {
+            "failure": "Module records drift or public interfaces leak implementation.",
+            "checks": [
+              "architecture",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Workflow changes rewrite accepted history or weaken runtime boundaries.",
+            "checks": [
+              "project-state",
+              "generated-contracts",
+              "typescript-contracts"
+            ]
+          }
+        ],
+        "rollback": "Preserve the reviewed baseline and failed reports; revert this coherent tooling/interface change if necessary. No persistent user formats or wire protocol change is included.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "application",
+            "worker-host",
+            "desktop"
+          ],
+          "entrypoints": [
+            "scripts/project.py",
+            "scripts/development.py",
+            "scripts/check_architecture.py",
+            "crates/application/src/lib.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/collaboration"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality"
+            }
+          ],
+          "non_goals": [
+            "No new runtime permissions, wire messages, data adapters or embedded-AI interaction policy."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Accepted task and ADR history",
+            "Runtime authorization and release gates"
+          ],
+          "change": [
+            "Default context and evidence explanations",
+            "Registry lifecycle encapsulation"
+          ],
+          "data_plan": "No persisted application data change. Existing report and receipt formats remain readable.",
+          "cleanup": "Keep --detail for expanded context; remove mutable port access and retain explicit lifecycle tests."
+        }
+      }
+    },
+    {
+      "id": "M1-006",
+      "title": "Deliver identity-safe synthetic live updates",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-005"
+      ],
+      "scope": [
+        "crates",
+        "python",
+        "apps/desktop",
+        "tests",
+        "contracts",
+        "project/checks.json",
+        "project/delivery.json",
+        "AGENTS.md",
+        "engineering-contract-v1.json",
+        "project/development.json",
+        "project/feedback.json",
+        "scripts"
+      ],
+      "decision_refs": [
+        "0007",
+        "0004",
+        "0005",
+        "0010"
+      ],
+      "acceptance": [
+        "Add a bounded live-update contract and one rendered stream; reject delayed events after selection changes and preserve final bar state. Record protocol evolution before implementation."
+      ],
+      "checks": [
+        "market-live-stream",
+        "market-fixtures",
+        "ui-build",
+        "python-types",
+        "architecture",
+        "generated-contracts",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-006-235a2a5920d42aac.json",
+          "sha256": "4a9f9713a26d7e79da980ab1964e22ac418fadb7ae8e6ad4c16e183be1f40caa"
+        },
+        {
+          "path": "project/evidence/M1-006-43af3efbc798829e.json",
+          "sha256": "5c214d7c96ec04c31a794088681605f65a72bbe2dbde1a95e593602ca0cc5435"
+        },
+        {
+          "path": "project/evidence/M1-006-cbc6e4d4e3cc7acd.json",
+          "sha256": "5922d04647af64de6c98e37c66e6a1c03a4a5cf28e9433fcb249e19c02e1eb04"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Add a bounded live-update contract and one rendered stream; reject delayed events after selection changes and preserve final bar state. Record protocol evolution before implementation.",
+        "change_types": [
+          "stream-slice",
+          "market-fixtures",
+          "protocol"
+        ],
+        "context": [
+          "project/development.json",
+          "apps/desktop/ui/src/main.tsx",
+          "crates/application/src/lib.rs",
+          "crates/worker-host/src/market.rs",
+          "contracts/schemas/protocol.schema.json",
+          "python/providers/simulated.py",
+          "python/worker_runtime/__main__.py",
+          "apps/desktop/ui/ubuntu-preview.mjs"
+        ],
+        "hypotheses": [
+          "Separate streaming and state slices expose event identity and failure uncertainty before full workflow closure.",
+          "The existing synthetic provider supplies an interim update and a final update for the same bar. The one-request browser bridge and single-response worker host need a bounded stream lifecycle to deliver them to the chart."
+        ],
+        "risks": [
+          {
+            "failure": "A later selection renders a delayed old update or loses the final bar.",
+            "checks": [
+              "market-live-stream"
+            ]
+          },
+          {
+            "failure": "A conflicting replay at the checkpoint or reused task/request identity changes prices or prevents recovery after cancellation.",
+            "checks": [
+              "rust-contracts-workers",
+              "python-contracts-workers",
+              "market-live-stream"
+            ]
+          },
+          {
+            "failure": "A superseded preparation or unresponsive child stalls selection, shutdown or the next worker. An unrelated pixel change could disguise a lost final candle.",
+            "checks": [
+              "rust-contracts-workers",
+              "market-live-stream"
+            ]
+          }
+        ],
+        "rollback": "Retain failed event sequences; revert the affected streaming slice without removing historical preview.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "chart-adapter",
+            "application",
+            "worker-host",
+            "providers"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/market.ts",
+            "apps/desktop/ui/src/chart-adapter/history.ts",
+            "crates/application/src/lib.rs",
+            "crates/worker-host/src/market.rs",
+            "python/providers/history.py"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/runtime"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/domain"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui"
+            }
+          ],
+          "non_goals": [
+            "No real feed, local import, persistence or packaged Windows acceptance."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Explicit synthetic entry and history semantics",
+            "Selection-race and cleanup guarantees"
+          ],
+          "change": [
+            "Explicit finite synthetic playback from a frozen stream position, including ordered interim and final bars and visible loss of continuity."
+          ],
+          "data_plan": "No durable user format change.",
+          "cleanup": "Keep one active subscription per selection; remove temporary stream harness paths after integrated acceptance."
+        }
+      }
+    },
+    {
+      "id": "M1-007",
+      "title": "Expose market quality and connection states",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-006",
+        "M1-016"
+      ],
+      "scope": [
+        "crates",
+        "python",
+        "apps/desktop",
+        "tests",
+        "project/checks.json",
+        "project/development.json",
+        "scripts/ci_artifacts.py",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0007",
+        "0004",
+        "0005"
+      ],
+      "acceptance": [
+        "Exercise observable loading, ready, empty, stale, disconnected and error states against deterministic event sequences."
+      ],
+      "checks": [
+        "market-quality-states",
+        "ui-build",
+        "market-fixtures",
+        "python-types",
+        "architecture",
+        "chart-history",
+        "ubuntu-preview",
+        "market-live-stream"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-007-1e5b61c5847ddd31.json",
+          "sha256": "bbda6d5f1f081c4f98441c657da574d2b1e4f8af0c9382076be9aa020f0ba9c5"
+        },
+        {
+          "path": "project/evidence/M1-007-d969bd5526c01237.json",
+          "sha256": "2e4a947a1b0649b35b6d3b2c16b56cb2b89c14dd014745e6071af96570a7296a"
+        },
+        {
+          "path": "project/evidence/M1-007-4c613128f41d7f9f.json",
+          "sha256": "c76b96b248cfc97ca2581348df6f9f0eed7de9c70a8627a08bdd69a22e296c7e"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Show real loading, ready, empty, stale, disconnected and error states through the chart, preserving source mode, last observation, session, freshness and gaps as independent facts.",
+        "change_types": [
+          "quality-slice",
+          "market-fixtures"
+        ],
+        "context": [
+          "project/development.json",
+          "apps/desktop/ui/src/main.tsx",
+          "crates/application/src/lib.rs",
+          "crates/worker-host/src/market.rs"
+        ],
+        "hypotheses": [
+          "Frozen history can remain ready while its freshness and coverage independently report stale and gapped. Typed errors distinguish a lost connection, invalid data, and a valid empty interval."
+        ],
+        "risks": [
+          {
+            "failure": "A later selection renders a delayed old update or loses the final bar.",
+            "checks": [
+              "market-quality-states"
+            ]
+          },
+          {
+            "failure": "Offline simulation appears disconnected, an old historical date appears stale, or a failed read becomes a successful empty result.",
+            "checks": [
+              "market-quality-states",
+              "market-fixtures"
+            ]
+          },
+          {
+            "failure": "An owned replacement returns BUSY before a superseded worker has used its documented cleanup grace, or retries a stream after data was already accepted.",
+            "checks": [
+              "market-live-stream"
+            ]
+          }
+        ],
+        "rollback": "Retain failed event sequences; revert the affected streaming slice without removing historical preview.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "chart-adapter",
+            "application",
+            "worker-host",
+            "providers"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/market.ts",
+            "apps/desktop/ui/src/chart-adapter/history.ts",
+            "crates/application/src/lib.rs",
+            "crates/worker-host/src/market.rs",
+            "python/providers/history.py",
+            "apps/desktop/ui/src/chart-workspace.tsx",
+            "apps/desktop/ui/src/use-market-data.ts",
+            "apps/desktop/ui/src/workspace-panels.tsx"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/runtime"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/domain"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/domain/market_quality"
+            }
+          ],
+          "non_goals": [
+            "Real provider use, remediating gaps through automatic backfill, editing durable user data and packaged Windows acceptance."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Explicit synthetic entry and history semantics",
+            "Selection-race and cleanup guarantees",
+            "Keep normal sample defaults, selection and view restoration, a frozen readout and the intermediate and final replay candle."
+          ],
+          "change": [
+            "Display independently attributable quality, coverage and transport outcomes and preserve a selected chart through recoverable failures."
+          ],
+          "data_plan": "Optional revision and UTC date fields extend the existing local sample-view preference. Old preferences open the normal, full-window sample. Unsupported or invalid selections fall back without storing any market data or grants.",
+          "cleanup": "Abort superseded reads and replays. Release the active worker and omit stale results from the next selection."
+        }
+      }
+    },
+    {
+      "id": "M1-008",
+      "title": "Import and refresh a user-selected historical CSV folder",
+      "milestone": "M1",
+      "status": "planned",
+      "depends_on": [
+        "M1-001",
+        "M1-003"
+      ],
+      "scope": [
+        "crates",
+        "python",
+        "apps/desktop",
+        "tests"
+      ],
+      "decision_refs": [
+        "0007",
+        "0004",
+        "0005",
+        "0008"
+      ],
+      "acceptance": [
+        "Read only the selected scope. Show raw and normalized rows and a chart preview for equity and futures bar examples with different headers, encodings, units and date conventions. A manual mapping works offline.",
+        "Correct and reuse a versioned mapping. Refresh with an additional file, an identical alias and a changed header. Verify stable results on retry, a visible review of incompatible files and the prior accepted dataset after interruption.",
+        "Trace displayed values to the source file identity and rows. Preserve IDs, trading days and unknown values. Distinguish a futures quote snapshot from a trade and mark unsupported or ambiguous transformations. Never substitute a synthetic series.",
+        "Check source-ordered overlaps, unresolved corrections, replaced and withdrawn files, mapping migration, crash-before-publication and frozen reread following refresh. Test unsupported or ambiguous financial fields as raw inspectable data."
+      ],
+      "checks": [
+        "market-fixtures",
+        "chart-history",
+        "local-folder-import"
+      ],
+      "evidence": [],
+      "next_action": "Use independent CSV fixtures with differing headers and an ambiguous unit. Exercise selection, correction, charting, refresh and failure recovery. Use the futures sample assessment for snapshot counterexamples.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M4-002",
+      "title": "Qualify user-selected model access and a realtime voice session",
+      "milestone": "M4",
+      "status": "planned",
+      "depends_on": [
+        "M4-001"
+      ],
+      "scope": [
+        "crates",
+        "python",
+        "apps/desktop",
+        "tests"
+      ],
+      "decision_refs": [
+        "0007",
+        "0004",
+        "0005",
+        "0008",
+        "0009",
+        "0011"
+      ],
+      "acceptance": [
+        "Show provider, data scope, cost basis and microphone state before audio transmission. Keep secrets outside model input and logs. Confirm application recording defaults and stop capture on disable or disconnect.",
+        "Observe an authorized real voice session with Chinese speech, alphanumeric contracts and spoken numbers. Record correction accuracy, first-audio latency, interruption, tool outcomes and actual metered cost where available.",
+        "Continue the same conversation in text, compare the same tool permissions and confirmation as manual input, and distinguish stopping playback from cancellation acknowledged by the core. Keep a missing authorized connection visibly unverified.",
+        "Select a provider and model separately from a synthetic or user-owned data source. Show the enabled text, tool and audio capabilities, destination and charge basis. A text-only adapter remains usable when voice is unavailable. Reject a silent provider or paid fallback and redact the configured secret in failures.",
+        "Observe at least one configured model discussing evidence and revising an interpretation after a correction. Record the actual provider, route where available, model and operation outcomes. Credential-free replay covers a second adapter profile without implying a second live integration. One authorized session may supply both text and voice evidence if each path is actually exercised.",
+        "Use the fixed critical-field, correction, ambiguity, interruption, cost/destination and authorization cases in /ai/qualified_session_acceptance. Keep real text and voice outcomes independently attributable.",
+        "Validate the authorized text and voice sessions here. Native credential storage and release-wide credential checks remain mandatory under M5-001 on Windows.",
+        "Qualify a capable real cloud route for the advertised primary model workflow and score a real text and duplex route according to their observed capability. A qualified local route remains usable. Run the fixed private-transfer probes on synthetic profiles at the last connector boundary and retain only the expected digests and outcomes."
+      ],
+      "checks": [
+        "ai-workflow",
+        "ai-replay-evaluations",
+        "configured-model-session",
+        "configured-voice-session"
+      ],
+      "evidence": [],
+      "next_action": "Exercise two distinct capability profiles offline, then observe authorized discussion, tool use and bilingual voice with a qualified model for each required modality.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M4-003",
+      "title": "Reveal attributable external evidence in a research conversation",
+      "milestone": "M4",
+      "status": "planned",
+      "depends_on": [
+        "M4-001"
+      ],
+      "scope": [
+        "crates",
+        "python",
+        "apps/desktop",
+        "tests"
+      ],
+      "decision_refs": [
+        "0007",
+        "0004",
+        "0005",
+        "0008"
+      ],
+      "acceptance": [
+        "Through an authorized replaceable channel, find a disclosure and open the permitted original at an identifiable passage alongside chart evidence. Distinguish publication, retrieval and market times and label inference separately.",
+        "Exercise snippet-only, inaccessible, corrected, conflicting and untrusted material. Retain the source reference and convey uncertainty when the original or precise anchor is unavailable. Return to the prior workspace context."
+      ],
+      "checks": [
+        "ai-workflow",
+        "ai-replay-evaluations"
+      ],
+      "evidence": [],
+      "next_action": "Register an original-source retrieval and presentation check for the first configured channel before activation. Use the disclosure-versus-price example and record the actual coverage and access scope.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "later"
+    },
+    {
+      "id": "M4-004",
+      "title": "Expose the open workspace through a scoped local MCP server",
+      "milestone": "M4",
+      "status": "planned",
+      "depends_on": [
+        "M4-001"
+      ],
+      "scope": [
+        "crates/application",
+        "apps/desktop",
+        "contracts",
+        "tests"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008",
+        "0009",
+        "0011"
+      ],
+      "acceptance": [
+        "Enable and pair a local client from settings. Through the delivered stdio entry, discover allowed tools and read the desktop's selected instrument, range, source and revision. Return only authorized fields and identify the client at the affected chart.",
+        "Grant a chart annotation, apply it once to the visible workspace, then undo it. Exercise duplicate requests, simultaneous human edits, grant revocation, closed workspaces, cross-workspace requests and restricted source fields. The core decides scope and any required confirmation.",
+        "Project each result, diagnostic and replay against current field, purpose and client grants. Exercise a close-only grant, unknown but authorized volume, a selection change and a revoked reconnect.",
+        "Treat external AI clients as separate recipients. Pairing or enabling an embedded model never grants a client a private archive. Exercise ordinary permitted chart reads and denial of raw private material, indirect tool results, cross-profile reads, and reuse of a disclosure granted to a different recipient."
+      ],
+      "checks": [
+        "external-ai-bridge",
+        "operations-workflow"
+      ],
+      "evidence": [],
+      "next_action": "Start with an opt-in read of the running synthetic chart. Add the scoped annotation only after attribution and negative read cases pass.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M4-005",
+      "title": "Observe actual CLI and desktop AI clients on the shared chart",
+      "milestone": "M4",
+      "status": "planned",
+      "depends_on": [
+        "M4-004"
+      ],
+      "scope": [
+        "apps/desktop",
+        "tests",
+        "project/checks.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008",
+        "0009",
+        "0011"
+      ],
+      "acceptance": [
+        "From Codex CLI and one compatible desktop AI application, independently connect to an explicitly selected running workspace with synthetic data. Read the current chart and compare its source, timeframe and selection to the desktop.",
+        "In each client, first attempt a mutation under read-only access. After the user grants write access, add an attributed annotation, inspect it in the same chart and undo it. Record client, version, host, workspace revision and redacted results. Use the client's own model access.",
+        "For each observed client verify that only its user’s approved workspace data cross the bridge. Test the named client independently of any embedded model grant. Use synthetic records for retained verification."
+      ],
+      "checks": [
+        "configured-external-ai-clients",
+        "external-ai-bridge"
+      ],
+      "evidence": [],
+      "next_action": "Choose supported hosts for the two real clients. Perform the authorized sessions against the delivered bridge and retain separate observations for each client.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M5-003",
+      "title": "Qualify an optional ScopeHub data or AI service",
+      "milestone": "M5",
+      "status": "planned",
+      "depends_on": [
+        "M0-022"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "contracts",
+        "project/checks.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008",
+        "0009"
+      ],
+      "acceptance": [
+        "For the selected offering, verify entitlement, provider and destination, processing terms, coverage or model capabilities, cost disclosure and the effect of revocation. For data, establish actual display, redistribution and external-AI rights before exposing each use.",
+        "Exercise an independently supplied capability alongside the offering, such as user-owned CSV with managed AI or an entitled ScopeHub dataset with a user-selected model. Show what remains usable when the optional service is disconnected."
+      ],
+      "checks": [
+        "credential-boundaries"
+      ],
+      "evidence": [],
+      "next_action": "When an offering is selected, register a qualification check specific to its actual terms, permissions and mixed-source use before activation. Pricing and billing design await a separate owner decision.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "later"
+    },
+    {
+      "id": "M2-004",
+      "title": "Qualify technical connectivity to a user-held brokerage account",
+      "milestone": "M2",
+      "status": "planned",
+      "depends_on": [
+        "M0-022"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "contracts",
+        "project/checks.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008",
+        "0009"
+      ],
+      "acceptance": [
+        "For a separately authorized future workflow, identify the broker, adapter, supported markets and exact account or order scopes. Verify that the user opens and funds the account directly with the brokerage or futures firm.",
+        "Document the firm's execution and settlement responsibilities, core permissions, user approvals and reconciliation needed for that workflow. Qualify market-data-only CTP independently of any trading channel."
+      ],
+      "checks": [
+        "operations-workflow",
+        "credential-boundaries"
+      ],
+      "evidence": [],
+      "next_action": "Revisit only with an owner-selected brokerage use case. Specify a dedicated qualification gate before any account or order implementation.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "later"
+    },
+    {
+      "id": "M0-017",
+      "title": "Repair newly observed dependency advisories",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-015"
+      ],
+      "scope": [
+        "Cargo.lock",
+        "pnpm-lock.yaml",
+        "pnpm-workspace.yaml",
+        "package.json",
+        "project",
+        "THIRD_PARTY_NOTICES",
+        "tests"
+      ],
+      "decision_refs": [
+        "0007",
+        "0004",
+        "0005",
+        "0006"
+      ],
+      "acceptance": [
+        "Repair Tokio and fast-uri findings with compatible patches; verify the block-buffer aggregator discrepancy against the exact live publisher range with an expiring fail-closed guard.",
+        "Verify portable and Windows build/runtime checks and retain the interrupted M0-016 failure and recovery direction."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture",
+        "generated-contracts",
+        "python-types",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "typescript-contracts",
+        "ui-build",
+        "windows-native-build",
+        "chart-history",
+        "market-fixtures",
+        "dependency-review"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-017-25cab197f2948446.json",
+          "sha256": "40cf15c45d024c661f118c5440c84e4799b32cf7da842932adc79ce81aa2c966"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Restore actual dependency review and build acceptance without suppressing new findings.",
+        "change_types": [
+          "tooling",
+          "dependencies",
+          "chart-history",
+          "packaging"
+        ],
+        "context": [
+          "project/dependencies.json",
+          "scripts/dependencies.py",
+          "Cargo.lock",
+          "pnpm-lock.yaml"
+        ],
+        "hypotheses": [
+          "Compatible patches resolve Tokio and fast-uri; the publisher excludes locked block-buffer 0.10.4 and its live affected range must be checked on every online review."
+        ],
+        "risks": [
+          {
+            "failure": "An update breaks wire, runtime, browser or packaged native compatibility.",
+            "checks": [
+              "rust-contracts-workers",
+              "chart-history",
+              "windows-native-build"
+            ]
+          },
+          {
+            "failure": "Inventory is stale or findings are suppressed instead of repaired.",
+            "checks": [
+              "dependency-review"
+            ]
+          }
+        ],
+        "rollback": "Retain the failing report .reports/runs/20261029T041122.487082Z-579a3a18/test-report.json and exact prior locks. Revert incompatible candidates, investigate supported patches and keep the task blocked rather than demoting checks.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/dependencies.py"
+          ],
+          "rules": [
+            {
+              "path": "project/dependencies.json",
+              "pointer": "/maintenance"
+            }
+          ],
+          "non_goals": [
+            "No major dependency migration, runtime permission or release-scope change."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "replacement",
+          "preserve": [
+            "Current protocol and user behavior",
+            "Dependency and license checks"
+          ],
+          "change": [
+            "Affected transitive package patch versions"
+          ],
+          "data_plan": "No user storage format change.",
+          "cleanup": "Regenerate locks and notices, retain matching inventory and remove no checks."
+        }
+      }
+    },
+    {
+      "id": "M1-009",
+      "title": "Connect a market API through a preset or reviewed HTTP mapping",
+      "milestone": "M1",
+      "status": "planned",
+      "depends_on": [
+        "M1-008"
+      ],
+      "scope": [
+        "crates",
+        "python",
+        "apps/desktop",
+        "tests"
+      ],
+      "decision_refs": [
+        "0007",
+        "0004",
+        "0005",
+        "0008"
+      ],
+      "acceptance": [
+        "Demonstrate a configured provider preset and a custom read-only HTTP mapping from vendor documentation or a sanitized sample. Test the authorized destination, authentication, pagination, rate limits and one bounded instrument/date query.",
+        "Show real permissions, feed coverage, time and units. Credentials stay in the platform store and are absent from model input and logs. Record a real authorized trial separately from replay fixtures."
+      ],
+      "checks": [
+        "market-fixtures",
+        "chart-history",
+        "credential-boundaries",
+        "configured-market-source"
+      ],
+      "evidence": [],
+      "next_action": "Evaluate the first US-equity or Chinese market-data source against the documented workflow. Bind a provider-specific conformance check before activation and retain an authorized trial with its actual coverage.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "later"
+    },
+    {
+      "id": "M0-018",
+      "title": "Restore local development after copying the checkout to Linux",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-013"
+      ],
+      "scope": [
+        "AGENTS.md",
+        ".gitignore",
+        "contracts/references.json",
+        "pyproject.toml",
+        "project",
+        "scripts",
+        "tests/project"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0007"
+      ],
+      "acceptance": [
+        "Preserve the original control files and latest report with a working host Python when the copied environment cannot execute the recovery script.",
+        "Restore tracked file permissions and rebuild machine-specific dependencies from the repository's pinned toolchains and lockfiles. Ordinary project status and diagnostics must run from the relocated checkout.",
+        "Verify Python workers, Rust code, the UI build and the synthetic chart in Chromium on this host. Retain a fresh report for these inputs and a regression for the copied interpreter failure."
+      ],
+      "checks": [
+        "environment",
+        "project-state",
+        "generated-contracts",
+        "architecture",
+        "python-types",
+        "python-contracts-workers",
+        "typescript-contracts",
+        "ui-build",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "chart-history"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-018-310101b8e82c6c63.json",
+          "sha256": "a958a286346d08533c0657aa27758d5bbe3165819abcd98b2e3e211201ef4a40"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A developer in the copied Linux checkout can inspect project state, build, test and run the existing synthetic chart workflow.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "AGENTS.md",
+          "package.json",
+          "pyproject.toml",
+          "rust-toolchain.toml",
+          "project/delivery.json",
+          "scripts/recovery.py",
+          "scripts/doctor.py",
+          "tests/project/test_recovery.py"
+        ],
+        "hypotheses": [
+          "The copy lost executable link targets and introduced file mode changes. Source contents and accepted records can be preserved while rebuilding host-specific products.",
+          "A separately installed Python can collect the original diagnostics even when the project's interpreter exits successfully without executing code."
+        ],
+        "risks": [
+          {
+            "failure": "A copied launcher exits successfully without producing a diagnostic or running the intended code.",
+            "checks": [
+              "environment",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "uv run cannot open its default cache with a read-only home, so project commands fail before running.",
+            "checks": [
+              "environment",
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Stale native products or broken package links survive setup and fail when the worker, UI or browser is first used.",
+            "checks": [
+              "rust-contracts-workers",
+              "ui-build",
+              "chart-history"
+            ]
+          }
+        ],
+        "rollback": "Keep the M1-006 recovery snapshot and prior evidence. Compare file contents and execute bits with the local Git checkpoint before repairing metadata. Retain failed logs and repeat the affected check after correcting its cause.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/recovery.py",
+            "scripts/doctor.py",
+            "scripts/check.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "package.json",
+              "pointer": "/packageManager"
+            }
+          ],
+          "non_goals": [
+            "Product features, native Windows acceptance and publication."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "replacement",
+          "preserve": [
+            "Source content, accepted task evidence and local commits",
+            "Existing toolchain pins and lockfiles"
+          ],
+          "change": [
+            "Host-specific dependencies and recovery instructions for relocated checkouts"
+          ],
+          "data_plan": "The repair affects development tools and build products. Historical reports remain available for comparison.",
+          "cleanup": "Remove inactive copied artifacts from the active tool paths after identifying them. Verify replacement tooling from a fresh shell and restore the interrupted focus."
+        }
+      }
+    },
+    {
+      "id": "M0-019",
+      "title": "Repair the chrono and picomatch advisories found during checkout recovery",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M5-002"
+      ],
+      "scope": [
+        "patches",
+        "pnpm-lock.yaml",
+        "pnpm-workspace.yaml",
+        "project/dependencies.json",
+        "project/dependency-inventory.json",
+        "project/tasks.json",
+        "project/feedback.json",
+        "scripts/dependencies.py",
+        "tests/project"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0006",
+        "0007"
+      ],
+      "acceptance": [
+        "For RUSTSEC-2026-0543, verify on every dependency review that locked chrono 0.4.45 remains absent from the supported Windows desktop graph and the all-target portable workspace graph.",
+        "For GHSA-fc5q-39xc-vjpf, apply a version-specific pnpm patch to the picomatch 4.0.7 used by Vite. Disable the two repetition forms of extended glob syntax and verify that ordinary glob matching continues to work.",
+        "Require the online audit to verify the exact installed patch binding, affected version, ordinary and restricted matching behavior, disposition expiry and current OSV findings. Exercise the portable Rust and UI paths, synthetic chart and native Windows build."
+      ],
+      "checks": [
+        "environment",
+        "project-state",
+        "generated-contracts",
+        "architecture",
+        "python-types",
+        "python-contracts-workers",
+        "typescript-contracts",
+        "ui-build",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "windows-native-build",
+        "market-fixtures",
+        "chart-history",
+        "dependency-review"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-019-25cab197f2948446.json",
+          "sha256": "068965e18797f5e2bc8a61c3ae03289d54a46264ff652ac1f332124e94fc212a"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Every dependency review confirms chrono's absence from supported builds and the effective picomatch mitigation in Vite. The supported development and native build paths retain compatibility.",
+        "change_types": [
+          "dependencies",
+          "tooling"
+        ],
+        "context": [
+          "project/dependencies.json",
+          "project/dependency-inventory.json",
+          "scripts/dependencies.py",
+          "Cargo.lock",
+          "pnpm-workspace.yaml",
+          "pnpm-lock.yaml",
+          "tests/project/test_dependencies.py"
+        ],
+        "hypotheses": [
+          "The publishers have no released fix for either advisory at this review. The existing Cargo graph check can verify that optional chrono is absent from both supported build configurations.",
+          "Vite can build this project using ordinary glob patterns with the two repeating extended-glob forms disabled. A patch selected by exact package version makes this behavior reproducible after frozen installation."
+        ],
+        "risks": [
+          {
+            "failure": "A Cargo feature brings chrono into a supported build, the installed matcher loses its patch, or an outdated disposition hides a new finding.",
+            "checks": [
+              "dependency-review",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The restricted matcher changes ordinary glob selection or disrupts a supported build.",
+            "checks": [
+              "rust-contracts-workers",
+              "ui-build",
+              "chart-history",
+              "windows-native-build"
+            ]
+          }
+        ],
+        "rollback": "Preserve .reports/dependencies/20261118T103433.352167Z.json and the previous lockfiles. If either guard fails or the patch breaks the build, retain the failure, reopen the affected finding and reassess its mitigation.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/dependencies.py",
+            "scripts/check.py"
+          ],
+          "rules": [
+            {
+              "path": "project/dependencies.json",
+              "pointer": "/advisory_dispositions"
+            },
+            {
+              "path": "project/dependencies.json",
+              "pointer": "/maintenance"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Product behavior changes, publication and release packaging."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "replacement",
+          "preserve": [
+            "Runtime contracts, toolchain versions, advisory checks and license obligations"
+          ],
+          "change": [
+            "Cargo graph coverage for optional chrono and a version-bound patch for the Vite build matcher",
+            "pnpm patch metadata, its lock binding and dependency inventory digests as required"
+          ],
+          "data_plan": "This update changes build dependencies and their distribution metadata. User data formats are unaffected.",
+          "cleanup": "Reassess both dispositions at expiry or when a supported graph, installed patch or upstream version changes. Remove a temporary guard or patch after verifying a replacement against the online audit and supported builds."
+        }
+      }
+    },
+    {
+      "id": "M1-010",
+      "title": "Expose the synthetic chart through a local Ubuntu development preview",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-005",
+        "M0-018"
+      ],
+      "scope": [
+        "package.json",
+        "apps/desktop/ui",
+        "crates/worker-host/examples/history_bridge.rs",
+        "scripts",
+        "tests",
+        "project",
+        "contracts/reviews/2026-11-18-hosted-ux.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0007"
+      ],
+      "acceptance": [
+        "The explicit pnpm dev:ubuntu entry starts a loopback-only Vite development preview. The existing UI can open the offline demo and read synthetic instrument and bar data from the Rust operation registry and Python worker.",
+        "Only instrument.search and market.getBars are available through the development transport for the synthetic source. Verify request boundaries, failure cleanup and the existing native desktop invocation path.",
+        "Exercise the preview through its normal entry on the hosted Linux and Windows development environments. After Actions passes, retain the actual Ubuntu graphical interaction with source revision, observed selections and screenshots."
+      ],
+      "checks": [
+        "environment",
+        "project-state",
+        "ubuntu-preview",
+        "chart-history",
+        "market-fixtures",
+        "architecture",
+        "python-types",
+        "python-contracts-workers",
+        "typescript-contracts",
+        "ui-build",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-010-c0ffc3d539275688.json",
+          "sha256": "137be1baec1faa1ee3bb8638c8f9899e379b16d5656037e5a4b9cd09e5c40cd6"
+        },
+        {
+          "path": "project/evidence/M1-010-25cab197f2948446.json",
+          "sha256": "b2cfa749f3404bf49828b1127b8fdce608b4f68228b0c122c0aac68997bb16ad"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The current Ubuntu checkout can display the synthetic history chart through its real local stack. Verification identifies the observed platform and distinguishes the browser preview from the Windows desktop experience.",
+        "change_types": [
+          "tooling",
+          "chart-history"
+        ],
+        "context": [
+          "apps/desktop/ui/vite.config.ts",
+          "apps/desktop/ui/src/market.ts",
+          "crates/worker-host/examples/history_bridge.rs",
+          "apps/desktop/src-tauri/src/bridge.rs",
+          "apps/desktop/ui/src/chart-adapter/history.ts",
+          "tests/ui/history.spec.mjs",
+          "contracts/reviews/2026-11-18-hosted-ux.json"
+        ],
+        "hypotheses": [
+          "A development-only Vite transport can reuse the existing chart UI, operation registry and synthetic worker without adding a service to the packaged application."
+        ],
+        "risks": [
+          {
+            "failure": "The development server accepts requests beyond the loopback session or exposes extra operations or sources.",
+            "checks": [
+              "ubuntu-preview"
+            ]
+          },
+          {
+            "failure": "The UI bypasses the registry, displays stale selections or breaks the established native invocation path.",
+            "checks": [
+              "ubuntu-preview",
+              "chart-history",
+              "rust-contracts-workers",
+              "ui-build"
+            ]
+          },
+          {
+            "failure": "Chart ticks paint outside the time axis and leave the first or last timestamp unreadable.",
+            "checks": [
+              "ubuntu-preview"
+            ]
+          }
+        ],
+        "rollback": "Stop the preview and its worker, retain failed checks and observed screenshots, and revert the development transport if it affects the desktop path.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "ui",
+            "application",
+            "worker-host"
+          ],
+          "entrypoints": [
+            "package.json",
+            "apps/desktop/ui/vite.config.ts",
+            "apps/desktop/ui/src/market.ts",
+            "crates/worker-host/examples/history_bridge.rs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/product/platform"
+            },
+            {
+              "path": "contracts/contract.json",
+              "pointer": "/operations"
+            },
+            {
+              "path": "contracts/reviews/2026-11-18-hosted-ux.json",
+              "pointer": "/verification_sequence"
+            }
+          ],
+          "non_goals": [
+            "Linux distribution, packaging, new market operations, real providers, model calls and release sign-off."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Unconfigured startup and explicit synthetic demo selection",
+            "Windows WebView2 invocation and Rust registry ownership"
+          ],
+          "change": [
+            "An explicit local browser entry for Ubuntu development and a portable check for that entry"
+          ],
+          "data_plan": "This workflow uses the existing synthetic examples and creates no persisted application data.",
+          "cleanup": "On exit release the local listener and its child processes. Check both the opt-in development entry and the existing chart path before handing off for Windows use."
+        }
+      }
+    },
+    {
+      "id": "M1-011",
+      "title": "Exercise the chart on the owner's dual-boot Windows desktop",
+      "milestone": "M1",
+      "status": "planned",
+      "depends_on": [
+        "M1-010",
+        "M1-012"
+      ],
+      "scope": [
+        "apps/desktop",
+        "contracts/reviews",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0007"
+      ],
+      "acceptance": [
+        "Open the Ubuntu-reviewed revision using pnpm desktop:dev on the physical Windows 10/11 x64 desktop and observe the native WebView2 window.",
+        "Exercise the unconfigured entry, synthetic chart, selection, timeframe, chart style, resizing, crosshair, table and exit. Retain the revision, Windows runtime and on-screen observations with screenshots.",
+        "Record any experience feedback supplied by the owner in their own terms and retain any engineering defects for correction.",
+        "Link the Windows observation to the Ubuntu-reviewed commit and match its execution-input digest. A bookkeeping-only commit that attaches an Ubuntu receipt is recorded separately. Changed executable inputs require a renewed Ubuntu observation before the physical trial."
+      ],
+      "checks": [
+        "windows-native-build",
+        "chart-history",
+        "physical-windows-workspace"
+      ],
+      "evidence": [],
+      "next_action": "Wait for M1-012 to establish completion of the overall Ubuntu experience. Then use the Ubuntu-reviewed revision on the physical Windows desktop and record the native GUI trial.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M0-021",
+      "title": "Revise product acceptance for data onboarding and shared AI workspaces",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-013"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "contracts/contract.json",
+        "contracts/decisions",
+        "project/tasks.json",
+        "project/checks.json",
+        "project/delivery.json",
+        "project/development.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "The engineering contract defines directory imports and reusable mappings, configurable market connections, voice and visible shared evidence, and user- or AI-edited layouts. Each first-version outcome has a planned check and a delivery task.",
+        "Current and later work are visible in the product brief. Historical receipts, the operation catalog, protocol version, permissions and default connection state retain their established meanings."
+      ],
+      "checks": [
+        "project-state",
+        "generated-contracts",
+        "architecture",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-021-874efadc10b4fc1a.json",
+          "sha256": "caef6a4ce4e73cb15898eee7b591e1c89a6c37f379a6c216d75e2dbd80808d96"
+        },
+        {
+          "path": "project/evidence/M0-021-4f292379ad80681c.json",
+          "sha256": "7727d13e739e4496f294596b694841db645ed240786a43f14ada2c903dde8098"
+        },
+        {
+          "path": "project/evidence/M0-021-781090b4d8b639e3.json",
+          "sha256": "709acd876edcf4b72e61f730ae6b0ed0d425d9d1648dcdb6a3a7e37e2ae4f357"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A developer can locate the agreed user journeys, their acceptance and the revision that introduced them.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/contract.json",
+          "project/checks.json",
+          "project/delivery.json",
+          "project/development.json",
+          "project/assessments/futures-tick-20260109.json"
+        ],
+        "hypotheses": [
+          "The existing registry, source descriptors and task ledger can express the requirements without adding wire operations during design."
+        ],
+        "risks": [
+          {
+            "failure": "A passing synthetic chart check or unavailable provider is counted as acceptance of a new product capability.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A design change silently alters the runtime operation surface.",
+            "checks": [
+              "architecture",
+              "generated-contracts"
+            ]
+          }
+        ],
+        "rollback": "Compare the change against the prior task-branch revision and preserve accepted records. Correct a changed product decision in a subsequent contract revision.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "engineering-contract-v1.json",
+            "contracts/contract.json",
+            "scripts/project.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/iteration_policy"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/implementation_policy/changes"
+            }
+          ],
+          "non_goals": [
+            "Runtime features, external data or model connections, live orders and release acceptance."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "Single main chart, explicit samples, deterministic mock, independent sources and core authorization."
+          ],
+          "change": [
+            "Specify observable onboarding, conversation, evidence and layout behavior in the product contract."
+          ],
+          "data_plan": "Only project records change. No user records, application storage schemas or external data transfers are involved.",
+          "cleanup": "Replace vague acceptance for unfinished tasks. Preserve completed definitions and verify both the task-branch base and the combined working tree."
+        }
+      }
+    },
+    {
+      "id": "M0-022",
+      "title": "Define financial collaboration, service choices and external AI access",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-021"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "contracts/contract.json",
+        "contracts/decisions",
+        "project/tasks.json",
+        "project/checks.json",
+        "project/delivery.json",
+        "project/development.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0007",
+        "0008",
+        "0009"
+      ],
+      "acceptance": [
+        "The contract covers a change of intent within a conversation, optional decision review, independently chosen services, the customer investment-funds boundary and both directions of AI connectivity.",
+        "The product brief and acceptance catalog identify responsible tasks, real-client evidence, later commercial qualification and the existing runtime surface."
+      ],
+      "checks": [
+        "project-state",
+        "generated-contracts",
+        "architecture",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-022-5054b304fdb8774e.json",
+          "sha256": "bac90b832f9b8455b006a19c7912db1caaebd28f4efd9cb26adae71428242efa"
+        },
+        {
+          "path": "project/evidence/M0-022-d5059c166c5c8dd3.json",
+          "sha256": "2a49220266fd93b1af9ca8a2b56bfefd4a2889e620d5c5c87274628a780ccef9"
+        },
+        {
+          "path": "project/evidence/M0-022-92df3b6405e982ea.json",
+          "sha256": "7f7d8e0c803149d4160571f6789e9039e4ef31cc90aee59f55e30216c77afa83"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A contributor can trace the owner's collaboration, service and external-client requirements to observable journeys and their delivery status.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/contract.json",
+          "contracts/decisions/0008-inspectable-data-and-workspace-actions.json",
+          "project/development.json",
+          "project/delivery.json",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "Separate an embedded model provider from an external client of the existing operation registry. Both can work with independently selected market data."
+        ],
+        "risks": [
+          {
+            "failure": "A design statement or synthetic replay is interpreted as a working client, paid service, live order or permission grant.",
+            "checks": [
+              "project-state",
+              "generated-contracts"
+            ]
+          },
+          {
+            "failure": "The new surface weakens established authorization or silently expands historical task acceptance.",
+            "checks": [
+              "architecture",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Compare to the preceding contract checkpoint. Preserve completed records and correct a changed decision with a subsequent revision.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "engineering-contract-v1.json",
+            "contracts/contract.json",
+            "scripts/project.py"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/iteration_policy"
+            }
+          ],
+          "non_goals": [
+            "Implementing a client or adapter, choosing prices, handling investment funds, enabling external transmission or connecting an account."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "Explicit service selection, one chart workspace, visible operations, existing protocol and accepted decisions."
+          ],
+          "change": [
+            "Specify decision support and review, optional first-party services, provider selection and a local external AI client journey."
+          ],
+          "data_plan": "Only project records change. New data retention, model access and client transmission require their own product actions during implementation.",
+          "cleanup": "Reconcile service wording in both manifests and verify the unchanged operation catalog and completed task history."
+        }
+      }
+    },
+    {
+      "id": "M2-002",
+      "title": "Customize and restore a single-chart workspace",
+      "milestone": "M2",
+      "status": "planned",
+      "depends_on": [
+        "M2-001"
+      ],
+      "scope": [
+        "apps/desktop",
+        "crates/application",
+        "crates/persistence",
+        "tests"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "Move, resize, dock or tab panels, configure theme and gain/loss colors, link chart and table selection, and pin an independent comparison. Keep active source and confirmation controls reachable.",
+        "Edit a named layout by hand or with a declarative definition. Preview, apply, undo, restore after restart and return to the default. Reject unsupported bindings or a stale revision while keeping the previous accepted layout.",
+        "Restore a previously selected source, a labeled explicit sample, unavailable media and revoked grants independently. Preserve layout and accepted artifacts, including under interrupted restore."
+      ],
+      "checks": [
+        "workspace-layout",
+        "operations-workflow",
+        "state-migrations"
+      ],
+      "evidence": [],
+      "next_action": "Start with chart, watchlist and inspection panels. Define the narrow layout operations and versioned storage, then validate actor permissions, restoration and a user-authored binding.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M1-015",
+      "title": "Qualify a market-data-only CTP futures connection",
+      "milestone": "M1",
+      "status": "planned",
+      "depends_on": [
+        "M1-008"
+      ],
+      "scope": [
+        "python/providers",
+        "crates",
+        "apps/desktop",
+        "tests"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "Use an authorized market-data front and an identified contract directory to subscribe, disconnect and recover without logging in to a trading front or reading accounts.",
+        "Inspect native session times, snapshot order, cumulative volume, symbols and feed gaps. Pair attributable local or API history with the live source and expose coverage at the boundary."
+      ],
+      "checks": [
+        "market-workflow",
+        "market-recovery",
+        "credential-boundaries",
+        "configured-market-source"
+      ],
+      "evidence": [],
+      "next_action": "Bind a CTP-specific qualification check before activation. Review vn.py market-data callbacks and metadata dependencies, then verify one authorized subscription and reconnection.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "later"
+    },
+    {
+      "id": "M2-003",
+      "title": "Evaluate isolated user-authored panel code beyond layout bindings",
+      "milestone": "M2",
+      "status": "planned",
+      "depends_on": [
+        "M2-002"
+      ],
+      "scope": [
+        "apps/desktop",
+        "crates/application",
+        "tests"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "Demonstrate a user need outside declarative panels. Document the rendering and interaction boundary, declared permissions, versioning, removal and recovery before proposing runtime execution.",
+        "Any prototype must demonstrate isolation from product code, native credentials and approval controls. A prototype does not authorize installation or execution in a user workspace."
+      ],
+      "checks": [
+        "architecture",
+        "operations-workflow"
+      ],
+      "evidence": [],
+      "next_action": "Select a concrete custom panel that needs a new renderer and compare isolated extension designs against the existing declarative interface.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "later"
+    },
+    {
+      "id": "M0-020",
+      "title": "Preserve module boundary checks across Windows path aliases",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-009",
+        "M0-013"
+      ],
+      "scope": [
+        "scripts/check_architecture.py",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0007"
+      ],
+      "acceptance": [
+        "The architecture checker accepts the same declared public import through a canonical checkout path and through an alias. Private, undeclared and outside-repository imports continue to produce the expected diagnostics.",
+        "A regression exercises a repository root with a different spelling from its resolved source path. Verify the Python test suite, architecture check and native Windows build on a matching Windows x64 Actions revision."
+      ],
+      "checks": [
+        "environment",
+        "project-state",
+        "architecture",
+        "python-contracts-workers",
+        "windows-native-build"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-020-25cab197f2948446.json",
+          "sha256": "b13b149b8fb47cc9523c3e8b7a3615d9e993c8eaa04c613cdaf0c87ef66fc072"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The module boundary regression completes on the native Windows runner when its temporary directory uses an 8.3 alias, while preserving the same import decisions on Linux.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/check_architecture.py",
+          "tests/project/test_development.py",
+          "project/development.json",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The checker compares a resolved import target against an unresolved checkout root. Canonicalizing both sides before computing the repository-relative path should make alias spelling immaterial."
+        ],
+        "risks": [
+          {
+            "failure": "Changing path normalization would allow a private or escaping import.",
+            "checks": [
+              "architecture",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The regression passes on Linux but the original native Windows test still fails.",
+            "checks": [
+              "python-contracts-workers",
+              "windows-native-build"
+            ]
+          }
+        ],
+        "rollback": "Retain both platform artifacts from Actions run 44293250894 and .reports/recovery/20261118T113732.826641Z-55640a1d/diagnostic.json for interrupted M1-010. Compare later failures against the original Windows log before changing the implementation again.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check_architecture.py",
+            "tests/project/test_development.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/module_design"
+            }
+          ],
+          "non_goals": [
+            "Product behavior changes and changes to module ownership or public entry policy."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Declared ownership, permitted dependencies, public entries and outside-repository checks"
+          ],
+          "change": [
+            "How the architecture checker derives a repository-relative path when the root has an alias"
+          ],
+          "data_plan": "This repair affects only the development checker and its fixtures.",
+          "cleanup": "Retain the native failure and passing regression evidence. Resume the hosted and interactive verification steps for M1-010."
+        }
+      }
+    },
+    {
+      "id": "M1-012",
+      "title": "Verify completion of the overall Ubuntu experience before the Windows trial",
+      "milestone": "M1",
+      "status": "planned",
+      "depends_on": [
+        "M1-010",
+        "M1-003",
+        "M1-008",
+        "M2-001",
+        "M2-002",
+        "M3-001",
+        "M4-001",
+        "M4-004",
+        "M1-013",
+        "M1-014"
+      ],
+      "scope": [
+        "project/tasks.json",
+        "project/feedback.json",
+        "contracts/reviews"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0007",
+        "0009"
+      ],
+      "acceptance": [
+        "Exercise the current contract's live and historical chart journeys on Ubuntu, including interruption and recovery, user-owned local data, shared operations, durable workspace recovery, reproducible indicators and human-AI chart collaboration.",
+        "Distinguish deterministic AI execution from an explicitly configured model connection. Follow the owner's authorization for the configured service, credentials and any external transmission. Record outstanding real-connection evidence when configuration or authorization is unavailable.",
+        "Verify the complete applicable Ubuntu experience on a recorded revision and retain end-to-end observations and regression results. Track Windows installation, packaging and native credential evidence on their designated platform. Explicitly later capabilities remain outside this review unless their delivery scope changes.",
+        "Observe CSV folder refresh, a restored custom layout, two-way evidence selection and in-place action results. Identify the exact authorized voice session or record why its real-connection evidence is outstanding.",
+        "Exercise the local bridge against the visible Ubuntu chart and review a saved decision. Track actual CLI and desktop client observations under M4-005 on supported hosts, including Windows when required.",
+        "Complete all Ubuntu-local scenarios through an explicitly enabled development entry sharing the Rust state and operation permissions. Retain the observed revision and screenshots, with a separate status for actual model, audio and external client observations. Passing the Ubuntu-local task permits the physical Windows trial while real-session release gates remain independent."
+      ],
+      "checks": [
+        "ubuntu-preview",
+        "chart-history",
+        "market-fixtures",
+        "market-workflow",
+        "market-recovery",
+        "operations-workflow",
+        "state-migrations",
+        "indicator-workflow",
+        "ai-workflow",
+        "ai-replay-evaluations",
+        "local-folder-import",
+        "workspace-layout",
+        "external-ai-bridge",
+        "ubuntu-workspace-observation"
+      ],
+      "evidence": [],
+      "next_action": "Deliver the chart workspace in M1-014, then continue M1-006 and the existing Ubuntu-capable contract tasks. Track each required capability and record the integrated Ubuntu experience before scheduling M1-011.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M1-013",
+      "title": "Make retry guidance match recoverable Ubuntu preview interruptions",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-010"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/market.ts",
+        "tests/ubuntu-preview",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0007"
+      ],
+      "acceptance": [
+        "When the Ubuntu browser loses its loopback connection, the error message guides the user to restore connectivity and use the existing retry control. The running development server can serve the next request.",
+        "Exercise Retry demo and Retry history through pnpm dev:ubuntu after interrupting only the browser connection. Verify that a failed history request clears the old chart and a rapid selection after reconnection displays the final instrument and timeframe."
+      ],
+      "checks": [
+        "project-state",
+        "ubuntu-preview",
+        "chart-history",
+        "market-fixtures",
+        "architecture",
+        "python-types",
+        "ui-build",
+        "rust-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-013-e7c91e735afe9222.json",
+          "sha256": "7f405c70130cf07f6f967381a68a4e49a2079ee0640d9ca0a07c707075d00bef"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A user can recover the existing Ubuntu preview from a temporary browser disconnect using its visible retry actions.",
+        "change_types": [
+          "chart-history"
+        ],
+        "context": [
+          "apps/desktop/ui/src/market.ts",
+          "apps/desktop/ui/src/main.tsx",
+          "tests/ubuntu-preview/preview.spec.mjs",
+          "contracts/reviews/2026-11-18-hosted-ux.json"
+        ],
+        "hypotheses": [
+          "The transport and retry controls already recover after reconnection. The fallback guidance needs to describe that successful path."
+        ],
+        "risks": [
+          {
+            "failure": "A test hides the actual transport failure or allows stale history to remain after a failed or superseded selection.",
+            "checks": [
+              "ubuntu-preview",
+              "chart-history"
+            ]
+          },
+          {
+            "failure": "The shared error wording or UI build changes the native desktop experience.",
+            "checks": [
+              "chart-history",
+              "ui-build"
+            ]
+          }
+        ],
+        "rollback": "Retain the original graphical observation at .reports/ux/ubuntu-interruption-2ca63cba675d/observations.json. Restore the prior wording if the replacement misdirects users and reproduce the specific failure on the development entry.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/market.ts",
+            "apps/desktop/ui/src/main.tsx",
+            "tests/ubuntu-preview/preview.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "contracts/reviews/2026-11-18-hosted-ux.json",
+              "pointer": "/owner_steering"
+            }
+          ],
+          "non_goals": [
+            "Live market reconnect, automatic retries, new providers and Windows manual testing."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Explicit manual retry, synthetic provenance and identity-safe chart selection",
+            "Native desktop transport and error handling"
+          ],
+          "change": [
+            "Ubuntu browser transport error guidance and its integrated regression coverage"
+          ],
+          "data_plan": "The repair changes displayed guidance and tests. It creates no persisted user data.",
+          "cleanup": "Run the normal preview, preserve the reproduction and archive the verified correction."
+        }
+      }
+    },
+    {
+      "id": "M1-014",
+      "title": "Open directly into the chart workspace",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-013"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "contracts/reviews/2026-11-18-chart-workspace.json",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/delivery.json",
+        "project/development.json",
+        "apps/desktop/ui",
+        "tests/ui",
+        "tests/ubuntu-preview"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0007"
+      ],
+      "acceptance": [
+        "The normal unconfigured entry opens a usable chart workspace with a visible Open offline sample action. It displays the unconfigured source state and sends zero application operations until the user selects a source or sample.",
+        "Selecting Open offline sample or deliberately navigating to #demo loads the synthetic instruments and bars through the Rust operation registry. Instrument selection, timeframe, chart style, volume, crosshair and data inspection work. The source remains visibly identified as synthetic.",
+        "The first screen places instrument, timeframe and chart-style controls above the main chart, with volume and the time axis below price. The instrument list and data inspection are accessible from the right. Use the left edge only for chart tools that have a working action. On narrow screens controls and data inspection remain usable.",
+        "Exercise the default and explicit sample entries on Ubuntu, retain desktop and narrow screenshots, and compare the actual workspace with the owner's reference. Record feedback from the owner when available.",
+        "With a clean profile establish zero operations, then explicitly choose the sample, relaunch at the bare entry, verify the Simulated label, leave it and relaunch again with zero operations."
+      ],
+      "checks": [
+        "project-state",
+        "chart-history",
+        "ubuntu-preview",
+        "market-fixtures",
+        "architecture",
+        "python-types",
+        "ui-build",
+        "rust-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-014-ccadcdae2e2952e4.json",
+          "sha256": "e288ba20213d84fbd82ea77bf791ca09a566d845b56c144ec7890d6f4c710fd2"
+        },
+        {
+          "path": "project/evidence/M1-014-e4c5216a170f176d.json",
+          "sha256": "0aee95bd8677ac7c0a456605fa412436b4352655fad69beedd729faaa97b72ff"
+        },
+        {
+          "path": "project/evidence/M1-014-2aa025302c423693.json",
+          "sha256": "d9fbc79c95a1050e6d580ad8f41b22e0e9f0f01d3aab65e65d92056ebc0a5d5f"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Launching ScopeHub lands in the same chart workspace used for synthetic history. The chart, controls and side panels follow the Supercharts arrangement selected by the owner.",
+        "change_types": [
+          "chart-history"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/reviews/2026-11-18-chart-workspace.json",
+          "apps/desktop/ui/src/main.tsx",
+          "apps/desktop/ui/src/style.css",
+          "apps/desktop/ui/src/market.ts",
+          "apps/desktop/ui/src/chart-adapter/history.ts",
+          "tests/ubuntu-preview/preview.spec.mjs",
+          "tests/ui/history.spec.mjs"
+        ],
+        "hypotheses": [
+          "The existing registry, chart adapter and transport can support the new layout without changing wire operations or activating a service at startup."
+        ],
+        "risks": [
+          {
+            "failure": "A bare visit dispatches market reads, shows fabricated prices or hides the synthetic origin of a sample.",
+            "checks": [
+              "ubuntu-preview",
+              "chart-history"
+            ]
+          },
+          {
+            "failure": "Moving controls breaks chart sizing, keyboard access, data inspection, retry or rapid selection at a supported viewport.",
+            "checks": [
+              "ubuntu-preview",
+              "chart-history",
+              "ui-build"
+            ]
+          }
+        ],
+        "rollback": "Retain before-and-after observations and the previous source checkpoint. If an entry bypasses explicit source selection, disable that entry until the no-operation startup and sample identity regressions pass.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "chart-adapter"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/main.tsx",
+            "apps/desktop/ui/src/market.ts",
+            "apps/desktop/ui/src/chart-adapter/history.ts"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/layout"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/workspace_entry"
+            },
+            {
+              "path": "contracts/reviews/2026-11-18-chart-workspace.json",
+              "pointer": "/owner_direction"
+            }
+          ],
+          "non_goals": [
+            "A TradingView service connection, copied icons, placeholder commands, real data, live updates, new AI operations and the physical Windows trial."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "Explicit synthetic source selection and visible provenance",
+            "Shared registry authorization, retry, chart navigation and data inspection"
+          ],
+          "change": [
+            "Chart workspace at startup, on-demand secondary panels and toolbar affordances grouped around the main chart"
+          ],
+          "data_plan": "The versioned local sample preference stores the explicit synthetic choice, symbol, timeframe, style, cursor and visible panel. Leaving clears it. M2 owns migration to a core-owned durable workspace when adding configured data, grants or accepted user work.",
+          "cleanup": "Remove the superseded landing screen and obsolete layout paths. Verify the ordinary and explicit sample entries on the same delivered UI."
+        }
+      }
+    },
+    {
+      "id": "M0-023",
+      "title": "Repair market, operation and acceptance contracts from the full review",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-022",
+        "M1-013"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "contracts",
+        "project",
+        "scripts",
+        "apps/desktop",
+        "crates",
+        "python",
+        "tests"
+      ],
+      "decision_refs": [
+        "0002",
+        "0004",
+        "0007",
+        "0008",
+        "0009",
+        "0010"
+      ],
+      "acceptance": [
+        "Both manifests, canonical wire definitions, generated projections, delivery plans and acceptance rules resolve the full contract review. Every reviewed outcome has an identified implementation or acceptance gate.",
+        "The current history entry, registry and preview produce correct metadata, bounded reproducible input, usable startup and actionable errors. Independent vectors and end-to-end checks cover regressions.",
+        "Project verification distinguishes partial and whole workflows, effective owner decisions, real and mock observations, native platform acceptance and the exact release candidate."
+      ],
+      "checks": [
+        "project-state",
+        "generated-contracts",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "chart-history",
+        "market-fixtures",
+        "architecture",
+        "python-types",
+        "ui-build",
+        "rust-format",
+        "rust-lints",
+        "ubuntu-preview",
+        "dependency-review"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-023-ccadcdae2e2952e4.json",
+          "sha256": "eb90d67f09a1281800222235106b3145fec06a31f6bc4110719a21165f79d1ec"
+        },
+        {
+          "path": "project/evidence/M0-023-e4c5216a170f176d.json",
+          "sha256": "c66f8e142833b42cd42ac91afd572e01049315804b98a52ef096639a7bcdc48f"
+        },
+        {
+          "path": "project/evidence/M0-023-2aa025302c423693.json",
+          "sha256": "b05942c19f1925f46168eb86f6f0a220af70c63161a0593664fb81b580fa777a"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "An implementer can complete every reviewed journey with consistent wire objects and verification gates; each current failure has a tested repair.",
+        "change_types": [
+          "protocol",
+          "tooling",
+          "chart-history",
+          "dependencies"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/contract.json",
+          "contracts/schemas/protocol.schema.json",
+          "contracts/reviews/2026-11-18-contract-closure.json",
+          "project/delivery.json",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "Existing read-only registry and preview can retain legacy reads while gaining immutable inputs. Portable workflows and real-session qualification can have independent gates."
+        ],
+        "risks": [
+          {
+            "failure": "New contracts cannot round-trip in one of the three generated bindings or mix observations across pages.",
+            "checks": [
+              "generated-contracts",
+              "typescript-contracts",
+              "python-contracts-workers",
+              "rust-contracts-workers",
+              "market-fixtures"
+            ]
+          },
+          {
+            "failure": "A chart or acceptance route shows a successful but stale, unconfigured or unauthorized result.",
+            "checks": [
+              "project-state",
+              "chart-history",
+              "ubuntu-preview",
+              "ui-build",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Preserve historical receipts and prior accepted ADRs. Revert the coherent source checkpoint if compatibility checks fail and retain the failing report.",
+        "implementation": {
+          "modules": [
+            "domain",
+            "application",
+            "worker-host",
+            "worker-runtime",
+            "providers",
+            "ui",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "engineering-contract-v1.json",
+            "contracts/schemas/protocol.schema.json",
+            "crates/application/src/lib.rs",
+            "scripts/project.py",
+            "apps/desktop/ui/src/main.tsx"
+          ],
+          "rules": [
+            {
+              "path": "contracts/reviews/2026-11-18-contract-closure.json",
+              "pointer": "/owner_direction"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/protocol"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/release_policy"
+            }
+          ],
+          "non_goals": [
+            "Implementing planned market subscriptions, persistence, AI sessions or trading merely to register their contract."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "Existing supported synthetic reads, historical task receipts and centralized authorization."
+          ],
+          "change": [
+            "Repair ambiguous identities, authorization, lifecycle, source restoration and release verification."
+          ],
+          "data_plan": "Use synthetic input for all regressions. Persist only an explicit local sample preference in the current preview. Specify migration and recovery for future persisted user data.",
+          "cleanup": "Replace the broken entry and ambiguous contracts, regenerate all projections and verify history, checks and support claims."
+        }
+      }
+    },
+    {
+      "id": "M0-024",
+      "title": "Keep staged replacements verifiable across multiple revisions",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-023"
+      ],
+      "scope": [
+        "scripts/project.py",
+        "scripts/development.py",
+        "tests/project",
+        "project/development.json",
+        "project/delivery.json",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0007"
+      ],
+      "acceptance": [
+        "A review from either an original or intermediate Git revision follows each recorded replacement through to all its current required checks. Missing coverage, cycles and unreviewed changes fail.",
+        "Completed or cancelled plans retain their original work classification after its retirement. Every unfinished plan still uses current classifications, and every current capability has a surviving current delivery task.",
+        "Developers can find the repair owner, a proportionate staged cutover and recovery procedure, and the condition for resuming the product task in the existing development and delivery policies."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-024-3be92e5bf734bb0c.json",
+          "sha256": "5c21516e19c07ea0335993f7abf5f40e3bbbe67bc3b68300b07d00e90508de41"
+        },
+        {
+          "path": "project/evidence/M0-024-cd04283ce59261c0.json",
+          "sha256": "8197759409d1b4990b32820c35ebf85c7b99a8347a233381ed9659b35e8b39f2"
+        },
+        {
+          "path": "project/evidence/M0-024-58c86d4348d9a5aa.json",
+          "sha256": "2d4d9b0da4516c30eab57130c56a87a269eba33ea1d0e45ce383d21255e6f85a"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Change implementation or checks over several independently verifiable steps while preserving active product commitments, historical receipts and the next product task.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/project.py",
+          "scripts/development.py",
+          "tests/project/test_delivery.py",
+          "tests/project/test_development.py",
+          "project/delivery.json",
+          "project/development.json"
+        ],
+        "hypotheses": [
+          "The history check currently considers only immediate replacements. Classification validation consults current delivery policy for historical tasks. Separate cancellation and scope checks can hide a surviving requirement."
+        ],
+        "risks": [
+          {
+            "failure": "One branch of a split check disappears or a circular replacement is counted as coverage.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          },
+          {
+            "failure": "A historical record blocks removal of obsolete implementation policy or a current capability loses its accountable work.",
+            "checks": [
+              "python-contracts-workers",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Retain the failing isolated fixture and original Git checkpoint. Revert the tooling change as a unit if it accepts weaker coverage. Resume M1-006 after verification.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/project.py",
+            "scripts/development.py",
+            "tests/project/test_delivery.py",
+            "tests/project/test_development.py"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/evolution"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "contracts/decisions/0007-ai-led-development.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Creating a second planning system, changing product behavior or performing a production data migration."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing task and receipt formats, immutable accepted history, single-step check replacements, current required checks and product scope."
+          ],
+          "change": [
+            "Resolve chains of reviewed gate replacements across revisions, retire unused work classifications and distinguish available delivery from cancelled work."
+          ],
+          "data_plan": "Exercise versioned synthetic repositories. Product persistence and wire formats are unchanged.",
+          "cleanup": "Reuse the existing task graph, gate records and check commands. Restore focus to M1-006 after evidence is recorded."
+        }
+      }
+    },
+    {
+      "id": "M0-025",
+      "title": "Run development in Herdr and bind model use to local user content boundaries",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-024"
+      ],
+      "scope": [
+        "AGENTS.md",
+        "engineering-contract-v1.json",
+        "contracts",
+        "project",
+        "package.json",
+        "scripts",
+        "tests",
+        ".github/workflows"
+      ],
+      "decision_refs": [
+        "0007",
+        "0009",
+        "0010",
+        "0011"
+      ],
+      "acceptance": [
+        "A developer can launch a bounded task in Herdr using the requested implementation or supervision model. Parallel writers have explicit ownership, one integrator and verified results. Ordinary changes and necessary tooling installation proceed under the existing owner grant.",
+        "Local conversations, memory, strategies and their derived data have accountable storage, recovery and downstream-use requirements. Activating a model grants ordinary in-session use within the disclosed scope. Sharing saved private content uses only the selected preview for the named destination.",
+        "Automated qualification distinguishes ordinary chat from private excerpt transfer, and retained verification artifacts exclude unrelated personal files. Product implementation and real model acceptance stay attributable to the product tasks."
+      ],
+      "checks": [
+        "project-state",
+        "architecture",
+        "python-contracts-workers",
+        "generated-contracts"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-025-235a2a5920d42aac.json",
+          "sha256": "49c19f88660e6633ee8aac14f166e4073924e7bf906b70297b566f2669cb6760"
+        },
+        {
+          "path": "project/evidence/M0-025-43af3efbc798829e.json",
+          "sha256": "3624c27cede4646922ca339462ecf4d8f0367712e75780f36ffe7e8031afab4e"
+        },
+        {
+          "path": "project/evidence/M0-025-cbc6e4d4e3cc7acd.json",
+          "sha256": "80b8bf43df25355af04b930140c0d682cca93a7abc91bd6ad1c9639fa0e17888"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A new development session can start its own Herdr implementation and review work while protecting local product records and keeping ordinary connected-model turns usable.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/development.json",
+          "project/delivery.json",
+          "engineering-contract-v1.json",
+          ".github/workflows/verify.yml",
+          "scripts/session_qualification.py",
+          "scripts/verification_evidence.py",
+          "scripts/development.py"
+        ],
+        "hypotheses": [
+          "The installed Herdr core can run the actual repository and both requested Codex model profiles without changing account defaults. Existing evidence collection and model authorization need a distinction between routine requests and saved private content."
+        ],
+        "risks": [
+          {
+            "failure": "A helper changes someone else’s work or a launcher silently substitutes the wrong model.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          },
+          {
+            "failure": "A cloud route receives saved history or the evidence upload includes a private record.",
+            "checks": [
+              "python-contracts-workers",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Keep the existing local checks and prior delivery evidence. Retain any failed isolated fixture, revert the affected tooling change, and leave product runtime connections disabled until qualified.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/project.py",
+            "scripts/development.py",
+            "scripts/session_qualification.py",
+            ".github/workflows/verify.yml"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/collaboration"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ai/context_policy"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence"
+            }
+          ],
+          "non_goals": [
+            "Implementing a complete storage engine, provisioning a paid product model, or exporting real product content in scaffold tests."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "A fresh offline chart, specific third-party source rights, provider choice and existing local verification commands."
+          ],
+          "change": [
+            "Adopt Herdr for active development and one-time cloud connection scope with separate approval for selected saved private excerpts."
+          ],
+          "data_plan": "Use repository code and synthetic fixtures for all development, subprocess and hosted verification. Keep owned product records and backups in local application storage.",
+          "cleanup": "Reuse the task ledger and native Herdr terminals. Inspect delivered changes, retire only owned temporary sessions and restore the product focus."
+        }
+      }
+    },
+    {
+      "id": "M1-016",
+      "title": "Correct synthetic market freshness and read explicit quality revisions",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-005",
+        "M1-013"
+      ],
+      "scope": [
+        "python/providers",
+        "tests/fixtures/market",
+        "tests/integration",
+        "project/tasks.json",
+        "project/development.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0007",
+        "0010"
+      ],
+      "acceptance": [
+        "Derive freshness from the declared observation schedule, cutoff and source delay independently of known gaps or loss of connection. A scheduled close, old historical date or missing evidence alone never implies stale. Preserve existing normal snapshot hashes and normal legacy metadata semantics.",
+        "Read the known explicit stale and gapped fixture revisions through the existing versioned history request, retain exact series and snapshot identity, and reject unknown revisions. A known stale series with a gap preserves both facts under the legacy gapped summary."
+      ],
+      "checks": [
+        "market-fixtures",
+        "python-contracts-workers",
+        "python-types",
+        "architecture",
+        "generated-contracts"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-016-235a2a5920d42aac.json",
+          "sha256": "95e037a7cea271649b9e0ebb56c4e150886beb44764c44dcd813c4977a35454e"
+        },
+        {
+          "path": "project/evidence/M1-016-43af3efbc798829e.json",
+          "sha256": "1958fb283c6ca903cd470aa59ba9b3611637c81a309ae72ef1b37d1b92b0e5a0"
+        },
+        {
+          "path": "project/evidence/M1-016-cbc6e4d4e3cc7acd.json",
+          "sha256": "586f1542f1f12dc730a9f10b307e8eb2d0c1ec73c747bbf476fde919b0620059"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Consumers of a frozen history page can distinguish coverage and freshness and explicitly replay the supplied sample revision through the existing operation.",
+        "change_types": [
+          "market-fixtures"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "python/providers/history_pages.py",
+          "python/providers/simulated.py",
+          "tests/integration/test_history.py",
+          "tests/fixtures/market/series.json"
+        ],
+        "hypotheses": [
+          "A typed expectation for the synthetic sample and a bounded mapping to its revisions suffice without a new operation or provider. The data change can be completed independently of the replay UI."
+        ],
+        "risks": [
+          {
+            "failure": "A gap hides a missed update or missing evidence invents an open or stale state.",
+            "checks": [
+              "market-fixtures",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A pinned sample silently resolves to different bars or a normal snapshot changes.",
+            "checks": [
+              "market-fixtures",
+              "python-contracts-workers",
+              "generated-contracts"
+            ]
+          }
+        ],
+        "rollback": "Retain failed vectors and revert the affected sample selector or derivation. No user files or stored data need migration.",
+        "implementation": {
+          "modules": [
+            "providers",
+            "worker-runtime"
+          ],
+          "entrypoints": [
+            "python/providers/history_pages.py",
+            "python/providers/simulated.py",
+            "python/worker_runtime/__main__.py"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/domain/market_quality"
+            },
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/MarketQualityState"
+            }
+          ],
+          "non_goals": [
+            "Real market access, UI presentation, native process lifetime and subscription transport."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Normal 1.0 and 1.1 synthetic history, stable frozen bar digests and explicit sample opt-in."
+          ],
+          "change": [
+            "Derive independent freshness and coverage and honor recognized explicitly pinned quality revisions."
+          ],
+          "data_plan": "Existing frozen normal inputs keep their identities. Only checked-in synthetic data is involved.",
+          "cleanup": "Use a single quality derivation and remove reliance on a legacy display label as input."
+        }
+      }
+    },
+    {
+      "id": "M0-026",
+      "title": "Preserve failure diagnostics on Windows consoles",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-025"
+      ],
+      "scope": [
+        "scripts/check.py",
+        "tests/project/test_processes.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0011"
+      ],
+      "acceptance": [
+        "A failed check containing Unicode outside the console encoding retains its diagnostic log and returns the original failed check result so the run can finalize and stage evidence. Receipt hashes still bind the original bytes."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-026-552c200a10c71c34.json",
+          "sha256": "9a0f64233e2a4fa4e241837df673f07629c3965cef6e3ebb72380fc8e91f03ae"
+        },
+        {
+          "path": "project/evidence/M0-026-43af3efbc798829e.json",
+          "sha256": "e6af8c09342fd66101703a30a813fa74153e83ed40504e3425717d2d094899c5"
+        },
+        {
+          "path": "project/evidence/M0-026-cbc6e4d4e3cc7acd.json",
+          "sha256": "753bc7d332494bc2d05e2833aacf54e19c4450dbd45ff186d26cde7124851a53"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A check failure is diagnosable from the finalized run even on a legacy Windows console.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/check.py",
+          "scripts/processes.py",
+          "tests/project/test_processes.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The failure occurs only when the diagnostic tail is printed. Keeping raw bytes in the log and encoding a short console result safely preserves both diagnostics and the failed gate."
+        ],
+        "risks": [
+          {
+            "failure": "Reporting raises a second exception and hides the original failure, or a private stdout is printed.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain the hosted console and local recovery snapshot. Run the affected check with its isolated log while repairing the harness, then rerun native verification.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check.py",
+            "scripts/processes.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Mask the failed product check, change the process timeout or claim physical Windows acceptance."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Original raw check-log bytes, digest, exit code and redacted private check output."
+          ],
+          "change": [
+            "Console diagnostics remain parseable even when their text includes characters outside its code page."
+          ],
+          "data_plan": "No stored product data changes. Existing reports stay readable.",
+          "cleanup": "Use the existing structured harness output and keep a single private-log policy."
+        }
+      }
+    },
+    {
+      "id": "M2-005",
+      "title": "Align shared-selection and durable mutation revision requirements",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M0-023"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "tests/fixtures/protocol-cases.json",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0010"
+      ],
+      "acceptance": [
+        "The product rule, human request and AI tool intent agree on the independent selection and durable workspace revision preconditions. Shared vectors reject substitution of either revision for the other and preserve valid 1.1 callers."
+      ],
+      "checks": [
+        "project-state",
+        "generated-contracts",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-005-1ba358dc22044fda.json",
+          "sha256": "bc3bd1d3153da00c54380e4c8b843b2e2d732b2ff9ca0d0f0b0e49c81c0f050b"
+        },
+        {
+          "path": "project/evidence/M2-005-2cd9308f8aacc7f4.json",
+          "sha256": "e034b4995b3f3828dad12bf38670b98da8b47fd58626be7908d71eead6093340"
+        },
+        {
+          "path": "project/evidence/M2-005-f78f27cbe8dc3660.json",
+          "sha256": "c8a94860e7dd84fa5c512b2dfc32b10f84293716f40c16816a4ee34f57eed211"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A developer implementing shared selection or a selection-bound durable write can identify the right revision without changing protocol 1.1 payloads.",
+        "change_types": [
+          "protocol"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/schemas/protocol.schema.json",
+          "contracts/contract.json",
+          "tests/fixtures/protocol-cases.json"
+        ],
+        "hypotheses": [
+          "The wire structs already encode both forms of optimistic concurrency. The broad AI policy sentence disagrees with the specific selection contract."
+        ],
+        "risks": [
+          {
+            "failure": "Requiring a workspace revision for selection rejects valid clients, or substituting a selection token for the durable revision allows a stale mutation.",
+            "checks": [
+              "python-contracts-workers",
+              "rust-contracts-workers",
+              "typescript-contracts"
+            ]
+          }
+        ],
+        "rollback": "Retain the accepted 1.1 schemas and regression vectors. Revisit the policy and add a versioned change only if existing callers actually require a different wire shape.",
+        "implementation": {
+          "modules": [
+            "domain",
+            "application",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "engineering-contract-v1.json",
+            "contracts/schemas/protocol.schema.json",
+            "tests/fixtures/protocol-cases.json"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization/durable_operations"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ai/tool_policy"
+            },
+            {
+              "path": "contracts/decisions/0010-reproducible-operations-and-acceptance.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Implement durable storage, authorize a new actor, change wire identifiers or mark any planned workspace operation implemented."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "Wire 1.1 human and AI requests, current grant checks, and independent selection tokens."
+          ],
+          "change": [
+            "Make the revision requirement for each operation explicit and exercise wrong-token substitution."
+          ],
+          "data_plan": "No saved or transmitted data format changes.",
+          "cleanup": "Replace the conflicting blanket instruction with the rules already used by the registered commands."
+        }
+      }
+    },
+    {
+      "id": "M2-006",
+      "title": "Clarify committed replay and shared evidence target forms",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-005"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "tests/fixtures/protocol-cases.json",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/checks.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0010",
+        "0011"
+      ],
+      "acceptance": [
+        "New operations revalidate the current target revisions and required confirmation. An already committed semantic retry recovers only its permitted receipt through the existing scoped replay rules. Both human and AI requests can select an identified workspace object or explicitly clear selection, and omission of the target is rejected."
+      ],
+      "checks": [
+        "project-state",
+        "generated-contracts",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-006-62a25335d312b3d0.json",
+          "sha256": "092d6966e27731642be7c21b242b4919e54d11b59e5213365c2dcabfe4422654"
+        },
+        {
+          "path": "project/evidence/M2-006-d969bd5526c01237.json",
+          "sha256": "f2a299b672553c2b59217e6ce0ba6ea56b4e73464b3f9d6cc9a83176f824cb2f"
+        },
+        {
+          "path": "project/evidence/M2-006-4c613128f41d7f9f.json",
+          "sha256": "cf2abbaf8dc35b42a01a19c881e1ea1c011cd44d91dad3a74c1ae6753359f388"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A caller can recover a lost committed response after its revisions advance and can select or explicitly clear any supported evidence target under its current grant.",
+        "change_types": [
+          "protocol"
+        ],
+        "context": [
+          "contracts/schemas/protocol.schema.json",
+          "contracts/contract.json",
+          "engineering-contract-v1.json",
+          "tests/fixtures/protocol-cases.json"
+        ],
+        "hypotheses": [
+          "The 1.1 target union already supports workspace objects and null. The established replay authorization applies before evaluating new-work revision and confirmation preconditions."
+        ],
+        "risks": [
+          {
+            "failure": "A retry is rejected just because the original commit advanced a revision, or it discloses the earlier result after access was revoked.",
+            "checks": [
+              "python-contracts-workers",
+              "typescript-contracts",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "One caller rejects a workspace object or accepts an omitted target as an explicit clear.",
+            "checks": [
+              "generated-contracts",
+              "python-contracts-workers",
+              "typescript-contracts",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain the accepted 1.1 schema, receipts and examples. Fix only the normative cross-references and examples if an implementation precondition conflicts.",
+        "implementation": {
+          "modules": [
+            "domain",
+            "application",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "engineering-contract-v1.json",
+            "contracts/schemas/protocol.schema.json",
+            "tests/fixtures/protocol-cases.json"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization/replay"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization/durable_operations"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ai/tool_policy"
+            }
+          ],
+          "non_goals": [
+            "Implement durable operations, generalize grants, or publish a release. Runtime transaction ordering is an M2-001 acceptance case."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "The 1.1 target union, scoped idempotency key and current disclosure rules."
+          ],
+          "change": [
+            "Describe committed-retry ordering, all shared target families and explicit clearing consistently."
+          ],
+          "data_plan": "No stored data or wire format changes.",
+          "cleanup": "Remove ambiguous new-work wording from the receipt recovery and object-selection paths."
+        }
+      }
+    },
+    {
+      "id": "M1-017",
+      "title": "Verify replay admission and completion against their separate deadlines",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-006",
+        "M1-007"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/market-stream.spec.mjs",
+        "tests/ui/replay-stages.mjs",
+        "tests/ubuntu-preview/market-quality.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "The ordinary chart renders both known candle updates through an admitted real worker stream when a valid history preparation pushes total elapsed time beyond the former five-second browser expectation.",
+        "Bounded checks separately identify admission and terminal failures. A successful run still requires the correct intermediate and final candle paints, frozen row, exact frames, and one admitted subscription. Unexpected failed requests cannot count as a successful replay.",
+        "Real retries and epoch-gap reads in the quality journey observe a separate preparation boundary. A prior gap still clears on retry, and failed or gapped streams cannot satisfy a completed-replay assertion."
+      ],
+      "checks": [
+        "market-live-stream",
+        "project-state",
+        "python-contracts-workers",
+        "market-quality-states"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-017-456f99b26e193864.json",
+          "sha256": "5a92b82dc45960b03d3e09f57a6a6e115f9de5a7ce32832a286b19b943cc1a46"
+        },
+        {
+          "path": "project/evidence/M1-017-4c613128f41d7f9f.json",
+          "sha256": "6934bc1cceb8f51adce5150d92ee361c41f742d5124d6a955bdf3aa6a96bed18"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Diagnose the actual failing Ubuntu assertion, then verify the complete real replay under bounded preparation latency while keeping application timeouts and frame checks effective.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/market-stream.spec.mjs",
+          "tests/ubuntu-preview/playwright.config.mjs",
+          "apps/desktop/ui/ubuntu-preview.mjs",
+          "apps/desktop/ui/src/market-admission.ts",
+          "crates/worker-host/src/market.rs",
+          "tests/ubuntu-preview/market-quality.spec.mjs"
+        ],
+        "hypotheses": [
+          "The browser waited five seconds for preparation and an entire subscription together. Each operation has its own application deadline and a slow valid preparation can exhaust the single assertion."
+        ],
+        "risks": [
+          {
+            "failure": "A hung operation or unexpected failed subscription becomes indistinguishable from legitimate admission delay.",
+            "checks": [
+              "market-live-stream",
+              "market-quality-states"
+            ]
+          },
+          {
+            "failure": "A completed message hides a missed intermediate render or a mutation to frozen history.",
+            "checks": [
+              "market-live-stream"
+            ]
+          }
+        ],
+        "rollback": "Retain the failed Ubuntu log and screenshot from run 44504564860. If a stage exceeds its actual application deadline, use the phase evidence to repair that specific path.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "ui",
+            "worker-host"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/market-stream.spec.mjs",
+            "apps/desktop/ui/ubuntu-preview.mjs",
+            "crates/worker-host/src/market.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/domain/stream_handoff"
+            }
+          ],
+          "non_goals": [
+            "Product retry policy, source data, credentials and Windows desktop acceptance."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Observed worker frames, visual values, cancellation and frozen historical rows."
+          ],
+          "change": [
+            "Diagnose preparation, stream entry and completion at their actual boundaries."
+          ],
+          "data_plan": "Only synthetic test traffic and existing diagnostic evidence are used.",
+          "cleanup": "Keep one streamed acceptance path and the existing worker deadlines. Retain reproducible evidence of delayed preparation."
+        }
+      }
+    },
+    {
+      "id": "M1-018",
+      "title": "Verify offline chart restoration across catalog, history and paint",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-017"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/market-stream.spec.mjs",
+        "tests/ui",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "An unconfigured start makes no market request. Explicit sample selection and restoration read the real catalog and requested synthetic history in order. The restored view identifies the selected source, instrument, timeframe and frozen data.",
+        "A delayed but valid catalog and history restore the chosen layout, forty bars and original last close without starting another subscription. An unsuccessful operation or missing render fails its own bounded check."
+      ],
+      "checks": [
+        "market-live-stream",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-018-6747a65520edf647.json",
+          "sha256": "29e1e02e0f8a19c8d899ed8f48f849748aeffb89514983e89bb79646d6555ac2"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Verify the visible chart after an explicit sample is reopened, including a cold catalog and history load.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/market-stream.spec.mjs",
+          "tests/ui/replay-stages.mjs",
+          "apps/desktop/ui/src/main.tsx",
+          "apps/desktop/ui/src/use-market-data.ts",
+          "apps/desktop/ui/ubuntu-preview.mjs"
+        ],
+        "hypotheses": [
+          "Windows completed the replay and later captured the restored chart. The reload assertion started its five-second render budget before the two serial reads had completed."
+        ],
+        "risks": [
+          {
+            "failure": "A missing, failed or unrelated operation satisfies the restoration check.",
+            "checks": [
+              "market-live-stream"
+            ]
+          },
+          {
+            "failure": "The restored chart shows the replay projection, loses the explicit source or automatically replays.",
+            "checks": [
+              "market-live-stream"
+            ]
+          }
+        ],
+        "rollback": "Keep the original Windows run and the controlled local failure. Compare the operation and render evidence before changing application policy.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "ui"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/market-stream.spec.mjs",
+            "apps/desktop/ui/src/use-market-data.ts"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changes to the chart renderer, market data, application resource limits or release status."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "User-selected sample restoration, frozen data, chart rendering and subscription lifecycle."
+          ],
+          "change": [
+            "Start the render assertion after the independent catalog and history reads."
+          ],
+          "data_plan": "The regression uses synthetic fixtures on loopback.",
+          "cleanup": "Keep a single live path for restoration and use ordinary UI assertions after its bounded reads."
+        }
       }
     }
   ]

@@ -33,22 +33,25 @@ def verification_command(packages, action, *, system=None, machine=None):
     system = system or platform.system()
     machine = machine or platform.machine()
     native = system == 'Windows' and machine.lower() in {'x86_64', 'amd64'}
-    included, excluded = [], []
+    included, excluded, portable_tests = [], [], []
     command = ['cargo', action, '--locked', '--workspace']
     for package in packages:
-        target = (package.get('metadata') or {}).get('scopehub', {}).get('check_platform', 'all')
+        scope = (package.get('metadata') or {}).get('scopehub', {})
+        target = scope.get('check_platform', 'all')
         if target not in {'all', 'windows-x64'}:
             raise ValueError(f'Unsupported check platform for {package["name"]}: {target}')
         if target == 'windows-x64' and not native:
             excluded.append({'package': package['name'], 'reason': 'Requires native Windows x64.'})
             command.extend(['--exclude', package['name']])
+            if action == 'test' and scope.get('portable_test_lib') is True:
+                portable_tests.append(package['name'])
         else:
             included.append(package['name'])
     if not included:
         raise ValueError('No workspace packages are eligible on this host')
     if action == 'clippy':
         command.extend(['--all-targets', '--', '-D', 'warnings'])
-    return command, {'included': included, 'excluded': excluded}
+    return command, {'included': included, 'excluded': excluded, 'portable_library_tests': portable_tests}
 
 
 def main():
@@ -58,7 +61,14 @@ def main():
     try:
         command, selection = verification_command(workspace_packages(), args.action)
         print(json.dumps({'command': command, 'workspace_coverage': selection}), flush=True)
-        return subprocess.run(command, cwd=ROOT, check=False).returncode
+        status = subprocess.run(command, cwd=ROOT, check=False).returncode
+        if status or not selection['portable_library_tests']:
+            return status
+        library_tests = ['cargo', 'test', '--locked', '--lib']
+        for package in selection['portable_library_tests']:
+            library_tests.extend(['--package', package])
+        print(json.dumps({'command': library_tests}), flush=True)
+        return subprocess.run(library_tests, cwd=ROOT, check=False).returncode
     except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
         print(json.dumps({'status': 'failed', 'error': str(error)}), flush=True)
         return 1

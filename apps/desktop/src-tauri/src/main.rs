@@ -7,7 +7,18 @@ compile_error!(
 
 #[cfg(windows)]
 fn main() {
+    use scopehub_desktop::bridge;
+    use tauri::Manager;
+
     tauri::Builder::default()
+        .manage(bridge::state())
+        .invoke_handler(tauri::generate_handler![
+            bridge::execute_operation,
+            bridge::execute_market_subscription,
+            bridge::cancel_market_subscription,
+            bridge::prepare_market_subscription,
+            bridge::cancel_market_preparation
+        ])
         .setup(|app| {
             tauri::WebviewWindowBuilder::from_config(app, &app.config().app.windows[0])?
                 .on_navigation(|url| {
@@ -24,6 +35,14 @@ fn main() {
                 .build()?;
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("ScopeHub desktop startup failed");
+        .build(tauri::generate_context!())
+        .expect("ScopeHub desktop startup failed")
+        .run(|app, event| {
+            if let tauri::RunEvent::Exit = event {
+                let state = app.state::<bridge::State>();
+                tauri::async_runtime::block_on(async {
+                    state.shutdown().await;
+                });
+            }
+        });
 }

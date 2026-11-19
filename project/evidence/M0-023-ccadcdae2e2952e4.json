@@ -1,0 +1,205 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-023",
+  "task_definition_sha256": "dc10eb3aae7a36f49d1f42ca55defed42b1aa48439a84e94ae5c3c5ab5d080df",
+  "run_id": "20261119T071035.726608Z-1e073b98",
+  "recorded_at": "2026-11-19T07:23:39.745654+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "9072607f97d73ed84f2788eb7ee1e11c3a059e2fec261658a4064d6979d5242e",
+    "file_count": 194,
+    "git_head": "b6eea0eac89a43734060f9a8bb402c9a11441c97",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "ccadcdae2e2952e4b0ff4289e918a199bc4a3a24d38cce18e5094ee81414cf63",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/projects/scopehub/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8df5e5918cdb2fdf774d8f4d53069a3d82f497acca9c04b9443986109e6e0308"
+    },
+    {
+      "id": "generated-contracts",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub/.venv/bin/python",
+        "scripts/generate_contracts.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8965c012a4f61e541c981ece63c046a3585bd768555e01fb5aee8e5206bb7783"
+    },
+    {
+      "id": "typescript-contracts",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "check:contracts"
+      ],
+      "exit_code": 0,
+      "log_sha256": "76085ad79f1f08bf9125247afe17494e04192626dd88ade72e426179de9c19b1"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "cf4ca393eb9d20bd0d6b93cd04264882c471d180a02adec7841fd9be1d15c9f8"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "3b6d0d0f6c7a19d09bde57998b072ff82542c5cc1a83f5a92213679841b164d6"
+    },
+    {
+      "id": "chart-history",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub/.venv/bin/python",
+        "scripts/check_chart_history.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2e7c3b2b08a6d82bfb8e5d63aeedafcfcbe7c829f679346ea664347b747c5c57"
+    },
+    {
+      "id": "market-fixtures",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub/.venv/bin/python",
+        "-m",
+        "unittest",
+        "tests.integration.test_market_fixtures",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8ab5575e5ad0e9b2a60263af7a6d69f5711aeab57e8dc78eccf641665b41a54c"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c4152158ec54c66e740a16e41d2099c2b382073ef54d55d4c1969652c78fd7e7"
+    },
+    {
+      "id": "python-types",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub/.venv/bin/python",
+        "-m",
+        "mypy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "157a09cfcdfdfb5977479c5a1c08345149263a3e990a2ec976ef28aaeec9cae6"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8d16df985484de007dc76e42acf26d0b2863c8e99e633044fa6520769bff7b44"
+    },
+    {
+      "id": "rust-format",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "rust-lints",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "clippy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "31b59c10e953b530430f11527338b457ed3e854ed1bdf56046bf7bc3f29403bc"
+    },
+    {
+      "id": "ubuntu-preview",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/playwright.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "47607dcb23317cf8d063ac8f003183e61b702bf1d063b22c56f74e8fa37c8b7d"
+    },
+    {
+      "id": "dependency-review",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub/.venv/bin/python",
+        "scripts/dependencies.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "b0d2853b86b9684f5b2fea7757536ab32f329131deb170eb70377f8cdea23f8a"
+    }
+  ],
+  "project_definition_sha256": "15a602609c7ffbcec1baa52d799098ca4abe0fbe3fde5bae74dc249c997bab6f",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

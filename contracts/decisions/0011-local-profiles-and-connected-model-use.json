@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "id": "0011",
+  "title": "Keep private product data local and use scoped model connections for ordinary work",
+  "status": "accepted",
+  "recorded_at": "2026-11-19",
+  "context": "ScopeHub serves individual users beyond its co-developers. A real model is needed for financial collaboration while personal conversations, memory and strategies remain under each user’s local control.",
+  "decision": "Use the local profile as the authority for private content and derived records. Activating a model grants the ordinary conversation and workspace scope disclosed by that route. Attach saved private content only from an exact user-selected preview for that request and recipient. Qualify cloud and local capabilities with actual behavior. Develop in Herdr using task-scoped roles and independent verification.",
+  "authority": "The owner selected previewed excerpts, authorized ordinary use upon connecting a model and delegated implementation tooling and parallelism. See contracts/reviews/2026-11-19-development-and-local-data.json.",
+  "alternatives": [
+    {
+      "option": "Ask for authorization on every routine model turn.",
+      "reason": "It interrupts already authorized work without changing the data or destination."
+    },
+    {
+      "option": "Automatically attach persistent user memory after activating a cloud connection.",
+      "reason": "The owner authorized only selected private excerpts for the current request."
+    }
+  ],
+  "consequences": [
+    "The Rust core owns local persistence, user scope and the final outbound projection. A changed model destination or excerpt is a new disclosure. A restored backup cannot replay an old attachment grant.",
+    "Use development permissions for project tooling and synthetic verification. Every product user independently controls their own model connection, records and externally visible operations.",
+    "The product task ledger owns implementation of persistence and actual model-client dispatch. Passing a fixture scores the verification mechanism; a configured session needs real qualification."
+  ],
+  "supersedes": [],
+  "related_decisions": [
+    "0007",
+    "0009",
+    "0010"
+  ],
+  "revisit_when": [
+    "A new persistent content type, data recipient or synchronization service changes local-profile or disclosure semantics.",
+    "Actual provider capability, user experience or the observed cost of distributed development changes the chosen workflow."
+  ]
+}

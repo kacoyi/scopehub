@@ -521,5 +521,300 @@
     "name": "invalid timestamp encoding null",
     "valid": false,
     "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":null,\"type\":\"heartbeat\"}\n"
+  },
+  {
+    "name": "versioned history page",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":0,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.readHistoryPage\",\"payload\":{\"series\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"scopehub.synthetic\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"session_scope\":\"sample-sessions\",\"calendar_id\":\"SIM.CN.FUTURE.001.sample-calendar.v1\",\"quantity_unit\":\"contracts\"},\"from_ms\":0,\"to_ms\":100,\"warmup_bars\":0}}\n"
+  },
+  {
+    "name": "versioned history rejects unbounded page size",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":0,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.readHistoryPage\",\"payload\":{\"series\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"scopehub.synthetic\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"session_scope\":\"sample-sessions\",\"calendar_id\":\"SIM.CN.FUTURE.001.sample-calendar.v1\",\"quantity_unit\":\"contracts\"},\"from_ms\":0,\"to_ms\":100,\"warmup_bars\":0,\"page_size\":100001}}\n"
+  },
+  {
+    "name": "legacy history cannot accept a versioned continuation",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":0,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.readHistoryPage\",\"payload\":{\"series\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"scopehub.synthetic\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"session_scope\":\"sample-sessions\",\"calendar_id\":\"SIM.CN.FUTURE.001.sample-calendar.v1\",\"quantity_unit\":\"contracts\"},\"from_ms\":0,\"to_ms\":100,\"warmup_bars\":0}}\n"
+  },
+  {
+    "name": "history explicitly requests a stream handoff",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":0,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.readHistoryPage\",\"payload\":{\"series\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"scopehub.synthetic\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"session_scope\":\"sample-sessions\",\"calendar_id\":\"SIM.CN.FUTURE.001.sample-calendar.v1\",\"quantity_unit\":\"contracts\"},\"from_ms\":0,\"to_ms\":100,\"warmup_bars\":0,\"include_stream_position\":true}}\n"
+  },
+  {
+    "name": "history stream handoff rejects implicit truthiness",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":0,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.readHistoryPage\",\"payload\":{\"series\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"scopehub.synthetic\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"session_scope\":\"sample-sessions\",\"calendar_id\":\"SIM.CN.FUTURE.001.sample-calendar.v1\",\"quantity_unit\":\"contracts\"},\"from_ms\":0,\"to_ms\":100,\"warmup_bars\":0,\"include_stream_position\":\"true\"}}\n"
+  },
+  {
+    "name": "frozen market resume request",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":0,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.subscribe\",\"payload\":{\"series\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"scopehub.synthetic\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"session_scope\":\"sample-sessions\",\"calendar_id\":\"SIM.CN.FUTURE.001.sample-calendar.v1\",\"quantity_unit\":\"contracts\"},\"snapshot\":{\"series\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"scopehub.synthetic\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"session_scope\":\"sample-sessions\",\"calendar_id\":\"SIM.CN.FUTURE.001.sample-calendar.v1\",\"quantity_unit\":\"contracts\"},\"dataset_id\":\"00000000-0000-4000-8000-000000000003\",\"dataset_revision\":\"r1\",\"from_ms\":0,\"to_ms\":100,\"warmup_bars\":0,\"as_of_ms\":90,\"content_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"},\"after\":{\"stream_id\":\"stream1\",\"epoch\":\"run1\",\"sequence\":10}}}\n"
+  },
+  {
+    "name": "market resume missing epoch",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":0,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.subscribe\",\"payload\":{\"series\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"scopehub.synthetic\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"session_scope\":\"sample-sessions\",\"calendar_id\":\"SIM.CN.FUTURE.001.sample-calendar.v1\",\"quantity_unit\":\"contracts\"},\"snapshot\":{\"series\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"scopehub.synthetic\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"session_scope\":\"sample-sessions\",\"calendar_id\":\"SIM.CN.FUTURE.001.sample-calendar.v1\",\"quantity_unit\":\"contracts\"},\"dataset_id\":\"00000000-0000-4000-8000-000000000003\",\"dataset_revision\":\"r1\",\"from_ms\":0,\"to_ms\":100,\"warmup_bars\":0,\"as_of_ms\":90,\"content_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"},\"after\":{\"stream_id\":\"s\",\"sequence\":0}}}\n"
+  },
+  {
+    "name": "market update after snapshot",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":0,\"type\":\"event\",\"stream_id\":\"stream1\",\"epoch\":\"run1\",\"sequence\":11,\"event\":\"market.bar_update\",\"payload\":{\"series\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"scopehub.synthetic\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"session_scope\":\"sample-sessions\",\"calendar_id\":\"SIM.CN.FUTURE.001.sample-calendar.v1\",\"quantity_unit\":\"contracts\"},\"dataset_revision\":\"r1\",\"observed_at_ms\":99,\"bar\":{\"time_ms\":60,\"trading_day\":\"2024-01-03\",\"open\":3,\"high\":3,\"low\":3,\"close\":3,\"volume\":null,\"is_closed\":true}}}\n"
+  },
+  {
+    "name": "market correction identifies superseded revision",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":0,\"type\":\"event\",\"stream_id\":\"stream1\",\"epoch\":\"run1\",\"sequence\":12,\"event\":\"market.bar_correction\",\"payload\":{\"series\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"scopehub.synthetic\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"session_scope\":\"sample-sessions\",\"calendar_id\":\"SIM.CN.FUTURE.001.sample-calendar.v1\",\"quantity_unit\":\"contracts\"},\"dataset_revision\":\"r2\",\"observed_at_ms\":99,\"bar\":{\"time_ms\":60,\"trading_day\":\"2024-01-03\",\"open\":3,\"high\":3,\"low\":3,\"close\":3,\"volume\":null,\"is_closed\":true},\"supersedes_revision\":\"r1\"}}\n"
+  },
+  {
+    "name": "market correction missing prior revision",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":0,\"type\":\"event\",\"stream_id\":\"stream1\",\"epoch\":\"run1\",\"sequence\":11,\"event\":\"market.bar_correction\",\"payload\":{\"series\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"scopehub.synthetic\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"session_scope\":\"sample-sessions\",\"calendar_id\":\"SIM.CN.FUTURE.001.sample-calendar.v1\",\"quantity_unit\":\"contracts\"},\"dataset_revision\":\"r1\",\"observed_at_ms\":99,\"bar\":{\"time_ms\":60,\"trading_day\":\"2024-01-03\",\"open\":3,\"high\":3,\"low\":3,\"close\":3,\"volume\":null,\"is_closed\":true}}}\n"
+  },
+  {
+    "name": "stream gap identifies lost records",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":0,\"type\":\"event\",\"stream_id\":\"stream1\",\"epoch\":\"run1\",\"sequence\":13,\"event\":\"market.stream_gap\",\"payload\":{\"series\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"scopehub.synthetic\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"session_scope\":\"sample-sessions\",\"calendar_id\":\"SIM.CN.FUTURE.001.sample-calendar.v1\",\"quantity_unit\":\"contracts\"},\"reason\":\"sequence_gap\",\"expected_sequence\":12,\"lost_count\":1,\"affected\":{\"from_ms\":60,\"to_ms\":120}}}\n"
+  },
+  {
+    "name": "stream resume needs authoritative backfill",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":0,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.subscribe\",\"ok\":true,\"result\":{\"status\":\"backfill_required\",\"reason\":\"epoch_changed\",\"recover_from_ms\":60},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 scoped annotation",
+    "valid": true,
+    "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"scope\":{\"workspace_id\":\"desk\",\"target\":{\"kind\":\"chart\",\"object_id\":\"primary\"},\"expected_workspace_revision\":3,\"expected_selection_revision\":7,\"idempotency_key\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\"},\"intent\":{\"operation\":\"chart.addAnnotation\",\"arguments\":{\"annotation\":{\"time_ms\":1704200400000,\"position\":\"on\",\"label\":\"A\",\"color\":\"#000000\"}}}}"
+  },
+  {
+    "name": "1.1 mutation cannot assert a principal",
+    "valid": false,
+    "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"scope\":{\"workspace_id\":\"desk\",\"target\":{\"kind\":\"chart\",\"object_id\":\"primary\"},\"expected_workspace_revision\":3,\"expected_selection_revision\":7,\"idempotency_key\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"principal_id\":\"human\"},\"intent\":{\"operation\":\"chart.addAnnotation\",\"arguments\":{\"annotation\":{\"time_ms\":1704200400000,\"position\":\"on\",\"label\":\"A\",\"color\":\"#000000\"}}}}"
+  },
+  {
+    "name": "1.1 mutation is bound to selected evidence",
+    "valid": false,
+    "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"scope\":{\"workspace_id\":\"desk\",\"target\":{\"kind\":\"chart\",\"object_id\":\"primary\"},\"expected_workspace_revision\":3,\"idempotency_key\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\"},\"intent\":{\"operation\":\"chart.addAnnotation\",\"arguments\":{\"annotation\":{\"time_ms\":1704200400000,\"position\":\"on\",\"label\":\"A\",\"color\":\"#000000\"}}}}"
+  },
+  {
+    "name": "1.1 client annotation requires the workspace revision",
+    "valid": false,
+    "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"scope\":{\"workspace_id\":\"desk\",\"target\":{\"kind\":\"chart\",\"object_id\":\"primary\"},\"expected_selection_revision\":7,\"idempotency_key\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\"},\"intent\":{\"operation\":\"chart.addAnnotation\",\"arguments\":{\"annotation\":{\"time_ms\":1704200400000,\"position\":\"on\",\"label\":\"A\",\"color\":\"#000000\"}}}}"
+  },
+  {
+    "name": "1.1 committed annotation supplies undo identity",
+    "valid": true,
+    "wire": "{\"type\":\"response\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"outcome\":{\"state\":\"committed\",\"operation\":\"chart.addAnnotation\",\"receipt\":{\"operation_id\":\"op1\",\"workspace_id\":\"desk\",\"target\":{\"kind\":\"chart\",\"object_id\":\"primary\"},\"committed_workspace_revision\":4,\"undoable\":true},\"result\":{\"layer_id\":\"l\"}}}"
+  },
+  {
+    "name": "1.1 human confirms a core-issued challenge",
+    "valid": true,
+    "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"operation\":\"confirmation.respond\",\"challenge_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"decision\":\"approve\"}"
+  },
+  {
+    "name": "1.1 human can deny a challenge",
+    "valid": true,
+    "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"operation\":\"confirmation.respond\",\"challenge_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"decision\":\"deny\"}"
+  },
+  {
+    "name": "1.1 decoded tool intent cannot approve",
+    "valid": false,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"ai.tool_request\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"stream_id\":\"st\",\"sequence\":2,\"payload\":{\"operation\":\"confirmation.respond\",\"challenge_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"decision\":\"approve\"}}"
+  },
+  {
+    "name": "1.1 trusted python challenge discloses execution",
+    "valid": true,
+    "wire": "{\"type\":\"response\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"outcome\":{\"state\":\"awaiting_confirmation\",\"challenge\":{\"challenge_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"operation\":\"indicator.runPreview\",\"principal_id\":\"client1\",\"session_id\":\"session1\",\"workspace_id\":\"desk\",\"target\":{\"kind\":\"chart\",\"object_id\":\"primary\"},\"workspace_revision\":3,\"selection_revision\":7,\"parameters_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"expires_at_ms\":150000,\"python\":{\"code_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"parameters_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"snapshot_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"trust_mode\":\"trusted_user_code_no_sandbox\",\"input_use\":\"trusted_code_permitted\"}}}}"
+  },
+  {
+    "name": "1.1 display rights do not qualify python",
+    "valid": false,
+    "wire": "{\"type\":\"response\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"outcome\":{\"state\":\"awaiting_confirmation\",\"challenge\":{\"challenge_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"operation\":\"indicator.runPreview\",\"principal_id\":\"client1\",\"session_id\":\"session1\",\"workspace_id\":\"desk\",\"target\":{\"kind\":\"chart\",\"object_id\":\"primary\"},\"workspace_revision\":3,\"selection_revision\":7,\"parameters_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"expires_at_ms\":150000,\"python\":{\"code_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"parameters_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"snapshot_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"trust_mode\":\"trusted_user_code_no_sandbox\",\"input_use\":\"display_only\"}}}}"
+  },
+  {
+    "name": "1.1 frozen indicator input",
+    "valid": true,
+    "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"scope\":{\"workspace_id\":\"desk\",\"target\":{\"kind\":\"chart\",\"object_id\":\"primary\"},\"expected_workspace_revision\":3,\"expected_selection_revision\":7,\"idempotency_key\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\"},\"intent\":{\"operation\":\"indicator.runPreview\",\"arguments\":{\"draft_id\":\"d1\",\"snapshot\":{\"series\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"scopehub.synthetic\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"session_scope\":\"sample-sessions\",\"calendar_id\":\"SIM.CN.FUTURE.001.sample-calendar.v1\",\"quantity_unit\":\"contracts\"},\"dataset_id\":\"836cb0d6-61d3-5d80-8e4d-37da5b308cf1\",\"dataset_revision\":\"scopehub-synthetic-v1:20241013:normal\",\"from_ms\":1704200400000,\"to_ms\":1704200520000,\"warmup_bars\":0,\"as_of_ms\":1704330570000,\"content_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"},\"parameters\":[{\"name\":\"period\",\"value\":2}]}}}"
+  },
+  {
+    "name": "1.1 immutable preview acceptance",
+    "valid": true,
+    "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"scope\":{\"workspace_id\":\"desk\",\"target\":{\"kind\":\"chart\",\"object_id\":\"primary\"},\"expected_workspace_revision\":3,\"expected_selection_revision\":7,\"idempotency_key\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\"},\"intent\":{\"operation\":\"indicator.acceptVersion\",\"arguments\":{\"preview_id\":\"p1\",\"result_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}}}"
+  },
+  {
+    "name": "1.1 preview published after validation",
+    "valid": true,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"indicator.preview_ready\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"draft_id\":\"d1\",\"preview_id\":\"p1\",\"stream_id\":\"st\",\"sequence\":2,\"snapshot\":{\"series\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"scopehub.synthetic\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"session_scope\":\"sample-sessions\",\"calendar_id\":\"SIM.CN.FUTURE.001.sample-calendar.v1\",\"quantity_unit\":\"contracts\"},\"dataset_id\":\"836cb0d6-61d3-5d80-8e4d-37da5b308cf1\",\"dataset_revision\":\"scopehub-synthetic-v1:20241013:normal\",\"from_ms\":1704200400000,\"to_ms\":1704200520000,\"warmup_bars\":0,\"as_of_ms\":1704330570000,\"content_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"},\"code_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"params_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"engine_version\":\"1\",\"artifact\":{\"storage\":\"core_artifact\",\"artifact_id\":\"r1\",\"result_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"byte_length\":8000000,\"segment_count\":4}}"
+  },
+  {
+    "name": "1.1 preview requires identity",
+    "valid": false,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"indicator.preview_ready\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"draft_id\":\"d1\",\"stream_id\":\"st\",\"sequence\":2,\"snapshot\":{\"series\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"scopehub.synthetic\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"session_scope\":\"sample-sessions\",\"calendar_id\":\"SIM.CN.FUTURE.001.sample-calendar.v1\",\"quantity_unit\":\"contracts\"},\"dataset_id\":\"836cb0d6-61d3-5d80-8e4d-37da5b308cf1\",\"dataset_revision\":\"scopehub-synthetic-v1:20241013:normal\",\"from_ms\":1704200400000,\"to_ms\":1704200520000,\"warmup_bars\":0,\"as_of_ms\":1704330570000,\"content_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"},\"code_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"params_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"engine_version\":\"1\",\"artifact\":{\"storage\":\"core_artifact\",\"artifact_id\":\"r1\",\"result_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"byte_length\":8000000,\"segment_count\":4}}"
+  },
+  {
+    "name": "1.1 indicator result segment",
+    "valid": true,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"indicator.result_segment\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"artifact_id\":\"r1\",\"result_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"stream_id\":\"st\",\"sequence\":2,\"segment_index\":0,\"bytes_base64\":\"e30=\"}"
+  },
+  {
+    "name": "1.1 typed parameterized numeric and predicate outputs",
+    "valid": true,
+    "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"scope\":{\"workspace_id\":\"desk\",\"target\":{\"kind\":\"chart\",\"object_id\":\"primary\"},\"expected_workspace_revision\":3,\"expected_selection_revision\":7,\"idempotency_key\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\"},\"intent\":{\"operation\":\"indicator.createDraft\",\"arguments\":{\"language\":\"declarative\",\"source\":{\"parameters\":[{\"type\":\"integer\",\"name\":\"period\",\"default\":2}],\"outputs\":[{\"kind\":\"line\",\"id\":\"sma\",\"pane\":\"main\",\"value\":{\"op\":\"rolling_mean\",\"value\":{\"op\":\"field\",\"field\":\"close\"},\"window\":{\"parameter\":\"period\"}},\"style\":{\"color\":\"#112233\",\"width\":2}},{\"kind\":\"marker_when\",\"when\":{\"op\":\"gt\",\"left\":{\"op\":\"field\",\"field\":\"close\"},\"right\":{\"op\":\"constant\",\"value\":2}},\"position\":\"above\",\"label\":\"high\",\"color\":\"#112233\"}]}}}}"
+  },
+  {
+    "name": "1.1 predicate cannot silently become a price",
+    "valid": false,
+    "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"scope\":{\"workspace_id\":\"desk\",\"target\":{\"kind\":\"chart\",\"object_id\":\"primary\"},\"expected_workspace_revision\":3,\"expected_selection_revision\":7,\"idempotency_key\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\"},\"intent\":{\"operation\":\"indicator.createDraft\",\"arguments\":{\"language\":\"declarative\",\"source\":{\"parameters\":[{\"type\":\"integer\",\"name\":\"period\",\"default\":2}],\"outputs\":[{\"kind\":\"line\",\"id\":\"sma\",\"pane\":\"main\",\"value\":{\"op\":\"gt\",\"left\":{\"op\":\"field\",\"field\":\"close\"},\"right\":{\"op\":\"constant\",\"value\":2}},\"style\":{\"color\":\"#112233\",\"width\":2}}]}}}}"
+  },
+  {
+    "name": "1.1 terminal after an already committed action",
+    "valid": true,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"task.terminal\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"stream_id\":\"st\",\"sequence\":2,\"outcome\":{\"status\":\"cancelled\"},\"committed_effects\":[{\"operation_id\":\"op1\",\"workspace_id\":\"desk\",\"committed_workspace_revision\":4}]}"
+  },
+  {
+    "name": "1.1 cancellation maps a task to a worker request",
+    "valid": true,
+    "wire": "{\"type\":\"cancel\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\"}"
+  },
+  {
+    "name": "1.1 shared selection identifies the exact passage",
+    "valid": true,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"workspace.selection_changed\",\"stream_id\":\"st\",\"sequence\":2,\"selection\":{\"workspace_id\":\"desk\",\"selection_revision\":8,\"target\":{\"kind\":\"document_passage\",\"source_id\":\"doc1\",\"source_revision\":\"v1\",\"locator\":\"paragraph-2\"}}}"
+  },
+  {
+    "name": "1.1 hover is not a committed workspace selection",
+    "valid": false,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"workspace.selection_changed\",\"stream_id\":\"st\",\"sequence\":2,\"selection\":{\"workspace_id\":\"desk\",\"selection_revision\":8,\"target\":{\"kind\":\"hover\",\"object_id\":\"primary\"}}}"
+  },
+  {
+    "name": "1.1 only permitted quote field exported",
+    "valid": true,
+    "wire": "{\"type\":\"response\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"operation\":\"workspace.readChartProjection\",\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"result\":{\"source_reference\":\"safe-source\",\"revision\":\"r1\",\"fields\":[\"close\"],\"rows\":[{\"close\":123.5}]}}"
+  },
+  {
+    "name": "1.1 projection excludes raw metadata",
+    "valid": false,
+    "wire": "{\"type\":\"response\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"operation\":\"workspace.readChartProjection\",\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"result\":{\"source_reference\":\"safe-source\",\"revision\":\"r1\",\"fields\":[\"close\"],\"rows\":[{\"close\":123.5,\"provenance\":{}}]}}"
+  },
+  {
+    "name": "1.1 correlated AI request",
+    "valid": true,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"ai.tool_request\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"stream_id\":\"st\",\"sequence\":2,\"payload\":{\"scope\":{\"workspace_id\":\"desk\",\"target\":{\"kind\":\"chart\",\"object_id\":\"primary\"},\"expected_workspace_revision\":3,\"expected_selection_revision\":7,\"idempotency_key\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\"},\"intent\":{\"operation\":\"chart.addAnnotation\",\"arguments\":{\"annotation\":{\"time_ms\":1704200400000,\"position\":\"on\",\"label\":\"A\",\"color\":\"#000000\"}}}}}"
+  },
+  {
+    "name": "1.1 AI annotation requires the workspace revision",
+    "valid": false,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"ai.tool_request\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"stream_id\":\"st\",\"sequence\":2,\"payload\":{\"scope\":{\"workspace_id\":\"desk\",\"target\":{\"kind\":\"chart\",\"object_id\":\"primary\"},\"expected_selection_revision\":7,\"idempotency_key\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\"},\"intent\":{\"operation\":\"chart.addAnnotation\",\"arguments\":{\"annotation\":{\"time_ms\":1704200400000,\"position\":\"on\",\"label\":\"A\",\"color\":\"#000000\"}}}}}"
+  },
+  {
+    "name": "1.1 AI annotation requires the selection revision",
+    "valid": false,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"ai.tool_request\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"stream_id\":\"st\",\"sequence\":2,\"payload\":{\"scope\":{\"workspace_id\":\"desk\",\"target\":{\"kind\":\"chart\",\"object_id\":\"primary\"},\"expected_workspace_revision\":3,\"idempotency_key\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\"},\"intent\":{\"operation\":\"chart.addAnnotation\",\"arguments\":{\"annotation\":{\"time_ms\":1704200400000,\"position\":\"on\",\"label\":\"A\",\"color\":\"#000000\"}}}}}"
+  },
+  {
+    "name": "1.1 core tool result delivery",
+    "valid": true,
+    "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"request_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"operation\":\"ai.tool_result\",\"outcome\":{\"status\":\"read\",\"view\":{\"source_reference\":\"safe-source\",\"revision\":\"r1\",\"fields\":[\"close\"],\"rows\":[{\"close\":123.5}]}}}"
+  },
+  {
+    "name": "1.1 denied tool result",
+    "valid": true,
+    "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"request_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"operation\":\"ai.tool_result\",\"outcome\":{\"status\":\"denied\",\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"Permission denied.\",\"retryable\":false}}}"
+  },
+  {
+    "name": "1.1 late tool result acknowledged without execution",
+    "valid": true,
+    "wire": "{\"type\":\"response\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"request_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"operation\":\"ai.tool_result\",\"status\":\"task_terminal\"}"
+  },
+  {
+    "name": "1.1 tool result requires call identity",
+    "valid": false,
+    "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"request_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"operation\":\"ai.tool_result\",\"outcome\":{\"status\":\"available\",\"result_ref\":\"pending\"}}"
+  },
+  {
+    "name": "1.1 extended worker advertises an optional capability",
+    "valid": true,
+    "wire": "{\"type\":\"hello\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"role\":\"market\",\"worker_version\":\"0.2\",\"supported_protocols\":[\"1.0\",\"1.1\"],\"capabilities\":[\"market.getBars\",\"vendor.future.read\"]}"
+  },
+  {
+    "name": "1.1 a projected row cannot smuggle another standard field",
+    "valid": false,
+    "wire": "{\"type\":\"response\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"operation\":\"workspace.readChartProjection\",\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"result\":{\"source_reference\":\"safe-source\",\"revision\":\"r1\",\"fields\":[\"close\"],\"rows\":[{\"close\":123.5,\"open\":99}]}}"
+  },
+  {
+    "name": "1.1 granted volume can be unknown",
+    "valid": true,
+    "wire": "{\"type\":\"response\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"operation\":\"workspace.readChartProjection\",\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"result\":{\"source_reference\":\"safe-source\",\"revision\":\"r1\",\"fields\":[\"volume\"],\"rows\":[{\"volume\":null}]}}"
+  },
+  {
+    "name": "1.1 absent granted quote field cannot be mistaken for unknown",
+    "valid": false,
+    "wire": "{\"type\":\"response\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"operation\":\"workspace.readChartProjection\",\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"result\":{\"source_reference\":\"safe-source\",\"revision\":\"r1\",\"fields\":[\"close\",\"volume\"],\"rows\":[{\"close\":123.5}]}}"
+  },
+  {
+    "name": "1.1 page read through the versioned tool surface",
+    "valid": true,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"ai.tool_request\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"stream_id\":\"st\",\"sequence\":2,\"payload\":{\"operation\":\"market.readHistoryPage\",\"arguments\":{\"series\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"scopehub.synthetic\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"session_scope\":\"sample-sessions\",\"calendar_id\":\"SIM.CN.FUTURE.001.sample-calendar.v1\",\"quantity_unit\":\"contracts\"},\"from_ms\":1704200400000,\"to_ms\":1704200520000,\"warmup_bars\":0}}}"
+  },
+  {
+    "name": "1.1 projected read is discoverable to an authorized AI",
+    "valid": true,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"ai.tool_request\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"stream_id\":\"st\",\"sequence\":2,\"payload\":{\"operation\":\"workspace.readChartProjection\",\"workspace_id\":\"desk\",\"selection_revision\":7,\"requested_fields\":[\"close\"]}}"
+  },
+  {
+    "name": "1.1 shared selection through scoped AI",
+    "valid": true,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"ai.tool_request\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"stream_id\":\"st\",\"sequence\":2,\"payload\":{\"operation\":\"workspace.selectEvidence\",\"workspace_id\":\"desk\",\"expected_selection_revision\":7,\"target\":{\"kind\":\"document_passage\",\"source_id\":\"doc1\",\"source_revision\":\"v1\",\"locator\":\"paragraph-2\"}}}"
+  },
+  {
+    "name": "1.1 AI selects a workspace object by identity",
+    "valid": true,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"ai.tool_request\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"stream_id\":\"st\",\"sequence\":2,\"payload\":{\"operation\":\"workspace.selectEvidence\",\"workspace_id\":\"desk\",\"expected_selection_revision\":7,\"target\":{\"kind\":\"chart\",\"object_id\":\"primary\"}}}"
+  },
+  {
+    "name": "1.1 AI clears shared selection with explicit null",
+    "valid": true,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"ai.tool_request\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"stream_id\":\"st\",\"sequence\":2,\"payload\":{\"operation\":\"workspace.selectEvidence\",\"workspace_id\":\"desk\",\"expected_selection_revision\":7,\"target\":null}}"
+  },
+  {
+    "name": "1.1 AI selection rejects an omitted target",
+    "valid": false,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"ai.tool_request\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"stream_id\":\"st\",\"sequence\":2,\"payload\":{\"operation\":\"workspace.selectEvidence\",\"workspace_id\":\"desk\",\"expected_selection_revision\":7}}"
+  },
+  {
+    "name": "1.1 AI selection rejects a workspace revision in place of the selection revision",
+    "valid": false,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"ai.tool_request\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"stream_id\":\"st\",\"sequence\":2,\"payload\":{\"operation\":\"workspace.selectEvidence\",\"workspace_id\":\"desk\",\"target\":{\"kind\":\"document_passage\",\"source_id\":\"doc1\",\"source_revision\":\"v1\",\"locator\":\"paragraph-2\"},\"expected_workspace_revision\":7}}"
+  },
+  {
+    "name": "1.1 client requests the selected fields",
+    "valid": true,
+    "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"operation\":\"workspace.readChartProjection\",\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"workspace_id\":\"desk\",\"selection_revision\":7,\"requested_fields\":[\"close\"]}"
+  },
+  {
+    "name": "1.1 client changes shared selection",
+    "valid": true,
+    "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"operation\":\"workspace.selectEvidence\",\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"workspace_id\":\"desk\",\"expected_selection_revision\":7,\"target\":{\"kind\":\"document_passage\",\"source_id\":\"doc1\",\"source_revision\":\"v1\",\"locator\":\"paragraph-2\"}}"
+  },
+  {
+    "name": "1.1 client selects a workspace object by identity",
+    "valid": true,
+    "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"operation\":\"workspace.selectEvidence\",\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"workspace_id\":\"desk\",\"expected_selection_revision\":7,\"target\":{\"kind\":\"chart\",\"object_id\":\"primary\"}}"
+  },
+  {
+    "name": "1.1 client clears shared selection with explicit null",
+    "valid": true,
+    "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"operation\":\"workspace.selectEvidence\",\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"workspace_id\":\"desk\",\"expected_selection_revision\":7,\"target\":null}"
+  },
+  {
+    "name": "1.1 client selection rejects an omitted target",
+    "valid": false,
+    "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"operation\":\"workspace.selectEvidence\",\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"workspace_id\":\"desk\",\"expected_selection_revision\":7}"
+  },
+  {
+    "name": "1.1 client selection rejects a workspace revision in place of the selection revision",
+    "valid": false,
+    "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"operation\":\"workspace.selectEvidence\",\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"workspace_id\":\"desk\",\"target\":{\"kind\":\"document_passage\",\"source_id\":\"doc1\",\"source_revision\":\"v1\",\"locator\":\"paragraph-2\"},\"expected_workspace_revision\":7}"
   }
 ]

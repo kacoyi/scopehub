@@ -91,8 +91,34 @@ impl<'de, const EXPECTED: bool> serde::Deserialize<'de> for ConstBool<EXPECTED> 
     }
 }
 '''.splitlines())
+    rs.extend("""
+fn present_nullable<'de, D, T>(deserializer: D) -> Result<Option<Option<T>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: serde::Deserialize<'de>,
+{
+    <Option<T> as serde::Deserialize>::deserialize(deserializer).map(Some)
+}
+""".splitlines())
+    # Python evaluates named type aliases at import time. Class field annotations
+    # are deferred and can contain recursive expressions and forward references.
+    ordered = {}
+    def visit(name):
+        if name in ordered:
+            return
+        definition = schema['$defs'][name]
+        references = definition.get('oneOf', definition.get('anyOf', []))
+        if '$ref' in definition:
+            references = [definition]
+        for member in references:
+            if '$ref' in member:
+                visit(member['$ref'].rsplit('/', 1)[-1])
+        ordered[name] = definition
+
+    for name in schema['$defs']:
+        visit(name)
     literal_types = []
-    for name, definition in schema['$defs'].items():
+    for name, definition in ordered.items():
         variants = definition.get('oneOf', definition.get('anyOf'))
         if variants and nullable(definition) is None:
             if any('$ref' not in value for value in variants):
@@ -123,6 +149,10 @@ impl<'de, const EXPECTED: bool> serde::Deserialize<'de> for ConstBool<EXPECTED> 
                     literal_types.extend(rust_literals(rstype, value, derive))
                 if key not in required:
                     rstype = f'Option<{rstype}>'
+                    if nullable(value) is not None:
+                        rs.append('    #[serde(default, skip_serializing_if = "Option::is_none", deserialize_with = "present_nullable")]')
+                    else:
+                        rs.append('    #[serde(default, skip_serializing_if = "Option::is_none")]')
                 rs.append(f'    pub {"r#type" if key == "type" else key}: {rstype},')
             ts.append('};')
             if not definition['properties']:
@@ -151,12 +181,23 @@ def main():
     outputs[GENERATED / 'runtime.json'] = json.dumps(policy, indent=2) + '\n'
     manifest = json.loads((ROOT / 'contracts/contract.json').read_text())
     for operation in manifest['operations']:
-        for direction in ['input', 'output']:
-            projection = {'$schema': schema['$schema'], '$id': f'urn:scopehub:{operation["name"]}:{direction}:1.0',
-                          '$comment': 'Generated projection; edit protocol.schema.json.',
-                          '$ref': f'{schema["$id"]}#/$defs/{operation[direction]}'}
-            path = ROOT / 'contracts/schemas/operations' / f'{operation["name"]}.{direction}.schema.json'
-            outputs[path] = json.dumps(projection, indent=2) + '\n'
+        default_version = operation.get('wire_since', '1.0')
+        # Existing paths keep their original payload contract. Explicitly versioned
+        # projections describe the complete command and the corresponding reply.
+        variants = [(default_version, '', operation)] + [
+            (version, f'.v{version}', binding)
+            for version, binding in operation.get('wire_bindings', {}).items()
+        ]
+        for version, suffix, binding in variants:
+            for direction in ['input', 'output']:
+                identity = f'urn:scopehub:{operation["name"]}:{direction}:{version}'
+                if suffix:
+                    identity += ':envelope'
+                projection = {'$schema': schema['$schema'], '$id': identity,
+                              '$comment': 'Generated projection; edit protocol.schema.json.',
+                              '$ref': f'{schema["$id"]}#/$defs/{binding[direction]}'}
+                path = ROOT / 'contracts/schemas/operations' / f'{operation["name"]}{suffix}.{direction}.schema.json'
+                outputs[path] = json.dumps(projection, indent=2) + '\n'
     stale = [str(path.relative_to(ROOT)) for path, content in outputs.items() if not path.exists() or path.read_text() != content]
     existing = set(GENERATED.glob('*')) | set((ROOT / 'contracts/schemas/operations').glob('*.json'))
     orphaned = {p for p in existing if p.is_file() and p not in outputs}

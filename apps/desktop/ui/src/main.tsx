@@ -1,31 +1,33 @@
-import { StrictMode } from 'react';
+import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { ChartWorkspace } from './chart-workspace';
+import { readSampleView, saveSampleView } from './sample-view';
 import './style.css';
 
+function initialSource(): boolean {
+  if (window.location.hash) return window.location.hash === '#demo';
+  return readSampleView() !== undefined;
+}
+
 function App() {
-  return (
-    <main>
-      <header>
-        <strong>ScopeHub</strong>
-        <span role="status">Offline · No data source</span>
-      </header>
-      <div className="workspace">
-        <aside aria-label="AI workspace">
-          <h1>Conversation</h1>
-          <p>No conversation yet.</p>
-        </aside>
-        <section aria-label="Chart workspace">
-          <div className="empty-state">
-            <span className="crosshair" aria-hidden="true">+</span>
-            <h2>No instrument selected</h2>
-            <p>Your chart and indicator previews will appear here.</p>
-          </div>
-        </section>
-      </div>
-    </main>
-  );
+  const [sample, setSample] = useState(initialSource);
+  useEffect(() => {
+    const navigate = () => {
+      const chosen = window.location.hash === '#demo';
+      if (!chosen) saveSampleView(null);
+      setSample(chosen);
+    };
+    window.addEventListener('hashchange', navigate);
+    return () => window.removeEventListener('hashchange', navigate);
+  }, []);
+  const leaveSample = () => {
+    saveSampleView(null);
+    if (window.location.hash) window.location.hash = '';
+    setSample(false);
+  };
+  return <ChartWorkspace key={sample ? 'sample' : 'unconfigured'} sample={sample} leaveSample={leaveSample} />;
 }
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing application root');
-createRoot(root).render(<StrictMode><App /></StrictMode>);
+createRoot(root).render(<App />);

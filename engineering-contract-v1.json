@@ -1,7 +1,7 @@
 {
   "artifact_type": "engineering_contract",
   "contract_id": "market-ai-workbench.v1",
-  "contract_version": "1.0.6",
+  "contract_version": "1.4.2",
   "language": "en-US",
   "normative_terms": {
     "MUST": "MUST be implemented",
@@ -9,7 +9,7 @@
     "SHOULD": "Any deviation MUST have a documented rationale"
   },
   "implementation_policy": {
-    "mode": "implement_not_redesign",
+    "mode": "implement_product_with_evolvable_design",
     "priority": [
       "security_invariants",
       "contract",
@@ -17,7 +17,7 @@
       "local_conventions"
     ],
     "unknowns": "Do not guess credentials, provider permissions, commercial licenses, or security capabilities; use an explicit blocked status or a simulated implementation",
-    "changes": "Changes to programming language responsibilities, process boundaries, the permission model, or protocols require a new ADR and project owner approval",
+    "changes": "The development AI owns technical planning and implementation. Record consequential language, process, protocol or architecture changes in an ADR. Consult the owner for unresolved product behavior/scope, user-data consequences, costs, external transmission or permission changes; reuse existing authorization. Technical choices preserving these commitments do not require the owner to select an implementation.",
     "dependencies": "Choose compatible stable versions during implementation and commit all lockfiles; do not automatically upgrade major versions or add dependencies for placeholder modules",
     "build_or_reuse": {
       "principle": "Choose reuse, integration, adaptation, or local implementation by concrete product needs and lifetime maintenance cost. External data channels, products, services, libraries, and SDKs are valid options.",
@@ -39,10 +39,11 @@
       },
       "decision_effort": "Keep comparison and rationale proportional to the dependency's impact; routine library use does not require a new governance workflow. Apply existing shared-capability and provider onboarding rules when relevant."
     },
-    "completion": "Mark work complete only after tests have actually run and passed; do not report simulated market data acceptance as real market data acceptance"
+    "completion": "Mark work complete only after tests have actually run and passed; do not report simulated market data acceptance as real market data acceptance",
+    "verification_slices": "A stream implementation, a quality-state transition and the complete three-instrument market workflow require distinct checks. Protocol changes require generator and TypeScript, Python and Rust validation. A passing partial slice cannot establish the full acceptance requirement."
   },
   "product": {
-    "purpose": "A financial workbench for close human–AI collaboration in understanding markets, analysis, decision-making, and authorized operations",
+    "purpose": "A financial workbench for close human\u2013AI collaboration in understanding markets, analysis, decision-making, and authorized operations",
     "design_principles": [
       "AI is an active participant in financial workflows, with capabilities exposed through explicit application operations.",
       "Stocks and futures are the initial asset classes; additional asset classes can be introduced as needs emerge.",
@@ -54,13 +55,17 @@
     "collaboration_model": {
       "status": "product_requirements_not_implemented",
       "human_role": "Set objectives, contribute and challenge hypotheses, decide which investment judgments to adopt, and control the scope of authorized actions.",
-      "ai_role": "Participate actively in research, analysis, alternative explanations, indicator creation, and authorized operations; report uncertainty and challenge unsupported assumptions, including its own.",
-      "shared_context": "Ground collaboration in the current workspace, selected instrument and range, data provenance and freshness, explicit research questions, and actual operation results.",
-      "interaction": "Support an iterative cycle of question, evidence, competing hypotheses, computation or preview, human feedback, and revision; keep facts, calculations, inferences, suggestions, and executed actions distinguishable.",
+      "ai_role": "Follow the user's purpose within one text or voice conversation. Ask what matters to the decision, investigate evidence, calculate, propose an indicator, discuss competing explanations, challenge a premise, help review a past choice or carry out an authorized task. Users can move between these activities without selecting a persona.",
+      "shared_context": "Ground each turn in the current question, instrument, range, source revision, freshness and relevant operation results. Either participant can point to a chart interval, table row or passage and the other can inspect or correct that selection.",
+      "interaction": "The AI can investigate a question, bring evidence into view, compute, challenge an interpretation and act within the granted scope. Continue the discussion from the object the human selects. Distinguish observations, calculations, inferences, suggestions and executed actions.",
       "decision_ownership": "The human retains ownership of adopted investment judgments and the resulting market exposure. AI assistance and workflow automation do not guarantee profitable outcomes or constitute an independent mandate to manage capital.",
       "authorization_principle": "Treat investment risk acceptance and action authorization as separate concerns. A general statement that the human bears market risk grants no additional capability and does not satisfy operation-specific confirmations.",
       "system_quality": "Distinguish adverse market outcomes from incorrect data, calculation errors, execution defects, and unauthorized actions. The latter require prevention, diagnosis, and correction; human ownership of investment decisions does not relax system correctness requirements.",
-      "delivery": "Apply these principles through the existing milestone sequence and operation permissions; broader collaboration capabilities require concrete use cases before implementation."
+      "delivery": "Deliver these principles through the task dependency graph and the milestone acceptance gates. Add broader collaboration capabilities in response to concrete use cases.",
+      "capability_direction": "Treat the product AI as a workbench user. It can compose authorized queries, calculations and workspace operations through the Rust registry, including useful analyses without a dedicated button. For a comparison, show the input series and revisions, the calculation and its result at the relevant chart or table. Each step uses the effective grant and reports its own outcome. The user can inspect the result and the work that produced it.",
+      "deliberation": "Treat a question such as whether to buy as a request for analysis. Compare alternatives, including waiting, against the user's stated objectives, horizon and constraints. Show the evidence and uncertainty, identify what would change the conclusion, and revise or withdraw a claim when corrected. Agreement with an investment thesis grants no permission to act. A subsequent request to annotate the chart authorizes only the work allowed by that operation's scope.",
+      "learning": "Explain gaps in financial knowledge or reasoning using the decision at hand. If a stated rule and a proposed action appear inconsistent, point to the discrepancy and invite correction. Describe fear of loss or regret as a possible explanation only when grounded in the user's own words or selected records. Let the user disagree and continue the analysis.",
+      "decision_review": "Let the user choose which decisions to save as local notes. Preserve the dated thesis, alternatives, uncertainty, source references, AI objections and the user's choice as known at the time. In review, show later actions, outcomes and corrections separately, including a choice to wait. Evaluate the reasoning against the original constraints. Profit or loss alone cannot establish decision quality. Users can inspect or delete saved local notes. Saving a note and sharing it with a model are separate user choices. The mandatory redacted operation history has its own purpose and retention."
     },
     "platform": {
       "v1": "Windows 10/11 x64",
@@ -73,13 +78,15 @@
     "release_unit": "A single Windows desktop installer",
     "architecture": "A modular monolithic application core with controlled local workers; not microservices",
     "v1_scope": [
-      "Simulated market data and local historical samples",
-      "A single workspace with one main instrument chart",
+      "Simulated market data and user-selected local CSV directories with repeatable historical imports",
+      "A single workspace with one main instrument chart, rearrangeable panels and saved layout definitions",
       "Switching between candlestick and line charts",
       "Timeframe switching",
-      "AI conversations and tool operations",
+      "Text and opt-in voice conversations, two-way evidence selection and visible AI tool operations",
       "Declarative indicator previews and acceptance",
       "Explicitly authorized previews of trusted Python indicators",
+      "Evidence-based deliberation, user-selected decision notes and review against subsequent outcomes",
+      "User-configured model adapters and an opt-in local MCP connection to the open desktop workspace",
       "Operation history",
       "Workspace restoration",
       "Offline demo mode"
@@ -103,7 +110,34 @@
       "Chinese stocks",
       "US stocks"
     ],
-    "real_data_gate": "V1 completes the end-to-end architecture using simulated data; real market data adapters require subsequent verification of sources, permissions, historical coverage, SDKs, and redistribution licenses"
+    "real_data_gate": "Complete the end-to-end v1 workflow on simulated data. Verify user-owned local history against source records and declared market conventions. Qualify external market adapters later for access rights, historical coverage, SDK requirements and permitted use. Sources may coexist.",
+    "service_policy": {
+      "default": "Installing ScopeHub does not include market data, AI, information or any other financial service subscription.",
+      "development_samples": "Owner-provided files and generated fixtures are development/test inputs, not a promised production feed or bundled service.",
+      "connections": "Choose the source separately for each capability in settings. Keep user-owned files, model keys, data APIs, third-party services and custom adapters usable alongside eligible ScopeHub services. Show who supplies each service and allow the user to replace or disconnect it.",
+      "commercial_services": "ScopeHub may earn revenue from its software and separately selected services, including managed AI, licensed market quotes and history for charts, data preparation and technical connectivity. A user may combine a local futures CSV with ScopeHub AI, or use their own model or external client with an entitled ScopeHub feed. Each service requires its own selection and applicable terms. Pricing, plans, payment methods and billing implementation are deferred.",
+      "demo": "Offline synthetic examples are explicitly selected and visibly labeled; never substitute them for an unavailable configured source.",
+      "capabilities": "Implement data access, charts, AI collaboration, information retrieval and service integrations within the product scope. Unconfigured startup is not a reason to omit these capabilities.",
+      "market_data_rights": "Qualify each offered dataset for its intended display, redistribution and use by a model or external client. Record source, coverage, delay, use rights and cost terms. A right to view a chart does not by itself allow exporting its underlying records. When entitlement ends, identify the affected source and keep independent connections available.",
+      "brokerage": "Any future live connection is technical access to an account the user opens, funds and authorizes directly with their brokerage or futures firm. The firm handles customer investment funds, executes orders and settles trades. ScopeHub can charge for its software or services. It does not open brokerage accounts for users, pool, receive, custody, transfer or invest customer capital. Qualify CTP and SnapTrade separately for the actual broker, account permissions and operations available. V1 excludes account access and live orders. A CTP market-data session grants neither."
+    },
+    "data_onboarding": {
+      "entry": "Choose a local folder, a provider preset or a custom API. Chinese futures also have a dedicated CTP market-data connection. Show only fields required by the selected source and report instruments, coverage, freshness, units and available operations after a trial read.",
+      "local_files": "Start with read-only access to a directory the user selects. Group files with compatible structures and inspect samples for encoding, delimiter, headers and symbol/date placement across files and subdirectories. CSV is the first reader. Add readers such as TSV, Excel, Parquet or JSON Lines when a user workflow requires them.",
+      "financial_content": {
+        "common": "Identify instruments, native OHLCV bars, trades, quote or depth snapshots and reference or corporate-action data independently of their file format. Show which records the current reader can use.",
+        "us_equities": "Keep listing, market feed coverage, timezone, regular or extended sessions, splits and dividend adjustments identifiable.",
+        "chinese_equities": "Preserve exchange and leading-zero symbols, trading calendars, price adjustment basis, volume in shares or lots and turnover units.",
+        "chinese_futures": "Distinguish dated contracts from continuous series, session date from calendar date, cumulative volume from increments, and last trade from settlement. Preserve open interest, units, multiplier and roll method where supplied. Retain distinct same-time snapshots in source order and label snapshot-derived candles as approximate."
+      },
+      "preview": "Show original records alongside mapped values, a sample chart, rejected rows with reasons and unresolved fields. A user can edit mappings offline. AI may propose a declarative mapping from metadata and a small approved sample. Resolve material ambiguities such as trading day, units or adjustment before publishing affected series. Keep missing values explicit.",
+      "refresh": "Apply the approved versioned mapping deterministically. Preserve original files, record their identities and source row locators, and identify derived dataset revisions. Reuse the mapping for incremental refresh. Duplicate files or retries must not double count. Isolate changed formats for review and retain the last accepted revision on cancellation or failure.",
+      "external_api": "Offer presets for common providers and a bounded read-only HTTP mapping for documented personal or institutional APIs. AI may draft the endpoint, authentication fields, date filters, pagination and response mapping from documentation or a sanitized response. Bind a trial to the configured destination, instrument and range. Use a reviewed adapter for SDKs, signing or streaming outside this format.",
+      "ctp": "Configure the broker identifier, market-data front, environment and required authentication through settings. Establish contract metadata and session rules, then subscribe through the market-data channel. Keep history supplied by files or another API attributable alongside live quotes. Mark gaps and the handoff between sources. Account access and order routing remain outside v1.",
+      "candidates": "Evaluate Alpaca for US market data, Tushare for a documented API and individual AKShare functions for their actual upstream sources. Study vn.py for CTP market-data callbacks and contract metadata. SnapTrade is a candidate for a future brokerage-account workflow. No service subscription is bundled.",
+      "refresh_conflicts": "Group competing rows by selected series and source-defined economic event identity. For native bars, the normalized start time identifies a bar. Coalesce identical values while retaining each source locator. Different values at one key require a validated source correction order or explicit review. Never choose by directory traversal order. Same-time snapshots retain source order and cannot be deduplicated merely by timestamp. Replaced or removed files stage attributable corrections or withdrawals for review; publish one transactional revision only after review. Repeated runs and different enumeration orders produce the same accepted inputs. Store file digest and row identity, mapping version and calendar basis. First durable mapping and snapshot changes require tested migration, interruption and restore.",
+      "csv_v1_capabilities": "Publish native OHLCV only with identified instrument, adjustment, calendar, timezone, timestamp convention and units. Inspect raw rows, unsupported financial fields and rejected records with their file digest and stable row locator. Preserve leading-zero symbols, source-specific shares/lots, open interest, settlement, multiplier and units when supplied. Do not substitute settlement for a close. Snapshot-derived candles are separately labeled approximations only when session/date mapping, counter resets, trade evidence and ordering are resolved. Unallocated cumulative baselines and incomplete volume remain unknown; identical timestamps do not imply identical events. Require attributable adjustment factors, session rules and continuous-contract rolls before offering a derived series. Ambiguity prevents publication of the affected series and leaves other accepted series usable."
+    }
   },
   "stack": {
     "ui": {
@@ -189,7 +223,58 @@
       "entry_command": "pnpm project:status",
       "policy": "Follow ADR 0004 for durable tasks, decision supersession, execution-bound verification and release history. Keep meaningful outcomes and next actions current across AI sessions; completed tasks do not substitute for current product validation."
     },
-    "documentation": "No human-facing guides; maintain agent instructions, executable schemas, JSON decisions, machine-readable verification reports, and legally required notices."
+    "documentation": "No human-facing guides; maintain agent instructions, executable schemas, JSON decisions, machine-readable verification reports, and legally required notices.",
+    "development": "project/development.json",
+    "owner_decision_inputs": [
+      {
+        "path": "contracts/reviews/2026-11-19-development-and-local-data.json",
+        "pointer": "/owner_direction"
+      },
+      {
+        "path": "contracts/reviews/2026-11-18-hosted-ux.json",
+        "pointer": "/authority"
+      },
+      {
+        "path": "contracts/reviews/2026-11-18-hosted-ux.json",
+        "pointer": "/owner_steering"
+      },
+      {
+        "path": "contracts/reviews/2026-11-18-hosted-ux.json",
+        "pointer": "/publication_scope"
+      },
+      {
+        "path": "contracts/reviews/2026-11-18-hosted-ux.json",
+        "pointer": "/verification_sequence"
+      },
+      {
+        "path": "contracts/reviews/2026-11-18-hosted-ux.json",
+        "pointer": "/product_scope"
+      },
+      {
+        "path": "contracts/reviews/2026-11-18-hosted-ux.json",
+        "pointer": "/separate_decisions"
+      },
+      {
+        "path": "contracts/reviews/2026-11-18-chart-workspace.json",
+        "pointer": "/owner_direction"
+      },
+      {
+        "path": "contracts/reviews/2026-11-18-chart-workspace.json",
+        "pointer": "/startup"
+      },
+      {
+        "path": "contracts/reviews/2026-11-18-chart-workspace.json",
+        "pointer": "/presentation"
+      },
+      {
+        "path": "contracts/reviews/2026-11-18-chart-workspace.json",
+        "pointer": "/platform_sequence"
+      },
+      {
+        "path": "contracts/reviews/2026-11-18-contract-closure.json",
+        "pointer": "/owner_direction"
+      }
+    ]
   },
   "runtime": {
     "processes": {
@@ -201,7 +286,7 @@
     "lifecycle": [
       "Perform a handshake after startup",
       "Terminate immediately on incompatible versions or roles",
-      "On cancellation, send cancel first, wait for the grace period, then terminate the process tree",
+      "On request cancellation, signal the correlated request and wait up to cancel_grace_ms. Terminate the process tree only for a dedicated execution or a failed/suspect shared worker requiring recovery.",
       "Application shutdown must clean up all workers",
       "Use exponential backoff and a bounded retry count for market restarts",
       "ai/indicator failures must not interrupt market data"
@@ -220,10 +305,16 @@
     },
     "flow_control": "Use bounded queues; UI updates may be coalesced; dropping raw data must emit a data quality event with a count; silent drops are prohibited",
     "stdout": "Only protocol messages are allowed",
-    "stderr": "Structured diagnostics; do not output credentials, complete prompts, or sensitive content from user code"
+    "stderr": "Structured diagnostics; do not output credentials, complete prompts, or sensitive content from user code",
+    "cancellation": {
+      "request": "A transport cancel addresses one request. A task cancellation addresses the owning task, pending confirmations, outstanding child calls and drafts. Suppress late replies and duplicate terminal outcomes. Stop audio playback separately from cancelling work.",
+      "clocks": "The 120000 ms active task deadline is measured on a monotonic clock across all running steps. Pause it only while awaiting a human, bounded by the remaining challenge TTL of at most 300000 ms measured from issue. Whichever active deadline applies first ends the attempt; reject a late approval. Cancellation or terminal failure invalidates unconsumed challenges.",
+      "workers": "Keep other tasks and market subscriptions running when cancellation succeeds on a shared worker. If the shared worker fails its cancellation deadline and cannot isolate the request, mark other requests interrupted, close that worker, restart with bounded backoff and resume subscriptions from their last confirmed position.",
+      "commit": "Before commit discard tentative work and temporary output. After commit retain the receipt and report the committed effects even when the parent task is cancelled. Undo is a separate authorized operation."
+    }
   },
   "protocol": {
-    "version": "1.0",
+    "version": "1.1",
     "encoding": "UTF-8 NDJSON, one JSON object per line",
     "message_types": [
       "hello",
@@ -253,7 +344,7 @@
     },
     "event": {
       "stream_id": "string",
-      "sequence": "Increasing integer",
+      "sequence": "Within one subscription epoch the next sequence is previous + 1. Duplicate delivery preserves the original content. Gaps require recovery; sequence alone cannot identify a series.",
       "event": "allowlisted string",
       "payload": "object"
     },
@@ -283,7 +374,9 @@
       "RESOURCE_LIMIT",
       "OUTPUT_INVALID",
       "PROVIDER_NOT_CONFIGURED",
-      "INTERNAL_ERROR"
+      "INTERNAL_ERROR",
+      "BUSY",
+      "SNAPSHOT_UNAVAILABLE"
     ],
     "validation": [
       "Generate executable JSON Schemas for every message and operation payload",
@@ -294,7 +387,23 @@
       "Cancellation and duplicate requests have explicit terminal states",
       "Fail closed on unknown protocol major versions"
     ],
-    "ai_channel": "AI tool requests enter the core as ai.tool_request events; after execution by the core, tool_result is returned to the AI worker through a separate request; workers must not execute tools themselves"
+    "ai_channel": "The worker requests a proposed tool call with a task and a distinct call identity. The core authorizes against the calling session and returns a private correlated tool result. Only successful core receipts justify describing an action as executed. The private reply is never advertised as a public tool.",
+    "compatibility": {
+      "legacy": "The 1.0 envelopes and projections remain available for legacy callers. They support the bounded historical read contract. Current operations requiring immutable market input, current grants, a selection or a durable receipt use the negotiated 1.1 profile.",
+      "selection": "Validate the asserted worker role and the highest mutually supported profile, intersect advertised capabilities with the core role and implemented operation allowlists, and require the capabilities for the requested action. Ignore unknown optional capabilities. Reject an incompatible major or missing required capability with a sanitized reason. A lower profile never grants new operations.",
+      "lifetime": "Pin version, role and capabilities for the life of each worker connection. Renegotiate on reconnect. Re-pair and reauthorize an external client for a changed scope before accepting more work. An old client may retain its explicitly supported reads. Writes requiring unavailable revision, target, projection or receipt checks require an upgrade."
+    },
+    "message_scopes": "The canonical root union defines the legal messages for each negotiated version. Worker role, transport direction, task ownership and capability checks narrow structural validity. A registered planned type never advertises an implemented operation.",
+    "error_handling": {
+      "busy": "BUSY reports temporary admission pressure. Retry after the active request completes, within the retry budget.",
+      "limits": "RESOURCE_LIMIT reports a hard byte, count or concurrency budget on the requested workload. A size failure requires paging or a smaller request. Retrying the identical oversized request cannot help.",
+      "snapshot": "SNAPSHOT_UNAVAILABLE identifies an expired, corrected or offline requested input that the source cannot reconstruct. Show the original reference and offer a separately requested latest read."
+    },
+    "envelope_profiles": {
+      "discovery": "For every public operation, input_spec and output_spec in this contract name canonical JSON Schema definitions. The current manifest wire_bindings name the complete versioned commands and replies when present. The unversioned manifest input/output name the payload projections. For instrument.search and market.getBars the host uses the negotiated legacy lane and its unchanged payloads.",
+      "legacy": "The request, response, event, cancel and heartbeat field summaries here describe the 1.0 base profile. Their union members in the canonical schema are authoritative for 1.0.",
+      "current": "Version 1.1 adds distinct, direction-checked message variants. Scoped mutations carry scope and intent, and return a correlated outcome with the receipt on commitment. Shared selections, projected reads, indicator tasks, market pages and private worker deliveries each have their own explicitly identified messages in the canonical root union."
+    }
   },
   "domain": {
     "identifiers": "Separate internal opaque IDs from provider codes; do not use display symbols as unique identities",
@@ -346,7 +455,7 @@
       "Chart unit conversions occur only in the adapter",
       "Do not infer the trading day directly from the UTC date"
     ],
-    "series_identity": "instrument + provider + timeframe + adjustment + dataset revision",
+    "series_identity": "SeriesKey identifies the source, instrument, timeframe, adjustment basis, session convention, calendar and quantity unit. A source changes its opaque revision for content or methodology corrections. Calendar and adjustment rules are versioned. Original, adjusted, native and reconstructed variants must remain individually selectable and attributable.",
     "continuous_futures": "Analysis series only, identified separately from actual contracts; metadata declares the construction methodology",
     "provider_capabilities": [
       "instrument_search",
@@ -357,13 +466,28 @@
       "supported_timeframes",
       "price_adjustments",
       "historical_limits"
-    ]
+    ],
+    "history_snapshots": {
+      "selection": "Resolve an explicit series and a half-open UTC bar-start interval [from_ms,to_ms). Include up to warmup_bars observed prior bars explicitly. The frozen snapshot binds the requested source revision, interval, warmup count, observed cutoff and content. A pinned request uses exactly those inputs or returns SNAPSHOT_UNAVAILABLE. No substitute revision, adjustment or source is permitted.",
+      "content": "history-chain-v1 uses SHA-256. Text fields are UTF-8 prefixed by a four-byte unsigned big-endian byte length. The seed starts with ASCII ScopeHub/history-chain-v1 and one NUL, followed by the length-prefixed series fields in order instrument_id, provider_id, timeframe, price_adjustment, session_scope, calendar_id, quantity_unit, then dataset_id, dataset_revision and timezone. Append from_ms, to_ms, warmup_bars and as_of_ms as eight-byte signed big-endian integers. H0 is SHA-256 of that seed. For each ordered bar, hash the preceding 32 raw digest bytes followed by time_ms as an eight-byte signed integer, trading_day as length-prefixed text, OHLC in order as IEEE-754 binary64 big-endian, a zero byte for absent volume or byte one followed by its binary64 value, and a byte 0 or 1 for is_closed. Normalize numeric negative zero to positive zero. The final lowercase hexadecimal digest identifies the exact input, including intermediate live-bar state.",
+      "pagination": "The 4 MiB NDJSON frame budget includes its envelope, escaping and line terminator. Each page is measured in encoded bytes and may contain fewer bars than requested. The first offset is zero. Each continuation binds the frozen hash, next bar index, previous bar time and prefix hash. Subsequent calls echo that snapshot and cursor. A terminal null cursor and offset plus count equal to total are required for complete coverage. Reject empty non-terminal pages, crossed snapshots, discontinuous indices and mismatched digests. Cancel or a missing revision discards incomplete results. If metadata or a single record cannot fit, or the bounded snapshot exceeds 100000 bars including warmup, return RESOURCE_LIMIT and offer a smaller range. BUSY means transient contention and may be retried unchanged.",
+      "retention": "A decision, indicator or confirmation pins this snapshot identity. Keep only data allowed by the source entitlement and user retention choice. A revision whose bytes cannot be restored remains inspectable as a reference with an unavailable outcome. A current or corrected value cannot silently stand in for it."
+    },
+    "market_quality": {
+      "axes": "Report source mode and kind, as-of cutoff, last observation, expected session state, connection, freshness, coverage and affected half-open gaps separately. Historical age and a scheduled close alone do not make a source stale. Use the declared versioned calendar and source delay budget. Unknown expectations remain unknown. Keep the same axes in charts, queries and model context.",
+      "summary": "For the legacy presentation label prefer gapped if any known gap remains, then stale for missed expected observations, then degraded for unknown coverage or unexpected disconnection, otherwise fresh. Disconnection and delay remain separately visible even after a gap is repaired."
+    },
+    "stream_handoff": {
+      "position": "Every streaming snapshot carries the last included stream_id, epoch and sequence. Offline history has a null position. Subscribe after that exact position or subscribe before the snapshot and buffer bounded, attributable events until the snapshot boundary is known. An event identifies its series, epoch, sequence, bar time, observed time and update or correction. The first subsequent sequence is boundary + 1.",
+      "recovery": "Ignore identical duplicate positions. Divergent content at one position, a skipped sequence, a new epoch or buffer overflow marks affected coverage uncertain and triggers bounded same-series backfill or an explicit gapped state. Never treat an old epoch as the new epoch or mix a previous selection. An explicit correction of a closed bar produces a new revision without altering frozen historical inputs. A stream becomes complete only after snapshot and contiguous replay agree.",
+      "wire": "The internal 1.1 market.subscribe request carries the selected SeriesKey, frozen snapshot and last included StreamPosition, which must agree with the snapshot source. The core accepts a resume only if stream identity, epoch and precise last position match. A successful response either accepts the boundary or returns backfill_required with a recovery time. Distinguish an in-place partial bar update from an explicit correction carrying its superseded and new revision. A market.stream_gap event reports raw losses, affected half-open interval and expected sequence; no new update can silently close a gap. The host must accept events only from the negotiated market role and advertised subscription. The opt-in synthetic worker replays a finite fixture after an explicit include_stream_position history read. Ordinary history keeps a null position."
+    }
   },
   "operations": [
     {
       "name": "instrument.search",
-      "input_spec": "query:string, limit:integer<=50",
-      "output_spec": "Instrument[]",
+      "input_spec": "InstrumentSearchInput",
+      "output_spec": "InstrumentSearchOutput",
       "effect": "read",
       "confirmation": false,
       "undoable": false,
@@ -375,8 +499,8 @@
     },
     {
       "name": "market.getBars",
-      "input_spec": "instrument_id,timeframe,from_ms,to_ms,provider_id",
-      "output_spec": "DatasetDescriptor+Bar[]",
+      "input_spec": "MarketGetBarsInput",
+      "output_spec": "MarketGetBarsOutput",
       "effect": "read",
       "confirmation": false,
       "undoable": false,
@@ -388,8 +512,8 @@
     },
     {
       "name": "workspace.openInstrument",
-      "input_spec": "instrument_id,timeframe,expected_workspace_revision",
-      "output_spec": "workspace snapshot",
+      "input_spec": "WorkspaceOpenInstrumentCommand11",
+      "output_spec": "WorkspaceOpenInstrumentReply11",
       "effect": "workspace",
       "confirmation": false,
       "undoable": false,
@@ -401,8 +525,8 @@
     },
     {
       "name": "chart.setTimeframe",
-      "input_spec": "timeframe,expected_workspace_revision",
-      "output_spec": "workspace snapshot",
+      "input_spec": "ChartSetTimeframeCommand11",
+      "output_spec": "ChartSetTimeframeReply11",
       "effect": "workspace",
       "confirmation": false,
       "undoable": true,
@@ -414,8 +538,8 @@
     },
     {
       "name": "chart.setStyle",
-      "input_spec": "style:candlestick|line,expected_workspace_revision",
-      "output_spec": "workspace snapshot",
+      "input_spec": "ChartSetStyleCommand11",
+      "output_spec": "ChartSetStyleReply11",
       "effect": "workspace",
       "confirmation": false,
       "undoable": false,
@@ -427,8 +551,8 @@
     },
     {
       "name": "chart.addAnnotation",
-      "input_spec": "annotation,expected_workspace_revision",
-      "output_spec": "layer_id",
+      "input_spec": "ChartAddAnnotationCommand11",
+      "output_spec": "ChartAddAnnotationReply11",
       "effect": "workspace",
       "confirmation": false,
       "undoable": true,
@@ -440,8 +564,8 @@
     },
     {
       "name": "chart.removeLayer",
-      "input_spec": "layer_id,expected_workspace_revision",
-      "output_spec": "operation_id",
+      "input_spec": "ChartRemoveLayerCommand11",
+      "output_spec": "ChartRemoveLayerReply11",
       "effect": "workspace",
       "confirmation": false,
       "undoable": true,
@@ -453,8 +577,8 @@
     },
     {
       "name": "indicator.createDraft",
-      "input_spec": "language:declarative|python,source,params,expected_workspace_revision",
-      "output_spec": "draft_id+code_hash",
+      "input_spec": "IndicatorCreateDraftCommand11",
+      "output_spec": "IndicatorCreateDraftReply11",
       "effect": "draft",
       "confirmation": false,
       "undoable": false,
@@ -466,8 +590,8 @@
     },
     {
       "name": "indicator.runPreview",
-      "input_spec": "draft_id,dataset_id,dataset_revision,params,expected_workspace_revision",
-      "output_spec": "task_id",
+      "input_spec": "IndicatorRunPreviewCommand11",
+      "output_spec": "IndicatorRunPreviewReply11",
       "effect": "compute",
       "confirmation": "python_only",
       "undoable": false,
@@ -479,8 +603,8 @@
     },
     {
       "name": "indicator.acceptVersion",
-      "input_spec": "preview_id,expected_workspace_revision",
-      "output_spec": "version_id+layer_id",
+      "input_spec": "IndicatorAcceptVersionCommand11",
+      "output_spec": "IndicatorAcceptVersionReply11",
       "effect": "persist",
       "confirmation": true,
       "undoable": true,
@@ -492,8 +616,8 @@
     },
     {
       "name": "indicator.remove",
-      "input_spec": "layer_id,expected_workspace_revision",
-      "output_spec": "operation_id",
+      "input_spec": "IndicatorRemoveCommand11",
+      "output_spec": "IndicatorRemoveReply11",
       "effect": "workspace",
       "confirmation": false,
       "undoable": true,
@@ -505,8 +629,8 @@
     },
     {
       "name": "workspace.undo",
-      "input_spec": "operation_id,expected_workspace_revision",
-      "output_spec": "workspace snapshot",
+      "input_spec": "WorkspaceUndoCommand11",
+      "output_spec": "WorkspaceUndoReply11",
       "effect": "workspace",
       "confirmation": false,
       "undoable": false,
@@ -518,8 +642,8 @@
     },
     {
       "name": "task.cancel",
-      "input_spec": "task_id",
-      "output_spec": "task terminal status",
+      "input_spec": "TaskCancelRequest11",
+      "output_spec": "CancelTaskReply11",
       "effect": "control",
       "confirmation": false,
       "undoable": false,
@@ -531,8 +655,8 @@
     },
     {
       "name": "workspace.getContext",
-      "input_spec": "workspace_id",
-      "output_spec": "bounded structured context",
+      "input_spec": "SharedContextRequest11",
+      "output_spec": "SharedContextReply11",
       "effect": "read",
       "confirmation": false,
       "undoable": false,
@@ -541,6 +665,57 @@
         "ai"
       ],
       "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
+    },
+    {
+      "name": "market.readHistoryPage",
+      "input_spec": "MarketHistoryPageRequest",
+      "output_spec": "HistoryPageReply11",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "schema_requirement": "Use the versioned MarketHistoryPageInput and MarketHistoryPageOutput schemas. Legacy market.getBars retains its read-only 1.0 shape."
+    },
+    {
+      "name": "market.subscribe",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "MarketSubscriptionRequest",
+      "output_spec": "MarketSubscriptionReply11",
+      "schema_requirement": "Internal protocol 1.1 subscription for an explicitly selected series and a validated frozen boundary."
+    },
+    {
+      "name": "workspace.readChartProjection",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "input_spec": "ReadProjectedChart11",
+      "output_spec": "ProjectedChartReply11",
+      "schema_requirement": "Use the registered 1.1 schema and session-bound permissions."
+    },
+    {
+      "name": "workspace.selectEvidence",
+      "effect": "workspace",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "input_spec": "SharedSelectionRequest11",
+      "output_spec": "SelectEvidenceReply11",
+      "schema_requirement": "Use the registered 1.1 schema and session-bound permissions."
     }
   ],
   "authorization": {
@@ -550,9 +725,9 @@
       "system"
     ],
     "authority": "Only the core grants authorization",
-    "confirmations": "Bind confirmations to the actor, operation, canonical hash of all parameters, workspace revision, and validity period; consume once; require a new confirmation when parameters change or the revision becomes invalid",
+    "confirmations": "The core issues a short-lived challenge bound to principal and paired client, session, workspace, operation, target and shared selection, expected revision, digest of canonical arguments, code, parameters, input snapshot and purpose where applicable. A trustworthy local human action approves or rejects it. A worker or external client cannot supply its own approval.",
     "default_confirmation_ttl_ms": 300000,
-    "replay": "Operations that change persistent state use idempotency_key; duplicate requests return existing results without duplicate writes",
+    "replay": "Scope the stable idempotency key to the authenticated principal, paired client identity where used, workspace and operation. Authenticate the caller and validate the request shape, then look up the scoped key before applying the current revision, target and confirmation checks for new work. Reject a reused key with different semantic input. A matching committed retry, including after reconnection within the same scope, recovers the original receipt subject to current disclosure grants and applicable source entitlements. Project any required result fields under those same permissions. If the registered reply cannot be formed within those permissions, return only a permitted status. Never return a raw historical result. Recover the receipt without re-execution or renewed confirmation, even if revisions advanced, the target changed or the original confirmation expired.",
     "permissions": "Worker role plus operation allowlist; AI has no raw Tauri/file/process/SQL permissions",
     "tauri": "An allowlist of capabilities for the main window; do not expose general shell, arbitrary filesystem, or arbitrary SQL interfaces to the UI",
     "v1_forbidden": [
@@ -562,7 +737,18 @@
       "AI modifying permission configuration",
       "AI approving confirmations itself",
       "Arbitrary external URL navigation or remote UI content"
-    ]
+    ],
+    "durable_operations": {
+      "commit": "For new work, revalidate the current grant, workspace, target and expected_workspace_revision. Independently revalidate expected_selection_revision for writes bound to shared selection. Atomically consume required approval, apply the mutation, advance the durable workspace revision and persist the immutable operation receipt and scoped idempotency record in the single-writer transaction. Failure before commit has no visible effect. Serial or concurrent duplicates have one commit.",
+      "receipt": "Return the stable operation ID, committed workspace revision, affected target identity and undo eligibility. Recover a lost committed response under /authorization/replay. A stale new request or an unauthorized request returns only the permitted status.",
+      "undo": "Undo targets an eligible operation ID. Check current grant, requested workspace revision, affected object and recorded after-state. Reject conflicting intervening edits without clobbering them. Otherwise record a new inverse operation with its own receipt; repeated retries do not undo twice."
+    },
+    "data_purposes": {
+      "local_display": "Allow only licensed and authorized on-device display. An unknown or forbidden downstream purpose leaves permitted local display usable.",
+      "authorization": "At use time intersect current user grants with source entitlements for each field, destination, client and purpose. Trusted Python, embedded cloud model input and external-client transfer each require both affirmative source rights and explicit user consent. The activated model connection supplies the user grant for ordinary fields already disclosed at setup. Recheck grants and rights at dispatch without prompting again for unchanged scope. Deny unknown purpose or rights before dispatch. Credential access and investment risk acceptance do not establish either grant.",
+      "projection": "The core projects the minimum fields for the approved task before serializing. Omit fields without a grant. An authorized applicable field with an unknown value is null. Do not include raw rows, full descriptors, provider metadata, cached results, URLs, diagnostic text or error details that reveal excluded content. Recheck on replay, retrieval, reconnect and after revocation.",
+      "restoration": "Restoring a workspace, cache or backup restores references and locally permitted display only. Recheck the present grant and entitlement for each fresh dispatch and export."
+    }
   },
   "indicators": {
     "default_mode": "A declarative expression AST without dynamic code execution",
@@ -580,21 +766,23 @@
       "gt",
       "lt",
       "and",
-      "or"
+      "or",
+      "param"
     ],
-    "ast_policy": "Reject undefined operations, loops, function calls, and imports; limit node counts and windows; do not implement using eval/exec",
-    "window_semantics": "Use only current and past data, with lag>=0; output null for incomplete windows; rolling_std uses ddof=0; division by zero outputs null and a diagnostic",
+    "ast_policy": "Resolve named parameter references against the draft declarations. Validate supplied names, primitive types, finite values, integer period bounds and defaults before hashing; reject duplicate, unknown, missing and ill-typed bindings. Statically type numeric, boolean and nullable expressions, then enforce AST budgets without eval or exec.",
+    "window_semantics": "Use past and current eligible calendar buckets. Scheduled closures add no bucket. A missing expected bucket or null input makes a dependent full window unknown. Cross comparable sessions of the same series, resetting at changes of adjustment, calendar, contract or unadjusted roll discontinuities. lag(0) is the current value; rolling periods are positive integers; rolling_std uses population variance (ddof=0). Division by zero yields null and a diagnostic. Only a frozen snapshot that explicitly includes an open bar can use that observation.",
     "python_mode": {
       "enabled_by_default": false,
       "trust_label": "trusted_code_only_not_secure_sandbox",
       "entrypoint": "compute(bars, params) -> IndicatorResult",
-      "authorization": "Require user authorization for every execution, bound to the code hash, parameters, and input data revision; AI cannot approve",
+      "authorization": "Before every run, show the actual filesystem/network authority of the trusted process, exact code and parameters, input snapshot and approved purpose. Require an eligible source entitlement and explicit local human approval. Any changed input or rerun needs new approval.",
       "warning": "Separate processes and resource limits do not prevent arbitrary file or network access; do not automatically execute untrusted Python until reliable OS isolation is implemented",
       "credentials": "Do not pass SDK credentials or inherit unnecessary environment variables",
-      "cwd": "An isolated temporary directory, which must not be described as a file access security boundary"
+      "cwd": "An isolated temporary directory, which must not be described as a file access security boundary",
+      "replay": "The frozen supplied inputs and output are identifiable. Arbitrary trusted code may read external state, so deterministic recomputation is not a general guarantee. Restore the accepted artifact if its use rights permit; otherwise show its reference and reason unavailable. Cache deletion, restart, source changes, revoked rights and editing a layout never trigger Python automatically."
     },
     "immutable_versions": true,
-    "execution_input": "A deterministic bars snapshot, parameters, and a data descriptor; no hidden global data sources",
+    "execution_input": "Freeze series, revision, visible and warm-up windows, as-of position and exact input bytes. Verify the aggregate bar and byte budgets before execution. Page through only the frozen revision. A changed input, parameter, code or engine produces a distinct computation identity.",
     "limits": {
       "max_bars": 100000,
       "max_series": 16,
@@ -607,7 +795,7 @@
       "markers": "array: time_ms, position, label, color",
       "regions": "array: from_ms,to_ms,label,color",
       "diagnostics": "array: code,message,severity",
-      "provenance": "code_hash,params_hash,dataset_id,dataset_revision,engine_version"
+      "provenance": "Code hash, resolved parameter hash, engine version, immutable input snapshot and result identity. Retain visible output and its source reference at acceptance under the applicable retention entitlement."
     },
     "output_policy": "Allow only structured data; prohibit HTML/JS/React/DOM output; validate timestamps, sizes, finite numeric values, and style allowlists",
     "lifecycle": [
@@ -618,14 +806,16 @@
       "rejected",
       "failed"
     ],
-    "preview": "Temporary layers; failures must not overwrite existing versions; acceptance saves an immutable version; support removal and undo"
+    "preview": "Return a task ID immediately. Exactly one terminal message or durable retrievable outcome binds task, draft, preview ID, input snapshot and validated result. Rejected, failed, cancelled or superseded previews cannot be accepted. Commit only the current explicitly accepted matching preview, with its operation receipt; restarting does not replay a computation.",
+    "parameter_and_output": "Resolve defaults and overrides to one typed parameter object for hashing and execution. An integer literal or a declared integer parameter can set a lag or rolling period. Arithmetic accepts numbers, comparisons produce nullable booleans, and logical and/or follow three-valued truth tables. Numeric projections emit a number or null. Boolean marker conditions emit a marker only on true; false and unknown emit none. Reject using booleans as numeric series implicitly.",
+    "result_budget": "A 4 MiB NDJSON limit includes envelope and newline. Validate the input aggregate before scheduling and cap structured output across all chunks as one result. Inline only a fitting frame. For outputs lacking a negotiated bounded result transport reject the whole preview with RESOURCE_LIMIT and ask for a narrower visible interval or fewer series. Never truncate to indicate success. When both sides support the 1.1 indexed artifact, bind every segment to the same task, artifact ID, index and result hash. Display or accept only after validating all indices, declared byte length, final digest and result schema."
   },
   "ai": {
     "providers_v1": [
       "deterministic_mock",
       "Model adapters enabled after explicit user configuration"
     ],
-    "default": "deterministic_mock; cloud model credentials are not required to run",
+    "default": "The unconfigured workspace and market chart work offline. Product AI uses a real configured model. Offer a capable cloud route as the primary setup and a local model as an alternative using the same task-level capability checks. A labeled deterministic mock supports offline development and evaluation. Choosing an offline market sample does not activate a provider.",
     "context": [
       "workspace revision",
       "Current instrument and timeframe",
@@ -635,14 +825,14 @@
       "Authorized capabilities",
       "Task-relevant data snapshots"
     ],
-    "context_policy": "Minimize context as needed; complete raw market data, credentials, and account information are excluded from the default context; the user must enable an external AI provider before data is sent to the cloud",
+    "context_policy": "Activating a named connection grants ordinary AI use within the scope displayed at setup. Send the current conversation input, necessary active-turn context, granted workspace fields and authorized tool outcomes directly on normal turns. Enforce source entitlements and apply the private-content excerpt rule before provider serialization. Keep credentials, full private records and unrelated data local.",
     "claim_policy": "Distinguish facts, calculations, inferences, suggestions, and executed actions; claim successful execution only after a successful core response",
-    "tool_policy": "Select only from tool schemas provided by the core; bind every mutation to expected_workspace_revision",
+    "tool_policy": "Select only from tool schemas provided by the core. Client requests and AI intents for workspace.selectEvidence use expected_selection_revision as their concurrency precondition. Durable workspace writes require expected_workspace_revision. A 1.1 request or AI intent with a bound mutation scope requires both revision fields, the workspace, the target and the idempotency key. Resolve a committed retry under /authorization/replay before checking new-work preconditions. For new work, the core checks each required revision against current state and enforces the operation's current grant, target and confirmation rules. Reads follow their registered schemas and grants, including selection_revision for workspace.readChartProjection.",
     "loop_limits": {
       "max_tool_calls_per_task": 12,
       "task_timeout_ms": 120000
     },
-    "injection_policy": "Market data text, code comments, and model output are untrusted data; they must not change tool permissions or confirmation rules",
+    "injection_policy": "Treat imported values, API documentation, retrieved pages, snippets, code comments and model output as untrusted content. The core enforces the authorized sources, operations and confirmations.",
     "task_states": [
       "queued",
       "running",
@@ -650,10 +840,109 @@
       "completed",
       "failed",
       "cancelled"
-    ]
+    ],
+    "voice": {
+      "conversation": "Offer text and opt-in two-way speech in the same conversation and workspace context. Show the recognized instrument, dates and numbers before an action uses an ambiguous value. Support interruption, correction and switching to text when audio is unavailable.",
+      "controls": "Make microphone, listening and transmission state visible. Stop capture when the user disables it. Interrupting speech stops playback. Cancelling or changing a task acts through the core and displays the result, including work already completed.",
+      "provider": "Evaluate replaceable realtime model adapters. OpenAI GPT-Realtime-2 and GPT-Realtime-2.1 are candidates. Check availability for the intended region, mixed Chinese/alphanumeric recognition, latency, interruption, tool accuracy and actual session cost before choosing a default.",
+      "data": "Before enabling a cloud session show the destination, scope of audio and workspace data and applicable charges. Local import stays usable offline. ScopeHub keeps no raw audio recording by default.",
+      "retention": "Default to ephemeral audio and transcript buffers. Clear the buffers after the active conversation, failure or cancellation. Saving a selected passage to a local note requires a separate user action. Do not put raw audio, transcript, prompts or note bodies in logs, diagnostics or evaluation receipts."
+    },
+    "model_connections": {
+      "primary_cloud_route": {"task": "M4-002", "check": "configured-model-session"},
+      "setup": "In AI settings choose a provider and model, supply the credential it needs or select an entitled ScopeHub AI service. Identify the provider or router, destination, processing scope and charge basis before a connection test or first transmission. Resolve credentials in the trusted connector and exclude their values from prompts, tool replies and diagnostics.",
+      "session_grant": {
+        "activation": "Show the route, ordinary data categories, charge basis and how to disconnect at connection setup. The user’s Connect and enable action grants that scope for their profile. A routine chat turn, follow-up, or in-scope tool result proceeds under this grant without another permission prompt. Connecting a microphone route discloses voice use; the user controls capture and stopping capture stops further audio transmission.",
+        "changes": "Request a new choice for a different recipient, expanded disclosure or changed commercial terms. Revalidate an existing connection on restart and stop future transmissions on revocation. Each external client needs its own grant. Connection scope does not authorize account access, arbitrary mutations or running code.",
+        "private_attachments": "Apply persistence.private_content.transfer to any saved private content that would leave the device. A model connection, remembered chart permission or local retrieval result does not attach a private archive. Local model execution stays on the device unless the user separately chooses a remote recipient.",
+        "fitness": "Deliver and qualify a real cloud provider route for core financial collaboration. Evaluate the actual model, route and modality on the same material accuracy, tool and task tests. A qualified local model can support those capabilities. Display limitations and let the user choose an alternate route when a requested capability is unavailable."
+      },
+      "capabilities": "Evaluate OpenAI, Google Gemini, Anthropic Claude and OpenRouter as independent candidates. Record text, structured tool calling and duplex audio per tested provider, route and model. A router or compatible request format alone establishes none of these capabilities. Use one qualified adapter for the first real session.",
+      "selection": "Display unavailable capabilities and offer supported interactions, including continuing in text. Switching provider, widening the fields sent or incurring a different charge requires the user's choice. Send only the selected context. An unavailable provider cannot silently switch to a different service or a synthetic answer."
+    },
+    "external_clients": {
+      "entry": "In external AI settings enable a local Model Context Protocol (MCP) connection and select the open workspace. Provide a connection command or client configuration, show its connection state and let the user disconnect it. ScopeHub serves tools to an external AI application such as Codex CLI, a compatible Codex desktop client, Claude Code or Claude Desktop. The external application supplies its own model access. A ScopeHub model key is unnecessary for this path.",
+      "transport": "Start with a client-launched local stdio bridge. Authenticate and pair the bridge with the running desktop core and the workspace the user selected. If the app closes or pairing expires, report disconnection. Identify the supported tool schema version and advertise only implemented operations permitted for this session.",
+      "grant": "The core binds a user-approved client identity, session and workspace to permitted operations and data fields. Start with a bounded chart read. Show which fields may leave ScopeHub and that the external application may forward them to its own cloud model. The user can narrow or revoke access. Filter every response by this grant and the source's use rights, including tool results and error details. Provider and broker secrets remain inside their trusted connectors.",
+      "operations": "Use the same Rust operation registry and state as the visible desktop. Attribute each step to the external client under the AI actor. Reads return the selected source and revision. For new mutations, enforce the current write grant and the target, revision and scope checks in the tool policy. Obtain any required confirmation for that work from the human in ScopeHub. Use /authorization/replay for committed retries and preserve cancellation and undo semantics across clients. The bridge exposes no general filesystem, shell, SQL, account or order access.",
+      "visibility": "Identify the external client at the chart or object it read or changed and in redacted activity. A granted annotation appears on the user's open chart with its actual result. If a new mutation's expected_selection_revision is stale, reject it and show how to read the new context. On disconnect, revoke future access and report committed effects only as permitted by current disclosure authorization."
+    },
+    "qualified_session_acceptance": {
+      "material_fields": [
+        "instrument including leading zeros",
+        "quantity and unit",
+        "price and decimal point",
+        "explicit trading date and time zone",
+        "target range and proposed action"
+      ],
+      "oracle": "Use fixed synthetic evidence with independently calculated answers. Test a Chinese utterance containing an alphanumeric symbol, a correction of a decimal or date, an ambiguous number, interruption during speech, cancelled tool work, a denied mutation and continuation in text. Compare the confirmed fields, resource locator, calculated value and core receipt with the fixture before scoring.",
+      "pass": "All action-critical fields and authorization outcomes must match exactly after necessary clarification, including zero unconfirmed writes or success claims. The real text and real duplex sessions each record tested route/model/version, modality, observed timings, interruptions and costs within the approved test scope. Preserve redacted outcomes and independently record usability feedback. Mock runs, unavailable service and text fallback retain their own statuses.",
+      "reference_case": {
+        "id": "synthetic-futures-correction-v2",
+        "instructions": "Use the normal simulated January 2024 CN future one-minute history. Request the last two sample closes and then explicitly correct the interval to the preceding two closed bars. Present the sample price and quantity as a hypothetical chart annotation, ask for clarification on a deliberately ambiguous price, deny an initial write and explicitly approve one new annotation. Decline an alternate paid destination. Use equivalent Chinese speech with the same alphanumeric instrument in the voice run. Allow the user to interrupt, stop capture and finish in text. Retain the two input digests, actual receipt ID, verified numeric outcomes and fee basis.",
+        "confirmed": {
+          "instrument": "SIM.CN.FUTURE.001",
+          "trading_day": "2024-01-04",
+          "timezone": "Asia/Shanghai",
+          "price": 3500.8,
+          "quantity": 2,
+          "unit": "contracts"
+        },
+        "initial": {
+          "from_ms": 1704330480000,
+          "to_ms": 1704330600000,
+          "mean_close": 3501.2,
+          "snapshot": "74f879a51e43d2345d170a442fc4f30ad30e25ef18adeeb177fc0196fb814586"
+        },
+        "corrected": {
+          "from_ms": 1704330420000,
+          "to_ms": 1704330540000,
+          "mean_close": 3501.7,
+          "snapshot": "6257002012000ab2bbf2fcb6578264415f260e22c736d4a5bed3b7260a0183e7"
+        },
+        "private_transfer": {
+          "selected_fixture": "SYNTHETIC strategy excerpt: wait for the second close.",
+          "selected_sha256": "ceeb19872434a141732706c0625b8edbd417279e1114e99447eba72529f18c8b",
+          "procedure": "Use only synthetic records with distinguishable surrounding text, another profile and a saved memory. Observe the final serialized requests at the connector and the private fixture spans visible to the receiving model, including local retrieval and any inherited conversation state. Use only this probe’s explicit selection on both deployments. Complete two ordinary turns on one activated connection without repeated approval. Exercise cancelled, approved and edited selections, a changed recipient, revoked access, restoration and a later ordinary turn. For each named probe below report the ordered SHA-256 digests of private spans that would leave the device, including derived copies. Record model_visible_private as the ordered private-span digests accessible to the model at each stage. For next_turn also record reused_private_context from the actual request history and any previous-response or session handle. A handle that can still reference the selected material is reuse even when no private bytes appear in the outbound request. Use a fresh or verifiably clean context after the selected request. Keep raw request bytes and handle values in ephemeral fixture memory. Observe actual completed turns and any redundant prompts.",
+          "stages": [
+            "ordinary",
+            "cancelled",
+            "selected",
+            "edited",
+            "changed_destination",
+            "revoked",
+            "other_profile",
+            "restored",
+            "next_turn"
+          ]
+        },
+        "effects": {
+          "ambiguous": "clarified_before_write",
+          "ambiguous_commits": 0,
+          "denied_commits": 0,
+          "cancelled_claimed_success": false,
+          "unapproved_destination_calls": 0
+        },
+        "voice": {
+          "interruption": "playback_stopped",
+          "capture_after_stop": "off",
+          "transmissions_after_stop": 0,
+          "pending_task_outcome_visible": true,
+          "continuation": "text_on_corrected_target"
+        },
+        "fixture_as_of_ms": 1704330570000
+      }
+    }
   },
   "ui": {
-    "layout": "Top bar: instrument/timeframe/source status; left: AI and tasks; right: main chart; bottom: diagnostics as needed",
+    "layout": "Use TradingView Supercharts as the default reference for layout, color hierarchy and chart gestures. Open into the chart workspace with instrument, timeframe, chart style and source status above the main chart. Place volume and time below price, working chart tools on the left, and instruments and data inspection on the right. Open AI, tasks and diagnostics on demand.",
+    "workspace_entry": {
+      "unconfigured": "A new profile or a profile that explicitly left the sample shows an empty chart and dispatches zero application operations. Keep an explicit offline sample action available.",
+      "offline_sample": "An explicit action, a deliberate #demo link or restoration of the same previously chosen sample loads the synthetic chart. Keep the Simulated label visible, including after restart. Leaving clears the preference.",
+      "controls": "Use icons for working actions where they help navigation or chart interaction. Keep essential controls reachable at narrow widths.",
+      "restore": "Restore saved layout and accepted indicator artifacts through the core. A missing or revoked source retains its identity and layout, reports the reason, and sends no unauthorized read. Only reconnect to the same currently authorized source; ask the user to select any replacement. A saved mock choice is separate from data-source selection and external-service grants.",
+      "first_question": "With local data but no configured model, the first question offers model configuration or an explicitly labeled offline mock. No call, transfer, simulated answer or charge occurs until the user chooses."
+    },
     "minimal_controls": [
       "Instrument search",
       "Timeframe selection",
@@ -691,7 +980,21 @@
       "awaiting_confirmation"
     ],
     "security": "Render model text as plain text or restricted Markdown with raw HTML disabled; prohibit dynamically generated scripts",
-    "licenses": "Include third-party licenses and NOTICE in releases; verify chart library attribution requirements and do not remove branding notices by default"
+    "licenses": "Include third-party licenses and NOTICE in releases; verify chart library attribution requirements and do not remove branding notices by default",
+    "customization": {
+      "panels": "Let users move, resize, dock, tab and show or hide whole chart, watchlist, data inspection, AI and activity panels. Keep axes, crosshair and zoom inside the chart. Offer light and dark themes and selectable rising/falling colors with accessible state cues.",
+      "links": "Support optional panel selection groups as in Koyfin dashboards. Selecting an instrument or time range updates linked panels and leaves an independent comparison pinned.",
+      "editing": "Direct manipulation, AI requests and user-authored layout definitions edit the same versioned panel settings, data bindings and allowed interaction mappings. Preview changes, save named layouts, restore a previous layout or return to the default. Keep source status, operation visibility and confirmation controls reachable in custom layouts.",
+      "extensibility": "V1 supports a single main instrument chart and declarative customization. Evaluate separately isolated extensions for new panel renderers or interaction code when a concrete need exceeds these bindings. Product source editing or generated scripts in the main WebView remain forbidden."
+    },
+    "shared_evidence": {
+      "pointing": "The human can select a bar or date range, table row or document passage and ask about it. The AI can proactively reveal another authorized page or panel and highlight the precise target. Follow-up turns use the latest selection from either participant.",
+      "navigation": "Show evidence in place or alongside the current view as appropriate. Allow comparison, pinning and return to the prior instrument, timeframe, viewport and layout. Opening temporary evidence preserves unsaved work.",
+      "attribution": "Identify the source, document or dataset revision, locator and relevant publication or market time. Align time zones when comparing a disclosure with a price move. Label search summaries, source statements, calculations and interpretations distinctly. A changed or inaccessible target shows the available reference and the resulting uncertainty.",
+      "external": "For configured research channels, open the permitted original source in a controlled reader or an approved external handoff. A page, its links and its contents cannot authorize navigation, access credentials or call application tools. A discovery service such as Tavily is optional.",
+      "visible_actions": "Show the target, relevant parameters, preview or progress and core result where the user can inspect the affected object. Highlight mapped columns, preview layers or layout changes there. Offer cancellation while applicable, operation-specific confirmation and undo where supported. Retain redacted activity history for later review.",
+      "selection_ownership": "Hover, pointer movement and unsaved viewport navigation are local presentation. Both 1.1 forms of workspace.selectEvidence, the client request and the AI intent, require target. Set target to null to clear shared selection. Reject omission of target. A workspace object uses kind (chart, layer, layout, dataset or workspace) and object_id. A bar or interval uses chart_interval with a frozen snapshot and range. A table_row or document_passage uses source_id, source_revision and locator. The core checks the workspace, current grant, expected_selection_revision and any non-null target. A successful change advances only selection_revision and publishes the core-owned selection for the workspace. New writes bound to an earlier selection token are stale. Hover alone preserves the token. Preserve and restore unsaved view and independently pinned panels around temporary evidence navigation."
+    }
   },
   "persistence": {
     "owner": "Rust core",
@@ -713,7 +1016,20 @@
     "credentials": "Windows Credential Manager; the DB stores references only; mock implementations do not use credentials",
     "cache": "The cache can be cleared without deleting user indicator versions; do not mix different data sources or price adjustment methodologies",
     "log": "Record operations, actors, summaries, statuses, and correlation IDs; redact sensitive fields; do not implement full event sourcing",
-    "undo": "V1 supports undo for layer additions/removals and timeframe changes; undo is itself a new operation; do not claim that all operations are undoable"
+    "undo": "Support undo for layer additions and removals, timeframe changes and applied layout edits. Record undo as a new operation. Advertise undo only for supported actions.",
+    "private_content": {
+      "ownership": "Each person owns their ScopeHub records. Scope storage, indexes, backups, retrieval and grants to that user and local profile. The operating-system user’s application-data directory provides the default profile; two isolated profile roots can exercise this boundary. A different local profile, an external assistant and the product development team have no implied access. This requires neither a ScopeHub cloud account nor a shared team database.",
+      "storage": "Authoritative saved conversations, long-term memories, strategies, research and decision notes, annotations and accepted work stay in the user’s local application storage. Apply the same boundary to search indexes, embeddings, summaries and temporary caches. Use local processing for background indexing. A connected provider does not enable remote backup, synchronization, background embedding or training uploads.",
+      "lifecycle": "Respect each content type’s save and retention rules. Raw voice and ordinary transcripts keep their existing ephemeral defaults. Users can inspect, correct or delete saved private material. Remove app-controlled derived copies and apply known deletion markers on restore. Local backup, migration and recovery use the profile boundary and preserve the existing warning for independent older copies.",
+      "transfer": "Preview the exact saved excerpt and its recipient when the user attaches it to a request. Selecting and sending that preview grants the use of those bytes for that request. Exclude surrounding content, other users’ material, private data obtained via tools, and prior private attachments from routine outbound context. Edited bytes, a different destination, or a new request require a new selection. Route remote conversations containing a one-request private excerpt so later ordinary turns do not silently reuse the excerpt or its private paraphrase.",
+      "evidence": "Keep bodies, prompts, embeddings, strategies and transcripts out of source control, routine logs, diagnostics, hosted artifacts and dev-agent context. Use synthetic examples for acceptance. Disclose applicable remote processor retention for material the user chooses to transmit."
+    },
+    "notes_and_restore": {
+      "live": "Persist a note body, attributed excerpts and saved context only on explicit save. Declining leaves no durable note or derived body. Deleting removes all body-bearing live copies, retrieval indexes, cached summaries, model context and local exports controlled by the app. Keep body-free deletion markers keyed to the original profile and note ID for restore.",
+      "audit": "Retain redacted operation ID, principal, timestamp, target identifier, outcome and revision. Exclude note text, quotations, transcripts, prompts, raw input data and model answers from routine logs, diagnostics and receipts. Keep redacted history separate from user content.",
+      "restore": "Preview restoration before modifying live state. Merge known deletion markers from the current profile and backup, applying them after restoring content in the same staged transaction and preserving the current state on failure. Warn before applying an independent older backup that previously deleted content may reappear if its marker is unavailable. Do not claim erasure of copies already exported or transmitted. Require a new grant for external sharing.",
+      "recovery": "Version the backup, schema, mappings, accepted outputs and logical deletion metadata. Exercise process interruption and migration rollback using an untouched backup; verify that the original visible note, permission and deletion state is recoverable."
+    }
   },
   "fixtures": {
     "instruments": [
@@ -755,7 +1071,12 @@
       "build-manifest.json",
       "third-party-licenses",
       "Complete source code and lockfiles"
-    ]
+    ],
+    "verification_evidence": {
+      "field_input": "For a scheduled field check, retain .reports/observations/<check-id>/observation.json plus its referenced PNG files. Identify kind, commit, inputs_sha256, operator, observed_at, surface, each required action as an object with status=passed and an observed description of its actual visible outcome, and screenshot path/sha256 pairs. Ubuntu requires an explicit text, voice, CLI and desktop disposition; physical Windows additionally identifies its Windows client family, build, architecture, WebView2 and the Ubuntu-reviewed commit. The same execution digest permits a bookkeeping-only commit between observations. Missing primary observations stay blocked. Include the observed Windows OS product type (1 for a client workstation) with family and build. Server builds can share a build number with a client. Hosted publication accepts only a producer-marked screenshot_scope of synthetic for screenshots captured from the synthetic fixture. Personal screenshots and private profiles stay on the device.",
+      "session_input": "A real check writes <check-id>.observation.json under SCOPEHUB_RUN_DIR, containing check, modality, commit, inputs_sha256, provider, route, data_revision, authorized_scope, observed_at and either dataset or model with deployment set to local or cloud. The configured_models summary includes both deployments; cloud_models contains only observed cloud sessions. Installation defaults are independent of either observation. Use short public or opaque aliases for provider, route, data revision, model and dataset (ASCII letters, digits, dots, underscores and hyphens, up to 96 characters, starting with a letter or digit). Record the scope category synthetic-model-qualification, synthetic-voice-qualification or authorized-market-verification for the respective modality. Keep URLs, account names, credentials, grant text and private values out of aliases. Exit 77 records an unavailable authorized session. A successful command without the matching observation cannot establish qualification. Model and voice observations include the redacted qualification object defined by /ai/qualified_session_acceptance/reference_case: confirmed fields, initial and corrected intervals, observed means and snapshot hashes, effects, approved annotation receipt, authorized monetary limit and actual charge. Voice also supplies measured first-audio latency, interruption, capture and follow-up outcomes. Exercise the fixed synthetic private transfer case in text and voice. Record observed completed turns, extra consent prompts and the per-stage digests of private spans sent off-device and accessible to the receiving model, and whether a later request reused the selected private context. Store only the exit code in command logs for private session, field, external-client and credential checks. Keep prompts, bodies and raw audio out of the retained observation, command output and diagnostics.",
+      "candidate_input": "The release check places build-manifest.json in SCOPEHUB_RUN_DIR/candidate and retains the NSIS installer there. The manifest binds commit, inputs_sha256, installer, two Windows observations, and performance by relative path and SHA-256. Windows observations identify the host family (Windows 10/11), numerical build, x64 architecture, WebView2, operator, time, clean-install and upgrade results for the same installer hash. The performance observation binds the same source and installer, CPU, RAM, display scale, refresh rate and raw samples. Use authenticated workflow artifact retrieval for hosted evidence. Each Windows host record includes the workstation product type as well as the family and build. List packaged third-party license and notice files in third_party_licenses as relative path and SHA-256 pairs. The hosted run retains available verified installer bytes, legal notices and typed failed or partial measurements for diagnosis. Passing acceptance requires the full matching installer, manifest, Windows client observations and complete passing measurements."
+    }
   },
   "milestones": [
     {
@@ -782,7 +1103,8 @@
         "Instrument search",
         "Historical chart",
         "Live bar updates",
-        "Status and reconnection"
+        "Status and reconnection",
+        "User-selected CSV directory import and refresh"
       ],
       "gate": [
         "fixture correctness",
@@ -798,7 +1120,8 @@
         "Confirmations",
         "revision",
         "SQLite",
-        "undo"
+        "undo",
+        "Versioned panel layouts with preview and restore"
       ],
       "gate": [
         "permission tests",
@@ -831,11 +1154,18 @@
         "tools",
         "context",
         "task cancellation",
-        "operation provenance"
+        "operation provenance",
+        "Visible evidence selection across panels",
+        "Opt-in voice and text continuity",
+        "Deliberation and opt-in decision review",
+        "Model-specific capability settings",
+        "Local MCP access to the same authorized workspace"
       ],
       "gate": [
         "AI cannot bypass authorization",
-        "end-to-end scenario"
+        "end-to-end scenario",
+        "A buy discussion preserves human judgment and operation scope",
+        "Observe a configured model, Codex CLI and a compatible desktop AI client through their respective entries"
       ]
     },
     {
@@ -861,25 +1191,36 @@
       "After disconnecting the market worker, its status is visible and recovery uses bounded retries without duplicate subscriptions",
       "Mock AI creates a declarative abnormal-volatility indicator based on user requirements; preview, acceptance, removal, and undo all complete",
       "AI tools and user operations use the same registry; direct requests for unauthorized operations are rejected",
-      "Existing confirmations become invalid when parameters, the code hash, or workspace revision change",
+      "For new work, existing confirmations become invalid when parameters, the code hash or a bound workspace or selection revision changes",
       "Indicator timeouts, exceptions, and invalid output neither interrupt market data nor overwrite accepted indicators",
       "Closing and reopening restores the workspace and indicator versions without re-executing previous AI tasks",
       "Logs, the database, and worker environments contain no plaintext credentials",
       "No worker child processes remain alive after application shutdown",
-      "Generated types have no uncommitted differences; schemas and validation in all three languages are consistent"
+      "Generated types have no uncommitted differences; schemas and validation in all three languages are consistent",
+      "Select a local CSV directory, correct an import preview and refresh it with new files. Source revisions and rejected records are inspectable and repeat imports are idempotent.",
+      "Preview, apply, name, restore and revert a single-chart layout. Manual and AI edits use the same panel settings, linked selections and allowed interactions.",
+      "The human and AI can each point to a versioned workspace object, reveal evidence in another panel, refine the selection and return to the previous view.",
+      "AI operations show their target, preview or progress and actual outcome in the affected view. Confirmation, denial, failure and cancellation remain visible.",
+      "An explicitly enabled real voice session supports spoken discussion, interruption and text follow-up under the same operation permissions. A denied or interrupted request has an observable outcome.",
+      "Starting from a buy question, compare evidence, revise a challenged premise, and perform only a separately authorized workspace change. Reopen a user-saved decision and distinguish the original rationale from the later outcome.",
+      "Choose a provider and model independently of market data. Show verified capabilities, destination and applicable charges, handle an unsupported feature, and exercise a configured model on an evidence-based discussion.",
+      "An opted-in local MCP client reads the selected chart and, with a write grant, adds a reversible annotation to the same open workspace. The UI attributes the action. Denied, stale and revoked requests preserve the workspace and respect output permissions.",
+      "Observe Codex CLI and one compatible desktop AI client separately reading the open chart and applying a scoped annotation. Verify the visible result and undo on each supported test host."
     ],
     "performance": {
       "profile": "Record CPU/RAM/Windows/WebView2 versions; release build; 10000 bars; one chart; mock stream at 10 updates/s",
       "initial_bars_to_chart_p95_ms": 1000,
       "chart_update_p95_ms": 200,
       "continuous_run_minutes": 120,
-      "memory_policy": "Record a time series of total process memory usage; after warmup, it must not exhibit sustained unbounded growth; do not claim fixed memory values without measurement"
+      "memory_policy": "Sample total process-tree private bytes once per minute for 120 minutes. Discard the first 10 samples and compare the medians of eleven consecutive ten-sample windows. Growth above the greater of 32 MiB or 10 percent of the first median, with at least eight of ten window-to-window increases, fails. Growth above that threshold with fewer increases is inconclusive and requires investigation and another retained run. A complete series below or at the threshold passes this bounded observation.",
+      "measurement": "Use the identified release installer and record Windows family/build, WebView2, CPU, RAM, display scale and refresh rate. Run the same fixed 10,000-bar dataset in a fresh app process for 20 cold chart loads and in one reused process for 20 warm loads. Report each group separately. Use nearest-rank p95 from user request to first presented frame containing all requested bars. Both groups must meet the first-chart limit.",
+      "updates": "For 120 minutes at 10 ordered updates per second measure publication to the first presented chart frame carrying that position or a later coalesced position. Attribute every update to a visible frame. All 72,000 positions and the final closed bar must be accounted for. Missing samples or an unpainted final bar block acceptance."
     },
     "test_report": "Record passed/failed/blocked, commands, environment, and actual results for each item; blocked does not count as passed"
   },
   "implementation_instructions": [
-    "Implement M0 first and proceed milestone by milestone; do not skip permissions or failure paths",
-    "Generate contracts/schemas/*.schema.json from this file, all executable for validation; this file is a specification, not a completed JSON Schema",
+    "Start with the M0 foundation. Implement work in task dependency order. Milestones group acceptance and do not require closing a whole earlier group before starting an eligible task. Follow the owner-approved Ubuntu and physical Windows experience sequence.",
+    "Edit canonical wire schemas in contracts/schemas/protocol.schema.json; generate language types and operation schema projections with pnpm generate. This engineering file defines product and engineering requirements, not generated schemas.",
     "All dynamic operations must pass through the Rust registry first; do not add generic execute/shell/sql tools",
     "Keep mock implementations until a provider is confirmed; do not temporarily scrape market data from the internet to pretend that integration exists",
     "Keep only interfaces for non-target platforms; do not spend time implementing cross-platform releases",

@@ -1,0 +1,327 @@
+//! Shared operation entry for trusted transports.
+
+mod history;
+mod replay;
+
+pub use replay::{SUBSCRIBE, SubscriptionFuture, SubscriptionPort};
+
+use std::{collections::HashSet, future::Future, pin::Pin, sync::LazyLock};
+
+use scopehub_domain::{
+    protocol::{
+        DatasetDescriptor, Error, ErrorCode, Instrument, InstrumentSearchOutput,
+        MarketGetBarsInput, MarketGetBarsOutput, MarketHistoryPageInput, MarketHistoryPageOutput,
+    },
+    wire::{SCHEMA, normalize_integers},
+};
+use serde_json::{Value, json};
+
+pub const DEMO_PROVIDER: &str = "scopehub.synthetic";
+pub const LEGACY_READ_OPERATIONS: [&str; 2] = ["instrument.search", "market.getBars"];
+pub const READ_OPERATIONS: [&str; 3] = [
+    "instrument.search",
+    "market.getBars",
+    "market.readHistoryPage",
+];
+
+/// Assigned by the transport, never deserialized from a worker or UI payload.
+#[derive(Clone, Copy)]
+pub enum Actor {
+    User,
+    Ai,
+    System,
+}
+
+impl Actor {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::User => "user",
+            Self::Ai => "ai",
+            Self::System => "system",
+        }
+    }
+}
+
+pub fn failure(code: ErrorCode) -> Error {
+    let message = match code {
+        ErrorCode::PROVIDERNOTCONFIGURED => "No data source is configured for this request.",
+        ErrorCode::UNSUPPORTEDCAPABILITY => "This operation or timeframe is not implemented.",
+        ErrorCode::INVALIDARGUMENT => "The request arguments are invalid.",
+        ErrorCode::PERMISSIONDENIED => "This caller cannot perform the operation.",
+        ErrorCode::DATAUNAVAILABLE => "No data is available for this instrument.",
+        ErrorCode::TIMEOUT => "The market worker did not respond before the deadline.",
+        ErrorCode::WORKEREXITED => "The market worker is unavailable.",
+        ErrorCode::OUTPUTINVALID => "The market response failed validation.",
+        ErrorCode::PROTOCOLMISMATCH => "The market worker is incompatible.",
+        ErrorCode::BUSY => "The market worker is busy.",
+        ErrorCode::SNAPSHOTUNAVAILABLE => "The requested market snapshot is unavailable.",
+        ErrorCode::RESOURCELIMIT => "The market request exceeded a resource limit.",
+        _ => "The operation could not be completed.",
+    };
+    Error {
+        retryable: matches!(
+            code,
+            ErrorCode::TIMEOUT | ErrorCode::WORKEREXITED | ErrorCode::BUSY
+        ),
+        code,
+        message: message.into(),
+        details: Default::default(),
+    }
+}
+
+type PortFuture<'a, T> = Pin<Box<dyn Future<Output = Result<T, Error>> + Send + 'a>>;
+pub type MarketFuture<'a> = PortFuture<'a, Value>;
+pub type ShutdownFuture<'a> = PortFuture<'a, ()>;
+
+pub trait MarketPort: Send {
+    fn request<'a>(&'a mut self, operation: &'a str, payload: &'a Value) -> MarketFuture<'a>;
+}
+
+/// Lifecycle access is explicit; callers cannot mutate the underlying adapter.
+pub trait MarketLifecycle: Send {
+    fn status(&self) -> MarketStatus;
+    fn shutdown(&mut self) -> ShutdownFuture<'_>;
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct MarketStatus {
+    pub process_id: Option<u32>,
+}
+
+struct Operation {
+    name: String,
+    actors: Vec<String>,
+    input: jsonschema::Validator,
+    output: jsonschema::Validator,
+}
+
+fn validator(definition: &str) -> jsonschema::Validator {
+    let mut schema = SCHEMA.clone();
+    schema["$ref"] = json!(format!("#/$defs/{definition}"));
+    schema
+        .as_object_mut()
+        .expect("schema object")
+        .remove("oneOf");
+    jsonschema::options()
+        .should_validate_formats(true)
+        .build(&schema)
+        .expect("embedded operation schema")
+}
+
+static OPERATIONS: LazyLock<Vec<Operation>> = LazyLock::new(|| {
+    let manifest: Value = serde_json::from_str(include_str!("../../../contracts/contract.json"))
+        .expect("embedded operation catalog");
+    manifest["operations"]
+        .as_array()
+        .expect("operation array")
+        .iter()
+        .map(|op| Operation {
+            name: op["name"].as_str().expect("operation name").into(),
+            actors: serde_json::from_value(op["actors"].clone()).expect("actor list"),
+            input: validator(op["input"].as_str().expect("input definition")),
+            output: validator(op["output"].as_str().expect("output definition")),
+        })
+        .collect()
+});
+
+fn authorized_operation(actor: Actor, name: &str) -> Result<&'static Operation, Error> {
+    let op = OPERATIONS
+        .iter()
+        .find(|op| op.name == name)
+        .ok_or_else(|| failure(ErrorCode::UNSUPPORTEDCAPABILITY))?;
+    if !op.actors.iter().any(|allowed| allowed == actor.as_str()) {
+        return Err(failure(ErrorCode::PERMISSIONDENIED));
+    }
+    Ok(op)
+}
+
+/// Authorized operations and explicit lifecycle, without mutable adapter access.
+///
+/// ```compile_fail
+/// use scopehub_application::{MarketPort, MarketRegistry};
+/// fn bypass<P: MarketPort>(registry: &mut MarketRegistry<P>) {
+///     registry.port_mut();
+/// }
+/// ```
+pub struct MarketRegistry<P> {
+    port: P,
+}
+
+impl<P: MarketPort> MarketRegistry<P> {
+    pub fn new(port: P) -> Self {
+        Self { port }
+    }
+
+    pub async fn execute(
+        &mut self,
+        actor: Actor,
+        name: &str,
+        mut payload: Value,
+    ) -> Result<Value, Error> {
+        let op = authorized_operation(actor, name)?;
+        if !READ_OPERATIONS.contains(&name) {
+            return Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY));
+        }
+        if !op.input.is_valid(&payload) {
+            return Err(failure(ErrorCode::INVALIDARGUMENT));
+        }
+        normalize_integers(&mut payload);
+        if name == "instrument.search" {
+            let (value, _) = self.catalog(&payload).await?;
+            return Ok(value);
+        }
+        let series = if name == "market.getBars" {
+            &payload
+        } else {
+            &payload["series"]
+        };
+        if series["provider_id"] != DEMO_PROVIDER {
+            return Err(failure(ErrorCode::PROVIDERNOTCONFIGURED));
+        }
+        if payload["from_ms"].as_i64() >= payload["to_ms"].as_i64() {
+            return Err(failure(ErrorCode::INVALIDARGUMENT));
+        }
+        let page_input = if name == "market.readHistoryPage" {
+            let input: MarketHistoryPageInput = serde_json::from_value(payload.clone())
+                .map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
+            history::validate_page_input(&input)?;
+            Some(input)
+        } else {
+            None
+        };
+        let pinned = page_input
+            .as_ref()
+            .is_some_and(|i| i.snapshot.is_some() || i.expected_revision.is_some());
+        let read_error = |error: Error| {
+            if pinned
+                && matches!(
+                    error.code,
+                    ErrorCode::DATAUNAVAILABLE | ErrorCode::PROVIDERNOTCONFIGURED
+                )
+            {
+                failure(ErrorCode::SNAPSHOTUNAVAILABLE)
+            } else {
+                error
+            }
+        };
+        // Every read, including a direct AI call without a preceding search, is
+        // checked against a catalog entry from the same authorized source.
+        let (_, catalog) = self
+            .catalog(&json!({"query":series["instrument_id"],"limit":50}))
+            .await
+            .map_err(read_error)?;
+        let instrument = catalog
+            .instruments
+            .into_iter()
+            .find(|item| series["instrument_id"] == item.id)
+            .ok_or_else(|| read_error(failure(ErrorCode::DATAUNAVAILABLE)))?;
+        if let Some(input) = &page_input {
+            history::validate_series(&input.series, &instrument)?;
+        }
+        let (output, checked) = self
+            .checked_request(op, &payload)
+            .await
+            .map_err(read_error)?;
+        if let Some(input) = page_input {
+            let page: MarketHistoryPageOutput =
+                serde_json::from_value(checked).map_err(|_| failure(ErrorCode::OUTPUTINVALID))?;
+            validate_dataset(
+                &page.dataset,
+                &instrument,
+                &input.series.provider_id,
+                &input.series.timeframe,
+            )?;
+            history::validate_page(&input, &page)?;
+        } else {
+            let input: MarketGetBarsInput =
+                serde_json::from_value(payload).map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
+            let result: MarketGetBarsOutput =
+                serde_json::from_value(checked).map_err(|_| failure(ErrorCode::OUTPUTINVALID))?;
+            validate_dataset(
+                &result.dataset,
+                &instrument,
+                &input.provider_id,
+                &input.timeframe,
+            )?;
+            history::validate_bars(
+                &result.bars,
+                input.from_ms,
+                input.to_ms,
+                0,
+                0,
+                result.bars.len() as u64,
+            )?;
+        }
+        Ok(output)
+    }
+
+    async fn checked_request(
+        &mut self,
+        op: &Operation,
+        payload: &Value,
+    ) -> Result<(Value, Value), Error> {
+        let output = self.port.request(&op.name, payload).await?;
+        if !op.output.is_valid(&output) {
+            return Err(failure(ErrorCode::OUTPUTINVALID));
+        }
+        let mut checked = output.clone();
+        normalize_integers(&mut checked);
+        Ok((output, checked))
+    }
+
+    async fn catalog(&mut self, payload: &Value) -> Result<(Value, InstrumentSearchOutput), Error> {
+        let op = OPERATIONS
+            .iter()
+            .find(|op| op.name == "instrument.search")
+            .expect("catalog operation");
+        let (value, checked) = self.checked_request(op, payload).await?;
+        let catalog: InstrumentSearchOutput =
+            serde_json::from_value(checked).map_err(|_| failure(ErrorCode::OUTPUTINVALID))?;
+        let mut ids = HashSet::new();
+        if catalog.instruments.len() > payload["limit"].as_u64().unwrap_or(0) as usize
+            || catalog.instruments.iter().any(|item| {
+                !ids.insert(&item.id)
+                    || item.tradability.as_str() != "non_tradable"
+                    || item.metadata.get("synthetic") != Some(&json!(true))
+                    || !item
+                        .provider_mappings
+                        .iter()
+                        .any(|mapping| mapping.provider_id == DEMO_PROVIDER)
+            })
+        {
+            return Err(failure(ErrorCode::OUTPUTINVALID));
+        }
+        Ok((value, catalog))
+    }
+}
+
+impl<P: MarketPort + MarketLifecycle> MarketRegistry<P> {
+    pub fn status(&self) -> MarketStatus {
+        self.port.status()
+    }
+
+    pub async fn shutdown(&mut self) -> Result<(), Error> {
+        self.port.shutdown().await
+    }
+}
+
+fn validate_dataset(
+    data: &DatasetDescriptor,
+    instrument: &Instrument,
+    provider: &str,
+    timeframe: &str,
+) -> Result<(), Error> {
+    if data.instrument_id != instrument.id
+        || data.provider_id != provider
+        || data.timeframe != timeframe
+        || data.mode.as_str() != "simulated"
+        || data.price_adjustment != "raw"
+        || data.provenance.get("synthetic") != Some(&json!(true))
+        || data.timezone != instrument.timezone
+        || data.calendar_id != instrument.calendar_id
+        || data.quantity_unit != instrument.quantity_unit
+    {
+        return Err(failure(ErrorCode::OUTPUTINVALID));
+    }
+    Ok(())
+}

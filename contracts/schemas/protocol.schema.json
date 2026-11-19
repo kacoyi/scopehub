@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:scopehub:protocol:1.0",
+  "$id": "urn:scopehub:protocol:1.1",
   "title": "ScopeHubProtocol",
   "$ref": "#/$defs/Message",
   "$defs": {
@@ -55,7 +55,9 @@
         "RESOURCE_LIMIT",
         "OUTPUT_INVALID",
         "PROVIDER_NOT_CONFIGURED",
-        "INTERNAL_ERROR"
+        "INTERNAL_ERROR",
+        "BUSY",
+        "SNAPSHOT_UNAVAILABLE"
       ]
     },
     "OperationName": {
@@ -74,7 +76,11 @@
         "indicator.remove",
         "workspace.undo",
         "task.cancel",
-        "workspace.getContext"
+        "workspace.getContext",
+        "market.readHistoryPage",
+        "market.subscribe",
+        "workspace.readChartProjection",
+        "workspace.selectEvidence"
       ]
     },
     "ChartStyle": {
@@ -342,7 +348,13 @@
       "type": "object",
       "properties": {
         "code": {
-          "$ref": "#/$defs/ErrorCode"
+          "$ref": "#/$defs/ErrorCode",
+          "not": {
+            "enum": [
+              "BUSY",
+              "SNAPSHOT_UNAVAILABLE"
+            ]
+          }
         },
         "message": {
           "type": "string",
@@ -772,7 +784,7 @@
         "authorized_operations": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/OperationName"
+            "$ref": "#/$defs/LegacyOperationName"
           },
           "maxItems": 64
         },
@@ -2455,7 +2467,7 @@
         "capabilities": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/OperationName"
+            "$ref": "#/$defs/LegacyOperationName"
           },
           "maxItems": 64
         }
@@ -2712,6 +2724,946 @@
       ],
       "additionalProperties": false
     },
+    "SeriesKey": {
+      "type": "object",
+      "properties": {
+        "instrument_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "provider_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "timeframe": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "price_adjustment": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "session_scope": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "calendar_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "quantity_unit": {
+          "$ref": "#/$defs/OpaqueId"
+        }
+      },
+      "required": [
+        "instrument_id",
+        "provider_id",
+        "timeframe",
+        "price_adjustment",
+        "session_scope",
+        "calendar_id",
+        "quantity_unit"
+      ],
+      "additionalProperties": false
+    },
+    "FrozenSnapshot": {
+      "type": "object",
+      "properties": {
+        "series": {
+          "$ref": "#/$defs/SeriesKey"
+        },
+        "dataset_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "dataset_revision": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "from_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "to_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "warmup_bars": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "as_of_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "content_hash": {
+          "$ref": "#/$defs/Hash"
+        }
+      },
+      "required": [
+        "series",
+        "dataset_id",
+        "dataset_revision",
+        "from_ms",
+        "to_ms",
+        "warmup_bars",
+        "as_of_ms",
+        "content_hash"
+      ],
+      "additionalProperties": false
+    },
+    "HistoryCursor": {
+      "type": "object",
+      "properties": {
+        "snapshot_hash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "next_index": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "prefix_hash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "previous_time_ms": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "snapshot_hash",
+        "next_index",
+        "prefix_hash",
+        "previous_time_ms"
+      ],
+      "additionalProperties": false
+    },
+    "StreamPosition": {
+      "type": "object",
+      "properties": {
+        "stream_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "epoch": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "sequence": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "stream_id",
+        "epoch",
+        "sequence"
+      ],
+      "additionalProperties": false
+    },
+    "MarketQualityState": {
+      "type": "object",
+      "properties": {
+        "as_of_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "last_observed_ms": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "session_state": {
+          "type": "string",
+          "enum": [
+            "open",
+            "closed",
+            "unknown"
+          ]
+        },
+        "freshness": {
+          "type": "string",
+          "enum": [
+            "current",
+            "delayed",
+            "stale",
+            "unknown"
+          ]
+        },
+        "connection": {
+          "type": "string",
+          "enum": [
+            "offline",
+            "connected",
+            "disconnected"
+          ]
+        },
+        "coverage": {
+          "type": "string",
+          "enum": [
+            "observed",
+            "gapped",
+            "unknown"
+          ]
+        },
+        "gaps": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "$ref": "#/$defs/VisibleRange"
+          }
+        },
+        "source_kind": {
+          "type": "string",
+          "enum": [
+            "native_bars",
+            "snapshot_approximation",
+            "synthetic"
+          ]
+        }
+      },
+      "required": [
+        "as_of_ms",
+        "last_observed_ms",
+        "session_state",
+        "freshness",
+        "connection",
+        "coverage",
+        "gaps",
+        "source_kind"
+      ],
+      "additionalProperties": false
+    },
+    "MarketHistoryPageInput": {
+      "type": "object",
+      "properties": {
+        "series": {
+          "$ref": "#/$defs/SeriesKey"
+        },
+        "from_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "to_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "warmup_bars": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "as_of_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "expected_revision": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/FrozenSnapshot"
+        },
+        "cursor": {
+          "$ref": "#/$defs/HistoryCursor"
+        },
+        "page_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "include_stream_position": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "series",
+        "from_ms",
+        "to_ms",
+        "warmup_bars"
+      ],
+      "additionalProperties": false
+    },
+    "MarketHistoryPageOutput": {
+      "type": "object",
+      "properties": {
+        "dataset": {
+          "$ref": "#/$defs/DatasetDescriptor"
+        },
+        "bars": {
+          "type": "array",
+          "maxItems": 100000,
+          "items": {
+            "$ref": "#/$defs/Bar"
+          }
+        },
+        "snapshot": {
+          "$ref": "#/$defs/FrozenSnapshot"
+        },
+        "quality_state": {
+          "$ref": "#/$defs/MarketQualityState"
+        },
+        "stream_position": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StreamPosition"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HistoryCursor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "total_bars": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        }
+      },
+      "required": [
+        "dataset",
+        "bars",
+        "snapshot",
+        "quality_state",
+        "stream_position",
+        "next_cursor",
+        "total_bars",
+        "offset"
+      ],
+      "additionalProperties": false
+    },
+    "MarketPageFault": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/ErrorCode"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "details": {
+          "$ref": "#/$defs/Metadata"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "retryable",
+        "details"
+      ],
+      "additionalProperties": false
+    },
+    "MarketHistoryPageRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.readHistoryPage"
+        },
+        "payload": {
+          "$ref": "#/$defs/MarketHistoryPageInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "MarketHistoryPageResponse": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.readHistoryPage"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": true
+        },
+        "result": {
+          "$ref": "#/$defs/MarketHistoryPageOutput"
+        },
+        "error": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "MarketHistoryPageError": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.readHistoryPage"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": false
+        },
+        "result": {
+          "type": "null"
+        },
+        "error": {
+          "$ref": "#/$defs/MarketPageFault"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "MarketSubscriptionInput": {
+      "type": "object",
+      "properties": {
+        "series": {
+          "$ref": "#/$defs/SeriesKey"
+        },
+        "after": {
+          "$ref": "#/$defs/StreamPosition"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/FrozenSnapshot"
+        }
+      },
+      "required": [
+        "series",
+        "after",
+        "snapshot"
+      ],
+      "additionalProperties": false
+    },
+    "StreamResumeAccepted": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "const": "accepted"
+        },
+        "from_position": {
+          "$ref": "#/$defs/StreamPosition"
+        }
+      },
+      "required": [
+        "status",
+        "from_position"
+      ],
+      "additionalProperties": false
+    },
+    "StreamBackfillRequired": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "const": "backfill_required"
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "epoch_changed",
+            "history_evicted",
+            "coverage_unknown",
+            "sequence_gap"
+          ]
+        },
+        "recover_from_ms": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "status",
+        "reason",
+        "recover_from_ms"
+      ],
+      "additionalProperties": false
+    },
+    "MarketSubscriptionOutput": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/StreamResumeAccepted"
+        },
+        {
+          "$ref": "#/$defs/StreamBackfillRequired"
+        }
+      ]
+    },
+    "MarketSubscriptionRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.subscribe"
+        },
+        "payload": {
+          "$ref": "#/$defs/MarketSubscriptionInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "MarketSubscriptionResponse": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.subscribe"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": true
+        },
+        "result": {
+          "$ref": "#/$defs/MarketSubscriptionOutput"
+        },
+        "error": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "MarketSubscriptionError": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.subscribe"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": false
+        },
+        "result": {
+          "type": "null"
+        },
+        "error": {
+          "$ref": "#/$defs/MarketPageFault"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "MarketSubscriptionReply11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/MarketSubscriptionResponse"
+        },
+        {
+          "$ref": "#/$defs/MarketSubscriptionError"
+        }
+      ]
+    },
+    "MarketStreamBarUpdate": {
+      "type": "object",
+      "properties": {
+        "series": {
+          "$ref": "#/$defs/SeriesKey"
+        },
+        "dataset_revision": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "observed_at_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "bar": {
+          "$ref": "#/$defs/Bar"
+        }
+      },
+      "required": [
+        "series",
+        "dataset_revision",
+        "observed_at_ms",
+        "bar"
+      ],
+      "additionalProperties": false
+    },
+    "MarketStreamBarCorrection": {
+      "type": "object",
+      "properties": {
+        "series": {
+          "$ref": "#/$defs/SeriesKey"
+        },
+        "dataset_revision": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "observed_at_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "bar": {
+          "$ref": "#/$defs/Bar"
+        },
+        "supersedes_revision": {
+          "$ref": "#/$defs/OpaqueId"
+        }
+      },
+      "required": [
+        "series",
+        "dataset_revision",
+        "observed_at_ms",
+        "bar",
+        "supersedes_revision"
+      ],
+      "additionalProperties": false
+    },
+    "MarketStreamGap": {
+      "type": "object",
+      "properties": {
+        "series": {
+          "$ref": "#/$defs/SeriesKey"
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "sequence_gap",
+            "overflow",
+            "epoch_reset",
+            "source_gap"
+          ]
+        },
+        "expected_sequence": {
+          "$ref": "#/$defs/Revision"
+        },
+        "lost_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "affected": {
+          "$ref": "#/$defs/VisibleRange"
+        }
+      },
+      "required": [
+        "series",
+        "reason",
+        "expected_sequence",
+        "lost_count",
+        "affected"
+      ],
+      "additionalProperties": false
+    },
+    "MarketBarUpdateEvent": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "event"
+        },
+        "stream_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "epoch": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "sequence": {
+          "$ref": "#/$defs/Revision"
+        },
+        "event": {
+          "type": "string",
+          "const": "market.bar_update"
+        },
+        "payload": {
+          "$ref": "#/$defs/MarketStreamBarUpdate"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "stream_id",
+        "epoch",
+        "sequence",
+        "event",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "MarketBarCorrectionEvent": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "event"
+        },
+        "stream_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "epoch": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "sequence": {
+          "$ref": "#/$defs/Revision"
+        },
+        "event": {
+          "type": "string",
+          "const": "market.bar_correction"
+        },
+        "payload": {
+          "$ref": "#/$defs/MarketStreamBarCorrection"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "stream_id",
+        "epoch",
+        "sequence",
+        "event",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "MarketStreamGapEvent": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "event"
+        },
+        "stream_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "epoch": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "sequence": {
+          "$ref": "#/$defs/Revision"
+        },
+        "event": {
+          "type": "string",
+          "const": "market.stream_gap"
+        },
+        "payload": {
+          "$ref": "#/$defs/MarketStreamGap"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "stream_id",
+        "epoch",
+        "sequence",
+        "event",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
     "Message": {
       "oneOf": [
         {
@@ -2731,6 +3683,4946 @@
         },
         {
           "$ref": "#/$defs/Heartbeat"
+        },
+        {
+          "$ref": "#/$defs/MarketHistoryPageRequest"
+        },
+        {
+          "$ref": "#/$defs/MarketHistoryPageResponse"
+        },
+        {
+          "$ref": "#/$defs/MarketHistoryPageError"
+        },
+        {
+          "$ref": "#/$defs/MarketSubscriptionRequest"
+        },
+        {
+          "$ref": "#/$defs/MarketSubscriptionResponse"
+        },
+        {
+          "$ref": "#/$defs/MarketSubscriptionError"
+        },
+        {
+          "$ref": "#/$defs/MarketBarUpdateEvent"
+        },
+        {
+          "$ref": "#/$defs/MarketBarCorrectionEvent"
+        },
+        {
+          "$ref": "#/$defs/MarketStreamGapEvent"
+        },
+        {
+          "$ref": "#/$defs/WorkerHello11"
+        },
+        {
+          "$ref": "#/$defs/ScopedMutationRequest11"
+        },
+        {
+          "$ref": "#/$defs/ScopedMutationResponse11"
+        },
+        {
+          "$ref": "#/$defs/TrustedConfirmationDecision11"
+        },
+        {
+          "$ref": "#/$defs/PreviewReady11"
+        },
+        {
+          "$ref": "#/$defs/ArtifactChunk11"
+        },
+        {
+          "$ref": "#/$defs/TaskTerminalEvent11"
+        },
+        {
+          "$ref": "#/$defs/TaskCancelRequest11"
+        },
+        {
+          "$ref": "#/$defs/CancelMemberRequest11"
+        },
+        {
+          "$ref": "#/$defs/ReadProjectedChart11"
+        },
+        {
+          "$ref": "#/$defs/ProjectedChartResponse11"
+        },
+        {
+          "$ref": "#/$defs/SharedSelectionEvent11"
+        },
+        {
+          "$ref": "#/$defs/SharedSelectionRequest11"
+        },
+        {
+          "$ref": "#/$defs/AiToolRequest11"
+        },
+        {
+          "$ref": "#/$defs/AiToolResultDelivery11"
+        },
+        {
+          "$ref": "#/$defs/AiToolResultAck11"
+        },
+        {
+          "$ref": "#/$defs/ProjectedChartError11"
+        },
+        {
+          "$ref": "#/$defs/IndicatorCompute11"
+        },
+        {
+          "$ref": "#/$defs/IndicatorComputed11"
+        },
+        {
+          "$ref": "#/$defs/IndicatorInputSegment11"
+        },
+        {
+          "$ref": "#/$defs/SharedSelectionResponse11"
+        },
+        {
+          "$ref": "#/$defs/SharedSelectionError11"
+        },
+        {
+          "$ref": "#/$defs/SharedContextRequest11"
+        },
+        {
+          "$ref": "#/$defs/SharedContextResponse11"
+        },
+        {
+          "$ref": "#/$defs/SharedContextError11"
+        },
+        {
+          "$ref": "#/$defs/CancelTaskResponse11"
+        },
+        {
+          "$ref": "#/$defs/CancelTaskError11"
+        }
+      ]
+    },
+    "ProtocolVersion11": {
+      "type": "string",
+      "const": "1.1"
+    },
+    "WorkerHello11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "hello"
+        },
+        "role": {
+          "$ref": "#/$defs/WorkerRole"
+        },
+        "worker_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "supported_protocols": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "maxItems": 64,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "role",
+        "worker_version",
+        "supported_protocols",
+        "capabilities"
+      ],
+      "additionalProperties": false,
+      "description": "A version-aware host intersects these names with its implemented allowlist. The advertised envelope version must be present. A 1.0 compatibility operation uses its own exact 1.0 frames."
+    },
+    "WorkspaceObject11": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "chart",
+            "layer",
+            "layout",
+            "dataset",
+            "workspace"
+          ]
+        },
+        "object_id": {
+          "$ref": "#/$defs/OpaqueId"
+        }
+      },
+      "required": [
+        "kind",
+        "object_id"
+      ],
+      "additionalProperties": false
+    },
+    "ChartInterval11": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "chart_interval"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/FrozenSnapshot"
+        },
+        "range": {
+          "$ref": "#/$defs/VisibleRange"
+        }
+      },
+      "required": [
+        "kind",
+        "snapshot",
+        "range"
+      ],
+      "additionalProperties": false
+    },
+    "SourceLocation11": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "table_row",
+            "document_passage"
+          ]
+        },
+        "source_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "source_revision": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "locator": {
+          "$ref": "#/$defs/OpaqueId"
+        }
+      },
+      "required": [
+        "kind",
+        "source_id",
+        "source_revision",
+        "locator"
+      ],
+      "additionalProperties": false
+    },
+    "EvidenceTarget11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/WorkspaceObject11"
+        },
+        {
+          "$ref": "#/$defs/ChartInterval11"
+        },
+        {
+          "$ref": "#/$defs/SourceLocation11"
+        }
+      ]
+    },
+    "SharedSelection11": {
+      "type": "object",
+      "properties": {
+        "workspace_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "selection_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceTarget11"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "workspace_id",
+        "selection_revision",
+        "target"
+      ],
+      "additionalProperties": false,
+      "description": "A committed shared selection. Hover and temporary navigation are local presentation; changing the selected evidence advances selection_revision without requiring a persistent edit."
+    },
+    "MutationScope11": {
+      "type": "object",
+      "properties": {
+        "workspace_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "target": {
+          "$ref": "#/$defs/EvidenceTarget11"
+        },
+        "expected_workspace_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "expected_selection_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "idempotency_key": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "target",
+        "expected_workspace_revision",
+        "expected_selection_revision",
+        "idempotency_key"
+      ],
+      "additionalProperties": false,
+      "description": "The core derives the principal, client, session and current grant from the authenticated transport. These fields select the requested target only."
+    },
+    "OperationReceipt11": {
+      "type": "object",
+      "properties": {
+        "operation_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "workspace_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "target": {
+          "$ref": "#/$defs/EvidenceTarget11"
+        },
+        "committed_workspace_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "undoable": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "operation_id",
+        "workspace_id",
+        "target",
+        "committed_workspace_revision",
+        "undoable"
+      ],
+      "additionalProperties": false
+    },
+    "NumberParameter11": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "number"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"
+        },
+        "default": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "type",
+        "name",
+        "default"
+      ],
+      "additionalProperties": false
+    },
+    "IntegerParameter11": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "integer"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"
+        },
+        "default": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "type",
+        "name",
+        "default"
+      ],
+      "additionalProperties": false
+    },
+    "BooleanParameter11": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "boolean"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"
+        },
+        "default": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "name",
+        "default"
+      ],
+      "additionalProperties": false
+    },
+    "ParameterDeclaration11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/NumberParameter11"
+        },
+        {
+          "$ref": "#/$defs/IntegerParameter11"
+        },
+        {
+          "$ref": "#/$defs/BooleanParameter11"
+        }
+      ]
+    },
+    "NumericOverride11": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"
+        },
+        "value": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "BooleanOverride11": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"
+        },
+        "value": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "ParameterOverride11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/NumericOverride11"
+        },
+        {
+          "$ref": "#/$defs/BooleanOverride11"
+        }
+      ]
+    },
+    "NumberReference11": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "number_parameter"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"
+        }
+      },
+      "required": [
+        "op",
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "BooleanReference11": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "boolean_parameter"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"
+        }
+      },
+      "required": [
+        "op",
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "WindowLiteral11": {
+      "type": "object",
+      "properties": {
+        "periods": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        }
+      },
+      "required": [
+        "periods"
+      ],
+      "additionalProperties": false
+    },
+    "WindowParameter11": {
+      "type": "object",
+      "properties": {
+        "parameter": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"
+        }
+      },
+      "required": [
+        "parameter"
+      ],
+      "additionalProperties": false
+    },
+    "WindowLength11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/WindowLiteral11"
+        },
+        {
+          "$ref": "#/$defs/WindowParameter11"
+        }
+      ]
+    },
+    "Arithmetic11": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "enum": [
+            "add",
+            "subtract",
+            "multiply",
+            "divide"
+          ]
+        },
+        "left": {
+          "$ref": "#/$defs/NumberExpression11"
+        },
+        "right": {
+          "$ref": "#/$defs/NumberExpression11"
+        }
+      },
+      "required": [
+        "op",
+        "left",
+        "right"
+      ],
+      "additionalProperties": false
+    },
+    "Absolute11": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "abs"
+        },
+        "value": {
+          "$ref": "#/$defs/NumberExpression11"
+        }
+      },
+      "required": [
+        "op",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "Delay11": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "lag"
+        },
+        "value": {
+          "$ref": "#/$defs/NumberExpression11"
+        },
+        "periods": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        }
+      },
+      "required": [
+        "op",
+        "value",
+        "periods"
+      ],
+      "additionalProperties": false
+    },
+    "Rolling11": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "enum": [
+            "rolling_mean",
+            "rolling_std"
+          ]
+        },
+        "value": {
+          "$ref": "#/$defs/NumberExpression11"
+        },
+        "window": {
+          "$ref": "#/$defs/WindowLength11"
+        }
+      },
+      "required": [
+        "op",
+        "value",
+        "window"
+      ],
+      "additionalProperties": false
+    },
+    "NumberExpression11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/FieldExpression"
+        },
+        {
+          "$ref": "#/$defs/ConstantExpression"
+        },
+        {
+          "$ref": "#/$defs/NumberReference11"
+        },
+        {
+          "$ref": "#/$defs/Arithmetic11"
+        },
+        {
+          "$ref": "#/$defs/Absolute11"
+        },
+        {
+          "$ref": "#/$defs/Delay11"
+        },
+        {
+          "$ref": "#/$defs/Rolling11"
+        }
+      ]
+    },
+    "BooleanConstant11": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "boolean"
+        },
+        "value": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "op",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "Comparison11": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "enum": [
+            "gt",
+            "lt"
+          ]
+        },
+        "left": {
+          "$ref": "#/$defs/NumberExpression11"
+        },
+        "right": {
+          "$ref": "#/$defs/NumberExpression11"
+        }
+      },
+      "required": [
+        "op",
+        "left",
+        "right"
+      ],
+      "additionalProperties": false
+    },
+    "BooleanBinary11": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "enum": [
+            "and",
+            "or"
+          ]
+        },
+        "left": {
+          "$ref": "#/$defs/BooleanExpression11"
+        },
+        "right": {
+          "$ref": "#/$defs/BooleanExpression11"
+        }
+      },
+      "required": [
+        "op",
+        "left",
+        "right"
+      ],
+      "additionalProperties": false
+    },
+    "BooleanExpression11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/BooleanConstant11"
+        },
+        {
+          "$ref": "#/$defs/BooleanReference11"
+        },
+        {
+          "$ref": "#/$defs/Comparison11"
+        },
+        {
+          "$ref": "#/$defs/BooleanBinary11"
+        }
+      ]
+    },
+    "NumericSeries11": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "line",
+            "histogram"
+          ]
+        },
+        "id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "pane": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "value": {
+          "$ref": "#/$defs/NumberExpression11"
+        },
+        "style": {
+          "$ref": "#/$defs/Style"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "pane",
+        "value",
+        "style"
+      ],
+      "additionalProperties": false
+    },
+    "ConditionalMarker11": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "marker_when"
+        },
+        "when": {
+          "$ref": "#/$defs/BooleanExpression11"
+        },
+        "position": {
+          "$ref": "#/$defs/MarkerPosition"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "color": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        }
+      },
+      "required": [
+        "kind",
+        "when",
+        "position",
+        "label",
+        "color"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorOutputSpec11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/NumericSeries11"
+        },
+        {
+          "$ref": "#/$defs/ConditionalMarker11"
+        }
+      ]
+    },
+    "DeclarativeSource11": {
+      "type": "object",
+      "properties": {
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ParameterDeclaration11"
+          },
+          "maxItems": 64
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/IndicatorOutputSpec11"
+          },
+          "maxItems": 16,
+          "minItems": 1
+        }
+      },
+      "required": [
+        "parameters",
+        "outputs"
+      ],
+      "additionalProperties": false,
+      "description": "Bind unique declared parameter names, type-check overrides and materialize defaults before hashing. Resolve named windows to positive integers. Evaluate numeric series separately from boolean marker predicates. A false or unknown predicate emits no marker."
+    },
+    "DeclarativeDraft11": {
+      "type": "object",
+      "properties": {
+        "language": {
+          "type": "string",
+          "const": "declarative"
+        },
+        "source": {
+          "$ref": "#/$defs/DeclarativeSource11"
+        }
+      },
+      "required": [
+        "language",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    "PythonDraft11": {
+      "type": "object",
+      "properties": {
+        "language": {
+          "type": "string",
+          "const": "python"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 262144
+        },
+        "params": {
+          "$ref": "#/$defs/Metadata"
+        }
+      },
+      "required": [
+        "language",
+        "source",
+        "params"
+      ],
+      "additionalProperties": false
+    },
+    "DraftSource11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/DeclarativeDraft11"
+        },
+        {
+          "$ref": "#/$defs/PythonDraft11"
+        }
+      ]
+    },
+    "SnapshotPreview11": {
+      "type": "object",
+      "properties": {
+        "draft_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/FrozenSnapshot"
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ParameterOverride11"
+          },
+          "maxItems": 64
+        }
+      },
+      "required": [
+        "draft_id",
+        "snapshot",
+        "parameters"
+      ],
+      "additionalProperties": false
+    },
+    "PythonSnapshotPreview11": {
+      "type": "object",
+      "properties": {
+        "draft_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/FrozenSnapshot"
+        },
+        "python_params": {
+          "$ref": "#/$defs/Metadata"
+        }
+      },
+      "required": [
+        "draft_id",
+        "snapshot",
+        "python_params"
+      ],
+      "additionalProperties": false
+    },
+    "PreviewArguments11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/SnapshotPreview11"
+        },
+        {
+          "$ref": "#/$defs/PythonSnapshotPreview11"
+        }
+      ]
+    },
+    "AcceptPreview11": {
+      "type": "object",
+      "properties": {
+        "preview_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "result_hash": {
+          "$ref": "#/$defs/Hash"
+        }
+      },
+      "required": [
+        "preview_id",
+        "result_hash"
+      ],
+      "additionalProperties": false
+    },
+    "OpenSeries11": {
+      "type": "object",
+      "properties": {
+        "series": {
+          "$ref": "#/$defs/SeriesKey"
+        },
+        "dataset_revision": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OpaqueId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "series",
+        "dataset_revision"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceOpenInstrumentIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "workspace.openInstrument"
+        },
+        "arguments": {
+          "$ref": "#/$defs/OpenSeries11"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "ChartSetTimeframeArguments11": {
+      "type": "object",
+      "properties": {
+        "timeframe": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        }
+      },
+      "required": [
+        "timeframe"
+      ],
+      "additionalProperties": false
+    },
+    "ChartSetTimeframeIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "chart.setTimeframe"
+        },
+        "arguments": {
+          "$ref": "#/$defs/ChartSetTimeframeArguments11"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "ChartSetStyleArguments11": {
+      "type": "object",
+      "properties": {
+        "style": {
+          "$ref": "#/$defs/ChartStyle"
+        }
+      },
+      "required": [
+        "style"
+      ],
+      "additionalProperties": false
+    },
+    "ChartSetStyleIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "chart.setStyle"
+        },
+        "arguments": {
+          "$ref": "#/$defs/ChartSetStyleArguments11"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "ChartAddAnnotationArguments11": {
+      "type": "object",
+      "properties": {
+        "annotation": {
+          "$ref": "#/$defs/Annotation"
+        }
+      },
+      "required": [
+        "annotation"
+      ],
+      "additionalProperties": false
+    },
+    "ChartAddAnnotationIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "chart.addAnnotation"
+        },
+        "arguments": {
+          "$ref": "#/$defs/ChartAddAnnotationArguments11"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "ChartRemoveLayerArguments11": {
+      "type": "object",
+      "properties": {
+        "layer_id": {
+          "$ref": "#/$defs/OpaqueId"
+        }
+      },
+      "required": [
+        "layer_id"
+      ],
+      "additionalProperties": false
+    },
+    "ChartRemoveLayerIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "chart.removeLayer"
+        },
+        "arguments": {
+          "$ref": "#/$defs/ChartRemoveLayerArguments11"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorCreateDraftIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "indicator.createDraft"
+        },
+        "arguments": {
+          "$ref": "#/$defs/DraftSource11"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorRunPreviewIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "indicator.runPreview"
+        },
+        "arguments": {
+          "$ref": "#/$defs/PreviewArguments11"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorAcceptVersionIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "indicator.acceptVersion"
+        },
+        "arguments": {
+          "$ref": "#/$defs/AcceptPreview11"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorRemoveArguments11": {
+      "type": "object",
+      "properties": {
+        "layer_id": {
+          "$ref": "#/$defs/OpaqueId"
+        }
+      },
+      "required": [
+        "layer_id"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorRemoveIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "indicator.remove"
+        },
+        "arguments": {
+          "$ref": "#/$defs/IndicatorRemoveArguments11"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceUndoArguments11": {
+      "type": "object",
+      "properties": {
+        "operation_id": {
+          "$ref": "#/$defs/OpaqueId"
+        }
+      },
+      "required": [
+        "operation_id"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceUndoIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "workspace.undo"
+        },
+        "arguments": {
+          "$ref": "#/$defs/WorkspaceUndoArguments11"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "MutationIntent11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/WorkspaceOpenInstrumentIntent11"
+        },
+        {
+          "$ref": "#/$defs/ChartSetTimeframeIntent11"
+        },
+        {
+          "$ref": "#/$defs/ChartSetStyleIntent11"
+        },
+        {
+          "$ref": "#/$defs/ChartAddAnnotationIntent11"
+        },
+        {
+          "$ref": "#/$defs/ChartRemoveLayerIntent11"
+        },
+        {
+          "$ref": "#/$defs/IndicatorCreateDraftIntent11"
+        },
+        {
+          "$ref": "#/$defs/IndicatorRunPreviewIntent11"
+        },
+        {
+          "$ref": "#/$defs/IndicatorAcceptVersionIntent11"
+        },
+        {
+          "$ref": "#/$defs/IndicatorRemoveIntent11"
+        },
+        {
+          "$ref": "#/$defs/WorkspaceUndoIntent11"
+        }
+      ]
+    },
+    "ScopedMutationRequest11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/MutationScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/MutationIntent11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "scope",
+        "intent"
+      ],
+      "additionalProperties": false
+    },
+    "ScopedFailure11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "failed"
+        },
+        "error": {
+          "$ref": "#/$defs/WorkspaceFault11"
+        }
+      },
+      "required": [
+        "state",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceFault11": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/ErrorCode"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "retryable": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "retryable"
+      ],
+      "additionalProperties": false,
+      "description": "A core-sanitized error for this recipient. Do not pass provider, grant, path or model diagnostics through this view."
+    },
+    "PythonExecutionScope11": {
+      "type": "object",
+      "properties": {
+        "code_hash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "parameters_hash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "snapshot_hash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "trust_mode": {
+          "type": "string",
+          "const": "trusted_user_code_no_sandbox"
+        },
+        "input_use": {
+          "type": "string",
+          "const": "trusted_code_permitted"
+        }
+      },
+      "required": [
+        "code_hash",
+        "parameters_hash",
+        "snapshot_hash",
+        "trust_mode",
+        "input_use"
+      ],
+      "additionalProperties": false,
+      "description": "Core-issued disclosure. Requires effective data rights and a human decision about this exact execution. File and network access are not technically isolated."
+    },
+    "ConfirmationChallenge11": {
+      "type": "object",
+      "properties": {
+        "challenge_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "$ref": "#/$defs/OperationName"
+        },
+        "principal_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "session_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "workspace_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "target": {
+          "$ref": "#/$defs/EvidenceTarget11"
+        },
+        "workspace_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "selection_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "parameters_hash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "expires_at_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "python": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PythonExecutionScope11"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "challenge_id",
+        "request_id",
+        "task_id",
+        "operation",
+        "principal_id",
+        "session_id",
+        "workspace_id",
+        "target",
+        "workspace_revision",
+        "selection_revision",
+        "parameters_hash",
+        "expires_at_ms",
+        "python"
+      ],
+      "additionalProperties": false
+    },
+    "NeedsHumanDecision11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "awaiting_confirmation"
+        },
+        "challenge": {
+          "$ref": "#/$defs/ConfirmationChallenge11"
+        }
+      },
+      "required": [
+        "state",
+        "challenge"
+      ],
+      "additionalProperties": false
+    },
+    "MutationOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/WorkspaceOpenInstrumentCommitted11"
+        },
+        {
+          "$ref": "#/$defs/ChartSetTimeframeCommitted11"
+        },
+        {
+          "$ref": "#/$defs/ChartSetStyleCommitted11"
+        },
+        {
+          "$ref": "#/$defs/ChartAddAnnotationCommitted11"
+        },
+        {
+          "$ref": "#/$defs/ChartRemoveLayerCommitted11"
+        },
+        {
+          "$ref": "#/$defs/IndicatorCreateDraftCommitted11"
+        },
+        {
+          "$ref": "#/$defs/IndicatorRunPreviewCommitted11"
+        },
+        {
+          "$ref": "#/$defs/IndicatorAcceptVersionCommitted11"
+        },
+        {
+          "$ref": "#/$defs/IndicatorRemoveCommitted11"
+        },
+        {
+          "$ref": "#/$defs/WorkspaceUndoCommitted11"
+        },
+        {
+          "$ref": "#/$defs/NeedsHumanDecision11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
+    },
+    "ScopedMutationResponse11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "outcome": {
+          "$ref": "#/$defs/MutationOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "TrustedConfirmationDecision11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "confirmation.respond"
+        },
+        "challenge_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "approve",
+            "deny"
+          ]
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "challenge_id",
+        "decision"
+      ],
+      "additionalProperties": false,
+      "description": "Trusted human UI to core only. The authenticated transport identifies the approver. This is never an advertised AI tool or a worker-originated request."
+    },
+    "InlineIndicatorArtifact11": {
+      "type": "object",
+      "properties": {
+        "storage": {
+          "type": "string",
+          "const": "inline"
+        },
+        "result_hash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "result": {
+          "$ref": "#/$defs/IndicatorResult"
+        }
+      },
+      "required": [
+        "storage",
+        "result_hash",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "IndexedIndicatorArtifact11": {
+      "type": "object",
+      "properties": {
+        "storage": {
+          "type": "string",
+          "const": "core_artifact"
+        },
+        "artifact_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "result_hash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 268435456
+        },
+        "segment_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        }
+      },
+      "required": [
+        "storage",
+        "artifact_id",
+        "result_hash",
+        "byte_length",
+        "segment_count"
+      ],
+      "additionalProperties": false,
+      "description": "An immutable artifact staged under the task's limits. The core only publishes a preview after validating and hashing the complete result."
+    },
+    "IndicatorArtifact11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/InlineIndicatorArtifact11"
+        },
+        {
+          "$ref": "#/$defs/IndexedIndicatorArtifact11"
+        }
+      ]
+    },
+    "PreviewReady11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "event"
+        },
+        "event": {
+          "type": "string",
+          "const": "indicator.preview_ready"
+        },
+        "task_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "draft_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "preview_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "stream_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "sequence": {
+          "$ref": "#/$defs/Revision"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/FrozenSnapshot"
+        },
+        "code_hash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "params_hash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "engine_version": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "artifact": {
+          "$ref": "#/$defs/IndicatorArtifact11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "event",
+        "task_id",
+        "draft_id",
+        "preview_id",
+        "stream_id",
+        "sequence",
+        "snapshot",
+        "code_hash",
+        "params_hash",
+        "engine_version",
+        "artifact"
+      ],
+      "additionalProperties": false,
+      "description": "Core-issued terminal preview notification. Resolve only the validated output for this task, draft, immutable snapshot and parameter set. A worker cannot publish an accepted preview."
+    },
+    "ArtifactChunk11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "event"
+        },
+        "event": {
+          "type": "string",
+          "const": "indicator.result_segment"
+        },
+        "task_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "artifact_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "result_hash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "stream_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "sequence": {
+          "$ref": "#/$defs/Revision"
+        },
+        "segment_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4095
+        },
+        "bytes_base64": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 3495260,
+          "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "event",
+        "task_id",
+        "artifact_id",
+        "result_hash",
+        "stream_id",
+        "sequence",
+        "segment_index",
+        "bytes_base64"
+      ],
+      "additionalProperties": false,
+      "description": "Ordered segments carry bytes of the same canonical IndicatorResult JSON and are individually subject to the NDJSON byte cap. Validate the full content hash, declared sizes and output semantics before exposure. Dispose incomplete or cancelled staging."
+    },
+    "TaskEffectSummary11": {
+      "type": "object",
+      "properties": {
+        "operation_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "workspace_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "committed_workspace_revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "operation_id",
+        "workspace_id",
+        "committed_workspace_revision"
+      ],
+      "additionalProperties": false
+    },
+    "TaskCompleted11": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "const": "completed"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "TaskCancelled11": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "const": "cancelled"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "TaskFailed11": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "const": "failed"
+        },
+        "error": {
+          "$ref": "#/$defs/WorkspaceFault11"
+        }
+      },
+      "required": [
+        "status",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "TerminalState11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/TaskCompleted11"
+        },
+        {
+          "$ref": "#/$defs/TaskCancelled11"
+        },
+        {
+          "$ref": "#/$defs/TaskFailed11"
+        }
+      ]
+    },
+    "TaskTerminalEvent11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "event"
+        },
+        "event": {
+          "type": "string",
+          "const": "task.terminal"
+        },
+        "task_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "stream_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "sequence": {
+          "$ref": "#/$defs/Revision"
+        },
+        "outcome": {
+          "$ref": "#/$defs/TerminalState11"
+        },
+        "committed_effects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TaskEffectSummary11"
+          },
+          "maxItems": 128
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "event",
+        "task_id",
+        "stream_id",
+        "sequence",
+        "outcome",
+        "committed_effects"
+      ],
+      "additionalProperties": false
+    },
+    "TaskCancelRequest11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "operation": {
+          "type": "string",
+          "const": "task.cancel"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "operation",
+        "request_id",
+        "task_id"
+      ],
+      "additionalProperties": false
+    },
+    "CancelMemberRequest11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "cancel"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id"
+      ],
+      "additionalProperties": false,
+      "description": "Host to the worker that owns this outstanding request. A cancellation never rolls back an earlier committed operation."
+    },
+    "ExportedBar11": {
+      "type": "object",
+      "properties": {
+        "time_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "trading_day": {
+          "type": "string",
+          "format": "date"
+        },
+        "open": {
+          "type": "number"
+        },
+        "high": {
+          "type": "number"
+        },
+        "low": {
+          "type": "number"
+        },
+        "close": {
+          "type": "number"
+        },
+        "volume": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "is_closed": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "Emit only requested and permitted fields. Missing denotes withheld/not requested; null volume denotes a permitted observation of unknown volume."
+    },
+    "ExportField11": {
+      "type": "string",
+      "enum": [
+        "time_ms",
+        "trading_day",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume",
+        "is_closed"
+      ]
+    },
+    "ProjectedChart11": {
+      "type": "object",
+      "properties": {
+        "source_reference": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "revision": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExportField11"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExportedBar11"
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "source_reference",
+        "revision",
+        "fields",
+        "rows"
+      ],
+      "additionalProperties": false,
+      "description": "Use recipient-safe opaque source/revision references. Every row must have exactly the listed fields; if required provenance cannot be disclosed, deny the read. Nested source metadata is not included.",
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "fields": {
+                "type": "array",
+                "contains": {
+                  "const": "time_ms"
+                }
+              }
+            }
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "rows": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "time_ms": {}
+                  },
+                  "required": [
+                    "time_ms"
+                  ]
+                }
+              }
+            }
+          },
+          "else": {
+            "type": "object",
+            "properties": {
+              "rows": {
+                "type": "array",
+                "items": {
+                  "not": {
+                    "type": "object",
+                    "properties": {
+                      "time_ms": {}
+                    },
+                    "required": [
+                      "time_ms"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "fields": {
+                "type": "array",
+                "contains": {
+                  "const": "trading_day"
+                }
+              }
+            }
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "rows": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "trading_day": {}
+                  },
+                  "required": [
+                    "trading_day"
+                  ]
+                }
+              }
+            }
+          },
+          "else": {
+            "type": "object",
+            "properties": {
+              "rows": {
+                "type": "array",
+                "items": {
+                  "not": {
+                    "type": "object",
+                    "properties": {
+                      "trading_day": {}
+                    },
+                    "required": [
+                      "trading_day"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "fields": {
+                "type": "array",
+                "contains": {
+                  "const": "open"
+                }
+              }
+            }
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "rows": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "open": {}
+                  },
+                  "required": [
+                    "open"
+                  ]
+                }
+              }
+            }
+          },
+          "else": {
+            "type": "object",
+            "properties": {
+              "rows": {
+                "type": "array",
+                "items": {
+                  "not": {
+                    "type": "object",
+                    "properties": {
+                      "open": {}
+                    },
+                    "required": [
+                      "open"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "fields": {
+                "type": "array",
+                "contains": {
+                  "const": "high"
+                }
+              }
+            }
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "rows": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "high": {}
+                  },
+                  "required": [
+                    "high"
+                  ]
+                }
+              }
+            }
+          },
+          "else": {
+            "type": "object",
+            "properties": {
+              "rows": {
+                "type": "array",
+                "items": {
+                  "not": {
+                    "type": "object",
+                    "properties": {
+                      "high": {}
+                    },
+                    "required": [
+                      "high"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "fields": {
+                "type": "array",
+                "contains": {
+                  "const": "low"
+                }
+              }
+            }
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "rows": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "low": {}
+                  },
+                  "required": [
+                    "low"
+                  ]
+                }
+              }
+            }
+          },
+          "else": {
+            "type": "object",
+            "properties": {
+              "rows": {
+                "type": "array",
+                "items": {
+                  "not": {
+                    "type": "object",
+                    "properties": {
+                      "low": {}
+                    },
+                    "required": [
+                      "low"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "fields": {
+                "type": "array",
+                "contains": {
+                  "const": "close"
+                }
+              }
+            }
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "rows": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "close": {}
+                  },
+                  "required": [
+                    "close"
+                  ]
+                }
+              }
+            }
+          },
+          "else": {
+            "type": "object",
+            "properties": {
+              "rows": {
+                "type": "array",
+                "items": {
+                  "not": {
+                    "type": "object",
+                    "properties": {
+                      "close": {}
+                    },
+                    "required": [
+                      "close"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "fields": {
+                "type": "array",
+                "contains": {
+                  "const": "volume"
+                }
+              }
+            }
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "rows": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "volume": {}
+                  },
+                  "required": [
+                    "volume"
+                  ]
+                }
+              }
+            }
+          },
+          "else": {
+            "type": "object",
+            "properties": {
+              "rows": {
+                "type": "array",
+                "items": {
+                  "not": {
+                    "type": "object",
+                    "properties": {
+                      "volume": {}
+                    },
+                    "required": [
+                      "volume"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "fields": {
+                "type": "array",
+                "contains": {
+                  "const": "is_closed"
+                }
+              }
+            }
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "rows": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "is_closed": {}
+                  },
+                  "required": [
+                    "is_closed"
+                  ]
+                }
+              }
+            }
+          },
+          "else": {
+            "type": "object",
+            "properties": {
+              "rows": {
+                "type": "array",
+                "items": {
+                  "not": {
+                    "type": "object",
+                    "properties": {
+                      "is_closed": {}
+                    },
+                    "required": [
+                      "is_closed"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ReadProjectedChart11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "operation": {
+          "type": "string",
+          "const": "workspace.readChartProjection"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "workspace_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "selection_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "requested_fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExportField11"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "operation",
+        "request_id",
+        "workspace_id",
+        "selection_revision",
+        "requested_fields"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectedChartResponse11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "operation": {
+          "type": "string",
+          "const": "workspace.readChartProjection"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "result": {
+          "$ref": "#/$defs/ProjectedChart11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "operation",
+        "request_id",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "SharedSelectionEvent11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "event"
+        },
+        "event": {
+          "type": "string",
+          "const": "workspace.selection_changed"
+        },
+        "stream_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "sequence": {
+          "$ref": "#/$defs/Revision"
+        },
+        "selection": {
+          "$ref": "#/$defs/SharedSelection11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "event",
+        "stream_id",
+        "sequence",
+        "selection"
+      ],
+      "additionalProperties": false
+    },
+    "SharedSelectionRequest11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "operation": {
+          "type": "string",
+          "const": "workspace.selectEvidence"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "workspace_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "expected_selection_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceTarget11"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "operation",
+        "request_id",
+        "workspace_id",
+        "expected_selection_revision",
+        "target"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectedReadIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "workspace.readChartProjection"
+        },
+        "workspace_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "selection_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "requested_fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExportField11"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "operation",
+        "workspace_id",
+        "selection_revision",
+        "requested_fields"
+      ],
+      "additionalProperties": false
+    },
+    "BoundMutationIntent11": {
+      "type": "object",
+      "properties": {
+        "scope": {
+          "$ref": "#/$defs/MutationScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/MutationIntent11"
+        }
+      },
+      "required": [
+        "scope",
+        "intent"
+      ],
+      "additionalProperties": false
+    },
+    "AiRequestedAction11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/BoundMutationIntent11"
+        },
+        {
+          "$ref": "#/$defs/ProjectedReadIntent11"
+        },
+        {
+          "$ref": "#/$defs/InstrumentSearchToolCall"
+        },
+        {
+          "$ref": "#/$defs/MarketGetBarsToolCall"
+        },
+        {
+          "$ref": "#/$defs/WorkspaceGetContextToolCall"
+        },
+        {
+          "$ref": "#/$defs/TaskCancelToolCall"
+        },
+        {
+          "$ref": "#/$defs/MarketHistoryPageToolCall11"
+        },
+        {
+          "$ref": "#/$defs/SelectEvidenceIntent11"
+        }
+      ]
+    },
+    "AiToolRequest11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "event"
+        },
+        "event": {
+          "type": "string",
+          "const": "ai.tool_request"
+        },
+        "stream_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "sequence": {
+          "$ref": "#/$defs/Revision"
+        },
+        "task_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "call_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "payload": {
+          "$ref": "#/$defs/AiRequestedAction11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "event",
+        "stream_id",
+        "sequence",
+        "task_id",
+        "call_id",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "ToolReadResult11": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "const": "read"
+        },
+        "view": {
+          "$ref": "#/$defs/ProjectedChart11"
+        }
+      },
+      "required": [
+        "status",
+        "view"
+      ],
+      "additionalProperties": false
+    },
+    "ToolCommittedResult11": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "const": "committed"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "committed_workspace_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "undoable": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "status",
+        "operation_id",
+        "committed_workspace_revision",
+        "undoable"
+      ],
+      "additionalProperties": false
+    },
+    "ToolRefResult11": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "const": "available"
+        },
+        "result_ref": {
+          "$ref": "#/$defs/OpaqueId"
+        }
+      },
+      "required": [
+        "status",
+        "result_ref"
+      ],
+      "additionalProperties": false,
+      "description": "A grant-filtered opaque result or task reference. Redeeming a reference must repeat current grant and entitlement checks."
+    },
+    "ToolDeniedResult11": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "denied",
+            "failed",
+            "cancelled"
+          ]
+        },
+        "error": {
+          "$ref": "#/$defs/WorkspaceFault11"
+        }
+      },
+      "required": [
+        "status",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "AiToolOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ToolReadResult11"
+        },
+        {
+          "$ref": "#/$defs/ToolCommittedResult11"
+        },
+        {
+          "$ref": "#/$defs/ToolRefResult11"
+        },
+        {
+          "$ref": "#/$defs/ToolDeniedResult11"
+        }
+      ]
+    },
+    "AiToolResultDelivery11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "operation": {
+          "type": "string",
+          "const": "ai.tool_result"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "call_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "outcome": {
+          "$ref": "#/$defs/AiToolOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "operation",
+        "request_id",
+        "task_id",
+        "call_id",
+        "outcome"
+      ],
+      "additionalProperties": false,
+      "description": "Core-to-AI control message. Match the active task and call before accepting a result. Acknowledgement of this delivery does not establish execution success."
+    },
+    "AiToolResultAck11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "operation": {
+          "type": "string",
+          "const": "ai.tool_result"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "call_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "received",
+            "already_received",
+            "task_terminal"
+          ]
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "operation",
+        "request_id",
+        "task_id",
+        "call_id",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "MarketHistoryPageToolCall11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "market.readHistoryPage"
+        },
+        "arguments": {
+          "$ref": "#/$defs/MarketHistoryPageInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectedChartError11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "operation": {
+          "type": "string",
+          "const": "workspace.readChartProjection"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "error": {
+          "$ref": "#/$defs/WorkspaceFault11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "operation",
+        "request_id",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "InlineIndicatorBars11": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "const": "inline"
+        },
+        "bars": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Bar"
+          },
+          "maxItems": 100000
+        }
+      },
+      "required": [
+        "mode",
+        "bars"
+      ],
+      "additionalProperties": false
+    },
+    "SegmentedIndicatorBars11": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "const": "segmented"
+        },
+        "total_bars": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "segment_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        }
+      },
+      "required": [
+        "mode",
+        "total_bars",
+        "segment_count"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorBarsInput11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/InlineIndicatorBars11"
+        },
+        {
+          "$ref": "#/$defs/SegmentedIndicatorBars11"
+        }
+      ]
+    },
+    "IndicatorCompute11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "operation": {
+          "type": "string",
+          "const": "indicator.compute"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "draft_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "source": {
+          "$ref": "#/$defs/DraftSource11"
+        },
+        "resolved_params": {
+          "$ref": "#/$defs/Metadata"
+        },
+        "code_hash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "params_hash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/FrozenSnapshot"
+        },
+        "input": {
+          "$ref": "#/$defs/IndicatorBarsInput11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "operation",
+        "request_id",
+        "task_id",
+        "draft_id",
+        "source",
+        "resolved_params",
+        "code_hash",
+        "params_hash",
+        "snapshot",
+        "input"
+      ],
+      "additionalProperties": false,
+      "description": "Core to indicator worker after authorization. Supply the frozen bars directly or through bounded matching input segments. Workers cannot fetch the user's database or approve computation."
+    },
+    "IndicatorInputSegment11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "event"
+        },
+        "event": {
+          "type": "string",
+          "const": "indicator.input_segment"
+        },
+        "stream_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "sequence": {
+          "$ref": "#/$defs/Revision"
+        },
+        "task_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "snapshot_hash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "offset": {
+          "$ref": "#/$defs/Revision"
+        },
+        "bars": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Bar"
+          },
+          "maxItems": 100000,
+          "minItems": 1
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "event",
+        "stream_id",
+        "sequence",
+        "task_id",
+        "request_id",
+        "snapshot_hash",
+        "offset",
+        "bars"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorComputed11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "operation": {
+          "type": "string",
+          "const": "indicator.compute"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "draft_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "snapshot_hash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "artifact": {
+          "$ref": "#/$defs/IndicatorArtifact11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "operation",
+        "request_id",
+        "task_id",
+        "draft_id",
+        "snapshot_hash",
+        "artifact"
+      ],
+      "additionalProperties": false,
+      "description": "Untrusted worker output. The core checks complete bytes, identities, sizes and result semantics before issuing any preview ID."
+    },
+    "LegacyOperationName": {
+      "type": "string",
+      "enum": [
+        "instrument.search",
+        "market.getBars",
+        "workspace.openInstrument",
+        "chart.setTimeframe",
+        "chart.setStyle",
+        "chart.addAnnotation",
+        "chart.removeLayer",
+        "indicator.createDraft",
+        "indicator.runPreview",
+        "indicator.acceptVersion",
+        "indicator.remove",
+        "workspace.undo",
+        "task.cancel",
+        "workspace.getContext"
+      ]
+    },
+    "ProjectedChartArguments11": {
+      "type": "object",
+      "properties": {
+        "workspace_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "selection_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "requested_fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExportField11"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "workspace_id",
+        "selection_revision",
+        "requested_fields"
+      ],
+      "additionalProperties": false
+    },
+    "SelectEvidenceArguments11": {
+      "type": "object",
+      "properties": {
+        "workspace_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "expected_selection_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceTarget11"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "workspace_id",
+        "expected_selection_revision",
+        "target"
+      ],
+      "additionalProperties": false
+    },
+    "SelectEvidenceIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "workspace.selectEvidence"
+        },
+        "workspace_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "expected_selection_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceTarget11"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "operation",
+        "workspace_id",
+        "expected_selection_revision",
+        "target"
+      ],
+      "additionalProperties": false
+    },
+    "SharedSelectionResponse11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "operation": {
+          "type": "string",
+          "const": "workspace.selectEvidence"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "selection": {
+          "$ref": "#/$defs/SharedSelection11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "operation",
+        "request_id",
+        "selection"
+      ],
+      "additionalProperties": false
+    },
+    "SharedSelectionError11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "operation": {
+          "type": "string",
+          "const": "workspace.selectEvidence"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "error": {
+          "$ref": "#/$defs/WorkspaceFault11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "operation",
+        "request_id",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectedChartReply11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ProjectedChartResponse11"
+        },
+        {
+          "$ref": "#/$defs/ProjectedChartError11"
+        }
+      ]
+    },
+    "SelectEvidenceReply11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/SharedSelectionResponse11"
+        },
+        {
+          "$ref": "#/$defs/SharedSelectionError11"
+        }
+      ]
+    },
+    "SharedContextRequest11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "operation": {
+          "type": "string",
+          "const": "workspace.getContext"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "workspace_id": {
+          "$ref": "#/$defs/OpaqueId"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "operation",
+        "request_id",
+        "workspace_id"
+      ],
+      "additionalProperties": false
+    },
+    "SharedContext11": {
+      "type": "object",
+      "properties": {
+        "workspace_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "workspace_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "selection": {
+          "$ref": "#/$defs/SharedSelection11"
+        },
+        "chart": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProjectedChart11"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "authorized_operations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OperationName"
+          },
+          "maxItems": 64,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "workspace_id",
+        "workspace_revision",
+        "selection",
+        "chart",
+        "authorized_operations"
+      ],
+      "additionalProperties": false
+    },
+    "SharedContextResponse11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "operation": {
+          "type": "string",
+          "const": "workspace.getContext"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "context": {
+          "$ref": "#/$defs/SharedContext11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "operation",
+        "request_id",
+        "context"
+      ],
+      "additionalProperties": false
+    },
+    "SharedContextError11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "operation": {
+          "type": "string",
+          "const": "workspace.getContext"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "error": {
+          "$ref": "#/$defs/WorkspaceFault11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "operation",
+        "request_id",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "SharedContextReply11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/SharedContextResponse11"
+        },
+        {
+          "$ref": "#/$defs/SharedContextError11"
+        }
+      ]
+    },
+    "CancelTaskResponse11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "operation": {
+          "type": "string",
+          "const": "task.cancel"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "outcome": {
+          "$ref": "#/$defs/TerminalState11"
+        },
+        "committed_effects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TaskEffectSummary11"
+          },
+          "maxItems": 128
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "operation",
+        "request_id",
+        "task_id",
+        "outcome",
+        "committed_effects"
+      ],
+      "additionalProperties": false
+    },
+    "CancelTaskError11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "operation": {
+          "type": "string",
+          "const": "task.cancel"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "error": {
+          "$ref": "#/$defs/WorkspaceFault11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "operation",
+        "request_id",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "CancelTaskReply11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/CancelTaskResponse11"
+        },
+        {
+          "$ref": "#/$defs/CancelTaskError11"
+        }
+      ]
+    },
+    "WorkspaceOpenInstrumentCommand11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/MutationScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/WorkspaceOpenInstrumentIntent11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "scope",
+        "intent"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceOpenInstrumentCommitted11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "committed"
+        },
+        "operation": {
+          "type": "string",
+          "const": "workspace.openInstrument"
+        },
+        "receipt": {
+          "$ref": "#/$defs/OperationReceipt11"
+        },
+        "result": {
+          "$ref": "#/$defs/WorkspaceOpenInstrumentOutput"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "receipt",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceOpenInstrumentOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/WorkspaceOpenInstrumentCommitted11"
+        },
+        {
+          "$ref": "#/$defs/NeedsHumanDecision11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
+    },
+    "WorkspaceOpenInstrumentReply11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "outcome": {
+          "$ref": "#/$defs/WorkspaceOpenInstrumentOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "ChartSetTimeframeCommand11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/MutationScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/ChartSetTimeframeIntent11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "scope",
+        "intent"
+      ],
+      "additionalProperties": false
+    },
+    "ChartSetTimeframeCommitted11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "committed"
+        },
+        "operation": {
+          "type": "string",
+          "const": "chart.setTimeframe"
+        },
+        "receipt": {
+          "$ref": "#/$defs/OperationReceipt11"
+        },
+        "result": {
+          "$ref": "#/$defs/ChartSetTimeframeOutput"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "receipt",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "ChartSetTimeframeOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ChartSetTimeframeCommitted11"
+        },
+        {
+          "$ref": "#/$defs/NeedsHumanDecision11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
+    },
+    "ChartSetTimeframeReply11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "outcome": {
+          "$ref": "#/$defs/ChartSetTimeframeOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "ChartSetStyleCommand11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/MutationScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/ChartSetStyleIntent11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "scope",
+        "intent"
+      ],
+      "additionalProperties": false
+    },
+    "ChartSetStyleCommitted11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "committed"
+        },
+        "operation": {
+          "type": "string",
+          "const": "chart.setStyle"
+        },
+        "receipt": {
+          "$ref": "#/$defs/OperationReceipt11"
+        },
+        "result": {
+          "$ref": "#/$defs/ChartSetStyleOutput"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "receipt",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "ChartSetStyleOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ChartSetStyleCommitted11"
+        },
+        {
+          "$ref": "#/$defs/NeedsHumanDecision11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
+    },
+    "ChartSetStyleReply11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "outcome": {
+          "$ref": "#/$defs/ChartSetStyleOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "ChartAddAnnotationCommand11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/MutationScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/ChartAddAnnotationIntent11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "scope",
+        "intent"
+      ],
+      "additionalProperties": false
+    },
+    "ChartAddAnnotationCommitted11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "committed"
+        },
+        "operation": {
+          "type": "string",
+          "const": "chart.addAnnotation"
+        },
+        "receipt": {
+          "$ref": "#/$defs/OperationReceipt11"
+        },
+        "result": {
+          "$ref": "#/$defs/ChartAddAnnotationOutput"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "receipt",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "ChartAddAnnotationOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ChartAddAnnotationCommitted11"
+        },
+        {
+          "$ref": "#/$defs/NeedsHumanDecision11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
+    },
+    "ChartAddAnnotationReply11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "outcome": {
+          "$ref": "#/$defs/ChartAddAnnotationOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "ChartRemoveLayerCommand11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/MutationScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/ChartRemoveLayerIntent11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "scope",
+        "intent"
+      ],
+      "additionalProperties": false
+    },
+    "ChartRemoveLayerCommitted11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "committed"
+        },
+        "operation": {
+          "type": "string",
+          "const": "chart.removeLayer"
+        },
+        "receipt": {
+          "$ref": "#/$defs/OperationReceipt11"
+        },
+        "result": {
+          "$ref": "#/$defs/ChartRemoveLayerOutput"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "receipt",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "ChartRemoveLayerOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ChartRemoveLayerCommitted11"
+        },
+        {
+          "$ref": "#/$defs/NeedsHumanDecision11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
+    },
+    "ChartRemoveLayerReply11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "outcome": {
+          "$ref": "#/$defs/ChartRemoveLayerOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorCreateDraftCommand11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/MutationScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/IndicatorCreateDraftIntent11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "scope",
+        "intent"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorCreateDraftCommitted11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "committed"
+        },
+        "operation": {
+          "type": "string",
+          "const": "indicator.createDraft"
+        },
+        "receipt": {
+          "$ref": "#/$defs/OperationReceipt11"
+        },
+        "result": {
+          "$ref": "#/$defs/IndicatorCreateDraftOutput"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "receipt",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorCreateDraftOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/IndicatorCreateDraftCommitted11"
+        },
+        {
+          "$ref": "#/$defs/NeedsHumanDecision11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
+    },
+    "IndicatorCreateDraftReply11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "outcome": {
+          "$ref": "#/$defs/IndicatorCreateDraftOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorRunPreviewCommand11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/MutationScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/IndicatorRunPreviewIntent11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "scope",
+        "intent"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorRunPreviewCommitted11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "committed"
+        },
+        "operation": {
+          "type": "string",
+          "const": "indicator.runPreview"
+        },
+        "receipt": {
+          "$ref": "#/$defs/OperationReceipt11"
+        },
+        "result": {
+          "$ref": "#/$defs/IndicatorRunPreviewOutput"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "receipt",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorRunPreviewOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/IndicatorRunPreviewCommitted11"
+        },
+        {
+          "$ref": "#/$defs/NeedsHumanDecision11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
+    },
+    "IndicatorRunPreviewReply11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "outcome": {
+          "$ref": "#/$defs/IndicatorRunPreviewOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorAcceptVersionCommand11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/MutationScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/IndicatorAcceptVersionIntent11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "scope",
+        "intent"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorAcceptVersionCommitted11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "committed"
+        },
+        "operation": {
+          "type": "string",
+          "const": "indicator.acceptVersion"
+        },
+        "receipt": {
+          "$ref": "#/$defs/OperationReceipt11"
+        },
+        "result": {
+          "$ref": "#/$defs/IndicatorAcceptVersionOutput"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "receipt",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorAcceptVersionOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/IndicatorAcceptVersionCommitted11"
+        },
+        {
+          "$ref": "#/$defs/NeedsHumanDecision11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
+    },
+    "IndicatorAcceptVersionReply11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "outcome": {
+          "$ref": "#/$defs/IndicatorAcceptVersionOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorRemoveCommand11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/MutationScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/IndicatorRemoveIntent11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "scope",
+        "intent"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorRemoveCommitted11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "committed"
+        },
+        "operation": {
+          "type": "string",
+          "const": "indicator.remove"
+        },
+        "receipt": {
+          "$ref": "#/$defs/OperationReceipt11"
+        },
+        "result": {
+          "$ref": "#/$defs/IndicatorRemoveOutput"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "receipt",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "IndicatorRemoveOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/IndicatorRemoveCommitted11"
+        },
+        {
+          "$ref": "#/$defs/NeedsHumanDecision11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
+    },
+    "IndicatorRemoveReply11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "outcome": {
+          "$ref": "#/$defs/IndicatorRemoveOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceUndoCommand11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/MutationScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/WorkspaceUndoIntent11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "scope",
+        "intent"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceUndoCommitted11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "committed"
+        },
+        "operation": {
+          "type": "string",
+          "const": "workspace.undo"
+        },
+        "receipt": {
+          "$ref": "#/$defs/OperationReceipt11"
+        },
+        "result": {
+          "$ref": "#/$defs/WorkspaceUndoOutput"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "receipt",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceUndoOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/WorkspaceUndoCommitted11"
+        },
+        {
+          "$ref": "#/$defs/NeedsHumanDecision11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
+    },
+    "WorkspaceUndoReply11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "outcome": {
+          "$ref": "#/$defs/WorkspaceUndoOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "HistoryPageReply11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/MarketHistoryPageResponse"
+        },
+        {
+          "$ref": "#/$defs/MarketHistoryPageError"
         }
       ]
     }

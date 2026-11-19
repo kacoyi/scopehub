@@ -7,7 +7,8 @@
     "project/checks.json",
     "project/delivery.json",
     "project/feedback.json",
-    "project/dependencies.json"
+    "project/dependencies.json",
+    "project/development.json"
   ],
   "iteration_policy": {
     "start": [
@@ -27,12 +28,15 @@
       "Review changed files and accepted history; retain a concrete next action and current focus.",
       "Report tested behavior, unresolved blockers and the difference between mock, native-runtime and release evidence.",
       "Run release-cadence checks at the actual release boundary or through an affected task; normal changes retain a short deterministic feedback loop.",
-      "After a coherent delivery is completed and its evidence is archived, assess its PR with project:integration --pr <number> and include the concrete integration recommendation at handoff. Do not wait for future product milestones or for the owner to remember to ask about integration."
+      "After a coherent delivery is completed and its evidence is archived, assess its PR with project:integration --pr <number> and include the concrete integration recommendation at handoff. Do not wait for future product milestones or for the owner to remember to ask about integration.",
+      "Review responsibility cohesion, public boundaries, data ownership and transition cleanup using project/development.json; distinguish engineering evidence from actual owner product feedback.",
+      "Archive Ubuntu-local and physical Windows observation checks at their designated revisions. Their task-only observations remain historically scoped. Unconfigured or unauthorized external text, voice and client qualifications stay pending until separately observed."
     ],
     "adaptation": [
       "Ordinary implementation, local experiments, tests and refactoring within accepted boundaries need no additional owner approval.",
       "Keep investment judgments, runtime permissions and engineering correctness separate.",
-      "Change language ownership, process boundaries, permissions or protocols through the existing owner-approved ADR process.",
+      "The development AI records consequential technical changes in ADRs; consult the owner on product experience, data, permission, cost or publication consequences according to project/development.json.",
+      "Use Herdr as the development host. Assign scoped parallel work when useful, verify the resulting code at one coordinated revision and continue ready product work within available capacity. Ask the co-developer for a specific missing input or actual product acceptance when their participation is needed.",
       "Use skills only for demonstrated repeatable procedures; keep repository facts in canonical records and executable commands.",
       "Split future milestone tasks into observable slices when work approaches; remove speculative work through explicit cancellation and preserve history."
     ]
@@ -147,6 +151,49 @@
         "architecture",
         "dependency-review"
       ]
+    },
+    {
+      "id": "offline-data",
+      "triggers": [
+        "Local file inspection and chart-data reconstruction diagnostics before provider or runtime integration"
+      ],
+      "checks": [
+        "futures-tick-inspection"
+      ]
+    },
+    {
+      "id": "chart-history",
+      "triggers": [
+        "Opt-in read-only historical chart integration before live subscriptions, recovery and persistent workspace operations"
+      ],
+      "checks": [
+        "chart-history",
+        "market-fixtures",
+        "architecture",
+        "python-types",
+        "ui-build",
+        "rust-contracts-workers"
+      ]
+    },
+    {
+      "id": "stream-slice",
+      "triggers": [
+        "One bounded rendered market stream, including a late update and the final closed bar."
+      ],
+      "checks": [
+        "market-live-stream",
+        "ui-build"
+      ]
+    },
+    {
+      "id": "quality-slice",
+      "triggers": [
+        "Visible deterministic market quality and connection transitions."
+      ],
+      "checks": [
+        "market-quality-states",
+        "ui-build"
+      ]
     }
   ],
   "scenarios": [
@@ -163,13 +210,17 @@
       "then": [
         "Selected instrument and timeframe match displayed data.",
         "Synthetic source and connection state remain visible.",
-        "The final update is rendered without duplicate subscriptions."
+        "The final update is rendered without duplicate subscriptions.",
+        "Bridge the history-to-stream boundary from the last included epoch and contiguous sequence. A missing closed bar becomes visible after bounded backfill, or stays visibly gapped. A closed-session history retains separate as-of, coverage, freshness and connection states."
       ],
       "failure_cases": [
         "Empty history",
         "Missing and stale bars",
         "Worker interruption and bounded reconnect",
-        "UTC versus trading-day boundaries"
+        "UTC versus trading-day boundaries",
+        "An event arrives during snapshot creation or backfill",
+        "Replayed and divergent duplicate events",
+        "Sequence restarts in a new epoch while old events are still arriving"
       ],
       "checks": [
         "market-fixtures",
@@ -189,14 +240,20 @@
       "then": [
         "Both actors use the same registry.",
         "Accepted state restores without replaying AI actions.",
-        "Migration failure leaves a documented recovery route and retained user data."
+        "Migration failure leaves a documented recovery route and retained user data.",
+        "Execute a confirmed write, lose its reply, reconnect and submit the same idempotency key twice concurrently. Obtain one operation ID and one durable change. Undo that operation with a new receipt; a later conflicting change stays intact.",
+        "Restore layout and accepted artifacts with the recorded source disconnected and revoked separately. Keep its identity and visible reason without substituting a sample or issuing a forbidden read."
       ],
       "failure_cases": [
         "Stale confirmation",
         "Duplicate request",
         "Permission denial",
         "Interrupted write or migration",
-        "Unsupported downgrade"
+        "Unsupported downgrade",
+        "Changed parameters on a reused key",
+        "A different principal tries to replay or undo the operation",
+        "Original confirmation arrives after the task was cancelled",
+        "Restore interrupted while applying deletion markers"
       ],
       "checks": [
         "operations-workflow",
@@ -215,14 +272,21 @@
       "then": [
         "The same inputs produce the same declarative result.",
         "Preview and accepted layers are distinguishable.",
-        "Provenance identifies dataset, engine, code and parameters."
+        "Provenance identifies dataset, engine, code and parameters.",
+        "On consecutive expected bars with closes 1, 3 and 5, a two-bucket mean yields null, 2 and 4; population standard deviation yields null, 1 and 1. A three-period override gives null, null and 3. A missing expected bucket yields null in affected windows. Compare a declared parameter, a literal, a null volume and a boolean marker independently.",
+        "Interleave two jobs on distinct snapshots, cancel one, accept the visible successful preview once and restart. A later bar close or correction leaves its accepted numeric output and input locator intact.",
+        "Run a reviewed trusted Python example with no external inputs on fixed synthetic closes 10 and 14. The mean of the two is 12; the first output is null. Verify all values independently. Preview or rerun under a new input requires fresh human approval. Restart or clearing disposable cache restores the accepted result or identifies its unavailability."
       ],
       "failure_cases": [
         "Timeout",
         "Nonfinite output",
         "Oversized output",
         "Exception",
-        "Unapproved Python execution"
+        "Unapproved Python execution",
+        "Python attempted with display-only or unknown use rights",
+        "Different parameters or warm-up window reuse a prior approval",
+        "An expired or cancelled preview completes late",
+        "A byte or aggregate point budget is exceeded after multiple output chunks"
       ],
       "checks": [
         "indicator-workflow"
@@ -238,11 +302,15 @@
       ],
       "user_goal": "Investigate a chart with AI, inspect its evidence and revise the result together.",
       "given": "Known workspace context, a versioned mock provider and an explicit research question.",
-      "when": "Request an abnormal-volatility indicator, inspect competing explanations, preview, accept or cancel.",
+      "when": "Select a chart range and discuss an abnormal-volatility indicator. Inspect a source in another panel, correct the selection, then preview, revise, accept or cancel the indicator.",
       "then": [
         "Claims distinguish observations, calculations and inferences.",
+        "A user who activated the disclosed model connection can finish two ordinary turns with relevant granted fields and tool results without an additional consent prompt.",
         "Execution claims reference actual successful core results.",
-        "Context, tool, prompt, model and dataset identities support replay."
+        "Context, tool, prompt, model and dataset identities support replay.",
+        "The AI reveals the exact row, range or passage for a claim and the user can point back to a different target. Both can return to the previous view.",
+        "The affected chart or table shows the proposed change, any required confirmation and the actual outcome.",
+        "Issue two tool calls under one task, complete them in reverse order, deny one other call and cancel a waiting task. Verify every reported action against its own correlated core outcome. A worker cannot self-approve a challenge or invoke an internal result-delivery command."
       ],
       "failure_cases": [
         "Prompt injection in external text",
@@ -250,7 +318,12 @@
         "Malformed tool output",
         "Cancelled task",
         "Denied authorization",
-        "Tool or time limit reached"
+        "Tool or time limit reached",
+        "Source revision changed or a passage cannot be located",
+        "A reply arrives after the user selected a different target",
+        "A duplicate private delivery or a late result after cancellation",
+        "The human response arrives after the confirmation expired",
+        "An already committed write is followed by task cancellation"
       ],
       "checks": [
         "ai-workflow",
@@ -272,7 +345,8 @@
         "The installed application runs its bundled workers.",
         "Installation explains the WebView2 bootstrapper requirement.",
         "Artifacts, source revision, lockfiles, notices and observed acceptance are retained.",
-        "No worker processes remain after shutdown."
+        "No worker processes remain after shutdown.",
+        "Representative supported Windows 10 and Windows 11 x64 client builds install and upgrade the same installer bytes. Each observation retains the OS build, WebView2 version, exact installer digest and independent installation and upgrade results."
       ],
       "failure_cases": [
         "Missing runtime prerequisites",
@@ -291,6 +365,190 @@
         "dependency-review"
       ],
       "evidence_boundary": "Actual clean-machine and packaged-runtime evidence; a native compilation alone cannot satisfy this scenario."
+    },
+    {
+      "id": "offline-history-preview",
+      "task_ids": [
+        "M1-005",
+        "M1-010",
+        "M1-014"
+      ],
+      "user_goal": "Inspect explicit synthetic examples without configuring or receiving an external service.",
+      "given": "Unconfigured startup, local generated examples and no credentials.",
+      "when": "Open the chart workspace, choose Open offline sample or deliberately visit #demo, select an instrument and timeframe, and compare candles, close-price line and volume.",
+      "then": [
+        "The bare unconfigured workspace identifies its source state. Application operations and provider or model work wait for explicit user intent.",
+        "Instrument, timeframe and chart style controls, volume and time axis, instrument list and data inspection are available in the chart workspace.",
+        "Displayed identity and provenance agree with the Rust-validated history.",
+        "Late responses cannot overwrite a later selection and leaving the preview clears its chart.",
+        "A new profile shows no data and issues zero operations. Returning to the same explicitly selected sample visibly restores Simulated. Leaving it clears the source preference, including on a subsequent bare startup.",
+        "The chart consumes every page of one frozen input before displaying it. Size failures require a smaller request; only temporary admission failures offer a retry."
+      ],
+      "failure_cases": [
+        "Unavailable worker",
+        "Empty history",
+        "Invalid or mismatched provider response",
+        "Rapid selection changes",
+        "A later page belongs to a changed snapshot",
+        "An unavailable remembered source or invalid preference",
+        "Browser storage is unavailable"
+      ],
+      "checks": [
+        "chart-history",
+        "market-fixtures",
+        "ubuntu-preview",
+        "windows-native-build"
+      ],
+      "evidence_boundary": "The chart and development transport checks cover read-only synthetic history. Record observations from an Ubuntu graphical session and the native Windows WebView2 session separately from build results and owner feedback."
+    },
+    {
+      "id": "local-folder-refresh",
+      "task_ids": [
+        "M1-008"
+      ],
+      "user_goal": "Chart data from a purchased or self-produced folder and reuse the same mapping for the next delivery.",
+      "given": "A user-selected directory with differently structured CSV series, duplicates and known expected prices and volumes.",
+      "when": "Preview rows, correct a field or unit, chart the accepted data, add a file and refresh twice.",
+      "then": [
+        "The chart agrees with independently expected values and identifies contributing files and rows.",
+        "A repeated refresh preserves counts. A changed file format requests review and the accepted revision remains available.",
+        "Import overlapping files in reverse enumeration order and obtain byte-equivalent accepted output with attributable source locators. Review competing corrections, replaced files, missing files and a withdrawal before atomically publishing a new revision.",
+        "Compare raw and adjusted equities, a dated future and a separately identified continuous/approximate series. Inspect unresolved units, same-time rows, missing cumulative baselines and session mappings. The earlier frozen snapshot remains replayable or explicitly unavailable."
+      ],
+      "failure_cases": [
+        "Unknown adjustment basis or night-session date",
+        "Same-time quotes and byte-identical aliases",
+        "Cancelled refresh or malformed rows",
+        "Refresh interrupted immediately before publication",
+        "Conflicting values have no authoritative correction order",
+        "An adjustment factor, volume baseline, auction calendar or roll rule is unavailable"
+      ],
+      "checks": [
+        "local-folder-import"
+      ],
+      "evidence_boundary": "Exercise the local product entry. Private owner files and external provider access have independent evidence."
+    },
+    {
+      "id": "workspace-layout-edit",
+      "task_ids": [
+        "M2-002",
+        "M4-001"
+      ],
+      "user_goal": "Arrange a workspace manually or by asking the AI, then revisit the same arrangement.",
+      "given": "One main chart, a watchlist, an inspection panel and a known workspace revision.",
+      "when": "Move the watchlist, link the table, pin a comparison, preview and apply the edit, save a layout and reopen it.",
+      "then": [
+        "The same settings drive direct, declarative and AI edits. Selecting an instrument updates the linked table while preserving the pinned selection.",
+        "The user can undo the change or restore the default. Source, AI activity and confirmation controls stay reachable.",
+        "Hover and temporary navigation preserve the committed selection token and unsaved layout. Explicitly selecting another row or document passage advances the selection token independently of the durable workspace revision. Returning from temporary evidence restores the original viewport and independent pinned panels."
+      ],
+      "failure_cases": [
+        "Unknown panel or interaction binding",
+        "Invalid layout version or stale AI edit",
+        "Interrupted save",
+        "A queued annotation targets yesterday\u2019s selected row after explicit reselection"
+      ],
+      "checks": [
+        "workspace-layout",
+        "operations-workflow",
+        "state-migrations",
+        "ai-workflow"
+      ],
+      "evidence_boundary": "A single main chart with built-in panels and allowlisted interactions. Executable custom panels have separate later scope."
+    },
+    {
+      "id": "voice-evidence-discussion",
+      "task_ids": [
+        "M4-001",
+        "M4-002"
+      ],
+      "user_goal": "Discuss evidence out loud, correct what the AI understood and continue from that object in text.",
+      "given": "A user-selected provider and model with verified voice capability, authorized microphone and data scope, and a chart with a known local disclosure fixture.",
+      "when": "Ask whether the disclosure explains a price move, compare the published passage and chart in one timezone, interrupt with a corrected instrument or interval, then continue in text.",
+      "then": [
+        "The chart marks the observed move and publication time. The source view highlights the passage. The AI distinguishes the observed sequence from a causal inference.",
+        "The corrected selection and the confirmed tool outcome are visible. Stopping speech and cancelling work produce their respective states.",
+        "In authorized real text and duplex sessions bind fixture, provider, route, model and modality to redacted outcomes. Confirm an exact mixed-language instrument, date, decimal price, quantity and unit before a write. An ambiguous or corrected value requires clarification and a fresh evidence calculation.",
+        "After Stop microphone inspect capture/transmission state and pending work separately. An interrupted or denied request cannot produce an execution claim. Changing destination or charge basis waits for a fresh choice."
+      ],
+      "failure_cases": [
+        "Microphone disabled or network interrupted",
+        "Alphanumeric symbol or price misheard",
+        "Access denied or original target unavailable",
+        "Selected model supports text but lacks realtime audio",
+        "A proposed fallback changes the charge or external destination",
+        "The recognized contract month, decimal point or time zone changes a material value",
+        "A pending model call completes after microphone capture stops",
+        "A connected provider accepts text but its tested voice modality is missing"
+      ],
+      "checks": [
+        "configured-voice-session",
+        "ai-workflow",
+        "ai-replay-evaluations"
+      ],
+      "evidence_boundary": "A mock or text-only run cannot verify real voice. Keep raw audio private and retain only authorized redacted test observations. The disclosure fixture does not verify a network information channel."
+    },
+    {
+      "id": "decision-discussion-and-review",
+      "task_ids": [
+        "M4-001",
+        "M4-002",
+        "M2-001"
+      ],
+      "user_goal": "Decide whether a move changes my thesis and review my reasoning later.",
+      "given": "A synthetic instrument, two attributable revisions and the user's stated horizon and reason for considering a purchase.",
+      "when": "Ask whether to buy after a price rise. Challenge an explanation, correct a time window, request an annotation and choose whether to save the decision. Revisit it after later prices become available.",
+      "then": [
+        "The AI surfaces contrary evidence, recomputes the comparison for the corrected interval, states the uncertainty and lets the user choose. It can ask about a conflict with the user's own rule. Deliberation alone changes no chart or account state.",
+        "The authorized annotation has a visible core receipt. A saved note retains the contemporaneous alternatives and disagreement. Review distinguishes a gain or loss from faulty reasoning or incorrect input. The user can remove the note.",
+        "Use a unique synthetic phrase. Declining to save leaves no body, transcript or derived summary on disk. Explicitly save, delete, restart and search live state, indexes, logs, diagnostics and new exports for the phrase. A known deletion survives restoring an older backup. Restoring an independent copy without the marker warns before it makes old text visible."
+      ],
+      "failure_cases": [
+        "User rejects a behavioral inference",
+        "A data correction arrives after the decision",
+        "A favorable outcome follows an unsupported thesis",
+        "User declines to save or share the note",
+        "A restored attachment, a previously shared excerpt, another profile or a private summary appears in the next outbound request",
+        "User cancels a restore after the warning",
+        "A backup includes an older copy but a newer deletion marker exists",
+        "A new model requests a deleted note"
+      ],
+      "checks": [
+        "ai-workflow",
+        "ai-replay-evaluations",
+        "state-migrations",
+        "configured-model-session"
+      ],
+      "evidence_boundary": "Replay verifies permissions, provenance and which information was available. Observe the quality of dialogue separately with an authorized configured model. A simulated or realized return is not an acceptance metric."
+    },
+    {
+      "id": "external-ai-on-the-open-chart",
+      "task_ids": [
+        "M4-004",
+        "M4-005"
+      ],
+      "user_goal": "Use my preferred AI application to inspect the exact chart on screen and visibly annotate it.",
+      "given": "A running workspace showing the opt-in synthetic sample and a user-enabled local MCP connection scoped to that workspace.",
+      "when": "From Codex CLI, read the selected chart, request an annotation, inspect the result in ScopeHub and undo it. Repeat independently from a compatible desktop AI client.",
+      "then": [
+        "The read identifies the same instrument, interval, source and revision visible to the user. ScopeHub identifies the requesting client and exposes only selected data. Read-only access rejects the first annotation.",
+        "After a write grant the annotation appears once on the user's chart and can be undone. A changed revision, a different workspace or a revoked grant produces a visible denial with no new effect.",
+        "Pair two independent clients, grant one only time and close and leave volume unknown for a separately granted test. Verify absent unauthorized fields and null authorized-unknown fields in successful responses, activity, errors, replay and reconnect. Moving the pointer does not invalidate an authorized target; explicit selection of another row does."
+      ],
+      "failure_cases": [
+        "Client requests a field outside its entitlement",
+        "Client disconnects after the core committed a mutation",
+        "The user changes selection before the write",
+        "User denies a required confirmation in ScopeHub",
+        "An external client or cloud connector requests fields licensed for display only",
+        "A revoked client attempts to replay another session\u2019s receipt"
+      ],
+      "checks": [
+        "external-ai-bridge",
+        "operations-workflow",
+        "configured-external-ai-clients"
+      ],
+      "evidence_boundary": "Automated bridge checks cover local transport, concurrency and authorization. A product claim for a named client also needs the observed real client version, host and protected output. A fixture or CLI trace alone cannot establish desktop compatibility."
     }
   ],
   "release_policy": {
@@ -308,7 +566,10 @@
       "credential-boundaries",
       "state-migrations",
       "release-artifacts",
-      "dependency-review"
+      "dependency-review",
+      "configured-model-session",
+      "configured-voice-session",
+      "configured-external-ai-clients"
     ],
     "artifact_requirements": [
       "Committed source revision and execution-input digest",
@@ -316,7 +577,8 @@
       "Bundled workers and build-manifest.json",
       "Pinned dependencies and third-party licenses",
       "Native acceptance logs and environment",
-      "Upgrade, backup/restore and recovery evidence"
+      "Upgrade, backup/restore and recovery evidence",
+      "The report binds runs/<run-id>/candidate/build-manifest.json to its SHA-256. Within candidate/, retain the same hashed NSIS installer and separately hashed clean-install and upgrade observations on Windows 10 and Windows 11 x64 client builds."
     ],
     "product_review": [
       "Demonstrate the end-to-end workflow to the owner and record observed usability issues as feedback.",
@@ -364,7 +626,9 @@
       "Require the latest matching workflow run for the exact source commit to succeed; missing, queued, cancelled, timed-out and failed runs are not passes. A successful workflow still does not complete unimplemented task or release gates.",
       "Record both the pull-request head and the actual checked-out merge commit. Archive only evidence with matching execution inputs, task and decision definitions, origin, commit identity and unchanged log digests.",
       "Download artifacts using the authenticated official gh CLI into .reports/ci/<run-id>/<platform>; pass that directory with project:record --artifact-root. Preserve the original report and never replace local latest reports with downloaded files.",
-      "CI metadata and hashes provide traceability and stale-evidence detection, not cryptographic attestation against a malicious contributor. Retrieve evidence from the observed repository run and review changes to the checks themselves."
+      "CI metadata and hashes provide traceability and stale-evidence detection, not cryptographic attestation against a malicious contributor. Retrieve evidence from the observed repository run and review changes to the checks themselves.",
+      "Accepted completed tasks may append supplementary validated receipts while preserving every non-evidence field and the original ordered evidence references. Added receipts must match that accepted task definition and pass all its checks. Cancelled tasks and accepted ADRs remain immutable. Compare both the PR base and the previous pushed checkpoint when available.",
+      "Supply a verified Windows release report with project:readiness --candidate <main-sha> --report .reports/ci/<run-id>/windows/test-report.json --artifact-root .reports/ci/<run-id>/windows. The report binds the candidate manifest, installer, client OS observations and logs. Keep the local latest report intact."
     ],
     "integration": [
       "Integrate through a reviewed pull request with successful required checks for its current revision. Recheck after base changes, conflicts or consequential new evidence.",
@@ -396,7 +660,9 @@
       "On 2026-10-14 the owner authorized the initial public push of codex/continuous-delivery to kacoyi/scopehub, creation and updates of its draft pull request, and routine future task-branch pushes to this repository as the default iteration workflow. Do not ask again within that scope. Merge and release remain separate authorization decisions.",
       "Inspect the HTTPS origin and local github.account marker before authenticated GitHub operations, select the marked account with gh auth switch and verify its login. Never read token files.",
       "Source-control policy does not grant merge, release, visibility, account administration, destructive history changes or branch-protection weakening permissions. Apply existing owner intent and platform approval requirements to the concrete action.",
-      "On 2026-10-14 the owner requested repair of all health-assessment findings, authorizing H08 main protection enforcement with required pull requests and observed Linux/Windows checks. Preserve stronger settings and do not weaken protection, merge or release under this maintenance scope."
+      "On 2026-10-14 the owner requested repair of all health-assessment findings, authorizing H08 main protection enforcement with required pull requests and observed Linux/Windows checks. Preserve stronger settings and do not weaken protection, merge or release under this maintenance scope.",
+      "For the 2026-10-29 development-foundation iteration, the owner selected local-only delivery: contracts/reviews/2026-10-29-local-only.json. Keep its commits local; do not push, write its PR updates or trigger hosted CI until the owner changes that direction. Independent local work can continue.",
+      "On 2026-11-18 the owner requested GitHub Actions for the task branch containing these commits. The updated scope and the subsequent Ubuntu and Windows experience sequence are recorded in contracts/reviews/2026-11-18-hosted-ux.json."
     ]
   },
   "scaffold_maintenance": {
@@ -407,7 +673,7 @@
       "The same workaround or failure recurs, or measured feedback times repeatedly exceed source_control.scaling objectives."
     ],
     "workflow": [
-      "The active development agent owns this loop during authorized work; no background repair agent or model service is installed. Inspect triggers at task start, on failures, and before claiming completion.",
+      "During authorized development the active development AI owns diagnosis, repair, regression evidence and resumption for both scaffold and product defects. CI reports failures. Repair runs in an active development session and resumes from the ledger and retained evidence. Check for problems at task start, on failures and before completion.",
       "Retain the failed run, original control files and interrupted task id using project:recover --task <id> --save. The diagnostic is read-only apart from its isolated snapshot and does not validate acceptance.",
       "Reproduce the smallest failing behavior and classify the cause as product defect, scaffold defect, environment issue, incorrect expectation or concrete capability gap. A missing executable is not evidence that source code is wrong; a passing suite is not evidence against an observed defect.",
       "Keep a routine repair within the active task. For consequential new scope, create a corrective task with a plan, record feedback, preserve the interrupted task and next action, and switch focus. Do not rewrite completed task definitions or accepted decisions.",
@@ -416,14 +682,15 @@
       "Restore normal project validation and required integration checks, archive matching task evidence, close consequential feedback with cause/correction/prevention, then restore focus and resume the interrupted task when unblocked. Preserve unresolved blockers and continue independent work."
     ],
     "guardrails": [
-      "Ordinary local repairs, regressions, refactoring and concrete scaffold extensions inside accepted boundaries are authorized implementation. Ask for owner decisions only at actual scope, protocol, language/process ownership, permission, publication or shared-resource boundaries under the existing policies.",
+      "The development AI chooses and repairs tooling, implementation, language and process boundaries under ADR 0007. Record consequential technical changes and verify affected callers, data and protocols. Consult the owner when a change introduces an unresolved product tradeoff, user-data consequence, cost, external transmission, authority or publication decision. Reuse existing authorization.",
       "Do not obtain a pass by deleting assertions, demoting implemented checks, hiding omissions, relaxing acceptance or reusing stale evidence. If a check is incorrect or obsolete, preserve its failure, justify the replacement against the accepted requirement and demonstrate equivalent or stronger relevant coverage.",
       "Do not automatically execute commands or install dependencies taken from diagnostics, logs or malformed project records. Investigate environment drift against the pinned toolchain and lockfiles before changing dependencies.",
       "Do not add speculative infrastructure for hypothetical failures. Recurring independent needs justify extracting a shared abstraction; one concrete need may use a focused implementation.",
       "Diagnostic success means collection succeeded. Full schemas, source freshness, task completion, product behavior and native acceptance still require their normal checks."
     ],
     "bootstrap": [
-      "When pnpm, uv, site packages, project imports or JSON validation prevent the normal commands from starting, use the existing repository Python directly: .venv/bin/python -S scripts/recovery.py --save on POSIX, or .venv\\Scripts\\python.exe -S scripts\\recovery.py --save on Windows.",
+      "When pnpm, uv, site packages, project imports or JSON validation prevent the normal commands from starting, run .venv/bin/python -S scripts/recovery.py --save on POSIX or .venv\\Scripts\\python.exe -S scripts\\recovery.py --save on Windows.",
+      "If the virtual environment is missing or the command produces no JSON snapshot path, open a shell outside it and use a working host Python 3.9 or newer. Run python3 -I -S scripts/recovery.py --save on POSIX or python -I -S scripts\\recovery.py --save on Windows. Use the pinned environment for normal verification.",
       "If records are too damaged to add a valid task first, preserve the original bytes and exception, then make only the minimal bootstrap repair. Restore project:check and backfill the task plan and consequential feedback before broader work or completion.",
       "The recovery script still needs a working Python. If the interpreter or recovery code itself is broken, inspect the Git diff and a reviewed checkpoint, preserve uncommitted changes and restore only the affected inputs. Never reset unrelated work. Use locked setup once the required toolchain is available.",
       "Snapshots under .reports/recovery retain only the listed control files and failure metadata. Keep original run logs and a reviewed source checkpoint separately; a diagnostic snapshot is not a complete repository backup.",

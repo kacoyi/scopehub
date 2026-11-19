@@ -1,0 +1,204 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M1-010",
+  "task_definition_sha256": "8939796491a2f76190594a01c52a82564cdaee81379799dc107ceb0c59742d4b",
+  "run_id": "20261118T114053.217480Z-48a5dd33",
+  "recorded_at": "2026-11-18T12:05:53.794786+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "84931845d4f74b28e49a817eca4b7d6bb2e2d48aca62be4762433f0f07f76fcd",
+    "file_count": 144,
+    "git_head": "60c8d17de6dcd8e7eafd6091ef9622f60d00f323",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "c0ffc3d53927568805ebf913c5c11ca1419c4c351300c0ed93e69de2a2a63f5f",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-1019-azure",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.2",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "environment",
+      "status": "passed",
+      "command": [
+        "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+        "scripts/doctor.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f7f7644728e0af010bbe1b36301a9d63c5f16bba51b6b92094fb6d143c345835"
+    },
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "fb675019286113048c369ce911ccbefb777b10d9ae42ef5f3d5c64c3995d2891"
+    },
+    {
+      "id": "ubuntu-preview",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/playwright.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "521bcacce809a1e2e5ae338172170c4ef91f1cf54cf4e98a10a8284972f942ac"
+    },
+    {
+      "id": "chart-history",
+      "status": "passed",
+      "command": [
+        "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+        "scripts/check_chart_history.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5123723fdfc79113d1a1a3bcf8dd157a718779d50b4cbd9d85f1d378a323bc82"
+    },
+    {
+      "id": "market-fixtures",
+      "status": "passed",
+      "command": [
+        "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+        "-m",
+        "unittest",
+        "tests.integration.test_market_fixtures",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "cd3ba8d892461ea3e4a82043651f9fde678b89c5e23099de44265c8b73f6900f"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "97f0454861ce9729d65eebe227ae94e1df2f1ff5eae3d552a233833ce997d9ff"
+    },
+    {
+      "id": "python-types",
+      "status": "passed",
+      "command": [
+        "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+        "-m",
+        "mypy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "050c52a2b0c61e8b681ef5c485e0bc03340b8d55148e0acef27d744c8be42033"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8bfb30771ee613a0176b24b1a3408e306dd1f1577c39f358557ab14979969e97"
+    },
+    {
+      "id": "typescript-contracts",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "check:contracts"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f774254956521667826077319373cb669158445f5949c6754dd99c3ac87f10c9"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "3b0ae49c71721b16fdef759f091490b0f0b653717eff1401fd89615e72d1f28d"
+    },
+    {
+      "id": "rust-format",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e26fd0fed5426d6cf8abf303c4a80fd756f098be5808b7c9903f29ca1043646c"
+    },
+    {
+      "id": "rust-lints",
+      "status": "passed",
+      "command": [
+        "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "clippy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e92f96480a1c441ae3a591dfc2beb38de48510cb96523c8213792dd188b21f3f"
+    }
+  ],
+  "project_definition_sha256": "846c7db39cbeebb11ea3ae60805901f235c9fed65f3889ff1301e1ffc5f03059",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "ci": {
+    "provider": "github-actions",
+    "repository": "kacoyi/scopehub",
+    "run_id": "44296742718",
+    "run_attempt": "1",
+    "event": "pull_request",
+    "head_sha": "672b1d8a38d2b5cbc04e742b85cd51b27679bab0",
+    "checkout_sha": "60c8d17de6dcd8e7eafd6091ef9622f60d00f323",
+    "run_url": "https://github.com/kacoyi/scopehub/actions/runs/44296742718"
+  }
+}

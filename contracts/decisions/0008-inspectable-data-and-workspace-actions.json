@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "id": "0008",
+  "title": "Use reviewed data mappings and shared workspace targets for human and AI actions",
+  "status": "accepted",
+  "recorded_at": "2026-11-18",
+  "context": "The owner wants to connect heterogeneous financial data, discuss it by voice or text, inspect evidence together across pages and customize a chart-first dashboard. The prior contract identifies sources and operation authority but leaves these interactions underspecified.",
+  "decision": "Apply versioned, user-reviewable import mappings to original data. Give human and AI actions the same core registry and addressable chart, table, document and layout targets. Treat layout definitions as data. Qualify market, search and voice adapters independently.",
+  "authority": "The owner requested the preceding product discussions be incorporated into the contract. ADR 0007 delegates the engineering design. The decision establishes requirements. Service connections, data transmission and sensitive actions follow their existing runtime authorizations.",
+  "alternatives": [
+    {
+      "option": "Let a model transform each incoming row or run generated connector code at import time.",
+      "reason": "Repeated model output cannot establish reproducible volume, session or adjustment semantics. A versioned rule can be inspected, corrected and replayed."
+    },
+    {
+      "option": "Give the assistant its own dashboard, execution path and action log.",
+      "reason": "Users need to see and correct the same objects the assistant used. A shared target and core result also keep permissions consistent."
+    },
+    {
+      "option": "Generate application code for each dashboard or ship a fixed chart layout.",
+      "reason": "Versioned panel definitions support reversible customization and preserve access to confirmations. Custom executable panels require a separately evaluated extension boundary."
+    }
+  ],
+  "consequences": [
+    "Local CSV acceptance uses a user-selected directory, a reviewed mapping and an attributable chart. A deterministic mock exercises shared selections and visible actions. Real voice needs its own authorized session evidence.",
+    "External market APIs, CTP market data and retrieval of original web evidence have later delivery gates. A working local read, a search snippet or a synthetic replay cannot establish those capabilities.",
+    "Version any new wire operation or persistent format at implementation, with cross-language vectors or migration and recovery checks as applicable."
+  ],
+  "supersedes": [],
+  "related_decisions": [
+    "0002",
+    "0007"
+  ],
+  "revisit_when": "A verified source cannot be represented faithfully, an interaction needs a new permission, or users need a renderer beyond the declarative panel model.",
+  "references": {
+    "market_data": [
+      "https://docs.alpaca.markets/us/docs/about-market-data-api",
+      "https://tushare.pro/document/1?doc_id=40",
+      "https://github.com/akfamily/akshare",
+      "https://github.com/vnpy/vnpy_ctp/blob/main/vnpy_ctp/gateway/ctp_gateway.py",
+      "https://docs.snaptrade.com/docs/account-data"
+    ],
+    "voice": [
+      "https://developers.openai.com/api/docs/models/gpt-realtime-2",
+      "https://developers.openai.com/api/docs/models/gpt-realtime-2.1"
+    ],
+    "workspaces": [
+      "https://www.tradingview.com/support/solutions/43000746464-getting-started-with-supercharts/",
+      "https://www.koyfin.com/help/mydashboards-myd/"
+    ]
+  }
+}

@@ -134,16 +134,73 @@ class DependencyTests(unittest.TestCase):
         self.assertEqual([item], review.dispositions([item], {'advisory_dispositions': []})[1])
 
     def test_target_scope_change_or_failed_graph_cannot_keep_an_exception(self):
+        # Isolate target-absence guards from independently tested primary ranges.
+        policy = {**self.policy, 'advisory_dispositions': [item for item in self.policy['advisory_dispositions']
+                                                        if item['scope_guard'] == 'absent-from-supported-builds']}
         success = subprocess.CompletedProcess([], 0, stdout='fixture v1.0.0\n', stderr='')
         with patch.object(review.subprocess, 'run', return_value=success):
-            review.validate_advisory_scope(self.root, self.policy)
+            review.validate_advisory_scope(self.root, policy)
         success.stdout = 'glib v0.18.5 (*)\n'
         with patch.object(review.subprocess, 'run', return_value=success):
             with self.assertRaisesRegex(ValueError, 'no longer applies'):
-                review.validate_advisory_scope(self.root, self.policy)
+                review.validate_advisory_scope(self.root, policy)
         with patch.object(review.subprocess, 'run', side_effect=subprocess.CalledProcessError(1, ['cargo'])):
             with self.assertRaises(subprocess.CalledProcessError):
-                review.validate_advisory_scope(self.root, self.policy)
+                review.validate_advisory_scope(self.root, policy)
+
+    def test_primary_range_discrepancy_is_exact_live_and_fail_closed(self):
+        item = {'ecosystem': 'crates.io', 'name': 'fixture-buffer', 'version': '0.10.4',
+                'advisories': ['GHSA-fixture'],
+                'upstream_source': 'https://api.github.com/repos/fixture/upstream/security-advisories/GHSA-fixture',
+                'reviewed_upstream_range': '>=0.11.0,<0.12.1'}
+        primary = {'ghsa_id': 'GHSA-fixture', 'withdrawn_at': None, 'vulnerabilities': [
+            {'package': {'ecosystem': 'rust', 'name': 'fixture_buffer'},
+             'vulnerable_version_range': '>=0.11.0,<0.12.1'}]}
+        review.validate_upstream_range(item, Mock(return_value=primary))
+        with self.assertRaisesRegex(ValueError, 'Locked version is affected'):
+            review.validate_upstream_range({**item, 'version': '0.11.0'}, Mock(return_value=primary))
+        changed = {**primary, 'vulnerabilities': [
+            {**primary['vulnerabilities'][0], 'vulnerable_version_range': '>=0.10.0,<0.12.1'}]}
+        for response in [changed, {}, [], {**primary, 'ghsa_id': 'GHSA-other'},
+                         {**primary, 'vulnerabilities': None}]:
+            with self.subTest(response=response), self.assertRaises(ValueError):
+                review.validate_upstream_range(item, Mock(return_value=response))
+        with self.assertRaises(OSError):
+            review.validate_upstream_range(item, Mock(side_effect=OSError('unavailable')))
+
+    def test_picomatch_disposition_requires_the_reviewed_patch_for_every_resolution(self):
+        identifier = 'picomatch@4.0.7'
+        relative = f'patches/{identifier}.patch'
+        local_patch = self.root / relative
+        local_patch.parent.mkdir()
+        shutil.copyfile(ROOT / relative, local_patch)
+        shutil.copyfile(ROOT / 'pnpm-workspace.yaml', self.root / 'pnpm-workspace.yaml')
+        item = next(d for d in self.policy['advisory_dispositions'] if d['scope_guard'] == 'picomatch-build-patch')
+        release = Mock(return_value={'name': 'picomatch', 'version': '4.0.7'})
+        probe = subprocess.CompletedProcess([], 0, stdout='', stderr='')
+        with patch.object(review.subprocess, 'run', return_value=probe) as installed:
+            review.validate_picomatch_patch(self.root, item, release)
+            self.assertEqual(installed.call_args.args[0], ['node', '--test', 'tests/project/picomatch.test.mjs'])
+            release.assert_called_once_with('https://registry.npmjs.org/picomatch/latest')
+            with self.assertRaisesRegex(ValueError, 'Unexpected package'):
+                review.validate_picomatch_patch(self.root, {**item, 'version': '4.0.6'}, release)
+            with self.assertRaisesRegex(ValueError, 'latest npm release'):
+                review.validate_picomatch_patch(self.root, item, Mock(return_value={'name': 'picomatch', 'version': '5.0.0'}))
+            probe.returncode = 1
+            with self.assertRaisesRegex(ValueError, 'behavior check failed'):
+                review.validate_picomatch_patch(self.root, item, release)
+
+        lock = self.root / 'pnpm-lock.yaml'
+        original = lock.read_bytes()
+        data = yaml.safe_load(original)
+        data['snapshots'][identifier] = {}
+        lock.write_text(yaml.safe_dump(data), encoding='utf-8')
+        with self.assertRaisesRegex(ValueError, 'reviewed picomatch patch'):
+            review.validate_picomatch_patch(self.root, item, release)
+        lock.write_bytes(original)
+        local_patch.write_bytes(b'Altered patch\n')
+        with self.assertRaisesRegex(ValueError, 'reviewed picomatch patch'):
+            review.validate_picomatch_patch(self.root, item, release)
 
     def test_declared_schema_formats_remain_active_with_selected_dependencies(self):
         checker = FormatChecker()

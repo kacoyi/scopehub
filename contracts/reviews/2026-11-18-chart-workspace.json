@@ -1,0 +1,58 @@
+{
+  "recorded_at": "2026-11-18",
+  "kind": "owner_product_experience_decision",
+  "task_id": "M1-014",
+  "reference": {
+    "name": "TradingView Supercharts",
+    "url": "https://www.tradingview.com/chart/",
+    "use": "First-screen organization and familiar chart interactions."
+  },
+  "owner_direction": "The workspace sketch was far from the intended experience. Open into the chart workspace and follow the Supercharts layout and interaction model. Include icons only for actions ScopeHub actually offers.",
+  "contract": "engineering-contract-v1.json#/ui",
+  "startup": "A bare, unconfigured launch presents the chart workspace and an explicit Open offline sample action. It does not issue application operations. Choosing the sample or deliberately opening #demo loads the labeled synthetic data through the existing registry.",
+  "presentation": "Use the main area for chart and volume. Put instrument, timeframe and chart style above it, with instrument selection and data inspection on the right and essential chart tools on the left. AI, tasks and diagnostics use space when requested.",
+  "observed_feedback": "The owner evaluated the discussion sketch. The implemented workspace still requires engineering observation and any subsequent owner feedback.",
+  "platform_sequence": "Continue on Ubuntu. The physical Windows trial remains planned after overall Ubuntu verification in M1-012.",
+  "engineering_observation": {
+    "source_commit": "b6eea0eac89a43734060f9a8bb402c9a11441c97",
+    "date_utc": "2026-11-19T07:23:44.188986+00:00",
+    "host": "Ubuntu 26.04.1 LTS",
+    "surface": "Headed Chromium in the Ubuntu GNOME graphical session, with the loopback development entry and actual Rust registry and Python worker.",
+    "run": ".reports/ubuntu-graphical/b6eea0e-closure/results.json",
+    "run_sha256": "92711424f1a1f714bb1e58b4ad8d27bc4b4b8fe8a953abc3383375b74577fbc6",
+    "hosted_workflow": "https://github.com/kacoyi/scopehub/actions/runs/44477570028",
+    "observed": [
+      "The fresh chart workspace sent zero operations. Explicitly choosing the sample presented a distinct Simulated label, the instrument, timeframe and chart style above price, volume below and the watchlist on the right.",
+      "The desktop search dialog filtered instruments, accepted keyboard navigation and restored focus. The data panel showed both daily bars and the unknown quantity.",
+      "At 390 by 844 the chart, time axis and volume remained usable. Closing the watchlist or data window restored the unobstructed plot. Local connection interruption, retry and subsequent selection succeeded."
+    ],
+    "screenshots": [
+      {
+        "viewport": "1366x900",
+        "path": ".reports/ubuntu-graphical/b6eea0e-closure/browser/preview-open-the-chart-wor-5dfd9-pect-bars-in-the-side-panel/unconfigured.png",
+        "sha256": "d9bb8309e1f123378dc8ed08a5d6509af49116abdaf505f2f534815acd60c538"
+      },
+      {
+        "viewport": "1366x900",
+        "path": ".reports/ubuntu-graphical/b6eea0e-closure/browser/preview-open-the-chart-wor-5dfd9-pect-bars-in-the-side-panel/futures-candles.png",
+        "sha256": "f1e717f191fd4ad826beaf9780c9fbddfb2037e391431dbed70095b61c7734df"
+      },
+      {
+        "viewport": "1366x900",
+        "path": ".reports/ubuntu-graphical/b6eea0e-closure/browser/preview-open-the-chart-wor-5dfd9-pect-bars-in-the-side-panel/symbol-search.png",
+        "sha256": "813679e5aae4a6535d11e6cf352a66a6ec5b4ba1962e15a0f35c8a79085b5ed4"
+      },
+      {
+        "viewport": "1366x900",
+        "path": ".reports/ubuntu-graphical/b6eea0e-closure/browser/preview-open-the-chart-wor-5dfd9-pect-bars-in-the-side-panel/stock-data-window.png",
+        "sha256": "e708761fe003033af2d8769dcb7e153e6b07344de88f1c1738152609b7bdc387"
+      },
+      {
+        "viewport": "390x844",
+        "path": ".reports/ubuntu-graphical/b6eea0e-closure/browser/preview-an-explicit-sample-1d31c-ble-plot-on-a-narrow-screen/stock-line-narrow.png",
+        "sha256": "04c6e7df88308a30cc53a2e1bbbd5644f556c79dc1a4ff8c340a7c86e3407f1b"
+      }
+    ],
+    "owner_feedback": "The earlier owner feedback concerned the discussion sketch. These retained results record engineering observation of the implementation."
+  }
+}

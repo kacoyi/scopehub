@@ -1,0 +1,125 @@
+{
+  "recorded_at": "2026-11-18",
+  "kind": "owner_hosted_verification_and_experience_request",
+  "repository": "https://github.com/kacoyi/scopehub",
+  "supersedes": "contracts/reviews/2026-10-29-local-only.json",
+  "task_ids": [
+    "M0-016",
+    "M0-017",
+    "M0-018",
+    "M0-019",
+    "M1-010",
+    "M1-011",
+    "M1-012",
+    "M1-013"
+  ],
+  "authority": "The owner requested GitHub Actions for the current iteration, followed by actual use on Ubuntu and then on the Windows installation of the dual-boot computer.",
+  "owner_steering": {
+    "recorded_at": "2026-11-18",
+    "direction": "Complete the overall Ubuntu experience before performing the physical Windows trial. The completed Ubuntu observation covers the offline synthetic history preview.",
+    "ubuntu_work": "Repair the observed interruption guidance in M1-013, then continue from M1-006. Overall Ubuntu completion in M1-012 covers the applicable current-contract market, local-data, workspace, indicator and AI journeys. An external model connection requires explicit configuration and authorized transmission. Windows packaging and expressly later capabilities have separate delivery scope.",
+    "windows_work": "Keep M1-011 planned until M1-012 completes. The hosted Windows build remains part of ordinary automated verification."
+  },
+  "publication_scope": "Push the relevant task branch, create or update its draft pull request, run the repository verification workflow and retrieve the corresponding artifacts. This replaces the October local-only direction for the commits in this iteration.",
+  "verification_sequence": [
+    {
+      "stage": "hosted-verification",
+      "action": "Observe the current task-branch revision and both GitHub Actions jobs. Retain the Linux and Windows reports with their source identity and logs."
+    },
+    {
+      "stage": "ubuntu-experience",
+      "action": "After hosted verification passes, use pnpm dev:ubuntu in an Ubuntu graphical session. Exercise the explicit offline demo through the local Rust registry and Python worker. Record the revision, actions, observations and screenshots."
+    },
+    {
+      "stage": "ubuntu-completion",
+      "action": "Complete the in-scope Ubuntu workflows, address outstanding defects and retain integrated Ubuntu observations for M1-012."
+    },
+    {
+      "stage": "windows-experience",
+      "action": "After overall Ubuntu completion is recorded in M1-012, use the matching revision on the dual-boot Windows desktop and record the native WebView2 GUI interaction."
+    }
+  ],
+  "product_scope": "The Ubuntu browser preview is a loopback-only development tool for the two existing synthetic history reads. Windows 10/11 x64 remains the v1 desktop release target.",
+  "separate_decisions": [
+    "The owner records subjective product feedback after actually using the program.",
+    "Merge into the default branch and publish a release under their applicable authorizations."
+  ],
+  "policy": "project/delivery.json#/source_control/authorization",
+  "observed": {
+    "hosted": {
+      "commit": "672b1d8a38d2b5cbc04e742b85cd51b27679bab0",
+      "run": "https://github.com/kacoyi/scopehub/actions/runs/44296742718",
+      "jobs": {
+        "linux": {
+          "report_sha256": "c0ffc3d53927568805ebf913c5c11ca1419c4c351300c0ed93e69de2a2a63f5f",
+          "passed_checks": 16
+        },
+        "windows": {
+          "report_sha256": "25cab197f294844629d52028d95c8be33580567675d8c3bca8563088d8309948",
+          "passed_checks": 17
+        }
+      }
+    },
+    "ubuntu": {
+      "commit": "672b1d8a38d2b5cbc04e742b85cd51b27679bab0",
+      "completed_at": "2026-11-18T12:04:34.805Z",
+      "operator": "development agent",
+      "session": "wayland",
+      "browser": "Google Chrome 158.0.8127.36",
+      "histories_checked": 9,
+      "chart_views_checked": 18,
+      "table_rows_checked": 150,
+      "desktop_window": "A separate Chrome application window titled ScopeHub was observed in the Ubuntu desktop session and left open for the owner.",
+      "report": ".reports/ux/ubuntu-672b1d8a38d2/observations.json",
+      "sha256": "37b27d17c259040e425f44effa132656cb58cca7a4afebac2943ce8eb83359cf",
+      "screenshots": {
+        "01-workspace.png": "18c49f1e31868265fc2c4d7e0f69815ea6e63e84abd262a2a53baa8c092d5f51",
+        "02-futures-crosshair.png": "48137bf68fbfa3578c522914abc5be7dee1d3645a3e9d5eafa07af46b9265e30",
+        "03-daily-table.png": "3a8e3f561fdfdfacf18066b4aecf678a4b2ef94836acb35cff3fd4f7e429efc5",
+        "04-narrow-table.png": "3fd54faf686ec340eb28be1107b1e7d25ea7d898b2acbf637cc0554016f6e86a",
+        "05-compact-chart.png": "cf3d5cf690686124c9bf1e73cfda91468d253495833fccadf8511ff1bf19d95e"
+      },
+      "actions": [
+        "Opened the unconfigured workspace, entered by keyboard and recovered from an empty search.",
+        "Exercised all nine synthetic histories in both chart styles, compared all displayed table rows, and moved the crosshair between bars.",
+        "Checked the desktop, 800-pixel and 390-pixel layouts, scrolled the narrow table, left the demo and reopened it."
+      ],
+      "page_errors": [],
+      "external_origins": []
+    },
+    "owner_feedback": {
+      "status": "awaiting_owner_trial"
+    },
+    "native_windows_experience": {
+      "status": "deferred_until_ubuntu_complete",
+      "task": "M1-011",
+      "command": "pnpm desktop:dev"
+    },
+    "ubuntu_retry": {
+      "commit": "74b957e35c03512ac499b24ab5e6e82efd8b52e2",
+      "report": ".reports/ux/ubuntu-interruption-74b957e35c03/observations.json",
+      "sha256": "0b306ef04907062b436c9ff68461500f8b518831aaed9227310f2a014e51b649",
+      "observations": [
+        {
+          "action": "Start the demo while this browser is offline",
+          "message": "Cannot reach the local preview. Retry when the connection is restored."
+        },
+        {
+          "action": "Change timeframe while disconnected",
+          "message": "Cannot reach the local preview. Retry when the connection is restored.",
+          "old_chart_visible": false
+        },
+        {
+          "action": "Reconnect, retry, rapidly change chart selection and open the table at 150% display scaling",
+          "instrument": "SIM.CN.STOCK.001",
+          "timeframe": "1d",
+          "rows": 2
+        }
+      ],
+      "screenshots": {
+        "offline-history.png": "360e90aee182851c1381115797ff46d4e08cfc97cd061e582362857e3b3c37e8",
+        "recovered.png": "87608ef10e753bbfdffec5fb6b8c62c3f3623416babdfab8c90a6ca611f578a3"
+      }
+    }
+  }
+}

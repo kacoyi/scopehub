@@ -111,6 +111,12 @@
         },
         "plan": {
           "$ref": "#/$defs/TaskPlan"
+        },
+        "delivery": {
+          "enum": [
+            "current-contract",
+            "later"
+          ]
         }
       },
       "required": [
@@ -200,7 +206,8 @@
         "cadence": {
           "enum": [
             "change",
-            "release"
+            "release",
+            "task"
           ]
         }
       },
@@ -580,6 +587,54 @@
         },
         "ci": {
           "$ref": "#/$defs/CIProvenance"
+        },
+        "field_observations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "kind",
+              "commit",
+              "surface",
+              "observation_sha256"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "ubuntu-workspace-observation",
+                  "physical-windows-workspace"
+                ]
+              },
+              "commit": {
+                "type": "string",
+                "pattern": "^(?:[a-f0-9]{40}|[a-f0-9]{64})$"
+              },
+              "surface": {
+                "type": "string",
+                "minLength": 1
+              },
+              "observation_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "external_sessions": {
+                "type": "object",
+                "required": [
+                  "text",
+                  "voice",
+                  "cli",
+                  "desktop"
+                ],
+                "additionalProperties": {
+                  "enum": [
+                    "pending",
+                    "observed-separately"
+                  ]
+                }
+              }
+            },
+            "additionalProperties": false
+          }
         }
       },
       "required": [
@@ -660,6 +715,12 @@
         "rollback": {
           "type": "string",
           "minLength": 1
+        },
+        "implementation": {
+          "$ref": "#/$defs/ImplementationPlan"
+        },
+        "evolution": {
+          "$ref": "#/$defs/EvolutionPlan"
         }
       },
       "required": [
@@ -1257,6 +1318,57 @@
         "checks"
       ]
     },
+    "HostedHarnessReport": {
+      "allOf": [{"$ref": "#/$defs/HarnessReport"}],
+      "properties": {
+        "generated_at": {"type": "string", "format": "date-time"},
+        "source_end": {"$ref": "#/$defs/Source"},
+        "project_state_error": {"type": ["null", "string"]},
+        "status_scope": {"type": "string"},
+        "product_complete": {"type": "boolean"},
+        "limitations": {"type": "array", "items": {"type": "string"}},
+        "worktree_changes": {"type": "array", "items": {"type": "string"}},
+        "candidate_artifacts": {
+          "type": ["null", "object"],
+          "properties": {
+            "manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+            "installer_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+          },
+          "required": ["manifest_sha256", "installer_sha256"],
+          "additionalProperties": false
+        },
+        "milestones": {
+          "type": "array",
+          "items": {"type": "object", "propertyNames": {"enum": ["id", "status", "verification", "checks", "tasks", "later_task_ids", "cancelled_task_ids"]}}
+        },
+        "acceptance": {
+          "type": "array",
+          "items": {"type": "object", "propertyNames": {"enum": ["requirement", "checks", "status"]}}
+        },
+        "integration_gates": {
+          "type": "object", "propertyNames": {"enum": ["requested", "required", "unverified", "status"]}
+        },
+        "integration_validation": {
+          "type": "object", "propertyNames": {"enum": ["configured_models", "cloud_models", "real_market_data", "mock_ai_evaluated"]}
+        },
+        "environment": {
+          "propertyNames": {"enum": ["system", "release", "machine", "python", "python_executable", "tools"]},
+          "properties": {
+            "tools": {
+              "type": "object", "propertyNames": {"enum": ["node", "pnpm", "rustc", "cargo", "uv"]},
+              "additionalProperties": {"type": ["null", "string"]}
+            }
+          }
+        },
+        "checks": {
+          "items": {
+            "propertyNames": {"enum": ["id", "status", "command", "reason", "reason_code", "duration_seconds",
+              "exit_code", "log", "log_sha256", "observation", "field_observation"]}
+          }
+        }
+      },
+      "unevaluatedProperties": false
+    },
     "SourceControl": {
       "type": "object",
       "properties": {
@@ -1431,6 +1543,503 @@
         "guardrails",
         "bootstrap"
       ],
+      "additionalProperties": false
+    },
+    "SourceReference": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pointer": {
+          "type": "string",
+          "pattern": "^(/.*)?$"
+        }
+      },
+      "required": [
+        "path",
+        "pointer"
+      ],
+      "additionalProperties": false
+    },
+    "ImplementationPlan": {
+      "type": "object",
+      "properties": {
+        "modules": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "minItems": 1
+        },
+        "entrypoints": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "minItems": 1
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceReference"
+          },
+          "minItems": 1
+        },
+        "non_goals": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "open_questions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "modules",
+        "entrypoints",
+        "rules",
+        "non_goals",
+        "open_questions"
+      ],
+      "additionalProperties": false
+    },
+    "EvolutionPlan": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "additive",
+            "refactor",
+            "replacement",
+            "migration",
+            "requirements-change"
+          ]
+        },
+        "preserve": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "change": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "data_plan": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cleanup": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "kind",
+        "preserve",
+        "change",
+        "data_plan",
+        "cleanup"
+      ],
+      "additionalProperties": false
+    },
+    "Development": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "collaboration": {
+          "type": "object",
+          "properties": {
+            "owner": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            },
+            "development_ai": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            },
+            "ask_owner_when": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            },
+            "question_protocol": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            },
+            "product_ai_separation": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            }
+          },
+          "required": [
+            "owner",
+            "development_ai",
+            "ask_owner_when",
+            "question_protocol",
+            "product_ai_separation"
+          ],
+          "additionalProperties": false
+        },
+        "quality": {
+          "type": "object",
+          "properties": {
+            "module_design": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            },
+            "state_ownership": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            },
+            "verification": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            },
+            "evolution": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            },
+            "review": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            },
+            "feedback_loop": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            }
+          },
+          "required": [
+            "module_design",
+            "state_ownership",
+            "verification",
+            "evolution",
+            "review",
+            "feedback_loop"
+          ],
+          "additionalProperties": false
+        },
+        "modules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "enum": [
+                  "implemented",
+                  "planned"
+                ]
+              },
+              "paths": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true,
+                "minItems": 1
+              },
+              "responsibility": {
+                "type": "string",
+                "minLength": 1
+              },
+              "public_entries": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true
+              },
+              "dependencies": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true
+              },
+              "owns": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true
+              },
+              "invariants": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true
+              },
+              "checks": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "id",
+              "status",
+              "paths",
+              "responsibility",
+              "public_entries",
+              "dependencies",
+              "owns",
+              "invariants",
+              "checks"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source": {
+                "$ref": "#/$defs/SourceReference"
+              },
+              "task_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true
+              },
+              "delivery": {
+                "enum": [
+                  "current-contract",
+                  "later"
+                ]
+              },
+              "boundary": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "id",
+              "source",
+              "task_ids",
+              "delivery",
+              "boundary"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "improvement_metrics": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "data_ownership": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "owner": {
+                "type": "string",
+                "minLength": 1
+              },
+              "writer": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "enum": [
+                  "implemented",
+                  "planned"
+                ]
+              },
+              "rule": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "id",
+              "owner",
+              "writer",
+              "status",
+              "rule"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "herdr": {
+          "type": "object",
+          "properties": {
+            "host": {
+              "const": "Herdr"
+            },
+            "profiles": {
+              "type": "object",
+              "properties": {
+                "implement": {
+                  "$ref": "#/$defs/HerdrProfile"
+                },
+                "supervise": {
+                  "$ref": "#/$defs/HerdrProfile"
+                }
+              },
+              "required": [
+                "implement",
+                "supervise"
+              ],
+              "additionalProperties": false
+            },
+            "parallel": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "tooling": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          },
+          "required": [
+            "host",
+            "profiles",
+            "parallel",
+            "tooling"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "collaboration",
+        "quality",
+        "modules",
+        "capabilities",
+        "improvement_metrics",
+        "data_ownership"
+      ],
+      "additionalProperties": false
+    },
+    "HerdrProfile": {
+      "type": "object",
+      "required": [
+        "model",
+        "reasoning_effort"
+      ],
+      "properties": {
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reasoning_effort": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max",
+            "ultra"
+          ]
+        }
+      },
       "additionalProperties": false
     }
   }

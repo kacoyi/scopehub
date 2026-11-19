@@ -1,6 +1,6 @@
 {
   "contract_id": "market-ai-workbench.v1",
-  "protocol_version": "1.0",
+  "protocol_version": "1.1",
   "schema": "contracts/schemas/protocol.schema.json",
   "operations": [
     {
@@ -14,7 +14,8 @@
       ],
       "input": "InstrumentSearchInput",
       "output": "InstrumentSearchOutput",
-      "implementation": "planned"
+      "implementation": "implemented",
+      "implementation_scope": "Opt-in synthetic historical reads through the shared Rust registry; no external source or live subscription."
     },
     {
       "name": "market.getBars",
@@ -27,7 +28,8 @@
       ],
       "input": "MarketGetBarsInput",
       "output": "MarketGetBarsOutput",
-      "implementation": "planned"
+      "implementation": "implemented",
+      "implementation_scope": "Opt-in synthetic historical reads through the shared Rust registry; no external source or live subscription."
     },
     {
       "name": "workspace.openInstrument",
@@ -40,7 +42,13 @@
       ],
       "input": "WorkspaceOpenInstrumentInput",
       "output": "WorkspaceOpenInstrumentOutput",
-      "implementation": "planned"
+      "implementation": "planned",
+      "wire_bindings": {
+        "1.1": {
+          "input": "WorkspaceOpenInstrumentCommand11",
+          "output": "WorkspaceOpenInstrumentReply11"
+        }
+      }
     },
     {
       "name": "chart.setTimeframe",
@@ -53,7 +61,13 @@
       ],
       "input": "ChartSetTimeframeInput",
       "output": "ChartSetTimeframeOutput",
-      "implementation": "planned"
+      "implementation": "planned",
+      "wire_bindings": {
+        "1.1": {
+          "input": "ChartSetTimeframeCommand11",
+          "output": "ChartSetTimeframeReply11"
+        }
+      }
     },
     {
       "name": "chart.setStyle",
@@ -66,7 +80,13 @@
       ],
       "input": "ChartSetStyleInput",
       "output": "ChartSetStyleOutput",
-      "implementation": "planned"
+      "implementation": "planned",
+      "wire_bindings": {
+        "1.1": {
+          "input": "ChartSetStyleCommand11",
+          "output": "ChartSetStyleReply11"
+        }
+      }
     },
     {
       "name": "chart.addAnnotation",
@@ -79,7 +99,13 @@
       ],
       "input": "ChartAddAnnotationInput",
       "output": "ChartAddAnnotationOutput",
-      "implementation": "planned"
+      "implementation": "planned",
+      "wire_bindings": {
+        "1.1": {
+          "input": "ChartAddAnnotationCommand11",
+          "output": "ChartAddAnnotationReply11"
+        }
+      }
     },
     {
       "name": "chart.removeLayer",
@@ -92,7 +118,13 @@
       ],
       "input": "ChartRemoveLayerInput",
       "output": "ChartRemoveLayerOutput",
-      "implementation": "planned"
+      "implementation": "planned",
+      "wire_bindings": {
+        "1.1": {
+          "input": "ChartRemoveLayerCommand11",
+          "output": "ChartRemoveLayerReply11"
+        }
+      }
     },
     {
       "name": "indicator.createDraft",
@@ -105,7 +137,13 @@
       ],
       "input": "IndicatorCreateDraftInput",
       "output": "IndicatorCreateDraftOutput",
-      "implementation": "planned"
+      "implementation": "planned",
+      "wire_bindings": {
+        "1.1": {
+          "input": "IndicatorCreateDraftCommand11",
+          "output": "IndicatorCreateDraftReply11"
+        }
+      }
     },
     {
       "name": "indicator.runPreview",
@@ -118,7 +156,13 @@
       ],
       "input": "IndicatorRunPreviewInput",
       "output": "IndicatorRunPreviewOutput",
-      "implementation": "planned"
+      "implementation": "planned",
+      "wire_bindings": {
+        "1.1": {
+          "input": "IndicatorRunPreviewCommand11",
+          "output": "IndicatorRunPreviewReply11"
+        }
+      }
     },
     {
       "name": "indicator.acceptVersion",
@@ -131,7 +175,13 @@
       ],
       "input": "IndicatorAcceptVersionInput",
       "output": "IndicatorAcceptVersionOutput",
-      "implementation": "planned"
+      "implementation": "planned",
+      "wire_bindings": {
+        "1.1": {
+          "input": "IndicatorAcceptVersionCommand11",
+          "output": "IndicatorAcceptVersionReply11"
+        }
+      }
     },
     {
       "name": "indicator.remove",
@@ -144,7 +194,13 @@
       ],
       "input": "IndicatorRemoveInput",
       "output": "IndicatorRemoveOutput",
-      "implementation": "planned"
+      "implementation": "planned",
+      "wire_bindings": {
+        "1.1": {
+          "input": "IndicatorRemoveCommand11",
+          "output": "IndicatorRemoveReply11"
+        }
+      }
     },
     {
       "name": "workspace.undo",
@@ -157,7 +213,13 @@
       ],
       "input": "WorkspaceUndoInput",
       "output": "WorkspaceUndoOutput",
-      "implementation": "planned"
+      "implementation": "planned",
+      "wire_bindings": {
+        "1.1": {
+          "input": "WorkspaceUndoCommand11",
+          "output": "WorkspaceUndoReply11"
+        }
+      }
     },
     {
       "name": "task.cancel",
@@ -170,7 +232,13 @@
       ],
       "input": "TaskCancelInput",
       "output": "TaskCancelOutput",
-      "implementation": "planned"
+      "implementation": "planned",
+      "wire_bindings": {
+        "1.1": {
+          "input": "TaskCancelRequest11",
+          "output": "CancelTaskReply11"
+        }
+      }
     },
     {
       "name": "workspace.getContext",
@@ -183,19 +251,107 @@
       ],
       "input": "WorkspaceGetContextInput",
       "output": "WorkspaceGetContextOutput",
-      "implementation": "planned"
+      "implementation": "planned",
+      "wire_bindings": {
+        "1.1": {
+          "input": "SharedContextRequest11",
+          "output": "SharedContextReply11"
+        }
+      }
+    },
+    {
+      "name": "market.readHistoryPage",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "input": "MarketHistoryPageInput",
+      "output": "MarketHistoryPageOutput",
+      "implementation": "implemented",
+      "implementation_scope": "Protocol 1.1 opt-in synthetic reads, exact frozen input replay, quality reporting and byte-bounded pages. Explicit stream handoff returns a position when the snapshot includes the replay bar.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "MarketHistoryPageRequest",
+          "output": "HistoryPageReply11"
+        }
+      }
+    },
+    {
+      "name": "market.subscribe",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "MarketSubscriptionInput",
+      "output": "MarketSubscriptionOutput",
+      "implementation": "implemented",
+      "implementation_scope": "Explicit, finite synthetic chart replay through the shared Rust registry. Local development transports only.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "MarketSubscriptionRequest",
+          "output": "MarketSubscriptionReply11"
+        }
+      }
+    },
+    {
+      "name": "workspace.readChartProjection",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "input": "ProjectedChartArguments11",
+      "output": "ProjectedChart11",
+      "implementation": "planned",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "ReadProjectedChart11",
+          "output": "ProjectedChartReply11"
+        }
+      }
+    },
+    {
+      "name": "workspace.selectEvidence",
+      "effect": "workspace",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "input": "SelectEvidenceArguments11",
+      "output": "SharedSelection11",
+      "implementation": "planned",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "SharedSelectionRequest11",
+          "output": "SelectEvidenceReply11"
+        }
+      }
     }
   ],
   "implemented_wire_behaviors": [
     "worker hello",
     "heartbeat response",
     "unsupported request error",
-    "cancel terminal response"
+    "cancel terminal response",
+    "The opt-in market worker supports instrument.search and market.getBars for compatible legacy callers. Negotiated 1.1 adds market.readHistoryPage and finite market.subscribe replay. Workers launched without the sample advertise no market operations."
   ],
   "clarifications": [
     "Workspace revisions are non-negative safe integers; dataset revisions are opaque provider-owned strings.",
     "Operation outputs are objects. instrument.search wraps its array in instruments.",
-    "Worker hello is unsolicited; the host validates the exact negotiated protocol and expected role before sending work.",
+    "Worker hello is unsolicited; the host validates the negotiated version, required capabilities and expected role before sending work.",
     "Cancel references request_id; heartbeat has only common envelope fields.",
     "Schema definitions are canonical. Small per-operation schemas and all language types are generated from them.",
     "Metadata, params, provenance and error details are explicit data bags; they never confer authority.",
@@ -215,5 +371,38 @@
     "M3",
     "M4",
     "M5"
+  ],
+  "default_services": {
+    "market_data": false,
+    "ai": false,
+    "information": false,
+    "financial_services": false
+  },
+  "development_data": "Explicit synthetic demo and owner-supplied test samples only; local/API adapters remain unimplemented.",
+  "service_capabilities": "Users can bring their own connections and independently select eligible ScopeHub software, AI or licensed data services. Internal model adapters and external AI clients have separate connection and authorization requirements. Production services and client access are unconfigured.",
+  "product_requirements": [
+    "engineering-contract-v1.json#/product/data_onboarding",
+    "engineering-contract-v1.json#/ai/voice",
+    "engineering-contract-v1.json#/ui/shared_evidence",
+    "engineering-contract-v1.json#/ui/customization",
+    "engineering-contract-v1.json#/product/collaboration_model",
+    "engineering-contract-v1.json#/product/service_policy",
+    "engineering-contract-v1.json#/ai/model_connections",
+    "engineering-contract-v1.json#/ai/external_clients",
+    "engineering-contract-v1.json#/protocol/compatibility",
+    "engineering-contract-v1.json#/authorization/durable_operations",
+    "engineering-contract-v1.json#/authorization/data_purposes",
+    "engineering-contract-v1.json#/runtime/cancellation",
+    "engineering-contract-v1.json#/indicators/parameter_and_output",
+    "engineering-contract-v1.json#/indicators/python_mode",
+    "engineering-contract-v1.json#/ui/workspace_entry",
+    "engineering-contract-v1.json#/persistence/notes_and_restore",
+    "engineering-contract-v1.json#/ai/qualified_session_acceptance",
+    "engineering-contract-v1.json#/persistence/private_content",
+    "engineering-contract-v1.json#/ai/model_connections/session_grant"
+  ],
+  "compatible_protocol_versions": [
+    "1.0",
+    "1.1"
   ]
 }

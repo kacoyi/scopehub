@@ -144,7 +144,61 @@ def dispositions(findings, policy, today=None):
     return reviewed, unresolved
 
 
-def validate_advisory_scope(root, policy):
+def validate_upstream_range(item, request=fetch_json):
+    """Verify a reviewed aggregator discrepancy against the publisher's live range.
+
+    Only stable three-component Rust ranges are supported. A changed primary
+    record, unavailable source or newly affected version requires fresh review.
+    """
+    source = item.get('upstream_source', '')
+    match = re.fullmatch(r'https://api.github.com/repos/([\w.-]+/[\w.-]+)/security-advisories/(GHSA-[\w-]+)', source)
+    if not match or item['ecosystem'] != 'crates.io' or item['advisories'] != [match[2]]:
+        raise ValueError('Invalid primary advisory identity')
+    result = request(source)
+    if not isinstance(result, dict) or result.get('ghsa_id') != match[2] or result.get('withdrawn_at'):
+        raise ValueError('Primary advisory identity changed or is unavailable')
+    entries = result.get('vulnerabilities')
+    if not isinstance(entries, list) or not all(isinstance(entry, dict) and isinstance(entry.get('package'), dict)
+                                               and isinstance(entry['package'].get('name'), str) for entry in entries):
+        raise ValueError('Invalid primary advisory package ranges')
+    matching = [entry for entry in entries if entry['package'].get('ecosystem') == 'rust'
+                and entry['package'].get('name', '').replace('_', '-') == item['name']]
+    if len(matching) != 1 or matching[0].get('vulnerable_version_range') != item.get('reviewed_upstream_range'):
+        raise ValueError('Primary affected range changed; reassess the disposition')
+    bounds = re.fullmatch(r'>=\s*(\d+\.\d+\.\d+),\s*<\s*(\d+\.\d+\.\d+)', item['reviewed_upstream_range'])
+    if not bounds or not re.fullmatch(r'\d+\.\d+\.\d+', item['version']):
+        raise ValueError('Unsupported primary version range')
+    def version(value):
+        return tuple(map(int, value.split('.')))
+    if version(bounds[1]) >= version(bounds[2]) or version(bounds[1]) <= version(item['version']) < version(bounds[2]):
+        raise ValueError('Locked version is affected by the primary advisory')
+
+
+def validate_picomatch_patch(root, item, request=fetch_json):
+    """Recheck the reviewed build-tool patch until upstream publishes a replacement."""
+    if key(item) != ('npm', 'picomatch', '4.0.7') or item['advisories'] != ['GHSA-fc5q-39xc-vjpf']:
+        raise ValueError('Unexpected package or advisory for the picomatch patch')
+    identifier = 'picomatch@4.0.7'
+    patch_path = f'patches/{identifier}.patch'
+    workspace = yaml.safe_load((root / 'pnpm-workspace.yaml').read_text(encoding='utf-8'))
+    lock = yaml.safe_load((root / 'pnpm-lock.yaml').read_text(encoding='utf-8'))
+    digest = hashlib.sha256((root / patch_path).read_bytes()).hexdigest()
+    snapshots = {name for name in lock['snapshots'] if name.partition('(')[0] == identifier}
+    if (workspace.get('patchedDependencies', {}).get(identifier) != patch_path
+            or digest != item['patch_sha256'] or lock.get('patchedDependencies', {}).get(identifier) != digest
+            or snapshots != {f'{identifier}(patch_hash={digest})'}):
+        raise ValueError('The reviewed picomatch patch must match the workspace, lockfile and installed resolution')
+    # The lock alone cannot establish which matcher the build tools actually load.
+    probe = subprocess.run(['node', '--test', 'tests/project/picomatch.test.mjs'], cwd=root, timeout=30,
+                           capture_output=True, text=True, encoding='utf-8', errors='replace')
+    if probe.returncode:
+        raise ValueError(f'Installed picomatch behavior check failed:\n{(probe.stdout + probe.stderr)[-2000:]}')
+    release = request('https://registry.npmjs.org/picomatch/latest')
+    if not isinstance(release, dict) or (release.get('name'), release.get('version')) != (item['name'], item['version']):
+        raise ValueError('Reassess the local picomatch patch against the latest npm release')
+
+
+def validate_advisory_scope(root, policy, request=fetch_json):
     if not policy['advisory_dispositions']:
         return
     desktop = tomllib.loads((root / 'apps/desktop/src-tauri/Cargo.toml').read_text(encoding='utf-8'))
@@ -158,6 +212,12 @@ def validate_advisory_scope(root, policy):
                                 cwd=root, capture_output=True, text=True, encoding='utf-8', check=True, timeout=180)
         graphs.extend(result.stdout.splitlines())
     for item in policy['advisory_dispositions']:
+        if item.get('scope_guard') == 'picomatch-build-patch':
+            validate_picomatch_patch(root, item, request)
+            continue
+        if item.get('scope_guard') == 'upstream-excludes-locked-version':
+            validate_upstream_range(item, request)
+            continue
         if item.get('scope_guard') != 'absent-from-supported-builds' or item['ecosystem'] != 'crates.io':
             raise ValueError('Unsupported advisory scope guard; explicit implementation and review are needed')
         if any(line.split()[:2] == [item['name'], 'v' + item['version']] for line in graphs):

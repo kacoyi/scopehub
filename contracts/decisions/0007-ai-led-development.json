@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0",
+  "id": "0007",
+  "title": "AI-led implementation with evolvable boundaries and owner experience decisions",
+  "status": "accepted",
+  "recorded_at": "2026-10-29",
+  "context": "The owner requests a thorough repository transformation after clarifying long-term code quality, lower agent cognitive load and the distinction between development collaboration and embedded-product behavior.",
+  "decision": "Retain the current desktop/core/worker architecture as the implemented baseline. Delegate technical planning and quality to the development AI, consult the owner on product experience and consequential authorization, and validate focused navigation, ownership records and change plans through repository-local tools.",
+  "authority": "Owner instructions in this development conversation explicitly delegate technical implementation and authorize the complete repository improvement. No merge, release or new runtime capability is authorized by this decision.",
+  "alternatives": [
+    {
+      "option": "Require owner selection for every technical boundary change",
+      "reason": "Transfers engineering responsibility back to the owner and conflicts with the clarified collaboration."
+    },
+    {
+      "option": "Rewrite the runtime and add a knowledge platform immediately",
+      "reason": "Existing records and focused tools can solve the observed navigation and evidence gaps without speculative infrastructure."
+    }
+  ],
+  "consequences": [
+    "Development policy does not prescribe product-user interaction.",
+    "Technical evolution needs proportional rationale, behavior protection and data/transition plans; authorization and product changes remain explicit.",
+    "Record consistency and declared dependency checks do not prove complete code quality or usability.",
+    "Later capability tasks remain visible without silently expanding the existing current-contract release. Task delivery classification is version-bound and reviewed."
+  ],
+  "supersedes": [
+    "0001"
+  ],
+  "related_decisions": [
+    "0002",
+    "0004",
+    "0005",
+    "0006"
+  ],
+  "boundaries": {
+    "ui": "display and user intent",
+    "core": "authorization, operations, persistence, lifecycle",
+    "workers": "data, model and computation adapters"
+  },
+  "evolution": [
+    "Each adapter can be replaced or removed behind a small versioned contract.",
+    "Add abstract ports when the first use case needs them; do not create unused framework layers.",
+    "New asset classes are data, not closed enums.",
+    "Version external protocols and persistent formats; internal code may be rewritten.",
+    "Use migration and contract fixtures as rewrite checks, not implementation-specific tests.",
+    "Current stack choices are revisable decisions, not permanent product requirements."
+  ],
+  "selection_policy": "Evaluate architecture by human\u2013AI financial collaboration needs, replaceability, and operational fit. Complexity must serve a concrete need; minimizing resource footprint is not a mandatory objective. Reuse suitable external or shared capabilities, and build focused local implementations when requirements or lifetime costs justify them.",
+  "revisit_when": [
+    "Observed changes require broad coordinated edits or bypass module entries.",
+    "Owner experience feedback changes product scope.",
+    "Measured navigation and verification costs justify further tooling."
+  ]
+}

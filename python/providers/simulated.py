@@ -22,6 +22,10 @@ from uuid import NAMESPACE_URL, uuid5
 from contracts.generated.protocol import Bar, Instrument, MarketGetBarsOutput
 
 MINUTE_MS = 60_000
+# The sample clock expects observations every 15 seconds during its windows.
+# History stores aggregated bars and exposes only the final two replay updates.
+OBSERVATION_INTERVAL_MS = 15_000
+SOURCE_DELAY_BUDGET_MS = 15_000
 GENERATOR = 'scopehub-synthetic-v1'
 PROVIDER_ID = 'scopehub.synthetic'
 TIMEFRAMES = ('1m', '5m', '1d')
@@ -53,6 +57,10 @@ class Sample:
     initial_ticks: int
     seed: int
     sessions: tuple[Session, ...]
+    quality_scenarios: tuple[Scenario, ...] = ()
+
+    def revision(self, scenario: Scenario) -> str:
+        return f'{GENERATOR}:{self.seed}:{scenario}'
 
     def instrument(self) -> Instrument:
         return {
@@ -74,7 +82,7 @@ _SAMPLES = (
         _session('2024-01-03T01:00:00+00:00', '2024-01-03'),
         _session('2024-01-03T13:00:00+00:00', '2024-01-04'),
         _session('2024-01-04T01:00:00+00:00', '2024-01-04'),
-    )),
+    ), ('gapped', 'stale')),
     Sample('SIM.CN.STOCK.001', 'stock', 'CNY', 'Asia/Shanghai', '0.01', 1200, 20241014, (
         _session('2024-01-03T01:30:00+00:00', '2024-01-03'),
         _session('2024-01-03T05:00:00+00:00', '2024-01-03'),
@@ -88,6 +96,22 @@ _SAMPLES = (
         _session('2024-01-04T20:00:00+00:00', '2024-01-04'),
     )),
 )
+
+
+def instruments() -> list[Instrument]:
+    """Independent catalog entries for the explicit offline demo."""
+    return [sample.instrument() for sample in _SAMPLES]
+
+
+def fixture_scenario(instrument_id: str, revision: str | None) -> Scenario | None:
+    """Resolve only revisions represented in the committed fixture bundle."""
+    for sample in _SAMPLES:
+        if sample.instrument_id == instrument_id:
+            if revision is None or revision == sample.revision('normal'):
+                return 'normal'
+            return next((scenario for scenario in sample.quality_scenarios
+                         if revision == sample.revision(scenario)), None)
+    return None
 
 
 def _timestamp(value: int) -> bool:
@@ -227,7 +251,7 @@ def build_fixture(instrument_id: str, timeframe: str, scenario: Scenario = 'norm
     observed_at = minutes[-1]['time_ms'] + 30_000
     as_of = observed_at + (30 * MINUTE_MS if scenario == 'stale' else 0)
     instrument = sample.instrument()
-    revision = f'{GENERATOR}:{sample.seed}:{scenario}'
+    revision = sample.revision(scenario)
     identity = f'{sample.instrument_id}|{PROVIDER_ID}|{timeframe}|raw|{revision}'
     history: MarketGetBarsOutput = {
         'dataset': {
@@ -261,7 +285,7 @@ def build_fixture(instrument_id: str, timeframe: str, scenario: Scenario = 'norm
             updated['high'] = running_high
             updated['volume'] = None if initial['volume'] is None else initial['volume'] + step * 10
             updated['is_closed'] = step == 2
-            at = observed_at + step * 15_000
+            at = observed_at + step * OBSERVATION_INTERVAL_MS
             bar = aggregate_minutes([*minutes[:-1], updated], timeframe, sample.sessions, as_of_ms=at)[-1]
             updates.append({'observed_at_ms': at, 'bar': bar})
     return {'scenario': scenario, 'instrument': instrument, 'history': history, 'updates': updates}
@@ -269,9 +293,8 @@ def build_fixture(instrument_id: str, timeframe: str, scenario: Scenario = 'norm
 
 def fixture_bytes() -> bytes:
     fixtures = [build_fixture(sample.instrument_id, timeframe) for sample in _SAMPLES for timeframe in TIMEFRAMES]
-    edge_scenarios: tuple[Scenario, ...] = ('gapped', 'stale')
-    fixtures.extend(build_fixture(_SAMPLES[0].instrument_id, timeframe, scenario)
-                    for scenario in edge_scenarios for timeframe in TIMEFRAMES)
+    fixtures.extend(build_fixture(sample.instrument_id, timeframe, scenario)
+                    for sample in _SAMPLES for scenario in sample.quality_scenarios for timeframe in TIMEFRAMES)
     bundle = {
         'schema_version': '1.0', 'generator': GENERATOR,
         'label': 'All data is synthetic; not real market quotes or exchange calendars.',

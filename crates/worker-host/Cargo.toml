@@ -8,8 +8,13 @@ license.workspace = true
 [dependencies]
 scopehub-domain = { path = "../domain" }
 serde_json.workspace = true
-jsonschema.workspace = true
+serde.workspace = true
+scopehub-application = { path = "../application" }
+uuid = { version = "1", features = ["v4"] }
 tokio.workspace = true
+
+[dev-dependencies]
+jsonschema.workspace = true
 
 [lints]
 workspace = true

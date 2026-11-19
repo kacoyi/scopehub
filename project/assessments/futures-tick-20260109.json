@@ -1,0 +1,239 @@
+{
+  "assessment_version": 1,
+  "task_id": "M1-004",
+  "assessed_on": "2026-10-14",
+  "source_delivery": "Owner-supplied futures CSV sample named 20260109",
+  "scope": "Read-only structure, internal continuity and chart reconstruction; no official-source price verification, trading, network provider access or raw-data publication.",
+  "decision": {
+    "result": "usable_with_explicit_normalization_and_snapshot_limits",
+    "supported_now": "Observed intraday price, volume deltas, open interest, best bid/ask display and approximate candles from observed trade-price updates.",
+    "not_established": "Complete individual-trade replay, exact intraminute extrema, absolute calendar timestamps, normalized average-price lines, full historical coverage, adjusted continuous contracts or a delivered product chart.",
+    "next_input": "Contract/source units and session metadata; native minute and daily bars can later provide their own OHLC. The owner remains responsible for external source accuracy."
+  },
+  "inventory": {
+    "files": 978,
+    "bytes": 1965047955,
+    "rows": 17583597,
+    "unique_content_files": 862,
+    "unique_content_rows": 14543828,
+    "actual_instruments": 862,
+    "symbol_prefixes": 91,
+    "redundant_alias_files": 116,
+    "duplicate_content_groups": 108,
+    "columns": [
+      "TradingDay",
+      "InstrumentID",
+      "UpdateTime",
+      "UpdateMillisec",
+      "LastPrice",
+      "Volume",
+      "BidPrice1",
+      "BidVolume1",
+      "AskPrice1",
+      "AskVolume1",
+      "AveragePrice",
+      "Turnover",
+      "OpenInterest",
+      "UpperLimitPrice",
+      "LowerLimitPrice"
+    ],
+    "encoding": "UTF-8 with optional BOM",
+    "delivery_day": "20260109",
+    "all_files_have_one_instrument": true,
+    "source_day_labels": [
+      "20260108",
+      "20260109"
+    ]
+  },
+  "observations": {
+    "malformed_headers_or_rows": 0,
+    "invalid_day_or_clock_rows": 0,
+    "invalid_or_unavailable_last_prices": 0,
+    "relative_time_regressions_after_assignment": 0,
+    "cumulative_volume_regressions_after_assignment": 0,
+    "files_with_mixed_source_day_labels": 158,
+    "unique_contracts_with_mixed_source_day_labels": 144,
+    "mixed_day_prefixes": [
+      "CF",
+      "CY",
+      "FG",
+      "MA",
+      "OI",
+      "PF",
+      "PL",
+      "PR",
+      "PX",
+      "RM",
+      "SA",
+      "SH",
+      "SR",
+      "TA"
+    ],
+    "same_timestamp_following_rows": 1012424,
+    "adjacent_exact_duplicate_rows": 2090,
+    "turnover_regressions": 179,
+    "turnover_regressions_consistent_with_float_roundoff": 2,
+    "turnover_regressions_larger_than_roundoff": 177,
+    "files_with_larger_turnover_regressions": 60,
+    "unchanged_volume_following_rows": 12611638,
+    "volume_increment_larger_than_one_rows": 3492272,
+    "files_starting_with_nonzero_volume": 331,
+    "unique_contracts_starting_with_nonzero_volume": 248,
+    "zero_terminal_volume_files": 125,
+    "zero_terminal_volume_unique_contracts": 117,
+    "unavailable_numeric_fields": {
+      "BidPrice1:zero_unavailable": 3930,
+      "AveragePrice:zero_unavailable": 742429,
+      "AskPrice1:zero_unavailable": 2867
+    },
+    "count_scope": "Row/file observations include aliases; explicitly named unique-contract counts deduplicate identical file contents."
+  },
+  "reconstruction_experiment": {
+    "assumption": "Assign 20260109 explicitly from the delivery folder for this one-day experiment, retaining raw TradingDay and source row. This is not a verified exchange-calendar rule.",
+    "clock": "Relative milliseconds after an explicit 18:00 evening anchor; no inferred UTC or civil ActionDay.",
+    "all_input_hashes_equal_between_passes": true,
+    "files_with_last_minus_first_counter_equal_to_summed_deltas": 978,
+    "samples": [
+      {
+        "file": "AP601_20260109.csv",
+        "intraday_points": 28,
+        "bars_1m": 2,
+        "bars_5m": 2,
+        "bars_1d": 1
+      },
+      {
+        "file": "IF2601_20260109.csv",
+        "intraday_points": 244,
+        "bars_1m": 242,
+        "bars_5m": 50,
+        "bars_1d": 1
+      },
+      {
+        "file": "TA605_20260109.csv",
+        "intraday_points": 354,
+        "bars_1m": 348,
+        "bars_5m": 72,
+        "bars_1d": 1
+      },
+      {
+        "file": "ag2604_20260109.csv",
+        "intraday_points": 562,
+        "bars_1m": 561,
+        "bars_5m": 117,
+        "bars_1d": 1
+      },
+      {
+        "file": "c2605_20260109.csv",
+        "intraday_points": 353,
+        "bars_1m": 349,
+        "bars_5m": 73,
+        "bars_1d": 1
+      },
+      {
+        "file": "rb2605_20260109.csv",
+        "intraday_points": 352,
+        "bars_1m": 350,
+        "bars_5m": 74,
+        "bars_1d": 1
+      }
+    ],
+    "observed_checks": [
+      "Each sample has ordered buckets and valid OHLC bounds.",
+      "Minute, five-minute and daily known-volume deltas agree with source counter differences.",
+      "A nonzero initial counter remains unallocated; unknown volume propagates to larger bars.",
+      "No-trade quotes do not fabricate trade candles; empty minutes are not filled.",
+      "Six contracts, two views and three interval selections rendered and updated hover text in local Chromium."
+    ],
+    "limitations": [
+      "Snapshots can hide trades and extrema between updates.",
+      "Auction folding and session-close binning remain unspecified; these sample candle counts are not exchange bar counts.",
+      "A one-day sample establishes no multi-day historical completeness.",
+      "A late snapshot and a normal session break are not independently classified as data loss.",
+      "The preview is an ignored local inspection artifact, not the desktop product workflow."
+    ]
+  },
+  "integration_rules": [
+    {
+      "topic": "Identity and provenance",
+      "rule": "Use the actual InstrumentID and preserve source file digest, original date/time, row order and adapter version. Treat all 116 byte-identical aliases as mappings rather than additional contracts."
+    },
+    {
+      "topic": "Trading days",
+      "rule": "Normalize the observed mixed labels through explicit source/session metadata. Retain raw TradingDay. Use a trading calendar and ActionDay or an explicit calendar assignment for absolute timestamps; do not blindly subtract one calendar day."
+    },
+    {
+      "topic": "Same-time updates",
+      "rule": "Retain distinct snapshots with identical timestamps in source order. Timestamp-only deduplication would discard valid updates. Exact duplicates may be excluded from derived views while retaining source provenance."
+    },
+    {
+      "topic": "Volume",
+      "rule": "Difference cumulative counters; never sum them. Keep a nonzero starting baseline separate until auction/session rules establish its allocation. Reject resets or missing counters rather than silently bridging them."
+    },
+    {
+      "topic": "Average price and turnover",
+      "rule": "Do not plot raw AveragePrice or infer universal turnover units. Observed scale varies by product family, and turnover has material regressions. Obtain source-specific normalization and contract metadata before using these fields for VWAP or cash-flow calculations."
+    },
+    {
+      "topic": "Unavailable quotes",
+      "rule": "Zero bid/ask prices and zero AveragePrice represent unavailable values in this sample, not zero-priced trades. A zero-volume contract is not evidence of corruption or a complete trade history."
+    },
+    {
+      "topic": "Candles",
+      "rule": "Prefer supplied native minute and daily OHLC for their own resolutions. Resample with explicit session anchors and trading-day grouping; label any snapshot-derived candles as observed-price approximations."
+    },
+    {
+      "topic": "Continuous history",
+      "rule": "Preserve daily alias-to-contract mappings and an explicit rollover/adjustment policy. Byte-identical one-day aliases do not establish a historical continuous-contract construction method."
+    },
+    {
+      "topic": "Product adapter",
+      "rule": "Use a bounded local import/adapter task before runtime integration. Keep source selection replaceable and demonstrate the actual chart workflow separately from this inspection."
+    }
+  ],
+  "metadata_still_needed": [
+    "Exchange and full contract identity",
+    "Contract multiplier, tick size and source-specific field units",
+    "Trading sessions, auctions, holidays and timezone/ActionDay semantics",
+    "Previous settlement or previous close for the corresponding chart baseline",
+    "Continuous-contract selection and adjustment policy"
+  ],
+  "verification_scope": {
+    "automated_gate": "futures-tick-inspection uses synthetic counterexamples; public CI does not download or validate owner data.",
+    "owner_data_evidence": "Full local scans and reconstruction receipts below. Only aggregate findings and diagnostic code enter the public repository.",
+    "local_evidence": [
+      {
+        "path": ".reports/futures-ticks/20260109-pass-1/inspection.json",
+        "sha256": "6b26e23d8a3645cff9ce26004971938b62bf4aa92e98db29d1ba55c6835d441f"
+      },
+      {
+        "path": ".reports/futures-ticks/20260109-assigned-day/inspection.json",
+        "sha256": "79850134340860b108c22e5e254c8d7d0eb274e56f2d9b8b2d91af17da4b8917"
+      },
+      {
+        "path": ".reports/futures-ticks/reconstruction-verification.json",
+        "sha256": "4b811e0c2a4db33526b68459e4b9872aae4ab39bc531f5eac4420efcb8133675"
+      },
+      {
+        "path": ".reports/futures-ticks/turnover-regressions.json",
+        "sha256": "2c05d2d00e5be1a3099c1bd900c4ebd425dea2e2dc626bd67e5a001061e1331c"
+      },
+      {
+        "path": ".reports/futures-ticks/preview.html",
+        "sha256": "4e2ccaf5665de3859541075a9a40ab90b6d87d37d7d578ba3adc79bfcf7004d2"
+      },
+      {
+        "path": ".reports/futures-ticks/preview-verification.json",
+        "sha256": "3d6816fa12f631f671baf75447beb449da72abe7ba3ff1e44c940982faacabf6"
+      },
+      {
+        "path": ".reports/futures-ticks/preview.png",
+        "sha256": "ba2616be97c9f1687714ba8550bd50b4c3ce8a7febabccc538436e1c23d32690"
+      },
+      {
+        "path": ".reports/futures-ticks/candles-preview.png",
+        "sha256": "2149aa9b372fd4b599b9e9aa15bb7a2505eded3e00da2fecace31fc701a88077"
+      }
+    ],
+    "inspector_sha256": "72ea77c27efda819c1e03ff5406bc9b1d0e39bb716d1936a0f28907a17d00466"
+  }
+}

@@ -64,7 +64,8 @@ def records():
     }
     result = {
         'engineering-contract-v1.json': {'milestones': [{'id': key} for key in milestone_checks],
-                                         'acceptance': {'required': ['Synthetic installed outcome', 'Synthetic model outcome']}},
+                                         'acceptance': {'required': ['Synthetic installed outcome', 'Synthetic model outcome'],
+                                                        'performance': {'initial_bars_to_chart_p95_ms': 1000, 'chart_update_p95_ms': 200}}},
         'project/tasks.json': {'schema_version': '1.0', 'focus_task_id': 'M0-001', 'tasks': tasks},
         'project/checks.json': {'schema_version': '1.0', 'checks': checks,
                                 'required_change_checks': implemented, 'gate_changes': [],

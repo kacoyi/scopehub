@@ -362,6 +362,529 @@
         "prevention": "Independent missing-versus-zero regressions and hand-calculated OHLC/calendar oracles run in the required market-fixtures gate. Linux and native Windows evidence for M1-002 archives all 16 market tests and the 156-test Python suite; the original failing report is retained at .reports/runs/20261014T081548.880651Z-cb04f032/test-report.json."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "capabilities-versus-service-subscriptions",
+      "source": "Owner clarification on 2026-10-14",
+      "observation": "The owner clarified twice that default absence of data, AI, information and financial service subscriptions must not remove the software capabilities to use them or prevent user-supplied connections and adapters.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-005"
+      ],
+      "regression_checks": [
+        "chart-history",
+        "project-state"
+      ],
+      "resolution": {
+        "cause": "The initial service-default typo and its correction could be misread as removing data, AI or information capabilities instead of excluding bundled subscriptions.",
+        "correction": "Record the distinction explicitly in the product contract, contract manifest and contributor guidance. The startup screen states that connections and subscriptions are user supplied; opting into synthetic history remains a separate action. All planned data, AI and information capabilities remain required.",
+        "prevention": "The historical-chart regression verifies zero startup operations and explicit demo entry through the real Rust/Python path; both Linux and Windows CI pass in run 38570391461. Task M1-005 archives native evidence. The product policy explicitly preserves local files, APIs and user-implemented adapters; these integrations are still pending, not removed."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "accepted-history-evidence-append",
+      "source": "GitHub Actions 38569288074, Linux Preserve accepted history; reproduced with project:history --base a0101bad2aeeb5a590706888462c5f8ad5bff152",
+      "observation": "Adding a validated Windows CI receipt to the completed tick assessment preserves its definition and original evidence but fails the whole-task history equality check. The PR-base-only local comparison did not include this already-pushed task, while CI also compared the prior checkpoint.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-015"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "project-state"
+      ],
+      "resolution": {
+        "cause": "The history guard compared entire completed task records, incorrectly treating a new valid native receipt as a definition rewrite. Local PR-base review omitted the newer completed task; CI also inspected the previous pushed checkpoint.",
+        "correction": "Preserve all non-evidence fields and the ordered original evidence prefix. Allow only completed tasks to append receipts that match the accepted task definition and contain every required passing check; retain cancellation and ADR immutability.",
+        "prevention": "Four new regressions cover legitimate supplemental receipts, deletion/reordering/replacement/state changes, wrong-definition/incomplete additions and cancelled-record immutability. The 177-test suite passes; failing CI run 38569288074 and local reports remain retained. Review both base and prior checkpoint."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "development-product-role-confusion",
+      "source": "Owner development discussion on 2026-10-29 and repository inspection",
+      "observation": "Owner corrected conflation of development-AI responsibilities with embedded-product interaction requirements.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-016"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The records used descriptions of development responsibilities to imply requirements for the embedded AI.",
+        "correction": "Product collaboration and development responsibilities now have distinct records and navigation.",
+        "prevention": "Project-state and development-role regression checks passed in the native verification run."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "development-navigation-and-evidence",
+      "source": "Owner development discussion on 2026-10-29 and repository inspection",
+      "observation": "Current task context expands historical records and release policy but does not navigate implementation; latest fast omissions obscure separately archived native evidence.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-016"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The default task view expanded historical policy and did not identify implementation entries or explain omitted checks.",
+        "correction": "Focused context now resolves modules and public entrypoints. Status explains the current selection and archived receipts.",
+        "prevention": "Focused-context and evidence-view tests run with the project-state and Python checks."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "long-term-code-evolution",
+      "source": "Owner development discussion on 2026-10-29 and repository inspection",
+      "observation": "Owner requires clear responsibilities, hidden internals, bounded dependencies, data ownership and verified staged evolution for long-lived AI-authored code.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-016"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Task activation and module navigation previously lacked explicit ownership and transition requirements.",
+        "correction": "Project records now bind active plans to module responsibilities, data ownership and compatibility checks. The worker registry exposes lifecycle operations.",
+        "prevention": "Project-state and Python regressions validate ownership and transition records. The Rust workspace and native build passed."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "dependency-advisories-20261029",
+      "source": "Observed local validation on 2026-10-29",
+      "observation": "Fresh full validation found unresolved block-buffer 0.10.4, Tokio 1.53.2 and fast-uri 3.1.8 advisories; retain failed run 20261029T041122.487082Z-579a3a18.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-017"
+      ],
+      "regression_checks": [
+        "dependency-review"
+      ],
+      "resolution": {
+        "cause": "The locked Tokio and fast-uri versions were affected. The reported block-buffer match differed from the publisher range.",
+        "correction": "Compatible patches update the affected dependencies. Dependency review verifies the exact block-buffer publisher range and expires its recorded disposition.",
+        "prevention": "Fresh dependency review passed in the hosted Linux and Windows jobs, alongside the affected application checks."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "development-invalid-report-view",
+      "source": "Observed local validation on 2026-10-29",
+      "observation": "An independent malformed-report probe raised TypeError in the new evidence explanation rather than reporting invalid input.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-016"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The evidence view accessed malformed report fields before validating their structure.",
+        "correction": "The evidence view validates report input and explains invalid reports.",
+        "prevention": "The Python project regression checks include malformed-report cases."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "copied-checkout-bootstrap",
+      "source": "Local reproduction on 2026-11-18 after the owner copied the checkout to Linux",
+      "observation": "The opening project status command failed because pnpm was missing. The copied virtual environment referenced the previous user's home and its zero-byte Python launcher exited with status 0 for code that explicitly requested status 41. The copied report described the previous host. After installing the pinned tools, project status also failed when uv attempted to lock its cache in the read-only home directory.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-018"
+      ],
+      "regression_checks": [
+        "environment",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The copy flattened interpreter and package links, retained the previous host paths and added execute bits to all 180 tracked files. The current shell lacked the pinned development tools.",
+        "correction": "Preserved the incoming diagnostic, restored Git file modes, rebuilt local dependencies and enabled the pinned tools. Project commands use a writable checkout-local uv cache and pnpm uses Node 24. The Linux developer server and synthetic chart both ran on the new host.",
+        "prevention": "Recovery instructions and tests exercise an isolated host interpreter with a broken copied virtual environment and verify the saved bytes. Locked setup and the M0-018 receipt cover the rebuilt Python, Rust, UI and browser paths."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "chrono-picomatch-advisories-20261118",
+      "source": "Local dependency audit, build graphs and publisher release records reviewed on 2026-11-18",
+      "observation": "The online audit reported RUSTSEC-2026-0543 for chrono 0.4.45 and GHSA-fc5q-39xc-vjpf for picomatch 4.0.7. Neither publisher had released a fix. Chrono appeared in Cargo.lock but was absent from both supported graphs. Vite used the affected matcher during the UI build. The original audit is .reports/dependencies/20261118T103433.352167Z.json.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-019"
+      ],
+      "regression_checks": [
+        "dependency-review",
+        "python-contracts-workers",
+        "ui-build"
+      ],
+      "resolution": {
+        "cause": "The lockfiles included the affected chrono release and Vite used the affected picomatch version.",
+        "correction": "Dependency review checks the supported Cargo graphs and runs ordinary and restricted match cases against the version-specific Vite dependency patch.",
+        "prevention": "Both hosted jobs passed dependency review, Python regressions and the UI build. The audit retains its publisher and expiry checks."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "history-axis-edge-labels",
+      "source": "Visual inspection of the 1366 by 900 Chromium futures screenshot on 2026-11-18.",
+      "observation": "In the one-minute futures view the first time label started midword and the last ended after a single hour digit at the price-scale boundary.",
+      "severity": "minor",
+      "status": "addressed",
+      "task_ids": [
+        "M1-010"
+      ],
+      "regression_checks": [
+        "ubuntu-preview"
+      ],
+      "resolution": {
+        "cause": "Centered intraday labels at the sample bounds extended beyond the canvas by 24 and 21 pixels in the observed desktop view.",
+        "correction": "The time scale now aligns labels at both sample boundaries and reserves width for the displayed minute and daily formats.",
+        "prevention": "Browser checks measure rendered glyphs at desktop and narrow widths and exercise zoom, pan, crosshair and daily labels."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-short-temp-path-boundary",
+      "source": "Native Windows Actions run 44293250894 for head 2b65c0b1d1e20dd0b9594e9ef7487967501d085b",
+      "observation": "The declared dependency and private-entry regression raised ValueError before checking a valid import. The resolved target used the runneradmin profile directory while the temporary repository root used its RUNNER~1 alias. The Windows artifact is .reports/ci/44293250894/windows/test-report.json.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-020"
+      ],
+      "regression_checks": [
+        "architecture",
+        "python-contracts-workers",
+        "windows-native-build"
+      ],
+      "resolution": {
+        "cause": "The architecture checker resolved a TypeScript import path but kept the short spelling of the Windows temporary workspace root for its relative path calculation.",
+        "correction": "The checker now uses a single canonical checkout root for ownership, containment and diagnostics.",
+        "prevention": "The path-alias regression exercises allowed public entries and forbidden module crossings, and the Windows Python suite runs on the native hosted runner."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "ubuntu-preview-interruption-retry-guidance",
+      "source": "Separate graphical Chrome session on Ubuntu, revision 2ca63cba675d8bd7d0173f9d2d28531f76df9c65. Observations in .reports/ux/ubuntu-interruption-2ca63cba675d/observations.json.",
+      "observation": "Temporarily disconnecting the browser made catalog and history errors advise restarting the development server. The server stayed running. Restoring the browser connection, using the retry controls and rapidly changing the selection displayed the intended final instrument and timeframe.",
+      "severity": "minor",
+      "status": "addressed",
+      "task_ids": [
+        "M1-013"
+      ],
+      "regression_checks": [
+        "ubuntu-preview"
+      ],
+      "resolution": {
+        "cause": "The generic fallback assumed the local server required a restart after a browser transport failure.",
+        "correction": "The local preview now explains when to retry after the connection returns. The running service and the selected history can be reused.",
+        "prevention": "A clean browser session loses its local connection while loading the catalog and again while changing timeframe, then retries each path on the same server. It checks the data after quick subsequent selections."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "owner-chart-workspace-reference",
+      "source": "Owner review of the workspace discussion sketch on 2026-11-18.",
+      "observation": "The owner found the sketch far from the intended product and selected TradingView Supercharts as the reference for the first-screen layout and chart interactions. Include icons according to ScopeHub's actual actions.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-014"
+      ],
+      "regression_checks": [
+        "ubuntu-preview",
+        "chart-history"
+      ],
+      "resolution": {
+        "cause": "The previous entry opened a separate welcome screen and did not expose the chosen workspace layout or history inspection controls.",
+        "correction": "The implemented workspace opens directly, restores an opted-in labeled sample and its presentation, and supports chart tools, keyboard symbol selection and source/data panels at both reviewed sizes.",
+        "prevention": "The chart-history and ubuntu-preview regressions, matching Linux and Windows CI and the separately retained Ubuntu graphical observation cover the engineering outcome. Further owner usability feedback remains independent."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "contract-closure-review",
+      "source": "Complete contract audit and four owner decisions on 2026-11-18.",
+      "observation": "The active chart failed to compile; catalog and history validation disagreed, and hard limits appeared retryable. Market and operation contracts could not identify exact inputs, approvals and outputs, while the verification pipeline could attribute partial or stale results to a qualified product.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-023"
+      ],
+      "regression_checks": [
+        "project-state",
+        "generated-contracts",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "chart-history",
+        "ubuntu-preview"
+      ],
+      "resolution": {
+        "cause": "Legacy payloads, unqualified metadata and aggregate status did not uniquely identify calculation inputs, authorized outcomes or qualifying evidence.",
+        "correction": "Contract 1.3 and protocol 1.1 resolve the 27 review items. Current sample startup, registry validation, bounded versioned history and retry behavior are repaired. The new procedure binds independent observations to real sessions, a named candidate, installation bytes and supported client systems.",
+        "prevention": "The review record links every finding to a canonical rule, delivery task and check. Cross-language vectors, actual worker reads, browser journeys and independent delivery fixtures must pass. Future product flows keep their own gates."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "multi-revision-maintenance",
+      "source": "Owner question on sustained maintenance, engineering ownership and multi-step rewrites, followed by inspection of repository controls.",
+      "observation": "History checks inspect only immediate successors of an established check. Historical task classifications are resolved against live policy, and cancelled current work can mask a capability assigned only to later delivery.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-024"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The history comparison stopped after one replacement. Historical plans looked up retired work classifications in live policy. Cancellation and delivery scope were evaluated separately.",
+        "correction": "The validator follows every replacement branch to an implemented required check and rejects cycles. It preserves closed plans and requires a non-cancelled current task for each current capability. Existing development policies assign repair ownership and describe staged cutover and recovery.",
+        "prevention": "Four regressions reproduced the original failures and now pass, including a Git fixture with a completed intermediate task and checks from both review bases. M0-024 archives the clean local result and the matching Linux and Windows hosted results. Product work resumes at M1-006."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "private-content-and-hosted-reports",
+      "source": "Owner direction on local private data, ordinary connected-model use, and Herdr-led development. Inspection of the hosted workflow and session verifier.",
+      "observation": "The hosted workflow selected the whole reports directory. The real-model qualification could pass without distinguishing ordinary consent from a one-request private excerpt, and older records did not distinguish the co-developer’s authority from the permissions of each product user.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-025"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "project-state"
+      ],
+      "resolution": {
+        "cause": "The upload selected the entire reports tree, ordinary and private model disclosure were conflated, and qualification measured only transmitted bytes.",
+        "correction": "Herdr role routing is locally exercised. Model grants distinguish ordinary turns from exact saved excerpts. The public artifact selector checks typed evidence, notices, provenance and private log bytes. The same cloud-text rule applies at collection and release; Windows candidate paths are normalized.",
+        "prevention": "Local regression evidence covers both recipient contexts, cross-profile reads, shadowed fields and candidate/field artifacts. The clean task report records the current source; a future configured-model task must also observe an actual session."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "market-replay-boundary-and-selection",
+      "source": "Independent Herdr review of the M1-006 working implementation and its real local worker and chart probes.",
+      "observation": "A changed bar at the frozen sequence could be ignored, history and replay could reuse a request ID across tasks, and cancellation could keep the next subscription busy. Superseded preparation delayed the new selection. Comparing the whole canvas could pass when the final candle was missing, and a stalled child could retain the caller beyond the configured cleanup budget.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-006"
+      ],
+      "regression_checks": [
+        "market-live-stream",
+        "rust-contracts-workers",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The initial replay treated all older sequence numbers as harmless and kept separate request ownership paths. The chart, worker lifecycle and test oracle did not independently demonstrate cancellation or the final candle.",
+        "correction": "The shared registry checks the frozen boundary, the worker uses one request ledger and cleanup retains ownership of unreaped children. Browser and native preparation can be superseded.",
+        "prevention": "The live chart check measures both candle closes, a frozen historical readout and selection races. Rust and Python regressions cover conflicting boundary events, identity reuse and bounded cleanup, including the portable desktop bridge."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "quality-summary-masks-stale-data",
+      "source": "Independent read-only inspection and local synthetic probe while preparing market-quality acceptance.",
+      "observation": "The history provider inferred freshness from one legacy label. With a known gap and a missed observation, the gapped label made stale data appear current. Existing stale and gapped sample revisions could not be explicitly retrieved through the versioned history operation.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-016"
+      ],
+      "regression_checks": [
+        "market-fixtures",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The provider derived freshness from a single display label and always rebuilt the normal revision. The combined replay path could also offer a stream boundary without an observation at the cutoff.",
+        "correction": "Read the specified fixture revision, compute session, freshness and coverage independently, derive the legacy summary, and require a matching observed cutoff for replay.",
+        "prevention": "Worker and frozen-page tests cover closed, delayed, stale and unknown data with gaps, empty selections, pinned revisions and a stale or unknown observation that still has subsequent fixture events."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-check-diagnostics-encoding",
+      "source": "Windows hosted verification run 44495516299, check harness after the market-live-stream process returned exit code 1.",
+      "observation": "The Windows console could not encode the browser failure text. The harness stopped before writing its report, so the hosted job lacked a downloadable Windows report for the original failure.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-026"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Printing the raw Unicode tail on a legacy console could raise a second exception before harness finalization.",
+        "correction": "Escape the short structured console diagnostic while retaining the original bytes, digest and failing exit status in the check log. Preserve the private-check output boundary.",
+        "prevention": "The strict-encoding child-process regression and the private diagnostic test ran locally and on both hosted platforms in run 44498344930. The Windows report, including the successful market replay, was staged and imported. The earlier browser assertion was unavailable in run 44495516299."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "selection-revision-policy-conflict",
+      "source": "M2-001 implementation planning, product AI tool policy compared with registered protocol 1.1 client and AI selection requests.",
+      "observation": "The generic policy requires a workspace revision for every mutation, but workspace.selectEvidence requires the expected selection revision and explicitly allows selection changes without advancing the durable workspace revision.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-005"
+      ],
+      "regression_checks": [
+        "generated-contracts",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The generic AI tool instruction predated the versioned shared selection and applied one revision rule to different operations.",
+        "correction": "The contract now specifies the independent selection revision for a shared selection, the durable workspace revision for a write, and both for a selection-bound write. Existing 1.1 clients keep the registered shapes.",
+        "prevention": "Five shared negative vectors exercise omitted and substituted revision fields in human and AI requests. Python, Rust and TypeScript validate the positive and negative cases. Runtime concurrency and projection remain part of M2-001."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "superseded-market-admission",
+      "source": "Independent timing review of an owned history preparation and market replay during M1-007.",
+      "observation": "A replacement could stop attempting admission after 1000 ms for preview history or 1550 ms for a replay even though its previous worker was still within the bridge cleanup window. A simulated 1025 ms or 1600 ms release reproduced the two false BUSY results.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-007"
+      ],
+      "regression_checks": [
+        "market-live-stream"
+      ],
+      "resolution": {
+        "cause": "Three admission loops used fixed and inconsistent budgets that could expire before cleanup. A BUSY error delivered inside an already admitted stream could be mistaken for a new admission refusal.",
+        "correction": "Use a cancellable monotonic admission window covering worker cleanup. Acknowledge admission on the transport boundary and stop automatic retries once the worker has accepted the operation.",
+        "prevention": "Browser regressions delay replacement reads and subscriptions beyond the old limits, hold persistent BUSY and verify only one subscription after a terminal-only BUSY."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "market-quality-attribution",
+      "source": "Independent M1-007 chart review with held ordinary history, controlled transport failures and a typed gap event.",
+      "observation": "Without a snapshot, a failed worker read populated the source connection as disconnected. With a frozen snapshot, loss of the local preview transport could instead be presented as a worker exit. The UI also discarded known UTC ranges and loss counts when a stream gap arrived. A validated replay gap can arrive before a later cleanup error. Preserve the reported facts even if the terminal says TIMEOUT or the local transport then disconnects.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-007"
+      ],
+      "regression_checks": [
+        "market-quality-states"
+      ],
+      "resolution": {
+        "cause": "The view conflated source status with worker and local transport failures. It initially associated known loss with the normal terminal rather than the validated gap event.",
+        "correction": "Keep source, worker and transport facts independent. Retain accepted gap range, reason and loss immediately across normal completion, cleanup failure or transport loss, and discard the old replay on retry or selection change.",
+        "prevention": "The quality suite uses real pinned and unpinned history errors plus controlled transport cases, including a held then failed terminal and rejected post-gap updates. Independent review confirmed the same gap and failure remain visible together."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "superseded-ordinary-history",
+      "source": "Independent M1-007 chart review with held ordinary history, controlled transport failures and a typed gap event.",
+      "observation": "Switching symbols aborted the caller while a superseded ordinary browser history fetch still occupied the read queue until its old response arrived. This left the replacement chart loading while an obsolete response was held.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-007"
+      ],
+      "regression_checks": [
+        "market-quality-states",
+        "market-live-stream"
+      ],
+      "resolution": {
+        "cause": "Ordinary development-preview reads did not receive the selection abort signal, so an obsolete network response held the client queue.",
+        "correction": "Cancel preview reads on replacement while allowing the prior child to be reaped before readmission. Preserve the native invoke boundary and the latest selection identity.",
+        "prevention": "The normal chart must paint the replacement stock while the obsolete futures response is still held, confirm cancellation and reject late paints. The native preparation and slot ownership checks remain in the replay suite."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "selection-target-and-replay-qualification",
+      "source": "Independent review of engineering contract 1.4.1 against the committed annotation, receipt identities and EvidenceTarget11.",
+      "observation": "The generic revision check can read as applying to an already committed retry despite the original revision having advanced. The selection description omits the object-ID target family and explicit null clearing supported by both 1.1 callers.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-006"
+      ],
+      "regression_checks": [
+        "generated-contracts",
+        "python-contracts-workers",
+        "typescript-contracts",
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "New-work concurrency wording did not distinguish an already committed semantic retry, and the prose target list omitted legitimate variants from the 1.1 union.",
+        "correction": "Scope revision, target and confirmation checks to new work after the committed lookup. Qualify visible receipts and required result fields with current disclosure and data rights. Specify object identity, explicit null clearing and the source locators for the other target forms.",
+        "prevention": "Six new human and AI vectors distinguish object selection, explicit clearing and omitted target. All 162 shared vectors passed in Python, TypeScript and Rust. Independent review checked the original annotation request, advanced committed revision and projected result. Process-level idempotency remains an M2-001 runtime check."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "hosted-replay-aggregate-deadline",
+      "source": "Ubuntu Verify delivery run 44504564860 at edb0189, market-live-stream, first canvas replay.",
+      "observation": "The five-second terminal assertion reached Preparing then In progress before timing out. The other seven replay cases passed. The original log and screenshot are retained in the authenticated run artifact.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-017"
+      ],
+      "regression_checks": [
+        "market-live-stream"
+      ],
+      "resolution": {
+        "cause": "The terminal assertion started at the user action and consumed one five-second budget across two real operations. A held preparation reproduced the hosted in-progress timeout. Later Chromium protocol access could also lose an already consumed streaming body.",
+        "correction": "Observe the first stream POST after preparation and apply the bounded preview deadline separately to the terminal outcome. Clone each actual browser response, match it to its request, and retain the verified request count through style and panel changes and reload.",
+        "prevention": "Holding the real preparation for 3.4 seconds reproduces the former timeout. The clean final task run passed all eight replay and thirteen quality cases. It checks both paints against fixture prices, the frozen row, one accepted stream, explicit pre-admission BUSY and no additional subscription through reload."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "hosted-restored-chart-deadline",
+      "source": "Hosted Windows Verify delivery run 44509534715, market-live-stream, first test after page reload.",
+      "observation": "The five-second selected-bar assertion expired. The failure screenshot already shows the restored simulated futures chart, selected line style, open data window, forty bars and the original partial close of 3500.8 with volume 110. The other seven stream cases passed.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-018"
+      ],
+      "regression_checks": [
+        "market-live-stream"
+      ],
+      "resolution": {
+        "cause": "The selected-bar assertion started before catalog and history had completed. Holding both real successful replies for 2.75 seconds each reproduced the Windows missing-element timeout with the original assertion.",
+        "correction": "Observe every POST from issuance through the rendered chart, correlate completion or failure, and verify each read against its own deadline. Recheck the visible instrument, timeframe, chart style, simulated source and identical frozen final row after reload.",
+        "prevention": "All eight replay cases pass with the bounded restore. Four independent negative probes reproduced the earlier false passes and confirm a failed extra read, an outstanding read, an unrelated BUSY and early history issuance are rejected."
+      },
+      "deferral_reason": null
     }
   ]
 }

@@ -1,4 +1,4 @@
-# Generated from contracts/schemas/protocol.schema.json; sha256=7d5aeb935ac213ef7068481ce24b63fdbd75b882c0e6f348025408473fca7584. Do not edit.
+# Generated from contracts/schemas/protocol.schema.json; sha256=00d5588197a5635a218a3f20f558086ee5336b4d0663fe40557e3abe3a6b950a. Do not edit.
 from __future__ import annotations
 from typing import Literal, NotRequired, TypedDict
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
@@ -9,8 +9,8 @@ Timestamp = int
 Metadata = dict[str, JsonValue]
 WorkerRole = Literal['market', 'ai', 'indicator']
 ProtocolVersion = Literal['1.0']
-ErrorCode = Literal['INVALID_ARGUMENT', 'UNSUPPORTED_CAPABILITY', 'PERMISSION_DENIED', 'CONFIRMATION_REQUIRED', 'CANCELLED', 'TIMEOUT', 'WORKER_EXITED', 'PROTOCOL_MISMATCH', 'DATA_UNAVAILABLE', 'STALE_CONTEXT', 'RESOURCE_LIMIT', 'OUTPUT_INVALID', 'PROVIDER_NOT_CONFIGURED', 'INTERNAL_ERROR']
-OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext']
+ErrorCode = Literal['INVALID_ARGUMENT', 'UNSUPPORTED_CAPABILITY', 'PERMISSION_DENIED', 'CONFIRMATION_REQUIRED', 'CANCELLED', 'TIMEOUT', 'WORKER_EXITED', 'PROTOCOL_MISMATCH', 'DATA_UNAVAILABLE', 'STALE_CONTEXT', 'RESOURCE_LIMIT', 'OUTPUT_INVALID', 'PROVIDER_NOT_CONFIGURED', 'INTERNAL_ERROR', 'BUSY', 'SNAPSHOT_UNAVAILABLE']
+OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'market.subscribe', 'workspace.readChartProjection', 'workspace.selectEvidence']
 ChartStyle = Literal['candlestick', 'line']
 TaskStatus = Literal['queued', 'running', 'awaiting_confirmation', 'completed', 'failed', 'cancelled']
 Tradability = Literal['non_tradable', 'unknown']
@@ -124,7 +124,7 @@ class Workspace(TypedDict):
     layers: list[Layer]
 class Context(TypedDict):
     workspace: Workspace
-    authorized_operations: list[OperationName]
+    authorized_operations: list[LegacyOperationName]
     bars: list[Bar]
 class FieldExpression(TypedDict):
     op: Literal['field']
@@ -408,7 +408,7 @@ class Hello(TypedDict):
     role: WorkerRole
     worker_version: str
     supported_protocols: list[str]
-    capabilities: list[OperationName]
+    capabilities: list[LegacyOperationName]
 class ErrorResponse(TypedDict):
     protocol_version: ProtocolVersion
     message_id: Uuid
@@ -449,4 +449,964 @@ class Heartbeat(TypedDict):
     message_id: Uuid
     timestamp_ms: Timestamp
     type: Literal['heartbeat']
-Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat
+class SeriesKey(TypedDict):
+    instrument_id: OpaqueId
+    provider_id: OpaqueId
+    timeframe: OpaqueId
+    price_adjustment: OpaqueId
+    session_scope: OpaqueId
+    calendar_id: OpaqueId
+    quantity_unit: OpaqueId
+class FrozenSnapshot(TypedDict):
+    series: SeriesKey
+    dataset_id: Uuid
+    dataset_revision: OpaqueId
+    from_ms: Timestamp
+    to_ms: Timestamp
+    warmup_bars: int
+    as_of_ms: Timestamp
+    content_hash: Hash
+class HistoryCursor(TypedDict):
+    snapshot_hash: Hash
+    next_index: int
+    prefix_hash: Hash
+    previous_time_ms: Timestamp
+class StreamPosition(TypedDict):
+    stream_id: OpaqueId
+    epoch: OpaqueId
+    sequence: Revision
+class MarketQualityState(TypedDict):
+    as_of_ms: Timestamp
+    last_observed_ms: Timestamp | None
+    session_state: Literal['open', 'closed', 'unknown']
+    freshness: Literal['current', 'delayed', 'stale', 'unknown']
+    connection: Literal['offline', 'connected', 'disconnected']
+    coverage: Literal['observed', 'gapped', 'unknown']
+    gaps: list[VisibleRange]
+    source_kind: Literal['native_bars', 'snapshot_approximation', 'synthetic']
+class MarketHistoryPageInput(TypedDict):
+    series: SeriesKey
+    from_ms: Timestamp
+    to_ms: Timestamp
+    warmup_bars: int
+    as_of_ms: NotRequired[Timestamp]
+    expected_revision: NotRequired[OpaqueId]
+    snapshot: NotRequired[FrozenSnapshot]
+    cursor: NotRequired[HistoryCursor]
+    page_size: NotRequired[int]
+    include_stream_position: NotRequired[bool]
+class MarketHistoryPageOutput(TypedDict):
+    dataset: DatasetDescriptor
+    bars: list[Bar]
+    snapshot: FrozenSnapshot
+    quality_state: MarketQualityState
+    stream_position: StreamPosition | None
+    next_cursor: HistoryCursor | None
+    total_bars: int
+    offset: int
+class MarketPageFault(TypedDict):
+    code: ErrorCode
+    message: str
+    retryable: bool
+    details: Metadata
+class MarketHistoryPageRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.readHistoryPage']
+    payload: MarketHistoryPageInput
+class MarketHistoryPageResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.readHistoryPage']
+    ok: Literal[True]
+    result: MarketHistoryPageOutput
+    error: None
+class MarketHistoryPageError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.readHistoryPage']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
+class MarketSubscriptionInput(TypedDict):
+    series: SeriesKey
+    after: StreamPosition
+    snapshot: FrozenSnapshot
+class StreamResumeAccepted(TypedDict):
+    status: Literal['accepted']
+    from_position: StreamPosition
+class StreamBackfillRequired(TypedDict):
+    status: Literal['backfill_required']
+    reason: Literal['epoch_changed', 'history_evicted', 'coverage_unknown', 'sequence_gap']
+    recover_from_ms: Timestamp
+MarketSubscriptionOutput = StreamResumeAccepted | StreamBackfillRequired
+class MarketSubscriptionRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.subscribe']
+    payload: MarketSubscriptionInput
+class MarketSubscriptionResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.subscribe']
+    ok: Literal[True]
+    result: MarketSubscriptionOutput
+    error: None
+class MarketSubscriptionError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.subscribe']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
+MarketSubscriptionReply11 = MarketSubscriptionResponse | MarketSubscriptionError
+class MarketStreamBarUpdate(TypedDict):
+    series: SeriesKey
+    dataset_revision: OpaqueId
+    observed_at_ms: Timestamp
+    bar: Bar
+class MarketStreamBarCorrection(TypedDict):
+    series: SeriesKey
+    dataset_revision: OpaqueId
+    observed_at_ms: Timestamp
+    bar: Bar
+    supersedes_revision: OpaqueId
+class MarketStreamGap(TypedDict):
+    series: SeriesKey
+    reason: Literal['sequence_gap', 'overflow', 'epoch_reset', 'source_gap']
+    expected_sequence: Revision
+    lost_count: int
+    affected: VisibleRange
+class MarketBarUpdateEvent(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['event']
+    stream_id: OpaqueId
+    epoch: OpaqueId
+    sequence: Revision
+    event: Literal['market.bar_update']
+    payload: MarketStreamBarUpdate
+class MarketBarCorrectionEvent(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['event']
+    stream_id: OpaqueId
+    epoch: OpaqueId
+    sequence: Revision
+    event: Literal['market.bar_correction']
+    payload: MarketStreamBarCorrection
+class MarketStreamGapEvent(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['event']
+    stream_id: OpaqueId
+    epoch: OpaqueId
+    sequence: Revision
+    event: Literal['market.stream_gap']
+    payload: MarketStreamGap
+class WorkerHello11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['hello']
+    role: WorkerRole
+    worker_version: str
+    supported_protocols: list[str]
+    capabilities: list[str]
+class ScopedMutationRequest11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    scope: MutationScope11
+    intent: MutationIntent11
+class ScopedMutationResponse11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    outcome: MutationOutcome11
+class TrustedConfirmationDecision11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    operation: Literal['confirmation.respond']
+    challenge_id: Uuid
+    decision: Literal['approve', 'deny']
+class PreviewReady11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['event']
+    event: Literal['indicator.preview_ready']
+    task_id: Uuid
+    draft_id: OpaqueId
+    preview_id: OpaqueId
+    stream_id: OpaqueId
+    sequence: Revision
+    snapshot: FrozenSnapshot
+    code_hash: Hash
+    params_hash: Hash
+    engine_version: OpaqueId
+    artifact: IndicatorArtifact11
+class ArtifactChunk11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['event']
+    event: Literal['indicator.result_segment']
+    task_id: Uuid
+    artifact_id: OpaqueId
+    result_hash: Hash
+    stream_id: OpaqueId
+    sequence: Revision
+    segment_index: int
+    bytes_base64: str
+class TaskTerminalEvent11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['event']
+    event: Literal['task.terminal']
+    task_id: Uuid
+    stream_id: OpaqueId
+    sequence: Revision
+    outcome: TerminalState11
+    committed_effects: list[TaskEffectSummary11]
+class TaskCancelRequest11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    operation: Literal['task.cancel']
+    request_id: Uuid
+    task_id: Uuid
+class CancelMemberRequest11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['cancel']
+    request_id: Uuid
+    task_id: Uuid
+class ReadProjectedChart11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    operation: Literal['workspace.readChartProjection']
+    request_id: Uuid
+    workspace_id: OpaqueId
+    selection_revision: Revision
+    requested_fields: list[ExportField11]
+class ProjectedChartResponse11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    operation: Literal['workspace.readChartProjection']
+    request_id: Uuid
+    result: ProjectedChart11
+class SharedSelectionEvent11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['event']
+    event: Literal['workspace.selection_changed']
+    stream_id: OpaqueId
+    sequence: Revision
+    selection: SharedSelection11
+class SharedSelectionRequest11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    operation: Literal['workspace.selectEvidence']
+    request_id: Uuid
+    workspace_id: OpaqueId
+    expected_selection_revision: Revision
+    target: EvidenceTarget11 | None
+class AiToolRequest11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['event']
+    event: Literal['ai.tool_request']
+    stream_id: OpaqueId
+    sequence: Revision
+    task_id: Uuid
+    call_id: Uuid
+    payload: AiRequestedAction11
+class AiToolResultDelivery11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    operation: Literal['ai.tool_result']
+    request_id: Uuid
+    task_id: Uuid
+    call_id: Uuid
+    outcome: AiToolOutcome11
+class AiToolResultAck11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    operation: Literal['ai.tool_result']
+    request_id: Uuid
+    task_id: Uuid
+    call_id: Uuid
+    status: Literal['received', 'already_received', 'task_terminal']
+class ProjectedChartError11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    operation: Literal['workspace.readChartProjection']
+    request_id: Uuid
+    error: WorkspaceFault11
+class IndicatorCompute11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    operation: Literal['indicator.compute']
+    request_id: Uuid
+    task_id: Uuid
+    draft_id: OpaqueId
+    source: DraftSource11
+    resolved_params: Metadata
+    code_hash: Hash
+    params_hash: Hash
+    snapshot: FrozenSnapshot
+    input: IndicatorBarsInput11
+class IndicatorComputed11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    operation: Literal['indicator.compute']
+    request_id: Uuid
+    task_id: Uuid
+    draft_id: OpaqueId
+    snapshot_hash: Hash
+    artifact: IndicatorArtifact11
+class IndicatorInputSegment11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['event']
+    event: Literal['indicator.input_segment']
+    stream_id: OpaqueId
+    sequence: Revision
+    task_id: Uuid
+    request_id: Uuid
+    snapshot_hash: Hash
+    offset: Revision
+    bars: list[Bar]
+class SharedSelectionResponse11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    operation: Literal['workspace.selectEvidence']
+    request_id: Uuid
+    selection: SharedSelection11
+class SharedSelectionError11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    operation: Literal['workspace.selectEvidence']
+    request_id: Uuid
+    error: WorkspaceFault11
+class SharedContextRequest11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    operation: Literal['workspace.getContext']
+    request_id: Uuid
+    workspace_id: OpaqueId
+class SharedContextResponse11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    operation: Literal['workspace.getContext']
+    request_id: Uuid
+    context: SharedContext11
+class SharedContextError11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    operation: Literal['workspace.getContext']
+    request_id: Uuid
+    error: WorkspaceFault11
+class CancelTaskResponse11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    operation: Literal['task.cancel']
+    request_id: Uuid
+    task_id: Uuid
+    outcome: TerminalState11
+    committed_effects: list[TaskEffectSummary11]
+class CancelTaskError11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    operation: Literal['task.cancel']
+    request_id: Uuid
+    error: WorkspaceFault11
+Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat | MarketHistoryPageRequest | MarketHistoryPageResponse | MarketHistoryPageError | MarketSubscriptionRequest | MarketSubscriptionResponse | MarketSubscriptionError | MarketBarUpdateEvent | MarketBarCorrectionEvent | MarketStreamGapEvent | WorkerHello11 | ScopedMutationRequest11 | ScopedMutationResponse11 | TrustedConfirmationDecision11 | PreviewReady11 | ArtifactChunk11 | TaskTerminalEvent11 | TaskCancelRequest11 | CancelMemberRequest11 | ReadProjectedChart11 | ProjectedChartResponse11 | SharedSelectionEvent11 | SharedSelectionRequest11 | AiToolRequest11 | AiToolResultDelivery11 | AiToolResultAck11 | ProjectedChartError11 | IndicatorCompute11 | IndicatorComputed11 | IndicatorInputSegment11 | SharedSelectionResponse11 | SharedSelectionError11 | SharedContextRequest11 | SharedContextResponse11 | SharedContextError11 | CancelTaskResponse11 | CancelTaskError11
+ProtocolVersion11 = Literal['1.1']
+class WorkspaceObject11(TypedDict):
+    kind: Literal['chart', 'layer', 'layout', 'dataset', 'workspace']
+    object_id: OpaqueId
+class ChartInterval11(TypedDict):
+    kind: Literal['chart_interval']
+    snapshot: FrozenSnapshot
+    range: VisibleRange
+class SourceLocation11(TypedDict):
+    kind: Literal['table_row', 'document_passage']
+    source_id: OpaqueId
+    source_revision: OpaqueId
+    locator: OpaqueId
+EvidenceTarget11 = WorkspaceObject11 | ChartInterval11 | SourceLocation11
+class SharedSelection11(TypedDict):
+    workspace_id: OpaqueId
+    selection_revision: Revision
+    target: EvidenceTarget11 | None
+class MutationScope11(TypedDict):
+    workspace_id: OpaqueId
+    target: EvidenceTarget11
+    expected_workspace_revision: Revision
+    expected_selection_revision: Revision
+    idempotency_key: Uuid
+class OperationReceipt11(TypedDict):
+    operation_id: OpaqueId
+    workspace_id: OpaqueId
+    target: EvidenceTarget11
+    committed_workspace_revision: Revision
+    undoable: bool
+class NumberParameter11(TypedDict):
+    type: Literal['number']
+    name: str
+    default: float
+class IntegerParameter11(TypedDict):
+    type: Literal['integer']
+    name: str
+    default: int
+class BooleanParameter11(TypedDict):
+    type: Literal['boolean']
+    name: str
+    default: bool
+ParameterDeclaration11 = NumberParameter11 | IntegerParameter11 | BooleanParameter11
+class NumericOverride11(TypedDict):
+    name: str
+    value: float
+class BooleanOverride11(TypedDict):
+    name: str
+    value: bool
+ParameterOverride11 = NumericOverride11 | BooleanOverride11
+class NumberReference11(TypedDict):
+    op: Literal['number_parameter']
+    name: str
+class BooleanReference11(TypedDict):
+    op: Literal['boolean_parameter']
+    name: str
+class WindowLiteral11(TypedDict):
+    periods: int
+class WindowParameter11(TypedDict):
+    parameter: str
+WindowLength11 = WindowLiteral11 | WindowParameter11
+class Arithmetic11(TypedDict):
+    op: Literal['add', 'subtract', 'multiply', 'divide']
+    left: NumberExpression11
+    right: NumberExpression11
+class Absolute11(TypedDict):
+    op: Literal['abs']
+    value: NumberExpression11
+class Delay11(TypedDict):
+    op: Literal['lag']
+    value: NumberExpression11
+    periods: int
+class Rolling11(TypedDict):
+    op: Literal['rolling_mean', 'rolling_std']
+    value: NumberExpression11
+    window: WindowLength11
+NumberExpression11 = FieldExpression | ConstantExpression | NumberReference11 | Arithmetic11 | Absolute11 | Delay11 | Rolling11
+class BooleanConstant11(TypedDict):
+    op: Literal['boolean']
+    value: bool
+class Comparison11(TypedDict):
+    op: Literal['gt', 'lt']
+    left: NumberExpression11
+    right: NumberExpression11
+class BooleanBinary11(TypedDict):
+    op: Literal['and', 'or']
+    left: BooleanExpression11
+    right: BooleanExpression11
+BooleanExpression11 = BooleanConstant11 | BooleanReference11 | Comparison11 | BooleanBinary11
+class NumericSeries11(TypedDict):
+    kind: Literal['line', 'histogram']
+    id: OpaqueId
+    pane: OpaqueId
+    value: NumberExpression11
+    style: Style
+class ConditionalMarker11(TypedDict):
+    kind: Literal['marker_when']
+    when: BooleanExpression11
+    position: MarkerPosition
+    label: str
+    color: str
+IndicatorOutputSpec11 = NumericSeries11 | ConditionalMarker11
+class DeclarativeSource11(TypedDict):
+    parameters: list[ParameterDeclaration11]
+    outputs: list[IndicatorOutputSpec11]
+class DeclarativeDraft11(TypedDict):
+    language: Literal['declarative']
+    source: DeclarativeSource11
+class PythonDraft11(TypedDict):
+    language: Literal['python']
+    source: str
+    params: Metadata
+DraftSource11 = DeclarativeDraft11 | PythonDraft11
+class SnapshotPreview11(TypedDict):
+    draft_id: OpaqueId
+    snapshot: FrozenSnapshot
+    parameters: list[ParameterOverride11]
+class PythonSnapshotPreview11(TypedDict):
+    draft_id: OpaqueId
+    snapshot: FrozenSnapshot
+    python_params: Metadata
+PreviewArguments11 = SnapshotPreview11 | PythonSnapshotPreview11
+class AcceptPreview11(TypedDict):
+    preview_id: OpaqueId
+    result_hash: Hash
+class OpenSeries11(TypedDict):
+    series: SeriesKey
+    dataset_revision: OpaqueId | None
+class WorkspaceOpenInstrumentIntent11(TypedDict):
+    operation: Literal['workspace.openInstrument']
+    arguments: OpenSeries11
+class ChartSetTimeframeArguments11(TypedDict):
+    timeframe: str
+class ChartSetTimeframeIntent11(TypedDict):
+    operation: Literal['chart.setTimeframe']
+    arguments: ChartSetTimeframeArguments11
+class ChartSetStyleArguments11(TypedDict):
+    style: ChartStyle
+class ChartSetStyleIntent11(TypedDict):
+    operation: Literal['chart.setStyle']
+    arguments: ChartSetStyleArguments11
+class ChartAddAnnotationArguments11(TypedDict):
+    annotation: Annotation
+class ChartAddAnnotationIntent11(TypedDict):
+    operation: Literal['chart.addAnnotation']
+    arguments: ChartAddAnnotationArguments11
+class ChartRemoveLayerArguments11(TypedDict):
+    layer_id: OpaqueId
+class ChartRemoveLayerIntent11(TypedDict):
+    operation: Literal['chart.removeLayer']
+    arguments: ChartRemoveLayerArguments11
+class IndicatorCreateDraftIntent11(TypedDict):
+    operation: Literal['indicator.createDraft']
+    arguments: DraftSource11
+class IndicatorRunPreviewIntent11(TypedDict):
+    operation: Literal['indicator.runPreview']
+    arguments: PreviewArguments11
+class IndicatorAcceptVersionIntent11(TypedDict):
+    operation: Literal['indicator.acceptVersion']
+    arguments: AcceptPreview11
+class IndicatorRemoveArguments11(TypedDict):
+    layer_id: OpaqueId
+class IndicatorRemoveIntent11(TypedDict):
+    operation: Literal['indicator.remove']
+    arguments: IndicatorRemoveArguments11
+class WorkspaceUndoArguments11(TypedDict):
+    operation_id: OpaqueId
+class WorkspaceUndoIntent11(TypedDict):
+    operation: Literal['workspace.undo']
+    arguments: WorkspaceUndoArguments11
+MutationIntent11 = WorkspaceOpenInstrumentIntent11 | ChartSetTimeframeIntent11 | ChartSetStyleIntent11 | ChartAddAnnotationIntent11 | ChartRemoveLayerIntent11 | IndicatorCreateDraftIntent11 | IndicatorRunPreviewIntent11 | IndicatorAcceptVersionIntent11 | IndicatorRemoveIntent11 | WorkspaceUndoIntent11
+class ScopedFailure11(TypedDict):
+    state: Literal['failed']
+    error: WorkspaceFault11
+class WorkspaceFault11(TypedDict):
+    code: ErrorCode
+    message: str
+    retryable: bool
+class PythonExecutionScope11(TypedDict):
+    code_hash: Hash
+    parameters_hash: Hash
+    snapshot_hash: Hash
+    trust_mode: Literal['trusted_user_code_no_sandbox']
+    input_use: Literal['trusted_code_permitted']
+class ConfirmationChallenge11(TypedDict):
+    challenge_id: Uuid
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: OperationName
+    principal_id: OpaqueId
+    session_id: OpaqueId
+    workspace_id: OpaqueId
+    target: EvidenceTarget11
+    workspace_revision: Revision
+    selection_revision: Revision
+    parameters_hash: Hash
+    expires_at_ms: Timestamp
+    python: PythonExecutionScope11 | None
+class NeedsHumanDecision11(TypedDict):
+    state: Literal['awaiting_confirmation']
+    challenge: ConfirmationChallenge11
+class WorkspaceOpenInstrumentCommitted11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['workspace.openInstrument']
+    receipt: OperationReceipt11
+    result: WorkspaceOpenInstrumentOutput
+class ChartSetTimeframeCommitted11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['chart.setTimeframe']
+    receipt: OperationReceipt11
+    result: ChartSetTimeframeOutput
+class ChartSetStyleCommitted11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['chart.setStyle']
+    receipt: OperationReceipt11
+    result: ChartSetStyleOutput
+class ChartAddAnnotationCommitted11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['chart.addAnnotation']
+    receipt: OperationReceipt11
+    result: ChartAddAnnotationOutput
+class ChartRemoveLayerCommitted11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['chart.removeLayer']
+    receipt: OperationReceipt11
+    result: ChartRemoveLayerOutput
+class IndicatorCreateDraftCommitted11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['indicator.createDraft']
+    receipt: OperationReceipt11
+    result: IndicatorCreateDraftOutput
+class IndicatorRunPreviewCommitted11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['indicator.runPreview']
+    receipt: OperationReceipt11
+    result: IndicatorRunPreviewOutput
+class IndicatorAcceptVersionCommitted11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['indicator.acceptVersion']
+    receipt: OperationReceipt11
+    result: IndicatorAcceptVersionOutput
+class IndicatorRemoveCommitted11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['indicator.remove']
+    receipt: OperationReceipt11
+    result: IndicatorRemoveOutput
+class WorkspaceUndoCommitted11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['workspace.undo']
+    receipt: OperationReceipt11
+    result: WorkspaceUndoOutput
+MutationOutcome11 = WorkspaceOpenInstrumentCommitted11 | ChartSetTimeframeCommitted11 | ChartSetStyleCommitted11 | ChartAddAnnotationCommitted11 | ChartRemoveLayerCommitted11 | IndicatorCreateDraftCommitted11 | IndicatorRunPreviewCommitted11 | IndicatorAcceptVersionCommitted11 | IndicatorRemoveCommitted11 | WorkspaceUndoCommitted11 | NeedsHumanDecision11 | ScopedFailure11
+class InlineIndicatorArtifact11(TypedDict):
+    storage: Literal['inline']
+    result_hash: Hash
+    result: IndicatorResult
+class IndexedIndicatorArtifact11(TypedDict):
+    storage: Literal['core_artifact']
+    artifact_id: OpaqueId
+    result_hash: Hash
+    byte_length: int
+    segment_count: int
+IndicatorArtifact11 = InlineIndicatorArtifact11 | IndexedIndicatorArtifact11
+class TaskEffectSummary11(TypedDict):
+    operation_id: OpaqueId
+    workspace_id: OpaqueId
+    committed_workspace_revision: Revision
+class TaskCompleted11(TypedDict):
+    status: Literal['completed']
+class TaskCancelled11(TypedDict):
+    status: Literal['cancelled']
+class TaskFailed11(TypedDict):
+    status: Literal['failed']
+    error: WorkspaceFault11
+TerminalState11 = TaskCompleted11 | TaskCancelled11 | TaskFailed11
+class ExportedBar11(TypedDict):
+    time_ms: NotRequired[Timestamp]
+    trading_day: NotRequired[str]
+    open: NotRequired[float]
+    high: NotRequired[float]
+    low: NotRequired[float]
+    close: NotRequired[float]
+    volume: NotRequired[float | None]
+    is_closed: NotRequired[bool]
+ExportField11 = Literal['time_ms', 'trading_day', 'open', 'high', 'low', 'close', 'volume', 'is_closed']
+class ProjectedChart11(TypedDict):
+    source_reference: OpaqueId
+    revision: OpaqueId
+    fields: list[ExportField11]
+    rows: list[ExportedBar11]
+class ProjectedReadIntent11(TypedDict):
+    operation: Literal['workspace.readChartProjection']
+    workspace_id: OpaqueId
+    selection_revision: Revision
+    requested_fields: list[ExportField11]
+class BoundMutationIntent11(TypedDict):
+    scope: MutationScope11
+    intent: MutationIntent11
+class MarketHistoryPageToolCall11(TypedDict):
+    operation: Literal['market.readHistoryPage']
+    arguments: MarketHistoryPageInput
+class SelectEvidenceIntent11(TypedDict):
+    operation: Literal['workspace.selectEvidence']
+    workspace_id: OpaqueId
+    expected_selection_revision: Revision
+    target: EvidenceTarget11 | None
+AiRequestedAction11 = BoundMutationIntent11 | ProjectedReadIntent11 | InstrumentSearchToolCall | MarketGetBarsToolCall | WorkspaceGetContextToolCall | TaskCancelToolCall | MarketHistoryPageToolCall11 | SelectEvidenceIntent11
+class ToolReadResult11(TypedDict):
+    status: Literal['read']
+    view: ProjectedChart11
+class ToolCommittedResult11(TypedDict):
+    status: Literal['committed']
+    operation_id: OpaqueId
+    committed_workspace_revision: Revision
+    undoable: bool
+class ToolRefResult11(TypedDict):
+    status: Literal['available']
+    result_ref: OpaqueId
+class ToolDeniedResult11(TypedDict):
+    status: Literal['denied', 'failed', 'cancelled']
+    error: WorkspaceFault11
+AiToolOutcome11 = ToolReadResult11 | ToolCommittedResult11 | ToolRefResult11 | ToolDeniedResult11
+class InlineIndicatorBars11(TypedDict):
+    mode: Literal['inline']
+    bars: list[Bar]
+class SegmentedIndicatorBars11(TypedDict):
+    mode: Literal['segmented']
+    total_bars: int
+    segment_count: int
+IndicatorBarsInput11 = InlineIndicatorBars11 | SegmentedIndicatorBars11
+LegacyOperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext']
+class ProjectedChartArguments11(TypedDict):
+    workspace_id: OpaqueId
+    selection_revision: Revision
+    requested_fields: list[ExportField11]
+class SelectEvidenceArguments11(TypedDict):
+    workspace_id: OpaqueId
+    expected_selection_revision: Revision
+    target: EvidenceTarget11 | None
+ProjectedChartReply11 = ProjectedChartResponse11 | ProjectedChartError11
+SelectEvidenceReply11 = SharedSelectionResponse11 | SharedSelectionError11
+class SharedContext11(TypedDict):
+    workspace_id: OpaqueId
+    workspace_revision: Revision
+    selection: SharedSelection11
+    chart: ProjectedChart11 | None
+    authorized_operations: list[OperationName]
+SharedContextReply11 = SharedContextResponse11 | SharedContextError11
+CancelTaskReply11 = CancelTaskResponse11 | CancelTaskError11
+class WorkspaceOpenInstrumentCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    scope: MutationScope11
+    intent: WorkspaceOpenInstrumentIntent11
+WorkspaceOpenInstrumentOutcome11 = WorkspaceOpenInstrumentCommitted11 | NeedsHumanDecision11 | ScopedFailure11
+class WorkspaceOpenInstrumentReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    outcome: WorkspaceOpenInstrumentOutcome11
+class ChartSetTimeframeCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    scope: MutationScope11
+    intent: ChartSetTimeframeIntent11
+ChartSetTimeframeOutcome11 = ChartSetTimeframeCommitted11 | NeedsHumanDecision11 | ScopedFailure11
+class ChartSetTimeframeReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    outcome: ChartSetTimeframeOutcome11
+class ChartSetStyleCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    scope: MutationScope11
+    intent: ChartSetStyleIntent11
+ChartSetStyleOutcome11 = ChartSetStyleCommitted11 | NeedsHumanDecision11 | ScopedFailure11
+class ChartSetStyleReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    outcome: ChartSetStyleOutcome11
+class ChartAddAnnotationCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    scope: MutationScope11
+    intent: ChartAddAnnotationIntent11
+ChartAddAnnotationOutcome11 = ChartAddAnnotationCommitted11 | NeedsHumanDecision11 | ScopedFailure11
+class ChartAddAnnotationReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    outcome: ChartAddAnnotationOutcome11
+class ChartRemoveLayerCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    scope: MutationScope11
+    intent: ChartRemoveLayerIntent11
+ChartRemoveLayerOutcome11 = ChartRemoveLayerCommitted11 | NeedsHumanDecision11 | ScopedFailure11
+class ChartRemoveLayerReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    outcome: ChartRemoveLayerOutcome11
+class IndicatorCreateDraftCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    scope: MutationScope11
+    intent: IndicatorCreateDraftIntent11
+IndicatorCreateDraftOutcome11 = IndicatorCreateDraftCommitted11 | NeedsHumanDecision11 | ScopedFailure11
+class IndicatorCreateDraftReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    outcome: IndicatorCreateDraftOutcome11
+class IndicatorRunPreviewCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    scope: MutationScope11
+    intent: IndicatorRunPreviewIntent11
+IndicatorRunPreviewOutcome11 = IndicatorRunPreviewCommitted11 | NeedsHumanDecision11 | ScopedFailure11
+class IndicatorRunPreviewReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    outcome: IndicatorRunPreviewOutcome11
+class IndicatorAcceptVersionCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    scope: MutationScope11
+    intent: IndicatorAcceptVersionIntent11
+IndicatorAcceptVersionOutcome11 = IndicatorAcceptVersionCommitted11 | NeedsHumanDecision11 | ScopedFailure11
+class IndicatorAcceptVersionReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    outcome: IndicatorAcceptVersionOutcome11
+class IndicatorRemoveCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    scope: MutationScope11
+    intent: IndicatorRemoveIntent11
+IndicatorRemoveOutcome11 = IndicatorRemoveCommitted11 | NeedsHumanDecision11 | ScopedFailure11
+class IndicatorRemoveReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    outcome: IndicatorRemoveOutcome11
+class WorkspaceUndoCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    scope: MutationScope11
+    intent: WorkspaceUndoIntent11
+WorkspaceUndoOutcome11 = WorkspaceUndoCommitted11 | NeedsHumanDecision11 | ScopedFailure11
+class WorkspaceUndoReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    outcome: WorkspaceUndoOutcome11
+HistoryPageReply11 = MarketHistoryPageResponse | MarketHistoryPageError

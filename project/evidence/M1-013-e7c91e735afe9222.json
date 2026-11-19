@@ -1,0 +1,131 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M1-013",
+  "task_definition_sha256": "80878e5bbaafb8d0b721cbc3b7703b32fae2198d76d58ec354c3999b79fa9c15",
+  "run_id": "20261118T122127.658974Z-05f4c9f8",
+  "recorded_at": "2026-11-18T12:22:20.755626+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "5d325050ae486413db782e6d8f47afbe91e9f44bdabcc0588f82cb63a1d4b33b",
+    "file_count": 144,
+    "git_head": "74b957e35c03512ac499b24ab5e6e82efd8b52e2",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "e7c91e735afe922215901fdb62b837dbe9ea1a8bab4e49f58ccff9db769c9627",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/projects/scopehub/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "4054eab36fe92fce23bab2b228766d2f1299b2aa1fad2bf43f9bf8f339a91d7f"
+    },
+    {
+      "id": "ubuntu-preview",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/playwright.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "bd63a0141e1cc44859e756ae19b0b74505f0f1e771f1d5836b63b2e8318373db"
+    },
+    {
+      "id": "chart-history",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub/.venv/bin/python",
+        "scripts/check_chart_history.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "adee6e3af046a2a23ccc4af41b77c6246061e30c72ef7388eed7ac4153ea567f"
+    },
+    {
+      "id": "market-fixtures",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub/.venv/bin/python",
+        "-m",
+        "unittest",
+        "tests.integration.test_market_fixtures",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a633ac4184ef6d74d25326312ac59b3481c0f289381851738f0a0b00982f5f14"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "97f0454861ce9729d65eebe227ae94e1df2f1ff5eae3d552a233833ce997d9ff"
+    },
+    {
+      "id": "python-types",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub/.venv/bin/python",
+        "-m",
+        "mypy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "050c52a2b0c61e8b681ef5c485e0bc03340b8d55148e0acef27d744c8be42033"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ef277f7585d829f2964e62ba40d99b2002452e90cada72632565b27cdf5d9617"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "88b4062eab6044cc90e7a3118b1f0fbc09e59b62961bf6c9f0678d2d9f3793ac"
+    }
+  ],
+  "project_definition_sha256": "64003175e00e72641112a54d03da0b7c9ca2837e26853a7258e8a4808830184f",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

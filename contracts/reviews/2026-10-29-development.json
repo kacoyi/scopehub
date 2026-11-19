@@ -1,0 +1,49 @@
+{
+  "kind": "development-foundation-review",
+  "recorded_at": "2026-10-29",
+  "task_ids": [
+    "M0-016",
+    "M0-017"
+  ],
+  "owner_product_acceptance": "not_observed",
+  "baseline_commit": "3efd7669292935bf5422d43dfe3f1c8d568e7395",
+  "context_measurement": {
+    "baseline_M1_001_characters": 41156,
+    "current_M1_001_characters": 14669,
+    "method": "Indented JSON character count; this measures context volume, not model accuracy."
+  },
+  "reviewed_changes": [
+    "Separate development delegation from embedded-product interaction requirements.",
+    "Validate module entries, allowed dependencies, state ownership and source pointers.",
+    "Protect current versus later task delivery identity and preserve accepted history.",
+    "Keep expanded context opt-in and provide phase-specific and direct source views.",
+    "Explain latest omissions, invalid reports and historical receipts without changing current/release gates.",
+    "Remove mutable adapter exposure and chart-to-UI type dependency.",
+    "Apply compatible security patches; primary block-buffer range is verified live with an expiring guard."
+  ],
+  "failed_evidence": [
+    ".reports/runs/20261029T040321.029665Z-7f791f14/test-report.json",
+    ".reports/runs/20261029T041122.487082Z-579a3a18/test-report.json",
+    ".reports/development-invalid-report-probe.json"
+  ],
+  "remaining_limits": [
+    "Architecture checks cover declared dependencies and statically visible imports, not all semantic coupling.",
+    "Code review and actual owner product review remain necessary.",
+    "Real data, cloud models, live updates, persistence and installed Windows acceptance remain pending.",
+    "Local validation selected the already installed Rust 1.99.0 explicitly; no global toolchain configuration was changed."
+  ],
+  "next_task_id": "M1-006",
+  "publication": "Local only under contracts/reviews/2026-10-29-local-only.json; no remote changes or new CI.",
+  "status_measurement": {
+    "default_characters": 9383,
+    "detailed_characters": 27312
+  },
+  "current_handoff": {
+    "focus_task_id": "M1-006",
+    "blocked_task_ids": [
+      "M0-016",
+      "M0-017"
+    ],
+    "reason": "Required native Windows verification is unavailable under the owner local-only direction; independent local work can continue."
+  }
+}

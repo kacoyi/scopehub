@@ -1,0 +1,36 @@
+{
+  "kind": "owner-development-and-product-direction",
+  "recorded_at": "2026-11-19",
+  "task_ids": [
+    "M0-025",
+    "M2-001",
+    "M4-001",
+    "M4-002",
+    "M4-004"
+  ],
+  "owner_direction": {
+    "development": "The owner and the development AI jointly build ScopeHub. The owner also may use it. In product requirements user means any person using ScopeHub; grants and decisions belong to that individual.",
+    "implementation": "Develop in Herdr. The development AI chooses whether and when to use windows, tabs and parallel agents without returning those decisions to the owner. GPT-6.2 Sol at ultra effort is available for implementation. GPT-6.2 Astra at xhigh effort is available for coordination or review. Proceed while capacity is available, continue independent work and request participation only for a concrete owner input, decision or acceptance.",
+    "tools": "The development AI may download and install software, dependencies, MCP servers, skills and plugins needed for authorized work without a separate installation confirmation. Bring the specific missing account, entitlement, device, material, commercial choice or experience review to the owner when their participation is necessary.",
+    "local_data": "Each user retains conversations, long-term memory, strategies and other private product records locally. When using a cloud model, users may preview and explicitly select a saved private excerpt for the current request. The rest remains on their device.",
+    "models": "Real models are necessary for product AI. Connecting and activating a provider grants the ordinary processing disclosed at connection so a user can converse and use the agreed task context without per-turn approval. Offer a capable cloud route as the primary workflow and allow local models according to their measured capabilities."
+  },
+  "engineering_observation": {
+    "host": {
+      "app": "Herdr 0.1.16",
+      "core": "hc 0.1.21",
+      "agent": "Codex CLI 0.170.0",
+      "system": "Ubuntu"
+    },
+    "roles_exercised": [
+      "Interactive GPT-6.2 Sol at ultra effort edited and tested the launcher and CI publication in disjoint paths. A separate Sol terminal worked on M1-006 in an independent Git worktree.",
+      "The repository launcher created a visible Herdr review tab for M0-025 using GPT-6.2 Astra at xhigh effort with a read-only sandbox. Each terminal was started locally with the requested model and no Codex daemon."
+    ],
+    "scope": "These observations concern development sessions with project code and synthetic fixtures. Product model qualification and acceptance by actual users remain in their own tasks.",
+    "review_corrections": [
+      "An independent Astra review identified an inherited remote context and a local cross-profile read that the prior egress-only scoring would miss. The qualification probe now observes private spans available at the destination and prior context reuse separately from outgoing bytes.",
+      "The publication boundary validates redacted session and field evidence, candidate records and legal notices. The harness discards raw output of private checks and derives the primary cloud-text requirement in the active check, archival and release paths.",
+      "The read-only review role could not acquire the uv cache lock through the regular package command. Its launch prompt now reads the same project context directly through the pinned interpreter without writing bytecode."
+    ]
+  }
+}

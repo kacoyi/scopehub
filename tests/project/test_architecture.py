@@ -1,12 +1,14 @@
 """Prevent dependency aliases from hiding forbidden layer relationships."""
 
 from pathlib import Path
+import json
+import shutil
 import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
 
-from scripts.check_architecture import rust_boundaries
+from scripts.check_architecture import desktop_capability_errors, rust_boundaries
 from scripts.rust_workspace import verification_command, workspace_packages
 
 
@@ -31,6 +33,33 @@ class ArchitectureTests(unittest.TestCase):
     def domain(self, dependencies):
         self.crate('crates/domain', 'scopehub-domain', dependencies)
 
+    def test_desktop_registry_acl_rejects_extra_permissions_windows_remote_and_inline_grants(self):
+        source = Path(__file__).resolve().parents[2] / 'apps/desktop/src-tauri'
+        target = self.root / 'apps/desktop/src-tauri'
+        target.mkdir(parents=True)
+        for name in ['build.rs', 'tauri.conf.json']:
+            shutil.copyfile(source / name, target / name)
+        shutil.copytree(source / 'capabilities', target / 'capabilities')
+        self.assertEqual([], desktop_capability_errors(self.root))
+        path = target / 'capabilities/main.json'
+        original = json.loads(path.read_text())
+        for change in [{'permissions':['allow-execute-operation','shell:default']},
+                       {'windows':['*']}, {'remote':{'urls':['https://example.com']}},
+                       {'webviews':['*']}, {'local':False}]:
+            with self.subTest(change=change):
+                path.write_text(json.dumps({**original, **change}))
+                self.assertTrue(desktop_capability_errors(self.root))
+        path.write_text(json.dumps(original))
+        extra = target / 'capabilities/extra.toml'
+        extra.write_text('identifier = "extra"')
+        self.assertTrue(desktop_capability_errors(self.root))
+        extra.unlink()
+        path = target / 'tauri.conf.json'
+        config = json.loads(path.read_text())
+        config['app']['security']['capabilities'].append({'identifier':'extra','permissions':['fs:default']})
+        path.write_text(json.dumps(config))
+        self.assertTrue(desktop_capability_errors(self.root))
+
     def test_workspace_alias_cannot_hide_database_dependency(self):
         self.workspace('[workspace.dependencies]\nstore = { package = "rusqlite", version = "1" }\n')
         self.domain('[dependencies]\nstore = { workspace = true }\n')
@@ -46,6 +75,17 @@ class ArchitectureTests(unittest.TestCase):
         self.workspace('[workspace.dependencies]\nserde = "1"\n')
         self.domain('[dependencies]\nserde = { workspace = true }\n')
         self.assertEqual([], rust_boundaries(self.root))
+
+    def test_development_catalog_controls_actual_rust_dependencies(self):
+        self.crate('crates/application', 'scopehub-application')
+        self.domain('[dependencies]\napp = { package = "scopehub-application", path = "../application" }\n')
+        directory = self.root / 'project'
+        directory.mkdir()
+        (directory / 'development.json').write_text(json.dumps({'modules': [
+            {'id': 'domain', 'paths': ['crates/domain'], 'dependencies': []},
+            {'id': 'application', 'paths': ['crates/application'], 'dependencies': ['domain']},
+        ]}))
+        self.assertIn('Forbidden internal dependency: scopehub-domain -> scopehub-application', rust_boundaries(self.root))
 
     def test_nested_glob_members_cannot_hide_forbidden_dependencies(self):
         self.workspace(members='["crates/nested/*"]')
@@ -65,10 +105,13 @@ class ArchitectureTests(unittest.TestCase):
 
     def test_unknown_platform_is_rejected_and_native_selection_includes_desktop(self):
         self.domain('')
-        self.crate('apps/desktop', 'scopehub-desktop', '[package.metadata.scopehub]\ncheck_platform = "windows-x64"\n')
+        self.crate('apps/desktop', 'scopehub-desktop', '[package.metadata.scopehub]\ncheck_platform = "windows-x64"\nportable_test_lib = true\n')
         self.workspace(members='["crates/domain", "apps/desktop"]')
         packages = workspace_packages(self.root)
         linux, coverage = verification_command(packages, 'test', system='Linux', machine='x86_64')
+        self.assertEqual(['scopehub-desktop'], coverage['portable_library_tests'])
+        _, native_tests = verification_command(packages, 'test', system='Windows', machine='AMD64')
+        self.assertEqual([], native_tests['portable_library_tests'])
         self.assertIn('--workspace', linux)
         self.assertEqual(['scopehub-domain'], coverage['included'])
         self.assertEqual('scopehub-desktop', coverage['excluded'][0]['package'])
