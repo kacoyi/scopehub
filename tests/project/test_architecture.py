@@ -2,8 +2,10 @@
 
 from pathlib import Path
 import json
+import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -59,6 +61,26 @@ class ArchitectureTests(unittest.TestCase):
         config['app']['security']['capabilities'].append({'identifier':'extra','permissions':['fs:default']})
         path.write_text(json.dumps(config))
         self.assertTrue(desktop_capability_errors(self.root))
+
+    def test_desktop_capability_files_use_utf8_with_a_legacy_locale(self):
+        source = Path(__file__).resolve().parents[2] / 'apps/desktop/src-tauri'
+        target = self.root / 'apps/desktop/src-tauri'
+        (target / 'capabilities').mkdir(parents=True)
+        for name in ['build.rs', 'tauri.conf.json']:
+            shutil.copyfile(source / name, target / name)
+        name = 'capabilities/main.json'
+        capability = json.loads((source / name).read_text(encoding='utf-8'))
+        capability['description'] = 'Reviewed desktop access for a synthetic “sample”.'
+        (target / name).write_text(json.dumps(capability, ensure_ascii=False), encoding='utf-8')
+        result = subprocess.run(
+            [sys.executable, '-X', 'utf8=0', '-c',
+             'import sys; from pathlib import Path; '
+             'from scripts.check_architecture import desktop_capability_errors; '
+             'sys.exit(bool(desktop_capability_errors(Path(sys.argv[1]))))', str(self.root)],
+            cwd=source.parents[2], env={**os.environ, 'LC_ALL': 'C', 'PYTHONCOERCECLOCALE': '0'},
+            capture_output=True, timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_workspace_alias_cannot_hide_database_dependency(self):
         self.workspace('[workspace.dependencies]\nstore = { package = "rusqlite", version = "1" }\n')

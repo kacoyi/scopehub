@@ -981,6 +981,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "utf8-import-source-architecture-check",
+      "source": "Hosted Windows run 44524540362 and the reproduced Linux C-locale failure on the local folder branch.",
+      "observation": "The architecture check read UTF-8 project source using the host default encoding and stopped before checking imports. This occurred on the Windows default code page when a provider contained a non-ASCII source label.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "architecture",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
