@@ -27,7 +27,8 @@ function App() {
     if (window.location.hash) window.location.hash = '';
     setSample(false);
   };
-  return <ChartWorkspace key={sample ? 'sample' : 'unconfigured'} sample={sample} leaveSample={leaveSample} workspace={workspace} />;
+  return <ChartWorkspace key={sample ? 'sample' : 'unconfigured'} sample={sample} leaveSample={leaveSample}
+    workspace={sample ? undefined : workspace} />;
 }
 
 const root = document.getElementById('root');
