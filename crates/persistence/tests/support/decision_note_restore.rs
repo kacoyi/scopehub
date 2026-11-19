@@ -8,6 +8,127 @@ const INTERRUPTED_RESTORE_ROOT: &str = "SCOPEHUB_TEST_INTERRUPTED_NOTE_RESTORE_R
 const RESTORE_STAGED: &str = "restore-staged";
 
 #[test]
+fn decision_note_restore_snapshot_discards_stage_after_peer_deletes_note() {
+    let source = Profile::new();
+    let current = Profile::new();
+    let note_id = Uuid::new_v4().to_string();
+    let original = thesis("Original shared by synthetic copies");
+    let mut archive_writer = LiveBridge::open(&source, PROFILE_ID);
+    archive_writer.reply();
+    write_note(
+        &mut archive_writer,
+        DECISION_NOTE_SAVE,
+        &note_id,
+        0,
+        original.clone(),
+    );
+    write_note(
+        &mut archive_writer,
+        DECISION_NOTE_APPEND_OUTCOME,
+        &note_id,
+        1,
+        later_outcome("2026-04-09", "Synthetic backup-only stage body"),
+    );
+    let backup = export(&mut archive_writer);
+    archive_writer.finish();
+
+    let mut staging = LiveBridge::open(&current, PROFILE_ID);
+    staging.reply();
+    write_note(&mut staging, DECISION_NOTE_SAVE, &note_id, 0, original);
+    let request = restore_preview_request(&backup, 1);
+    let preview = staging.send(&request);
+    assert_eq!(summary(&preview)["added_notes"], 0);
+    assert_eq!(summary(&preview)["added_outcomes"], 1);
+    let mut peer = LiveBridge::open(&current, PROFILE_ID);
+    assert_snapshot(&peer.reply(), 1, "1m");
+    write_note(&mut peer, DECISION_NOTE_DELETE, &note_id, 1, json!({}));
+    peer.finish();
+    let snapshot = staging.send(&json!({"type":"snapshot","request_id":1}));
+    assert_snapshot(&snapshot, 2, "1m");
+    for decision in ["decline", "approve"] {
+        assert_failed(
+            &staging.send(&resolve_restore(&request, &preview, decision)),
+            "CONFIRMATION_REQUIRED",
+        );
+    }
+    assert_failed(
+        &staging.send(&note_read(Some(&note_id))),
+        "DATA_UNAVAILABLE",
+    );
+    staging.finish();
+}
+
+#[test]
+fn decision_note_restore_refuses_an_unexportable_merge_before_approval() {
+    let first = Profile::new();
+    let second = Profile::new();
+    let note_id = Uuid::new_v4().to_string();
+    let original = thesis("Identical synthetic original in two archives");
+    let mut live = LiveBridge::open(&first, PROFILE_ID);
+    let mut copy = LiveBridge::open(&second, PROFILE_ID);
+    live.reply();
+    copy.reply();
+    for (bridge, count, label) in [(&mut live, 64, "current"), (&mut copy, 65, "incoming")] {
+        write_note(bridge, DECISION_NOTE_SAVE, &note_id, 0, original.clone());
+        for index in 0..count {
+            write_note(
+                bridge,
+                DECISION_NOTE_APPEND_OUTCOME,
+                &note_id,
+                index + 1,
+                later_outcome("2026-04-09", &format!("Synthetic {label} outcome {index}")),
+            );
+        }
+    }
+    let before = export(&mut live);
+    let incoming = export(&mut copy);
+    assert_eq!(before["notes"][0]["outcomes"].as_array().unwrap().len(), 64);
+    assert_eq!(
+        incoming["notes"][0]["outcomes"].as_array().unwrap().len(),
+        65
+    );
+    assert_failed(
+        &live.send(&restore_preview_request(&incoming, 65)),
+        "RESOURCE_LIMIT",
+    );
+    assert_eq!(export(&mut live), before);
+    assert_eq!(export(&mut copy), incoming);
+
+    // A valid 128-outcome merge remains exportable, and the next append is blocked in preview.
+    let mut fitting = incoming;
+    fitting["notes"][0]["outcomes"]
+        .as_array_mut()
+        .unwrap()
+        .truncate(64);
+    let request = restore_preview_request(&fitting, 65);
+    let preview = live.send(&request);
+    assert_eq!(summary(&preview)["added_outcomes"], 64);
+    assert_restore_committed(
+        &live.send(&resolve_restore(&request, &preview, "approve")),
+        66,
+    );
+    let full = export(&mut live);
+    let expected = before["notes"][0]["outcomes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .chain(fitting["notes"][0]["outcomes"].as_array().unwrap())
+        .cloned()
+        .collect::<Vec<_>>();
+    assert_eq!(full["notes"][0]["outcomes"], json!(expected));
+    let over = note_write(
+        DECISION_NOTE_APPEND_OUTCOME,
+        &note_id,
+        66,
+        later_outcome("2026-04-10", "Synthetic above capacity"),
+    );
+    assert_failed(&live.send(&over), "RESOURCE_LIMIT");
+    assert_eq!(export(&mut live), full);
+    live.finish();
+    copy.finish();
+}
+
+#[test]
 fn decision_note_restore_merges_deletions_and_rolls_back_an_interrupted_apply() {
     const RETAINED: &str = "Synthetic thesis retained through merge 118b2aad";
     const DELETED: &str = "Synthetic thesis suppressed on restore 2a238c77";
