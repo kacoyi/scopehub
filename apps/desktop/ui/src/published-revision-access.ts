@@ -60,13 +60,22 @@ export function usePublishedRevisionAccess(workspace: LocalWorkspace | undefined
 
 export type PublishedRevisionAccess = ReturnType<typeof usePublishedRevisionAccess>;
 
-export function useWatchPublishedRevision(id: string | undefined, verify: PublishedRevisionAccess['verify'], workspace: LocalWorkspace | undefined) {
+export function useWatchPublishedRevision(
+  id: string | undefined, verify: PublishedRevisionAccess['verify'], workspace: LocalWorkspace | undefined,
+  initialAccess: 'check' | 'checked-by-reader' = 'check',
+) {
   const refresh = workspace?.snapshot;
   const reload = workspace?.reload;
   const error = workspace?.error;
+  const previous = useRef({ id, refresh, error });
   useEffect(() => {
-    if (id) void verify(id);
-  }, [id, verify, refresh, error]);
+    const observed = previous.current;
+    previous.current = { id, refresh, error };
+    // The foreground read authorizes its own result. An independent profile change
+    // still rechecks access, including while that result is in transit.
+    const profileChanged = observed.id === id && (observed.refresh !== refresh || observed.error !== error);
+    if (id && (initialAccess === 'check' || profileChanged)) void verify(id);
+  }, [id, verify, refresh, error, initialAccess]);
 
   useEffect(() => {
     if (!id) return;

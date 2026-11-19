@@ -1,0 +1,135 @@
+{
+  "recorded_at": "2026-11-19",
+  "kind": "native_frozen_folder_import_and_revision_recovery",
+  "task_id": "M1-008",
+  "source_commit": "4e61b89230f9289121cb608411d7625c37f99fbf",
+  "execution_input_sha256": "c35f091af77e17a0bb26217d3dbb07d42ae91e05b7bff67316ac1ce086132f79",
+  "platform": "Windows 11 standard-user KVM guest with native MSVC, the Windows shell folder picker, WebView2 and the locked Python worker. All inputs used a disposable synthetic profile.",
+  "native_build": {
+    "source": "4e61b89230f9289121cb608411d7625c37f99fbf",
+    "archive_sha256": "3617564b422fc116da787f04186c40536306d7d448cf43a9aeef78344d56c57d",
+    "exe_sha256": "62154e42ba5060ec399d4fcc2f6ee9606cf8616322f12187337e15ffe0319268",
+    "bytes": 31611392
+  },
+  "native_core_checks": {
+    "source_commit": "dbdd83144230d1edc6bffbb09542554f0394f0ed",
+    "execution_scope": "Native MSVC tests for unchanged Rust, platform and locked worker sources.",
+    "results": {
+      "PLATFORM.TXT": {
+        "passed": 18,
+        "ignored_subprocess_entries": 0,
+        "sha256": "d18fbce8ee9b99d7e7acde38c92a5e0af70e3add6c6d420abaa7a8099b15d4ab"
+      },
+      "DESKTOP.TXT": {
+        "passed": 23,
+        "ignored_subprocess_entries": 0,
+        "sha256": "5bac9f51fee6227a659fe484577e0a9b4906d34e26e6d2c99d0908c2c6a33744"
+      },
+      "STATE.TXT": {
+        "passed": 55,
+        "ignored_subprocess_entries": 4,
+        "sha256": "fc193767750fe7a211cae9b7a8871113309c79bf0f26b06b006c520d880cf455"
+      }
+    }
+  },
+  "native_observation": {
+    "local_artifact_directory": "native-product-folder-workflow-4e61b89",
+    "sha256": {
+      "WSDIAG.JSON": "2a185a37ed49347ec6d1917103ee8c6e25f3bfa17e18a56a4abe20099d751fb6",
+      "FOLDER.PNG": "1e2fae440827e8f41d1fe22b99312f5afd7ee9a7b42b626efca768544fe204d8",
+      "ROWFOLD.PNG": "a038bd85e9049e05476cc5a9aebd2062230f55c6aa6a4a0a49c9dc86553d8e5e",
+      "ROWFILE.PNG": "11943da0e41341e3d40fd0c226249969a5eb784fd6be7b05bd6f671d016221ac"
+    },
+    "verified": [
+      "Windows shell returned the explicitly chosen folder",
+      "trades with one timestamp remain separate and retain 85.60/02 and 85.65/03",
+      "chose close 104 against 102 and 103; both preserved aliases identify physical lines 3–4",
+      "a replaced former canonical file and the retained equal files have distinct current and accepted identities; competing 103, 104 and 105 remain visible",
+      "explicitly withdrew both sources and remaining bar into a separate empty child",
+      "reopened folder raw Close 104.00, prior settlement 99.00, settlement 107.125, open interest 00120, 31 contracts and a quoted multiline note",
+      "reopened both revisions after restart; revoking the priced revision left the empty sibling accessible",
+      "independently opened the frozen single-file raw fields, including formatted Close 102.00 and the original multiline note, after folder display revocation",
+      "one successful native foreground read followed the single-file list with no status request overtaking it"
+    ],
+    "revision_counts": {
+      "folder_revisions": 2,
+      "priced_sources": 2,
+      "independent_locators": 2,
+      "revoked": 1
+    },
+    "visible_startup_list_errors": [],
+    "processes_closed_normally": 2
+  },
+  "earlier_observations": [
+    {
+      "local_artifact_directory": "native-folder-settled-3bad802",
+      "sha256": {
+        "LIST.JSON": "ceb0cfeaf5bff0d916c8d524bd92e547d0519ed194d6f4712fedce1e3eb8efd8"
+      },
+      "source_commit": "3bad8025fb2fef90a242484488b57e914339dcb6",
+      "observation": "Two lists returned BUSY while the initial profile was opening. The folder list returned two revisions at 4204 ms."
+    },
+    {
+      "local_artifact_directory": "native-source-rows-followup-015a70a",
+      "sha256": {
+        "WSDIAG.JSON": "c8a640267e7e5b192f64f1937778dc606719dcaf7fd43e9e542e7d5484f1d2d0",
+        "ROWFOLD.PNG": "901286c172f883735050ddfdc97216f481a1fe34df7242a9b261f3bf8182cdac"
+      },
+      "source_commit": "015a70a272ca628d5f7dc07b857897b4a0df0911",
+      "observation": "The priced folder row was verified. A subsequent single-file action timed out after revocation. This run did not identify the terminal operation."
+    },
+    {
+      "local_artifact_directory": "native-independent-single-source-015a70a",
+      "sha256": {
+        "LIST.JSON": "73431f774e730226e1209425acb09fa2c80159fa4625aa843f30e7e0befb3c46",
+        "SINGLE.PNG": "70e56a22cfdc0e50b4b8108da4eabf6a2d27d4b493aad138a4dbfb8847b929de"
+      },
+      "source_commit": "015a70a272ca628d5f7dc07b857897b4a0df0911",
+      "observation": "A fresh process on the same retained profile opened the entitled single-file revision and read its original fields."
+    },
+    {
+      "local_artifact_directory": "native-reviewed-source-rows-015a70a",
+      "sha256": {
+        "WSDIAG.JSON": "734c8b16183ee02f402e259802fb167c4337341b84c23c9cea29899f84df3d10",
+        "ROWFILE.PNG": "f2b2dee1df99606adc34371f529c0570f2bf7228f5baacab8e57605024ce0555"
+      },
+      "source_commit": "015a70a272ca628d5f7dc07b857897b4a0df0911",
+      "observation": "The full same-window sequence completed with passive operation tracing."
+    },
+    {
+      "local_artifact_directory": "native-product-folder-interrupted-dbdd831",
+      "sha256": {
+        "WSDIAG.JSON": "83747fe7e181ba23c4d48d652668caabe1bc311e15dbb994d70423c072cfbcc6",
+        "FAIL.PNG": "25848d42ea0b079fb889934e72801cd74d1910de836eb4e2551453e8f2b4c86c",
+        "ROWFOLD.PNG": "ee86ccd1fdac7a46e9eb9c4d74c5c3a08104dfa47314a0d1d8f5c36adfac6a17"
+      },
+      "source_commit": "dbdd83144230d1edc6bffbb09542554f0394f0ed",
+      "observation": "The workspace snapshot and single-file list succeeded after revoking the folder. The foreground frozen chart read then returned BUSY while its status probe succeeded. The window showed the busy error and no chart. The replacement was tested for both revision kinds and for delivery of a previously authorized response after revocation."
+    }
+  ],
+  "independent_local_review": {
+    "source_commit": "015a70a272ca628d5f7dc07b857897b4a0df0911",
+    "row_trace_sha256": "fc8853de6a8a0438531963320ba532a2ffb85b18115828bab458c1b8b4ee1035",
+    "alias_counterexample_sha256": "b72d0144bf052696f06fea7e71b0ae1ab6ea44a16b3800b293f1d236d8969d61",
+    "alias_repair": "c4d67eacaa2f67bdb3e11a92c46f026128648665",
+    "alias_verification_sha256": "ea08103d959268d36e946f8cd5833ec34150ee62c0def5c18e5b230a13876920",
+    "observed": "The ordinary Rust dispatcher returned exact original rows from the immutable revision after directory removal. Revocation while either owned parser was paused denied the result. Changing the previous representative exposed the alias-label defect. The repaired comparison keeps historic and current source identities distinct."
+  },
+  "linux_task_evidence": {
+    "path": "project/evidence/M1-008-823227e93a45d20f.json",
+    "sha256": "0bd106edb39ed4ec9b28ee60599eb4e7314d74d044ef73046400dd28fc2b9375"
+  },
+  "remaining_acceptance": [
+    "packaged release candidate",
+    "physical Windows experience",
+    "configured market, model and voice connections"
+  ],
+  "workspace_regression": {
+    "task_id": "M2-001",
+    "run_id": "20261119T193743.878364Z-df336d14",
+    "report_sha256": "1306d842312882dd60d522710b92f079b26051a7da14c8d5a6c0929521d745d8",
+    "check": "workspace-timeframe",
+    "log_sha256": "161a918ba3ae541f66d983046b8f51ab5ba5d0d7c44a88ed75ef11585634e1ee",
+    "observed": "The real two-writer browser journey denied a previously authorized response held in transit after a peer revoked display access. It also retained an independently entitled revision and the existing workspace undo."
+  }
+}
