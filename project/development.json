@@ -410,7 +410,7 @@
         "M1-016"
       ],
       "delivery": "current-contract",
-      "boundary": "The synthetic chart reads frozen history and plays partial and final bars through the shared registry. The chart and Data sources panel expose a selected sample revision, UTC window, freshness, session, coverage, known gaps and worker failures. M1-003 covers recovery after interruption. User-configured feeds and physical Windows experience have separate evidence."
+      "boundary": "One synthetic chart session can search a China future, a China stock and a US stock, change timeframe and chart style, and compare partial and final worker updates with frozen history. The Data sources panel exposes the selected revision, UTC window, freshness, session, coverage, gaps and worker or transport failures. M1-003 covers recovery after interruption. User-configured feeds and physical Windows experience have separate evidence."
     },
     {
       "id": "durable-workspace",

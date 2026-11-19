@@ -152,11 +152,19 @@
     },
     {
       "id": "market-workflow",
-      "status": "planned",
-      "purpose": "Verify the M1 market and chart acceptance flow",
+      "status": "implemented",
+      "purpose": "Search three synthetic instruments in one chart session, switch timeframe and style, and compare visible partial and final updates against the frozen history and selected subscription.",
       "platforms": "all",
-      "command": null,
-      "timeout_seconds": 1800
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "timeout_seconds": 1800,
+      "cadence": "change"
     },
     {
       "id": "operations-workflow",
@@ -659,7 +667,8 @@
     "chart-history",
     "ubuntu-preview",
     "market-live-stream",
-    "market-quality-states"
+    "market-quality-states",
+    "market-workflow"
   ],
   "gate_changes": []
 }
