@@ -1030,8 +1030,13 @@
       "observation": "The locked inventory passed. The approved live GitHub publisher advisory GET returned HTTP 403 with the anonymous REST rate limit exhausted, so dependency-review failed.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M0-027"],
-      "regression_checks": ["dependency-review", "python-contracts-workers"],
+      "task_ids": [
+        "M0-027"
+      ],
+      "regression_checks": [
+        "dependency-review",
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "The mandatory publisher advisory check shared the anonymous GitHub REST rate limit of the hosted runner.",
         "correction": "Fetch the one published advisory in an isolated step using the existing job credential at the exact approved TLS endpoint. The dependency checker validates fresh public metadata bound to that checkout, workflow attempt and runner.",
@@ -1253,8 +1258,13 @@
       "observation": "The three-symbol journey did not find Play sample updates within five seconds. The desktop, narrow-screen, and Retry demo preview paths hit the same five-second limit waiting for the first history chart. The assertions did not distinguish catalog latency, history latency, and rendering.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M1-020"],
-      "regression_checks": ["market-workflow", "ubuntu-preview"],
+      "task_ids": [
+        "M1-020"
+      ],
+      "regression_checks": [
+        "market-workflow",
+        "ubuntu-preview"
+      ],
       "resolution": {
         "cause": "One five-second browser assertion covered two serial worker reads and the first chart render. Holding each real reply reproduced startup beyond that assertion's budget.",
         "correction": "The shared startup verifier checks the real catalog request and reply, then the scoped history request and reply, before waiting for chart readiness. The preview suite exercises each held reply and a typed worker rejection. Product worker deadlines and retry behavior remain unchanged.",
@@ -1291,6 +1301,52 @@
       "regression_checks": [
         "rust-contracts-workers",
         "local-import-publication"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-reviewed-mapping-selector-spelling",
+      "source": "Hosted Windows run 44548543796 at e960fd1, rust-contracts-workers log, and the native Win11 MSVC comparison at 2f4a0c0 retained in .reports/guest/2f4a0c0-mapping-path-reopen.",
+      "observation": "The hosted restart test saved through a canonicalized synthetic directory and reselected the same source through the supplied spelling. Loading returned not_saved instead of saved before header comparison. On the Win11 guest, the same unmodified test and NTFS temporary directory passed with the long TEMP name and failed with its real 8.3 alias. The ordinary Win11 GUI observation with its selection spelling remains separately recorded.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "local-folder-import"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "workspace-browser-navigation-observer-lifetime",
+      "source": "Authenticated hosted Windows PR #13 run 44548543796 at e960fd1, workspace-timeframe log and source snapshot.",
+      "observation": "Chromium reported ERR_NO_BUFFER_SPACE on the initial document of the wrong-profile backup visit. The workspace test had already created a response waiter and had not installed a rejection handler. Context teardown also reported that the response waiter rejected when its page closed. Eight browser cases passed and the POSIX signal case skipped.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-008"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "workspace-held-note-read-shares-test-lane",
+      "source": "Local M2-008 task run 20261119T153931.924374Z-c35b457c with temporary synthetic profiles.",
+      "observation": "The peer-deletion browser case timed out while the observer had a pending detail read. A retained screenshot showed the peer on the second note with Local workspace is busy and Review deletion disabled. Both pages used the same single-flight Vite producer, and a page action could fail before the held route entered its release block. The backup restore and both new lifecycle controls passed in the same run.",
+      "severity": "minor",
+      "status": "open",
+      "task_ids": [
+        "M2-008"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
       ],
       "resolution": null,
       "deferral_reason": null

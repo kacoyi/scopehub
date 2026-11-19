@@ -238,6 +238,10 @@ impl LocalFolderHost {
             cancel.check()
         };
         let directory = Directory::open_root(path).map_err(|_| FolderError::InvalidSelection)?;
+        let association = directory
+            .association_path(path)
+            .map_err(|_| FolderError::InvalidSelection)?;
+        let source_namespace = path_fingerprint(b"scopehub-local-folder-v1", &association);
         let mut files = Vec::new();
         let mut visited = 0;
         scan(
@@ -251,10 +255,7 @@ impl LocalFolderHost {
         files.sort_unstable_by(|left, right| left.relative.cmp(&right.relative));
         let selection = Arc::new(Selection {
             id: FolderId(Uuid::new_v4()),
-            source_namespace: path_fingerprint(
-                b"scopehub-local-folder-v1",
-                directory.association_path(path),
-            ),
+            source_namespace,
             display_name: path.file_name().map_or_else(
                 || "Selected folder".into(),
                 |name| name.to_string_lossy().into_owned(),
