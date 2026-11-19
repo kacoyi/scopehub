@@ -31,7 +31,8 @@ const admissionProbe = { type: 'snapshot', request_id: 1 };
 const service = `
   const [entry, mode, port] = process.argv.slice(1);
   const { createServer } = await import(entry);
-  const server = await createServer({ mode, server: { host: '127.0.0.1', port: Number(port), strictPort: true } });
+  // These journeys restart the service explicitly. Leave file watching to interactive Vite.
+  const server = await createServer({ mode, server: { host: '127.0.0.1', port: Number(port), strictPort: true, watch: null } });
   process.once('message', async () => {
     await server.close();
     process.disconnect();
@@ -1134,14 +1135,19 @@ async function inService(port, profile, mode, use, { expectHandoff = true, termi
   });
   const closed = once(child, 'close');
   let output = '';
+  let handoffRejected = false;
   for (const stream of [child.stdout, child.stderr]) {
     stream.setEncoding('utf8');
-    stream.on('data', chunk => { output = (output + chunk).slice(-6000); });
+    stream.on('data', chunk => {
+      const recent = output + chunk;
+      handoffRejected ||= recent.includes('The private workspace handoff could not be issued.');
+      output = recent.slice(-6000);
+    });
   }
   const server = {
     url, pid: child.pid,
     handoff: join(profile.root, 'workspace-access-' + port + '.html'),
-    handoffRejected: () => output.includes('The private workspace handoff could not be issued.'),
+    handoffRejected: () => handoffRejected,
   };
   try {
     const deadline = Date.now() + 10_000;
