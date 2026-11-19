@@ -1,12 +1,14 @@
 //! Authorize and validate locally scoped import previews at the registry boundary.
 
+use std::sync::LazyLock;
+
 use scopehub_domain::{
     protocol::{Error, ErrorCode, LocalImportPreviewInput},
     wire::{max_message_bytes, normalize_integers},
 };
 use serde_json::Value;
 
-use crate::{Actor, MarketFuture, authorized_operation, failure};
+use crate::{Actor, MarketFuture, authorized_operation, failure, validator};
 
 pub const PREVIEW_LOCAL_IMPORT: &str = "market.previewLocalImport";
 pub const DEFAULT_PREVIEW_ROWS: u32 = 100;
@@ -42,17 +44,58 @@ pub async fn preview_local_import(
     Ok((input, output))
 }
 
+static CSV_PREVIEW: LazyLock<jsonschema::Validator> = LazyLock::new(|| validator("CsvPreview"));
+
+/// Check the private worker payload before its transport has closed. The outer
+/// registry also checks its native file binding and the complete public envelope.
+pub fn validate_csv_preview(
+    preview: &Value,
+    sha256: &str,
+    mapping_version: u64,
+    mapping_revision: &str,
+    row_limit: u64,
+) -> Result<(), Error> {
+    if !CSV_PREVIEW.is_valid(preview)
+        || !matches_preview(
+            preview,
+            sha256,
+            mapping_version,
+            mapping_revision,
+            row_limit,
+        )
+    {
+        return Err(failure(ErrorCode::OUTPUTINVALID));
+    }
+    Ok(())
+}
+
 fn matches_source(input: &LocalImportPreviewInput, output: &Value) -> bool {
-    let preview = &output["preview"];
-    if output["folder_id"] != input.folder_id
-        || output["file_id"] != input.file_id
-        || preview["file_sha256"] != output["sha256"]
-        || input
+    let sha256 = output["sha256"].as_str().expect("validated source digest");
+    output["folder_id"] == input.folder_id
+        && output["file_id"] == input.file_id
+        && input
             .expected_sha256
-            .as_ref()
-            .is_some_and(|digest| output["sha256"] != *digest)
-        || preview["mapping_version"] != input.mapping.version
-        || preview["mapping_revision"] != input.mapping.revision
+            .as_deref()
+            .is_none_or(|expected| sha256 == expected)
+        && matches_preview(
+            &output["preview"],
+            sha256,
+            input.mapping.version,
+            &input.mapping.revision,
+            input.row_limit.unwrap_or(u64::from(DEFAULT_PREVIEW_ROWS)),
+        )
+}
+
+fn matches_preview(
+    preview: &Value,
+    sha256: &str,
+    mapping_version: u64,
+    mapping_revision: &str,
+    row_limit: u64,
+) -> bool {
+    if preview["file_sha256"] != sha256
+        || preview["mapping_version"] != mapping_version
+        || preview["mapping_revision"] != mapping_revision
     {
         return false;
     }
@@ -62,7 +105,7 @@ fn matches_source(input: &LocalImportPreviewInput, output: &Value) -> bool {
         .expect("validated preview header")
         .len();
     let mut previous_line = 0;
-    rows.len() as u64 <= input.row_limit.unwrap_or(u64::from(DEFAULT_PREVIEW_ROWS))
+    rows.len() as u64 <= row_limit
         && rows.iter().enumerate().all(|(index, row)| {
             let first = row["line_start"].as_u64().unwrap_or_default();
             let last = row["line_end"].as_u64().unwrap_or_default();

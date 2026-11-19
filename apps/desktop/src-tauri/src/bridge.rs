@@ -6,9 +6,9 @@ use std::{
 };
 
 use scopehub_application::{
-    Actor, LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS, MarketLifecycle, MarketPort,
-    MarketRegistry, PREVIEW_LOCAL_IMPORT, PUBLISH_LOCAL_IMPORT, READ_LOCAL_IMPORT_REVISION,
-    REVOKE_LOCAL_IMPORT_REVISION, SAVE_LOCAL_IMPORT_MAPPING, failure,
+    Actor, LIST_LOCAL_IMPORT_REVISIONS, LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS,
+    MarketLifecycle, MarketPort, MarketRegistry, PREVIEW_LOCAL_IMPORT, PUBLISH_LOCAL_IMPORT,
+    READ_LOCAL_IMPORT_REVISION, REVOKE_LOCAL_IMPORT_REVISION, SAVE_LOCAL_IMPORT_MAPPING, failure,
 };
 use scopehub_domain::protocol::{Error, ErrorCode};
 use scopehub_platform::local_folder::LocalFolderHost;
@@ -159,6 +159,10 @@ impl State {
                     .local_import
                     .publish(&self.workspace, payload, request_id)
                     .await;
+            }
+            LIST_LOCAL_IMPORT_REVISIONS => {
+                self.local_import.reject_reused_request(request_id)?;
+                return self.workspace.list_local_revisions(payload).await;
             }
             READ_LOCAL_IMPORT_REVISION => {
                 self.local_import.reject_reused_request(request_id)?;
