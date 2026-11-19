@@ -383,7 +383,7 @@ class PublicationTests(ProjectFixture):
         project['checks'] = {key: {'status': 'implemented', 'command': result['command']}
                              for key, result in results.items()}
         self.assertEqual(report['candidate_artifacts'], verified_candidate_files(
-            self.root, project, report, results, report['source'], downloaded / 'test-report.json',
+            self.root, project, report, results, report['source'], downloaded / '..' / 'windows' / 'test-report.json',
             downloaded, report['source']['git_head'],
         ))
         reference = archive_evidence(self.root, 'M0-001', downloaded / 'test-report.json', downloaded)

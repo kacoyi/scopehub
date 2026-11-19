@@ -642,6 +642,7 @@ def verified_candidate_files(root, project, report, results, source, report_path
             SESSION_CHECKS,
         )
     reports_root = (root / '.reports').resolve()
+    report_path = (root / report_path).resolve()
     origin = reports_root
     protected_download = report_path.is_relative_to(reports_root / 'ci')
     if artifact_root is not None:
