@@ -2,6 +2,22 @@
   "schema_version": "1.0",
   "items": [
     {
+      "id": "private-record-deletion-receipt-lost-on-refresh",
+      "source": "Independent t47 review of the 4498ebc private-record repair and subsequent two-window observation at 3bad802.",
+      "observation": "A committed deletion with a lost approval reply lost its receipt recovery control when a later detail read returned DATA_UNAVAILABLE. A pre-commit BUSY followed by a peer rename retained the stale target title while offering Retry. The 4498ebc Chromium baseline reproduced all three cases with actual SQLite responses. The repaired journey recovered the same deletion receipt following a dropped reply and a blocked post-commit checkpoint, kept exactly one tombstone and completed cleanup. A pre-commit BUSY followed by a peer rename kept the old content hidden and rejected the original resolution as stale. The prior six Chromium private-record journeys also passed. Evidence is retained under .reports/private-record-v8/delete-reply-green.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "private-record-lifecycle"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
       "id": "private-record-multiwindow-review",
       "source": "Independent t47 review of 8c9d27f, recorded in the M2-001 Herdr review terminal.",
       "observation": "The synthetic two-window fixture retained a deleted memory on writer loss, discarded a local draft on peer correction, and kept a stale deletion review visible after known removal. Reviews omitted record identity. The reviewer identified cross-window cancellation interference and found that restore preview accounts only for current records also in the archive. The unchanged 57a9cab runtime reproduced those findings through the real Chromium and Rust routes. The repair passed six local Chromium lifecycle and review cases and the SQLite persistence suite. Independent confirmation remains pending.",

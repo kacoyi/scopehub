@@ -1770,3 +1770,154 @@ test('private record review counts current survivors absent from an empty backup
     });
   } finally { await profile.close(); }
 });
+
+function deleteResolution(payload) {
+  return payload?.intent?.operation === 'privateRecord.change'
+    && payload.intent.arguments.action === 'resolve' && payload.intent.arguments.decision === 'approve';
+}
+
+function privateDetailReply(page, id, matches) {
+  return page.waitForResponse(async response => {
+    const intent = response.request().postDataJSON()?.intent;
+    return intent?.operation === 'privateRecord.read' && intent.arguments.record_id === id && response.ok()
+      && matches((await response.json()).result?.outcome);
+  });
+}
+
+function assertSameDeleteResolution(before, retry) {
+  expect(retry.scope).toEqual(before.scope);
+  expect(retry.intent).toEqual(before.intent);
+  expect(retry.request_id).not.toBe(before.request_id);
+  expect(Object.keys(retry.intent.arguments).sort()).toEqual(['action', 'challenge_id', 'decision']);
+}
+
+for (const fault of ['lost reply', 'blocked checkpoint']) {
+  test(`private record delete recovers after detail disappears with ${fault}`, async ({ browser }) => {
+    const profile = await makeProfile();
+    try {
+      await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+        await inFreshBrowser(browser, server, async page => {
+          const panel = await openPrivateRecords(page);
+          const title = 'Synthetic deleted record title';
+          const text = 'Synthetic deleted record text';
+          await saveMemory(panel, title, text);
+          const databasePath = join(profile.root, 'workspace.sqlite3');
+          const inspector = new DatabaseSync(databasePath, { readOnly: true });
+          const snapshot = fault === 'blocked checkpoint' ? new DatabaseSync(databasePath, { readOnly: true }) : null;
+          try {
+            const id = inspector.prepare('SELECT record_id FROM private_records').get().record_id;
+            const resolution = page.waitForRequest(request => deleteResolution(request.postDataJSON()));
+            const gone = privateDetailReply(page, id, outcome => outcome?.error?.code === 'DATA_UNAVAILABLE');
+            await panel.getByRole('button', { name: 'Review deletion' }).click();
+            let initialReceipt;
+            if (snapshot) {
+              snapshot.exec('BEGIN');
+              expect(snapshot.prepare('SELECT revision FROM private_records').get().revision).toBe(1);
+              const approval = page.waitForResponse(response => deleteResolution(response.request().postDataJSON()));
+              await panel.getByRole('button', { name: 'Delete private record', exact: true }).click();
+              expect((await (await approval).json()).result.outcome.error.code).toBe('BUSY');
+              expect(inspector.prepare('SELECT revision FROM private_record_cleanup').get().revision).toBe(2);
+            } else {
+              const dropped = await dropApprovalReply(page, server, 'privateRecord.change', deleteResolution);
+              await panel.getByRole('button', { name: 'Delete private record', exact: true }).click();
+              await expect.poll(dropped.outcome).toMatchObject({ state: 'committed' });
+              initialReceipt = dropped.outcome().receipt;
+              await dropped.restore();
+            }
+            const first = (await resolution).postDataJSON();
+            await focusPrivateRecords(page);
+            await gone;
+            await expect(panel.getByRole('alert')).toContainText('no longer available');
+            await expect(panel.getByText(title)).toHaveCount(0);
+            await expect(panel.getByText(text)).toHaveCount(0);
+            await expect(panel.getByRole('button', { name: 'Delete private record', exact: true })).toHaveCount(0);
+            expect(inspector.prepare('SELECT revision FROM workspaces').get().revision).toBe(2);
+            const operation = inspector.prepare('SELECT id FROM operation_log WHERE revision = 2').get().id;
+            if (snapshot) snapshot.exec('COMMIT');
+            const foreign = { ...first, scope: { ...first.scope, workspace_id: 'synthetic-foreign-workspace' } };
+            await expect.poll(() => postStatus(server, foreign)).toBe(403);
+
+            const retry = panel.getByRole('button', { name: 'Retry confirmation' });
+            await expect(retry).toBeEnabled();
+            const replay = page.waitForResponse(response => deleteResolution(response.request().postDataJSON()));
+            await retry.click();
+            const response = await replay;
+            assertSameDeleteResolution(first, response.request().postDataJSON());
+            const outcome = (await response.json()).result.outcome;
+            expect(outcome).toEqual({
+              state: 'committed', operation: 'privateRecord.change',
+              receipt: {
+                operation_id: operation, workspace_id: workspaceId, record_id: id,
+                committed_workspace_revision: 2, undoable: false,
+              },
+            });
+            if (initialReceipt) expect(outcome.receipt).toEqual(initialReceipt);
+            await expect(panel.getByText('Private record deleted.', { exact: true })).toBeVisible();
+            await expect(panel.getByText(operation, { exact: true })).toBeVisible();
+            await expect(panel.getByRole('button', { name: 'Retry confirmation' })).toHaveCount(0);
+            expect(inspector.prepare('SELECT revision FROM workspaces').get().revision).toBe(2);
+            expect(inspector.prepare('SELECT count(*) AS count FROM private_record_deletions').get().count).toBe(1);
+            expect(inspector.prepare('SELECT count(*) AS count FROM private_record_cleanup').get().count).toBe(0);
+          } finally {
+            snapshot?.close();
+            inspector.close();
+          }
+        });
+      });
+    } finally { await profile.close(); }
+  });
+}
+
+test('private record delete recovery hides its old title after pre-commit busy and peer rename', async ({ browser }) => {
+  const profile = await makeProfile();
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async pageA => {
+        const first = await openPrivateRecords(pageA);
+        const title = 'Synthetic old title';
+        const renamed = 'Synthetic peer title';
+        const text = 'Synthetic original body';
+        await saveMemory(first, title, text);
+        await first.getByRole('button', { name: 'Review deletion' }).click();
+        const writerLock = new DatabaseSync(join(profile.root, 'workspace.sqlite3'));
+        try {
+          const id = writerLock.prepare('SELECT record_id FROM private_records').get().record_id;
+          writerLock.exec('BEGIN IMMEDIATE');
+          const response = pageA.waitForResponse(reply => deleteResolution(reply.request().postDataJSON()));
+          await first.getByRole('button', { name: 'Delete private record', exact: true }).click();
+          const rejected = await response;
+          expect((await rejected.json()).result.outcome.error.code).toBe('BUSY');
+          expect(writerLock.prepare('SELECT revision FROM workspaces').get().revision).toBe(1);
+          writerLock.exec('COMMIT');
+          await expect(first.getByRole('button', { name: 'Retry confirmation' })).toBeEnabled();
+
+          const observedRename = privateDetailReply(pageA, id, outcome => outcome?.result?.record?.content?.title === renamed);
+          await inFreshBrowser(browser, server, async pageB => {
+            const peer = await openPrivateRecords(pageB);
+            await peer.getByRole('button', { name: new RegExp(title) }).click();
+            await peer.getByRole('button', { name: 'Correct record' }).click();
+            await peer.getByRole('textbox', { name: 'Title', exact: true }).fill(renamed);
+            await peer.getByRole('button', { name: 'Review save' }).click();
+            await peer.getByRole('button', { name: 'Save private record', exact: true }).click();
+            await expect(peer.getByRole('heading', { name: renamed })).toBeVisible();
+          });
+
+          await focusPrivateRecords(pageA);
+          await observedRename;
+          await expect(first.getByText(title, { exact: true })).toHaveCount(0);
+          await expect(first.getByText(text, { exact: true })).toHaveCount(0);
+          await expect(first.getByRole('button', { name: 'Delete private record', exact: true })).toHaveCount(0);
+          const replay = pageA.waitForResponse(reply => deleteResolution(reply.request().postDataJSON()));
+          await first.getByRole('button', { name: 'Retry confirmation' }).click();
+          const retried = await replay;
+          assertSameDeleteResolution(rejected.request().postDataJSON(), retried.request().postDataJSON());
+          expect((await retried.json()).result.outcome.error.code).toBe('STALE_CONTEXT');
+          await expect(first.getByRole('alert')).toContainText('changed');
+          await expect(first.getByRole('heading', { name: renamed })).toBeVisible();
+          expect(writerLock.prepare('SELECT revision FROM workspaces').get().revision).toBe(2);
+          expect(writerLock.prepare('SELECT count(*) AS count FROM private_record_deletions').get().count).toBe(0);
+        } finally { writerLock.close(); }
+      });
+    });
+  } finally { await profile.close(); }
+});
