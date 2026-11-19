@@ -337,6 +337,19 @@ class PublicationTests(ProjectFixture):
         report['candidate_artifacts'] = release_artifacts(candidate.parent, report['source'], policy)
         return candidate, manifest
 
+    def test_present_notice_must_be_named_in_the_accepted_manifest(self):
+        self.add_catalog_checks('release-artifacts')
+        report = self.hosted_report(system='Windows', event='workflow_dispatch')
+        candidate, manifest = self.make_candidate(report)
+        self.assertTrue((candidate / 'THIRD_PARTY_NOTICES').is_file())
+        policy = load_project(self.root)['spec']['acceptance']['performance']
+        for declaration in ({'third_party_licenses': []}, {}):
+            without_notices = {key: value for key, value in manifest.items() if key != 'third_party_licenses'}
+            (candidate / 'build-manifest.json').write_bytes(json_bytes({**without_notices, **declaration}))
+            for hosted in (False, True):
+                with self.subTest(declaration=declaration, hosted=hosted), self.assertRaisesRegex(ProjectError, 'third-party'):
+                    release_artifacts(candidate.parent, report['source'], policy, hosted=hosted)
+
     def test_bound_candidate_remains_compatible_with_hosted_release_readiness(self):
         self.add_catalog_checks('release-artifacts', 'configured-model-session')
         ledger = self.ledger()

@@ -508,10 +508,12 @@ def release_artifacts(run_dir, source, policy, *, expected=None, hosted=False):
         or performance_verdict(metrics, policy)['status'] != 'passed'
     ):
         raise ProjectError('Candidate has no passing bound performance observation')
-    for ref in release_notices(manifest):
+    notices = release_notices(manifest)
+    if not notices:
+        raise ProjectError('An accepted candidate requires retained third-party licenses and notices.')
+    for ref in notices:
         notice = verified_file(directory, ref)
-        if hosted:
-            validate_notice(notice.read_bytes())
+        validate_notice(notice.read_bytes())
     summary = {'manifest_sha256': file_digest(manifest_path), 'installer_sha256': installer_hash}
     if expected is not None and expected != summary:
         raise ProjectError('Candidate manifest or installer differs from the checked release')

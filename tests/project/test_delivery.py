@@ -142,7 +142,7 @@ class DeliveryTests(ProjectFixture):
         installer = {'path': 'fixture.exe', 'sha256': digest(data)}
 
         def save(name, value):
-            content = json_bytes(value)
+            content = value if isinstance(value, bytes) else json_bytes(value)
             (folder / name).write_bytes(content)
             return {'path': name, 'sha256': digest(content)}
 
@@ -173,9 +173,11 @@ class DeliveryTests(ProjectFixture):
                 final_bar_presented=True,
             ),
         )
+        notice = save('THIRD_PARTY_NOTICES', b'Synthetic third-party notices and license text.\n')
         save(
             'build-manifest.json',
-            dict(identity, installer=installer, windows_observations=observations, performance=performance),
+            dict(identity, installer=installer, windows_observations=observations, performance=performance,
+                 third_party_licenses=[notice]),
         )
         report['candidate_artifacts'] = release_artifacts(
             run_dir, report['source'], load_project(self.root)['spec']['acceptance']['performance']
