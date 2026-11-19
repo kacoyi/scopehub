@@ -1,0 +1,16 @@
+{
+  "date": "2026-11-19",
+  "task": "M0-028",
+  "kind": "development_launcher_verification",
+  "codex": "codex-cli 0.170.0",
+  "source": "03faeff61a6e2ea65c803f6c6fa5727b5e1ce438",
+  "herdr_role": "implement",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "ultra",
+  "automatic_review_flag": "--approve-for-me",
+  "cwd_matched_assigned_linked_worktree": true,
+  "result": "The child ran the 11 focused checks, verified the diff, and committed the five assigned files in the linked worktree. It reported the commit without a human approval prompt. An individual request to the automatic reviewer was not observed.",
+  "review_role": "The portable invocation test verifies read-only with an immediate denial and preserves the supplied assignment.",
+  "limits": "Existing terminals retain their launch settings. An actual denied request remains denied.",
+  "reference": "https://learn.chatgpt.com/docs/developer-commands?surface=cli"
+}

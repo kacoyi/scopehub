@@ -1023,6 +1023,25 @@
         "prevention": "Linux task run 20261119T164809.402758Z-f797923a observed the labeled sample restoring 5m on refresh, with the private 1m revision and undo receipt intact. The linked page executed the original undo after leaving. A same-tab sample reload sent no private requests and browser storage held only the sample preference until exit. The built UI with substituted Tauri IPC sent no workspace mutation during sample selection and used the original undo on return. Native Windows verification remains a separate handoff."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "herdr-delegated-interactive-approvals",
+      "source": "Coordinator inspection of the active implementation and review terminals on 2026-11-19, including a linked worktree awaiting an assigned local Git merge.",
+      "observation": "The launcher left the writer approval policy implicit. Routine project checks and previously assigned local Git operations waited at interactive approval prompts in multiple terminals.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-028"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The writer launch command omitted the approval reviewer, and read-only reviews inherited the interactive approval setting.",
+        "correction": "Writers and coordinators request the standard workspace-write automatic reviewer. Read-only review returns a denial directly. The selected checkout and model travel with each assignment.",
+        "prevention": "The 11 focused launcher tests cover the role arguments and worktree selection. A real Herdr implementation session completed its scoped commit without a human prompt. See contracts/reviews/2026-11-19-herdr-delegated-approvals.json."
+      },
+      "deferral_reason": null
     }
   ]
 }

@@ -97,9 +97,9 @@ class DryRunTests(WorktreeFixture):
         self.assertEqual(plan['cwd'], str(self.worktree))
         self.assertEqual(plan['argv'][:5], ['hc', 'run', '--bg', '--cwd', str(self.worktree)])
         self.assertIn('herdr.space=s-local', plan['argv'])
-        self.assertEqual(plan['argv'][-8:-1], [
+        self.assertEqual(plan['argv'][-9:-1], [
             'codex', '--no-daemon', '--model', 'fixture-model', '-c',
-            'model_reasoning_effort="high"', '--',
+            'model_reasoning_effort="high"', '--approve-for-me', '--',
         ])
         context, assignment = plan['argv'][-1].split('\n\n', 1)
         self.assertIn('M0-025, role implement', context)
@@ -114,10 +114,17 @@ class DryRunTests(WorktreeFixture):
             self.assertEqual(result.returncode, 0, result.stderr)
             plan = json.loads(result.stdout)
             self.assertEqual(plan['cwd'], str(self.primary))
+            self.assertEqual(plan['argv'][-3:-1], ['--approve-for-me', '--'])
             names.append(plan['argv'][plan['argv'].index('--name') + 1])
         self.assertRegex(names[0], r'^m0-024-coordinate-[a-z0-9_-]+$')
         self.assertLessEqual(len(names[0]), 32)
         self.assertNotEqual(*names)
+
+    def test_review_returns_sandbox_denials_without_interactive_approval(self):
+        result = self.cli('M0-025', 'review', '--assignment', 'Inspect one file', '--dry-run')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = json.loads(result.stdout)['argv']
+        self.assertEqual(argv[-6:-1], ['--sandbox', 'read-only', '--ask-for-approval', 'never', '--'])
 
     def test_rejects_outside_worktree_or_unknown_task_in_current_worktree(self):
         for cwd, task, message in (
@@ -177,7 +184,9 @@ class LaunchTests(WorktreeFixture):
                 self.assertEqual(hc['argv'][6:11], ['--label', 'task=M0-025', '--label', f'role={role}', '--'])
                 expected = ['--no-daemon', '--model', model, '-c', f'model_reasoning_effort="{effort}"']
                 if role == 'review':
-                    expected.extend(['--sandbox', 'read-only'])
+                    expected.extend(['--sandbox', 'read-only', '--ask-for-approval', 'never'])
+                else:
+                    expected.append('--approve-for-me')
                 self.assertEqual((codex['program'], codex['cwd']), ('codex', str(self.worktree)))
                 self.assertEqual(codex['argv'][:-1], [*expected, '--'])
                 context, assignment = codex['argv'][-1].split('\n\n', 1)
