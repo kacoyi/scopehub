@@ -2079,7 +2079,7 @@
         "rust-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Define the synthetic bar event and cross-language fixtures, then pass the worker updates through the shared Rust core into a cancellable Ubuntu chart session. Exercise selection changes during an update and the final closed bar.",
+      "next_action": "Implement the negotiated 1.1 market subscription and its existing shared wire vectors through the core and Ubuntu chart. Verify contiguous replay, epoch reset, late events, selection cancellation and the final closed bar.",
       "blocker": null,
       "closure_reason": null,
       "plan": {

@@ -210,7 +210,10 @@ def main():
         for key in ['effect', 'confirmation', 'undoable', 'actors']:
             if actual[name][key] != expected[name][key]:
                 errors.append(f'Operation policy drift: {name}.{key}')
+        binding = actual[name].get('wire_bindings', {}).get(manifest['protocol_version'], actual[name])
         for direction in ['input', 'output']:
+            if expected[name][direction + '_spec'] != binding[direction] or binding[direction] not in schema['$defs']:
+                errors.append(f'Engineering operation binding differs from the negotiated schema: {name}.{direction}')
             if actual[name][direction] not in schema['$defs']:
                 errors.append(f'Missing operation schema: {name}.{direction}')
     if (schema['$defs']['ProtocolVersion11']['const'] != spec['protocol']['version']

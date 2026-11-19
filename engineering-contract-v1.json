@@ -394,6 +394,11 @@
       "busy": "BUSY reports temporary admission pressure. Retry after the active request completes, within the retry budget.",
       "limits": "RESOURCE_LIMIT reports a hard byte, count or concurrency budget on the requested workload. A size failure requires paging or a smaller request. Retrying the identical oversized request cannot help.",
       "snapshot": "SNAPSHOT_UNAVAILABLE identifies an expired, corrected or offline requested input that the source cannot reconstruct. Show the original reference and offer a separately requested latest read."
+    },
+    "envelope_profiles": {
+      "discovery": "For every public operation, input_spec and output_spec in this contract name canonical JSON Schema definitions. The current manifest wire_bindings name the complete versioned commands and replies when present. The unversioned manifest input/output name the payload projections. For instrument.search and market.getBars the host uses the negotiated legacy lane and its unchanged payloads.",
+      "legacy": "The request, response, event, cancel and heartbeat field summaries here describe the 1.0 base profile. Their union members in the canonical schema are authoritative for 1.0.",
+      "current": "Version 1.1 adds distinct, direction-checked message variants. Scoped mutations carry scope and intent, and return a correlated outcome with the receipt on commitment. Shared selections, projected reads, indicator tasks, market pages and private worker deliveries each have their own explicitly identified messages in the canonical root union."
     }
   },
   "domain": {
@@ -477,8 +482,8 @@
   "operations": [
     {
       "name": "instrument.search",
-      "input_spec": "query:string, limit:integer<=50",
-      "output_spec": "Instrument[]",
+      "input_spec": "InstrumentSearchInput",
+      "output_spec": "InstrumentSearchOutput",
       "effect": "read",
       "confirmation": false,
       "undoable": false,
@@ -490,8 +495,8 @@
     },
     {
       "name": "market.getBars",
-      "input_spec": "instrument_id,timeframe,from_ms,to_ms,provider_id",
-      "output_spec": "DatasetDescriptor+Bar[]",
+      "input_spec": "MarketGetBarsInput",
+      "output_spec": "MarketGetBarsOutput",
       "effect": "read",
       "confirmation": false,
       "undoable": false,
@@ -503,8 +508,8 @@
     },
     {
       "name": "workspace.openInstrument",
-      "input_spec": "instrument_id,timeframe,expected_workspace_revision",
-      "output_spec": "workspace snapshot",
+      "input_spec": "WorkspaceOpenInstrumentCommand11",
+      "output_spec": "WorkspaceOpenInstrumentReply11",
       "effect": "workspace",
       "confirmation": false,
       "undoable": false,
@@ -516,8 +521,8 @@
     },
     {
       "name": "chart.setTimeframe",
-      "input_spec": "timeframe,expected_workspace_revision",
-      "output_spec": "workspace snapshot",
+      "input_spec": "ChartSetTimeframeCommand11",
+      "output_spec": "ChartSetTimeframeReply11",
       "effect": "workspace",
       "confirmation": false,
       "undoable": true,
@@ -529,8 +534,8 @@
     },
     {
       "name": "chart.setStyle",
-      "input_spec": "style:candlestick|line,expected_workspace_revision",
-      "output_spec": "workspace snapshot",
+      "input_spec": "ChartSetStyleCommand11",
+      "output_spec": "ChartSetStyleReply11",
       "effect": "workspace",
       "confirmation": false,
       "undoable": false,
@@ -542,8 +547,8 @@
     },
     {
       "name": "chart.addAnnotation",
-      "input_spec": "annotation,expected_workspace_revision",
-      "output_spec": "layer_id",
+      "input_spec": "ChartAddAnnotationCommand11",
+      "output_spec": "ChartAddAnnotationReply11",
       "effect": "workspace",
       "confirmation": false,
       "undoable": true,
@@ -555,8 +560,8 @@
     },
     {
       "name": "chart.removeLayer",
-      "input_spec": "layer_id,expected_workspace_revision",
-      "output_spec": "operation_id",
+      "input_spec": "ChartRemoveLayerCommand11",
+      "output_spec": "ChartRemoveLayerReply11",
       "effect": "workspace",
       "confirmation": false,
       "undoable": true,
@@ -568,8 +573,8 @@
     },
     {
       "name": "indicator.createDraft",
-      "input_spec": "language:declarative|python,source,params,expected_workspace_revision",
-      "output_spec": "draft_id+code_hash",
+      "input_spec": "IndicatorCreateDraftCommand11",
+      "output_spec": "IndicatorCreateDraftReply11",
       "effect": "draft",
       "confirmation": false,
       "undoable": false,
@@ -581,8 +586,8 @@
     },
     {
       "name": "indicator.runPreview",
-      "input_spec": "draft_id,dataset_id,dataset_revision,params,expected_workspace_revision",
-      "output_spec": "task_id",
+      "input_spec": "IndicatorRunPreviewCommand11",
+      "output_spec": "IndicatorRunPreviewReply11",
       "effect": "compute",
       "confirmation": "python_only",
       "undoable": false,
@@ -594,8 +599,8 @@
     },
     {
       "name": "indicator.acceptVersion",
-      "input_spec": "preview_id,expected_workspace_revision",
-      "output_spec": "version_id+layer_id",
+      "input_spec": "IndicatorAcceptVersionCommand11",
+      "output_spec": "IndicatorAcceptVersionReply11",
       "effect": "persist",
       "confirmation": true,
       "undoable": true,
@@ -607,8 +612,8 @@
     },
     {
       "name": "indicator.remove",
-      "input_spec": "layer_id,expected_workspace_revision",
-      "output_spec": "operation_id",
+      "input_spec": "IndicatorRemoveCommand11",
+      "output_spec": "IndicatorRemoveReply11",
       "effect": "workspace",
       "confirmation": false,
       "undoable": true,
@@ -620,8 +625,8 @@
     },
     {
       "name": "workspace.undo",
-      "input_spec": "operation_id,expected_workspace_revision",
-      "output_spec": "workspace snapshot",
+      "input_spec": "WorkspaceUndoCommand11",
+      "output_spec": "WorkspaceUndoReply11",
       "effect": "workspace",
       "confirmation": false,
       "undoable": false,
@@ -633,8 +638,8 @@
     },
     {
       "name": "task.cancel",
-      "input_spec": "task_id",
-      "output_spec": "task terminal status",
+      "input_spec": "TaskCancelRequest11",
+      "output_spec": "CancelTaskReply11",
       "effect": "control",
       "confirmation": false,
       "undoable": false,
@@ -646,8 +651,8 @@
     },
     {
       "name": "workspace.getContext",
-      "input_spec": "workspace_id",
-      "output_spec": "bounded structured context",
+      "input_spec": "SharedContextRequest11",
+      "output_spec": "SharedContextReply11",
       "effect": "read",
       "confirmation": false,
       "undoable": false,
@@ -659,8 +664,8 @@
     },
     {
       "name": "market.readHistoryPage",
-      "input_spec": "SeriesKey, half-open UTC start-time range, warmup_bars and optional pinned revision, as_of_ms, frozen snapshot and continuation",
-      "output_spec": "A byte-bounded page with dataset, frozen snapshot, quality axes, stream position, absolute bar offset and next cursor or explicit end.",
+      "input_spec": "MarketHistoryPageRequest",
+      "output_spec": "HistoryPageReply11",
       "effect": "read",
       "confirmation": false,
       "undoable": false,
@@ -679,8 +684,8 @@
         "user",
         "ai"
       ],
-      "input_spec": "Workspace, selection revision, permitted requested fields",
-      "output_spec": "The selected grant-filtered chart view",
+      "input_spec": "ReadProjectedChart11",
+      "output_spec": "ProjectedChartReply11",
       "schema_requirement": "Use the registered 1.1 schema and session-bound permissions."
     },
     {
@@ -692,8 +697,8 @@
         "user",
         "ai"
       ],
-      "input_spec": "Workspace, expected selection revision and a versioned target or explicit clear",
-      "output_spec": "The core-owned selected evidence and resulting selection revision",
+      "input_spec": "SharedSelectionRequest11",
+      "output_spec": "SelectEvidenceReply11",
       "schema_requirement": "Use the registered 1.1 schema and session-bound permissions."
     }
   ],
@@ -787,7 +792,7 @@
     ],
     "preview": "Return a task ID immediately. Exactly one terminal message or durable retrievable outcome binds task, draft, preview ID, input snapshot and validated result. Rejected, failed, cancelled or superseded previews cannot be accepted. Commit only the current explicitly accepted matching preview, with its operation receipt; restarting does not replay a computation.",
     "parameter_and_output": "Resolve defaults and overrides to one typed parameter object for hashing and execution. An integer literal or a declared integer parameter can set a lag or rolling period. Arithmetic accepts numbers, comparisons produce nullable booleans, and logical and/or follow three-valued truth tables. Numeric projections emit a number or null. Boolean marker conditions emit a marker only on true; false and unknown emit none. Reject using booleans as numeric series implicitly.",
-    "result_budget": "A 4 MiB NDJSON limit includes envelope and newline. Validate the input aggregate before scheduling and cap structured output across all chunks as one result. Inline only a fitting frame. For outputs lacking a negotiated bounded result transport reject the whole preview with RESOURCE_LIMIT and ask for a narrower visible interval or fewer series. Never truncate to indicate success."
+    "result_budget": "A 4 MiB NDJSON limit includes envelope and newline. Validate the input aggregate before scheduling and cap structured output across all chunks as one result. Inline only a fitting frame. For outputs lacking a negotiated bounded result transport reject the whole preview with RESOURCE_LIMIT and ask for a narrower visible interval or fewer series. Never truncate to indicate success. When both sides support the 1.1 indexed artifact, bind every segment to the same task, artifact ID, index and result hash. Display or accept only after validating all indices, declared byte length, final digest and result schema."
   },
   "ai": {
     "providers_v1": [
