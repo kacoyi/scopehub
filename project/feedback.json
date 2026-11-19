@@ -741,6 +741,24 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "selection-revision-policy-conflict",
+      "source": "M2-001 implementation planning, product AI tool policy compared with registered protocol 1.1 client and AI selection requests.",
+      "observation": "The generic policy requires a workspace revision for every mutation, but workspace.selectEvidence requires the expected selection revision and explicitly allows selection changes without advancing the durable workspace revision.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-005"
+      ],
+      "regression_checks": [
+        "generated-contracts",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
