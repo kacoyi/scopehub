@@ -1005,6 +1005,21 @@
         "prevention": "Both jobs in run 44542089017 passed the isolated live fetch and online review of 540 locked packages and seven pinned actions. The regression suite covers refused redirects, stale records, unavailable advisories and credential isolation."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "hosted-preview-app-mount-missing",
+      "source": "Hosted Windows run 44546526143 for PR 9 at e4c4868, market-quality-states first case, compared with the Linux job.",
+      "observation": "The test exhausted its 60-second budget waiting for Data sources after navigation. The screenshot shows a dark page without workspace controls. Windows passed the following twelve cases and the other checks. Linux passed all thirteen quality cases. The published artifacts do not identify the startup terminal reason. An independent Linux HTTP 500 injection on the first application module reproduced the old locator timeout and an identical screenshot. The test now reports actual module and mount failures. The original Windows cause remains unconfirmed, pending an instrumented Windows run.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-021"
+      ],
+      "regression_checks": [
+        "market-quality-states"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

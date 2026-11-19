@@ -5584,6 +5584,111 @@
           "cleanup": "The fetch has no child checks. The runner owns temporary public evidence and the built-in job credential lifetime."
         }
       }
+    },
+    {
+      "id": "M1-021",
+      "title": "Observe cold preview module startup and report terminal failures",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-019"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/market-quality.spec.mjs",
+        "tests/ui",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Verify that an ordinary loopback navigation mounts the unconfigured chart before the quality test opens its controls and sends zero market operations before opt-in.",
+        "A deliberately failed or unavailable first application module must fail startup within its own bounded stage, with the observed terminal reason and without navigation retries.",
+        "Retain the hosted failure and distinguish a locally reproduced readiness defect from any unresolved Windows-specific cause."
+      ],
+      "checks": [
+        "market-quality-states",
+        "ui-build",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-021-3189ca6944144955.json",
+          "sha256": "293b326a5911a39f7855d03e735eae06441d69f306dae531970a3616c8cce9e4"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The bounded readiness and terminal diagnostics passed the local harness. The hosted Windows startup incident remains open until a later instrumented run exposes its terminal reason.",
+      "plan": {
+        "outcome": "A market quality check verifies a rendered chart before interacting with Data sources and reports the first observable startup failure instead of waiting for an absent control.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/market-quality.spec.mjs",
+          "tests/ui/workspace-controls.mjs",
+          "apps/desktop/ui/index.html",
+          "apps/desktop/ui/src/main.tsx",
+          "apps/desktop/ui/vite.config.ts"
+        ],
+        "hypotheses": [
+          "The artifact shows an unmounted chart before any market selection. HTML navigation alone cannot establish whether the application module loaded and React rendered.",
+          "The artifact does not identify a failed module, JavaScript exception, or browser/host fault. A controlled module fault can verify the harness separately from the unresolved Windows cause."
+        ],
+        "risks": [
+          {
+            "failure": "A failed or hung app mount is treated as a pass, retried invisibly, or lost in a whole-test locator timeout.",
+            "checks": [
+              "market-quality-states"
+            ]
+          },
+          {
+            "failure": "A startup diagnostic exposes uncontrolled URLs or replaces the real market checks.",
+            "checks": [
+              "market-quality-states"
+            ]
+          }
+        ],
+        "rollback": "Retain run 44546526143 and the controlled failures. Revert any unverified runtime change and keep the Windows observation open.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/market-quality.spec.mjs",
+            "tests/ui/workspace-controls.mjs",
+            "apps/desktop/ui/index.html",
+            "apps/desktop/ui/src/main.tsx"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Production retries or timeout changes, chart behavior changes, packaged Windows acceptance, and assuming a root cause from a screenshot."
+          ],
+          "open_questions": [
+            "Which first-page event caused the unmounted chart on the hosted Windows runner?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Real loopback chart boot and worker operations, default no-market-call checks, and all quality assertions."
+          ],
+          "change": [
+            "Separate page navigation from observable application readiness and preserve bounded diagnostics on a terminal startup failure."
+          ],
+          "data_plan": "Use only synthetic test content and same-origin resource classifications.",
+          "cleanup": "Detach startup observers after the readiness outcome and leave the test browser to its existing teardown."
+        }
+      }
     }
   ]
 }
