@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use scopehub_application::{
     Actor, MarketFuture, MarketLifecycle, MarketPort, MarketRegistry, MarketStatus, ShutdownFuture,
-    SubscriptionFuture, SubscriptionPort,
+    SubscriptionFuture, SubscriptionPort, failure,
 };
 use scopehub_domain::protocol::{
     ErrorCode, MarketSubscriptionInput, MarketSubscriptionOutput, Message,
@@ -128,12 +128,80 @@ async fn real_worker_repairs_one_closed_bar_and_preserves_the_initial_snapshot()
     reads.shutdown().await.unwrap();
 }
 
+#[tokio::test]
+async fn cropped_closed_replay_keeps_only_gaps_overlapping_the_selection() {
+    let mut reads = MarketRegistry::new(MarketWorker::new(Some(config())));
+    let missing_from = 1704330480000_i64;
+    let missing_to = 1704330540000_i64;
+    let closes_at = 1704330600000_i64;
+    for (from, to, outcome) in [
+        (
+            1704067200000,
+            closes_at - 1,
+            json!({"status":"gapped", "reason":"source_gap"}),
+        ),
+        (
+            missing_from + 1,
+            closes_at,
+            json!({"status":"gapped", "reason":"source_gap"}),
+        ),
+        (missing_to, closes_at, json!({"status":"complete"})),
+    ] {
+        let mut args = query("unrepaired");
+        args["from_ms"] = json!(from);
+        args["to_ms"] = json!(to);
+        args["as_of_ms"] = json!(closes_at);
+        let page = reads
+            .execute(Actor::User, "market.readHistoryPage", args)
+            .await
+            .unwrap();
+        assert_eq!(page["stream_position"]["sequence"], 3);
+        assert_eq!(
+            page["quality_state"]["gaps"],
+            json!([{"from_ms":missing_from, "to_ms":missing_to}])
+        );
+        assert_eq!(
+            page["bars"].as_array().unwrap().last().unwrap()["is_closed"],
+            true
+        );
+
+        let mut frames = Vec::new();
+        let result = run_subscription(
+            Some(config()),
+            Actor::User,
+            subscription(&page),
+            std::future::pending(),
+            |frame| {
+                frames.push(frame);
+                Ok(())
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            frames,
+            [
+                json!({"subscription":{"status":"accepted", "from_position":page["stream_position"]}})
+            ]
+        );
+        assert_eq!(result, outcome, "selection [{from}, {to})");
+    }
+    reads.shutdown().await.unwrap();
+}
+
 #[derive(Clone, Copy)]
 enum Fault {
     Epoch,
     Revision,
     Cutoff,
     LostCount,
+    InvalidFrame,
+}
+
+fn frame_error() -> scopehub_domain::protocol::Error {
+    let mut error = failure(ErrorCode::OUTPUTINVALID);
+    error.message = "The worker sent an invalid reply frame.".into();
+    error
 }
 
 #[derive(Default)]
@@ -164,6 +232,7 @@ impl MarketPort for RepairProbe<'_> {
                         Some(Fault::Cutoff) => {
                             result["snapshot"]["as_of_ms"] = json!(1704330585000_i64)
                         }
+                        Some(Fault::InvalidFrame) => return Err(frame_error()),
                         _ => {}
                     }
                 }
@@ -238,6 +307,7 @@ async fn one_bounded_read_requires_available_bars_and_the_exact_revision_cutoff_
         (&repairable, Some(Fault::Revision), false),
         (&repairable, Some(Fault::Cutoff), false),
         (&repairable, Some(Fault::LostCount), false),
+        (&repairable, Some(Fault::InvalidFrame), false),
     ] {
         let mut trace = Trace::default();
         let mut core = MarketRegistry::new(RepairProbe {
@@ -288,10 +358,14 @@ async fn one_bounded_read_requires_available_bars_and_the_exact_revision_cutoff_
             assert_eq!(outcome.unwrap(), json!({"status":"complete"}));
         } else {
             assert_eq!(frames.len(), 3);
-            assert_eq!(
-                outcome.unwrap(),
-                json!({"status":"gapped", "reason":"sequence_gap"})
-            );
+            if matches!(fault, Some(Fault::InvalidFrame)) {
+                assert_eq!(outcome, Err(frame_error()));
+            } else {
+                assert_eq!(
+                    outcome.unwrap(),
+                    json!({"status":"gapped", "reason":"sequence_gap"})
+                );
+            }
         }
     }
 }

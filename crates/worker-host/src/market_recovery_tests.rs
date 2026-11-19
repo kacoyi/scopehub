@@ -32,6 +32,7 @@ enum BoundaryFault {
     Epoch,
     Sequence,
     ConfirmedBar,
+    ClosedHistory,
 }
 
 struct InterruptedWorker<'a> {
@@ -40,7 +41,9 @@ struct InterruptedWorker<'a> {
     exit_before_read: bool,
     exit_each_resume: bool,
     exit_first_replacement_before_verification: bool,
+    exit_during_repair: bool,
     boundary_fault: Option<BoundaryFault>,
+    authentic_resume_hash: Option<String>,
 }
 
 impl<'a> InterruptedWorker<'a> {
@@ -51,7 +54,9 @@ impl<'a> InterruptedWorker<'a> {
             exit_before_read: false,
             exit_each_resume: false,
             exit_first_replacement_before_verification: false,
+            exit_during_repair: false,
             boundary_fault: None,
+            authentic_resume_hash: None,
         }
     }
 
@@ -65,6 +70,15 @@ impl<'a> InterruptedWorker<'a> {
 impl MarketPort for InterruptedWorker<'_> {
     fn request<'a>(&'a mut self, operation: &'a str, payload: &'a Value) -> MarketFuture<'a> {
         Box::pin(async move {
+            if self.exit_during_repair
+                && operation == "market.readHistoryPage"
+                && payload["page_size"] == 2
+            {
+                self.exit().await;
+                let result = self.worker.request(operation, payload).await;
+                assert!(matches!(&result, Err(error) if error.code == ErrorCode::WORKEREXITED));
+                return result;
+            }
             let is_resume_read =
                 operation == "market.readHistoryPage" && payload.get("expected_revision").is_some();
             if is_resume_read
@@ -88,6 +102,16 @@ impl MarketPort for InterruptedWorker<'_> {
                     Some(BoundaryFault::Sequence) => {
                         result["stream_position"]["sequence"] = json!(0);
                     }
+                    Some(BoundaryFault::ClosedHistory) => {
+                        assert_eq!(result["bars"][0]["volume"], 120.0);
+                        self.authentic_resume_hash =
+                            Some(result["snapshot"]["content_hash"].as_str().unwrap().into());
+                        result["bars"][0]["volume"] = json!(121.0);
+                        // history-chain-v1 for the sequence-1 page with only the first closed bar's volume changed.
+                        result["snapshot"]["content_hash"] = json!(
+                            "39ed9072c90dc545c479ebdd26997c5ebdd21a07d2758d2c026f32435b30547c"
+                        );
+                    }
                     _ => {}
                 }
             }
@@ -105,6 +129,13 @@ impl SubscriptionPort for InterruptedWorker<'_> {
         assert!(self.worker.subscription.is_none());
         self.trace.opened.push((pid, input.clone()));
         self.exit_before_read = self.exit_each_resume && input.after.sequence == 1;
+        if let Some(hash) = self.authentic_resume_hash.take() {
+            // Model a worker that accepts its own rewritten snapshot while the
+            // owned Python process still produces the genuine remaining events.
+            let mut authentic = input.clone();
+            authentic.snapshot.content_hash = hash;
+            return Box::pin(async move { self.worker.open_subscription(&authentic).await });
+        }
         self.worker.open_subscription(input)
     }
 
@@ -117,7 +148,8 @@ impl SubscriptionPort for InterruptedWorker<'_> {
                 return result;
             }
             let mut event = self.worker.next_event().await?;
-            if let Message::MarketBarUpdateEvent(update) = &mut event
+            if !self.exit_during_repair
+                && let Message::MarketBarUpdateEvent(update) = &mut event
                 && update.sequence == 1
             {
                 self.exit_before_read = true;
@@ -154,6 +186,80 @@ impl MarketLifecycle for InterruptedWorker<'_> {
             Ok(())
         })
     }
+}
+
+#[tokio::test]
+async fn replacement_cannot_rewrite_a_confirmed_closed_bar() {
+    let initial = sample_futures_page().await;
+    let mut trace = Trace::default();
+    let mut worker = InterruptedWorker::new(&mut trace);
+    worker.boundary_fault = Some(BoundaryFault::ClosedHistory);
+    let mut frames = Vec::new();
+    let result = run_owned_subscription(
+        worker,
+        config().deadline,
+        Actor::User,
+        subscription(&initial),
+        std::future::pending(),
+        |frame| {
+            frames.push(frame);
+            Ok(())
+        },
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        result,
+        json!({"status":"gapped", "reason":"divergent_duplicate"})
+    );
+    assert_eq!(trace.opened.len(), 1);
+    assert_eq!(trace.exits, trace.processes[..1]);
+    assert_eq!(trace.restarts, [1]);
+    assert!(trace.cleaned);
+    assert_eq!(frames.len(), 3);
+    assert_eq!(frames[1]["event"]["sequence"], 1);
+    assert_eq!(frames[2]["recovery"]["status"], "reconnecting");
+}
+
+#[tokio::test]
+async fn owned_worker_exit_during_repair_preserves_gap_and_exact_error() {
+    let mut reads = MarketRegistry::new(MarketWorker::new(Some(config())));
+    let mut args = query("SIM.CN.FUTURE.001", "1m", "contracts");
+    args["expected_revision"] = json!("scopehub-synthetic-v1:20241013:repairable");
+    let initial = reads
+        .execute(Actor::User, "market.readHistoryPage", args)
+        .await
+        .unwrap();
+    reads.shutdown().await.unwrap();
+    let mut trace = Trace::default();
+    let mut worker = InterruptedWorker::new(&mut trace);
+    worker.exit_during_repair = true;
+    let mut frames = Vec::new();
+    let result = run_owned_subscription(
+        worker,
+        config().deadline,
+        Actor::User,
+        subscription(&initial),
+        std::future::pending(),
+        |frame| {
+            frames.push(frame);
+            Ok(())
+        },
+    )
+    .await;
+    assert_eq!(result, Err(failure(ErrorCode::WORKEREXITED)));
+    assert_eq!(trace.opened.len(), 1);
+    assert_eq!(trace.exits, trace.processes);
+    assert!(trace.restarts.is_empty());
+    assert!(trace.cleaned);
+    assert_eq!(frames.len(), 3);
+    assert_eq!(frames[1]["event"]["sequence"], 1);
+    assert_eq!(frames[2]["event"]["event"], "market.stream_gap");
+    assert_eq!(frames[2]["event"]["payload"]["lost_count"], 1);
+    assert_eq!(
+        frames[2]["event"]["payload"]["affected"],
+        json!({"from_ms":1704330480000_i64,"to_ms":1704330540000_i64})
+    );
 }
 
 async fn sample_futures_page() -> Value {
