@@ -5,8 +5,10 @@ use std::{
 };
 
 use scopehub_application::{
-    LocalDatasetPublication, LocalDatasetStore, MappingCommitGuard, ReviewedImportMapping,
-    ReviewedMappingStore,
+    LocalDatasetPublication, LocalDatasetStore, MappingCommitGuard, OperationRegistry,
+    READ_LOCAL_IMPORT_REVISION, READ_LOCAL_IMPORT_SOURCE_ROW, ReviewedImportMapping,
+    ReviewedMappingStore, WorkspaceAccess, local_mapping_fingerprint, mapping_header_digest,
+    read_local_import_source_row_input,
 };
 use serde_json::{Value, json};
 
@@ -129,6 +131,113 @@ fn dataset_counts(connection: &Connection) -> (i64, i64) {
             |row| Ok((row.get(0)?, row.get(1)?)),
         )
         .unwrap()
+}
+
+#[test]
+fn prepared_source_row_requires_current_local_display() {
+    let profile = Profile::new();
+    let binding = Profile::binding();
+    let mut store = profile.open().unwrap();
+    let frozen = content(FIRST_DIGEST, 5, 6);
+    let mapping = test_mapping("v4");
+    let header_digest = mapping_header_digest(
+        &json!({
+            "preview": { "header": frozen["header"], "raw_header_text": null, "issues": [] }
+        }),
+        &mapping,
+    )
+    .unwrap();
+    let reviewed = store
+        .save_mapping(SOURCE_KEY, &header_digest, &mapping, &CommitMapping)
+        .unwrap();
+    let id = store
+        .publish_local_dataset(
+            &LocalDatasetPublication {
+                source_key: SOURCE_KEY,
+                relative_path: "fixtures/equity.csv",
+                source_sha256: FIRST_DIGEST,
+                mapping_sha256: &local_mapping_fingerprint(&mapping).unwrap(),
+                reviewed_mapping: &reviewed,
+                original: FIRST_CSV,
+                content: &frozen,
+            },
+            &CommitMapping,
+        )
+        .unwrap();
+    store
+        .save_mapping(
+            SOURCE_KEY,
+            &header_digest,
+            &test_mapping("later"),
+            &CommitMapping,
+        )
+        .unwrap();
+
+    let registry = OperationRegistry::new(store);
+    let access = WorkspaceAccess {
+        actor: Actor::LocalUser,
+        profile_id: &binding.profile_id,
+        principal_id: &binding.profile_id,
+        paired_client_id: None,
+        workspace_id: &binding.workspace_id,
+        operations: &[READ_LOCAL_IMPORT_SOURCE_ROW, READ_LOCAL_IMPORT_REVISION],
+        disclose_workspace_state: false,
+    };
+    let locator = json!({"record_number": 1, "line_start": 2, "line_end": 2});
+    let input = read_local_import_source_row_input(
+        Actor::LocalUser,
+        json!({
+            "version": 1, "revision_id": id, "locator": locator,
+        }),
+    )
+    .unwrap();
+    for denied in [
+        WorkspaceAccess {
+            actor: Actor::Ai,
+            ..access
+        },
+        WorkspaceAccess {
+            actor: Actor::User,
+            ..access
+        },
+        WorkspaceAccess {
+            paired_client_id: Some("paired"),
+            ..access
+        },
+        WorkspaceAccess {
+            principal_id: "another principal",
+            ..access
+        },
+        WorkspaceAccess {
+            operations: &[READ_LOCAL_IMPORT_SOURCE_ROW],
+            ..access
+        },
+    ] {
+        let error = registry
+            .prepare_frozen_local_source_row(&denied, input.clone())
+            .err()
+            .unwrap();
+        assert_eq!(error.code, ErrorCode::PERMISSIONDENIED);
+    }
+    let prepared = registry
+        .prepare_frozen_local_source_row(&access, input)
+        .unwrap();
+    assert_eq!(prepared.mapping, mapping);
+    assert_eq!(prepared.original, FIRST_CSV);
+
+    let mut peer = profile.open().unwrap();
+    assert!(peer.revoke_local_dataset(&id).unwrap());
+    let result = registry.finish_frozen_local_source_row(
+        &access,
+        prepared,
+        json!({
+            "source_sha256": FIRST_DIGEST, "locator": locator, "header": frozen["header"],
+            "raw_fields": ["2026-01-02", "000001", "4", "6", "3", "5", "retained"],
+        }),
+    );
+    assert_eq!(result.unwrap_err().code, ErrorCode::PERMISSIONDENIED);
+    assert!(peer.read_local_dataset_original(&id).unwrap().is_none());
+    assert_eq!(dataset_counts(&peer.connection), (1, 1));
 }
 
 struct RejectCommit(ErrorCode);

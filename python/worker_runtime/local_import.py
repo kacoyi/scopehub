@@ -15,13 +15,15 @@ from uuid import UUID, uuid4
 
 from contracts.generated.protocol import WorkerHello11
 from providers.local_folder import (
-    MAX_FILE_BYTES, MAX_PREVIEW_ROWS, CsvPublicationLimit, CsvReviewRequired,
-    check_complete_csv, inspect_folder_csv, preview_csv,
+    MAX_FILE_BYTES, MAX_PREVIEW_ROWS, MAX_PUBLICATION_RECORDS,
+    CsvPublicationLimit, CsvReviewRequired, CsvSourceRowUnavailable,
+    check_complete_csv, inspect_folder_csv, preview_csv, read_csv_source_row,
 )
 from worker_runtime.protocol import MAX_MESSAGE_BYTES, ProtocolError, assert_finite, encode_message
 
 
 CHUNK_BYTES = 192 * 1024
+_MAX_SOURCE_ROW_FRAME_BYTES = 64 * 1024
 _HEADER_FIELDS = {'version', 'request_id', 'byte_count', 'sha256', 'mapping'}
 _CHUNK_FIELDS = {'version', 'request_id', 'index', 'data'}
 _DIGEST = re.compile(r'[0-9a-f]{64}')
@@ -108,8 +110,13 @@ def _analyze(source: BinaryIO, header: dict[str, object], request_id: str) -> di
         raise _InvalidFrame
     complete = header.keys() == _HEADER_FIELDS | {'complete'} and header['complete'] is True
     inspect_refresh = header.keys() == _HEADER_FIELDS | {'inspect_refresh'} and header['inspect_refresh'] is True
+    record_number = header.get('record_number')
+    read_row = (
+        header.keys() == _HEADER_FIELDS | {'record_number'}
+        and type(record_number) is int and 1 <= record_number <= MAX_PUBLICATION_RECORDS
+    )
     row_limit = header.get('row_limit')
-    if not (complete or inspect_refresh) and (
+    if not (complete or inspect_refresh or read_row) and (
         header.keys() != _HEADER_FIELDS | {'row_limit'}
         or type(row_limit) is not int or not 1 <= row_limit <= MAX_PREVIEW_ROWS
     ):
@@ -121,15 +128,18 @@ def _analyze(source: BinaryIO, header: dict[str, object], request_id: str) -> di
         return {'publication': check_complete_csv(content, mapping)}
     if inspect_refresh:
         return {'inspection': inspect_folder_csv(content, mapping)}
+    if read_row:
+        assert isinstance(record_number, int)
+        return {'source_row': read_csv_source_row(content, mapping, record_number)}
     assert isinstance(row_limit, int)
     return {'preview': preview_csv(content, mapping, row_limit=row_limit)}
 
 
-def _encode_frame(payload: dict[str, object]) -> bytes | None:
+def _encode_frame(payload: dict[str, object], *, limit: int = MAX_MESSAGE_BYTES) -> bytes | None:
     line = bytearray()
     for part in _JSON.iterencode(payload):
         chunk = part.encode('utf-8')
-        if len(line) + len(chunk) + 1 > MAX_MESSAGE_BYTES:
+        if len(line) + len(chunk) + 1 > limit:
             return None
         line.extend(chunk)
     line.extend(b'\n')
@@ -153,6 +163,7 @@ def _advertise(target: BinaryIO) -> None:
         'supported_protocols': ['1.0', '1.1'],
         'capabilities': [
             'market.previewLocalImport', 'market.checkLocalImport', 'market.inspectLocalFolderSource',
+            'market.inspectLocalImportSourceRow',
         ],
     }
     _write_frame(target, encode_message(hello))
@@ -169,11 +180,14 @@ def run(source: BinaryIO, target: BinaryIO) -> int:
     envelope: dict[str, object] = {'version': 1, 'request_id': request_id}
     try:
         analysis = _analyze(source, header, request_id)
-        line = _encode_frame({**envelope, 'ok': True, **analysis})
+        limit = _MAX_SOURCE_ROW_FRAME_BYTES if 'source_row' in analysis else MAX_MESSAGE_BYTES
+        line = _encode_frame({**envelope, 'ok': True, **analysis}, limit=limit)
         if line is None:
             line = _encode_frame({**envelope, 'ok': False, 'error': 'RESOURCE_LIMIT'})
     except CsvPublicationLimit:
         line = _encode_frame({**envelope, 'ok': False, 'error': 'RESOURCE_LIMIT'})
+    except CsvSourceRowUnavailable:
+        line = _encode_frame({**envelope, 'ok': False, 'error': 'DATA_UNAVAILABLE'})
     except CsvReviewRequired as error:
         line = _encode_frame({
             **envelope, 'ok': False, 'error': 'REVIEW_REQUIRED', 'issue': error.issue, 'locator': error.locator,
