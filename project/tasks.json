@@ -4760,7 +4760,7 @@
       "id": "M2-006",
       "title": "Clarify committed replay and shared evidence target forms",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-005"
       ],
@@ -4787,8 +4787,13 @@
         "python-contracts-workers",
         "rust-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Align the tool and external-client instructions with the existing replay and target unions and verify client and AI shared examples.",
+      "evidence": [
+        {
+          "path": "project/evidence/M2-006-62a25335d312b3d0.json",
+          "sha256": "092d6966e27731642be7c21b242b4919e54d11b59e5213365c2dcabfe4422654"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {

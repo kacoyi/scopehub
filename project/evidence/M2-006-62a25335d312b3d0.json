@@ -1,0 +1,103 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M2-006",
+  "task_definition_sha256": "f2f0ac3ab1f29a1011b8904d61b35b83373bff05541609f59eb106a622cb1360",
+  "run_id": "20261119T100853.070974Z-3f5fc4a1",
+  "recorded_at": "2026-11-19T10:10:01.240457+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "1d78c2f25352e0eb995a08f2c414e47ec269fbb647dca1bd649809ea47b3be3c",
+    "file_count": 213,
+    "git_head": "293135db2526900d934120695bf379d2d29dbb7e",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "62a25335d312b3d0f67cb79f2f921587296bc765e857a9e1ba9e31515fcb641e",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/projects/scopehub-selection-revision/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-selection-revision/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ba8a46967b690a64335dc10f435c5fc4c3c2026e0bcd35d3a6a76f159afe9e83"
+    },
+    {
+      "id": "generated-contracts",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-selection-revision/.venv/bin/python",
+        "scripts/generate_contracts.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "17763364701680483d84be0bf458a21015b905f77f37c2a4bfe4ac05347772cc"
+    },
+    {
+      "id": "typescript-contracts",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "check:contracts"
+      ],
+      "exit_code": 0,
+      "log_sha256": "1a3cf935b704dd359adda978c63a7cba30b8d73d697e6cc25a978bf4d32bde75"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-selection-revision/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "69f8ca440cc859d6f9122270905b70bba4a7353c902dabc60ee86b162699a25c"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-selection-revision/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "bfca756922b0e1b962bc475290a2a1f92e79adc2a9840adf4e640e12950dd3af"
+    }
+  ],
+  "project_definition_sha256": "034fdc128d51e548c8a182a97c40ada4bc955f231f717f587047221ad35157ec",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}
