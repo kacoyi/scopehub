@@ -7478,7 +7478,12 @@
         "workspace-timeframe",
         "private-record-lifecycle"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-011-d2a7b9f8f9ce0c13.json",
+          "sha256": "66fc4380fb5595752813df072bf8f9d948097a170cfe0125b8026b047ad0c1bc"
+        }
+      ],
       "next_action": "Run the workspace-timeframe and private-record-lifecycle gates on the integrated source, retain matching Linux and Windows evidence, and close the peer-rename feedback when verified.",
       "blocker": null,
       "closure_reason": null,
