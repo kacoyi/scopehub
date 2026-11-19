@@ -5852,8 +5852,13 @@
         "market-workflow",
         "market-quality-states"
       ],
-      "evidence": [],
-      "next_action": "Verify the absent recovery control on an independently failed application entry, implement a document-level startup state, and exercise normal and manual-reload paths on Linux and Windows.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-023-68b382a58f0aeec4.json",
+          "sha256": "76313198a348202a81afab8f630827635d2ffcf4fede72d078c7b448967c388b"
+        }
+      ],
+      "next_action": "Confirm the delivered startup panel, entry failure diagnostics, manual recovery and ordinary market journey in the source-matched hosted Windows run, then archive the result.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
