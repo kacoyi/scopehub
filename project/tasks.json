@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-025",
+  "focus_task_id": "M2-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -6455,7 +6455,7 @@
       "id": "M1-025",
       "title": "Verify selected sample history after a loopback interruption",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-001",
         "M1-022"
@@ -6492,9 +6492,21 @@
         {
           "path": "project/evidence/M1-025-482421467bcd112c.json",
           "sha256": "e4743052a91a21dd653e1e355c4580e9848f7707b91083af2103cbf35fb87e9b"
+        },
+        {
+          "path": "project/evidence/M1-025-c02d0de076347728.json",
+          "sha256": "d4c79630aaf35ab3bed312aa551f882b76c8fd8648f20e8e9681d6b7302a8575"
+        },
+        {
+          "path": "project/evidence/M1-025-962ef42dfbc36cfa.json",
+          "sha256": "3f1aa33115327426f62fe4814ee098bcc0ff52551c045070215cf25d83d2b00c"
+        },
+        {
+          "path": "project/evidence/M1-025-68f786fececa2dca.json",
+          "sha256": "0ecafd3da25c56b362cb19bda4d41786d8eed0556d48c6c46e6324a9bd2d93a6"
         }
       ],
-      "next_action": "Review the local checkpoint and obtain source-matched hosted Windows verification before closing this task. The local run records the obsolete stock 1m cancellation, the current 5m admission and the explicit retry control. If the original symptom recurs, correlate the selected browser terminal with the host trace before deciding on further work.",
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
