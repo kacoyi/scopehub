@@ -10,6 +10,9 @@ type PendingTurn = {
   connection: ModelConnection;
   question: string | undefined;
 };
+type TrackedTurn = PendingTurn & {
+  observation: 'polling' | 'checking-send' | 'checking-poll';
+};
 type CompletedTurn = {
   id: string;
   question: string | undefined;
@@ -18,9 +21,10 @@ type CompletedTurn = {
 };
 
 const unavailableModel = 'The model could not answer. Check the configured server and try again.';
-const unknownTurn = 'The workspace could not confirm this turn. Check its status before sending again.';
+const unknownTurn = 'The workspace could not confirm this turn. Check its status to continue.';
 const pollIntervalMs = 200;
 const busyPollLimit = 10;
+const failedPollLimit = 2;
 
 function modelFailure(error: unknown) {
   switch (modelErrorCode(error)) {
@@ -78,8 +82,10 @@ export function ModelChat({ workspaceId, theme, view, show }: {
   const [model, setModel] = useState('');
   const [question, setQuestion] = useState('');
   const [turns, setTurns] = useState<CompletedTurn[]>([]);
-  const [pending, setPending] = useState<PendingTurn>();
-  const [unconfirmed, setUnconfirmed] = useState<PendingTurn>();
+  const [trackedTurn, setTrackedTurn] = useState<TrackedTurn>();
+  const pending = trackedTurn?.observation === 'polling' ? trackedTurn : undefined;
+  const unconfirmed = trackedTurn !== undefined && pending === undefined;
+  const cancellable = trackedTurn?.observation === 'checking-send' ? undefined : trackedTurn;
   const visible = view !== undefined;
 
   useEffect(() => () => {
@@ -106,10 +112,6 @@ export function ModelChat({ workspaceId, theme, view, show }: {
       setError(modelFailure(failure));
       const code = modelErrorCode(failure);
       if (code === 'CONFIRMATION_REQUIRED') setProposal(undefined);
-      if (['PERMISSION_DENIED', 'STALE_CONTEXT', 'PROVIDER_NOT_CONFIGURED', 'CANCELLED'].includes(String(code))) {
-        clearSession();
-        setProposal(undefined);
-      }
     } finally {
       if (action.current === controller) action.current = undefined;
       if (!controller.signal.aborted) setWorking(false);
@@ -119,33 +121,44 @@ export function ModelChat({ workspaceId, theme, view, show }: {
   function clearSession() {
     setConnection(undefined);
     setTurns([]);
-    setPending(undefined);
-    setUnconfirmed(undefined);
+    setTrackedTurn(undefined);
+    if (trackedTurn?.question !== undefined) setQuestion('');
     lastTurn.current = undefined;
   }
 
-  function applyStatus(status: ModelResult<'status'>, attempted: PendingTurn | undefined) {
+  function applyStatus(status: ModelResult<'status'>, attempted = trackedTurn) {
     const active = status.connection ?? undefined;
+    const recovered = active && attempted && status.turn_id === attempted.id
+      && active.connection_id === attempted.connection.connection_id;
     if (connection?.connection_id !== active?.connection_id) clearSession();
     setConnection(active);
-    setUnconfirmed(undefined);
-    const recovered = Boolean(attempted && status.turn_id === attempted.id
-      && active?.connection_id === attempted.connection.connection_id);
-    if (active && status.turn_id && status.turn_id !== pending?.id && status.turn_id !== lastTurn.current) {
-      setPending({ id: status.turn_id, connection: active, question: recovered ? attempted?.question : undefined });
+    if (active && status.turn_id && status.turn_id !== lastTurn.current) {
+      setTrackedTurn({ id: status.turn_id, connection: active, question: recovered ? attempted.question : undefined,
+        observation: 'polling' });
+    } else {
+      setTrackedTurn(undefined);
     }
-    return recovered;
+    if (attempted && !recovered) {
+      if (attempted.observation === 'checking-send') {
+        setError('The workspace did not confirm accepting this question.');
+      } else {
+        if (attempted.question !== undefined) setQuestion('');
+        setError('The workspace no longer has the result for this turn.');
+      }
+    } else if (recovered && attempted.observation !== 'polling') {
+      setError(undefined);
+    }
   }
 
   function refresh() {
     void perform(async (id, signal) => {
       try {
         const status = await exchangeModel(id, { action: 'status' }, signal);
-        applyStatus(status, unconfirmed);
-        if (unconfirmed) setError(undefined);
-      } catch (failure) {
-        if (!unconfirmed || signal.aborted) throw failure;
-        setError(unknownTurn);
+        applyStatus(status);
+      } catch {
+        if (!signal.aborted) {
+          setError(trackedTurn ? unknownTurn : 'The workspace could not check the model connection.');
+        }
       }
     }, false);
   }
@@ -157,8 +170,8 @@ export function ModelChat({ workspaceId, theme, view, show }: {
   }, [visible]);
 
   useEffect(() => {
-    if (view === 'question' && !working && !pending) questionField.current?.focus();
-  }, [view, working, pending]);
+    if (view === 'question' && !working && !trackedTurn) questionField.current?.focus();
+  }, [view, working, trackedTurn]);
 
   useEffect(() => {
     const log = transcript.current;
@@ -173,6 +186,7 @@ export function ModelChat({ workspaceId, theme, view, show }: {
     let superseded = false;
     let timer: number | undefined;
     let busyPolls = 0;
+    let failedPolls = 0;
     async function poll() {
       if (!workspaceId || superseded || action.current) return;
       const reply = exchangeModel(workspaceId, {
@@ -185,15 +199,17 @@ export function ModelChat({ workspaceId, theme, view, show }: {
         if (superseded || action.current) return;
         if (turn.state === 'running') {
           busyPolls = 0;
+          failedPolls = 0;
           timer = window.setTimeout(poll, pollIntervalMs);
           return;
         }
         lastTurn.current = id;
-        setPending(undefined);
+        setTrackedTurn(undefined);
         if (turn.state === 'failed') {
           setError(turn.error.code === 'PROVIDER_NOT_CONFIGURED' ? unavailableModel : modelFailure(turn.error));
           return;
         }
+        setError(undefined);
         setTurns(previous => [...previous, { id, question: submitted, model: turn.model, text: turn.text }]);
         if (submitted !== undefined) setQuestion('');
       } catch (failure) {
@@ -203,8 +219,14 @@ export function ModelChat({ workspaceId, theme, view, show }: {
           timer = window.setTimeout(poll, pollIntervalMs);
           return;
         }
-        clearSession();
-        setError(modelFailure(failure));
+        // Re-read the same local turn. Only send may dispatch to the model.
+        if (modelErrorCode(failure) !== 'BUSY' && failedPolls < failedPollLimit) {
+          failedPolls += 1;
+          timer = window.setTimeout(poll, pollIntervalMs);
+          return;
+        }
+        setTrackedTurn({ id, connection: active, question: submitted, observation: 'checking-poll' });
+        setError(unknownTurn);
       } finally {
         if (pollInFlight.current === drained) pollInFlight.current = undefined;
       }
@@ -272,7 +294,7 @@ export function ModelChat({ workspaceId, theme, view, show }: {
   function submit(event: FormEvent) {
     event.preventDefault();
     const submitted = question.trim();
-    if (!submitted || pending || working || unconfirmed) return;
+    if (!submitted || trackedTurn || working) return;
     if (!connection) {
       setError(undefined);
       setNotice(undefined);
@@ -281,19 +303,19 @@ export function ModelChat({ workspaceId, theme, view, show }: {
     }
     const active = connection;
     void perform(async (id, signal) => {
-      const turn = { id: crypto.randomUUID(), connection: active, question: submitted };
+      const turn = { id: crypto.randomUUID(), connection: active, question: submitted, observation: 'checking-send' } satisfies TrackedTurn;
       try {
         await exchangeModel(id, { action: 'send', connection_id: active.connection_id, question: submitted }, signal, turn.id);
-        setPending(turn);
+        setTrackedTurn({ ...turn, observation: 'polling' });
       } catch (failure) {
         const code = String(modelErrorCode(failure));
-        if (signal.aborted || ['INVALID_ARGUMENT', 'PERMISSION_DENIED', 'STALE_CONTEXT', 'RESOURCE_LIMIT'].includes(code)) throw failure;
+        if (signal.aborted || ['INVALID_ARGUMENT', 'RESOURCE_LIMIT'].includes(code)) throw failure;
         try {
           const status = await exchangeModel(id, { action: 'status' }, signal);
-          if (!applyStatus(status, turn)) setError(modelFailure(failure));
+          applyStatus(status, turn);
         } catch (statusFailure) {
           if (signal.aborted) throw statusFailure;
-          setUnconfirmed(turn);
+          setTrackedTurn(turn);
           setError(unknownTurn);
         }
       }
@@ -333,12 +355,12 @@ export function ModelChat({ workspaceId, theme, view, show }: {
         </div>
         <form className="model-form" onSubmit={submit}>
           <label>Question<textarea ref={questionField} rows={3} maxLength={2000} required value={question}
-            disabled={Boolean(pending || unconfirmed) || working} onChange={event => setQuestion(event.currentTarget.value)} /></label>
+            disabled={Boolean(trackedTurn) || working} onChange={event => setQuestion(event.currentTarget.value)} /></label>
           <div className="model-actions">
-            <button type="submit" className="primary" disabled={Boolean(pending || unconfirmed) || working || !question.trim()}>{connection ? 'Send' : 'Ask'}</button>
+            <button type="submit" className="primary" disabled={Boolean(trackedTurn) || working || !question.trim()}>{connection ? 'Send' : 'Ask'}</button>
             {unconfirmed && <button type="button" className="secondary-button" disabled={working} onClick={refresh}>Check turn status</button>}
-            {pending && <><button type="button" className="secondary-button" disabled={working} onClick={() => cancel(pending)}>Cancel turn</button>
-              <span role="status">Waiting for the model…</span></>}
+            {cancellable && <button type="button" className="secondary-button" disabled={working} onClick={() => cancel(cancellable)}>Cancel turn</button>}
+            {pending && <span role="status">Waiting for the model…</span>}
           </div>
         </form>
       </> : <>
