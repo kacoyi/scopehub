@@ -49,6 +49,102 @@ fn import_request(
 
 #[cfg(any(target_os = "linux", windows))]
 #[tokio::test]
+async fn picker_cancel_and_catalog_limit_preserve_the_previous_selection() {
+    use scopehub_platform::local_folder::FileId;
+    use std::fs;
+
+    let fixture = ImportFixture::new();
+    let first = fixture.0.join("first");
+    let deep = fixture.0.join("deep");
+    let second = fixture.0.join("second");
+    fs::create_dir_all(first.join("subfolder")).unwrap();
+    fs::create_dir(&second).unwrap();
+    fs::write(first.join("subfolder").join("bars.CSV"), b"Date,Close\n").unwrap();
+    fs::write(first.join("notes.txt"), b"fixture note").unwrap();
+    let mut nested = deep.clone();
+    for index in 0..17 {
+        nested.push(format!("level-{index}"));
+    }
+    fs::create_dir_all(nested).unwrap();
+
+    let state = state();
+    let granted = state
+        .choose_local_csv_folder(|| async { Some(first) })
+        .await
+        .unwrap()
+        .unwrap();
+    let first_id = granted["folder_id"].as_str().unwrap().parse().unwrap();
+    assert_eq!(granted["display_name"], "first");
+    assert_eq!(granted.as_object().unwrap().len(), 3);
+    let files = granted["files"].as_array().unwrap();
+    assert_eq!(files.len(), 2);
+    assert_eq!(files[0]["relative_path"], "notes.txt");
+    assert_eq!(files[0]["kind"], "unsupported_extension");
+    assert_eq!(files[1]["relative_path"], "subfolder/bars.CSV");
+    assert_eq!(files[1]["display_name"], "bars.CSV");
+    assert_eq!(files[1]["kind"], "csv");
+    assert_eq!(files[1]["byte_count"], 11);
+    assert_eq!(files[1].as_object().unwrap().len(), 5);
+    let _: FileId = files[1]["file_id"].as_str().unwrap().parse().unwrap();
+
+    assert!(
+        state
+            .choose_local_csv_folder(|| async { None })
+            .await
+            .unwrap()
+            .is_none()
+    );
+    let error = state
+        .choose_local_csv_folder(|| async { Some(deep) })
+        .await
+        .unwrap_err();
+    assert_eq!(error.code, ErrorCode::RESOURCELIMIT);
+    state.local_folders().check_current(first_id).unwrap();
+
+    let replacement = state
+        .choose_local_csv_folder(|| async { Some(second) })
+        .await
+        .unwrap()
+        .unwrap();
+    assert_ne!(replacement["folder_id"], granted["folder_id"]);
+    assert!(state.local_folders().check_current(first_id).is_err());
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[tokio::test]
+async fn picker_admits_one_dialog_and_does_not_grant_after_shutdown() {
+    let fixture = ImportFixture::new();
+    let state = state();
+    let (opened, entered) = oneshot::channel();
+    let (confirm, result) = oneshot::channel();
+
+    let choose = state.choose_local_csv_folder(|| async {
+        opened.send(()).unwrap();
+        result.await.unwrap();
+        Some(fixture.0.clone())
+    });
+    let close = async {
+        entered.await.unwrap();
+        let error = state
+            .choose_local_csv_folder(|| async { panic!("second picker opened") })
+            .await
+            .unwrap_err();
+        assert_eq!(error.code, ErrorCode::BUSY);
+        state.shutdown().await;
+        confirm.send(()).unwrap();
+    };
+    let (chosen, ()) = tokio::join!(choose, close);
+    assert_eq!(chosen.unwrap_err().code, ErrorCode::CANCELLED);
+
+    let error = state
+        .choose_local_csv_folder(|| async { panic!("picker opened after shutdown") })
+        .await
+        .unwrap_err();
+    assert_eq!(error.code, ErrorCode::CANCELLED);
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[tokio::test]
 async fn shutdown_releases_the_selection_and_closes_native_folder_access() {
     use scopehub_platform::local_folder::{Cancellation, FolderError};
     use std::fs;
@@ -89,7 +185,6 @@ async fn shutdown_releases_the_selection_and_closes_native_folder_access() {
 #[cfg(any(target_os = "linux", windows))]
 #[tokio::test]
 async fn native_registry_returns_source_bound_raw_and_normalized_previews() {
-    use scopehub_platform::local_folder::Cancellation;
     use std::fs;
 
     let fixture = ImportFixture::new();
@@ -105,8 +200,13 @@ async fn native_registry_returns_source_bound_raw_and_normalized_previews() {
 
     let state = state();
     let folders = state.local_folders();
+    let granted = state
+        .choose_local_csv_folder(|| async { Some(fixture.0.clone()) })
+        .await
+        .unwrap()
+        .unwrap();
     let selected = folders
-        .adopt_selected(&fixture.0, &Cancellation::default())
+        .catalog(granted["folder_id"].as_str().unwrap().parse().unwrap())
         .unwrap();
     let equity_mapping = json!({
         "version":1,"revision":"equity-fixture-2","encoding":"utf-8","delimiter":",","record_kind":"native_ohlcv",

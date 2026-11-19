@@ -1,4 +1,4 @@
-use std::{sync::Mutex as SyncMutex, time::Duration};
+use std::{future::Future, path::PathBuf, sync::Mutex as SyncMutex, time::Duration};
 
 use scopehub_application::{
     Actor, MarketLifecycle, MarketPort, MarketRegistry, PREVIEW_LOCAL_IMPORT, failure,
@@ -71,6 +71,17 @@ impl State {
     /// to directory adoption or this host instance.
     pub fn local_folders(&self) -> &LocalFolderHost {
         &self.local_import.folders
+    }
+
+    /// The Rust host supplies the picker. WebView callers receive catalog metadata.
+    async fn choose_local_csv_folder<F>(
+        &self,
+        pick: impl FnOnce() -> F,
+    ) -> Result<Option<Value>, Error>
+    where
+        F: Future<Output = Option<PathBuf>>,
+    {
+        self.local_import.choose_folder(pick).await
     }
 
     pub async fn execute_local_operation(
@@ -201,6 +212,25 @@ pub fn cancel_local_import_preview(
     authorize_window(&window)?;
     state.local_import.cancel(&request_id);
     Ok(())
+}
+
+#[cfg(windows)]
+#[tauri::command]
+pub async fn choose_local_csv_folder(
+    window: tauri::WebviewWindow,
+    state: tauri::State<'_, State>,
+) -> Result<Option<Value>, Error> {
+    authorize_window(&window)?;
+    state
+        .choose_local_csv_folder(|| async {
+            rfd::AsyncFileDialog::new()
+                .set_title("Choose local CSV folder")
+                .set_parent(&window)
+                .pick_folder()
+                .await
+                .map(|folder| folder.path().to_path_buf())
+        })
+        .await
 }
 
 #[cfg(windows)]

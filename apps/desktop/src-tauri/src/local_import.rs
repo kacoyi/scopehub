@@ -1,6 +1,8 @@
 //! Compose the local human's filesystem selection with the private preview worker.
 
 use std::{
+    future::Future,
+    path::PathBuf,
     sync::{Arc, Mutex as SyncMutex},
     time::Duration,
 };
@@ -10,7 +12,8 @@ use scopehub_application::{
 };
 use scopehub_domain::protocol::{Error, ErrorCode, LocalImportPreviewInput};
 use scopehub_platform::local_folder::{
-    Cancellation, FileId, FolderError, FolderId, LocalFolderHost, MAX_PREVIEW_BYTES,
+    Cancellation, FileId, FileKind, FolderCatalog, FolderError, FolderId, LocalFolderHost,
+    MAX_PREVIEW_BYTES,
 };
 use scopehub_worker_host::{local_import, market::WorkerConfig};
 use serde_json::{Value, json};
@@ -19,6 +22,7 @@ use tokio::sync::{Mutex, MutexGuard, Notify};
 pub(super) struct LocalImport {
     pub(super) folders: Arc<LocalFolderHost>,
     config: Option<WorkerConfig>,
+    picker: Mutex<()>,
     admission: Mutex<()>,
     state: SyncMutex<PreviewState>,
 }
@@ -67,9 +71,49 @@ impl LocalImport {
         Self {
             folders: Arc::default(),
             config,
+            picker: Mutex::new(()),
             admission: Mutex::new(()),
             state: SyncMutex::default(),
         }
+    }
+
+    pub(super) async fn choose_folder<F>(
+        &self,
+        pick: impl FnOnce() -> F,
+    ) -> Result<Option<Value>, Error>
+    where
+        F: Future<Output = Option<PathBuf>>,
+    {
+        let _picker = self
+            .picker
+            .try_lock()
+            .map_err(|_| failure(ErrorCode::BUSY))?;
+        self.check_picker_available()?;
+        let Some(root) = pick().await else {
+            return Ok(None);
+        };
+        self.check_picker_available()?;
+        let folders = Arc::clone(&self.folders);
+        let catalog = tokio::task::spawn_blocking(move || {
+            folders.adopt_selected(&root, &Cancellation::default())
+        })
+        .await
+        .map_err(|_| failure(ErrorCode::INTERNALERROR))?
+        .map_err(folder_failure)?;
+        self.folders
+            .check_current(catalog.folder_id)
+            .map_err(folder_failure)?;
+        Ok(Some(catalog_metadata(catalog)))
+    }
+
+    fn check_picker_available(&self) -> Result<(), Error> {
+        if self.state.lock().expect("preview state").closing {
+            return Err(failure(ErrorCode::CANCELLED));
+        }
+        if self.config.is_none() {
+            return Err(failure(ErrorCode::PROVIDERNOTCONFIGURED));
+        }
+        Ok(())
     }
 
     pub(super) async fn preview(
@@ -127,6 +171,32 @@ impl LocalImport {
         let _admission = self.admission.lock().await;
         release.await.expect("local folder shutdown");
     }
+}
+
+fn catalog_metadata(catalog: FolderCatalog) -> Value {
+    let files: Vec<_> = catalog
+        .files
+        .into_iter()
+        .map(|file| {
+            let kind = match file.kind {
+                FileKind::Csv => "csv",
+                FileKind::UnsupportedExtension => "unsupported_extension",
+                FileKind::UnsupportedEntry => "unsupported_entry",
+            };
+            json!({
+                "file_id": file.file_id.to_string(),
+                "relative_path": file.relative_path,
+                "display_name": file.display_name,
+                "byte_count": file.byte_count,
+                "kind": kind,
+            })
+        })
+        .collect();
+    json!({
+        "folder_id": catalog.folder_id.to_string(),
+        "display_name": catalog.display_name,
+        "files": files,
+    })
 }
 
 struct PreviewPort<'a> {
