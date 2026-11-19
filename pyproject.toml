@@ -13,6 +13,7 @@ cache-dir = ".uv-cache"
 [dependency-groups]
 dev = [
     "mypy>=1.15,<2",
+    "psutil>=7.1,<8",
     "pyyaml==6.0.3",
     "types-jsonschema>=4.23,<5",
 ]

@@ -110,7 +110,10 @@ class PublicationTests(ProjectFixture):
         self.assertFalse(self.destination.exists())
 
     def test_only_current_named_logs_report_and_synthetic_browser_outputs_are_published(self):
-        browser_checks = ('chart-history', 'ubuntu-preview', 'market-live-stream', 'market-quality-states', 'market-workflow')
+        browser_checks = (
+            'chart-history', 'ubuntu-preview', 'market-live-stream', 'market-quality-states',
+            'market-workflow', 'workspace-timeframe', 'desktop-workspace-transport',
+        )
         self.add_catalog_checks(*browser_checks)
         report = self.hosted_report()
         for check in browser_checks:
@@ -128,6 +131,8 @@ class PublicationTests(ProjectFixture):
             'runs/fixture/market-quality-states/results.json': b'{}\n',
             'runs/fixture/market-quality-states/browser/market-quality-source/synthetic-market-quality.png': b'synthetic PNG',
             'runs/fixture/market-workflow/results.json': b'{}\n',
+            'runs/fixture/workspace-timeframe/results.json': b'{}\n',
+            'runs/fixture/desktop-workspace-transport/results.json': b'{}\n',
             'runs/fixture/market-workflow/browser/market-workflow-symbols/synthetic-market-workflow.png': b'synthetic PNG',
         }
         for relative, contents in browser.items():
@@ -141,6 +146,7 @@ class PublicationTests(ProjectFixture):
             'ubuntu-preview/fixture/browser/preview-open/private.png', 'ubuntu-preview/fixture/profile.json',
             'runs/fixture/market-quality-states/browser/market-quality-source/trace.zip',
             'runs/fixture/market-workflow/browser/market-workflow-symbols/private.png',
+            'runs/fixture/workspace-timeframe/browser/workspace-restore/workspace.sqlite3',
             '.private',
         ]:
             self.write(relative, self.sentinel)

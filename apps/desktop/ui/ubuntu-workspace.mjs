@@ -74,7 +74,8 @@ function requestFrame(command, workspaceId) {
 }
 
 function startWriter(root, { path, profileId, workspaceId }) {
-  const child = spawn(resolve(root, 'target/debug/workspace_bridge'), [path, profileId, workspaceId], {
+  const executable = process.platform === 'win32' ? 'workspace_bridge.exe' : 'workspace_bridge';
+  const child = spawn(resolve(root, 'target/debug', executable), [path, profileId, workspaceId], {
     cwd: root, stdio: ['pipe', 'pipe', 'inherit'],
   });
   const startup = Promise.withResolvers();

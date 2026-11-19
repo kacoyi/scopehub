@@ -15,15 +15,17 @@ const exec = promisify(execFile);
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const ui = join(root, 'apps/desktop/ui');
 const vite = join(ui, 'node_modules/vite/bin/vite.js');
+const python = join(root, '.venv', ...(process.platform === 'win32' ? ['Scripts', 'python.exe'] : ['bin', 'python']));
 const workspaceId = 'synthetic-workspace';
 const endpoint = '/__scopehub/workspace';
 const snapshot = { type: 'snapshot' };
 
-test.beforeAll(async () => {
+test.beforeAll(async ({}, testInfo) => {
+  testInfo.setTimeout(300_000);
   await exec('cargo', [
     'build', '--locked', '-p', 'scopehub-persistence', '--bin', 'workspace_bridge',
     '-p', 'scopehub-worker-host', '--example', 'history_bridge', '--target-dir', 'target',
-  ], { cwd: root, timeout: 45_000 });
+  ], { cwd: root, timeout: 295_000 });
 });
 
 test('fresh browsers restore committed timeframe and eligible undo after service restarts', async ({ browser }, testInfo) => {
@@ -46,7 +48,7 @@ test('fresh browsers restore committed timeframe and eligible undo after service
         observation.push({ visit: 'first', vite: server.pid, writer, receipt: reply.result.outcome.receipt.operation_id });
       });
     });
-    expect(alive(observation[0].writer)).toBe(false);
+    await expect.poll(() => alive(observation[0].writer)).toBe(false);
     expect((await stat(join(profile.root, 'workspace.sqlite3'))).size).toBeGreaterThan(0);
 
     await inService(port, profile, 'ubuntu-workspace', async server => {
@@ -77,7 +79,7 @@ test('fresh browsers restore committed timeframe and eligible undo after service
         observation.push({ visit: 'undo', vite: server.pid, writer, receipt: inverse.receipt.operation_id });
       });
     });
-    expect(alive(observation[1].writer)).toBe(false);
+    await expect.poll(() => alive(observation[1].writer)).toBe(false);
 
     await inService(port, profile, 'ubuntu-workspace', async server => {
       const writer = await writerPid(server);
@@ -90,7 +92,7 @@ test('fresh browsers restore committed timeframe and eligible undo after service
         observation.push({ visit: 'after-undo', vite: server.pid, writer, restored: state(initial) });
       });
     });
-    expect(alive(observation[2].writer)).toBe(false);
+    await expect.poll(() => alive(observation[2].writer)).toBe(false);
     await testInfo.attach('workspace-restarts', { body: JSON.stringify(observation), contentType: 'application/json' });
   } finally {
     await rm(profile.root, { recursive: true, force: true });
@@ -114,10 +116,12 @@ test('the opted-in route binds identity, limits input, and drains cancellation w
       expect(await (await post(server, forged)).json()).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } });
       forged.scope.workspace_id = 'other-workspace';
       expect((await post(server, forged)).status).toBe(403);
-      const sqlite = await fetch(server.url + '/@fs' + join(profile.root, 'workspace.sqlite3'));
+      const file = join(profile.root, 'workspace.sqlite3').replaceAll('\\', '/');
+      expect((await stat(file)).isFile()).toBe(true);
+      const sqlite = await fetch(server.url + '/@fs/' + file.replace(/^\//, ''));
       expect([403, 404]).toContain(sqlite.status);
 
-      process.kill(writer, 'SIGSTOP');
+      await writerPid(server, 'suspend', writer);
       const abort = new AbortController();
       const cancelled = post(server, setTimeframe(0, '5m'), {}, abort.signal).catch(error => error);
       try {
@@ -127,7 +131,7 @@ test('the opted-in route binds identity, limits input, and drains cancellation w
         // The browser stopped waiting. The admitted line still owns the producer slot.
         expect((await post(server, snapshot)).status).toBe(429);
       } finally {
-        if (alive(writer)) process.kill(writer, 'SIGCONT');
+        if (alive(writer)) await writerPid(server, 'resume', writer);
       }
       await expect.poll(async () => {
         const reply = await post(server, snapshot);
@@ -135,12 +139,12 @@ test('the opted-in route binds identity, limits input, and drains cancellation w
       }).toBe(1);
       expect(await writerPid(server)).toBe(writer);
 
-      process.kill(writer, 'SIGSTOP');
+      await writerPid(server, 'suspend', writer);
       const inFlight = post(server, setTimeframe(1, '1d'));
       try {
         await expect.poll(async () => (await post(server, snapshot)).status).toBe(429);
       } finally {
-        if (alive(writer)) process.kill(writer, 'SIGKILL');
+        if (alive(writer)) await writerPid(server, 'kill', writer);
       }
       const disconnected = await inFlight;
       expect(disconnected.status).toBe(503);
@@ -251,11 +255,11 @@ async function inService(port, profile, mode, use) {
   }
 }
 
-async function writerPid(server) {
-  const { stdout } = await exec('ps', ['-o', 'pid=', '-o', 'args=', '--ppid', String(server.pid)]);
-  const writers = stdout.split('\n').filter(line => line.includes('/target/debug/workspace_bridge '));
-  expect(writers).toHaveLength(1);
-  return Number(writers[0].trim().split(/\s+/)[0]);
+async function writerPid(server, action, observedPid) {
+  const args = ['-I', join(root, 'tests/ubuntu-preview/workspace_test_writer.py'), String(server.pid)];
+  if (action) args.push(action, String(observedPid));
+  const { stdout } = await exec(python, args, { timeout: 5_000 });
+  return Number(stdout.trim());
 }
 
 function alive(pid) {

@@ -1,9 +1,9 @@
 {
   "schema_version": "1.0",
-  "observed_at": "2026-11-19T11:00:56.418945+00:00",
+  "observed_at": "2026-11-19T11:28:43.024109+00:00",
   "lock_sha256": {
-    "Cargo.lock": "2c845f60953a63124dc6a4bf0b7dca34debf1e8f7e59aa9a0c9c731744a72815",
-    "uv.lock": "1eabda828953130061f49ac7928853066b4d87440e229ad07e7d9bdce1550eeb",
+    "Cargo.lock": "1584a54626aa9c2fda70b846ea55844d9d946668f255c26fb448b488483d0278",
+    "uv.lock": "b9c68ec3b7d950cc9d094ddb5c0f732f6dbc2de329c99e989c2676405764035e",
     "pnpm-lock.yaml": "baa4c0c5c4776cdb58bb3e654f5cadd4e681c9b45f82312b3cfa7a88376ddcfc"
   },
   "packages": [
@@ -97,6 +97,13 @@
       "version": "1.1.1",
       "license": "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
       "metadata_url": "https://pypi.org/pypi/pathspec/1.1.1/json"
+    },
+    {
+      "ecosystem": "PyPI",
+      "name": "psutil",
+      "version": "7.2.2",
+      "license": "BSD-3-Clause",
+      "metadata_url": "https://pypi.org/pypi/psutil/7.2.2/json"
     },
     {
       "ecosystem": "PyPI",

@@ -2,9 +2,9 @@ import { randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
 import { defineConfig } from '@playwright/test';
 
-const output = process.env.SCOPEHUB_UBUNTU_WORKSPACE_REPORT_DIR ??= resolve(
-  '.reports', 'ubuntu-workspace', `${Date.now()}-${randomUUID()}`,
-);
+const output = process.env.SCOPEHUB_RUN_DIR
+  ? resolve(process.env.SCOPEHUB_RUN_DIR, 'workspace-timeframe')
+  : (process.env.SCOPEHUB_UBUNTU_WORKSPACE_REPORT_DIR ??= resolve('.reports', 'ubuntu-workspace', `${Date.now()}-${randomUUID()}`));
 
 export default defineConfig({
   testDir: '.',

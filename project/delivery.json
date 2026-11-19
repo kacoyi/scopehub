@@ -257,7 +257,9 @@
       ],
       "checks": [
         "operations-workflow",
-        "state-migrations"
+        "state-migrations",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
       ],
       "evidence_boundary": "Versioned local state and recovery; no order execution or account integration."
     },

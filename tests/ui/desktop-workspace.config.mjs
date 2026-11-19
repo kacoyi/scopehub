@@ -16,9 +16,9 @@ async function freePort() {
 
 const port = process.env.SCOPEHUB_DESKTOP_WORKSPACE_TEST_PORT ??= await freePort();
 const baseURL = `http://127.0.0.1:${port}`;
-const output = process.env.SCOPEHUB_DESKTOP_WORKSPACE_REPORT_DIR ??= resolve(
-  root, '.reports', 'desktop-workspace', `${Date.now()}-${randomUUID()}`,
-);
+const output = process.env.SCOPEHUB_RUN_DIR
+  ? resolve(process.env.SCOPEHUB_RUN_DIR, 'desktop-workspace-transport')
+  : (process.env.SCOPEHUB_DESKTOP_WORKSPACE_REPORT_DIR ??= resolve(root, '.reports', 'desktop-workspace', `${Date.now()}-${randomUUID()}`));
 
 export default defineConfig({
   testDir: '.',

@@ -433,6 +433,38 @@
       "command": null,
       "timeout_seconds": 900,
       "cadence": "task"
+    },
+    {
+      "id": "workspace-timeframe",
+      "status": "implemented",
+      "purpose": "Exercise a real local timeframe change, fresh browser and SQLite writer restart, scoped undo, and cancellation through the opted-in development workspace.",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "change"
+    },
+    {
+      "id": "desktop-workspace-transport",
+      "status": "implemented",
+      "purpose": "Exercise the built desktop UI with substituted Tauri IPC for default startup, authorized timeframe and undo, and rejection. The portable Rust bridge checks exercise the actual registry and storage.",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/desktop-workspace.config.mjs"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "change"
     }
   ],
   "milestones": [
@@ -467,7 +499,9 @@
       "checks": [
         "operations-workflow",
         "state-migrations",
-        "workspace-layout"
+        "workspace-layout",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
       ]
     },
     {
@@ -668,7 +702,9 @@
     "ubuntu-preview",
     "market-live-stream",
     "market-quality-states",
-    "market-workflow"
+    "market-workflow",
+    "workspace-timeframe",
+    "desktop-workspace-transport"
   ],
   "gate_changes": []
 }

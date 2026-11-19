@@ -333,7 +333,13 @@
         "Cargo.lock",
         "project/development.json",
         "project/dependency-inventory.json",
-        "THIRD_PARTY_NOTICES"
+        "THIRD_PARTY_NOTICES",
+        "project/checks.json",
+        "project/delivery.json",
+        "pyproject.toml",
+        "uv.lock",
+        "package.json",
+        "scripts/ci_artifacts.py"
       ],
       "decision_refs": [
         "0001",
@@ -360,10 +366,14 @@
         "rust-contracts-workers",
         "rust-format",
         "rust-lints",
-        "ui-build"
+        "ui-build",
+        "workspace-timeframe",
+        "project-state",
+        "python-contracts-workers",
+        "desktop-workspace-transport"
       ],
       "evidence": [],
-      "next_action": "Implement the profile-bound timeframe write, restart and undo against the real SQLite transaction owner, then connect the same core to the desktop and opted-in Ubuntu workspace.",
+      "next_action": "Validate native transport for the persisted timeframe and undo, then deliver selected note retention, deletion and scoped backup recovery from the active local profile.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -371,7 +381,8 @@
         "change_types": [
           "persistence",
           "permissions",
-          "dependencies"
+          "dependencies",
+          "tooling"
         ],
         "context": [
           "engineering-contract-v1.json",
@@ -412,6 +423,14 @@
               "architecture",
               "dependency-review",
               "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A new browser loses the eligible undo, an ordinary startup obtains a workspace writer, or a suspended request replays twice.",
+            "checks": [
+              "workspace-timeframe",
+              "rust-contracts-workers",
+              "desktop-workspace-transport"
             ]
           }
         ],
