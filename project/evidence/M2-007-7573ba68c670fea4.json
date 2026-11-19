@@ -1,0 +1,164 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M2-007",
+  "task_definition_sha256": "6cd15042f552811650ab69e7d2682456f76609145a6bf26fffaddba7e7b8e3ba",
+  "run_id": "20261119T135500.051009Z-d66f4c64",
+  "recorded_at": "2026-11-19T13:56:55.656511+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "2f4f59fcc27e44da569eb03a0ac8d39c97729b7f18a6654f62070794be59efc6",
+    "file_count": 243,
+    "git_head": "d302c7d8d6132ebfeb04cdbf74ed0a14ad6c4235",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "7573ba68c670fea4117102bb64e27a9e96d40c483ae7e3e0df0f8a4492b5bb62",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/projects/scopehub-workspace-state/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-workspace-state/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ab12cd9fb4d95675b8452117a8ce7d927e94a79aa47ef6f833a5531cee03c0dc"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-workspace-state/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c6c87f88349c818dec839e5c94effa906c1920d34205c3fa27762fe72628c49e"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-workspace-state/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "386a6b5e658671393182e7376f8f44d0d0746932a9460d5172b22f447cb3bf16"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ef911f8a990c7bb9127616344e42eb0c795ab30f30974908077fffd0b8644cac"
+    },
+    {
+      "id": "rust-format",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-workspace-state/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "21721950df8ebb063cce45e91c82722fac5bc58d6eb0bcb48a4627d6ebe3653f"
+    },
+    {
+      "id": "rust-lints",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-workspace-state/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "clippy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ac72b508f92f051c0a775ab7475eebc90dc01fbb301448fc094a1a5299dcb771"
+    },
+    {
+      "id": "dependency-review",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-workspace-state/.venv/bin/python",
+        "scripts/dependencies.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "273136affa748633d132d2f221f3ba5288e759ae2706965b5c69f4a151143b02"
+    },
+    {
+      "id": "workspace-timeframe",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "994dab3c808490648e56c7dea9788cec211141b785747221865b78f3ae87cd16"
+    },
+    {
+      "id": "desktop-workspace-transport",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/desktop-workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "44ff29cddaf95b14c25ebae7418958401597d6266f05ffe09c53f39848871112"
+    }
+  ],
+  "project_definition_sha256": "05b90f36af154c5921ecfedb6f3c409e508e9649bc9e835fd1ae6593219a1dd7",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

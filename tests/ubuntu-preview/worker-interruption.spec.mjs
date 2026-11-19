@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { expect, test } from '@playwright/test';
 import { replayStage, waitForReplayRequest } from '../ui/replay-stages.mjs';
+import { openDefaultSample } from '../ui/sample-startup.mjs';
 import { control, openPanel } from '../ui/workspace-controls.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -25,7 +26,16 @@ test.beforeAll(async ({}, info) => {
   info.setTimeout(300_000);
   await promisify(execFile)('cargo', ['build', '--locked', '-p', 'scopehub-worker-host', '--example', 'history_bridge', '--target-dir', 'target'], { cwd: root });
   const { createServer } = await import(pathToFileURL(entry).href);
-  server = await createServer({ root: ui, mode: 'ubuntu-preview', server: { port } });
+  // Vite drops null inline overrides when it merges the project config.
+  const previous = process.env.SCOPEHUB_TEST_PREVIEW;
+  try {
+    process.env.SCOPEHUB_TEST_PREVIEW = '1';
+    server = await createServer({ root: ui, mode: 'ubuntu-preview', server: { port } });
+  } finally {
+    if (previous === undefined) delete process.env.SCOPEHUB_TEST_PREVIEW;
+    else process.env.SCOPEHUB_TEST_PREVIEW = previous;
+  }
+  expect(server.config.server).toMatchObject({ watch: null, hmr: false, ws: false });
   await server.listen();
 });
 test.afterAll(async () => { await server?.close(); });
@@ -76,7 +86,7 @@ test('resumes one real chart stream after its confirmed worker exits', async ({ 
     page.on('request', request => {
       if (new URL(request.url()).pathname === '/__scopehub/market-stream') attempts.push(request.postDataJSON());
     });
-    await page.goto('/#demo');
+    await openDefaultSample(page);
     await openPanel(page, 'Data sources');
     await page.mouse.move(1, 1);
     const legend = page.getByLabel('Selected bar');

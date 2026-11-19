@@ -1,0 +1,230 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M1-019",
+  "task_definition_sha256": "94eee7e39b9cf14f8ad8393548145acae0ec40fc8d9fdef7888b81b7cac2f16d",
+  "run_id": "20261119T134814.229372Z-573ea03b",
+  "recorded_at": "2026-11-19T13:53:00.909657+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "1dc02f748469dffe8b4653dd7e3bab29f283605f26d359a5d85cb25b532170b8",
+    "file_count": 234,
+    "git_head": "f8e8bc3b03838a35d86d183be07a0f6641fde1b1",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "1139dbf6ff2e06ed821daf557bd6aa575de524da7a92433af22b683d9b33049a",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/projects/scopehub-m1-quality/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-m1-quality/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "53a8a7db4c9a933edbdb41b5dbdb0d32980107677a890202b4039525a022812b"
+    },
+    {
+      "id": "market-recovery",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-closed-bar-repair.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "55f1eb977a50a071604b4d9d8f9224eb9d3328bc132c6c8242c9dec8fd3ec3a7"
+    },
+    {
+      "id": "market-worker-interruption",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/worker-interruption.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9ffcc0596ce2afa3fcfc15a28c4936f2a6ad70e136b2bdbc681930bc6cdcc6c1"
+    },
+    {
+      "id": "market-recovery-ui",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-recovery-ui.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5171f8216e6ab8690ef4adb67ebabf8f618b126f6cc6a1735bf7de280bae964e"
+    },
+    {
+      "id": "rust-format",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "rust-lints",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-m1-quality/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "clippy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a641dd7c64c3b9e6a401068b14d2efcff9065ed352b36871bde575b1d820ad38"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-m1-quality/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c6c87f88349c818dec839e5c94effa906c1920d34205c3fa27762fe72628c49e"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-m1-quality/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "7d527a38b348bb2cf6bf881eb1757b9abb2a5c7141c8521fbc115799475bc1fb"
+    },
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-m1-quality/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ab12cd9fb4d95675b8452117a8ce7d927e94a79aa47ef6f833a5531cee03c0dc"
+    },
+    {
+      "id": "market-fixtures",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-m1-quality/.venv/bin/python",
+        "-m",
+        "unittest",
+        "tests.integration.test_market_fixtures",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5f51fa884c160e615b0a85ad573f8508e8642601f90436a3c00ccc7e10f7ffd0"
+    },
+    {
+      "id": "python-types",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-m1-quality/.venv/bin/python",
+        "-m",
+        "mypy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "14fdf673bd175fe32ef42df34666481bb15e465313f7dbef32d0aea2ba76a26e"
+    },
+    {
+      "id": "dependency-review",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-m1-quality/.venv/bin/python",
+        "scripts/dependencies.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f933ce003b98d25c7f37245fc74d2c75fe0ece53df457d564f9c1b404fc7ebbd"
+    },
+    {
+      "id": "market-quality-states",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-quality.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a42c4ded5bca97e9b7bab5df8d5856c04e4728dc4cb8b577e1d198e4478d9aee"
+    },
+    {
+      "id": "market-live-stream",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-stream.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "3e390b2c046c64d70bd95ebf453e873fcb05176bd3a76bb3b25dcc0e82e14b03"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8250e772e8f5e691bc9a4c537594d7e5c319b3ae77ece5369cb7cfcc2a371d70"
+    }
+  ],
+  "project_definition_sha256": "774b70681f6439199da7bd45b986e2a0e933c204b206710573db04c1e6cf37bb",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}
