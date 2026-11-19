@@ -2663,7 +2663,7 @@
         "state-migrations"
       ],
       "evidence": [],
-      "next_action": "Verify the Windows desktop folder selection and reviewed CSV preview; then persist approved mappings and publish an immutable dataset revision on refresh.",
+      "next_action": "The Windows development desktop selected and previewed a synthetic local file in contracts/reviews/2026-11-19-windows-local-csv.json. Verify durable reviewed mapping reuse after restart, then implement and verify immutable publication and refresh.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
