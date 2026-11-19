@@ -710,6 +710,16 @@ test('reopens a frozen local source and retains the named layout through disconn
   const name = 'Frozen research';
   await withPublishedCsv(async ({ profile, revision, revoke }) => {
     let accepted;
+    let layer;
+    let artifact;
+    const output = () => ({ type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: layer.layer_id });
+    const layers = () => ({ type: 'indicator_accepted_layers', request_id: randomUUID(), revision_id: revision.revision_id });
+    const priceChart = page => page.getByRole('region', { name: 'Price chart' });
+    const showIndicators = async page => {
+      const chart = priceChart(page);
+      await chart.getByText('Indicators', { exact: true }).click();
+      return chart.getByRole('region', { name: 'Indicator preview' });
+    };
     const writers = [];
     await withService(profile, async server => {
       writers.push(server.writerPid);
@@ -772,9 +782,28 @@ test('reopens a frozen local source and retains the named layout through disconn
         await expect.poll(() => canvas.evaluate(visibleCandleColumns)).toEqual(previousPlot);
         await keyboardActivate(page, 'Discard preview');
 
+        const indicator = await showIndicators(page);
+        const ready = page.waitForResponse(async response => {
+          if (response.request().postDataJSON()?.type !== 'indicator_preview_status') return false;
+          return (await response.json()).result?.status === 'ready';
+        });
+        await keyboardActivate(indicator, 'Run preview');
+        const preview = (await (await ready).json()).result.event;
+        expect(preview.artifact.result.series[0].points.map(point => point.value)).toEqual([null, 37.875]);
+        await keyboardActivate(indicator, 'Accept preview');
+        const confirmation = page.waitForResponse(response =>
+          response.request().postDataJSON()?.operation === 'confirmation.respond');
+        await keyboardActivate(indicator, 'Confirm indicator acceptance');
+        const committed = (await (await confirmation).json()).result.outcome;
+        expect(committed.state).toBe('committed');
+        layer = committed.result;
+        await expect(indicator.getByRole('region', { name: 'Accepted indicators' }).getByText(layer.version_id)).toBeVisible();
+        artifact = await send(server, output());
+        expect(artifact.document.artifact).toEqual(preview.artifact);
+
         accepted = await snapshot(server);
         expect(accepted.layouts).toMatchObject({ active: { name, definition } });
-        expect(accepted.workspace.revision).toBe(beforeSelection.workspace.revision);
+        expect(accepted.workspace.revision).toBe(beforeSelection.workspace.revision + 1);
         expect(accepted.selection_revision).toBe(beforeSelection.selection_revision + 2);
       });
     });
@@ -790,6 +819,8 @@ test('reopens a frozen local source and retains the named layout through disconn
         await expect(page.getByText('Simulated', { exact: true })).toHaveCount(0);
         await expect(control(page, 'Edit layout')).toBeEnabled();
         expect(disconnected).toBeGreaterThan(0);
+        await expect(priceChart(page).getByRole('region', { name: 'Accepted indicators' })).toHaveCount(0);
+        expect(await send(server, output())).toEqual(artifact);
         expect((await snapshot(server)).layouts).toEqual(accepted.layouts);
       }, { setup: page => page.route(`**${endpoint}`, route => {
         if (route.request().postDataJSON()?.type !== 'frozen_chart') return route.continue();
@@ -798,7 +829,16 @@ test('reopens a frozen local source and retains the named layout through disconn
       }) });
 
       await withBrowser(browser, server, async page => {
+        let reruns = 0;
+        page.on('request', request => { if (request.postDataJSON()?.intent?.operation === 'indicator.runPreview') reruns++; });
         await expectFrozenChart(page);
+        const indicator = await showIndicators(page);
+        const saved = indicator.getByRole('region', { name: 'Accepted indicators' });
+        await expect(saved.getByText(layer.version_id)).toBeVisible();
+        await saved.getByText('Accepted provenance and values').click();
+        await expect(saved.getByText('mean · Unknown, 37.875')).toBeVisible();
+        expect(await send(server, output())).toEqual(artifact);
+        expect(reruns).toBe(0);
         expect((await snapshot(server)).layouts).toEqual(accepted.layouts);
       });
     });
@@ -818,8 +858,15 @@ test('reopens a frozen local source and retains the named layout through disconn
         expect(state.workspace.revision).toBe(accepted.workspace.revision);
         expect(state.selection_revision).toBe(accepted.selection_revision);
         expect(state.chart_evidence).toEqual({ unavailable: true });
+        const denied = await frame(server, output());
+        expect(denied).toMatchObject({ ok: false, error: { code: 'PERMISSION_DENIED' } });
+        expect(denied.result).toBeUndefined();
+        const references = (await send(server, layers())).layers;
+        expect(references).toEqual([{ ...layer, available: false }]);
         await testInfo.attach('source-restoration', { contentType: 'application/json', body: JSON.stringify({
           writers, revision: revision.revision_id, layout: state.layouts.active.name,
+          indicator: { version: layer.version_id, resultHash: artifact.document.artifact.result_hash,
+            unavailableReference: references[0], readDenied: denied.error.code },
           observed: ['published', 'disconnected', 'reconnected', 'revoked'],
         }) });
       });

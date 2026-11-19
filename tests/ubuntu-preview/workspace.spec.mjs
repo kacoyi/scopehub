@@ -1089,6 +1089,7 @@ test('indicator-preview runs trusted Python once after exact local approval and 
             parameters_hash: createHash('sha256').update('{"divisor":2}').digest('hex') },
         });
         await expect(approved.prompt).toContainText('Resolved parameters {"divisor":2}');
+        await expect(approved.prompt).toContainText('read or change files and access the network with your user permissions');
         await expect(approved.prompt).toContainText('2 bars · 0 warm-up bars');
         await approved.prompt.getByText('Exact frozen input bars').click();
         const shownBars = JSON.parse(await approved.prompt.locator('details pre').textContent());
@@ -1134,7 +1135,9 @@ test('indicator-preview runs trusted Python once after exact local approval and 
           expect(database.prepare('SELECT count(*) AS count FROM indicator_versions').get().count).toBe(1);
         } finally { database.close(); }
 
-        await control(page, 'Open published CSV').click();
+        await control(page, 'Data sources').click();
+        await page.getByRole('complementary', { name: 'Data sources' })
+          .getByRole('button', { name: 'Open published CSV' }).click();
         const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
         await dialog.getByLabel('Revision ID').fill(id);
         const opened = page.waitForResponse(response => response.request().postDataJSON()?.type === 'frozen_chart');

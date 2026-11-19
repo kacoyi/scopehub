@@ -479,7 +479,8 @@ function startWriter(root, { path, profileId, workspaceId }) {
       python.set(task, run);
       void run.result.then(result => { run.completed = result; });
     }
-    if (job.operation === cancelIndicator && frame.result?.outcome?.status === 'cancelled') {
+    if (job.operation === cancelIndicator && frame.result?.outcome?.status === 'cancelled'
+        || job.operation === previewStatus && frame.result?.status === 'terminal') {
       stopPython(job.taskId);
     }
     if (job.operation === sourceMutation && frame.ok === true) {

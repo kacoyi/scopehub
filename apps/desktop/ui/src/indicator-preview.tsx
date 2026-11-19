@@ -83,11 +83,12 @@ async function cancelTask(taskId: string) {
   if (reply.task_id !== taskId) throw new Error();
 }
 
-function describeError(error: unknown) {
+function describeError(error: unknown, mode: 'declarative' | 'python') {
   switch (code(error)) {
     case 'CANCELLED': return 'Indicator preview cancelled.';
     case 'BUSY': return 'The workspace is busy. Try the preview again.';
-    case 'INVALID_ARGUMENT': return 'Choose a valid period and visible interval.';
+    case 'INVALID_ARGUMENT': return mode === 'python' ? 'Check the Python parameters and visible interval.'
+      : 'Choose a valid period and visible interval.';
     case 'RESOURCE_LIMIT': return 'The indicator exceeded its limits. Try a smaller interval.';
     case 'STALE_CONTEXT': return 'The workspace changed. Open the frozen chart and run the preview again.';
     case 'PERMISSION_DENIED': return 'This source is unavailable for indicator calculation.';
@@ -276,7 +277,7 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
       if (attempt.taskId) void cancelTask(attempt.taskId).catch(() => {});
       if (attempt.poll.signal.aborted) return;
       if (displayAccessDenied(error)) void access?.verify(snapshot.dataset_id);
-      setMessage({ text: describeError(error), error: code(error) !== 'CANCELLED' });
+      setMessage({ text: describeError(error, mode), error: code(error) !== 'CANCELLED' });
     } finally {
       if (active.current === attempt) {
         setRunning(false);
@@ -370,13 +371,15 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
       {result && <button type="button" className="secondary-button" onClick={clearPreview}>Clear preview</button>}
     </div>
     {review && <div role="group" aria-label="Confirm trusted Python run">
-      <p>Run {review.file.name} once with the selected synthetic chart input. Trusted Python runs locally with your user permissions.</p>
+      <p>Run {review.file.name} once to calculate an indicator on this synthetic chart.</p>
+      <p>Trusted Python can read or change files and access the network with your user permissions.</p>
       <pre aria-label="Exact Python code">{review.file.source}</pre>
       <p>Resolved parameters <code>{JSON.stringify(review.parameters)}</code></p>
       <p>Visible interval {date(first)} to {date(last + 1)} (exclusive) · {review.input.length} bars · 0 warm-up bars</p>
       <p>Code hash <code>{review.challenge.python?.code_hash}</code></p>
       <p>Parameter hash <code>{review.challenge.parameters_hash}</code></p>
       <p>Frozen input hash <code>{review.challenge.python?.snapshot_hash}</code></p>
+      <p>Dataset revision <code>{snapshot.dataset_revision}</code> · As of {date(snapshot.as_of_ms)}</p>
       <details><summary>Exact frozen input bars</summary><pre>{JSON.stringify(review.input, null, 2)}</pre></details>
       <button type="button" className="secondary-button" onClick={() => review.respond('approve')}>Run selected Python</button>
       <button type="button" className="secondary-button" onClick={() => review.respond('deny')}>Decline Python run</button>
