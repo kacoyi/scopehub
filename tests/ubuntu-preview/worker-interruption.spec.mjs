@@ -62,7 +62,7 @@ function observeRecovery() {
 }
 
 test('resumes one real chart stream after its confirmed worker exits', async ({ page }) => {
-  const driver = spawn(python, ['-I', join(root, 'tests/ubuntu-preview/interrupt_owned_worker.py')], {
+  const driver = spawn(python, ['-I', join(root, 'tests/ubuntu-preview/interrupt_owned_worker.py'), String(process.pid)], {
     cwd: root, stdio: ['pipe', 'pipe', 'inherit'],
   });
   const finished = once(driver, 'exit');

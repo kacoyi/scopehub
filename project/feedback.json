@@ -946,6 +946,24 @@
         "prevention": "All eight replay cases pass with the bounded restore. Four independent negative probes reproduced the earlier false passes and confirm a failed extra read, an outstanding read, an unrelated BUSY and early history issuance are rejected."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-market-recovery-observation",
+      "source": "Required Windows job 135536750939 at 9d1e403 in run 44517364634.",
+      "observation": "Five Rust cases returned TIMEOUT during replacement verification or retry exhaustion. Ten repair-browser cases failed to observe their expected result under the default five-second assertion. The owned process interruption helper rejected its Windows launcher. The thirty-minute job ceiling cancelled the last suite before artifacts could be staged.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-019"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "market-recovery",
+        "market-worker-interruption",
+        "market-recovery-ui"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
