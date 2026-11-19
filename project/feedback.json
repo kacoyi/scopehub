@@ -767,6 +767,24 @@
         "prevention": "Five shared negative vectors exercise omitted and substituted revision fields in human and AI requests. Python, Rust and TypeScript validate the positive and negative cases. Runtime concurrency and projection remain part of M2-001."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "selection-target-and-replay-qualification",
+      "source": "Independent review of engineering contract 1.4.1 against the committed annotation, receipt identities and EvidenceTarget11.",
+      "observation": "The generic revision check can read as applying to an already committed retry despite the original revision having advanced. The selection description omits the object-ID target family and explicit null clearing supported by both 1.1 callers.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-006"
+      ],
+      "regression_checks": [
+        "generated-contracts",
+        "python-contracts-workers",
+        "typescript-contracts",
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
