@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-023",
+  "focus_task_id": "M1-008",
   "tasks": [
     {
       "id": "M0-001",
@@ -5824,7 +5824,7 @@
       "id": "M1-023",
       "title": "Show workspace startup and offer manual recovery before the application mounts",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-021"
       ],
@@ -5856,11 +5856,19 @@
         {
           "path": "project/evidence/M1-023-68b382a58f0aeec4.json",
           "sha256": "76313198a348202a81afab8f630827635d2ffcf4fede72d078c7b448967c388b"
+        },
+        {
+          "path": "project/evidence/M1-023-a5e300dd1915516d.json",
+          "sha256": "d82b57d913e3ba2231a0114ee2ac6b4b446aff1d415bab3b4809e832d7c21568"
+        },
+        {
+          "path": "project/evidence/M1-023-2d2836848cd36439.json",
+          "sha256": "c3175073fc1e30f945a3f399633d17addb53d3ed5626a2c0ee2d80bf9fce9377"
         }
       ],
-      "next_action": "Confirm the delivered startup panel, entry failure diagnostics, manual recovery and ordinary market journey in the source-matched hosted Windows run, then archive the result.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The delivered startup panel, manual reload, module failure and ordinary chart journey passed on hosted Ubuntu and Windows in run 44573777675. The mechanism behind the earlier blank Windows screenshot remains undetermined.",
       "plan": {
         "outcome": "A person can see and recover from an unmounted workspace even while its main JavaScript module is unavailable.",
         "change_types": [
