@@ -87,6 +87,7 @@ pub struct MarketWorker {
     config: Option<WorkerConfig>,
     session: Option<Session>,
     subscription: Option<(String, String)>,
+    cleanup: Option<cleanup::PendingCleanup>,
 }
 
 fn protocol_failure(error: ProtocolError) -> Error {
@@ -105,6 +106,7 @@ impl MarketWorker {
             config,
             session: None,
             subscription: None,
+            cleanup: None,
         }
     }
 
@@ -113,25 +115,34 @@ impl MarketWorker {
     }
 
     pub async fn shutdown(&mut self) -> Result<(), Error> {
-        let Some(session) = self.session.take() else {
+        if let Some(session) = self.session.take() {
+            let pending = self.subscription.take();
+            let grace = Duration::from_millis(
+                crate::POLICY["cancel_grace_ms"]
+                    .as_u64()
+                    .expect("cancel grace"),
+            );
+            let budget = if pending.is_some() { grace * 2 } else { grace };
+            self.cleanup = Some(cleanup::PendingCleanup::start(
+                session.close(pending, grace),
+                budget,
+            ));
+        }
+        let Some(cleanup) = &mut self.cleanup else {
             return Ok(());
         };
-        let pending = self.subscription.take();
-        let grace = Duration::from_millis(
-            crate::POLICY["cancel_grace_ms"]
-                .as_u64()
-                .expect("cancel grace"),
-        );
-        let deadline = if pending.is_some() { grace * 2 } else { grace };
-        cleanup::wait_for_cleanup(session.close(pending, grace), deadline)
-            .await
-            .map_err(|error| {
-                eprintln!(r#"{{"level":"warning","code":"MARKET_WORKER_CLEANUP_PENDING"}}"#);
-                protocol_failure(error)
-            })
+        let result = cleanup.wait().await;
+        if result != Err(ProtocolError::Timeout) {
+            self.cleanup = None;
+        }
+        result.map_err(|error| {
+            eprintln!(r#"{{"level":"warning","code":"MARKET_WORKER_CLEANUP_PENDING"}}"#);
+            protocol_failure(error)
+        })
     }
 
     async fn start(&mut self) -> Result<(), Error> {
+        self.shutdown().await?;
         let config = self
             .config
             .as_ref()
@@ -387,6 +398,15 @@ impl SubscriptionPort for MarketWorker {
         })
     }
 
+    fn restart_subscription(&mut self, attempt: u32) -> SubscriptionFuture<'_, ()> {
+        Box::pin(async move {
+            self.shutdown().await?;
+            // Attempts are one-based and bounded by the registry's runtime policy.
+            tokio::time::sleep(Duration::from_millis(100) * 2_u32.pow(attempt - 1)).await;
+            Ok(())
+        })
+    }
+
     fn complete_subscription(&mut self) {
         self.subscription = None;
     }
@@ -404,8 +424,8 @@ impl MarketLifecycle for MarketWorker {
     }
 }
 
-/// A replay owns one worker and one deadline. The caller supplies only its
-/// bridge lifetime and progress sink; both native and browser use this path.
+/// A replay owns one worker at a time and one deadline across replacements.
+/// Both native and browser supply a bridge lifetime and progress sink.
 pub async fn run_subscription(
     config: Option<WorkerConfig>,
     actor: Actor,
@@ -416,7 +436,26 @@ pub async fn run_subscription(
     let deadline = config
         .as_ref()
         .map_or(Duration::from_secs(5), |config| config.deadline);
-    let mut registry = MarketRegistry::new(MarketWorker::new(config));
+    run_owned_subscription(
+        MarketWorker::new(config),
+        deadline,
+        actor,
+        payload,
+        cancelled,
+        publish,
+    )
+    .await
+}
+
+async fn run_owned_subscription(
+    worker: impl SubscriptionPort + MarketLifecycle,
+    deadline: Duration,
+    actor: Actor,
+    payload: Value,
+    cancelled: impl std::future::Future<Output = ()>,
+    publish: impl FnMut(Value) -> Result<(), Error> + Send,
+) -> Result<Value, Error> {
+    let mut registry = MarketRegistry::new(worker);
     let result = tokio::select! {
         biased;
         () = cancelled => Err(failure(ErrorCode::CANCELLED)),
@@ -428,3 +467,7 @@ pub async fn run_subscription(
     let cleanup = registry.shutdown().await;
     result.and_then(|value| cleanup.map(|()| value))
 }
+
+#[cfg(test)]
+#[path = "market_recovery_tests.rs"]
+mod recovery_tests;

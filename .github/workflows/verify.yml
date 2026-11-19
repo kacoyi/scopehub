@@ -26,7 +26,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: ${{ inputs.profile == 'release' && 180 || 30 }}
+    # A cold native build and the sequential recovery suites need time to
+    # finish and upload their results. Each check retains its own deadline.
+    timeout-minutes: ${{ inputs.profile == 'release' && 180 || matrix.os == 'windows-latest' && 45 || 30 }}
     env:
       SCOPEHUB_SOURCE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
@@ -64,8 +66,21 @@ jobs:
             ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('rust-toolchain.toml') }}-
       - run: uv sync --locked
       - run: pnpm install --frozen-lockfile
-      - name: Install the pinned chart-test browser
+      - name: Install the pinned chart-test browser on Windows
+        if: runner.os == 'Windows'
         run: pnpm exec playwright install --with-deps chromium
+      - name: Start the pinned chart-test browser on Linux
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          pnpm exec playwright install chromium
+          probe_chromium() {
+            pnpm exec playwright screenshot --browser chromium about:blank "$RUNNER_TEMP/scopehub-chromium-probe.png"
+          }
+          if ! probe_chromium; then
+            pnpm exec playwright install-deps chromium
+            probe_chromium
+          fi
       - name: Preserve accepted history
         env:
           SCOPEHUB_REVIEW_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
@@ -74,6 +89,18 @@ jobs:
       - name: Initialize CI verification reports
         id: reports
         run: uv run --no-sync python scripts/ci_artifacts.py prepare
+      - name: Fetch the reviewed public publisher advisory
+        # The dependency check fails on missing evidence. Keep other check reports available.
+        continue-on-error: true
+        timeout-minutes: 1
+        env:
+          SCOPEHUB_PUBLISHER_ADVISORY_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            exec .venv/Scripts/python.exe -I -S scripts/publisher_advisory.py
+          fi
+          exec .venv/bin/python -I -S scripts/publisher_advisory.py
       - if: runner.os != 'Windows'
         run: pnpm check
       - if: runner.os == 'Windows' && inputs.profile != 'release'

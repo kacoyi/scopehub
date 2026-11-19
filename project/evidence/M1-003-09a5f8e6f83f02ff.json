@@ -1,0 +1,205 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M1-003",
+  "task_definition_sha256": "52f7bdfb28032e0ccae3edfaa00e11959ad2d6304fbfc6b92f3d57ae436af293",
+  "run_id": "20261119T114512.319175Z-1d8aa106",
+  "recorded_at": "2026-11-19T11:57:07.793952+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "70a584cf78748f9b47e395847cae549bf225a5ca506a9d6d417c035838ae9277",
+    "file_count": 232,
+    "git_head": "b090b5aa5ed52fe522f4471c49519ee17ecdf82f",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "09a5f8e6f83f02ff34e8fc567ea0c1940498b81b66d401c6242223075e82fb3c",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-1019-azure",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.2",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "market-recovery",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-closed-bar-repair.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "4d010c925d1d1edcd2f237cbc528a0c89fe5e7e96556c17faf8ed1b1d36dc9f9"
+    },
+    {
+      "id": "market-fixtures",
+      "status": "passed",
+      "command": [
+        "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+        "-m",
+        "unittest",
+        "tests.integration.test_market_fixtures",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f4285f393f0610e6c4bbccba1292f9336d1fe49e004dd61f3d1b690b93267949"
+    },
+    {
+      "id": "market-live-stream",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-stream.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "713635bcea2e5f8b94c82d81e7310b1ac1556dd67b535088599969f14e71bb9b"
+    },
+    {
+      "id": "market-quality-states",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-quality.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "50c79c2f70af6811fea8e8400610e7e89928c7a766c18ecc91703062222d506e"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d973ddf03c036d3c6a911ad0d11c74b52e3a1724814a0b967eada3baddf2587f"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "259f8af31aeedb7ef1f1bfc25cdd3004863313f621a5b98bd501f10b146e86b4"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c6c87f88349c818dec839e5c94effa906c1920d34205c3fa27762fe72628c49e"
+    },
+    {
+      "id": "market-worker-interruption",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/worker-interruption.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2fd0b748a4684cd9a88e5d39baaea5c99aca4de81def614908fce1af9d39f5d8"
+    },
+    {
+      "id": "market-recovery-ui",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-recovery-ui.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "0f45931f5016c0bffc5dba23700bda4ae618031c2b50c5ee3071df9533a6b9ce"
+    },
+    {
+      "id": "dependency-review",
+      "status": "passed",
+      "command": [
+        "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+        "scripts/dependencies.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "20fa50719b7a77f47e9d9ce0eaa6df049fa10ccde32bf99f5c6dcb5f428932c6"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "6be56ae2b8135bb07bad46f0db8483375824215580b69cc1786bf6732fcea74f"
+    },
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "94aa46309842e37fea2b5762641e8d386bae590e01067908e7a91e24ca734899"
+    }
+  ],
+  "project_definition_sha256": "aa14fd4fe9c1c447bb9bd4689e067862b02604280264ed5ff2316f4fda28a67a",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "ci": {
+    "provider": "github-actions",
+    "repository": "kacoyi/scopehub",
+    "run_id": "44517364634",
+    "run_attempt": "1",
+    "event": "pull_request",
+    "head_sha": "9d1e4030fb773d35f0bfab8bbb59a86e4fd3a945",
+    "checkout_sha": "b090b5aa5ed52fe522f4471c49519ee17ecdf82f",
+    "run_url": "https://github.com/kacoyi/scopehub/actions/runs/44517364634"
+  }
+}

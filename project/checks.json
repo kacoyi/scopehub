@@ -233,11 +233,19 @@
     },
     {
       "id": "market-recovery",
-      "status": "planned",
-      "purpose": "Validate bounded reconnect, subscriptions and data quality transitions",
+      "status": "implemented",
+      "purpose": "Verify closed-bar repair and unresolved gaps on the ordinary chart through the real worker, including frozen history and rejection of invalid or interrupted repairs.",
       "platforms": "all",
-      "command": null,
-      "timeout_seconds": 900
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-closed-bar-repair.config.mjs"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "change"
     },
     {
       "id": "state-migrations",
@@ -433,6 +441,38 @@
       "command": null,
       "timeout_seconds": 900,
       "cadence": "task"
+    },
+    {
+      "id": "market-worker-interruption",
+      "status": "implemented",
+      "purpose": "Exercise the ordinary chart and real worker through an owned process exit, verified resumption, a single logical subscription and preserved frozen history.",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/worker-interruption.config.mjs"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "change"
+    },
+    {
+      "id": "market-recovery-ui",
+      "status": "implemented",
+      "purpose": "Verify one real loopback futures baseline and use its frozen synthetic reads for injected recovery, rejection and cancellation. Check real stock replacement and startup terminal diagnostics separately.",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-recovery-ui.config.mjs"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "change"
     }
   ],
   "milestones": [
@@ -459,7 +499,9 @@
         "market-workflow",
         "market-fixtures",
         "market-recovery",
-        "local-folder-import"
+        "local-folder-import",
+        "market-worker-interruption",
+        "market-recovery-ui"
       ]
     },
     {
@@ -668,7 +710,10 @@
     "ubuntu-preview",
     "market-live-stream",
     "market-quality-states",
-    "market-workflow"
+    "market-workflow",
+    "market-worker-interruption",
+    "market-recovery-ui",
+    "market-recovery"
   ],
   "gate_changes": []
 }

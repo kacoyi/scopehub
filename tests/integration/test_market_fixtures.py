@@ -14,7 +14,8 @@ from uuid import UUID
 from jsonschema import Draft202012Validator, FormatChecker
 
 from providers.history_pages import execute_page
-from providers.simulated import Session, aggregate_minutes, build_fixture, fixture_bytes
+from providers.replay import plan_replay
+from providers.simulated import GapObservation, Session, aggregate_minutes, build_fixture, fixture_bytes
 from worker_runtime.protocol import MAX_MESSAGE_BYTES
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -110,6 +111,48 @@ class MarketFixtureTests(unittest.TestCase):
                     self.assertTrue(math.isfinite(bar[field]))
                     self.assertEqual(Decimal(str(bar[field])) % tick, 0)
                 self.assertTrue(bar['volume'] is None or math.isfinite(bar['volume']) and bar['volume'] >= 0)
+
+    def test_repair_observation_preserves_the_earlier_frozen_input(self):
+        oracle = json.loads((FIXTURES / 'closed-bar-repair.json').read_text())
+        dataset = self.bundle['fixtures'][0]['history']['dataset']
+        series = {key: dataset[key] for key in ('instrument_id', 'provider_id', 'timeframe',
+                                                'price_adjustment', 'calendar_id', 'quantity_unit')}
+        series['session_scope'] = 'sample-sessions'
+        for scenario in ('repairable', 'unrepaired'):
+            with self.subTest(scenario=scenario):
+                request = {
+                    'series': series, 'from_ms': 1704067200000, 'to_ms': 1704499200000,
+                    'warmup_bars': 0, 'include_stream_position': True,
+                    'expected_revision': f'scopehub-synthetic-v1:20241013:{scenario}',
+                }
+                initial = execute_page(request, MAX_MESSAGE_BYTES)
+                position = initial['stream_position']
+                self.assertEqual(position['sequence'], 0)
+                self.assertEqual(len(initial['bars']), oracle['initial_count'])
+                self.assertEqual(initial['quality_state']['gaps'], [oracle['affected']])
+                self.assertNotIn(oracle['bar']['time_ms'], [bar['time_ms'] for bar in initial['bars']])
+                checkpoint = execute_page({**request, 'as_of_ms': 1704330585000}, MAX_MESSAGE_BYTES)
+                acceptance, events = plan_replay({
+                    'series': series, 'snapshot': checkpoint['snapshot'], 'after': checkpoint['stream_position'],
+                })
+                self.assertEqual(acceptance['from_position']['sequence'], 1)
+                self.assertEqual(len(events), 1)
+                notice = events[0]
+                self.assertIsInstance(notice, GapObservation)
+                self.assertEqual((notice.sequence, notice.expected_sequence, notice.lost_count, notice.affected),
+                                 (3, 2, oracle['lost_count'], oracle['affected']))
+                later = execute_page({**request, 'as_of_ms': oracle['cutoff_ms']}, MAX_MESSAGE_BYTES)
+                self.assertEqual(later['stream_position'], {**position, 'sequence': 3})
+                self.assertEqual(later['snapshot']['dataset_revision'], initial['snapshot']['dataset_revision'])
+                self.assertNotEqual(later['snapshot']['content_hash'], initial['snapshot']['content_hash'])
+                self.assertEqual(later['bars'][-1], oracle['final_bar'])
+                if scenario == 'repairable':
+                    self.assertEqual(later['bars'], [*initial['bars'][:-1], oracle['bar'], oracle['final_bar']])
+                    self.assertEqual(later['quality_state']['gaps'], [])
+                else:
+                    self.assertEqual(later['bars'], [*initial['bars'][:-1], oracle['final_bar']])
+                    self.assertEqual(later['quality_state']['gaps'], [oracle['affected']])
+                self.assertEqual(execute_page({**request, 'snapshot': initial['snapshot']}, MAX_MESSAGE_BYTES), initial)
 
     def test_hand_calculated_aggregation_oracle(self):
         sessions = [Session(**value) for value in self.oracle['sessions']]

@@ -98,11 +98,17 @@ export const sampleRevisions = {
   normal: { label: 'Normal', id: 'scopehub-synthetic-v1:20241013:normal' },
   stale: { label: 'Stale observations', id: 'scopehub-synthetic-v1:20241013:stale' },
   gapped: { label: 'Missing bars', id: 'scopehub-synthetic-v1:20241013:gapped' },
+  repairable: { label: 'Repairable closed-bar gap', id: 'scopehub-synthetic-v1:20241013:repairable' },
+  unrepaired: { label: 'Unrepairable closed-bar gap', id: 'scopehub-synthetic-v1:20241013:unrepaired' },
 } as const;
 export type SampleRevision = keyof typeof sampleRevisions;
 
 export function isSampleRevision(value: unknown): value is SampleRevision {
   return typeof value === 'string' && Object.hasOwn(sampleRevisions, value);
+}
+
+export function isClosedBarGapRevision(revision: string) {
+  return revision === 'repairable' || revision === 'unrepaired';
 }
 
 export function sampleDateStart(date: string): number | undefined {

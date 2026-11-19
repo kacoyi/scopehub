@@ -14,8 +14,8 @@ from contracts.generated.protocol import (
 )
 from providers.history import HistoryError
 from providers.simulated import (
-    BarUpdate, MINUTE_MS, OBSERVATION_INTERVAL_MS, PROVIDER_ID, SOURCE_DELAY_BUDGET_MS,
-    TIMEFRAMES, build_fixture, fixture_scenario, instruments,
+    MINUTE_MS, OBSERVATION_INTERVAL_MS, PROVIDER_ID, ReplayObservation, SOURCE_DELAY_BUDGET_MS,
+    TIMEFRAMES, build_fixture, build_repair_fixture, fixture_scenario, instruments,
 )
 
 # The protocol counts framing as well as payload. Account for the longest valid
@@ -201,7 +201,7 @@ def _legacy_summary(quality: MarketQualityState) -> DataQuality:
     return 'fresh'
 
 
-def freeze_sample(request: MarketHistoryPageInput) -> tuple[FrozenHistory, StreamPosition | None, list[BarUpdate]]:
+def freeze_sample(request: MarketHistoryPageInput) -> tuple[FrozenHistory, StreamPosition | None, list[ReplayObservation]]:
     series = request['series']
     if series['provider_id'] != PROVIDER_ID:
         raise HistoryError('PROVIDER_NOT_CONFIGURED')
@@ -218,17 +218,22 @@ def freeze_sample(request: MarketHistoryPageInput) -> tuple[FrozenHistory, Strea
         if revision is not None and revision != pinned['dataset_revision']:
             raise HistoryError('SNAPSHOT_UNAVAILABLE')
         revision = pinned['dataset_revision']
-    scenario = fixture_scenario(series['instrument_id'], revision)
-    if scenario is None:
-        raise HistoryError('SNAPSHOT_UNAVAILABLE')
-    fixture = build_fixture(series['instrument_id'], series['timeframe'], scenario)
-    history = fixture['history']
+    repair = build_repair_fixture(series['instrument_id'], series['timeframe'], revision)
+    if repair is None:
+        scenario = fixture_scenario(series['instrument_id'], revision)
+        if scenario is None:
+            raise HistoryError('SNAPSHOT_UNAVAILABLE')
+        fixture = build_fixture(series['instrument_id'], series['timeframe'], scenario)
+        history, updates = fixture['history'], fixture['updates']
+        events: list[ReplayObservation] = list(updates)
+    else:
+        history, updates = repair.history, repair.updates
+        events = [updates[0], repair.gap]
     dataset = history['dataset']
     observed = dataset['provenance']['as_of_ms']
     assert isinstance(observed, int)
     cutoff = request.get('as_of_ms', pinned['as_of_ms'] if pinned is not None else observed)
     sequence = 0
-    updates = fixture['updates']
     if cutoff != observed:
         sequence = next((index for index, event in enumerate(updates, 1) if event['observed_at_ms'] == cutoff), 0)
         if not sequence:
@@ -236,6 +241,11 @@ def freeze_sample(request: MarketHistoryPageInput) -> tuple[FrozenHistory, Strea
         history['bars'][-1] = updates[sequence - 1]['bar']
         dataset['provenance']['as_of_ms'] = cutoff
         dataset['provenance']['last_observed_ms'] = cutoff
+        if repair is not None and cutoff == repair.gap.observed_at_ms:
+            sequence = repair.gap.sequence
+            if repair.late_bar is not None:
+                history['bars'].insert(-1, repair.late_bar)
+                dataset['provenance']['missing_minute_starts_ms'] = []
     quality = sample_quality(dataset, cutoff)
     dataset['quality'] = _legacy_summary(quality)
     frozen = FrozenHistory.freeze(dataset, quality, series, history['bars'],
@@ -248,7 +258,7 @@ def freeze_sample(request: MarketHistoryPageInput) -> tuple[FrozenHistory, Strea
     if (request.get('include_stream_position') and updates and quality['last_observed_ms'] == cutoff
             and request['from_ms'] <= history['bars'][-1]['time_ms'] < request['to_ms']):
         position = {'stream_id': dataset['id'], 'epoch': 'synthetic-replay-v1', 'sequence': sequence}
-    return frozen, position, updates[sequence:]
+    return frozen, position, events[sequence:]
 
 
 def execute_page(request: MarketHistoryPageInput, frame_budget: int) -> MarketHistoryPageOutput:

@@ -1,11 +1,12 @@
 import { expect, test as base } from '@playwright/test';
+import { future, openDefaultSample } from '../ui/sample-startup.mjs';
 import { painted } from '../ui/chart-pixels.mjs';
+import { openUnconfiguredPreview } from '../ui/preview-startup.mjs';
 import { replayStage, waitForReplayRequest } from '../ui/replay-stages.mjs';
 import { control, openPanel } from '../ui/workspace-controls.mjs';
 
 const operationPath = '/__scopehub/operation';
 const streamPath = '/__scopehub/market-stream';
-const future = 'SIM.CN.FUTURE.001';
 const stock = 'SIM.CN.STOCK.001';
 const revisionId = suffix => `scopehub-synthetic-v1:20241013:${suffix}`;
 const observed = '2024-01-04T01:09:30.000Z';
@@ -108,8 +109,8 @@ async function selectStock(page) {
   await expect(control(page, 'Search symbols')).toContainText('CN.STOCK.001');
 }
 
-test('real history keeps provenance and painted bars across normal, stale, missing and empty samples', async ({ page, calls }, testInfo) => {
-  await page.goto('/');
+test('real history keeps provenance and painted bars across normal, stale, missing and empty samples', async ({ page, baseURL, calls }, testInfo) => {
+  await openUnconfiguredPreview(page, baseURL);
   await openPanel(page, 'Data sources');
   const revision = sources(page).getByLabel('Sample revision', { exact: true });
   const date = sources(page).getByLabel('Sample date (UTC)', { exact: true });
@@ -120,10 +121,12 @@ test('real history keeps provenance and painted bars across normal, stale, missi
   expect(calls).toEqual([]);
 
   const normalResponse = page.waitForResponse(response => historyRequest(response.request())?.payload.expected_revision === revisionId('normal'));
-  await control(page, 'Open offline sample').click();
+  await openDefaultSample(page, { trigger: () => control(page, 'Open offline sample').click() });
   await expect(page.getByText('Offline sample', { exact: true })).toBeVisible();
   await openPanel(page, 'Data sources');
-  await expect(revision.locator('option')).toHaveText(['Normal', 'Stale observations', 'Missing bars']);
+  await expect(revision.locator('option')).toHaveText([
+    'Normal', 'Stale observations', 'Missing bars', 'Repairable closed-bar gap', 'Unrepairable closed-bar gap',
+  ]);
   await expect(revision.locator('option:checked')).toHaveText('Normal');
   await expect(date).toHaveValue('');
   await expectProvenance(page, normal);
@@ -190,6 +193,67 @@ test('real history keeps provenance and painted bars across normal, stale, missi
   );
 });
 
+for (const [name, reject, reason] of [
+  ['HTTP failure', route => route.fulfill({ status: 500, contentType: 'text/javascript', body: '' }), /\/src\/main\.tsx returned HTTP 500/],
+  ['failed connection', route => route.abort('connectionfailed'), /\/src\/main\.tsx failed \(net::ERR_CONNECTION_FAILED\)/],
+]) {
+  test(`preview startup reports an entry-module ${name} without retrying`, async ({ page, baseURL, calls }) => {
+    let moduleRequests = 0;
+    let navigations = 0;
+    page.on('request', request => {
+      if (request.isNavigationRequest() && request.frame() === page.mainFrame()) navigations++;
+    });
+    const rejectEntry = async route => {
+      moduleRequests++;
+      await reject(route);
+    };
+    await page.route('**/src/main.tsx', rejectEntry);
+    await expect(openUnconfiguredPreview(page, baseURL)).rejects.toThrow(reason);
+    await expect(control(page, 'Data sources')).toHaveCount(0);
+    const startup = page.getByRole('main', { name: 'Workspace startup' });
+    await expect(startup).toBeVisible();
+    await expect(startup.getByRole('button', { name: 'Reload window' })).toBeEnabled();
+    expect(moduleRequests).toBe(1);
+    expect(navigations).toBe(1);
+    expect(calls).toEqual([]);
+
+    const location = page.url();
+    await page.unroute('**/src/main.tsx', rejectEntry);
+    await startup.getByRole('button', { name: 'Reload window' }).click();
+    await expect(control(page, 'Open offline sample')).toBeVisible({ timeout: 10_000 });
+    await expect(startup).toHaveCount(0);
+    expect(page.url()).toBe(location);
+    expect(navigations).toBe(2);
+    expect(calls).toEqual([]);
+  });
+}
+
+test('preview startup reports the bounded wait for a stalled entry module', async ({ page, baseURL, calls }) => {
+  await page.clock.install();
+  const release = Promise.withResolvers();
+  let moduleRequests = 0;
+  await page.route('**/src/main.tsx', async route => {
+    moduleRequests++;
+    await release.promise;
+    await route.abort();
+  });
+  try {
+    await expect(openUnconfiguredPreview(page, baseURL, { timeout: 2_500 })).rejects.toThrow(
+      /application mount\. Startup exceeded 2500 ms\. Document HTTP 200, entry no response/,
+    );
+    await expect(control(page, 'Data sources')).toHaveCount(0);
+    const startup = page.getByRole('main', { name: 'Workspace startup' });
+    await expect(startup.getByRole('button', { name: 'Reload window' })).toBeVisible();
+    await page.clock.fastForward(10_000);
+    await expect(startup.getByRole('heading')).toHaveText('The workspace hasn’t opened yet');
+    expect(moduleRequests).toBe(1);
+    expect(calls).toEqual([]);
+  } finally {
+    release.resolve();
+    await page.unrouteAll({ behavior: 'wait' });
+  }
+});
+
 test('a real closed sample remains current when its final observation arrived', async ({ page }) => {
   await page.route(`**${operationPath}`, async route => {
     const call = historyRequest(route.request());
@@ -197,7 +261,12 @@ test('a real closed sample remains current when its final observation arrived', 
     // Select the real final observation through the ordinary operation. Keep the core reply intact.
     return route.continue({ postData: JSON.stringify({ ...call, payload: { ...call.payload, as_of_ms: Date.parse(closed) } }) });
   });
-  await page.goto('/#demo');
+  const [pinned] = await Promise.all([
+    page.waitForResponse(response => response.status() === 200
+      && historyRequest(response.request())?.payload.as_of_ms === Date.parse(closed), replayStage),
+    page.goto('/#demo'),
+  ]);
+  expect((await pinned.json()).ok).toBe(true);
   await openPanel(page, 'Data sources');
   await expectProvenance(page, closedCurrent);
   await expectReady(page, future, '1m', closedCurrent.bars);
@@ -206,7 +275,7 @@ test('a real closed sample remains current when its final observation arrived', 
 });
 
 test('a replacement chart is ready while the cancelled old history reply is still held', async ({ page, calls }) => {
-  await page.goto('/#demo');
+  await openDefaultSample(page);
   await expectReady(page, future, '1m', normal.bars);
   await openPanel(page, 'Data sources');
   await expectProvenance(page, normal);
@@ -292,7 +361,7 @@ async function expectNoConnectionFailure(page) {
 
 for (const failure of connectionFailures) {
   test(`${failure.name} leaves source connection unknown when selected history is unavailable`, async ({ page, calls }) => {
-    await page.goto('/#demo');
+    await openDefaultSample(page);
     await expectReady(page, future, '1m', normal.bars);
     await openPanel(page, 'Data sources');
     let injected = false;
@@ -322,7 +391,7 @@ for (const failure of connectionFailures) {
   });
 
   test(`${failure.name} during replay preserves the frozen source and chart`, async ({ page, calls }) => {
-    await page.goto('/#demo');
+    await openDefaultSample(page);
     await expectReady(page, future, '1m', normal.bars);
     await openPanel(page, 'Data sources');
     await expectProvenance(page, normal);
@@ -354,7 +423,7 @@ const readFailures = [
 
 for (const [code, instrument, label] of readFailures) {
   test(`${code} reports a distinct failure for the selected history`, async ({ page }) => {
-    await page.goto('/#demo');
+    await openDefaultSample(page);
     await expectReady(page, future, '1m', normal.bars);
     await openPanel(page, 'Data sources');
     const isTarget = request => {
@@ -426,7 +495,7 @@ async function expectReplayGap(page, known) {
 
 for (const known of [true, false]) {
   test(`a replay gap preserves ${known ? 'its reported interval and count' : 'unknown interval and count'}`, async ({ page }) => {
-    await page.goto('/#demo');
+    await openDefaultSample(page);
     await expectReady(page, future, '1m', normal.bars);
     await openPanel(page, 'Data sources');
     await page.route(`**${streamPath}`, route => {
@@ -472,7 +541,7 @@ test('a validated gap survives a held replay timeout and clears on retry or a ne
       return new Response(body, { headers: { 'Content-Type': 'application/x-ndjson' } });
     };
   }, streamPath);
-  await page.goto('/#demo');
+  await openDefaultSample(page);
   await expectReady(page, future, '1m', normal.bars);
   await openPanel(page, 'Data sources');
   await page.route(`**${streamPath}`, route => {

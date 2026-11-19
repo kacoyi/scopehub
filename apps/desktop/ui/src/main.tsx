@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ChartWorkspace } from './chart-workspace';
 import { readSampleView, saveSampleView } from './sample-view';
-import './style.css';
 
 function initialSource(): boolean {
   if (window.location.hash) return window.location.hash === '#demo';

@@ -4,10 +4,10 @@ from typing import Literal
 from contracts.generated.protocol import MarketSubscriptionInput, MarketSubscriptionOutput
 from providers.history import HistoryError
 from providers.history_pages import freeze_sample
-from providers.simulated import BarUpdate
+from providers.simulated import ReplayObservation
 
 
-def plan_replay(request: MarketSubscriptionInput) -> tuple[MarketSubscriptionOutput, list[BarUpdate]]:
+def plan_replay(request: MarketSubscriptionInput) -> tuple[MarketSubscriptionOutput, list[ReplayObservation]]:
     snapshot, after = request['snapshot'], request['after']
     if request['series'] != snapshot['series']:
         raise HistoryError('INVALID_ARGUMENT')

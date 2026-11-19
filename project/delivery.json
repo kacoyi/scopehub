@@ -225,7 +225,9 @@
       "checks": [
         "market-fixtures",
         "market-workflow",
-        "market-recovery"
+        "market-recovery",
+        "market-worker-interruption",
+        "market-recovery-ui"
       ],
       "evidence_boundary": "Synthetic data correctness and chart integration; no real-provider coverage claim."
     },
@@ -446,7 +448,7 @@
         "Unknown panel or interaction binding",
         "Invalid layout version or stale AI edit",
         "Interrupted save",
-        "A queued annotation targets yesterday\u2019s selected row after explicit reselection"
+        "A queued annotation targets yesterday’s selected row after explicit reselection"
       ],
       "checks": [
         "workspace-layout",
@@ -541,7 +543,7 @@
         "The user changes selection before the write",
         "User denies a required confirmation in ScopeHub",
         "An external client or cloud connector requests fields licensed for display only",
-        "A revoked client attempts to replay another session\u2019s receipt"
+        "A revoked client attempts to replay another session’s receipt"
       ],
       "checks": [
         "external-ai-bridge",
@@ -662,7 +664,8 @@
       "Source-control policy does not grant merge, release, visibility, account administration, destructive history changes or branch-protection weakening permissions. Apply existing owner intent and platform approval requirements to the concrete action.",
       "On 2026-10-14 the owner requested repair of all health-assessment findings, authorizing H08 main protection enforcement with required pull requests and observed Linux/Windows checks. Preserve stronger settings and do not weaken protection, merge or release under this maintenance scope.",
       "For the 2026-10-29 development-foundation iteration, the owner selected local-only delivery: contracts/reviews/2026-10-29-local-only.json. Keep its commits local; do not push, write its PR updates or trigger hosted CI until the owner changes that direction. Independent local work can continue.",
-      "On 2026-11-18 the owner requested GitHub Actions for the task branch containing these commits. The updated scope and the subsequent Ubuntu and Windows experience sequence are recorded in contracts/reviews/2026-11-18-hosted-ux.json."
+      "On 2026-11-18 the owner requested GitHub Actions for the task branch containing these commits. The updated scope and the subsequent Ubuntu and Windows experience sequence are recorded in contracts/reviews/2026-11-18-hosted-ux.json.",
+      "On 2026-11-19 the owner authorized continuing integration into main after code review, acceptance of the scoped work and all required checks. Verify the reviewed head immediately before merge and the resulting main CI after it. Formal release remains subject to separate owner acceptance and authorization. See contracts/reviews/2026-11-19-main-integration-authorization.json."
     ]
   },
   "scaffold_maintenance": {

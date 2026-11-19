@@ -3,21 +3,134 @@
 from datetime import date
 from contextlib import redirect_stdout
 from io import StringIO
+import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, call, patch
 
 from jsonschema import Draft202012Validator, FormatChecker
+from referencing.jsonschema import DRAFT202012
 import yaml
 
 from scripts import dependencies as review
+from scripts import publisher_advisory as publisher
 from scripts.project import maintenance_status
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+class PublisherAdvisoryTests(unittest.TestCase):
+    token = 'synthetic-job-credential'
+    response = {
+        'ghsa_id': publisher.ADVISORY, 'state': 'published', 'withdrawn_at': None,
+        'vulnerabilities': [{
+            'package': {'ecosystem': 'rust', 'name': 'block_buffer'},
+            'vulnerable_version_range': '>=0.11.0,<0.12.1',
+        }],
+    }
+
+    def test_credential_is_only_sent_to_the_exact_tls_get_and_redirects_stop(self):
+        with patch.object(publisher, 'HTTPSConnection') as connect:
+            for url in [publisher.URL.replace('https:', 'http:'), publisher.URL + '?query=1',
+                        publisher.URL.replace(publisher.HOST, 'api.github.com.example.invalid'),
+                        publisher.URL.replace(publisher.HOST, 'api.github.com:443'),
+                        publisher.URL.replace('RustCrypto', 'other-publisher'),
+                        'https://api.osv.dev/v1/querybatch', 'https://registry.npmjs.org/picomatch/latest']:
+                with self.subTest(url=url), self.assertRaisesRegex(ValueError, 'approved publisher endpoint'):
+                    publisher.fetch(url, self.token)
+            connect.assert_not_called()
+
+            reply = MagicMock(status=302)
+            reply.__enter__.return_value = reply
+            reply.headers = {'Location': 'https://example.invalid/credential-redirect'}
+            connection = connect.return_value
+            connection.getresponse.return_value = reply
+            with self.assertRaisesRegex(ValueError, 'HTTP 302'):
+                publisher.fetch(publisher.URL, self.token)
+            connect.assert_called_once_with('api.github.com', timeout=8)
+            connection.request.assert_called_once_with(
+                'GET', '/repos/RustCrypto/utils/security-advisories/GHSA-qwgh-2vcv-g2f7',
+                headers={'Accept': 'application/vnd.github+json', 'User-Agent': 'ScopeHub-dependency-review',
+                         'Authorization': f'Bearer {self.token}'},
+            )
+            reply.read.assert_not_called()
+            connection.close.assert_called_once_with()
+
+    def test_auth_refusal_only_falls_back_to_a_fresh_public_same_endpoint_get(self):
+        reply = (200, json.dumps(self.response).encode())
+        for status in (403, 404):
+            with self.subTest(status=status), patch.object(publisher, 'request_once', side_effect=[(status, b''), reply]) as get:
+                self.assertEqual(self.response, publisher.fetch(publisher.URL, self.token))
+                self.assertEqual([call(self.token), call(None)], get.call_args_list)
+        with patch.object(publisher, 'request_once', side_effect=[(403, b''), (403, b'')]) as get:
+            with self.assertRaisesRegex(ValueError, 'HTTP 403'):
+                publisher.fetch(publisher.URL, self.token)
+            self.assertEqual([call(self.token), call(None)], get.call_args_list)
+
+    def test_transient_errors_allow_one_retry_and_terminal_errors_disclose_no_credential(self):
+        reply = (200, json.dumps(self.response).encode())
+        for failure in ((429, b''), (503, b''), TimeoutError(self.token)):
+            with self.subTest(failure=failure), patch.object(publisher, 'request_once', side_effect=[failure, reply]) as get:
+                self.assertEqual(self.response, publisher.fetch(publisher.URL, self.token))
+                self.assertEqual([call(self.token), call(self.token)], get.call_args_list)
+        with patch.object(publisher, 'request_once', side_effect=TimeoutError(self.token)) as get:
+            with self.assertRaisesRegex(ValueError, '^Publisher advisory network request failed$') as error:
+                publisher.fetch(publisher.URL, self.token)
+            self.assertTrue(error.exception.__suppress_context__)
+            self.assertEqual(2, get.call_count)
+        for body in (b'broken JSON', b'x' * (publisher.MAX_BYTES + 1),
+                     json.dumps(dict(self.response, state='draft')).encode(),
+                     json.dumps(dict(self.response, withdrawn_at='2026-10-14T00:00:00Z')).encode()):
+            with self.subTest(size=len(body)), patch.object(publisher, 'request_once', return_value=(200, body)) as get:
+                with self.assertRaises(ValueError):
+                    publisher.fetch(publisher.URL, self.token)
+                get.assert_called_once_with(self.token)
+
+    def test_hosted_prefetch_retains_only_public_fields_for_the_exact_run(self):
+        with tempfile.TemporaryDirectory() as directory:
+            env = {key: f'fixture-{key}' for key in publisher.RUN_KEYS}
+            env.update(GITHUB_ACTIONS='true', RUNNER_TEMP=directory)
+            data = json.dumps(dict(self.response, private_fixture=self.token)).encode()
+            with patch.dict(os.environ, env, clear=True), patch.object(publisher, 'request_once') as get:
+                with self.assertRaisesRegex(ValueError, 'missing or invalid'):
+                    publisher.read_publisher(publisher.URL)
+                get.assert_not_called()
+                get.return_value = (200, data)
+                publisher.prefetch(os.environ, self.token)
+                get.assert_called_once_with(self.token)
+                evidence = next(Path(directory).iterdir())
+                self.assertNotIn(self.token, evidence.read_text(encoding='utf-8'))
+                self.assertEqual(self.response, publisher.read_publisher(publisher.URL))
+                for key in publisher.RUN_KEYS:
+                    with self.subTest(key=key), patch.dict(os.environ, {key: 'another-job'}):
+                        with self.assertRaisesRegex(ValueError, 'another job or endpoint'):
+                            publisher.read_publisher(publisher.URL)
+                evidence.write_text('{truncated JSON', encoding='utf-8')
+                with self.assertRaisesRegex(ValueError, 'missing or invalid'):
+                    publisher.read_publisher(publisher.URL)
+                get.assert_called_once_with(self.token)
+
+    def test_local_online_review_does_not_reuse_a_publisher_job_credential(self):
+        with (patch.dict(os.environ, {publisher.TOKEN_ENV: self.token}, clear=True),
+              patch.object(publisher, 'request_once', return_value=(200, json.dumps(self.response).encode())) as get):
+            self.assertEqual(self.response, publisher.read_publisher(publisher.URL))
+            get.assert_called_once_with(None)
+
+    def test_workflow_grants_the_existing_token_to_only_the_isolated_prefetch(self):
+        workflow = yaml.safe_load((ROOT / '.github/workflows/verify.yml').read_text(encoding='utf-8'))
+        job = workflow['jobs']['verify']
+        self.assertEqual({'contents': 'read'}, workflow['permissions'])
+        self.assertNotIn('permissions', job)
+        self.assertNotIn(publisher.TOKEN_ENV, job['env'])
+        credential_steps = [step for step in job['steps'] if publisher.TOKEN_ENV in step.get('env', {})]
+        self.assertEqual(1, len(credential_steps))
+        self.assertEqual({publisher.TOKEN_ENV: '${{ github.token }}'}, credential_steps[0]['env'])
+        self.assertIn('-I -S scripts/publisher_advisory.py', credential_steps[0]['run'])
 
 
 class DependencyTests(unittest.TestCase):
@@ -208,14 +321,19 @@ class DependencyTests(unittest.TestCase):
                     'date': ('2026-10-14', '2026-02-30'),
                     'date-time': ('2026-10-14T12:30:00Z', '2026-13-40T30:90:00Z'),
                     'uri': ('https://example.invalid/result', 'has spaces and no scheme')}
-        def formats(value):
-            if isinstance(value, dict):
-                return ({value['format']} if 'format' in value else set()).union(*(formats(x) for x in value.values()))
-            if isinstance(value, list):
-                return set().union(*(formats(x) for x in value))
-            return set()
-        declared = set().union(*(formats(review.read(ROOT / path)) for path in
-                                ['contracts/schemas/protocol.schema.json', 'contracts/schemas/project.schema.json']))
+
+        def formats(resource):
+            schema = resource.contents
+            declared = {schema['format']} if isinstance(schema, dict) and 'format' in schema else set()
+            for child in resource.subresources():
+                declared.update(formats(child))
+            return declared
+
+        declared = set()
+        for filename in ['protocol.schema.json', 'project.schema.json']:
+            schema = review.read(ROOT / 'contracts' / 'schemas' / filename)
+            Draft202012Validator.check_schema(schema)
+            declared.update(formats(DRAFT202012.create_resource(schema)))
         for name in declared:
             with self.subTest(format=name):
                 self.assertIn(name, checker.checkers)

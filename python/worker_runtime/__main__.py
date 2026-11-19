@@ -18,7 +18,7 @@ from contracts.generated.protocol import (
 from providers.history import HistoryError, execute
 from providers.history_pages import execute_page
 from providers.replay import plan_replay
-from providers.simulated import BarUpdate
+from providers.simulated import ReplayObservation
 from worker_runtime.protocol import MAX_MESSAGE_BYTES, POLICY, ProtocolError, decode_line, encode_message
 from worker_runtime.replay import Replay
 
@@ -87,7 +87,7 @@ def reject(lane: Lane, request_id: str, code: ErrorCode) -> CachedReply:
             'ok': False, 'result': None,
             'error': {'code': code, 'message': error_text(code), 'retryable': code == 'BUSY', 'details': {}}}
 
-def open_replay(request: MarketSubscriptionRequest, replay: Replay) -> tuple[CachedReply, list[BarUpdate]]:
+def open_replay(request: MarketSubscriptionRequest, replay: Replay) -> tuple[CachedReply, list[ReplayObservation]]:
     if replay.active_id() is not None:
         return reject('market.subscribe', request['request_id'], 'BUSY'), []
     try:
@@ -207,7 +207,7 @@ def dispatch(message: Message, version: WireVersion, enabled: bool, replay: Repl
         emit(reject(lane, request_id, 'INVALID_ARGUMENT'))
         return
 
-    events: list[BarUpdate] = []
+    events: list[ReplayObservation] = []
     if request is None:
         active = replay.cancel(request_id)
         if receipt is not None and not active and not receipt.busy():
