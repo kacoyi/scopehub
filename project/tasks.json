@@ -5368,6 +5368,10 @@
         {
           "path": "project/evidence/M2-007-6ef007cee190bd75.json",
           "sha256": "a6883b5cfd3fe49824b9a1f07ea0c46dc375d67abb8c4793a9be1169dc3aa76b"
+        },
+        {
+          "path": "project/evidence/M2-007-7573ba68c670fea4.json",
+          "sha256": "8e5a3c10e0336672df587c439910ac47894e75c3a71dfc123f4f0f2f7ffd6adf"
         }
       ],
       "next_action": "Recheck the workspace launcher on hosted Windows, including profile file denial and effective handoff permissions. The native Windows 11 guest has passed private storage, restart, replay and undo. Verify inherited chart startup separately and retain the matching task evidence.",
