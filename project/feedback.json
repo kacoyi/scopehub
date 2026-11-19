@@ -1054,7 +1054,7 @@
       "source": "Independent review of 59f0878 using synthetic futures rows, confined directories, valid long CSV fields and a partial output stream.",
       "observation": "A previous settlement price mapped to closing price without a diagnostic, and a source row marked open normalized as a closed bar. A shut down desktop host retained a readable selected directory. The parser rejected a valid field above its implicit library limit and skipped the next row. A short write could truncate a terminal result while the worker still reported success.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-008"
       ],
@@ -1063,7 +1063,11 @@
         "rust-contracts-workers",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The mapper accepted settlement aliases as OHLC and assumed source rows were closed. The reader inherited a smaller CSV field limit, its reply writer assumed a complete write, and shutdown did not close directory admission.",
+        "correction": "Keep settlement fields independent from OHLC and require a closed source bar. Bound the CSV parser by the reviewed input size, drain framed writes, close admission and release owned workers and directory handles on shutdown.",
+        "prevention": "Python, the Rust desktop registry and framed-worker regressions exercise prior settlement, open bars, a long multiline field followed by another bar, short writes and shutdown during preview."
+      },
       "deferral_reason": null
     },
     {
@@ -1071,7 +1075,7 @@
       "source": "Hosted Windows run 44524540362 and the reproduced Linux C-locale failure on the local folder branch.",
       "observation": "The architecture check read UTF-8 project source using the host default encoding and stopped before checking imports. This occurred on the Windows default code page when a provider contained a non-ASCII source label.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-008"
       ],
@@ -1079,7 +1083,11 @@
         "architecture",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The architecture scanner used the host text encoding to read UTF-8 source.",
+        "correction": "Read the checked source explicitly as UTF-8.",
+        "prevention": "The architecture regression contains non-ASCII source, and Windows also executes the repository architecture gate."
+      },
       "deferral_reason": null
     },
     {
@@ -1129,7 +1137,7 @@
       "source": "Real local-folder future preview under the merged minimal worker environment with no system IANA search path.",
       "observation": "A valid Asia/Shanghai night-session mapping produced timezone_unavailable and kept every record raw after an unrelated schema-format dependency stopped installing timezone data. The same mapping with the recorded IANA package restored its original UTC timestamp and explicit trading day.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-008"
       ],
@@ -1138,7 +1146,11 @@
         "rust-contracts-workers",
         "market-fixtures"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The local provider depended on incidental time-zone data supplied through an unrelated dependency.",
+        "correction": "Pin tzdata as a direct requirement and resolve IANA time zones in the locked worker environment.",
+        "prevention": "Run the night-session mapping without system tables and verify the independent UTC instant, reported trading day and rejection of ambiguous local times."
+      },
       "deferral_reason": null
     },
     {
@@ -1282,7 +1294,7 @@
       "source": "Independent trusted Rust desktop dispatcher observation at 6c2f1a4 using only a temporary synthetic CSV and profile.",
       "observation": "The trusted dispatcher displayed a synthetic close of 5 using Close. Saving the same file digest and mapping revision with AltClose without an AltClose preview committed it. A restarted workspace loaded the unreviewed mapping, which normalized the same row to 6.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-008"
       ],
@@ -1290,7 +1302,11 @@
         "rust-contracts-workers",
         "local-folder-import"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Saving reran a private preview without establishing that the same mapping had already been presented through the public preview operation.",
+        "correction": "Bind a successful public preview to the selected file, source digest, mapping and effective sample limit. Recheck the live selection and bytes before saving.",
+        "prevention": "The registry rejects an unseen alternate close column. A separately previewed alternate saves and reopens at its own mapping revision."
+      },
       "deferral_reason": null
     },
     {
@@ -1298,7 +1314,7 @@
       "source": "Independent trusted Rust desktop dispatcher observation at 6c2f1a4 using only a temporary synthetic CSV and profile.",
       "observation": "A synthetic file kept identical decoded header bytes while an invalid UTF-8 byte in a later data row changed the complete checksum. Loading a reviewed mapping returned review_required and hid the record, the same response as an actual changed header.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-008"
       ],
@@ -1307,7 +1323,11 @@
         "python-contracts-workers",
         "local-folder-import"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Header identity depended on decoding the entire file, conflating a bad later record with a changed header.",
+        "correction": "Decode and compare the complete logical header independently. Return a distinct diagnostic when the header cannot be verified and report later decoding failures during full preview.",
+        "prevention": "Tests distinguish unchanged headers followed by invalid bytes from changed, reordered, incomplete and undecodable headers and verify the whole-file digest."
+      },
       "deferral_reason": null
     },
     {
@@ -1392,7 +1412,7 @@
       "source": "Windows 11 native MSVC/WebView2 engineering run on 2f4a0c0 with a selected synthetic 292-byte CSV, followed by two bounded standalone worker comparisons on the same guest.",
       "observation": "The actual desktop showed the complete digest after reading three raw rows in 2.17 seconds. The first native OHLCV preview subsequently displayed a worker timeout. The same worker exchange run directly twice returned closes 102 and 105, the incomplete-row diagnostic and process exit in 219 ms each. The native save and restart journey remains pending at this observation.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-008"
       ],
@@ -1401,7 +1421,11 @@
         "local-import-ui",
         "rust-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The first native timeout did not expose its internal stage and later exact-source traces completed. The previous read-only worker exchange had no recovery after a genuine elapsed attempt.",
+        "correction": "Permit one bounded replacement for a qualified read-only preview after confirmed cleanup, fresh authorization and cancellation checks. Reuse the frozen input and mapping. Preserve decoded terminal errors. ADR 0013 records interpreter ownership.",
+        "prevention": "Controlled Linux and Windows runs verify worker identity, cleanup, cancellation, terminal errors and a successful replacement. Subsequent native raw and normalized previews, explicit save and restart completed. The cause of the original timeout remains undetermined."
+      },
       "deferral_reason": null
     },
     {
@@ -1409,7 +1433,7 @@
       "source": "Independent synthetic native Rust dispatcher replays at 4571353. Probes: /var/tmp/scopehub-local-v5-sOXuzpLM/independent/replay.json and /var/tmp/scopehub-local-v5-sOXuzpLM/minimal-replay/events.jsonl.",
       "observation": "Replaying the same trusted mapping save with its original request ID, live folder and file, full digest, mapping and preview limit advanced the review revision from 2 to 3. A delayed retry of the already committed publication then returned STALE_CONTEXT. Publishing under revision 3 created a second dataset UUID with the same source and mapping digests, 504 identical bars and 506 source locators. A fresh one-row repro left two reviewed mapping versions, two byte-equivalent frozen revisions and one source blob. Independent lock tests preserved cancellation and changed-source rollback.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-008"
       ],
@@ -1417,7 +1441,11 @@
         "rust-contracts-workers",
         "local-import-publication"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "A repeated committed save advanced the mapping revision and invalidated replay of its earlier publication.",
+        "correction": "Reuse the current equivalent review and return exact admitted receipts under the current native grant and display right. Preserve fresh A-to-B-to-A mapping changes as separate versions.",
+        "prevention": "The save, publish and lost-reply sequence retains one review, revision and original. Separate tests cover changed inputs, revoked rights and cancellation while a SQLite write waits."
+      },
       "deferral_reason": null
     },
     {
@@ -1425,7 +1453,7 @@
       "source": "Hosted Windows run 44548543796 at e960fd1, rust-contracts-workers log, and the native Win11 MSVC comparison at 2f4a0c0 retained in .reports/guest/2f4a0c0-mapping-path-reopen.",
       "observation": "The hosted restart test saved through a canonicalized synthetic directory and reselected the same source through the supplied spelling. Loading returned not_saved instead of saved before header comparison. On the Win11 guest, the same unmodified test and NTFS temporary directory passed with the long TEMP name and failed with its real 8.3 alias. The ordinary Win11 GUI observation with its selection spelling remains separately recorded.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-008"
       ],
@@ -1433,7 +1461,11 @@
         "rust-contracts-workers",
         "local-folder-import"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "A path-derived association could differ across equivalent Windows long and short spellings of the same selected root.",
+        "correction": "Resolve and verify native source association against the selected directory and retain compatibility with reviewed v4 keys.",
+        "prevention": "Native MSVC cases cover long and actual 8.3 selection, restart, legacy v4 lookup, different directories containing the same bytes and a rejected junction."
+      },
       "deferral_reason": null
     },
     {
@@ -1441,7 +1473,7 @@
       "source": "Hosted Windows run 44563163301 rust-contracts-workers and independent standard-user Win11 MSVC measurements in .reports/windows-source-sharing/measured/CHANGES.JSON and PINS.JSON. The native Windows follow-up at 875f5e0 is recorded in contracts/reviews/2026-11-19-windows-folder-refresh-source-handles.json.",
       "observation": "The native bridge replay tests failed at bridge_tests.rs:523 and :608 with Win32 error 32. The independent desktop matrix reproduced error 32 for direct-child rename and atomic replacement after selection, preview and publication. Both succeeded before selection and after exit. The isolated handle matrix reproduced the failure with read-only sharing on the selected directory and distinguished that from the expected protection of a file currently being verified.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-008"
       ],
@@ -1450,7 +1482,11 @@
         "local-folder-import",
         "local-import-publication"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The selected directory held restrictive sharing flags even while idle. Ordinary external saves and file replacements could then fail.",
+        "correction": "Retain a fully shareable metadata handle when idle. Pin and validate the selected ancestry and opened files during reads and the final publication guard.",
+        "prevention": "Native file-operation and source replacement checks cover direct and nested files, root identity and ordinary external rename, rewrite and replacement."
+      },
       "deferral_reason": null
     },
     {
@@ -1496,7 +1532,7 @@
       "source": "Development verification in the native Windows desktop at 4571353, recorded in contracts/reviews/2026-11-19-windows-local-publication.json. The ordinary native keyboard list path at 09e89d2 is recorded in contracts/reviews/2026-11-19-windows-published-revision-library.json.",
       "observation": "After restarting with an already published local CSV, reopening its frozen chart required manually pasting an opaque revision UUID even though the revision and source were already stored in the current profile.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-008"
       ],
@@ -1504,7 +1540,11 @@
         "local-import-publication",
         "rust-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The restart workflow could resolve a known ID but provided no library for finding the frozen revisions in the current profile.",
+        "correction": "List authorized revisions in the native library, page them and recheck display rights when a revision opens or is revoked.",
+        "prevention": "Portable and native journeys select immutable revisions after source removal and verify that revoking one leaves independently entitled revisions accessible."
+      },
       "deferral_reason": null
     },
     {
@@ -1512,14 +1552,18 @@
       "source": "Development verification of the standard-user Windows desktop at 09e89d2. See contracts/reviews/2026-11-19-windows-published-revision-library.json.",
       "observation": "Two revisions of daily.csv for the same symbol and period share the displayed filename and counts. Their final closes differ. The library shows only hashes and revision identifiers to distinguish them before opening a chart. Native Windows verification of the repaired selection path at b5f4054 is recorded in contracts/reviews/2026-11-19-windows-readable-csv-revisions.json.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-008"
       ],
       "regression_checks": [
         "local-import-publication"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Different revisions could share a filename, instrument and bar count. The list did not expose their observed market differences.",
+        "correction": "Render the final close and trading-day summary alongside venue, timeframe, source digest and revision identity.",
+        "prevention": "The user-facing native library and real Chromium checks distinguish same-name revisions by their different closes, including after restart."
+      },
       "deferral_reason": null
     },
     {
@@ -1527,7 +1571,7 @@
       "source": "Independent Herdr review t46 at 875f5e0716ec7c53583d9b5d883d70d89f441135 with synthetic CSVs and an in-memory render. A matching integrated Chromium regression failed against f666d83 and passed on the corrected source. Retained results and the pre-fix test patch are under .reports/folder-preview-review/.",
       "observation": "Same-header, same-symbol CSVs with identical OHLCV and declarations of shares/raw, lots/raw and shares/split_adjusted all normalized as shares/raw without diagnostics through the public CSV parser.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-008"
       ],
@@ -1535,7 +1579,11 @@
         "python-contracts-workers",
         "local-folder-refresh-preview"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Same-header inputs could inherit the saved mapping despite contrary quantity, adjustment or venue declarations.",
+        "correction": "Hold contradicting sources for review before publishing their bars.",
+        "prevention": "The parser and the integrated folder review exercise incompatible units, adjustment and venue as well as compatible source declarations."
+      },
       "deferral_reason": null
     },
     {
@@ -1543,7 +1591,7 @@
       "source": "Independent Herdr review t46 at 875f5e0716ec7c53583d9b5d883d70d89f441135 with synthetic CSVs and an in-memory render. A matching integrated Chromium regression failed against f666d83 and passed on the corrected source. Retained results and the pre-fix test patch are under .reports/folder-preview-review/.",
       "observation": "The complete checker held a two-row correction file with closes 6 and 7 at the accepted close 5, reporting the second conflicting row. In the refresh comparator the held file supplied no alternatives, leaving the accepted overlap labeled unchanged.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-008"
       ],
@@ -1551,7 +1599,11 @@
         "rust-contracts-workers",
         "local-folder-refresh-preview"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Publication correctly held a file containing corrections, but the read-only comparison discarded its competing rows.",
+        "correction": "Return distinct verified alternatives with their original row locators in the comparison. Require an explicit choice before publication.",
+        "prevention": "The integrated browser and registry expose accepted 5 and candidates 6 and 7 and independently verify the selected values, conflicting duplicates and source locators."
+      },
       "deferral_reason": null
     },
     {
@@ -1559,14 +1611,18 @@
       "source": "Independent Herdr review t46 at 875f5e0716ec7c53583d9b5d883d70d89f441135 with synthetic CSVs and an in-memory render. A matching integrated Chromium regression failed against f666d83 and passed on the corrected source. Retained results and the pre-fix test patch are under .reports/folder-preview-review/.",
       "observation": "The preview response includes the saved venue, quantity unit and price adjustment, but rendering the comparison at the reviewed commit showed a bare volume value and omitted the series declarations.",
       "severity": "minor",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-008"
       ],
       "regression_checks": [
         "local-folder-refresh-preview"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The comparison received the economic context but omitted it from the visible bar review.",
+        "correction": "Display the venue, quantity unit and price adjustment with the competing values.",
+        "prevention": "The folder review asserts the visible declarations and economic alternatives from the real source."
+      },
       "deferral_reason": null
     },
     {
@@ -1695,7 +1751,7 @@
       "source": "Standard-user Windows 11 WebView2 on commit 3bad802 after publishing and reopening the same synthetic profile.",
       "observation": "Opening the revision browser during profile startup returned retryable BUSY for both the single-file and folder lists. The dialog showed a generic read failure. A direct folder list still returned BUSY at 3329 ms and returned the two retained revisions at 4204 ms. An explicit refresh then restored the priced parent and the fully withdrawn child. Reopening the priced revision recovered both line 3 locators and close 104. Revoking its display access left the empty child usable.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-008"
       ],
@@ -1703,7 +1759,11 @@
         "local-import-ui",
         "local-folder-refresh-preview"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The initial workspace snapshot and revision listing used one native admission slot. A list could reach it before the initial profile read had settled.",
+        "correction": "Retain the selected revision kind while the workspace starts and serialize library submissions. Scope errors and completed responses to their selected list.",
+        "prevention": "Delayed startup and held-list Chromium controls reproduce the ordering. In Windows WebView2 the folder tab opened during startup, listed both revisions and reopened their charts."
+      },
       "deferral_reason": null
     },
     {
@@ -1711,7 +1771,7 @@
       "source": "Independent review of the ordinary folder registry at 3b39f81. Synthetic operation trace /var/tmp/scopehub-015a70a-rows-nknu705w/ops.jsonl line 23. Retained registry and real Chromium reproduction under .reports/folder-alias-identity/red.",
       "observation": "After daily.csv and z.csv were published with identical bytes, replacing only daily.csv left z.csv labeled as its current alias. The replacement had a different current SHA-256. The economic comparison still reported close 8 and close 9 as competing values.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-008"
       ],
@@ -1720,7 +1780,11 @@
         "local-folder-refresh-preview",
         "local-folder-import"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The alias lookup seeded current membership from accepted path names even after their present content changed.",
+        "correction": "Build current groups from current digests, preserve a matching accepted representative where possible and display historical provenance independently.",
+        "prevention": "The registry and real browser exercise competing prices, two same-content groups and reversed file discovery. Prior v7 revisions retain their original locators."
+      },
       "deferral_reason": null
     },
     {
@@ -1728,7 +1792,7 @@
       "source": "Review of the ordinary CSV editor and Python provider at 3a423ec against product.data_onboarding.financial_content and M1-008.",
       "observation": "An explicitly classified synthetic trade file with two fills at the same reported time returned the same unsupported_record_kind diagnostic as unknown input. The editor offered closed bars, quotes and unclassified rows only. Declared depth, reference and corporate-action inputs also appeared unclassified. Original rows remained available.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-008"
       ],
@@ -1736,7 +1800,11 @@
         "local-folder-import",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The editor and parser had a dedicated quote classification but grouped declared trades with inputs of unknown kind.",
+        "correction": "Expose executed trades, depth snapshots, reference records and corporate actions as explicit raw classifications and retain their original order, values and fields.",
+        "prevention": "The Python regressions verify all four declarations. Chromium submits a trade mapping and reads two same-time fills with different prices and leading-zero quantities."
+      },
       "deferral_reason": null
     },
     {
@@ -1744,7 +1812,7 @@
       "source": "Joined native inspection on Windows 11 and the effect that submits revision list requests in local-revision-dialog.tsx.",
       "observation": "After removing access to a folder revision and immediately switching to its independently entitled single-file source, an initial Windows journey timed out. The retained profile could open that source on a fresh launch, and an instrumented same-window repeat passed. The original timeout did not capture a terminal operation code. The revision browser waits for an initial snapshot but submits a list immediately during a subsequent reload of a known workspace on the same single-flight host.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-008"
       ],
@@ -1752,7 +1820,11 @@
         "local-folder-refresh-preview",
         "local-folder-import"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The dialog waited only while the initial workspace snapshot was missing. A subsequent snapshot request occupied the same admission slot while an explicit switch could submit a list.",
+        "correction": "Defer the selected list and disable competing foreground reads while a workspace operation is pending. Submit the selected request after it settles.",
+        "prevention": "A held real UI reload through substituted native IPC reproduced the premature list and then passed with one list submission. Windows independently passed the subsequent single-file read after revocation. The first native timeout had no recorded terminal code."
+      },
       "deferral_reason": null
     },
     {
@@ -1760,16 +1832,21 @@
       "source": "Standard-user Windows 11 WebView2 and native Rust trace at dbdd831, with the real single-file and folder source-row workflow.",
       "observation": "Immediately after a folder revision was revoked, the same-window single-file open returned BUSY while its simultaneous frozen_chart_status succeeded. The earlier workspace reload and single-file enumeration had already completed. Both the folder and the single-file reads succeeded independently. The first failed attempt showed The market worker is busy and no chart.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
-        "M1-008"
+        "M1-008",
+        "M2-001"
       ],
       "regression_checks": [
         "local-folder-refresh-preview",
         "local-import-publication",
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The dialog immediately checked display entitlement on selecting a revision while its foreground read was already checking the same entitlement. The two commands competed for a single native admission slot.",
+        "correction": "Let the foreground read perform the initial authorization. Recheck on an observed profile change, focus, visibility or a periodic check, and retain the denial fence for responses already in transit.",
+        "prevention": "Both single-file and folder controls reproduced BUSY before the change. The native Windows same-window operation opened the independently entitled file in one read after folder revocation. Real Chromium with a peer writer still suppressed a formerly authorized response after revocation."
+      },
       "deferral_reason": null
     }
   ]
