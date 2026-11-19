@@ -1144,6 +1144,39 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "local-import-save-without-matching-public-preview",
+      "source": "Independent trusted Rust desktop dispatcher observation at 6c2f1a4 using only a temporary synthetic CSV and profile.",
+      "observation": "The trusted dispatcher displayed a synthetic close of 5 using Close. Saving the same file digest and mapping revision with AltClose without an AltClose preview committed it. A restarted workspace loaded the unreviewed mapping, which normalized the same row to 6.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "local-folder-import"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "local-import-body-decode-reported-as-header-change",
+      "source": "Independent trusted Rust desktop dispatcher observation at 6c2f1a4 using only a temporary synthetic CSV and profile.",
+      "observation": "A synthetic file kept identical decoded header bytes while an invalid UTF-8 byte in a later data row changed the complete checksum. Loading a reviewed mapping returned review_required and hid the record, the same response as an actual changed header.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "python-contracts-workers",
+        "local-folder-import"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
