@@ -14,6 +14,14 @@ import { WorkspacePanel, panelLabels, type Panel } from './workspace-panels';
 const panelIcons: Record<Panel, WorkspaceIconName> = { watchlist: 'watchlist', data: 'table', sources: 'database' };
 const panelOrder: Panel[] = ['watchlist', 'data', 'sources'];
 const noInstruments: Instrument[] = [];
+const replayLabels = {
+  starting: 'Preparing synthetic replay…',
+  playing: 'Synthetic replay in progress',
+  reconnecting: 'Market worker reconnecting…',
+  resumed: 'Market worker resumed',
+  complete: 'Synthetic replay complete',
+  gap: null,
+};
 
 function Tool({ name, icon, onClick, active, disabled }: {
   name: string; icon: WorkspaceIconName; onClick: () => void; active?: boolean; disabled?: boolean;
@@ -66,9 +74,11 @@ export function ChartWorkspace({ sample, leaveSample }: { sample: boolean; leave
   const history = result.state === 'ready' ? result.value : undefined;
   const failure = catalog.state === 'error' ? catalog.failure : result.state === 'error' ? result.failure : undefined;
   const { replay, start, stop } = useSampleReplay(history);
-  const playing = replay?.state === 'starting' || replay?.state === 'playing';
+  const workerRecovery = replay?.state === 'reconnecting' || replay?.state === 'resumed' ? replay.state : undefined;
+  const playing = replay?.state === 'starting' || replay?.state === 'playing' || workerRecovery !== undefined;
   const replayFailure = replay?.state === 'failed' ? replay.failure : undefined;
   const replayGap = replay?.gap;
+  const replayLabel = replay?.state === 'failed' ? `Replay failed. ${replay.failure.message}` : replay && replayLabels[replay.state];
   const visiblePanel = focusChart ? null : panel;
   const lastBar = history?.bars.at(-1);
   const canInspect = Boolean(lastBar);
@@ -177,12 +187,8 @@ export function ChartWorkspace({ sample, leaveSample }: { sample: boolean; leave
           {canReplay && <button type="button" className="secondary-button replay-button" onClick={playing ? stop : start}>
             {playing ? 'Stop replay' : replayFailure ? 'Retry replay' : 'Play sample updates'}
           </button>}
-          {replay && (!replayGap || replayFailure) && <span role={replay.state === 'failed' ? 'alert' : 'status'} className={'replay-status ' + replay.state}>
-            {replay.state === 'starting' ? 'Preparing synthetic replay…'
-              : replay.state === 'playing' ? 'Synthetic replay in progress'
-              : replay.state === 'complete' ? 'Synthetic replay complete'
-              : replayFailure && `Replay failed. ${replayFailure.message}`}
-          </span>}
+          {replay && replayLabel && (!replayGap || replayFailure) && <span role={replayFailure ? 'alert' : 'status'}
+            className={'replay-status ' + replay.state}>{replayLabel}</span>}
           {replayGap && <>
             <span role="status" className="replay-status gap">Replay gap. {replayGapReason(replayGap)}</span>
             <ReplayGapDetails gap={replayGap} />
@@ -192,7 +198,8 @@ export function ChartWorkspace({ sample, leaveSample }: { sample: boolean; leave
       {visiblePanel && <>
         <button type="button" className="panel-scrim" aria-label="Dismiss side panel" onClick={closePanel} />
         <WorkspacePanel panel={visiblePanel} sample={sample} selected={selected} instruments={instruments} history={history}
-          failureKind={(failure ?? replayFailure)?.kind} replayGap={replayGap} filters={{ revision: sampleRevision, date, setRevision, setDate }}
+          failureKind={(failure ?? replayFailure)?.kind} workerRecovery={workerRecovery} replayGap={replayGap}
+          filters={{ revision: sampleRevision, date, setRevision, setDate }}
           choose={choose} close={closePanel} leave={leaveSample} />
       </>}
       {!focusChart && <nav className="side-tools" aria-label="Workspace panels" ref={dock}>{panelOrder.map(key =>

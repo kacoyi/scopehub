@@ -4,6 +4,7 @@ import {
   type ChartHistory, type Instrument, type MarketFailure, type SampleRevision,
 } from './market';
 import { MarketQualityFacts, ReplayGapFacts } from './market-quality';
+import type { ReplayRecoveryStatus } from './market-replay';
 import type { ReplayGap } from './use-sample-replay';
 import { WorkspaceIcon } from './workspace-icons';
 
@@ -75,10 +76,11 @@ type SampleFilters = {
 
 type MarketStatus = {
   failureKind: MarketFailure['kind'] | undefined;
+  workerRecovery: ReplayRecoveryStatus | undefined;
   replayGap: ReplayGap | undefined;
 };
 
-function DataSources({ sample, selected, history, failureKind, replayGap, filters, leave }: MarketStatus & {
+function DataSources({ sample, selected, history, failureKind, workerRecovery, replayGap, filters, leave }: MarketStatus & {
   sample: boolean; selected: Instrument | undefined; history: ChartHistory | undefined;
   filters: SampleFilters; leave: () => void;
 }) {
@@ -101,7 +103,7 @@ function DataSources({ sample, selected, history, failureKind, replayGap, filter
         }} />
         <small id="sample-date-help">Leave blank for the full sample window.</small>
       </div>
-      <MarketQualityFacts history={history} failureKind={failureKind} />
+      <MarketQualityFacts history={history} failureKind={failureKind} workerRecovery={workerRecovery} />
       <button type="button" className="secondary-button" onClick={leave}>Leave sample</button>
     </section>}
     {replayGap && <ReplayGapFacts gap={replayGap} />}
@@ -116,13 +118,13 @@ type Props = MarketStatus & {
   filters: SampleFilters;
   choose: (item: Instrument) => void; close: () => void; leave: () => void;
 };
-export function WorkspacePanel({ panel, sample, instruments, selected, history, failureKind, replayGap, filters, choose, close, leave }: Props) {
+export function WorkspacePanel({ panel, sample, instruments, selected, history, failureKind, workerRecovery, replayGap, filters, choose, close, leave }: Props) {
   return <aside id="workspace-panel" className={'workspace-panel panel-' + panel} aria-label={panelLabels[panel]}>
     <div className="panel-heading"><h2>{panelLabels[panel]}</h2>
       <button type="button" className="icon-button" aria-label="Close panel" title="Close panel" onClick={close}><WorkspaceIcon name="close" /></button></div>
     {panel === 'watchlist' && <Watchlist instruments={instruments} selected={selected} history={history} choose={choose} sample={sample} />}
     {panel === 'data' && <DataWindow history={history} />}
     {panel === 'sources' && <DataSources history={history} sample={sample} selected={selected}
-      failureKind={failureKind} replayGap={replayGap} filters={filters} leave={leave} />}
+      failureKind={failureKind} workerRecovery={workerRecovery} replayGap={replayGap} filters={filters} leave={leave} />}
   </aside>;
 }

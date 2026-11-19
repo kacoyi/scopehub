@@ -58,6 +58,10 @@ PyPI: pathspec 1.1.1
 Declared license: License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)
 Upstream metadata: https://pypi.org/pypi/pathspec/1.1.1/json
 
+PyPI: psutil 7.2.2
+Declared license: BSD-3-Clause
+Upstream metadata: https://pypi.org/pypi/psutil/7.2.2/json
+
 PyPI: python-dateutil 2.9.0.post0
 Declared license: BSD-3-Clause
 Upstream metadata: https://pypi.org/pypi/python-dateutil/2.9.0.post0/json

@@ -433,6 +433,38 @@
       "command": null,
       "timeout_seconds": 900,
       "cadence": "task"
+    },
+    {
+      "id": "market-worker-interruption",
+      "status": "implemented",
+      "purpose": "Exercise the ordinary chart and real worker through an owned process exit, verified resumption, a single logical subscription and preserved frozen history.",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/worker-interruption.config.mjs"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "change"
+    },
+    {
+      "id": "market-recovery-ui",
+      "status": "implemented",
+      "purpose": "Exercise the ordinary chart with injected recovery progress and real frozen history to verify rejection, clearing, cancellation and visible connection states.",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-recovery-ui.config.mjs"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "change"
     }
   ],
   "milestones": [
@@ -668,7 +700,9 @@
     "ubuntu-preview",
     "market-live-stream",
     "market-quality-states",
-    "market-workflow"
+    "market-workflow",
+    "market-worker-interruption",
+    "market-recovery-ui"
   ],
   "gate_changes": []
 }

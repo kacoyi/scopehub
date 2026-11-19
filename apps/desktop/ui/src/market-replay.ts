@@ -5,13 +5,46 @@ import type {
 import { invalidMarketData } from './market';
 import { retryMarketAdmission } from './market-admission';
 
-type Progress = { subscription: MarketSubscriptionOutput } | { event: MarketBarUpdateEvent | MarketStreamGapEvent };
+export type ReplayRecoveryStatus = 'reconnecting' | 'resumed';
+type Recovery = { status: ReplayRecoveryStatus; position: StreamPosition };
+type Progress = { subscription: MarketSubscriptionOutput }
+  | { event: MarketBarUpdateEvent | MarketStreamGapEvent }
+  | { recovery: Recovery };
 type Outcome = { status: 'complete' } | { status: 'gapped'; reason: string };
 type Terminal = { ok: true; result: Outcome } | { ok: false; error: unknown };
 type Publish = (frame: Progress) => void;
 
 export const samePosition = (a: StreamPosition, b: StreamPosition) =>
   a.stream_id === b.stream_id && a.epoch === b.epoch && a.sequence === b.sequence;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isPosition(value: unknown): value is StreamPosition {
+  return isRecord(value) && Object.keys(value).length === 3
+    && typeof value.stream_id === 'string' && value.stream_id.length > 0
+    && typeof value.epoch === 'string' && value.epoch.length > 0
+    && typeof value.sequence === 'number' && Number.isSafeInteger(value.sequence) && value.sequence >= 0;
+}
+
+function readReplayFrame(value: unknown): Progress | Terminal {
+  if (!isRecord(value)) throw invalidMarketData();
+  const size = Object.keys(value).length;
+  if ('ok' in value) {
+    if (size === 2 && value.ok === true && 'result' in value) return { ok: true, result: value.result as Outcome };
+    if (size === 2 && value.ok === false && 'error' in value) return { ok: false, error: value.error };
+  } else if (size === 1) {
+    if ('subscription' in value) return { subscription: value.subscription as MarketSubscriptionOutput };
+    if ('event' in value) return { event: value.event as MarketBarUpdateEvent | MarketStreamGapEvent };
+    const recovery = value.recovery;
+    if (isRecord(recovery) && Object.keys(recovery).length === 2
+      && (recovery.status === 'reconnecting' || recovery.status === 'resumed') && isPosition(recovery.position)) {
+      return { recovery: { status: recovery.status, position: recovery.position } };
+    }
+  }
+  throw invalidMarketData();
+}
 
 async function browserReplay(
   payload: MarketSubscriptionInput, signal: AbortSignal, publish: Publish, admitted: () => void,
@@ -42,11 +75,9 @@ async function browserReplay(
       for (const line of lines) {
         signal.throwIfAborted();
         if (terminal) throw invalidMarketData();
-        let frame: Progress | Terminal;
-        try { frame = JSON.parse(line); } catch { throw invalidMarketData(); }
-        if (!frame || typeof frame !== 'object' || !('ok' in frame || 'subscription' in frame || 'event' in frame)) {
-          throw invalidMarketData();
-        }
+        let value: unknown;
+        try { value = JSON.parse(line); } catch { throw invalidMarketData(); }
+        const frame = readReplayFrame(value);
         if ('ok' in frame) terminal = frame;
         else publish(frame);
       }
@@ -68,18 +99,27 @@ async function nativeReplay(
   const cancel = () => {
     if (started) void invoke('cancel_market_subscription', { subscriptionId }).catch(() => {});
   };
-  const progress = new Channel<Progress | Terminal | { started: true }>();
+  const progress = new Channel<unknown>();
   const terminal = new Promise<Outcome>((resolve, reject) => {
-    progress.onmessage = frame => {
+    progress.onmessage = value => {
       admitted();
-      if ('started' in frame) {
+      if (!started && isRecord(value) && value.started === true && Object.keys(value).length === 1) {
         started = true;
         if (signal.aborted) cancel();
-      } else if ('ok' in frame) {
-        if (frame.ok) resolve(frame.result);
-        else reject(frame.error);
-      } else if (!signal.aborted) {
-        try { publish(frame); } catch (error) { cancel(); reject(error); }
+        return;
+      }
+      try {
+        if (!started) throw invalidMarketData();
+        const frame = readReplayFrame(value);
+        if ('ok' in frame) {
+          progress.onmessage = () => {};
+          if (frame.ok) resolve(frame.result);
+          else reject(frame.error);
+        } else if (!signal.aborted) publish(frame);
+      } catch (error) {
+        progress.onmessage = () => {};
+        cancel();
+        reject(error);
       }
     };
   });

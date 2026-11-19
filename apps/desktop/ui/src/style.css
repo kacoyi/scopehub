@@ -58,7 +58,7 @@ svg { display: block; width: 19px; height: 19px; flex: none; }
 .chart-footer a { margin-left: auto; color: #aebbd0; }
 .chart-footer .replay-button { margin: 0; padding: 3px 7px; font-size: inherit; }
 .history-status, .replay-status { color: #8fdabd; }
-.history-status.warning, .replay-status.gap { color: #f0ca84; }
+.history-status.warning, .replay-status.gap, .replay-status.reconnecting { color: #f0ca84; }
 .replay-status.failed, .empty-content h1[role="alert"] { color: #ffb0ac; }
 .workspace-panel { width: clamp(215px, 21vw, 300px); flex: none; overflow: auto; border-left: 1px solid var(--line); background: var(--surface); }
 .panel-data { width: clamp(300px, 34vw, 540px); display: flex; flex-direction: column; }
