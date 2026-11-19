@@ -482,3 +482,70 @@ fn private_record_backup_does_not_restore_approval_or_authorize_outbound_access(
         1
     );
 }
+
+#[test]
+fn private_record_approvals_are_independent_and_decline_matches_the_exact_scope() {
+    let profile = Profile::new();
+    let mut host = LiveBridge::open(&profile, PROFILE_ID);
+    host.reply();
+    let first_id = Uuid::new_v4().to_string();
+    let second_id = Uuid::new_v4().to_string();
+    let third_id = Uuid::new_v4().to_string();
+    let first = change(0, memory(&first_id, None, "synthetic first review"));
+    let second = change(0, memory(&second_id, None, "synthetic second review"));
+    let third = change(0, memory(&third_id, None, "synthetic third review"));
+    let first_approval = approval(&first, &host.send(&first));
+    let second_approval = approval(&second, &host.send(&second));
+    let third_approval = approval(&third, &host.send(&third));
+
+    let mut wrong_scope = first_approval.clone();
+    wrong_scope["intent"]["arguments"]["challenge_id"] =
+        second_approval["intent"]["arguments"]["challenge_id"].clone();
+    wrong_scope["intent"]["arguments"]["decision"] = json!("decline");
+    assert_failed(&host.send(&wrong_scope), "CONFIRMATION_REQUIRED");
+    let mut decline = second_approval.clone();
+    decline["intent"]["arguments"]["decision"] = json!("decline");
+    assert_failed(&host.send(&decline), "CANCELLED");
+    assert_failed(&host.send(&second_approval), "CONFIRMATION_REQUIRED");
+
+    let accepted = host.send(&first_approval);
+    assert_eq!(accepted["outcome"]["state"], "committed");
+    assert_eq!(accepted["outcome"]["receipt"]["record_id"], first_id);
+    assert_failed(&host.send(&third_approval), "STALE_CONTEXT");
+    let records = host.send(&read(None));
+    assert_eq!(
+        records["outcome"]["result"]["records"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    host.finish();
+}
+
+#[test]
+fn private_record_restore_preview_counts_all_current_survivors() {
+    let profile = Profile::new();
+    let mut host = LiveBridge::open(&profile, PROFILE_ID);
+    host.reply();
+    let empty = archive(&mut host);
+    assert_eq!(empty["records"], json!([]));
+    let id = Uuid::new_v4().to_string();
+    commit(
+        &mut host,
+        &change(0, memory(&id, None, "synthetic survivor")),
+        1,
+        Some(&id),
+    );
+
+    let restore = change(1, json!({"action":"restore", "backup":empty}));
+    let preview = host.send(&restore);
+    assert_eq!(preview["outcome"]["summary"]["kept"], 1);
+    let approval = approval(&restore, &preview);
+    assert_eq!(host.send(&approval)["outcome"]["state"], "committed");
+    assert_eq!(
+        host.send(&read(Some(&id)))["outcome"]["result"]["record"]["content"]["text"],
+        "synthetic survivor"
+    );
+    host.finish();
+}

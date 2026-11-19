@@ -1594,3 +1594,179 @@ test('private records survive restart, isolate profiles, reject stale approval a
     await other.close();
   }
 });
+
+async function openPrivateRecords(page) {
+  await control(page, 'Private records').click();
+  const panel = page.getByRole('dialog', { name: 'Private records' });
+  await expect(panel.getByRole('button', { name: 'New private record' })).toBeVisible();
+  return panel;
+}
+
+async function reviewMemory(panel, title, text) {
+  await panel.getByRole('button', { name: 'New private record' }).click();
+  await panel.getByLabel('Record type').selectOption('memory');
+  await panel.getByLabel('Title').fill(title);
+  await panel.getByLabel('Memory', { exact: true }).fill(text);
+  await panel.getByRole('button', { name: 'Review save' }).click();
+}
+
+async function saveMemory(panel, title, text) {
+  await reviewMemory(panel, title, text);
+  await panel.getByRole('button', { name: 'Save private record', exact: true }).click();
+  await expect(panel.getByRole('heading', { name: title })).toBeVisible();
+}
+
+async function focusPrivateRecords(page) {
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+}
+
+test('private record review clears disclosed content when a real writer disconnects', async ({ browser }) => {
+  const profile = await makeProfile();
+  try {
+    const portA = await freePort();
+    await inService(portA, profile, 'ubuntu-workspace', async a => {
+      await inFreshBrowser(browser, a, async pageA => {
+        const first = await openPrivateRecords(pageA);
+        const title = 'Synthetic disconnected detail';
+        const text = 'Synthetic body visible only while the writer is reachable';
+        await saveMemory(first, title, text);
+        await inService(await freePort(), profile, 'ubuntu-workspace', async b => {
+          await inFreshBrowser(browser, b, async pageB => {
+            const second = await openPrivateRecords(pageB);
+            await second.getByRole('button', { name: new RegExp(title) }).click();
+            const producer = await writerPid(a);
+            process.kill(producer, 'SIGTERM');
+            await expect.poll(() => alive(producer)).toBe(false);
+            await second.getByRole('button', { name: 'Review deletion' }).click();
+            await second.getByRole('button', { name: 'Delete private record' }).click();
+            await expect(second.getByText('Private record deleted.')).toBeVisible();
+            for (let attempt = 0; attempt < 2; attempt += 1) {
+              const failed = pageA.waitForResponse(response => response.request().postDataJSON()?.intent?.operation === 'privateRecord.read');
+              await focusPrivateRecords(pageA);
+              expect((await (await failed).json()).error?.code).toBe('WORKER_EXITED');
+            }
+            await expect(first.getByText(title)).toHaveCount(0);
+            await expect(first.getByText(text)).toHaveCount(0);
+            await expect(first.getByRole('button', { name: 'Correct record' })).toHaveCount(0);
+            await expect(first.getByRole('button', { name: 'Review deletion' })).toHaveCount(0);
+            await expect(first.getByRole('alert')).toContainText('unavailable');
+          });
+        });
+      });
+    });
+  } finally { await profile.close(); }
+});
+
+test('private record review preserves a draft against a changed target', async ({ browser }) => {
+  const profile = await makeProfile();
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async pageA => {
+        const first = await openPrivateRecords(pageA);
+        const title = 'Synthetic shared memory';
+        await saveMemory(first, title, 'Synthetic original body');
+        await first.getByRole('button', { name: 'Correct record' }).click();
+        await first.getByRole('textbox', { name: 'Memory', exact: true }).fill('Synthetic first window draft');
+        await inFreshBrowser(browser, server, async pageB => {
+          const second = await openPrivateRecords(pageB);
+          await second.getByRole('button', { name: new RegExp(title) }).click();
+          await second.getByRole('button', { name: 'Correct record' }).click();
+          await second.getByRole('textbox', { name: 'Memory', exact: true }).fill('Synthetic peer correction');
+          await second.getByRole('button', { name: 'Review save' }).click();
+          await second.getByRole('button', { name: 'Save private record', exact: true }).click();
+          await expect(second.getByText('Synthetic peer correction')).toBeVisible();
+          await focusPrivateRecords(pageA);
+          await expect(first.getByText(/Another window changed this record/)).toBeVisible();
+          await expect(first.getByRole('textbox', { name: 'Memory', exact: true })).toHaveValue('Synthetic first window draft');
+          await expect(first.getByText('Synthetic peer correction')).toBeVisible();
+          await first.getByRole('button', { name: 'Review correction against current version' }).click();
+          await expect(first.getByRole('region', { name: 'Review private record change' }).getByText(title)).toBeVisible();
+          await first.getByRole('button', { name: 'Save private record', exact: true }).click();
+          await expect(first.getByText('Synthetic first window draft', { exact: true })).toBeVisible();
+
+        });
+      });
+    });
+  } finally { await profile.close(); }
+});
+
+test('private record review retires an approval after known peer deletion', async ({ browser }) => {
+  const profile = await makeProfile();
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async pageA => {
+        const first = await openPrivateRecords(pageA);
+        const title = 'Synthetic pending deletion';
+        const body = 'Synthetic private deletion body';
+        await saveMemory(first, title, body);
+        await first.getByRole('button', { name: 'Review deletion' }).click();
+        const review = first.getByRole('region', { name: 'Review private record change' });
+        await expect(review.getByRole('heading')).toBeVisible();
+        const includesTarget = await review.getByText(title, { exact: true }).isVisible();
+        await inFreshBrowser(browser, server, async pageB => {
+          const second = await openPrivateRecords(pageB);
+          await second.getByRole('button', { name: new RegExp(title) }).click();
+          await second.getByRole('button', { name: 'Review deletion' }).click();
+          await second.getByRole('button', { name: 'Delete private record' }).click();
+          await expect(second.getByText('Private record deleted.')).toBeVisible();
+          await focusPrivateRecords(pageA);
+          await expect(first.getByRole('alert')).toContainText('no longer available');
+          await expect(first.getByRole('button', { name: 'Delete private record' })).toHaveCount(0);
+          await expect(first.getByText(title)).toHaveCount(0);
+          await expect(first.getByText(body)).toHaveCount(0);
+          expect(includesTarget).toBe(true);
+        });
+      });
+    });
+  } finally { await profile.close(); }
+});
+
+test('private record review cancellation leaves the other window approval intact', async ({ browser }) => {
+  const profile = await makeProfile();
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async pageA => {
+        const first = await openPrivateRecords(pageA);
+        await reviewMemory(first, 'Synthetic first review', 'Synthetic first body');
+        const review = first.getByRole('region', { name: 'Review private record change' });
+        await expect(review.getByRole('heading')).toBeVisible();
+        const includesTarget = await review.getByText('Synthetic first review', { exact: true }).isVisible();
+        await inFreshBrowser(browser, server, async pageB => {
+          const second = await openPrivateRecords(pageB);
+          await reviewMemory(second, 'Synthetic second review', 'Synthetic second body');
+          await second.getByRole('button', { name: 'Cancel review' }).click();
+          await expect(second.getByText('Action cancelled.')).toBeVisible();
+          await first.getByRole('button', { name: 'Save private record', exact: true }).click();
+          await expect(first.getByRole('heading', { name: 'Synthetic first review' })).toBeVisible();
+          expect(includesTarget).toBe(true);
+          await second.getByRole('button', { name: 'Discard draft' }).click();
+          await expect(second.getByRole('button', { name: /Synthetic first review/ })).toBeVisible();
+          await expect(second.getByRole('button', { name: /Synthetic second review/ })).toHaveCount(0);
+        });
+      });
+    });
+  } finally { await profile.close(); }
+});
+
+test('private record review counts current survivors absent from an empty backup', async ({ browser }) => {
+  const profile = await makeProfile();
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        const panel = await openPrivateRecords(page);
+        const downloading = page.waitForEvent('download');
+        await panel.getByRole('button', { name: 'Download local backup' }).click();
+        const backup = await readFile(await (await downloading).path());
+        expect(JSON.parse(backup).records).toHaveLength(0);
+        await saveMemory(panel, 'Synthetic current survivor', 'Synthetic current body');
+        await panel.getByRole('button', { name: 'All private records' }).click();
+        await panel.getByLabel('Restore local backup').setInputFiles({
+          name: 'synthetic-empty.json', mimeType: 'application/json', buffer: backup,
+        });
+        await expect(panel.getByText(/1 current records to keep/)).toBeVisible();
+        await panel.getByRole('button', { name: 'Restore private records' }).click();
+        await expect(panel.getByRole('button', { name: /Synthetic current survivor/ })).toBeVisible();
+      });
+    });
+  } finally { await profile.close(); }
+});
