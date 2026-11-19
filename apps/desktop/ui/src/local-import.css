@@ -59,6 +59,8 @@
 .local-revision-list span { color: var(--muted); }
 .local-revision-list .local-revision-summary { color: inherit; }
 .local-import-progress { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.local-folder-choice { display: flex; gap: 6px; align-items: baseline; margin-block: 5px; }
+.local-folder-publication { margin-top: 10px; }
 .local-import-error { margin-bottom: 14px; padding: 9px 12px; border: 1px solid #784950; border-radius: 5px; color: #ffb0ac; }
 .local-import-error code, .local-import-hash code { overflow-wrap: anywhere; }
 .local-import-hash { display: flex; gap: 4px 10px; flex-wrap: wrap; align-items: baseline; margin-top: 9px; font-size: 12px; }

@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=56eb0e4df3b7dde58595960164c21123093e1a2a04c703dc11de5f195dd34f44. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=81b482afd494d8336a677360e000a324a04674ea3621256388a4dba6069f68fe. Do not edit.
 // Structural types and literal discriminators: validate schema refinements before deserializing.
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -165,6 +165,16 @@ pub enum OperationName {
     MarketReadLocalImportRevision,
     #[serde(rename = "market.previewLocalFolderRefresh")]
     MarketPreviewLocalFolderRefresh,
+    #[serde(rename = "market.prepareLocalFolderPublication")]
+    MarketPrepareLocalFolderPublication,
+    #[serde(rename = "market.publishLocalFolderRefresh")]
+    MarketPublishLocalFolderRefresh,
+    #[serde(rename = "market.listLocalFolderRevisions")]
+    MarketListLocalFolderRevisions,
+    #[serde(rename = "market.readLocalFolderRevision")]
+    MarketReadLocalFolderRevision,
+    #[serde(rename = "market.revokeLocalFolderRevision")]
+    MarketRevokeLocalFolderRevision,
     #[serde(rename = "market.revokeLocalImportRevision")]
     MarketRevokeLocalImportRevision,
     #[serde(rename = "market.publishLocalImport")]
@@ -219,6 +229,11 @@ impl OperationName {
             Self::MarketListLocalImportRevisions => "market.listLocalImportRevisions",
             Self::MarketReadLocalImportRevision => "market.readLocalImportRevision",
             Self::MarketPreviewLocalFolderRefresh => "market.previewLocalFolderRefresh",
+            Self::MarketPrepareLocalFolderPublication => "market.prepareLocalFolderPublication",
+            Self::MarketPublishLocalFolderRefresh => "market.publishLocalFolderRefresh",
+            Self::MarketListLocalFolderRevisions => "market.listLocalFolderRevisions",
+            Self::MarketReadLocalFolderRevision => "market.readLocalFolderRevision",
+            Self::MarketRevokeLocalFolderRevision => "market.revokeLocalFolderRevision",
             Self::MarketRevokeLocalImportRevision => "market.revokeLocalImportRevision",
             Self::MarketPublishLocalImport => "market.publishLocalImport",
             Self::WorkspaceReadChartProjection => "workspace.readChartProjection",
@@ -1641,6 +1656,196 @@ pub struct PreviewLocalFolderRefreshError {
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct PrepareLocalFolderPublicationRequest {
+    pub protocol_version: PrepareLocalFolderPublicationRequestProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: PrepareLocalFolderPublicationRequestType,
+    pub request_id: Uuid,
+    pub task_id: Option<Uuid>,
+    pub operation: PrepareLocalFolderPublicationRequestOperation,
+    pub payload: PrepareLocalFolderPublicationInput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrepareLocalFolderPublicationResponse {
+    pub protocol_version: PrepareLocalFolderPublicationResponseProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: PrepareLocalFolderPublicationResponseType,
+    pub request_id: Uuid,
+    pub operation: PrepareLocalFolderPublicationResponseOperation,
+    pub ok: ConstBool<true>,
+    pub result: PrepareLocalFolderPublicationOutput,
+    pub error: (),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrepareLocalFolderPublicationError {
+    pub protocol_version: PrepareLocalFolderPublicationErrorProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: PrepareLocalFolderPublicationErrorType,
+    pub request_id: Uuid,
+    pub operation: PrepareLocalFolderPublicationErrorOperation,
+    pub ok: ConstBool<false>,
+    pub result: (),
+    pub error: MarketPageFault,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PublishLocalFolderRefreshRequest {
+    pub protocol_version: PublishLocalFolderRefreshRequestProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: PublishLocalFolderRefreshRequestType,
+    pub request_id: Uuid,
+    pub task_id: Option<Uuid>,
+    pub operation: PublishLocalFolderRefreshRequestOperation,
+    pub payload: PublishLocalFolderRefreshInput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PublishLocalFolderRefreshResponse {
+    pub protocol_version: PublishLocalFolderRefreshResponseProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: PublishLocalFolderRefreshResponseType,
+    pub request_id: Uuid,
+    pub operation: PublishLocalFolderRefreshResponseOperation,
+    pub ok: ConstBool<true>,
+    pub result: PublishLocalFolderRefreshOutput,
+    pub error: (),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PublishLocalFolderRefreshError {
+    pub protocol_version: PublishLocalFolderRefreshErrorProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: PublishLocalFolderRefreshErrorType,
+    pub request_id: Uuid,
+    pub operation: PublishLocalFolderRefreshErrorOperation,
+    pub ok: ConstBool<false>,
+    pub result: (),
+    pub error: MarketPageFault,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ListLocalFolderRevisionsRequest {
+    pub protocol_version: ListLocalFolderRevisionsRequestProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: ListLocalFolderRevisionsRequestType,
+    pub request_id: Uuid,
+    pub task_id: Option<Uuid>,
+    pub operation: ListLocalFolderRevisionsRequestOperation,
+    pub payload: ListLocalFolderRevisionsInput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ListLocalFolderRevisionsResponse {
+    pub protocol_version: ListLocalFolderRevisionsResponseProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: ListLocalFolderRevisionsResponseType,
+    pub request_id: Uuid,
+    pub operation: ListLocalFolderRevisionsResponseOperation,
+    pub ok: ConstBool<true>,
+    pub result: ListLocalFolderRevisionsOutput,
+    pub error: (),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ListLocalFolderRevisionsError {
+    pub protocol_version: ListLocalFolderRevisionsErrorProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: ListLocalFolderRevisionsErrorType,
+    pub request_id: Uuid,
+    pub operation: ListLocalFolderRevisionsErrorOperation,
+    pub ok: ConstBool<false>,
+    pub result: (),
+    pub error: MarketPageFault,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReadLocalFolderRevisionRequest {
+    pub protocol_version: ReadLocalFolderRevisionRequestProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: ReadLocalFolderRevisionRequestType,
+    pub request_id: Uuid,
+    pub task_id: Option<Uuid>,
+    pub operation: ReadLocalFolderRevisionRequestOperation,
+    pub payload: ReadLocalFolderRevisionInput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReadLocalFolderRevisionResponse {
+    pub protocol_version: ReadLocalFolderRevisionResponseProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: ReadLocalFolderRevisionResponseType,
+    pub request_id: Uuid,
+    pub operation: ReadLocalFolderRevisionResponseOperation,
+    pub ok: ConstBool<true>,
+    pub result: ReadLocalFolderRevisionOutput,
+    pub error: (),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReadLocalFolderRevisionError {
+    pub protocol_version: ReadLocalFolderRevisionErrorProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: ReadLocalFolderRevisionErrorType,
+    pub request_id: Uuid,
+    pub operation: ReadLocalFolderRevisionErrorOperation,
+    pub ok: ConstBool<false>,
+    pub result: (),
+    pub error: MarketPageFault,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RevokeLocalFolderRevisionRequest {
+    pub protocol_version: RevokeLocalFolderRevisionRequestProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: RevokeLocalFolderRevisionRequestType,
+    pub request_id: Uuid,
+    pub task_id: Option<Uuid>,
+    pub operation: RevokeLocalFolderRevisionRequestOperation,
+    pub payload: RevokeLocalFolderRevisionInput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RevokeLocalFolderRevisionResponse {
+    pub protocol_version: RevokeLocalFolderRevisionResponseProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: RevokeLocalFolderRevisionResponseType,
+    pub request_id: Uuid,
+    pub operation: RevokeLocalFolderRevisionResponseOperation,
+    pub ok: ConstBool<true>,
+    pub result: RevokeLocalFolderRevisionOutput,
+    pub error: (),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RevokeLocalFolderRevisionError {
+    pub protocol_version: RevokeLocalFolderRevisionErrorProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: RevokeLocalFolderRevisionErrorType,
+    pub request_id: Uuid,
+    pub operation: RevokeLocalFolderRevisionErrorOperation,
+    pub ok: ConstBool<false>,
+    pub result: (),
+    pub error: MarketPageFault,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RevokeLocalImportRevisionRequest {
     pub protocol_version: RevokeLocalImportRevisionRequestProtocolVersion,
     pub message_id: Uuid,
@@ -2091,6 +2296,21 @@ pub enum Message {
     PreviewLocalFolderRefreshRequest(Box<PreviewLocalFolderRefreshRequest>),
     PreviewLocalFolderRefreshResponse(Box<PreviewLocalFolderRefreshResponse>),
     PreviewLocalFolderRefreshError(Box<PreviewLocalFolderRefreshError>),
+    PrepareLocalFolderPublicationRequest(Box<PrepareLocalFolderPublicationRequest>),
+    PrepareLocalFolderPublicationResponse(Box<PrepareLocalFolderPublicationResponse>),
+    PrepareLocalFolderPublicationError(Box<PrepareLocalFolderPublicationError>),
+    PublishLocalFolderRefreshRequest(Box<PublishLocalFolderRefreshRequest>),
+    PublishLocalFolderRefreshResponse(Box<PublishLocalFolderRefreshResponse>),
+    PublishLocalFolderRefreshError(Box<PublishLocalFolderRefreshError>),
+    ListLocalFolderRevisionsRequest(Box<ListLocalFolderRevisionsRequest>),
+    ListLocalFolderRevisionsResponse(Box<ListLocalFolderRevisionsResponse>),
+    ListLocalFolderRevisionsError(Box<ListLocalFolderRevisionsError>),
+    ReadLocalFolderRevisionRequest(Box<ReadLocalFolderRevisionRequest>),
+    ReadLocalFolderRevisionResponse(Box<ReadLocalFolderRevisionResponse>),
+    ReadLocalFolderRevisionError(Box<ReadLocalFolderRevisionError>),
+    RevokeLocalFolderRevisionRequest(Box<RevokeLocalFolderRevisionRequest>),
+    RevokeLocalFolderRevisionResponse(Box<RevokeLocalFolderRevisionResponse>),
+    RevokeLocalFolderRevisionError(Box<RevokeLocalFolderRevisionError>),
     RevokeLocalImportRevisionRequest(Box<RevokeLocalImportRevisionRequest>),
     RevokeLocalImportRevisionResponse(Box<RevokeLocalImportRevisionResponse>),
     RevokeLocalImportRevisionError(Box<RevokeLocalImportRevisionError>),
@@ -4378,7 +4598,7 @@ pub struct FolderRefreshAlternative {
 pub struct FolderRefreshBar {
     pub time_ms: Timestamp,
     pub status: FolderRefreshBarStatus,
-    pub accepted: Option<PublishedLocalImportBar>,
+    pub accepted: Option<AcceptedFolderRefreshBar>,
     pub alternatives: Vec<FolderRefreshAlternative>,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -4392,15 +4612,162 @@ pub struct PreviewLocalFolderRefreshInput {
 #[serde(deny_unknown_fields)]
 pub struct PreviewLocalFolderRefreshOutput {
     pub version: u64,
-    pub base: PublishedLocalImportRevision,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub base: Option<PublishedLocalImportRevision>,
     pub files: Vec<FolderRefreshFile>,
     pub bars: Vec<FolderRefreshBar>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub folder_base: Option<PublishedLocalFolderRevision>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub review_id: Option<Hash>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub publication_allowed: Option<bool>,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]
 pub enum PreviewLocalFolderRefreshReply11 {
     PreviewLocalFolderRefreshResponse(Box<PreviewLocalFolderRefreshResponse>),
     PreviewLocalFolderRefreshError(Box<PreviewLocalFolderRefreshError>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FolderPublicationConflictChoice {
+    pub time_ms: Timestamp,
+    pub alternative_index: u64,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PublishedLocalFolderRevision {
+    pub revision_id: Uuid,
+    pub base_revision_id: Uuid,
+    pub parent_revision_id: Option<Uuid>,
+    pub origin_path: String,
+    pub symbol: String,
+    pub series: PreviewSeries,
+    pub source_count: u64,
+    pub bar_count: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bar_summary: Option<LocalImportRevisionBarSummary>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PublishedLocalFolderSource {
+    pub relative_path: String,
+    pub source_sha256: Hash,
+    pub record_count: u64,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrepareLocalFolderPublicationInput {
+    pub version: u64,
+    pub folder_id: Uuid,
+    pub review_id: Hash,
+    pub conflicts: Vec<FolderPublicationConflictChoice>,
+    pub withdraw_bars: Vec<Timestamp>,
+    pub withdraw_sources: Vec<String>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrepareLocalFolderPublicationOutput {
+    pub version: u64,
+    pub review_id: Hash,
+    pub candidate_sha256: Hash,
+    pub parent_revision_id: Uuid,
+    pub source_count: u64,
+    pub bar_count: u64,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PublishLocalFolderRefreshInput {
+    pub version: u64,
+    pub folder_id: Uuid,
+    pub review_id: Hash,
+    pub candidate_sha256: Hash,
+    pub idempotency_key: Uuid,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PublishLocalFolderRefreshOutput {
+    pub version: u64,
+    pub revision: PublishedLocalFolderRevision,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ListLocalFolderRevisionsInput {
+    pub version: u64,
+    pub after_revision_id: Option<CanonicalRevisionCursor>,
+    pub limit: u64,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ListLocalFolderRevisionsOutput {
+    pub version: u64,
+    pub revisions: Vec<PublishedLocalFolderRevision>,
+    pub next_after_revision_id: Option<CanonicalRevisionCursor>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReadLocalFolderRevisionInput {
+    pub version: u64,
+    pub revision_id: Uuid,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub include_details: Option<bool>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReadLocalFolderRevisionOutput {
+    pub version: u64,
+    pub revision: PublishedLocalFolderRevision,
+    pub files: Vec<PublishedLocalFolderSource>,
+    pub bars: Vec<FolderRefreshAlternative>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RevokeLocalFolderRevisionInput {
+    pub version: u64,
+    pub revision_id: Uuid,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RevokeLocalFolderRevisionOutput {
+    pub version: u64,
+    pub revision_id: Uuid,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum PrepareLocalFolderPublicationReply11 {
+    PrepareLocalFolderPublicationResponse(Box<PrepareLocalFolderPublicationResponse>),
+    PrepareLocalFolderPublicationError(Box<PrepareLocalFolderPublicationError>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum PublishLocalFolderRefreshReply11 {
+    PublishLocalFolderRefreshResponse(Box<PublishLocalFolderRefreshResponse>),
+    PublishLocalFolderRefreshError(Box<PublishLocalFolderRefreshError>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum ListLocalFolderRevisionsReply11 {
+    ListLocalFolderRevisionsResponse(Box<ListLocalFolderRevisionsResponse>),
+    ListLocalFolderRevisionsError(Box<ListLocalFolderRevisionsError>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum ReadLocalFolderRevisionReply11 {
+    ReadLocalFolderRevisionResponse(Box<ReadLocalFolderRevisionResponse>),
+    ReadLocalFolderRevisionError(Box<ReadLocalFolderRevisionError>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum RevokeLocalFolderRevisionReply11 {
+    RevokeLocalFolderRevisionResponse(Box<RevokeLocalFolderRevisionResponse>),
+    RevokeLocalFolderRevisionError(Box<RevokeLocalFolderRevisionError>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum AcceptedFolderRefreshBar {
+    PublishedLocalImportBar(Box<PublishedLocalImportBar>),
+    FolderRefreshAlternative(Box<FolderRefreshAlternative>),
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum FieldExpressionOp {
@@ -6280,6 +6647,546 @@ impl PreviewLocalFolderRefreshErrorOperation {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Value => "market.previewLocalFolderRefresh",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrepareLocalFolderPublicationRequestProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl PrepareLocalFolderPublicationRequestProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrepareLocalFolderPublicationRequestType {
+    #[serde(rename = "request")]
+    Value,
+}
+impl PrepareLocalFolderPublicationRequestType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrepareLocalFolderPublicationRequestOperation {
+    #[serde(rename = "market.prepareLocalFolderPublication")]
+    Value,
+}
+impl PrepareLocalFolderPublicationRequestOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.prepareLocalFolderPublication",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrepareLocalFolderPublicationResponseProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl PrepareLocalFolderPublicationResponseProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrepareLocalFolderPublicationResponseType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl PrepareLocalFolderPublicationResponseType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrepareLocalFolderPublicationResponseOperation {
+    #[serde(rename = "market.prepareLocalFolderPublication")]
+    Value,
+}
+impl PrepareLocalFolderPublicationResponseOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.prepareLocalFolderPublication",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrepareLocalFolderPublicationErrorProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl PrepareLocalFolderPublicationErrorProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrepareLocalFolderPublicationErrorType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl PrepareLocalFolderPublicationErrorType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrepareLocalFolderPublicationErrorOperation {
+    #[serde(rename = "market.prepareLocalFolderPublication")]
+    Value,
+}
+impl PrepareLocalFolderPublicationErrorOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.prepareLocalFolderPublication",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PublishLocalFolderRefreshRequestProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl PublishLocalFolderRefreshRequestProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PublishLocalFolderRefreshRequestType {
+    #[serde(rename = "request")]
+    Value,
+}
+impl PublishLocalFolderRefreshRequestType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PublishLocalFolderRefreshRequestOperation {
+    #[serde(rename = "market.publishLocalFolderRefresh")]
+    Value,
+}
+impl PublishLocalFolderRefreshRequestOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.publishLocalFolderRefresh",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PublishLocalFolderRefreshResponseProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl PublishLocalFolderRefreshResponseProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PublishLocalFolderRefreshResponseType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl PublishLocalFolderRefreshResponseType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PublishLocalFolderRefreshResponseOperation {
+    #[serde(rename = "market.publishLocalFolderRefresh")]
+    Value,
+}
+impl PublishLocalFolderRefreshResponseOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.publishLocalFolderRefresh",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PublishLocalFolderRefreshErrorProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl PublishLocalFolderRefreshErrorProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PublishLocalFolderRefreshErrorType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl PublishLocalFolderRefreshErrorType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PublishLocalFolderRefreshErrorOperation {
+    #[serde(rename = "market.publishLocalFolderRefresh")]
+    Value,
+}
+impl PublishLocalFolderRefreshErrorOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.publishLocalFolderRefresh",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ListLocalFolderRevisionsRequestProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl ListLocalFolderRevisionsRequestProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ListLocalFolderRevisionsRequestType {
+    #[serde(rename = "request")]
+    Value,
+}
+impl ListLocalFolderRevisionsRequestType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ListLocalFolderRevisionsRequestOperation {
+    #[serde(rename = "market.listLocalFolderRevisions")]
+    Value,
+}
+impl ListLocalFolderRevisionsRequestOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.listLocalFolderRevisions",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ListLocalFolderRevisionsResponseProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl ListLocalFolderRevisionsResponseProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ListLocalFolderRevisionsResponseType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl ListLocalFolderRevisionsResponseType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ListLocalFolderRevisionsResponseOperation {
+    #[serde(rename = "market.listLocalFolderRevisions")]
+    Value,
+}
+impl ListLocalFolderRevisionsResponseOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.listLocalFolderRevisions",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ListLocalFolderRevisionsErrorProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl ListLocalFolderRevisionsErrorProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ListLocalFolderRevisionsErrorType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl ListLocalFolderRevisionsErrorType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ListLocalFolderRevisionsErrorOperation {
+    #[serde(rename = "market.listLocalFolderRevisions")]
+    Value,
+}
+impl ListLocalFolderRevisionsErrorOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.listLocalFolderRevisions",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalFolderRevisionRequestProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl ReadLocalFolderRevisionRequestProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalFolderRevisionRequestType {
+    #[serde(rename = "request")]
+    Value,
+}
+impl ReadLocalFolderRevisionRequestType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalFolderRevisionRequestOperation {
+    #[serde(rename = "market.readLocalFolderRevision")]
+    Value,
+}
+impl ReadLocalFolderRevisionRequestOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.readLocalFolderRevision",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalFolderRevisionResponseProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl ReadLocalFolderRevisionResponseProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalFolderRevisionResponseType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl ReadLocalFolderRevisionResponseType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalFolderRevisionResponseOperation {
+    #[serde(rename = "market.readLocalFolderRevision")]
+    Value,
+}
+impl ReadLocalFolderRevisionResponseOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.readLocalFolderRevision",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalFolderRevisionErrorProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl ReadLocalFolderRevisionErrorProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalFolderRevisionErrorType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl ReadLocalFolderRevisionErrorType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalFolderRevisionErrorOperation {
+    #[serde(rename = "market.readLocalFolderRevision")]
+    Value,
+}
+impl ReadLocalFolderRevisionErrorOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.readLocalFolderRevision",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum RevokeLocalFolderRevisionRequestProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl RevokeLocalFolderRevisionRequestProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum RevokeLocalFolderRevisionRequestType {
+    #[serde(rename = "request")]
+    Value,
+}
+impl RevokeLocalFolderRevisionRequestType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum RevokeLocalFolderRevisionRequestOperation {
+    #[serde(rename = "market.revokeLocalFolderRevision")]
+    Value,
+}
+impl RevokeLocalFolderRevisionRequestOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.revokeLocalFolderRevision",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum RevokeLocalFolderRevisionResponseProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl RevokeLocalFolderRevisionResponseProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum RevokeLocalFolderRevisionResponseType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl RevokeLocalFolderRevisionResponseType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum RevokeLocalFolderRevisionResponseOperation {
+    #[serde(rename = "market.revokeLocalFolderRevision")]
+    Value,
+}
+impl RevokeLocalFolderRevisionResponseOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.revokeLocalFolderRevision",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum RevokeLocalFolderRevisionErrorProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl RevokeLocalFolderRevisionErrorProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum RevokeLocalFolderRevisionErrorType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl RevokeLocalFolderRevisionErrorType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum RevokeLocalFolderRevisionErrorOperation {
+    #[serde(rename = "market.revokeLocalFolderRevision")]
+    Value,
+}
+impl RevokeLocalFolderRevisionErrorOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.revokeLocalFolderRevision",
         }
     }
 }

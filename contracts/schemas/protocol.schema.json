@@ -85,6 +85,11 @@
         "market.listLocalImportRevisions",
         "market.readLocalImportRevision",
         "market.previewLocalFolderRefresh",
+        "market.prepareLocalFolderPublication",
+        "market.publishLocalFolderRefresh",
+        "market.listLocalFolderRevisions",
+        "market.readLocalFolderRevision",
+        "market.revokeLocalFolderRevision",
         "market.revokeLocalImportRevision",
         "market.publishLocalImport",
         "workspace.readChartProjection",
@@ -3773,6 +3778,51 @@
         },
         {
           "$ref": "#/$defs/PreviewLocalFolderRefreshError"
+        },
+        {
+          "$ref": "#/$defs/PrepareLocalFolderPublicationRequest"
+        },
+        {
+          "$ref": "#/$defs/PrepareLocalFolderPublicationResponse"
+        },
+        {
+          "$ref": "#/$defs/PrepareLocalFolderPublicationError"
+        },
+        {
+          "$ref": "#/$defs/PublishLocalFolderRefreshRequest"
+        },
+        {
+          "$ref": "#/$defs/PublishLocalFolderRefreshResponse"
+        },
+        {
+          "$ref": "#/$defs/PublishLocalFolderRefreshError"
+        },
+        {
+          "$ref": "#/$defs/ListLocalFolderRevisionsRequest"
+        },
+        {
+          "$ref": "#/$defs/ListLocalFolderRevisionsResponse"
+        },
+        {
+          "$ref": "#/$defs/ListLocalFolderRevisionsError"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalFolderRevisionRequest"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalFolderRevisionResponse"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalFolderRevisionError"
+        },
+        {
+          "$ref": "#/$defs/RevokeLocalFolderRevisionRequest"
+        },
+        {
+          "$ref": "#/$defs/RevokeLocalFolderRevisionResponse"
+        },
+        {
+          "$ref": "#/$defs/RevokeLocalFolderRevisionError"
         },
         {
           "$ref": "#/$defs/RevokeLocalImportRevisionRequest"
@@ -13550,7 +13600,7 @@
         "accepted": {
           "anyOf": [
             {
-              "$ref": "#/$defs/PublishedLocalImportBar"
+              "$ref": "#/$defs/AcceptedFolderRefreshBar"
             },
             {
               "type": "null"
@@ -13611,7 +13661,7 @@
           "items": {
             "$ref": "#/$defs/FolderRefreshFile"
           },
-          "maxItems": 65
+          "maxItems": 128
         },
         "bars": {
           "type": "array",
@@ -13619,15 +13669,51 @@
             "$ref": "#/$defs/FolderRefreshBar"
           },
           "maxItems": 20000
+        },
+        "folder_base": {
+          "$ref": "#/$defs/PublishedLocalFolderRevision"
+        },
+        "review_id": {
+          "$ref": "#/$defs/Hash"
+        },
+        "publication_allowed": {
+          "type": "boolean"
         }
       },
       "required": [
         "version",
-        "base",
         "files",
         "bars"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "base": {
+                  "$ref": "#/$defs/PublishedLocalImportRevision"
+                }
+              },
+              "required": [
+                "base"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "folder_base": {
+                  "$ref": "#/$defs/PublishedLocalFolderRevision"
+                }
+              },
+              "required": [
+                "folder_base"
+              ]
+            }
+          ]
+        }
+      ]
     },
     "PreviewLocalFolderRefreshRequest": {
       "type": "object",
@@ -13782,6 +13868,1185 @@
         },
         {
           "$ref": "#/$defs/PreviewLocalFolderRefreshError"
+        }
+      ]
+    },
+    "FolderPublicationConflictChoice": {
+      "type": "object",
+      "properties": {
+        "time_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "alternative_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 63
+        }
+      },
+      "required": [
+        "time_ms",
+        "alternative_index"
+      ],
+      "additionalProperties": false
+    },
+    "PublishedLocalFolderRevision": {
+      "type": "object",
+      "properties": {
+        "revision_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "base_revision_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "parent_revision_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "origin_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32768
+        },
+        "symbol": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "series": {
+          "$ref": "#/$defs/PreviewSeries"
+        },
+        "source_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "bar_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20000
+        },
+        "bar_summary": {
+          "$ref": "#/$defs/LocalImportRevisionBarSummary"
+        }
+      },
+      "required": [
+        "revision_id",
+        "base_revision_id",
+        "parent_revision_id",
+        "origin_path",
+        "symbol",
+        "series",
+        "source_count",
+        "bar_count"
+      ],
+      "additionalProperties": false
+    },
+    "PublishedLocalFolderSource": {
+      "type": "object",
+      "properties": {
+        "relative_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32768
+        },
+        "source_sha256": {
+          "$ref": "#/$defs/Hash"
+        },
+        "record_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        }
+      },
+      "required": [
+        "relative_path",
+        "source_sha256",
+        "record_count"
+      ],
+      "additionalProperties": false
+    },
+    "PrepareLocalFolderPublicationInput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "folder_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "review_id": {
+          "$ref": "#/$defs/Hash"
+        },
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FolderPublicationConflictChoice"
+          },
+          "maxItems": 20000
+        },
+        "withdraw_bars": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Timestamp"
+          },
+          "maxItems": 20000
+        },
+        "withdraw_sources": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32768
+          },
+          "maxItems": 64
+        }
+      },
+      "required": [
+        "version",
+        "folder_id",
+        "review_id",
+        "conflicts",
+        "withdraw_bars",
+        "withdraw_sources"
+      ],
+      "additionalProperties": false
+    },
+    "PrepareLocalFolderPublicationOutput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "review_id": {
+          "$ref": "#/$defs/Hash"
+        },
+        "candidate_sha256": {
+          "$ref": "#/$defs/Hash"
+        },
+        "parent_revision_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "source_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "bar_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20000
+        }
+      },
+      "required": [
+        "version",
+        "review_id",
+        "candidate_sha256",
+        "parent_revision_id",
+        "source_count",
+        "bar_count"
+      ],
+      "additionalProperties": false
+    },
+    "PublishLocalFolderRefreshInput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "folder_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "review_id": {
+          "$ref": "#/$defs/Hash"
+        },
+        "candidate_sha256": {
+          "$ref": "#/$defs/Hash"
+        },
+        "idempotency_key": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "version",
+        "folder_id",
+        "review_id",
+        "candidate_sha256",
+        "idempotency_key"
+      ],
+      "additionalProperties": false
+    },
+    "PublishLocalFolderRefreshOutput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "revision": {
+          "$ref": "#/$defs/PublishedLocalFolderRevision"
+        }
+      },
+      "required": [
+        "version",
+        "revision"
+      ],
+      "additionalProperties": false
+    },
+    "ListLocalFolderRevisionsInput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "after_revision_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CanonicalRevisionCursor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        }
+      },
+      "required": [
+        "version",
+        "after_revision_id",
+        "limit"
+      ],
+      "additionalProperties": false
+    },
+    "ListLocalFolderRevisionsOutput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "revisions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PublishedLocalFolderRevision"
+          },
+          "maxItems": 20
+        },
+        "next_after_revision_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CanonicalRevisionCursor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "version",
+        "revisions",
+        "next_after_revision_id"
+      ],
+      "additionalProperties": false
+    },
+    "ReadLocalFolderRevisionInput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "revision_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "include_details": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "version",
+        "revision_id"
+      ],
+      "additionalProperties": false
+    },
+    "ReadLocalFolderRevisionOutput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "revision": {
+          "$ref": "#/$defs/PublishedLocalFolderRevision"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PublishedLocalFolderSource"
+          },
+          "maxItems": 64
+        },
+        "bars": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FolderRefreshAlternative"
+          },
+          "maxItems": 20000
+        }
+      },
+      "required": [
+        "version",
+        "revision",
+        "files",
+        "bars"
+      ],
+      "additionalProperties": false
+    },
+    "RevokeLocalFolderRevisionInput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "revision_id": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "version",
+        "revision_id"
+      ],
+      "additionalProperties": false
+    },
+    "RevokeLocalFolderRevisionOutput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "revision_id": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "version",
+        "revision_id"
+      ],
+      "additionalProperties": false
+    },
+    "PrepareLocalFolderPublicationRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.prepareLocalFolderPublication"
+        },
+        "payload": {
+          "$ref": "#/$defs/PrepareLocalFolderPublicationInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "PrepareLocalFolderPublicationResponse": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.prepareLocalFolderPublication"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": true
+        },
+        "result": {
+          "$ref": "#/$defs/PrepareLocalFolderPublicationOutput"
+        },
+        "error": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "PrepareLocalFolderPublicationError": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.prepareLocalFolderPublication"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": false
+        },
+        "result": {
+          "type": "null"
+        },
+        "error": {
+          "$ref": "#/$defs/MarketPageFault"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "PrepareLocalFolderPublicationReply11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/PrepareLocalFolderPublicationResponse"
+        },
+        {
+          "$ref": "#/$defs/PrepareLocalFolderPublicationError"
+        }
+      ]
+    },
+    "PublishLocalFolderRefreshRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.publishLocalFolderRefresh"
+        },
+        "payload": {
+          "$ref": "#/$defs/PublishLocalFolderRefreshInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "PublishLocalFolderRefreshResponse": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.publishLocalFolderRefresh"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": true
+        },
+        "result": {
+          "$ref": "#/$defs/PublishLocalFolderRefreshOutput"
+        },
+        "error": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "PublishLocalFolderRefreshError": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.publishLocalFolderRefresh"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": false
+        },
+        "result": {
+          "type": "null"
+        },
+        "error": {
+          "$ref": "#/$defs/MarketPageFault"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "PublishLocalFolderRefreshReply11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/PublishLocalFolderRefreshResponse"
+        },
+        {
+          "$ref": "#/$defs/PublishLocalFolderRefreshError"
+        }
+      ]
+    },
+    "ListLocalFolderRevisionsRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.listLocalFolderRevisions"
+        },
+        "payload": {
+          "$ref": "#/$defs/ListLocalFolderRevisionsInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "ListLocalFolderRevisionsResponse": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.listLocalFolderRevisions"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": true
+        },
+        "result": {
+          "$ref": "#/$defs/ListLocalFolderRevisionsOutput"
+        },
+        "error": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "ListLocalFolderRevisionsError": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.listLocalFolderRevisions"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": false
+        },
+        "result": {
+          "type": "null"
+        },
+        "error": {
+          "$ref": "#/$defs/MarketPageFault"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "ListLocalFolderRevisionsReply11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ListLocalFolderRevisionsResponse"
+        },
+        {
+          "$ref": "#/$defs/ListLocalFolderRevisionsError"
+        }
+      ]
+    },
+    "ReadLocalFolderRevisionRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.readLocalFolderRevision"
+        },
+        "payload": {
+          "$ref": "#/$defs/ReadLocalFolderRevisionInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "ReadLocalFolderRevisionResponse": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.readLocalFolderRevision"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": true
+        },
+        "result": {
+          "$ref": "#/$defs/ReadLocalFolderRevisionOutput"
+        },
+        "error": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "ReadLocalFolderRevisionError": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.readLocalFolderRevision"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": false
+        },
+        "result": {
+          "type": "null"
+        },
+        "error": {
+          "$ref": "#/$defs/MarketPageFault"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "ReadLocalFolderRevisionReply11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ReadLocalFolderRevisionResponse"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalFolderRevisionError"
+        }
+      ]
+    },
+    "RevokeLocalFolderRevisionRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.revokeLocalFolderRevision"
+        },
+        "payload": {
+          "$ref": "#/$defs/RevokeLocalFolderRevisionInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "RevokeLocalFolderRevisionResponse": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.revokeLocalFolderRevision"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": true
+        },
+        "result": {
+          "$ref": "#/$defs/RevokeLocalFolderRevisionOutput"
+        },
+        "error": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "RevokeLocalFolderRevisionError": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.revokeLocalFolderRevision"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": false
+        },
+        "result": {
+          "type": "null"
+        },
+        "error": {
+          "$ref": "#/$defs/MarketPageFault"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "RevokeLocalFolderRevisionReply11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/RevokeLocalFolderRevisionResponse"
+        },
+        {
+          "$ref": "#/$defs/RevokeLocalFolderRevisionError"
+        }
+      ]
+    },
+    "AcceptedFolderRefreshBar": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/PublishedLocalImportBar"
+        },
+        {
+          "$ref": "#/$defs/FolderRefreshAlternative"
         }
       ]
     }

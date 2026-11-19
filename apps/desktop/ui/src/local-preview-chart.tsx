@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
-import type { Bar, LocalImportPreviewOutput, PreviewSeries } from '../../../../contracts/generated/protocol';
+import type { Bar, LocalImportPreviewOutput, PreviewSeries, ReadLocalFolderRevisionOutput } from '../../../../contracts/generated/protocol';
 import type { ChartStyle, HistoryChartHandle } from './chart-adapter/history';
 import { FrozenEvidenceControls, type FrozenChartResult } from './frozen-evidence';
 import { PriceChart } from './price-chart';
@@ -118,6 +118,52 @@ export function FrozenLocalChart({ result, workspace, access }: {
           <button type="button" className="secondary-button" disabled={last >= rows.length} onClick={() => setPage(page + 1)}>Next source rows</button>
         </div>}
       </details>
+    </section>
+  </>;
+}
+
+export function FrozenFolderChart({ result }: { result: ReadLocalFolderRevisionOutput }) {
+  const [page, setPage] = useState(0);
+  const { revision, files, bars: events } = result;
+  const bars = useMemo(() => events.map(event => event.bar), [events]);
+  const rows = useMemo(() => events.flatMap(({ bar, sources }) => sources.map(source => ({ bar, source }))), [events]);
+  const pageSize = 20;
+  const first = page * pageSize;
+  const last = Math.min(first + pageSize, rows.length);
+  return <>
+    <LocalBarChart title="Frozen folder chart" label="Frozen local folder chart" styleLabel="Frozen folder chart style"
+      series={revision.series} symbol={revision.symbol} bars={bars.length ? bars : undefined}
+      emptyMessage="This reviewed folder revision withdrew all accepted bars." />
+    <section className="local-import-card" aria-label="Published folder source provenance">
+      <h2>Published folder source provenance</h2>
+      <div className="local-import-hash"><strong>Folder revision</strong><code>{revision.revision_id}</code></div>
+      <div className="local-import-hash"><strong>Prior revision</strong><code>{revision.parent_revision_id ?? revision.base_revision_id}</code></div>
+      <details className="local-import-raw-only">
+        <summary>Source files ({files.length.toLocaleString()})</summary>
+        {files.length ? <ul>{files.map(file => <li key={file.relative_path}>
+          <strong>{file.relative_path}</strong> · {file.record_count.toLocaleString()} records · SHA-256 <code>{file.source_sha256}</code>
+        </li>)}</ul> : <p>No sources remain in this reviewed revision.</p>}
+      </details>
+      {rows.length > 0 && <details className="local-import-raw-only">
+        <summary>Source rows ({rows.length.toLocaleString()})</summary>
+        <div className="local-import-table table-scroll" tabIndex={0} role="region" aria-label="Scroll published folder source rows">
+          <table aria-label="Published folder source rows">
+            <thead><tr>{['Source', 'Record', 'Source lines', 'Bar start (UTC)', 'Trading day', 'Close'].map(label =>
+              <th scope="col" key={label}>{label}</th>,
+            )}</tr></thead>
+            <tbody>{rows.slice(first, last).map(({ bar, source }) => <tr key={`${source.relative_path}:${source.record_number}`}>
+              <th scope="row">{source.relative_path}</th><td>{source.record_number}</td>
+              <td>{source.line_start === source.line_end ? source.line_start : `${source.line_start}–${source.line_end}`}</td>
+              <td>{new Date(bar.time_ms).toISOString()}</td><td>{bar.trading_day}</td><td>{bar.close}</td>
+            </tr>)}</tbody>
+          </table>
+        </div>
+        {rows.length > pageSize && <div className="local-import-table-nav">
+          <p>Source rows {first + 1}–{last} of {rows.length}</p>
+          <button type="button" className="secondary-button" disabled={page === 0} onClick={() => setPage(page - 1)}>Previous source rows</button>
+          <button type="button" className="secondary-button" disabled={last >= rows.length} onClick={() => setPage(page + 1)}>Next source rows</button>
+        </div>}
+      </details>}
     </section>
   </>;
 }
