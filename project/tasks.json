@@ -5882,7 +5882,9 @@
       "title": "Verify serial catalog and history startup in chart previews",
       "milestone": "M1",
       "status": "done",
-      "depends_on": ["M1-001"],
+      "depends_on": [
+        "M1-001"
+      ],
       "scope": [
         "tests/ubuntu-preview/market-workflow.spec.mjs",
         "tests/ubuntu-preview/preview.spec.mjs",
@@ -5890,12 +5892,20 @@
         "project/tasks.json",
         "project/feedback.json"
       ],
-      "decision_refs": ["0004", "0007"],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
       "acceptance": [
         "Default sample startup verifies the exact real catalog and history requests and their separate successful replies before checking chart readiness in both browser suites.",
         "Holding each real reply independently reproduces a startup beyond the old five-second aggregate wait. Exact chart, replay, offline retry, and typed worker-error assertions still apply."
       ],
-      "checks": ["market-workflow", "ubuntu-preview", "project-state", "python-contracts-workers"],
+      "checks": [
+        "market-workflow",
+        "ubuntu-preview",
+        "project-state",
+        "python-contracts-workers"
+      ],
       "evidence": [
         {
           "path": "project/evidence/M1-020-d05ddb38f6fbe253.json",
@@ -5915,24 +5925,54 @@
       "closure_reason": null,
       "plan": {
         "outcome": "Separate catalog and history verification from chart paint in the inherited M1-001 browser paths.",
-        "change_types": ["tooling"],
-        "context": ["tests/ui/sample-startup.mjs", "apps/desktop/ui/ubuntu-preview.mjs"],
-        "hypotheses": ["The two serial worker reads can legitimately outlast the former five-second render wait, including after Retry demo."],
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ui/sample-startup.mjs",
+          "apps/desktop/ui/ubuntu-preview.mjs"
+        ],
+        "hypotheses": [
+          "The two serial worker reads can legitimately outlast the former five-second render wait, including after Retry demo."
+        ],
         "risks": [
-          { "failure": "An unsuccessful worker reply, incorrect series, or missing chart passes as slow startup.", "checks": ["market-workflow", "ubuntu-preview"] }
+          {
+            "failure": "An unsuccessful worker reply, incorrect series, or missing chart passes as slow startup.",
+            "checks": [
+              "market-workflow",
+              "ubuntu-preview"
+            ]
+          }
         ],
         "rollback": "Retain hosted run 44531620190 and the held-response regression before reopening any failing phase.",
         "implementation": {
-          "modules": ["development-tooling"],
-          "entrypoints": ["tests/ui/sample-startup.mjs", "tests/ubuntu-preview/preview.spec.mjs", "tests/ubuntu-preview/market-workflow.spec.mjs"],
-          "rules": [{ "path": "project/delivery.json", "pointer": "/scaffold_maintenance" }],
-          "non_goals": ["Worker deadlines, application retry rules, fixtures, and packaged Windows acceptance."],
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ui/sample-startup.mjs",
+            "tests/ubuntu-preview/preview.spec.mjs",
+            "tests/ubuntu-preview/market-workflow.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Worker deadlines, application retry rules, fixtures, and packaged Windows acceptance."
+          ],
           "open_questions": []
         },
         "evolution": {
           "kind": "refactor",
-          "preserve": ["Explicit synthetic opt-in, replay and chart values, and offline recovery behavior."],
-          "change": ["Use the shared default startup verifier and cover two independently held real replies and a typed worker failure."],
+          "preserve": [
+            "Explicit synthetic opt-in, replay and chart values, and offline recovery behavior."
+          ],
+          "change": [
+            "Use the shared default startup verifier and cover two independently held real replies and a typed worker failure."
+          ],
           "data_plan": "Use only committed synthetic fixtures through the local bridge.",
           "cleanup": "Keep timeout allowances in browser verification and leave product deadlines intact."
         }
@@ -6047,6 +6087,103 @@
           ],
           "data_plan": "Store only reviewed public advisory fields in the runner temporary directory.",
           "cleanup": "The fetch has no child checks. The runner owns temporary public evidence and the built-in job credential lifetime."
+        }
+      }
+    },
+    {
+      "id": "M2-008",
+      "title": "Own browser response waits in the workspace preview harness",
+      "milestone": "M2",
+      "status": "active",
+      "depends_on": [
+        "M2-007"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "A controlled initial document failure in real Chromium reports its navigation error and releases the pending workspace snapshot observation before context teardown.",
+        "Response and download observations in the workspace suite are scoped to the browser action. Test-only HTTP probes consume or cancel the bodies they own. Existing success and rejection assertions continue to pass without retries or extended timeouts.",
+        "Retain the original hosted Windows error and report the harness finding separately from the unresolved origin of that Chromium navigation error."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-008-21f96520ee78a8a1.json",
+          "sha256": "db2977baa24757ef29b37284c9230d2a83511e9215b5065e5735e1cbc6d0ea63"
+        }
+      ],
+      "next_action": "Review the locally verified observer cleanup and independent peer writers, then run the browser suite once on the matching Windows source. If the initial document error recurs, correlate its Chromium failure with receipt of the request at the owned Vite listener using bounded synthetic metadata.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A real navigation error remains the primary assertion failure and leaves no workspace snapshot observer behind.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ubuntu-preview/workspace.config.mjs",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The response promise created before navigation was observed only after successful navigation and UI assertions. Closing the context on failure rejects that abandoned promise."
+        ],
+        "risks": [
+          {
+            "failure": "A snapshot listener survives a rejected action or captures the wrong response.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A test helper masks the original document error or changes a notes authorization assertion.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Keep the original hosted failure and the controlled red result. Scope any repair to the workspace harness and compare the original operation assertions.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changes to product operations, grants, SQLite, public registries, timeouts or runner settings."
+          ],
+          "open_questions": [
+            "The origin of the isolated hosted Chromium document error remains unverified."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Real Chromium, Vite, Rust persistence, the existing test deadlines, and independent synthetic profiles."
+          ],
+          "change": [
+            "Tie the lifetimes of test observations and response bodies to the operations that own them."
+          ],
+          "data_plan": "Use a unique local port and a controlled browser route or temporary synthetic profile.",
+          "cleanup": "Detach pending listeners when an action fails. Consume or cancel owned HTTP response bodies and close the owned browser contexts."
         }
       }
     }
