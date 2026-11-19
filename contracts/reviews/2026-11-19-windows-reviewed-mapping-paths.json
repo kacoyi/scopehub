@@ -1,0 +1,66 @@
+{
+  "recorded_at": "2026-11-19",
+  "kind": "native_reviewed_mapping_path_observation",
+  "task_id": "M1-008",
+  "source_commit": "a19ce6a5c24d22df09f64adb8c1af5851f56e47d",
+  "source_archive_sha256": "04203b3f90a39c778d7a29ad02eb5f464ef6b9356add3a09682987c411459861",
+  "platform": {
+    "system": "Windows 11 Enterprise Evaluation 26H2",
+    "build": "26300.9457",
+    "runtime": "MSVC native tests in a standard user session on NTFS"
+  },
+  "baseline": {
+    "source_commit": "2f4a0c02f746a35e10b23317ceb7f309b3f068da",
+    "observed": "The same native save and restart test passed with a long temporary directory name and returned not_saved instead of saved when the system supplied the 8.3 spelling of that directory. The hosted Windows run also returned not_saved at the same assertion.",
+    "hosted_workflow": 44548543796
+  },
+  "observed": {
+    "long_temp": {
+      "desktop_mapping": 3,
+      "platform_directory": 2
+    },
+    "short_temp": {
+      "desktop_mapping": 3,
+      "platform_directory": 2
+    },
+    "cases": [
+      "A reviewed mapping survives restart and a compatible source-body edit when the same directory is reselected through an equivalent path.",
+      "A profile containing a legacy v4 mapping that was saved using the canonical source key can reopen it through an alternate path spelling.",
+      "Separate directories remain distinct when they contain identical CSV bytes. The directory guard rejects an NTFS junction."
+    ]
+  },
+  "artifacts": [
+    {
+      "file": ".reports/guest/2f4a0c0-mapping-path-reopen/LONG.TXT",
+      "sha256": "9a3183151bb5b07d7ea07fdf400627d3870719e2fade4b24fd3c5328aa17f778"
+    },
+    {
+      "file": ".reports/guest/2f4a0c0-mapping-path-reopen/SHORT.TXT",
+      "sha256": "a660b5d46c21e82cf880e41af45204be10f76b93ed581626320edf4ff14ef942"
+    },
+    {
+      "file": ".reports/guest/a19ce6a-mapping-path-reopen/BUILD.JSON",
+      "sha256": "366ea0c1fa52fb75f75d9da6eaf7ad24414ea870c5efa53d77f6c0c280bae084"
+    },
+    {
+      "file": ".reports/guest/a19ce6a-mapping-path-reopen/MAPBUILD.TXT",
+      "sha256": "476f25404578f8f80e591f373e92af6b59813ea7506c6e0f9a60a4387e2bbe59"
+    },
+    {
+      "file": ".reports/guest/a19ce6a-mapping-path-reopen/LDESK.TXT",
+      "sha256": "67b473cc76280b6a91a6426b0fd39d5b0ba3d27e17ddd0027e7e28ad1bb97a4b"
+    },
+    {
+      "file": ".reports/guest/a19ce6a-mapping-path-reopen/LPLAT.TXT",
+      "sha256": "17e7f6d060aade1798a5584aede622bde05fd5519bbb0fb1731087b68fb7942f"
+    },
+    {
+      "file": ".reports/guest/a19ce6a-mapping-path-reopen/SDESK.TXT",
+      "sha256": "cc632cfc25f16dc4ea66e99d738e38b78d9c3f45d3e0d6f690ff089204d633e0"
+    },
+    {
+      "file": ".reports/guest/a19ce6a-mapping-path-reopen/SPLAT.TXT",
+      "sha256": "2592829e9056a67631860a0c7455006603a21a34037ade9a82a7b3735ca850fe"
+    }
+  ]
+}

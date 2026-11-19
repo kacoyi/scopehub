@@ -161,10 +161,15 @@ impl State {
                     .await;
             }
             LIST_LOCAL_IMPORT_REVISIONS => {
+                self.local_import.reject_reused_request(request_id)?;
                 return self.workspace.list_local_revisions(payload).await;
             }
-            READ_LOCAL_IMPORT_REVISION => return self.workspace.read_local_revision(payload).await,
+            READ_LOCAL_IMPORT_REVISION => {
+                self.local_import.reject_reused_request(request_id)?;
+                return self.workspace.read_local_revision(payload).await;
+            }
             REVOKE_LOCAL_IMPORT_REVISION => {
+                self.local_import.reject_reused_request(request_id)?;
                 return self.workspace.revoke_local_revision(payload).await;
             }
             _ => {}
