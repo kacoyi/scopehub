@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-018",
+  "focus_task_id": "M1-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -5144,7 +5144,7 @@
       "id": "M1-018",
       "title": "Verify offline chart restoration across catalog, history and paint",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-017"
       ],
@@ -5167,8 +5167,13 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Reproduce the hosted reload failure with real delayed reads and verify cold startup, history and paint independently.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-018-6747a65520edf647.json",
+          "sha256": "29e1e02e0f8a19c8d899ed8f48f849748aeffb89514983e89bb79646d6555ac2"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {

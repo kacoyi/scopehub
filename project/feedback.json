@@ -872,14 +872,18 @@
       "source": "Hosted Windows Verify delivery run 44509534715, market-live-stream, first test after page reload.",
       "observation": "The five-second selected-bar assertion expired. The failure screenshot already shows the restored simulated futures chart, selected line style, open data window, forty bars and the original partial close of 3500.8 with volume 110. The other seven stream cases passed.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-018"
       ],
       "regression_checks": [
         "market-live-stream"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The selected-bar assertion started before catalog and history had completed. Holding both real successful replies for 2.75 seconds each reproduced the Windows missing-element timeout with the original assertion.",
+        "correction": "Observe every POST from issuance through the rendered chart, correlate completion or failure, and verify each read against its own deadline. Recheck the visible instrument, timeframe, chart style, simulated source and identical frozen final row after reload.",
+        "prevention": "All eight replay cases pass with the bounded restore. Four independent negative probes reproduced the earlier false passes and confirm a failed extra read, an outstanding read, an unrelated BUSY and early history issuance are rejected."
+      },
       "deferral_reason": null
     }
   ]
