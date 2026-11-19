@@ -5,9 +5,10 @@ use scopehub_domain::{
         DecisionNoteExportBackupReply11, DecisionNotePreviewRestoreCommand11,
         DecisionNotePreviewRestoreReply11, DecisionNoteReadCommand11, DecisionNoteReadReply11,
         DecisionNoteRestoreBackupCommand11, DecisionNoteRestoreBackupReply11,
-        DecisionNoteSaveCommand11, DecisionNoteSaveReply11, Message, PrivateRecordChangeCommand11,
-        PrivateRecordChangeReply11, PrivateRecordExportCommand11, PrivateRecordExportReply11,
-        PrivateRecordReadCommand11, PrivateRecordReadReply11, Request, ToolCall,
+        DecisionNoteSaveCommand11, DecisionNoteSaveReply11, Message, MutationIntent11,
+        PrivateRecordChangeCommand11, PrivateRecordChangeReply11, PrivateRecordExportCommand11,
+        PrivateRecordExportReply11, PrivateRecordReadCommand11, PrivateRecordReadReply11, Request,
+        ToolCall,
     },
     wire::normalize_integers,
 };
@@ -51,6 +52,23 @@ fn tool_operation(value: &ToolCall) -> &'static str {
         ToolCall::WorkspaceUndoToolCall(_) => "workspace.undo",
         ToolCall::TaskCancelToolCall(_) => "task.cancel",
         ToolCall::WorkspaceGetContextToolCall(_) => "workspace.getContext",
+    }
+}
+
+fn scoped_operation(value: &MutationIntent11) -> &'static str {
+    match value {
+        MutationIntent11::WorkspaceOpenInstrumentIntent11(_) => "workspace.openInstrument",
+        MutationIntent11::ChartSetTimeframeIntent11(_) => "chart.setTimeframe",
+        MutationIntent11::ChartSetStyleIntent11(_) => "chart.setStyle",
+        MutationIntent11::ChartAddAnnotationIntent11(_) => "chart.addAnnotation",
+        MutationIntent11::ChartRemoveLayerIntent11(_) => "chart.removeLayer",
+        MutationIntent11::IndicatorCreateDraftIntent11(_) => "indicator.createDraft",
+        MutationIntent11::IndicatorRunPreviewIntent11(_) => "indicator.runPreview",
+        MutationIntent11::IndicatorAcceptVersionIntent11(_) => "indicator.acceptVersion",
+        MutationIntent11::IndicatorRemoveIntent11(_) => "indicator.remove",
+        MutationIntent11::WorkspaceUndoIntent11(_) => "workspace.undo",
+        MutationIntent11::WorkspacePreviewLayoutIntent11(_) => "workspace.previewLayout",
+        MutationIntent11::WorkspaceApplyLayoutIntent11(_) => "workspace.applyLayout",
     }
 }
 
@@ -139,9 +157,19 @@ fn shared_vectors_and_generated_types_agree() {
                 Message::SharedSelectionRequest11(_) => {
                     requests.insert("workspace.selectEvidence");
                 }
+                Message::ScopedMutationRequest11(request) => {
+                    let name = scoped_operation(&request.intent);
+                    assert_eq!(name, original["intent"]["operation"]);
+                    requests.insert(name);
+                }
                 Message::AiToolRequest11(call) => {
                     use scopehub_domain::protocol::AiRequestedAction11;
                     match &call.payload {
+                        AiRequestedAction11::BoundMutationIntent11(bound) => {
+                            let name = scoped_operation(&bound.intent);
+                            assert_eq!(name, original["payload"]["intent"]["operation"]);
+                            tools.insert(name);
+                        }
                         AiRequestedAction11::MarketHistoryPageToolCall11(_) => {
                             tools.insert("market.readHistoryPage");
                         }
