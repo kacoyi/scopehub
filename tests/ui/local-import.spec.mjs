@@ -1723,6 +1723,32 @@ base('publishes a reviewed folder once and reopens its frozen provenance without
     }
 
     await expect(acceptedId).toHaveValue(revisionId);
+    // Recreate both published sources, then replace only the former representative.
+    const copyPath = join(folder, 'retained-copy.csv');
+    await writeFile(currentPath, current);
+    await writeFile(copyPath, current);
+    await writeFile(aliasPath, csv([corrected('38', '00121', 'New revision'), addedRow]));
+    await stage.click();
+    const changes = review.getByRole('table', { name: 'Folder source changes' });
+    const file = name => changes.getByRole('rowheader', { name, exact: true }).locator('..');
+    await expect(file('alias.csv')).toContainText('Replaced');
+    await expect(file('current.csv')).toContainText('Alias of alias.csv (accepted source)');
+    await expect(file('retained-copy.csv')).toContainText('Alias of current.csv (current source)');
+    await expect(file('retained-copy.csv')).toContainText('Alias of alias.csv (accepted source)');
+    const replaced = operations('previewLocalFolderRefresh').at(-1).reply.result;
+    expect(replaced.files).toEqual([
+      expect.objectContaining({ relative_path: 'alias.csv', prior_sha256: hash, change: 'replaced', alias_of: null }),
+      expect.objectContaining({ relative_path: 'current.csv', source_sha256: hash, alias_of: null }),
+      expect.objectContaining({ relative_path: 'retained-copy.csv', source_sha256: hash, alias_of: 'current.csv' }),
+    ]);
+    expect(replaced.files[0].source_sha256).not.toBe(hash);
+    const afterReplacement = replaced.bars.find(bar => bar.time_ms === conflictTime);
+    expect(afterReplacement.status).toBe('conflict');
+    expect(afterReplacement.alternatives.map(item => item.bar.close).sort()).toEqual([37, 38, 39]);
+    await rm(aliasPath);
+    await rm(currentPath);
+    await rm(copyPath);
+
     await stage.click();
     await review.getByText(/2026-04-14.+Withdrawal candidate/).click();
     await expect(review.getByText('Accepted current.csv · Record 2 · Lines 3–4')).toBeVisible();
