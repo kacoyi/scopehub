@@ -57,6 +57,7 @@
 .local-revision-list { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
 .local-revision-list .secondary-button { display: grid; gap: 3px; width: 100%; margin: 0; text-align: left; overflow-wrap: anywhere; }
 .local-revision-list span { color: var(--muted); }
+.local-revision-list .local-revision-summary { color: inherit; }
 .local-import-progress { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .local-import-error { margin-bottom: 14px; padding: 9px 12px; border: 1px solid #784950; border-radius: 5px; color: #ffb0ac; }
 .local-import-error code, .local-import-hash code { overflow-wrap: anywhere; }

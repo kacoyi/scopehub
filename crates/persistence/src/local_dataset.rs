@@ -2,7 +2,7 @@ use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 use scopehub_application::{
     LocalDatasetPublication, LocalDatasetStore, MappingCommitGuard, StoredLocalDataset,
 };
-use scopehub_domain::protocol::LocalImportRevisionListEntry;
+use scopehub_domain::protocol::{LocalImportRevisionBarSummary, LocalImportRevisionListEntry};
 use uuid::Uuid;
 
 use super::{
@@ -92,6 +92,7 @@ impl LocalDatasetStore for SqliteWorkspace {
         &self,
         after_revision_id: Option<&str>,
         limit: usize,
+        include_bar_summary: bool,
     ) -> Result<Vec<LocalImportRevisionListEntry>, Error> {
         let after = after_revision_id.unwrap_or_default();
         if after_revision_id.is_some() {
@@ -105,7 +106,11 @@ impl LocalDatasetStore for SqliteWorkspace {
                         json_extract(revision.content_json, '$.symbol'),
                         json_extract(revision.content_json, '$.series.timeframe'),
                         json_array_length(revision.content_json, '$.bars'),
-                        json_extract(revision.content_json, '$.source_record_count')
+                        json_extract(revision.content_json, '$.source_record_count'),
+                        CASE WHEN ?3 THEN json_extract(revision.content_json, '$.series.venue') END,
+                        CASE WHEN ?3 THEN json_extract(revision.content_json, '$.bars[0].bar.trading_day') END,
+                        CASE WHEN ?3 THEN json_extract(revision.content_json, '$.bars[#-1].bar.trading_day') END,
+                        CASE WHEN ?3 THEN json_extract(revision.content_json, '$.bars[#-1].bar.close') END
                  FROM local_dataset_revisions AS revision
                  WHERE revision.revision_id > ?1
                    AND NOT EXISTS (
@@ -117,7 +122,17 @@ impl LocalDatasetStore for SqliteWorkspace {
             )
             .map_err(store_error)?;
         statement
-            .query_map(params![after, limit], |row| {
+            .query_map(params![after, limit, include_bar_summary], |row| {
+                let bar_summary = if include_bar_summary {
+                    Some(LocalImportRevisionBarSummary {
+                        venue: row.get(7)?,
+                        first_trading_day: row.get(8)?,
+                        final_trading_day: row.get(9)?,
+                        final_close: row.get(10)?,
+                    })
+                } else {
+                    None
+                };
                 Ok(LocalImportRevisionListEntry {
                     revision_id: row.get(0)?,
                     relative_path: row.get(1)?,
@@ -126,6 +141,7 @@ impl LocalDatasetStore for SqliteWorkspace {
                     timeframe: row.get(4)?,
                     bar_count: u64::from(row.get::<_, u32>(5)?),
                     source_record_count: u64::from(row.get::<_, u32>(6)?),
+                    bar_summary,
                 })
             })
             .map_err(store_error)?

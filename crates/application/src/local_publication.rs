@@ -53,6 +53,7 @@ pub trait LocalDatasetStore: ReviewedMappingStore {
         &self,
         after_revision_id: Option<&str>,
         limit: usize,
+        include_bar_summary: bool,
     ) -> Result<Vec<LocalImportRevisionListEntry>, Error>;
     fn read_local_dataset(&self, revision_id: &str) -> Result<Option<StoredLocalDataset>, Error>;
     fn revoke_local_dataset(&mut self, revision_id: &str) -> Result<bool, Error>;
@@ -279,9 +280,11 @@ impl<S: LocalDatasetStore> OperationRegistry<S> {
             .ok()
             .filter(|limit| (1..=20).contains(limit))
             .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
-        let mut revisions = self
-            .port
-            .list_local_datasets(input.after_revision_id.as_deref(), limit + 1)?;
+        let mut revisions = self.port.list_local_datasets(
+            input.after_revision_id.as_deref(),
+            limit + 1,
+            input.include_bar_summary.unwrap_or_default(),
+        )?;
         let has_more = revisions.len() > limit;
         revisions.truncate(limit);
         let next_after_revision_id = if has_more {

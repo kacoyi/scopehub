@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=aad78fe1eefed3900bd403b8ccfe6db270452ff91b3dc82567a361c0a585249f. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=d61540f2af5ac6b317afc674d4afe95d3c8e5a30e394b45defeab3f28c07e757. Do not edit.
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type OpaqueId = string;
 export type Uuid = string;
@@ -2339,6 +2339,12 @@ export type PublishLocalImportOutput = {
   version: number;
   revision: PublishedLocalImportRevision;
 };
+export type LocalImportRevisionBarSummary = {
+  venue: string;
+  first_trading_day: string;
+  final_trading_day: string;
+  final_close: number;
+};
 export type LocalImportRevisionListEntry = {
   revision_id: CanonicalRevisionCursor;
   relative_path: string;
@@ -2347,12 +2353,14 @@ export type LocalImportRevisionListEntry = {
   source_record_count: number;
   source_sha256: Hash;
   timeframe: string;
+  bar_summary?: LocalImportRevisionBarSummary;
 };
 export type CanonicalRevisionCursor = string;
 export type ListLocalImportRevisionsInput = {
   version: number;
   after_revision_id: (CanonicalRevisionCursor | null);
   limit: number;
+  include_bar_summary?: boolean;
 };
 export type ListLocalImportRevisionsOutput = {
   version: number;

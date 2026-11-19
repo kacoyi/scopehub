@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=aad78fe1eefed3900bd403b8ccfe6db270452ff91b3dc82567a361c0a585249f. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=d61540f2af5ac6b317afc674d4afe95d3c8e5a30e394b45defeab3f28c07e757. Do not edit.
 // Structural types and literal discriminators: validate schema refinements before deserializing.
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -3914,6 +3914,14 @@ pub struct PublishLocalImportOutput {
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct LocalImportRevisionBarSummary {
+    pub venue: String,
+    pub first_trading_day: String,
+    pub final_trading_day: String,
+    pub final_close: f64,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct LocalImportRevisionListEntry {
     pub revision_id: CanonicalRevisionCursor,
     pub relative_path: String,
@@ -3922,6 +3930,8 @@ pub struct LocalImportRevisionListEntry {
     pub source_record_count: u64,
     pub source_sha256: Hash,
     pub timeframe: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bar_summary: Option<LocalImportRevisionBarSummary>,
 }
 pub type CanonicalRevisionCursor = String;
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -3930,6 +3940,8 @@ pub struct ListLocalImportRevisionsInput {
     pub version: u64,
     pub after_revision_id: Option<CanonicalRevisionCursor>,
     pub limit: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub include_bar_summary: Option<bool>,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]

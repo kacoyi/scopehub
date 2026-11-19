@@ -754,7 +754,7 @@
       ],
       "input_spec": "ListLocalImportRevisionsRequest",
       "output_spec": "ListLocalImportRevisionsReply11",
-      "schema_requirement": "Protocol 1.1 only. Return a bounded summary page of displayable frozen CSV revisions for the active local human profile. Ascending revision IDs provide a stable exclusive cursor. Listing needs no source directory, returns no source grant or raw content and does not replace read-time authorization."
+      "schema_requirement": "Protocol 1.1 only. Return a bounded summary page of displayable frozen CSV revisions for the active local human profile. Ascending revision IDs provide a stable exclusive cursor. A caller can opt in to the frozen venue, the first and final bars' trading days, and the final bar's close. The default reply retains its original fields. Listing needs no source directory, returns no source grant or raw content and does not replace read-time authorization."
     },
     {
       "name": "market.readLocalImportRevision",

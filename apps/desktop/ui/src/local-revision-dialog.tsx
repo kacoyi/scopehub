@@ -60,7 +60,7 @@ export function OpenLocalRevisionDialog({ onClose, onRevoked }: { onClose: () =>
     setCursors(pageCursors);
     try {
       const result = await listLocalImportRevisions({
-        version: 1, after_revision_id: pageCursors.at(-1) ?? null, limit: PAGE_SIZE,
+        version: 1, after_revision_id: pageCursors.at(-1) ?? null, limit: PAGE_SIZE, include_bar_summary: true,
       }, crypto.randomUUID());
       setLibrary({ status: 'ready', result });
     } catch (error) {
@@ -175,7 +175,12 @@ export function OpenLocalRevisionDialog({ onClose, onRevoked }: { onClose: () =>
             {library.result.revisions.map(entry => <li key={entry.revision_id}>
               <button type="button" className="secondary-button" disabled={working} onClick={() => void open(entry.revision_id, true)}>
                 <strong>Open {entry.relative_path}</strong>
-                <span>{entry.symbol} · {entry.timeframe} · {entry.bar_count} {entry.bar_count === 1 ? 'bar' : 'bars'} · {entry.source_record_count} source {entry.source_record_count === 1 ? 'row' : 'rows'}</span>
+                <span>{entry.symbol}{entry.bar_summary && ` · ${entry.bar_summary.venue}`} · {entry.timeframe} · {entry.bar_count} {entry.bar_count === 1 ? 'bar' : 'bars'} · {entry.source_record_count} source {entry.source_record_count === 1 ? 'row' : 'rows'}</span>
+                {entry.bar_summary && <span className="local-revision-summary">
+                  <b>Final close {entry.bar_summary.final_close}</b> · Trading day {entry.bar_summary.final_trading_day}
+                  {entry.bar_summary.first_trading_day !== entry.bar_summary.final_trading_day &&
+                    ` · First bar trading day ${entry.bar_summary.first_trading_day}`}
+                </span>}
                 <span>CSV SHA-256 <code>{entry.source_sha256.slice(0, 12)}</code> · Revision <code>{entry.revision_id.slice(0, 8)}</code></span>
               </button>
             </li>)}

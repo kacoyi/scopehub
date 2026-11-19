@@ -476,7 +476,7 @@ function startLocalImportBridge(binary, profile, folder) {
 
 base('built UI publishes all 502 native bars through Rust and discovers, reopens and revokes frozen revisions', {
   tag: '@profile-local-csv',
-}, async ({ page, baseURL }) => {
+}, async ({ page, baseURL }, testInfo) => {
   const binary = process.env.SCOPEHUB_LOCAL_IMPORT_BRIDGE;
   base.skip(!binary, 'Set SCOPEHUB_LOCAL_IMPORT_BRIDGE to the portable Rust test example.');
   const temporary = await mkdtemp(join(await realpath(tmpdir()), 'scopehub-local-import-ui-'));
@@ -605,21 +605,39 @@ base('built UI publishes all 502 native bars through Rust and discovers, reopens
     const revoke = 'market.revokeLocalImportRevision';
     const otherFolder = join(temporary, 'other-source');
     await mkdir(otherFolder);
-    const otherCsv = csv(rows.slice(0, 2).map(row => ['000999', ...row.slice(1)]));
-    await writeFile(join(otherFolder, 'other.csv'), otherCsv);
+    const otherPath = join(otherFolder, 'other.csv');
+    const otherCsv = [future.header, ...future.rows.slice(0, 2).reverse()].map(row => row.join(',')).join('\n') + '\n';
+    await writeFile(otherPath, otherCsv);
     peer = startLocalImportBridge(binary, join(temporary, 'other-profile'), otherFolder);
     const { result: catalog } = await peer.request('choose_local_csv_folder', {});
     const otherFile = {
       folder_id: catalog.folder_id, file_id: catalog.files[0].file_id,
       expected_sha256: createHash('sha256').update(otherCsv).digest('hex'),
     };
-    const mapping = operations('market.previewLocalImport').at(-1).args.payload.mapping;
+    const mapping = {
+      version: 1, revision: 'night-session', encoding: 'utf-8', delimiter: ',', record_kind: 'native_ohlcv',
+      timestamp_convention: 'bar_start', volume_semantics: 'per_bar', ...future.settings, columns: future.columns,
+    };
     const otherPreview = { ...otherFile, mapping, row_limit: 1 };
-    expect((await run(peer, 'market.previewLocalImport', otherPreview)).result.preview.rows[0].symbol).toBe('000999');
+    expect((await run(peer, 'market.previewLocalImport', otherPreview)).result.preview.rows[0].symbol).toBe('CU2605');
     const otherMapping = (await run(peer, 'market.saveLocalImportMapping', otherPreview)).result.record;
     const other = (await run(peer, 'market.publishLocalImport', { ...otherFile, review_revision: otherMapping.review_revision })).result.revision;
-    const otherPage = (await run(peer, list, { after_revision_id: null, limit: 8 })).result;
-    expect(otherPage.revisions.map(entry => entry.revision_id)).toEqual([other.revision_id]);
+    const editedSource = otherCsv.replace(',99,true', ',98,true');
+    await writeFile(otherPath, editedSource);
+    const editedFile = { ...otherFile, expected_sha256: createHash('sha256').update(editedSource).digest('hex') };
+    expect((await run(peer, 'market.previewLocalImport', { ...otherPreview, ...editedFile })).result.sha256).toBe(editedFile.expected_sha256);
+    const sameBars = (await run(peer, 'market.publishLocalImport', { ...editedFile, review_revision: otherMapping.review_revision })).result.revision;
+    expect(sameBars.revision_id).not.toBe(other.revision_id);
+    expect(sameBars.source_sha256).not.toBe(other.source_sha256);
+    const otherPage = (await run(peer, list, { after_revision_id: null, limit: 8, include_bar_summary: true })).result;
+    expect(otherPage.revisions.map(entry => entry.revision_id).sort()).toEqual([other.revision_id, sameBars.revision_id].sort());
+    for (const entry of otherPage.revisions) {
+      expect(entry).toMatchObject({
+        symbol: 'CU2605', timeframe: '5m', bar_count: 2,
+        // The final bar timestamp is on April 14 UTC and its trading day is April 15.
+        bar_summary: { venue: 'TEST-FU', first_trading_day: '2026-04-15', final_trading_day: '2026-04-15', final_close: 105 },
+      });
+    }
     expect((await run(peer, read, { revision_id: revision.revision_id })).error?.code).toBe('SNAPSHOT_UNAVAILABLE');
     await peer.close();
     peer = undefined;
@@ -639,26 +657,38 @@ base('built UI publishes all 502 native bars through Rust and discovers, reopens
     const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
     const library = dialog.getByRole('region', { name: 'Published revisions' });
     const rowsForFile = library.getByRole('button', { name: /Open daily\.csv/ });
-    const firstEntry = library.getByRole('button', { name: new RegExp(`Open daily\\.csv.*${hash.slice(0, 12)}`) });
-    const nextEntry = library.getByRole('button', { name: new RegExp(`Open daily\\.csv.*${replacement.source_sha256.slice(0, 12)}`) });
+    const firstEntry = library.getByRole('button', { name: /Open daily\.csv.*Final close 305 · Trading day 2025-05-16/ });
+    const nextEntry = library.getByRole('button', { name: /Open daily\.csv.*Final close 304 · Trading day 2025-05-16/ });
     const refresh = library.getByRole('button', { name: 'Refresh revisions' });
     const idInput = dialog.getByRole('textbox', { name: 'Revision ID' });
     await expect(rowsForFile).toHaveCount(2);
-    await expect(firstEntry).toContainText('000731 · 1d · 502 bars · 502 source rows');
-    await expect(nextEntry).toContainText('000731 · 1d · 502 bars · 502 source rows');
+    for (const [entry, digest] of [[firstEntry, hash], [nextEntry, replacement.source_sha256]]) {
+      await expect(entry).toContainText('000731 · TEST-SH · 1d · 502 bars · 502 source rows');
+      await expect(entry).toContainText('First bar trading day 2024-01-01');
+      await expect(entry).toContainText(digest.slice(0, 12));
+    }
     await expect(idInput).toHaveValue('');
     await expect(frozen).toHaveCount(0);
     expect(operations(read)).toHaveLength(2);
     expect(await dialog.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+    await dialog.screenshot({ path: testInfo.outputPath('same-name-revision-labels.png') });
 
-    const summary = item => ({
+    const legacySummary = item => ({
       revision_id: item.revision_id, relative_path: 'daily.csv', symbol: '000731', timeframe: '1d',
       source_sha256: item.source_sha256, bar_count: 502, source_record_count: 502,
     });
-    const expected = [summary(revision), summary(replacement)].sort((left, right) =>
+    const legacy = [legacySummary(revision), legacySummary(replacement)].sort((left, right) =>
       left.revision_id < right.revision_id ? -1 : 1);
+    const expected = legacy.map(entry => ({ ...entry, bar_summary: {
+      venue: 'TEST-SH', first_trading_day: '2024-01-01', final_trading_day: '2025-05-16',
+      final_close: entry.revision_id === revision.revision_id ? 305 : 304,
+    } }));
     expect(operations(list)[0].reply.result).toEqual({ version: 1, revisions: expected, next_after_revision_id: null });
-    const firstPageQuery = { after_revision_id: null, limit: 1 };
+    const legacyQuery = { after_revision_id: null, limit: 8 };
+    const legacyPage = { version: 1, revisions: legacy, next_after_revision_id: null };
+    expect((await run(bridge, list, legacyQuery)).result).toEqual(legacyPage);
+    expect((await run(bridge, list, { ...legacyQuery, include_bar_summary: false })).result).toEqual(legacyPage);
+    const firstPageQuery = { after_revision_id: null, limit: 1, include_bar_summary: true };
     const firstPage = (await run(bridge, list, firstPageQuery)).result;
     expect(firstPage).toEqual({ version: 1, revisions: expected.slice(0, 1), next_after_revision_id: expected[0].revision_id });
     expect((await run(bridge, list, firstPageQuery)).result).toEqual(firstPage);
@@ -702,6 +732,12 @@ base('built UI publishes all 502 native bars through Rust and discovers, reopens
     await idInput.fill(other.revision_id);
     await open.click();
     await expect(dialog.getByRole('alert')).toContainText('This frozen chart is unavailable in the current profile.');
+    await expect(nextEntry).toBeEnabled();
+    await nextEntry.focus();
+    await expect(nextEntry).toBeFocused();
+    await nextEntry.press('Enter');
+    await expect(frozen.getByLabel('Selected bar')).toContainText('C 304');
+    await expect(provenance).toContainText(replacement.revision_id);
     await idInput.fill(replacement.revision_id);
     await open.click();
     await expect(frozen.getByLabel('Selected bar')).toContainText('C 304');
@@ -719,6 +755,7 @@ base('built UI publishes all 502 native bars through Rust and discovers, reopens
     await expect(nextEntry).toHaveCount(0);
     await refresh.click();
     await expect(library.getByRole('status')).toHaveText('No published CSV revisions are available in this profile.');
+    expect((await run(bridge, list, legacyQuery)).result).toEqual({ ...legacyPage, revisions: [] });
 
     await bridge.close();
     const brokenProfile = join(temporary, 'read-error-profile');

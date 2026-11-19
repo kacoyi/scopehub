@@ -1,4 +1,4 @@
-# Generated from contracts/schemas/protocol.schema.json; sha256=aad78fe1eefed3900bd403b8ccfe6db270452ff91b3dc82567a361c0a585249f. Do not edit.
+# Generated from contracts/schemas/protocol.schema.json; sha256=d61540f2af5ac6b317afc674d4afe95d3c8e5a30e394b45defeab3f28c07e757. Do not edit.
 from __future__ import annotations
 from typing import Literal, NotRequired, TypedDict
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
@@ -2016,6 +2016,11 @@ class PublishLocalImportInput(TypedDict):
 class PublishLocalImportOutput(TypedDict):
     version: int
     revision: PublishedLocalImportRevision
+class LocalImportRevisionBarSummary(TypedDict):
+    venue: str
+    first_trading_day: str
+    final_trading_day: str
+    final_close: float
 class LocalImportRevisionListEntry(TypedDict):
     revision_id: CanonicalRevisionCursor
     relative_path: str
@@ -2024,11 +2029,13 @@ class LocalImportRevisionListEntry(TypedDict):
     source_record_count: int
     source_sha256: Hash
     timeframe: str
+    bar_summary: NotRequired[LocalImportRevisionBarSummary]
 CanonicalRevisionCursor = str
 class ListLocalImportRevisionsInput(TypedDict):
     version: int
     after_revision_id: CanonicalRevisionCursor | None
     limit: int
+    include_bar_summary: NotRequired[bool]
 class ListLocalImportRevisionsOutput(TypedDict):
     version: int
     revisions: list[LocalImportRevisionListEntry]

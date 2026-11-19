@@ -11591,6 +11591,35 @@
       ],
       "additionalProperties": false
     },
+    "LocalImportRevisionBarSummary": {
+      "type": "object",
+      "description": "Frozen chart endpoints in bar timestamp order and the final bar's close. The dates are the stored trading days.",
+      "properties": {
+        "venue": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "first_trading_day": {
+          "type": "string",
+          "format": "date"
+        },
+        "final_trading_day": {
+          "type": "string",
+          "format": "date"
+        },
+        "final_close": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "venue",
+        "first_trading_day",
+        "final_trading_day",
+        "final_close"
+      ],
+      "additionalProperties": false
+    },
     "LocalImportRevisionListEntry": {
       "type": "object",
       "properties": {
@@ -11637,6 +11666,9 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256
+        },
+        "bar_summary": {
+          "$ref": "#/$defs/LocalImportRevisionBarSummary"
         }
       },
       "required": [
@@ -11678,6 +11710,10 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 20
+        },
+        "include_bar_summary": {
+          "type": "boolean",
+          "description": "When true, include bar_summary on each entitled entry. Omission and false preserve the legacy response shape."
         }
       },
       "required": [
