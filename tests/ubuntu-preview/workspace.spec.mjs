@@ -10,7 +10,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { expect, test } from '@playwright/test';
-import { control } from '../ui/workspace-controls.mjs';
+import { control, leaveSample } from '../ui/workspace-controls.mjs';
 import { painted } from '../ui/chart-pixels.mjs';
 import { startLocalImportBridge } from '../ui/local-import-bridge.mjs';
 import { assertUnsuitableWindowsHandoffsRejected, assertWindowsPrivateHandoff } from './workspace_test_handoff_acl.mjs';
@@ -819,6 +819,131 @@ test('decision-note list removes peer deletions after focus and a rejected detai
   }
 });
 
+test('the offline sample keeps its own timeframe without replacing the private undo', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  const port = await freePort();
+  const context = await browser.newContext();
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      const page = await context.newPage();
+      const launchPath = '/synthetic-private-launch';
+      await page.addInitScript(({ launchPath, capability }) => {
+        // Simulate the real handoff without exposing its fragment in navigation
+        // artifacts or re-injecting it on refresh after the UI scrubs it.
+        if (location.pathname === launchPath) history.replaceState(null, '', '/#workspace=' + capability);
+      }, { launchPath, capability: server.capability });
+      const workspaceRequests = [];
+      context.on('request', request => {
+        if (new URL(request.url()).pathname !== endpoint) return;
+        const body = request.postDataJSON();
+        workspaceRequests.push(body.intent?.operation ?? body.type);
+      });
+      const launch = () => page.goto(server.url + launchPath);
+      const shellUrl = url => url.origin === server.url && url.pathname === '/' && url.hash === '';
+      const readPrivate = async () => state(await (await post(server, snapshot)).json());
+      const assertSample = async (tab, timeframe) => {
+        await expect(tab.locator('.connection')).toHaveText('Offline sampleSimulated');
+        await expect(control(tab, timeframe)).toHaveAttribute('aria-pressed', 'true');
+        await expect(tab.locator('.history')).toHaveAttribute('data-timeframe', timeframe);
+      };
+      const undo = control(page, 'Undo timeframe change');
+
+      await launch();
+      await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
+      await expect(page).toHaveURL(server.url + '/');
+      await expect(page.locator('.connection')).toHaveText('No data source');
+      expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
+      expect(await readPrivate()).toEqual({ revision: 0, timeframe: '1m', undo: null });
+      expect((await act(page, '5m', 'chart.setTimeframe')).result.outcome)
+        .toMatchObject({ state: 'committed', result: { timeframe: '5m', revision: 1 } });
+      const prior = (await act(page, '1m', 'chart.setTimeframe')).result.outcome;
+      expect(prior).toMatchObject({ state: 'committed', result: { timeframe: '1m', revision: 2 }, receipt: { undoable: true } });
+      const before = {
+        revision: 2, timeframe: '1m',
+        undo: { operation_id: prior.receipt.operation_id, committed_workspace_revision: 2 },
+      };
+      expect(await readPrivate()).toEqual(before);
+      await expect(undo).toBeEnabled();
+
+      const beforeSample = workspaceRequests.length;
+      await control(page, 'Open offline sample').click();
+      await assertSample(page, '1m');
+      await control(page, '5m').click();
+      await assertSample(page, '5m');
+      const after = await readPrivate();
+      const refreshed = await context.newPage();
+      await refreshed.goto(server.url);
+      await expect(refreshed.locator('.history')).toBeVisible();
+      await refreshed.reload();
+      await expect(refreshed.locator('.history')).toBeVisible();
+      const refreshedTimeframe = await refreshed.locator('.history').getAttribute('data-timeframe');
+      await testInfo.attach('workspace-sample-timeframe', {
+        body: JSON.stringify({ before, after, refreshedTimeframe, sampleWorkspaceRequests: workspaceRequests.slice(beforeSample) }),
+        contentType: 'application/json',
+      });
+      expect(after).toEqual(before);
+      expect(workspaceRequests.slice(beforeSample)).toEqual([]);
+      await expect(undo).toHaveCount(0);
+      await assertSample(refreshed, '5m');
+      await expect(control(refreshed, 'Undo timeframe change')).toHaveCount(0);
+      await assertSampleStorage(refreshed, '5m');
+      await refreshed.close();
+
+      await leaveSample(page);
+      await expect(page).toHaveURL(shellUrl);
+      await expect(page.locator('.connection')).toHaveText('No data source');
+      await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
+      await expect(undo).toBeEnabled();
+      expect(await readPrivate()).toEqual(before);
+      const accepted = page.waitForResponse(mutationResponse('workspace.undo'));
+      await undo.click();
+      const reply = await accepted;
+      expect(reply.request().postDataJSON().intent.arguments).toEqual({ operation_id: prior.receipt.operation_id });
+      expect((await reply.json()).result.outcome).toMatchObject({
+        state: 'committed', result: { timeframe: '5m', revision: 3 }, receipt: { undoable: false },
+      });
+      await expect(undo).toBeDisabled();
+      const afterUndo = { revision: 3, timeframe: '5m', undo: null };
+      expect(await readPrivate()).toEqual(afterUndo);
+      expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
+
+      const beforeReload = workspaceRequests.length;
+      await page.reload();
+      await expect(page).toHaveURL(shellUrl);
+      await expect(control(page, 'Open offline sample')).toBeVisible();
+      await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
+      await expect(undo).toHaveCount(0);
+      expect(workspaceRequests.slice(beforeReload)).toEqual([]);
+      await launch();
+      await expect(page).toHaveURL(server.url + '/');
+      await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
+      await expect(undo).toBeDisabled();
+      expect(workspaceRequests.slice(beforeReload)).toEqual(['snapshot']);
+
+      const beforeSampleReload = workspaceRequests.length;
+      await control(page, 'Open offline sample').click();
+      await assertSample(page, '1m');
+      await control(page, '1d').click();
+      await assertSample(page, '1d');
+      await assertSampleStorage(page, '1d');
+      await page.reload();
+      await assertSample(page, '1d');
+      await expect(undo).toHaveCount(0);
+      await assertSampleStorage(page, '1d');
+      await leaveSample(page);
+      await expect(page.locator('.connection')).toHaveText('No data source');
+      await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
+      await expect(undo).toHaveCount(0);
+      expect(workspaceRequests.slice(beforeSampleReload)).toEqual([]);
+      expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
+      expect(await readPrivate()).toEqual(afterUndo);
+    });
+  } finally {
+    await context.close();
+    await profile.close();
+  }
+});
+
 test('the opted-in route binds identity, limits input, and drains cancellation without replaying after EOF', async () => {
   const profile = await makeProfile();
   const port = await freePort();
@@ -1264,6 +1389,28 @@ function observeOperations(page) {
     if (path.startsWith('/__scopehub/')) requests.push(path);
   });
   return requests;
+}
+
+async function assertSampleStorage(page, timeframe) {
+  const stored = await page.evaluate(expected => {
+    let preference;
+    try {
+      preference = JSON.parse(localStorage.getItem('scopehub.preview.sample.v1') ?? 'null');
+    } catch {
+      return null;
+    }
+    return {
+      onlySamplePreference: localStorage.length === 1 && preference !== null,
+      emptySessionStorage: sessionStorage.length === 0,
+      matchesSample: preference?.source === 'scopehub.synthetic' && preference.timeframe === expected
+        && typeof preference.symbol === 'string' && /^SIM\.[.A-Z0-9]+$/.test(preference.symbol)
+        && preference.style === 'candlestick' && preference.cursor === 'crosshair'
+        && preference.panel === 'watchlist' && preference.chartOnly === false && preference.narrow === false
+        && preference.sampleRevision === 'normal' && preference.sampleDate === ''
+        && Object.keys(preference).length === 10,
+    };
+  }, timeframe);
+  expect(stored).toEqual({ onlySamplePreference: true, emptySessionStorage: true, matchesSample: true });
 }
 
 async function inFreshBrowser(browser, server, use) {

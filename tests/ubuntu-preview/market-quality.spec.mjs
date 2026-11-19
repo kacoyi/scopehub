@@ -1,6 +1,7 @@
 import { expect, test as base } from '@playwright/test';
 import { future, openDefaultSample } from '../ui/sample-startup.mjs';
 import { painted } from '../ui/chart-pixels.mjs';
+import { openUnconfiguredPreview } from '../ui/preview-startup.mjs';
 import { replayStage, waitForReplayRequest } from '../ui/replay-stages.mjs';
 import { control, openPanel } from '../ui/workspace-controls.mjs';
 
@@ -108,8 +109,8 @@ async function selectStock(page) {
   await expect(control(page, 'Search symbols')).toContainText('CN.STOCK.001');
 }
 
-test('real history keeps provenance and painted bars across normal, stale, missing and empty samples', async ({ page, calls }, testInfo) => {
-  await page.goto('/');
+test('real history keeps provenance and painted bars across normal, stale, missing and empty samples', async ({ page, baseURL, calls }, testInfo) => {
+  await openUnconfiguredPreview(page, baseURL);
   await openPanel(page, 'Data sources');
   const revision = sources(page).getByLabel('Sample revision', { exact: true });
   const date = sources(page).getByLabel('Sample date (UTC)', { exact: true });
@@ -190,6 +191,67 @@ test('real history keeps provenance and painted bars across normal, stale, missi
       },
     })),
   );
+});
+
+for (const [name, reject, reason] of [
+  ['HTTP failure', route => route.fulfill({ status: 500, contentType: 'text/javascript', body: '' }), /\/src\/main\.tsx returned HTTP 500/],
+  ['failed connection', route => route.abort('connectionfailed'), /\/src\/main\.tsx failed \(net::ERR_CONNECTION_FAILED\)/],
+]) {
+  test(`preview startup reports an entry-module ${name} without retrying`, async ({ page, baseURL, calls }) => {
+    let moduleRequests = 0;
+    let navigations = 0;
+    page.on('request', request => {
+      if (request.isNavigationRequest() && request.frame() === page.mainFrame()) navigations++;
+    });
+    const rejectEntry = async route => {
+      moduleRequests++;
+      await reject(route);
+    };
+    await page.route('**/src/main.tsx', rejectEntry);
+    await expect(openUnconfiguredPreview(page, baseURL)).rejects.toThrow(reason);
+    await expect(control(page, 'Data sources')).toHaveCount(0);
+    const startup = page.getByRole('main', { name: 'Workspace startup' });
+    await expect(startup).toBeVisible();
+    await expect(startup.getByRole('button', { name: 'Reload window' })).toBeEnabled();
+    expect(moduleRequests).toBe(1);
+    expect(navigations).toBe(1);
+    expect(calls).toEqual([]);
+
+    const location = page.url();
+    await page.unroute('**/src/main.tsx', rejectEntry);
+    await startup.getByRole('button', { name: 'Reload window' }).click();
+    await expect(control(page, 'Open offline sample')).toBeVisible({ timeout: 10_000 });
+    await expect(startup).toHaveCount(0);
+    expect(page.url()).toBe(location);
+    expect(navigations).toBe(2);
+    expect(calls).toEqual([]);
+  });
+}
+
+test('preview startup reports the bounded wait for a stalled entry module', async ({ page, baseURL, calls }) => {
+  await page.clock.install();
+  const release = Promise.withResolvers();
+  let moduleRequests = 0;
+  await page.route('**/src/main.tsx', async route => {
+    moduleRequests++;
+    await release.promise;
+    await route.abort();
+  });
+  try {
+    await expect(openUnconfiguredPreview(page, baseURL, { timeout: 2_500 })).rejects.toThrow(
+      /application mount\. Startup exceeded 2500 ms\. Document HTTP 200, entry no response/,
+    );
+    await expect(control(page, 'Data sources')).toHaveCount(0);
+    const startup = page.getByRole('main', { name: 'Workspace startup' });
+    await expect(startup.getByRole('button', { name: 'Reload window' })).toBeVisible();
+    await page.clock.fastForward(10_000);
+    await expect(startup.getByRole('heading')).toHaveText('The workspace hasn’t opened yet');
+    expect(moduleRequests).toBe(1);
+    expect(calls).toEqual([]);
+  } finally {
+    release.resolve();
+    await page.unrouteAll({ behavior: 'wait' });
+  }
 });
 
 test('a real closed sample remains current when its final observation arrived', async ({ page }) => {

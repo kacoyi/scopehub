@@ -129,8 +129,12 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
     if (window.matchMedia(narrowScreen).matches) closePanel();
   };
   const chooseTimeframe = (value: string) => {
-    if (workspace) workspace.chooseTimeframe(value);
-    else setSampleTimeframe(value);
+    if (workspace) {
+      workspace.chooseTimeframe(value);
+      return;
+    }
+    setSampleTimeframe(value);
+    if (value !== '1m' && isClosedBarGapRevision(revision)) setRevision('normal');
   };
   useEffect(() => {
     if (timeframe && timeframe !== '1m' && isClosedBarGapRevision(revision)) setRevision('normal');

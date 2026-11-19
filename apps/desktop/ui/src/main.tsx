@@ -8,7 +8,6 @@ import { OpenLocalRevisionDialog } from './local-revision-dialog';
 import { usePublishedRevisionAccess } from './published-revision-access';
 import { readSampleView, saveSampleView } from './sample-view';
 import { useLocalWorkspace } from './use-local-workspace';
-import './style.css';
 
 function initialSource(): boolean {
   if (window.location.hash) return window.location.hash === '#demo';
@@ -78,7 +77,7 @@ function App() {
 
   return <>
     {!local && <ChartWorkspace key={sample ? 'sample' : 'unconfigured'} sample={sample}
-      leaveSample={leaveSample} localActions={localActions} workspace={workspace}
+      leaveSample={leaveSample} localActions={localActions} workspace={sample ? undefined : workspace}
       openPublished={workspace ? () => setOpeningRevision(true) : undefined} />}
     {folder && <div hidden={!local}>
       <main className="workstation local-workstation">

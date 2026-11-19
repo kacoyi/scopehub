@@ -534,7 +534,7 @@
     {
       "id": "market-recovery-ui",
       "status": "implemented",
-      "purpose": "Exercise the ordinary chart with injected recovery progress and real frozen history to verify rejection, clearing, cancellation and visible connection states.",
+      "purpose": "Verify one real loopback futures baseline and use its frozen synthetic reads for injected recovery, rejection and cancellation. Check real stock replacement and startup terminal diagnostics separately.",
       "platforms": "all",
       "command": [
         "pnpm",

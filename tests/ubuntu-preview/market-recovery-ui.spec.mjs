@@ -4,6 +4,7 @@ import { replayStage, waitForReplayRequest } from '../ui/replay-stages.mjs';
 import { future, openDefaultSample } from '../ui/sample-startup.mjs';
 import { control, openPanel, watchlistSymbol } from '../ui/workspace-controls.mjs';
 
+const operationPath = '/__scopehub/operation';
 const streamPath = '/__scopehub/market-stream';
 const stock = 'SIM.CN.STOCK.001';
 const chart = page => page.locator('.history');
@@ -13,8 +14,59 @@ const sources = page => page.getByRole('complementary', { name: 'Data sources' }
 const fact = (page, label) => sources(page).locator('dt').filter({ hasText: new RegExp(`^${RegExp.escape(label)}$`) })
   .locator('xpath=following-sibling::dd[1]');
 
-// Only the futures replay body is controlled. History, preparation and any
-// replacement stock replay still run through the preview and its workers.
+const recoveryTest = test.extend({
+  baseline: [async ({ browser }, use, workerInfo) => {
+    const { baseURL, viewport } = workerInfo.project.use;
+    const page = await browser.newPage({ baseURL, viewport });
+    let baseline;
+    try {
+      const reads = [];
+      const admittedStreams = [];
+      page.on('response', response => {
+        const request = response.request();
+        if (request.method() !== 'POST' || response.status() !== 200) return;
+        const path = new URL(request.url()).pathname;
+        if (path === operationPath) reads.push(response);
+        if (path === streamPath) admittedStreams.push(request.postDataJSON());
+      });
+
+      const snapshot = await openDefaultSample(page);
+      await openPanel(page, 'Data sources');
+      await expectProvenance(page);
+      await expectFrozenHistory(page);
+      await waitForReplayRequest(page, () => control(page, 'Play sample updates').click());
+      await page.mouse.move(1, 1);
+      await expect(status(page)).toHaveText('Synthetic replay complete', replayStage);
+      await expectBar(page, 3501, 130, 'Closed');
+
+      const replies = await Promise.all(reads.map(async response => ({
+        call: response.request().postDataJSON(),
+        body: await response.json(),
+      })));
+      expect(replies.map(({ call }) => call.operation)).toEqual([
+        'instrument.search', 'market.readHistoryPage', 'market.readHistoryPage',
+      ]);
+      expect(replies.map(({ body }) => body.ok)).toEqual([true, true, true]);
+      const preparation = replies[2];
+      expect(replies[1].body.result.snapshot).toEqual(snapshot);
+      expect(preparation.call.payload).toMatchObject({ include_stream_position: true, snapshot });
+      expect(preparation.body.result.snapshot).toEqual(snapshot);
+      const { stream_position: after } = preparation.body.result;
+      expect(after).toMatchObject({ sequence: 0 });
+      expect(admittedStreams).toHaveLength(1);
+      expect(admittedStreams[0]).toMatchObject({
+        operation: 'market.subscribe', payload: { after, series: snapshot.series, snapshot },
+      });
+      baseline = { replies, subscription: admittedStreams[0] };
+    } finally {
+      await page.close();
+    }
+    await use(baseline);
+  }, { scope: 'worker' }],
+});
+
+// The futures frames are injected into the ordinary browser NDJSON reader.
+// Stock replay continues through the preview and its workers.
 function injectFuturesReplay({ path, instrument }) {
   const fetch = window.fetch;
   const encoder = new TextEncoder();
@@ -81,7 +133,21 @@ function replayFrames({ after, series, snapshot }) {
   };
 }
 
-async function start(page) {
+async function start(page, baseline, { realStock = false } = {}) {
+  const usedReads = [];
+  await page.route(`**${operationPath}`, async route => {
+    const request = route.request();
+    expect(request.method()).toBe('POST');
+    const call = request.postDataJSON();
+    if (realStock && call.operation === 'market.readHistoryPage' && call.payload?.series?.instrument_id === stock) {
+      await route.continue();
+      return;
+    }
+    const reply = baseline.replies[usedReads.length];
+    expect(call, 'Injected control must request the next verified futures operation').toEqual(reply?.call);
+    usedReads.push(call);
+    await route.fulfill({ json: reply.body });
+  });
   await page.addInitScript(injectFuturesReplay, { path: streamPath, instrument: future });
   await openDefaultSample(page);
   await control(page, 'Play sample updates').click();
@@ -91,8 +157,8 @@ async function start(page) {
     const { operation, payload } = window.injectedReplays[0];
     return { operation, payload };
   });
-  expect(operation).toBe('market.subscribe');
-  expect(payload.after.sequence).toBe(0);
+  expect(usedReads).toEqual(baseline.replies.map(({ call }) => call));
+  expect({ operation, payload }, 'Injected subscription matches the verified futures subscription').toEqual(baseline.subscription);
   return replayFrames(payload);
 }
 
@@ -122,8 +188,62 @@ async function expectProvenance(page) {
   }
 }
 
-test('injected recovery holds the confirmed futures bar and closes it once while history stays frozen', async ({ page }, testInfo) => {
-  const frames = await start(page);
+test('startup reports a failed document GET without issuing a market operation', async ({ page }) => {
+  const failed = [];
+  const posts = [];
+  page.on('requestfailed', request => failed.push([request.method(), request.resourceType(), request.failure().errorText]));
+  page.on('request', request => {
+    if (request.method() === 'POST') posts.push(request);
+  });
+  await page.route(request => new URL(request).pathname === '/', route => route.abort('connectionreset'));
+
+  await expect(openDefaultSample(page)).rejects.toThrow('Sample document GET failed (net::ERR_CONNECTION_RESET)');
+  expect(failed).toEqual([['GET', 'document', 'net::ERR_CONNECTION_RESET']]);
+  expect(posts).toHaveLength(0);
+  await expect(control(page, 'Retry demo')).toHaveCount(0);
+});
+
+for (const [operation, prior, retry] of [
+  ['instrument.search', [], 'Retry demo'],
+  ['market.readHistoryPage', ['instrument.search'], 'Retry history'],
+]) {
+  test(`startup reports a failed ${operation} POST after a successful document GET`, async ({ page }) => {
+    const posts = [];
+    const failures = [];
+    page.on('requestfailed', request => failures.push([request.method(), request.failure().errorText]));
+    await page.route(`**${operationPath}`, route => {
+      const call = route.request().postDataJSON();
+      posts.push(call.operation);
+      return call.operation === operation ? route.abort('connectionreset') : route.continue();
+    });
+    const document = page.waitForResponse(response => response.request().resourceType() === 'document', { timeout: 10_000 });
+
+    await expect(openDefaultSample(page)).rejects.toThrow(`${operation} POST ${operationPath} failed (net::ERR_CONNECTION_RESET)`);
+    expect((await document).status()).toBe(200);
+    await expect(page.getByText('Disconnected from the local preview. Retry when the connection is restored.')).toBeVisible();
+    await expect(control(page, retry)).toBeVisible();
+    expect(posts).toEqual([...prior, operation]);
+    expect(failures).toEqual([['POST', 'net::ERR_CONNECTION_RESET']]);
+  });
+}
+
+test('startup reports a non-BUSY HTTP 429 as an operation rejection', async ({ page }) => {
+  const posts = [];
+  await page.route(`**${operationPath}`, route => {
+    posts.push(route.request().postDataJSON().operation);
+    return route.fulfill({
+      status: 429, json: { ok: false, error: { code: 'DATA_UNAVAILABLE', retryable: false } },
+    });
+  });
+  await expect(openDefaultSample(page)).rejects.toThrow(
+    `instrument.search POST ${operationPath} returned HTTP 429 (DATA_UNAVAILABLE)`,
+  );
+  await expect(control(page, 'Play sample updates')).toHaveCount(0);
+  expect(posts).toEqual(['instrument.search']);
+});
+
+recoveryTest('injected recovery holds the confirmed futures bar and closes it once while history stays frozen', async ({ page, baseline }, testInfo) => {
+  const frames = await start(page, baseline);
   await openPanel(page, 'Data sources');
   await expectBar(page, 3500.8, 110, 'Partial');
   await expectProvenance(page);
@@ -177,8 +297,8 @@ for (const [name, terminal, label] of [
   ['boundary mismatch', { ok: true, result: { status: 'gapped', reason: 'sequence_gap' } }, 'Replay gap. An update is missing.'],
   ['restart exhaustion', { ok: false, error: { code: 'WORKER_EXITED', retryable: true } }, 'Replay failed. The market worker is disconnected.'],
 ]) {
-  test(`injected ${name} retains the last confirmed bar`, async ({ page }) => {
-    const frames = await start(page);
+  recoveryTest(`injected ${name} retains the last confirmed bar`, async ({ page, baseline }) => {
+    const frames = await start(page, baseline);
     await inject(page, [frames.accepted, frames.interim, frames.reconnecting]);
     await expect(status(page)).toHaveText('Market worker reconnecting…');
     await inject(page, [terminal], true);
@@ -213,8 +333,8 @@ const invalidProgress = [
 ];
 
 for (const [name, progress, accept = true] of invalidProgress) {
-  test(`rejects injected ${name}`, async ({ page }) => {
-    const frames = await start(page);
+  recoveryTest(`rejects injected ${name}`, async ({ page, baseline }) => {
+    const frames = await start(page, baseline);
     await inject(page, [...(accept ? [frames.accepted, frames.interim] : []), ...progress(frames)], true);
     await expect(status(page)).toHaveText('Replay failed. The data response failed validation.');
     if (accept) await expectBar(page, 3501.2, 120, 'Partial');
@@ -224,8 +344,8 @@ for (const [name, progress, accept = true] of invalidProgress) {
 }
 
 for (const action of ['stop', 'reselect']) {
-  test(`${action} cancels an injected reconnect with no late update`, async ({ page }) => {
-    const frames = await start(page);
+  recoveryTest(`${action} cancels an injected reconnect with no late update`, async ({ page, baseline }) => {
+    const frames = await start(page, baseline, { realStock: action === 'reselect' });
     await inject(page, [frames.accepted, frames.interim, frames.reconnecting]);
     await expect(status(page)).toHaveText('Market worker reconnecting…');
     if (action === 'stop') await control(page, 'Stop replay').click();
