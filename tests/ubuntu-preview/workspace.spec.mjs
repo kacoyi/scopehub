@@ -895,9 +895,7 @@ test('the offline sample keeps its own timeframe without replacing the private u
       await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
       await expect(undo).toBeEnabled();
       expect(await readPrivate()).toEqual(before);
-      const accepted = page.waitForResponse(mutationResponse('workspace.undo'));
-      await undo.click();
-      const reply = await accepted;
+      const reply = await duringResponse(page, 'workspace.undo', () => undo.click());
       expect(reply.request().postDataJSON().intent.arguments).toEqual({ operation_id: prior.receipt.operation_id });
       expect((await reply.json()).result.outcome).toMatchObject({
         state: 'committed', result: { timeframe: '5m', revision: 3 }, receipt: { undoable: false },
