@@ -1,0 +1,99 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M1-017",
+  "task_definition_sha256": "870facfc14188fd0524c123a96dc039955a86d8b3f0145aea67b676b387bb06f",
+  "run_id": "20261119T104800.157915Z-9bac8e83",
+  "recorded_at": "2026-11-19T10:51:13.343906+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "8b5a16637adc022c949ed31402f69b20556e682f2b4f6855ad3874cc7123ead8",
+    "file_count": 218,
+    "git_head": "51ecc4ed4dcaa179d76b5193c66556287e41425b",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "456f99b26e19386452d21c3ee45523818b7e392075162d4c984a7e5dc62db408",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/projects/scopehub/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "market-live-stream",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-stream.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c23435135260c66af048fcb63f66c6ce42680cbc0806c7e8561cf09cf94ee2f4"
+    },
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f9a9b3a572a43508c35f16b8110df4ad6d33c377c181f3c35f8299b5fb820728"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "eccff0872e47fa00ab9e867dbae7f5b727edf83bcc58381f5b430e748bdff587"
+    },
+    {
+      "id": "market-quality-states",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-quality.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a6aaf7e61389b62f883b06cfd7ca8d7948a35f9a41767fdbd9d9d112c352c9e8"
+    }
+  ],
+  "project_definition_sha256": "bd9af702cbae0fba46da1eca3d77eb69092dfd7bfa8708560284b2fdedfc9d2a",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}
