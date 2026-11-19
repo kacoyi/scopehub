@@ -2,7 +2,8 @@
 use scopehub_domain::{
     protocol::{
         Bar, Error, ErrorCode, FrozenSnapshot, MarketHistoryPageOutput, MarketStreamBarUpdate,
-        MarketSubscriptionInput, MarketSubscriptionOutput, Message, StreamPosition,
+        MarketStreamGapEvent, MarketStreamGapReason, MarketSubscriptionInput,
+        MarketSubscriptionOutput, Message, StreamPosition, VisibleRange,
     },
     wire::{POLICY, normalize_integers},
 };
@@ -11,6 +12,7 @@ use serde_json::{Value, json};
 use crate::{MarketPort, MarketRegistry, PortFuture, authorized_operation, failure, history};
 
 pub const SUBSCRIBE: &str = "market.subscribe";
+const MINUTE_MS: i64 = 60_000;
 pub type SubscriptionFuture<'a, T> = PortFuture<'a, T>;
 
 pub trait SubscriptionPort: MarketPort {
@@ -84,12 +86,31 @@ impl<P: SubscriptionPort> MarketRegistry<P> {
             }}))?;
             return Ok(gapped(reason));
         }
-        let bar = page.bars.into_iter().last().ok_or_else(invalid)?;
+        let mut bars = page.bars;
+        let bar = bars.pop().ok_or_else(invalid)?;
         let closes_at = close_time(&bar, &input.series.timeframe, &page.dataset.provenance)
             .ok_or_else(invalid)?;
         if bar.time_ms < snapshot.from_ms || bar.is_closed != (snapshot.as_of_ms >= closes_at) {
             return Err(invalid());
         }
+        let repair = match page.quality_state.gaps.as_slice() {
+            [missing]
+                if snapshot.series.timeframe == "1m"
+                    && page.quality_state.coverage.as_str() == "gapped"
+                    && missing.from_ms == bar.time_ms - MINUTE_MS
+                    && missing.to_ms == bar.time_ms
+                    && closes_at == bar.time_ms + MINUTE_MS
+                    && missing.from_ms >= snapshot.from_ms
+                    && closes_at <= snapshot.to_ms
+                    && bars.last().is_none_or(|bar| bar.time_ms < missing.from_ms) =>
+            {
+                Some(ClosedBarRepair {
+                    missing: missing.clone(),
+                    timezone: page.dataset.timezone,
+                })
+            }
+            _ => None,
+        };
         let reply = self.open_checked_subscription(operation, &input).await?;
         publish(json!({"subscription": reply}))?;
         if let MarketSubscriptionOutput::StreamBackfillRequired(backfill) = reply {
@@ -97,13 +118,18 @@ impl<P: SubscriptionPort> MarketRegistry<P> {
         }
         if bar.is_closed {
             self.port.complete_subscription();
-            return Ok(json!({"status": "complete"}));
+            return Ok(if repair.is_some() {
+                gapped("source_gap")
+            } else {
+                json!({"status": "complete"})
+            });
         }
         let mut state = Replay {
             input,
             boundary_bar: bar,
             closes_at,
             updates: Vec::new(),
+            repair,
         };
         let mut frames_left = POLICY["max_pending_requests"]
             .as_u64()
@@ -124,11 +150,26 @@ impl<P: SubscriptionPort> MarketRegistry<P> {
                 Err(error) => return Err(error),
             };
             frames_left -= 1;
-            if let Some(result) = state.event(frame, &mut publish)? {
-                if result["status"] == "complete" {
+            match state.event(frame, &mut publish)? {
+                None => {}
+                Some(ReplayEnd::Gap(reason)) => return Ok(gapped(reason)),
+                Some(ReplayEnd::Closed) => {
                     self.port.complete_subscription();
+                    return Ok(if state.repair.is_some() {
+                        gapped("source_gap")
+                    } else {
+                        json!({"status": "complete"})
+                    });
                 }
-                return Ok(result);
+                Some(ReplayEnd::ReportedGap(event)) => {
+                    publish(json!({"event": event}))?;
+                    if let Some(repair) = self.repair_closed_bar(actor, &state, &event).await {
+                        publish(json!({"repair": repair}))?;
+                        self.port.complete_subscription();
+                        return Ok(json!({"status": "complete"}));
+                    }
+                    return Ok(gapped(event.payload.reason.as_str()));
+                }
             }
         }
         Ok(gapped("overflow"))
@@ -150,6 +191,14 @@ impl<P: SubscriptionPort> MarketRegistry<P> {
             query["expected_revision"] = json!(snapshot.dataset_revision);
             query["as_of_ms"] = json!(observed_at_ms);
         }
+        self.read_complete_page(actor, query).await
+    }
+
+    async fn read_complete_page(
+        &mut self,
+        actor: crate::Actor,
+        query: Value,
+    ) -> Result<MarketHistoryPageOutput, Error> {
         let mut frozen = self.execute(actor, "market.readHistoryPage", query).await?;
         normalize_integers(&mut frozen);
         let page: MarketHistoryPageOutput =
@@ -159,6 +208,62 @@ impl<P: SubscriptionPort> MarketRegistry<P> {
             return Err(failure(ErrorCode::RESOURCELIMIT));
         }
         Ok(page)
+    }
+
+    async fn repair_closed_bar(
+        &mut self,
+        actor: crate::Actor,
+        state: &Replay,
+        event: &MarketStreamGapEvent,
+    ) -> Option<Value> {
+        let repair = state.repair.as_ref()?;
+        let gap = &event.payload;
+        let checkpoint = state.checkpoint();
+        if gap.reason != MarketStreamGapReason::SequenceGap
+            || gap.lost_count != 1
+            || gap.affected != repair.missing
+            || checkpoint.observed_at_ms >= state.closes_at
+        {
+            return None;
+        }
+        let original = &state.input.snapshot;
+        // Read once at the last bar's verified close. The range is limited to
+        // the absent minute and the final observation of the retained bar.
+        let page = self
+            .read_complete_page(
+                actor,
+                json!({
+                    "series": original.series, "expected_revision": original.dataset_revision,
+                    "from_ms": repair.missing.from_ms, "to_ms": state.closes_at,
+                    "warmup_bars": 0, "as_of_ms": state.closes_at,
+                    "include_stream_position": true, "page_size": 2,
+                }),
+            )
+            .await
+            .ok()?;
+        let position = page.stream_position.as_ref()?;
+        let [missing, final_bar] = page.bars.as_slice() else {
+            return None;
+        };
+        if position.stream_id != event.stream_id
+            || position.epoch != event.epoch
+            || position.sequence != event.sequence
+            || page.dataset.timezone != repair.timezone
+            || page.quality_state.coverage.as_str() != "observed"
+            || !page.quality_state.gaps.is_empty()
+            || !missing.is_closed
+            || missing.time_ms != repair.missing.from_ms
+            || missing.trading_day != checkpoint.bar.trading_day
+            || close_time(missing, "1m", &page.dataset.provenance) != Some(repair.missing.to_ms)
+            || close_time(final_bar, "1m", &page.dataset.provenance) != Some(state.closes_at)
+            || !final_bar.is_closed
+            || !continues_bar(checkpoint.bar, final_bar)
+        {
+            return None;
+        }
+        Some(
+            json!({"bars": page.bars, "snapshot": page.snapshot, "position": position, "quality_state": page.quality_state}),
+        )
     }
 
     async fn open_checked_subscription(
@@ -282,7 +387,11 @@ fn close_time(
     match timeframe {
         "1d" => sessions.map(|(_, end)| end).max(),
         "1m" | "5m" => {
-            let width_ms = if timeframe == "1m" { 60_000 } else { 300_000 };
+            let width_ms = if timeframe == "1m" {
+                MINUTE_MS
+            } else {
+                5 * MINUTE_MS
+            };
             sessions
                 .filter(|(start, end)| (*start..*end).contains(&bar.time_ms))
                 .map(|(_, end)| end.min(bar.time_ms + width_ms))
@@ -292,11 +401,33 @@ fn close_time(
     }
 }
 
+fn continues_bar(previous: &Bar, next: &Bar) -> bool {
+    next.time_ms == previous.time_ms
+        && next.trading_day == previous.trading_day
+        && next.open == previous.open
+        && next.high >= previous.high
+        && next.low <= previous.low
+        && next.volume.is_some() == previous.volume.is_some()
+        && !matches!((previous.volume, next.volume), (Some(before), Some(after)) if after < before)
+}
+
+struct ClosedBarRepair {
+    missing: VisibleRange,
+    timezone: String,
+}
+
+enum ReplayEnd {
+    Closed,
+    Gap(&'static str),
+    ReportedGap(Box<MarketStreamGapEvent>),
+}
+
 struct Replay {
     input: MarketSubscriptionInput,
     boundary_bar: Bar,
     closes_at: i64,
     updates: Vec<MarketStreamBarUpdate>,
+    repair: Option<ClosedBarRepair>,
 }
 
 struct ReplayCheckpoint<'a> {
@@ -324,7 +455,7 @@ impl Replay {
         &mut self,
         event: Message,
         publish: &mut impl FnMut(Value) -> Result<(), Error>,
-    ) -> Result<Option<Value>, Error> {
+    ) -> Result<Option<ReplayEnd>, Error> {
         let (series, stream, epoch) = match &event {
             Message::MarketBarUpdateEvent(event) => {
                 (&event.payload.series, &event.stream_id, &event.epoch)
@@ -342,7 +473,7 @@ impl Replay {
             return Ok(None); // A delayed event from a previous selection.
         }
         if epoch != &after.epoch {
-            return Ok(Some(gapped("epoch_reset")));
+            return Ok(Some(ReplayEnd::Gap("epoch_reset")));
         }
         let checkpoint = self.checkpoint();
         let expected = checkpoint.sequence + 1;
@@ -353,20 +484,20 @@ impl Replay {
                     return Ok(None);
                 }
                 if event.sequence < expected {
-                    return Ok(Some(gapped("divergent_duplicate")));
+                    return Ok(Some(ReplayEnd::Gap("divergent_duplicate")));
                 }
                 if event.payload.expected_sequence != expected
                     || event.payload.affected.from_ms >= event.payload.affected.to_ms
+                    || (event.payload.reason == MarketStreamGapReason::SequenceGap
+                        && event.sequence - expected != event.payload.lost_count)
                 {
                     return Err(invalid());
                 }
-                let result = gapped(event.payload.reason.as_str());
-                publish(json!({"event": event}))?;
-                return Ok(Some(result));
+                return Ok(Some(ReplayEnd::ReportedGap(event)));
             }
             Message::MarketBarCorrectionEvent(event) => {
-                return Ok((event.sequence >= after.sequence).then(|| {
-                    gapped(if event.sequence < expected {
+                return Ok((event.sequence >= after.sequence).then_some({
+                    ReplayEnd::Gap(if event.sequence < expected {
                         "divergent_duplicate"
                     } else {
                         "correction_requires_backfill"
@@ -385,32 +516,24 @@ impl Replay {
             let exact = update.payload.bar == self.boundary_bar
                 && update.payload.observed_at_ms == boundary.as_of_ms
                 && update.payload.dataset_revision == boundary.dataset_revision;
-            return Ok((!exact).then(|| gapped("divergent_duplicate")));
+            return Ok((!exact).then_some(ReplayEnd::Gap("divergent_duplicate")));
         }
         if update.sequence < expected {
             let index = (update.sequence - after.sequence - 1) as usize;
-            return Ok(
-                (self.updates[index] != update.payload).then(|| gapped("divergent_duplicate"))
-            );
+            return Ok((self.updates[index] != update.payload)
+                .then_some(ReplayEnd::Gap("divergent_duplicate")));
         }
         if update.sequence != expected {
-            return Ok(Some(gapped("sequence_gap")));
+            return Ok(Some(ReplayEnd::Gap("sequence_gap")));
         }
         let payload = &update.payload;
         if payload.observed_at_ms <= checkpoint.observed_at_ms {
-            return Ok(Some(gapped("stale_observation")));
+            return Ok(Some(ReplayEnd::Gap("stale_observation")));
         }
         let bar = &payload.bar;
-        let previous = checkpoint.bar;
         if payload.dataset_revision != self.input.snapshot.dataset_revision
             || bar.is_closed != (payload.observed_at_ms >= self.closes_at)
-            || bar.time_ms != previous.time_ms
-            || bar.trading_day != previous.trading_day
-            || bar.open != previous.open
-            || bar.high < previous.high
-            || bar.low > previous.low
-            || matches!((previous.volume, bar.volume), (Some(previous), Some(next)) if next < previous)
-            || previous.volume.is_some() != bar.volume.is_some()
+            || !continues_bar(checkpoint.bar, bar)
         {
             return Err(invalid());
         }
@@ -424,6 +547,6 @@ impl Replay {
         )?;
         self.updates.push(payload.clone());
         publish(json!({"event": update}))?;
-        Ok(bar.is_closed.then(|| json!({"status": "complete"})))
+        Ok(bar.is_closed.then_some(ReplayEnd::Closed))
     }
 }
