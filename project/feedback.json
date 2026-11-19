@@ -732,14 +732,18 @@
       "source": "Independent timing review of an owned history preparation and market replay during M1-007.",
       "observation": "A replacement could stop attempting admission after 1000 ms for preview history or 1550 ms for a replay even though its previous worker was still within the bridge cleanup window. A simulated 1025 ms or 1600 ms release reproduced the two false BUSY results.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-007"
       ],
       "regression_checks": [
         "market-live-stream"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Three admission loops used fixed and inconsistent budgets that could expire before cleanup. A BUSY error delivered inside an already admitted stream could be mistaken for a new admission refusal.",
+        "correction": "Use a cancellable monotonic admission window covering worker cleanup. Acknowledge admission on the transport boundary and stop automatic retries once the worker has accepted the operation.",
+        "prevention": "Browser regressions delay replacement reads and subscriptions beyond the old limits, hold persistent BUSY and verify only one subscription after a terminal-only BUSY."
+      },
       "deferral_reason": null
     },
     {
@@ -747,14 +751,18 @@
       "source": "Independent M1-007 chart review with held ordinary history, controlled transport failures and a typed gap event.",
       "observation": "Without a snapshot, a failed worker read populated the source connection as disconnected. With a frozen snapshot, loss of the local preview transport could instead be presented as a worker exit. The UI also discarded known UTC ranges and loss counts when a stream gap arrived. A validated replay gap can arrive before a later cleanup error. Preserve the reported facts even if the terminal says TIMEOUT or the local transport then disconnects.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-007"
       ],
       "regression_checks": [
         "market-quality-states"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The view conflated source status with worker and local transport failures. It initially associated known loss with the normal terminal rather than the validated gap event.",
+        "correction": "Keep source, worker and transport facts independent. Retain accepted gap range, reason and loss immediately across normal completion, cleanup failure or transport loss, and discard the old replay on retry or selection change.",
+        "prevention": "The quality suite uses real pinned and unpinned history errors plus controlled transport cases, including a held then failed terminal and rejected post-gap updates. Independent review confirmed the same gap and failure remain visible together."
+      },
       "deferral_reason": null
     },
     {
@@ -762,7 +770,7 @@
       "source": "Independent M1-007 chart review with held ordinary history, controlled transport failures and a typed gap event.",
       "observation": "Switching symbols aborted the caller while a superseded ordinary browser history fetch still occupied the read queue until its old response arrived. This left the replacement chart loading while an obsolete response was held.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-007"
       ],
@@ -770,7 +778,11 @@
         "market-quality-states",
         "market-live-stream"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Ordinary development-preview reads did not receive the selection abort signal, so an obsolete network response held the client queue.",
+        "correction": "Cancel preview reads on replacement while allowing the prior child to be reaped before readmission. Preserve the native invoke boundary and the latest selection identity.",
+        "prevention": "The normal chart must paint the replacement stock while the obsolete futures response is still held, confirm cancellation and reject late paints. The native preparation and slot ownership checks remain in the replay suite."
+      },
       "deferral_reason": null
     }
   ]
