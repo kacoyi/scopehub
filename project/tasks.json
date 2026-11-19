@@ -2726,7 +2726,7 @@
         "local-import-ui"
       ],
       "evidence": [],
-      "next_action": "Verify the mapping-key correction with the original MSVC restart test under long TEMP and its real 8.3 alias, plus the pinned-directory and existing v4 key regressions. Keep the separate CSV worker timeout, immutable publication and folder refresh on their own checks.",
+      "next_action": "Verify the joined revision on hosted Windows and Ubuntu. The native mapping path checks passed under both long and short NTFS source spellings. Continue the local preview recovery, immutable publication and folder refresh work in their scoped checks.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -2749,7 +2749,8 @@
           "crates/persistence/src/lib.rs",
           "apps/desktop/src-tauri/src/workspace.rs",
           "apps/desktop/ui/src/local-import-editor.tsx",
-          "contracts/reviews/2026-11-19-windows-reviewed-mapping.json"
+          "contracts/reviews/2026-11-19-windows-reviewed-mapping.json",
+          "contracts/reviews/2026-11-19-windows-reviewed-mapping-paths.json"
         ],
         "hypotheses": [
           "Explicit source mappings can normalize native OHLCV bars without inferring a price, volume unit or session from ambiguous financial fields. File identities and row locators can connect every accepted row to its original input.",
