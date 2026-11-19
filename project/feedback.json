@@ -1020,6 +1020,27 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "hosted-sample-catalog-terminal-unobserved",
+      "source": "Hosted Windows run 44554402170 for PR 9 at 69c793b, market-recovery-ui; Linux comparison and owner follow-up.",
+      "observation": "The resumed-before-reconnecting case did not reach injected frames. The screenshot shows the mounted workspace reporting a disconnected local preview before any catalog data appeared, while the helper exhausted 18 seconds waiting for instrument.search. The published log shows neither a socket error code nor a Vite server fault. Later cases completed on the same test server.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-022"
+      ],
+      "regression_checks": [
+        "market-recovery-ui",
+        "market-recovery",
+        "market-worker-interruption"
+      ],
+      "resolution": {
+        "cause": "The helper polled for completed POST responses and gave an observed requestfailed event no terminal path before its deadline. A Linux catalog connection-reset injection reproduced the 18-second diagnostic timeout with the mounted workspace and Retry demo. The transport fault in the original Windows run remains unconfirmed.",
+        "correction": "Report document GET failures separately from catalog and history POST terminals. Capture one unmodified futures baseline per Playwright worker and reuse its exact synthetic responses in the injected cases.",
+        "prevention": "The retained Linux task run passed four staged startup fault cases, all eighteen injected protocol controls, real stock replacement and both real recovery gates. A Windows rerun is pending."
+      },
+      "deferral_reason": null
     }
   ]
 }

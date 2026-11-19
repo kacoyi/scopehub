@@ -5689,6 +5689,120 @@
           "cleanup": "Detach startup observers after the readiness outcome and leave the test browser to its existing teardown."
         }
       }
+    },
+    {
+      "id": "M1-022",
+      "title": "Report sample startup transport terminals and isolate injected recovery controls",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-018",
+        "M1-019",
+        "M1-021"
+      ],
+      "scope": [
+        "tests/ui/sample-startup.mjs",
+        "tests/ubuntu-preview/market-recovery-ui.spec.mjs",
+        "tests/ubuntu-preview/market-recovery-ui.config.mjs",
+        "project/checks.json",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "The shared startup check reports an observed navigation failure, catalog or history transport failure, or rejected operation during that stage, without automatic retries or changes to market UI failure behavior.",
+        "Verify one unmodified loopback baseline through the ordinary catalog, history, preparation and replay. Reuse same-run synthetic responses for exact matching futures requests in injected protocol controls, preserving every protocol assertion and the real stock replacement.",
+        "Run real closed-bar repair and worker interruption checks. Retain the hosted incident and state which underlying connection cause and Windows verification remain unresolved."
+      ],
+      "checks": [
+        "market-recovery-ui",
+        "market-recovery",
+        "market-worker-interruption",
+        "market-live-stream",
+        "market-quality-states",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-022-ea6bcbb84486e82e.json",
+          "sha256": "03cc167aa12699fe16bf0af09a331fb638a1d9f890d64c77544c77e478a1b5a1"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The Linux task harness verified the diagnostic regression, shared synthetic baseline and both real recovery gates. The original hosted connection cause remains unconfirmed, and this revision has not run on Windows.",
+      "plan": {
+        "outcome": "Expose the actual startup terminal and make injected recovery coverage independent of repeated worker startups.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ui/sample-startup.mjs",
+          "tests/ubuntu-preview/market-recovery-ui.spec.mjs",
+          "tests/ubuntu-preview/market-recovery-ui.config.mjs",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "The hosted workspace mounted and then lost catalog startup. Response-only polling hides a Playwright requestfailed terminal.",
+          "The injected protocol controls can share an exact same-run synthetic baseline while real loopback and recovery coverage remain independent."
+        ],
+        "risks": [
+          {
+            "failure": "Navigation, a transport failure, or a non-BUSY rejection is reported as a generic stage deadline.",
+            "checks": [
+              "market-recovery-ui"
+            ]
+          },
+          {
+            "failure": "A fixture masks request drift or replaces real recovery or interruption evidence.",
+            "checks": [
+              "market-recovery-ui",
+              "market-recovery",
+              "market-worker-interruption",
+              "market-live-stream",
+              "market-quality-states"
+            ]
+          }
+        ],
+        "rollback": "Retain the original hosted failure and staged negative evidence. Keep real gates unchanged if fixture isolation cannot preserve their coverage.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ui/sample-startup.mjs",
+            "tests/ubuntu-preview/market-recovery-ui.spec.mjs",
+            "tests/ubuntu-preview/market-recovery-ui.config.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Production connection policies, retries, market data changes and packaged Windows acceptance."
+          ],
+          "open_questions": [
+            "The published Windows artifacts do not establish which connection error occurred."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Financial assertions, request sequencing, exact BUSY admission, frozen provenance and both real recovery gates."
+          ],
+          "change": [
+            "Observe early terminal outcomes during startup and capture one verified loopback baseline for the injected futures cases."
+          ],
+          "data_plan": "Keep only same-run synthetic responses in test worker memory and use ordinary sanitized reports.",
+          "cleanup": "Close the baseline page and its context after capture. Let Playwright dispose of each case's routes and fixture context."
+        }
+      }
     }
   ]
 }
