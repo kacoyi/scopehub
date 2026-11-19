@@ -2727,7 +2727,7 @@
         "local-import-ui"
       ],
       "evidence": [],
-      "next_action": "Repair and verify reviewed mapping saves and committed publication retries before staging the folder refresh manifest. The Windows 11 desktop at 2f4a0c0 saved and reopened the reviewed mapping and distinguished data and header errors. Verify v5 publication independently on native Windows. Continue bounded cleanup and recovery for the separately observed native CSV worker timeout in the independent recovery work.",
+      "next_action": "Verify the replay-corrected v5 publication on native Windows. The Linux one-row retry probe retained exactly one mapping review, one dataset revision and one original source blob. The Windows 11 desktop at 2f4a0c0 saved and reopened the reviewed mapping and distinguished data and header errors. Continue bounded cleanup and recovery for the separately observed native CSV worker timeout in the independent recovery work. Then stage a reviewed folder refresh manifest for added, aliased, replaced and missing inputs.",
       "blocker": null,
       "closure_reason": null,
       "plan": {

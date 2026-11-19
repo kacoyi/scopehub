@@ -547,6 +547,8 @@ base('built UI publishes all 502 native bars through Rust and reopens, replaces 
     await expect(published).toContainText('000731 · 502 bars · daily.csv');
     const [first] = operations('market.publishLocalImport');
     const revision = first.reply.result.revision;
+    const [mappingSave] = operations('market.saveLocalImportMapping');
+    expect(await bridge.request('execute_operation', mappingSave.args)).toEqual(mappingSave.reply);
     expect(first.args.payload).toEqual({
       version: 1, folder_id: expect.any(String), file_id: expect.any(String), expected_sha256: hash, review_revision: 1,
     });
@@ -570,6 +572,7 @@ base('built UI publishes all 502 native bars through Rust and reopens, replaces 
     await writeFile(file, original.replace(',305,', ',304,'));
     await publish.click();
     await expect(page.getByRole('alert')).toContainText('The file changed since it was inspected.');
+    expect(await bridge.request('execute_operation', first.args)).toEqual(first.reply);
     await expect(frozen.getByLabel('Selected bar')).toContainText('C 305');
     await select(page, 'CSV file').selectOption({ label: 'held.csv' });
     await previewAndSave();
