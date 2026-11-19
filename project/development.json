@@ -165,7 +165,8 @@
         "Window identity and application assembly"
       ],
       "invariants": [
-        "Bind user actor at the transport; no general file/process/SQL command"
+        "Bind user actor at the transport; no general file/process/SQL command",
+        "Only a native directory picker supplies the root of a local CSV selection"
       ],
       "checks": [
         "architecture",
@@ -197,6 +198,7 @@
       "checks": [
         "chart-history",
         "ubuntu-preview",
+        "local-import-ui",
         "ui-build"
       ]
     },
@@ -515,7 +517,7 @@
         "M1-008"
       ],
       "delivery": "current-contract",
-      "boundary": "CSV directory selection, mapping preview and repeatable refresh require their own integrated check."
+      "boundary": "The Windows development desktop offers a native folder picker and a session preview with editable mappings. Native picker observation, durable mapping reuse, publication and repeatable refresh require integrated acceptance."
     },
     {
       "id": "workspace-layout",
