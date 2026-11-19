@@ -847,6 +847,21 @@
         "prevention": "Six new human and AI vectors distinguish object selection, explicit clearing and omitted target. All 162 shared vectors passed in Python, TypeScript and Rust. Independent review checked the original annotation request, advanced committed revision and projected result. Process-level idempotency remains an M2-001 runtime check."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "hosted-replay-aggregate-deadline",
+      "source": "Ubuntu Verify delivery run 44504564860 at edb0189, market-live-stream, first canvas replay.",
+      "observation": "The five-second terminal assertion reached Preparing then In progress before timing out. The other seven replay cases passed. The original log and screenshot are retained in the authenticated run artifact.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-017"
+      ],
+      "regression_checks": [
+        "market-live-stream"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
