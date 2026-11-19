@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ChartWorkspace } from './chart-workspace';
 import { readSampleView, saveSampleView } from './sample-view';
+import { useLocalWorkspace } from './use-local-workspace';
 
 function initialSource(): boolean {
   if (window.location.hash) return window.location.hash === '#demo';
@@ -10,6 +11,7 @@ function initialSource(): boolean {
 
 function App() {
   const [sample, setSample] = useState(initialSource);
+  const workspace = useLocalWorkspace();
   useEffect(() => {
     const navigate = () => {
       const chosen = window.location.hash === '#demo';
@@ -24,7 +26,8 @@ function App() {
     if (window.location.hash) window.location.hash = '';
     setSample(false);
   };
-  return <ChartWorkspace key={sample ? 'sample' : 'unconfigured'} sample={sample} leaveSample={leaveSample} />;
+  return <ChartWorkspace key={sample ? 'sample' : 'unconfigured'} sample={sample} leaveSample={leaveSample}
+    workspace={sample ? undefined : workspace} />;
 }
 
 const root = document.getElementById('root');

@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 
 const route = '/__scopehub/operation';
 const streamRoute = '/__scopehub/market-stream';
-const maxRequestBytes = 16 * 1024;
+export const maxRequestBytes = 16 * 1024;
 const requestDeadlineMs = 15_000;
 
 function traceHistory(request, response) {
@@ -21,7 +21,7 @@ function traceHistory(request, response) {
   return trace;
 }
 
-class PreviewFailure extends Error {
+export class PreviewFailure extends Error {
   constructor(status, code) {
     super(code);
     this.status = status;
@@ -29,7 +29,7 @@ class PreviewFailure extends Error {
   }
 }
 
-function failureResponse(request, response, failure) {
+export function failureResponse(request, response, failure) {
   if (response.destroyed || response.writableEnded) return;
   response.writeHead(failure.status, {
     'Content-Type': 'application/json', 'Cache-Control': 'no-store', Connection: 'close',
@@ -39,7 +39,20 @@ function failureResponse(request, response, failure) {
   });
 }
 
-async function readOperation(request, stream) {
+export function assertLocalJsonRequest(request, server) {
+  const address = server.address();
+  const host = address && `127.0.0.1:${address.port}`;
+  if (address?.address !== '127.0.0.1' || request.socket.remoteAddress !== '127.0.0.1'
+      || request.headers.host !== host || request.headers.origin !== `http://${host}`) {
+    throw new PreviewFailure(403, 'PERMISSION_DENIED');
+  }
+  if (request.method !== 'POST') throw new PreviewFailure(405, 'INVALID_ARGUMENT');
+  if (!/^application\/json(?:\s*;\s*charset=(?:utf-8|"utf-8"))?$/i.test(request.headers['content-type'] ?? '')
+      || request.headers['content-encoding']) throw new PreviewFailure(415, 'INVALID_ARGUMENT');
+  if (Number(request.headers['content-length']) > maxRequestBytes) throw new PreviewFailure(413, 'RESOURCE_LIMIT');
+}
+
+export async function readLocalJson(request) {
   const chunks = [];
   let size = 0;
   for await (const chunk of request.iterator({ destroyOnReturn: false })) {
@@ -47,12 +60,15 @@ async function readOperation(request, stream) {
     if (size > maxRequestBytes) throw new PreviewFailure(413, 'RESOURCE_LIMIT');
     chunks.push(chunk);
   }
-  let body;
   try {
-    body = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks)));
+    return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks)));
   } catch {
     throw new PreviewFailure(400, 'INVALID_ARGUMENT');
   }
+}
+
+async function readOperation(request, stream) {
+  const body = await readLocalJson(request);
   if (!body || typeof body.operation !== 'string' || !body.payload || typeof body.payload !== 'object'
       || Array.isArray(body.payload) || Object.keys(body).length !== 2) {
     throw new PreviewFailure(400, 'INVALID_ARGUMENT');
@@ -173,9 +189,16 @@ export function ubuntuPreview() {
       const shutdown = () => {
         for (const cancel of active.values()) cancel(new PreviewFailure(503, 'WORKER_EXITED'));
       };
-      const interrupt = () => {
+      const interrupt = async () => {
         shutdown();
-        if (!process.listenerCount('SIGINT')) process.kill(process.pid, 'SIGINT');
+        // Let Vite run its close hooks before exiting, including the workspace
+        // writer and private handoff cleanup when that mode is active.
+        try {
+          await server.close();
+        } finally {
+          process.exitCode ??= 130;
+          process.exit();
+        }
       };
       process.once('exit', shutdown);
       process.once('SIGINT', interrupt);
@@ -188,21 +211,13 @@ export function ubuntuPreview() {
         const stream = request.url === streamRoute;
         if (!stream && request.url !== route) return next();
         const trace = traceHistory(request, response);
-        const address = server.httpServer.address();
-        const host = address && `127.0.0.1:${address.port}`;
-        const reject = (status, code) => {
-          trace('rejected', { code });
-          failureResponse(request, response, new PreviewFailure(status, code));
+        const reject = failure => {
+          trace('rejected', { code: failure.code });
+          return failureResponse(request, response, failure);
         };
-        if (address?.address !== '127.0.0.1' || request.socket.remoteAddress !== '127.0.0.1'
-            || request.headers.host !== host || request.headers.origin !== `http://${host}`) {
-          return reject(403, 'PERMISSION_DENIED');
-        }
-        if (request.method !== 'POST') return reject(405, 'INVALID_ARGUMENT');
-        if (!/^application\/json(?:\s*;\s*charset=(?:utf-8|"utf-8"))?$/i.test(request.headers['content-type'] ?? '')
-            || request.headers['content-encoding']) return reject(415, 'INVALID_ARGUMENT');
-        if (Number(request.headers['content-length']) > maxRequestBytes) return reject(413, 'RESOURCE_LIMIT');
-        if (active.has(stream)) return reject(429, 'BUSY');
+        try { assertLocalJsonRequest(request, server.httpServer); }
+        catch (error) { return reject(error); }
+        if (active.has(stream)) return reject(new PreviewFailure(429, 'BUSY'));
 
         const controller = new AbortController();
         const cancel = failure => {

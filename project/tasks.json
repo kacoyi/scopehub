@@ -5302,6 +5302,521 @@
       }
     },
     {
+      "id": "M2-007",
+      "title": "Verify the persisted timeframe and eligible undo across local workspace sessions",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M1-001",
+        "M2-006"
+      ],
+      "scope": [
+        "crates/persistence",
+        "apps/desktop",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ui/desktop-workspace.spec.mjs",
+        "project/checks.json",
+        "project/tasks.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0010",
+        "0011"
+      ],
+      "acceptance": [
+        "A fresh browser and restarted Rust writer restore the committed timeframe, discover the eligible local undo, and restore the original timeframe exactly once. Independent profiles and rejected callers cannot read or mutate another workspace.",
+        "An ordinary unconfigured launch stays inert. The opted-in local host binds the trusted profile, actor, workspace and database. Actual Rust process and desktop bridge tests cover durable effects. Built UI tests verify native IPC arguments and error handling using a substituted transport.",
+        "The harness exercises the two named checks, records their distinct evidence, validates dependency inventory and retains synthetic verification artifacts."
+      ],
+      "checks": [
+        "project-state",
+        "architecture",
+        "python-contracts-workers",
+        "ui-build",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "dependency-review",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-007-33dd2c3a64efc9df.json",
+          "sha256": "502dee88879d90abda796484fbd9528af72e0d13c4bdb9057768bf4436ca11ca"
+        },
+        {
+          "path": "project/evidence/M2-007-6ef007cee190bd75.json",
+          "sha256": "a6883b5cfd3fe49824b9a1f07ea0c46dc375d67abb8c4793a9be1169dc3aa76b"
+        },
+        {
+          "path": "project/evidence/M2-007-7573ba68c670fea4.json",
+          "sha256": "8e5a3c10e0336672df587c439910ac47894e75c3a71dfc123f4f0f2f7ffd6adf"
+        },
+        {
+          "path": "project/evidence/M2-007-92a00f99ac760ba5.json",
+          "sha256": "fbe1ec557197785f1f2f570b3d580449682c44d41bde758c0cb3dc216761bea2"
+        },
+        {
+          "path": "project/evidence/M2-007-fc7f8335824d95a0.json",
+          "sha256": "248432cb29ce7bcc515c86edbf389f5258d8eb8d49a1e5191b5308e3e5ea7de3"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A repeatable, bounded acceptance of the first local workspace write and undo across process and browser restarts.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/checks.json",
+          "apps/desktop/ui/ubuntu-workspace.mjs",
+          "apps/desktop/src-tauri/src/workspace.rs",
+          "crates/persistence/src/lib.rs",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ui/desktop-workspace.spec.mjs"
+        ],
+        "hypotheses": [
+          "A new browser can use the core operation log to discover an eligible undo after a writer restart. The scoped result is independent of browser storage and the synthetic market source."
+        ],
+        "risks": [
+          {
+            "failure": "A restarted client repeats a write, trusts another profile, loses the undo or receives permission from an earlier invocation.",
+            "checks": [
+              "rust-contracts-workers",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A native transport substitute accidentally counts as an actual native runtime or an unconfigured host gains a new grant.",
+            "checks": [
+              "desktop-workspace-transport",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Only one host can execute the regression or its artifacts include the working data directory.",
+            "checks": [
+              "python-contracts-workers",
+              "workspace-timeframe",
+              "dependency-review"
+            ]
+          },
+          {
+            "failure": "A local caller receives another launcher grant, profile storage is created under shared filesystem permissions, or a live writer returns a stale cached snapshot after a concurrent commit.",
+            "checks": [
+              "workspace-timeframe",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep each fixture in an isolated temporary local profile. Preserve failed run evidence and correct the failing boundary before recording completion.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "ui",
+            "desktop",
+            "persistence",
+            "application"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ui/desktop-workspace.spec.mjs",
+            "apps/desktop/src-tauri/src/workspace.rs",
+            "crates/persistence/src/lib.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization/durable_operations"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence"
+            }
+          ],
+          "non_goals": [
+            "Decision-note retention, backup restoration, full production profile selection and packaged Windows experience remain assigned to their owning tasks."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "One Rust authorization path, local data ownership and synthetic source opt-in."
+          ],
+          "change": [
+            "Verify the eligible undo from fresh local sessions and independently exercise both application transports."
+          ],
+          "data_plan": "Only temporary synthetic profiles are used for the browser checks. They are removed after their owned processes exit.",
+          "cleanup": "Keep the process probe test-only. Stage named browser results and retain private working databases locally."
+        }
+      }
+    },
+    {
+      "id": "M2-009",
+      "title": "Isolate the offline sample timeframe from the durable workspace",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-007"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/main.tsx",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ui/desktop-workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/delivery.json",
+        "contracts/reviews/2026-11-19-workspace-timeframe-scope.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0010",
+        "0011"
+      ],
+      "acceptance": [
+        "Through the real preview and Rust writer, an explicitly opened and labeled simulated sample can save 5m and restore it on refresh while the bound workspace retains its independent 1m revision and existing undo receipt.",
+        "Leaving the sample in the launched page restores the durable controls and permits the original undo through the fragment-scrubbed in-memory grant. Refreshing the scrubbed shell requires a new handoff to use durable controls.",
+        "The built desktop UI with opted-in substituted Tauri IPC routes sample controls to the sample preference and retains the private timeframe and undo on return. Unconfigured startup remains inert and keeps explicit sample opt-in."
+      ],
+      "checks": [
+        "project-state",
+        "architecture",
+        "python-contracts-workers",
+        "ui-build",
+        "market-workflow",
+        "rust-contracts-workers",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-009-0baed08382358263.json",
+          "sha256": "2984f4f38c88bcae1c14526c71784c39786f5896a41f04249a99b1057a51c287"
+        },
+        {
+          "path": "project/evidence/M2-009-ed6211b1605652bd.json",
+          "sha256": "65f5923a2d9d12f19257c4c1cbe12d69136a79e5026c607d94c3f745392e0604"
+        },
+        {
+          "path": "project/evidence/M2-009-4b235889ac15264c.json",
+          "sha256": "3b7ed3af43ff6da3347f9cd94b7cbf0a70ec1969c85f925fa41c6b90164c5668"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The active synthetic chart and private workspace have independent timeframe ownership across entry, leave and browser reload.",
+        "change_types": [
+          "ui",
+          "tooling"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-19-workspace-timeframe-scope.json",
+          "apps/desktop/ui/src/main.tsx",
+          "apps/desktop/ui/src/chart-workspace.tsx",
+          "apps/desktop/ui/src/sample-view.ts",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "The composed chart binds the local workspace controls while the sample is active. Giving the active source ownership of the controls keeps both stored states independent."
+        ],
+        "risks": [
+          {
+            "failure": "Opening the sample changes a durable revision or replaces the existing private undo.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "Leaving or refreshing the sample loses the expected timeframe, activates a private grant in a new browser document, or loses the grant in the original launched document.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport",
+              "market-workflow"
+            ]
+          }
+        ],
+        "rollback": "Retain red and green runs using isolated synthetic profiles. Revert the UI routing change on the task branch if the ordinary durable path or synthetic startup regresses.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/main.tsx",
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ui/desktop-workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "contracts/decisions/0010-reproducible-operations-and-acceptance.json",
+              "pointer": "/decision"
+            },
+            {
+              "path": "contracts/decisions/0011-local-profiles-and-connected-model-use.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Private decision notes, evidence selection, general operation replay, profile backup and migration recovery continue under their own development scope.",
+            "Keep the existing SQLite schema and local authorization contract. Native IPC substitution and portable Rust bridge tests leave installed Windows WebView acceptance to its own gate."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Explicit sample opt-in, existing sample preference format and leave behavior.",
+            "Private snapshot, durable write and undo through the same Rust registry and profile store.",
+            "Page-local preview grants and unconfigured startup without a private write path."
+          ],
+          "change": [
+            "Bind chart controls and sample reads to the selected source while retaining the existing local workspace session in the parent UI."
+          ],
+          "data_plan": "Reuse the public sample preference. Use temporary synthetic SQLite profiles for verification.",
+          "cleanup": "Remove generated synthetic profiles after their writers exit. Retain red and green reports with synthetic observations and keep launch grants out of artifacts."
+        }
+      }
+    },
+    {
+      "id": "M0-028",
+      "title": "Route delegated Herdr work through bounded approval policies",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-025"
+      ],
+      "scope": [
+        "scripts/herdr.py",
+        "tests/project/test_herdr.py",
+        "project"
+      ],
+      "decision_refs": [
+        "0007",
+        "0011"
+      ],
+      "acceptance": [
+        "The normal Herdr launcher sends implementation and coordination tasks to the automatic approval reviewer with the workspace-write sandbox. Review tasks use the read-only sandbox and return a denial directly. Both paths preserve the assigned checkout, model, reasoning effort and literal task.",
+        "Exercise the installed CLI through a real local Herdr session in a synthetic or task worktree. Retain the effective arguments and an independently checked outcome. Keep approval refusals visible to the coordinator."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-028-6db9900ad8dc0a0d.json",
+          "sha256": "13f544a77afbf39f7f633b35e4e9b76d0e054594652a1b367df47b2e69949438"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A bounded development assignment can finish routine work without a developer at each child terminal.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/development.json",
+          "project/delivery.json",
+          "scripts/herdr.py",
+          "tests/project/test_herdr.py"
+        ],
+        "hypotheses": [
+          "The launcher inherited interactive approvals for implementation and coordination. The installed CLI supports automatic review in its normal workspace sandbox."
+        ],
+        "risks": [
+          {
+            "failure": "A writer silently gains unrestricted access or a reviewer becomes writable.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A real policy refusal is hidden, or quoting the assignment changes its meaning.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Preserve the previous launcher commit and incomplete assignments in their existing worktrees. If the chosen CLI mode is unavailable, report the terminal failure and retain the task.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/herdr.py",
+            "tests/project/test_herdr.py"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/herdr"
+            },
+            {
+              "path": "contracts/decisions/0007-ai-led-development.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Changing global Codex settings, extending product-user permissions, or publishing a release."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Role-specific models, read-only review, current worktree selection, verbatim assignments, and the explicit local Herdr space."
+          ],
+          "change": [
+            "Route elevated development requests to the built-in automatic reviewer. Surface denials and missing inputs directly."
+          ],
+          "data_plan": "Use repository code and synthetic local probes. The launcher does not persist credentials or user content.",
+          "cleanup": "Only newly started sessions receive new launch arguments. Preserve pending work and retire coordinator-owned test sessions after verification."
+        }
+      }
+    },
+    {
+      "id": "M1-024",
+      "title": "Verify first native sample startup and its isolation from a private workspace",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M2-009"
+      ],
+      "scope": [
+        "pyproject.toml",
+        "uv.lock",
+        "project",
+        "crates/worker-host",
+        "python/worker_runtime",
+        "apps/desktop/src-tauri",
+        "contracts/reviews/2026-11-19-native-sample-startup.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0010"
+      ],
+      "acceptance": [
+        "An ordinary Windows development WebView opens the explicitly selected offline sample, displays the correct futures bars at 1m and 5m, and restores the 5m simulated chart in a new process. The same account retains the prior private workspace and can undo the original private change.",
+        "Retain the first native failure. Record the real executable, worker environment, observations and any unconfirmed cause. Compare relevant runtime changes in the same standard-user guest using the real default catalog and history requests.",
+        "Verify the shipped combination of source and pinned runtime through the normal entry, preserve schema format checks, worker cleanup, and existing production deadlines."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture",
+        "dependency-review",
+        "market-workflow",
+        "workspace-timeframe",
+        "desktop-workspace-transport",
+        "rust-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-024-c902a0ef0d560f59.json",
+          "sha256": "839f5d23e0fde66034a4a0bf9ffef4086c728024900c8eabf3245b139fae356d"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The normal private desktop can enter, persist and exit an explicit local sample without losing its original private undo.",
+        "change_types": [
+          "tooling",
+          "dependencies"
+        ],
+        "context": [
+          "pyproject.toml",
+          "crates/worker-host/src/market.rs",
+          "apps/desktop/src-tauri/src/bridge.rs",
+          "apps/desktop/ui/src/use-market-data.ts",
+          "contracts/reviews/2026-11-19-native-sample-startup.json"
+        ],
+        "hypotheses": [
+          "The old worker environment imports a format grammar that lengthens startup. The first GUI failure reported a timeout before the catalog appeared. Its underlying mechanism has not yet been isolated."
+        ],
+        "risks": [
+          {
+            "failure": "A faster partial run masks loss of the sample preference, the private undo, or a terminal worker error.",
+            "checks": [
+              "market-workflow",
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "Changing the validator dependencies drops an actively used wire format or leaves inconsistent locks.",
+            "checks": [
+              "python-contracts-workers",
+              "architecture",
+              "dependency-review",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the original executable, dependency lock, local guest artifacts and synthetic profiles. Restore the previous runtime after each diagnostic comparison.",
+        "implementation": {
+          "modules": [
+            "desktop",
+            "worker-host",
+            "worker-runtime",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "apps/desktop/src-tauri/src/bridge.rs",
+            "crates/worker-host/src/market.rs",
+            "python/worker_runtime/__main__.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Packaged distribution, physical-device experience and connected model sessions have separate gates."
+          ],
+          "open_questions": [
+            "Which native stage exceeded its budget during the original first launch?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Offline sample opt-in, its simulated badge and independent saved preferences.",
+            "Private workspace revisions, original undo receipts, configured format checks and bounded worker operations."
+          ],
+          "change": [
+            "Qualify the normal native sample startup on the integrated runtime and remove measured avoidable cold work."
+          ],
+          "data_plan": "Use only synthetic market data and an isolated development profile in a disposable Windows clone.",
+          "cleanup": "Close owned processes and retain the original source, runtime and diagnostic results separately."
+        }
+      }
+    },
+    {
       "id": "M1-019",
       "title": "Verify recovery boundaries and owned worker interruption on Windows",
       "milestone": "M1",
@@ -5933,106 +6448,6 @@
           ],
           "data_plan": "Keep startup state in this document. The recovery control only reloads the current location.",
           "cleanup": "The successful React mount replaces the temporary markup. Recover by explicitly reloading the same document."
-        }
-      }
-    },
-    {
-      "id": "M0-028",
-      "title": "Route delegated Herdr work through bounded approval policies",
-      "milestone": "M0",
-      "status": "done",
-      "depends_on": [
-        "M0-025"
-      ],
-      "scope": [
-        "scripts/herdr.py",
-        "tests/project/test_herdr.py",
-        "project"
-      ],
-      "decision_refs": [
-        "0007",
-        "0011"
-      ],
-      "acceptance": [
-        "The normal Herdr launcher sends implementation and coordination tasks to the automatic approval reviewer with the workspace-write sandbox. Review tasks use the read-only sandbox and return a denial directly. Both paths preserve the assigned checkout, model, reasoning effort and literal task.",
-        "Exercise the installed CLI through a real local Herdr session in a synthetic or task worktree. Retain the effective arguments and an independently checked outcome. Keep approval refusals visible to the coordinator."
-      ],
-      "checks": [
-        "project-state",
-        "python-contracts-workers"
-      ],
-      "evidence": [
-        {
-          "path": "project/evidence/M0-028-6db9900ad8dc0a0d.json",
-          "sha256": "13f544a77afbf39f7f633b35e4e9b76d0e054594652a1b367df47b2e69949438"
-        }
-      ],
-      "next_action": null,
-      "blocker": null,
-      "closure_reason": null,
-      "plan": {
-        "outcome": "A bounded development assignment can finish routine work without a developer at each child terminal.",
-        "change_types": [
-          "tooling"
-        ],
-        "context": [
-          "project/development.json",
-          "project/delivery.json",
-          "scripts/herdr.py",
-          "tests/project/test_herdr.py"
-        ],
-        "hypotheses": [
-          "The launcher inherited interactive approvals for implementation and coordination. The installed CLI supports automatic review in its normal workspace sandbox."
-        ],
-        "risks": [
-          {
-            "failure": "A writer silently gains unrestricted access or a reviewer becomes writable.",
-            "checks": [
-              "python-contracts-workers"
-            ]
-          },
-          {
-            "failure": "A real policy refusal is hidden, or quoting the assignment changes its meaning.",
-            "checks": [
-              "project-state",
-              "python-contracts-workers"
-            ]
-          }
-        ],
-        "rollback": "Preserve the previous launcher commit and incomplete assignments in their existing worktrees. If the chosen CLI mode is unavailable, report the terminal failure and retain the task.",
-        "implementation": {
-          "modules": [
-            "development-tooling"
-          ],
-          "entrypoints": [
-            "scripts/herdr.py",
-            "tests/project/test_herdr.py"
-          ],
-          "rules": [
-            {
-              "path": "project/development.json",
-              "pointer": "/herdr"
-            },
-            {
-              "path": "contracts/decisions/0007-ai-led-development.json",
-              "pointer": "/decision"
-            }
-          ],
-          "non_goals": [
-            "Changing global Codex settings, extending product-user permissions, or publishing a release."
-          ],
-          "open_questions": []
-        },
-        "evolution": {
-          "kind": "refactor",
-          "preserve": [
-            "Role-specific models, read-only review, current worktree selection, verbatim assignments, and the explicit local Herdr space."
-          ],
-          "change": [
-            "Route elevated development requests to the built-in automatic reviewer. Surface denials and missing inputs directly."
-          ],
-          "data_plan": "Use repository code and synthetic local probes. The launcher does not persist credentials or user content.",
-          "cleanup": "Only newly started sessions receive new launch arguments. Preserve pending work and retire coordinator-owned test sessions after verification."
         }
       }
     },

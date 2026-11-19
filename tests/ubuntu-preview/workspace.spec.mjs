@@ -1,0 +1,720 @@
+import { execFile, spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
+import { once } from 'node:events';
+import { chmod, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { createServer } from 'node:net';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { promisify } from 'node:util';
+import { expect, test } from '@playwright/test';
+import { control, leaveSample } from '../ui/workspace-controls.mjs';
+import { assertUnsuitableWindowsHandoffsRejected, assertWindowsPrivateHandoff } from './workspace_test_handoff_acl.mjs';
+
+const exec = promisify(execFile);
+const root = fileURLToPath(new URL('../../', import.meta.url));
+const ui = join(root, 'apps/desktop/ui');
+const vite = pathToFileURL(join(ui, 'node_modules/vite/dist/node/index.js')).href;
+const viteCli = join(ui, 'node_modules/vite/bin/vite.js');
+const workspaceBridge = join(root, 'target/debug', process.platform === 'win32' ? 'workspace_bridge.exe' : 'workspace_bridge');
+const python = join(root, '.venv', ...(process.platform === 'win32' ? ['Scripts', 'python.exe'] : ['bin', 'python']));
+const workspaceId = 'synthetic-workspace';
+const endpoint = '/__scopehub/workspace';
+const snapshot = { type: 'snapshot' };
+// This malformed snapshot checks admission without becoming a competing
+// SQLite read when the actual producer is deliberately suspended.
+const admissionProbe = { type: 'snapshot', request_id: 1 };
+const service = `
+  const [entry, mode, port] = process.argv.slice(1);
+  const { createServer } = await import(entry);
+  const server = await createServer({ mode, server: { host: '127.0.0.1', port: Number(port), strictPort: true } });
+  process.once('message', async () => {
+    await server.close();
+    process.disconnect();
+  });
+  await server.listen();
+`;
+
+test.beforeAll(async ({}, testInfo) => {
+  testInfo.setTimeout(300_000);
+  await exec('cargo', [
+    'build', '--locked', '-p', 'scopehub-persistence', '--bin', 'workspace_bridge',
+    '-p', 'scopehub-worker-host', '--example', 'history_bridge', '--target-dir', 'target',
+  ], { cwd: root, timeout: 295_000 });
+});
+
+test('fresh browsers restore committed timeframe and eligible undo after service restarts', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  const port = await freePort();
+  const observation = [];
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      const writer = await writerPid(server);
+      await inFreshBrowser(browser, server, async (page, initial) => {
+        expect(state(initial)).toEqual({ revision: 0, timeframe: '1m', undo: null });
+        await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
+        await expect(control(page, 'Undo timeframe change')).toBeDisabled();
+        const reply = await act(page, '5m', 'chart.setTimeframe');
+        expect(reply.result.outcome).toMatchObject({
+          state: 'committed', result: { timeframe: '5m', revision: 1 }, receipt: { undoable: true },
+        });
+        await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
+        expect(await writerPid(server)).toBe(writer);
+        observation.push({ visit: 'first', vite: server.pid, writer, receipt: reply.result.outcome.receipt.operation_id });
+      });
+    });
+    await expect.poll(() => alive(observation[0].writer)).toBe(false);
+    expect((await stat(join(profile.root, 'workspace.sqlite3'))).size).toBeGreaterThan(0);
+
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      const writer = await writerPid(server);
+      expect(server.pid).not.toBe(observation[0].vite);
+      expect(writer).not.toBe(observation[0].writer);
+      await inFreshBrowser(browser, server, async (page, initial) => {
+        expect(state(initial)).toEqual({
+          revision: 1, timeframe: '5m',
+          undo: { operation_id: observation[0].receipt, committed_workspace_revision: 1 },
+        });
+        await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
+        const undo = control(page, 'Undo timeframe change');
+        await expect(undo).toBeEnabled();
+        await undo.focus();
+        const response = page.waitForResponse(mutationResponse('workspace.undo'));
+        await page.keyboard.press('Enter');
+        const accepted = await response;
+        expect(accepted.request().postDataJSON().intent.arguments).toEqual({ operation_id: observation[0].receipt });
+        const inverse = (await accepted.json()).result.outcome;
+        expect(inverse).toMatchObject({
+          state: 'committed', result: { timeframe: '1m', revision: 2 }, receipt: { undoable: false },
+        });
+        expect(inverse.receipt.operation_id).not.toBe(observation[0].receipt);
+        await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
+        await expect(undo).toBeDisabled();
+        expect(await writerPid(server)).toBe(writer);
+        observation.push({ visit: 'undo', vite: server.pid, writer, receipt: inverse.receipt.operation_id });
+      });
+    });
+    await expect.poll(() => alive(observation[1].writer)).toBe(false);
+
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      const writer = await writerPid(server);
+      expect(server.pid).not.toBe(observation[1].vite);
+      expect(writer).not.toBe(observation[1].writer);
+      await inFreshBrowser(browser, server, async (page, initial) => {
+        expect(state(initial)).toEqual({ revision: 2, timeframe: '1m', undo: null });
+        await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
+        await expect(control(page, 'Undo timeframe change')).toBeDisabled();
+        observation.push({ visit: 'after-undo', vite: server.pid, writer, restored: state(initial) });
+      });
+    });
+    await expect.poll(() => alive(observation[2].writer)).toBe(false);
+    await testInfo.attach('workspace-restarts', { body: JSON.stringify(observation), contentType: 'application/json' });
+  } finally {
+    await profile.close();
+  }
+});
+
+test('the offline sample keeps its own timeframe without replacing the private undo', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  const port = await freePort();
+  const context = await browser.newContext();
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      const page = await context.newPage();
+      const launchPath = '/synthetic-private-launch';
+      await page.addInitScript(({ launchPath, capability }) => {
+        // Simulate the real handoff without exposing its fragment in navigation
+        // artifacts or re-injecting it on refresh after the UI scrubs it.
+        if (location.pathname === launchPath) history.replaceState(null, '', '/#workspace=' + capability);
+      }, { launchPath, capability: server.capability });
+      const workspaceRequests = [];
+      context.on('request', request => {
+        if (new URL(request.url()).pathname !== endpoint) return;
+        const body = request.postDataJSON();
+        workspaceRequests.push(body.intent?.operation ?? body.type);
+      });
+      const launch = () => page.goto(server.url + launchPath);
+      const shellUrl = url => url.origin === server.url && url.pathname === '/' && url.hash === '';
+      const readPrivate = async () => state(await (await post(server, snapshot)).json());
+      const assertSample = async (tab, timeframe) => {
+        await expect(tab.locator('.connection')).toHaveText('Offline sampleSimulated');
+        await expect(control(tab, timeframe)).toHaveAttribute('aria-pressed', 'true');
+        await expect(tab.locator('.history')).toHaveAttribute('data-timeframe', timeframe);
+      };
+      const undo = control(page, 'Undo timeframe change');
+
+      await launch();
+      await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
+      await expect(page).toHaveURL(server.url + '/');
+      await expect(page.locator('.connection')).toHaveText('No data source');
+      expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
+      expect(await readPrivate()).toEqual({ revision: 0, timeframe: '1m', undo: null });
+      expect((await act(page, '5m', 'chart.setTimeframe')).result.outcome)
+        .toMatchObject({ state: 'committed', result: { timeframe: '5m', revision: 1 } });
+      const prior = (await act(page, '1m', 'chart.setTimeframe')).result.outcome;
+      expect(prior).toMatchObject({ state: 'committed', result: { timeframe: '1m', revision: 2 }, receipt: { undoable: true } });
+      const before = {
+        revision: 2, timeframe: '1m',
+        undo: { operation_id: prior.receipt.operation_id, committed_workspace_revision: 2 },
+      };
+      expect(await readPrivate()).toEqual(before);
+      await expect(undo).toBeEnabled();
+
+      const beforeSample = workspaceRequests.length;
+      await control(page, 'Open offline sample').click();
+      await assertSample(page, '1m');
+      await control(page, '5m').click();
+      await assertSample(page, '5m');
+      const after = await readPrivate();
+      const refreshed = await context.newPage();
+      await refreshed.goto(server.url);
+      await expect(refreshed.locator('.history')).toBeVisible();
+      await refreshed.reload();
+      await expect(refreshed.locator('.history')).toBeVisible();
+      const refreshedTimeframe = await refreshed.locator('.history').getAttribute('data-timeframe');
+      await testInfo.attach('workspace-sample-timeframe', {
+        body: JSON.stringify({ before, after, refreshedTimeframe, sampleWorkspaceRequests: workspaceRequests.slice(beforeSample) }),
+        contentType: 'application/json',
+      });
+      expect(after).toEqual(before);
+      expect(workspaceRequests.slice(beforeSample)).toEqual([]);
+      await expect(undo).toHaveCount(0);
+      await assertSample(refreshed, '5m');
+      await expect(control(refreshed, 'Undo timeframe change')).toHaveCount(0);
+      await assertSampleStorage(refreshed, '5m');
+      await refreshed.close();
+
+      await leaveSample(page);
+      await expect(page).toHaveURL(shellUrl);
+      await expect(page.locator('.connection')).toHaveText('No data source');
+      await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
+      await expect(undo).toBeEnabled();
+      expect(await readPrivate()).toEqual(before);
+      const accepted = page.waitForResponse(mutationResponse('workspace.undo'));
+      await undo.click();
+      const reply = await accepted;
+      expect(reply.request().postDataJSON().intent.arguments).toEqual({ operation_id: prior.receipt.operation_id });
+      expect((await reply.json()).result.outcome).toMatchObject({
+        state: 'committed', result: { timeframe: '5m', revision: 3 }, receipt: { undoable: false },
+      });
+      await expect(undo).toBeDisabled();
+      const afterUndo = { revision: 3, timeframe: '5m', undo: null };
+      expect(await readPrivate()).toEqual(afterUndo);
+      expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
+
+      const beforeReload = workspaceRequests.length;
+      await page.reload();
+      await expect(page).toHaveURL(shellUrl);
+      await expect(control(page, 'Open offline sample')).toBeVisible();
+      await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
+      await expect(undo).toHaveCount(0);
+      expect(workspaceRequests.slice(beforeReload)).toEqual([]);
+      await launch();
+      await expect(page).toHaveURL(server.url + '/');
+      await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
+      await expect(undo).toBeDisabled();
+      expect(workspaceRequests.slice(beforeReload)).toEqual(['snapshot']);
+
+      const beforeSampleReload = workspaceRequests.length;
+      await control(page, 'Open offline sample').click();
+      await assertSample(page, '1m');
+      await control(page, '1d').click();
+      await assertSample(page, '1d');
+      await assertSampleStorage(page, '1d');
+      await page.reload();
+      await assertSample(page, '1d');
+      await expect(undo).toHaveCount(0);
+      await assertSampleStorage(page, '1d');
+      await leaveSample(page);
+      await expect(page.locator('.connection')).toHaveText('No data source');
+      await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
+      await expect(undo).toHaveCount(0);
+      expect(workspaceRequests.slice(beforeSampleReload)).toEqual([]);
+      expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
+      expect(await readPrivate()).toEqual(afterUndo);
+    });
+  } finally {
+    await context.close();
+    await profile.close();
+  }
+});
+
+test('the opted-in route binds identity, limits input, and drains cancellation without replaying after EOF', async () => {
+  const profile = await makeProfile();
+  const port = await freePort();
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      const writer = await writerPid(server);
+      const baseline = await post(server, snapshot);
+      expect(state(await baseline.json())).toEqual({ revision: 0, timeframe: '1m', undo: null });
+      const foreign = await post(server, snapshot, { Origin: 'http://localhost' });
+      expect(foreign.status).toBe(403);
+      const oversized = await post(server, { type: 'snapshot', padding: 'x'.repeat(16 * 1024) });
+      expect(oversized.status).toBe(413);
+      const forged = setTimeframe(0, '5m');
+      Object.assign(forged.scope, { principal_id: 'forged', client_id: 'forged', profile_root: profile.root, grant: 'all' });
+      expect(await (await post(server, forged)).json()).toMatchObject({ ok: false, error: { code: 'INVALID_ARGUMENT' } });
+      forged.scope.workspace_id = 'other-workspace';
+      expect((await post(server, forged)).status).toBe(403);
+      const fallback = await head(server, '/synthetic-missing-page');
+      expect(fallback.status).toBe(200);
+      expect(fallback.contentType).toMatch(/^text\/html\b/);
+      const sqlite = join(profile.root, 'workspace.sqlite3');
+      expect((await stat(sqlite)).isFile()).toBe(true);
+      await assertPrivateResource(server, rawFileRoute(sqlite));
+      for (const suffix of ['', '-wal', '-shm', '-journal']) {
+        await assertPrivateResource(server, '/workspace.sqlite3' + suffix);
+      }
+      const marker = join(profile.root, 'synthetic fixture.txt');
+      await writeFile(marker, 'Synthetic file in the bound profile.', { flag: 'wx', mode: 0o600 });
+      await assertPrivateResource(server, rawFileRoute(marker));
+
+      await writerPid(server, 'suspend', writer);
+      const abort = new AbortController();
+      const cancelled = post(server, setTimeframe(0, '5m'), {}, abort.signal).catch(error => error);
+      try {
+        await expect.poll(async () => (await post(server, admissionProbe)).status).toBe(429);
+        abort.abort();
+        expect((await cancelled).name).toBe('AbortError');
+        // The browser stopped waiting. The admitted line still owns the producer slot.
+        expect((await post(server, admissionProbe)).status).toBe(429);
+      } finally {
+        if (alive(writer)) await writerPid(server, 'resume', writer);
+      }
+      await expect.poll(async () => {
+        const reply = await post(server, snapshot);
+        return reply.ok ? state(await reply.json())?.revision : undefined;
+      }).toBe(1);
+      expect(await writerPid(server)).toBe(writer);
+
+      await writerPid(server, 'suspend', writer);
+      const inFlight = post(server, setTimeframe(1, '1d'));
+      try {
+        await expect.poll(async () => (await post(server, admissionProbe)).status).toBe(429);
+      } finally {
+        if (alive(writer)) await writerPid(server, 'kill', writer);
+      }
+      const disconnected = await inFlight;
+      expect(disconnected.status).toBe(503);
+      expect(await disconnected.json()).toMatchObject({ ok: false, error: { code: 'WORKER_EXITED' } });
+      expect((await post(server, snapshot)).status).toBe(503);
+    });
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      const restored = state(await (await post(server, snapshot)).json());
+      expect(restored).toMatchObject({ revision: 1, timeframe: '5m' });
+    });
+  } finally {
+    await profile.close();
+  }
+});
+
+test('the private launcher handoff is required and a previous launch cannot authorize a request', async ({ browser }) => {
+  const profile = await makeProfile();
+  const port = await freePort();
+  let previous;
+  let handoff;
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      previous = server.capability;
+      handoff = server.handoff;
+      await assertPrivateHandoff(handoff);
+      if (process.platform === 'win32') await assertUnsuitableWindowsHandoffsRejected(profile.root);
+
+      for (const request of [snapshot, setTimeframe(0, '5m')]) {
+        const denied = await post({ url: server.url }, request);
+        expect(denied.status).toBe(403);
+        expect(await denied.json()).toEqual({ ok: false, error: { code: 'PERMISSION_DENIED', retryable: false } });
+      }
+      await assertPrivateResource(server, '/workspace-access-' + port + '.html');
+      await assertPrivateResource(server, rawFileRoute(handoff));
+      await assertPrivateResource(server, '/.workspace-access-' + port + '.html-' + randomUUID());
+      const allowed = await post(server, snapshot);
+      const payload = await allowed.text();
+      expect(!payload.includes(previous)).toBe(true);
+      expect(state(JSON.parse(payload))).toEqual({ revision: 0, timeframe: '1m', undo: null });
+    });
+    await expect(stat(handoff)).rejects.toMatchObject({ code: 'ENOENT' });
+
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      expect(server.capability !== previous).toBe(true);
+      const expired = await post(server, snapshot, { Authorization: 'Bearer ' + previous });
+      expect(expired.status).toBe(403);
+
+      const anonymous = await browser.newContext();
+      try {
+        const page = await anonymous.newPage();
+        const requests = observeOperations(page);
+        await page.goto(server.url);
+        await expect(control(page, 'Open offline sample')).toBeVisible();
+        await expect(control(page, 'Undo timeframe change')).toHaveCount(0);
+        await control(page, '5m').click();
+        expect(requests).toEqual([]);
+      } finally { await anonymous.close(); }
+
+      await inFreshBrowser(browser, server, async (page, initial) => {
+        expect(state(initial)).toEqual({ revision: 0, timeframe: '1m', undo: null });
+        await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
+      });
+    });
+
+    if (process.getuid) {
+      // This profile contains only test state. Reject it before issuing a
+      // credential when the host supplies it without owner-only permissions.
+      await chmod(profile.root, 0o755);
+      await inService(port, profile, 'ubuntu-workspace', async server => {
+        await expect.poll(server.handoffRejected).toBe(true);
+        await expect(stat(server.handoff)).rejects.toMatchObject({ code: 'ENOENT' });
+        expect((await post(server, snapshot)).status).toBe(403);
+      }, { expectHandoff: false });
+    }
+  } finally {
+    await profile.close();
+  }
+});
+
+test('terminal SIGINT and SIGTERM remove the handoff and reap the writer before relaunch', async () => {
+  test.skip(process.platform === 'win32', 'The owned CLI uses POSIX signal delivery.');
+  const profile = await makeProfile();
+  const port = await freePort();
+  let handoff;
+  let previousWriter;
+  let previousCapability;
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      handoff = server.handoff;
+      previousWriter = await writerPid(server);
+      previousCapability = server.capability;
+      expect(state(await (await post(server, snapshot)).json())).toEqual({ revision: 0, timeframe: '1m', undo: null });
+    }, { terminalSignal: 'SIGINT' });
+    await expect(stat(handoff)).rejects.toMatchObject({ code: 'ENOENT' });
+    await expect.poll(() => alive(previousWriter)).toBe(false);
+
+    let nextWriter;
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      nextWriter = await writerPid(server);
+      expect(nextWriter).not.toBe(previousWriter);
+      expect(server.capability !== previousCapability).toBe(true);
+      expect((await post(server, snapshot, { Authorization: 'Bearer ' + previousCapability })).status).toBe(403);
+      expect(state(await (await post(server, snapshot)).json())).toEqual({ revision: 0, timeframe: '1m', undo: null });
+    }, { terminalSignal: 'SIGTERM' });
+    await expect(stat(handoff)).rejects.toMatchObject({ code: 'ENOENT' });
+    await expect.poll(() => alive(nextWriter)).toBe(false);
+  } finally {
+    await profile.close();
+  }
+});
+
+test('two live writers read current undo and a stale browser reload recovers from Rust', async ({ browser }) => {
+  const profile = await makeProfile();
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async first => {
+      await inService(await freePort(), profile, 'ubuntu-workspace', async second => {
+        expect(await writerPid(first)).not.toBe(await writerPid(second));
+        const crossLaunch = await post(second, snapshot, { Authorization: 'Bearer ' + first.capability });
+        expect(crossLaunch.status).toBe(403);
+        await inFreshBrowser(browser, first, async (page, initial) => {
+          expect(state(initial)).toEqual({ revision: 0, timeframe: '1m', undo: null });
+          const changed = (await (await post(second, setTimeframe(0, '5m'))).json()).result.outcome;
+          expect(changed).toMatchObject({ state: 'committed', result: { revision: 1, timeframe: '5m' } });
+          const target = { operation_id: changed.receipt.operation_id, committed_workspace_revision: 1 };
+          expect(state(await (await post(first, snapshot)).json())).toEqual({ revision: 1, timeframe: '5m', undo: target });
+
+          const rejected = await act(page, '1d', 'chart.setTimeframe');
+          expect(rejected.result.outcome).toMatchObject({ state: 'failed', error: { code: 'STALE_CONTEXT' } });
+          await expect(page.getByRole('alert')).toHaveText('The workspace changed. Reload its current state.');
+          await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
+          await control(page, 'Reload workspace state').click();
+          await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
+          const undo = page.waitForResponse(mutationResponse('workspace.undo'));
+          await control(page, 'Undo timeframe change').click();
+          const accepted = await undo;
+          expect(accepted.request().postDataJSON().intent.arguments).toEqual({ operation_id: target.operation_id });
+          expect((await accepted.json()).result.outcome).toMatchObject({
+            state: 'committed', result: { revision: 2, timeframe: '1m' },
+          });
+          expect(state(await (await post(second, snapshot)).json())).toEqual({ revision: 2, timeframe: '1m', undo: null });
+        });
+      });
+    });
+  } finally {
+    await profile.close();
+  }
+});
+
+test('ordinary and Ubuntu history startup do not open a writer or dispatch data operations', async ({ browser }) => {
+  const profile = await makeProfile();
+  try {
+    for (const mode of ['development', 'ubuntu-preview']) {
+      await inService(await freePort(), profile, mode, async server => {
+        const context = await browser.newContext();
+        try {
+          const page = await context.newPage();
+          const requests = observeOperations(page);
+          await page.goto(server.url);
+          await expect(control(page, 'Open offline sample')).toBeVisible();
+          await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
+          await expect(control(page, 'Undo timeframe change')).toHaveCount(0);
+          await control(page, '5m').click();
+          await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
+          expect(requests).toEqual([]);
+        } finally {
+          await context.close();
+        }
+        if (mode === 'ubuntu-preview') {
+          const denied = await fetch(server.url + '/__scopehub/operation', {
+            method: 'POST', headers: { Origin: server.url, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ operation: 'chart.setTimeframe', payload: setTimeframe(0, '5m') }),
+          });
+          expect(denied.status).toBe(403);
+          expect(await denied.json()).toMatchObject({ ok: false, error: { code: 'PERMISSION_DENIED' } });
+        }
+        expect((await post(server, setTimeframe(0, '5m'))).status).toBe(404);
+        await expect(stat(join(profile.root, 'workspace.sqlite3'))).rejects.toMatchObject({ code: 'ENOENT' });
+      });
+    }
+  } finally {
+    await profile.close();
+  }
+});
+
+async function makeProfile() {
+  const directory = await mkdtemp(join(tmpdir(), 'scopehub-ubuntu-test-'));
+  const profile = join(directory, 'profile');
+  const close = () => rm(directory, { recursive: true, force: true });
+  try {
+    await exec(workspaceBridge, ['--prepare-profile-root', profile], { timeout: 12_000 });
+    return { root: profile, id: 'synthetic-' + randomUUID(), close };
+  } catch (error) {
+    await close();
+    throw error;
+  }
+}
+
+async function assertPrivateHandoff(handoff) {
+  if (process.platform === 'win32') {
+    await assertWindowsPrivateHandoff(handoff);
+    return;
+  }
+  const metadata = await stat(handoff);
+  expect(metadata.mode & 0o777).toBe(0o600);
+  expect(metadata.uid).toBe(process.getuid());
+}
+
+async function freePort() {
+  const server = createServer();
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const port = server.address().port;
+  await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+  return port;
+}
+
+async function inService(port, profile, mode, use, { expectHandoff = true, terminalSignal } = {}) {
+  const url = 'http://127.0.0.1:' + port;
+  const args = terminalSignal
+    ? [viteCli, '--mode', mode, '--host', '127.0.0.1', '--port', String(port), '--strictPort']
+    : ['--input-type=module', '--eval', service, vite, mode, String(port)];
+  const child = spawn(process.execPath, args, {
+    cwd: ui,
+    env: {
+      ...process.env,
+      SCOPEHUB_WORKSPACE_PROFILE_ROOT: profile.root,
+      SCOPEHUB_WORKSPACE_PROFILE_ID: profile.id,
+      SCOPEHUB_WORKSPACE_ID: workspaceId,
+    },
+    stdio: terminalSignal ? ['pipe', 'pipe', 'pipe'] : ['ignore', 'pipe', 'pipe', 'ipc'],
+  });
+  const closed = once(child, 'close');
+  let output = '';
+  for (const stream of [child.stdout, child.stderr]) {
+    stream.setEncoding('utf8');
+    stream.on('data', chunk => { output = (output + chunk).slice(-6000); });
+  }
+  const server = {
+    url, pid: child.pid,
+    handoff: join(profile.root, 'workspace-access-' + port + '.html'),
+    handoffRejected: () => output.includes('The private workspace handoff could not be issued.'),
+  };
+  try {
+    const deadline = Date.now() + 10_000;
+    for (;;) {
+      if (child.exitCode !== null || child.signalCode !== null || Date.now() > deadline) {
+        throw new Error(`Vite failed to start in ${mode}: ${output}`);
+      }
+      const response = await fetch(url, { signal: AbortSignal.timeout(500) }).catch(() => null);
+      if (response?.ok) {
+        await response.body.cancel();
+        break;
+      }
+      await response?.body?.cancel();
+      await delay(30);
+    }
+    if (mode === 'ubuntu-workspace' && expectHandoff) {
+      await expect.poll(async () => {
+        const content = await readFile(server.handoff, 'utf8').catch(error => {
+          if (error.code === 'ENOENT') return '';
+          throw error;
+        });
+        const link = /href="(http:\/\/127\.0\.0\.1:\d+\/#workspace=([a-f0-9]{64}))"/.exec(content);
+        if (!link || new URL(link[1]).origin !== url) return false;
+        const capability = link[2];
+        server.capability = capability;
+        return true;
+      }, { message: 'The launcher issued a private access document', timeout: 12_000 }).toBe(true);
+    }
+    await use(server);
+  } finally {
+    if (terminalSignal) child.kill(terminalSignal);
+    else if (child.connected) child.send('close', () => {});
+    const grace = setTimeout(() => child.kill('SIGKILL'), 7_000);
+    try {
+      const [, signal] = await closed;
+      expect(signal).not.toBe('SIGKILL');
+      if (server.capability) expect(!output.includes(server.capability)).toBe(true);
+    } finally {
+      clearTimeout(grace);
+    }
+  }
+}
+
+async function writerPid(server, action, observedPid) {
+  const args = ['-I', join(root, 'tests/ubuntu-preview/workspace_test_writer.py'), String(process.pid), String(server.pid)];
+  if (action) args.push(action, String(observedPid));
+  const { stdout } = await exec(python, args, { timeout: 5_000 });
+  return Number(stdout.trim());
+}
+
+function alive(pid) {
+  try { process.kill(pid, 0); return true; }
+  catch (error) {
+    if (error.code === 'ESRCH') return false;
+    throw error;
+  }
+}
+
+function rawFileRoute(path) {
+  return '/@fs/' + pathToFileURL(path).pathname.replace(/^\//, '');
+}
+
+async function head(server, resource) {
+  const response = await fetch(server.url + resource, {
+    method: 'HEAD', headers: { Accept: 'text/html' }, redirect: 'error', signal: AbortSignal.timeout(5_000),
+  });
+  return {
+    status: response.status,
+    contentType: response.headers.get('content-type'),
+    contentLength: response.headers.get('content-length'),
+    cacheControl: response.headers.get('cache-control'),
+    etag: response.headers.get('etag'),
+    lastModified: response.headers.get('last-modified'),
+  };
+}
+
+async function assertPrivateResource(server, resource) {
+  expect(await head(server, resource)).toEqual({
+    status: 404, contentType: null, contentLength: '0', cacheControl: 'no-store', etag: null, lastModified: null,
+  });
+}
+
+function post(server, body, headers = {}, signal = AbortSignal.timeout(10_000)) {
+  return fetch(server.url + endpoint, {
+    method: 'POST', headers: {
+      Origin: server.url, 'Content-Type': 'application/json',
+      ...(server.capability ? { Authorization: 'Bearer ' + server.capability } : {}), ...headers,
+    },
+    body: JSON.stringify(body), signal,
+  });
+}
+
+function state(frame) {
+  if (frame.ok !== true) return undefined;
+  const { workspace, undo } = frame.result;
+  expect(workspace).toMatchObject({ id: workspaceId, instrument_id: null, dataset: null, layers: [] });
+  expect(frame.result.selection_revision).toBe(0);
+  return { revision: workspace.revision, timeframe: workspace.timeframe, undo };
+}
+
+function observeOperations(page) {
+  const requests = [];
+  page.on('request', request => {
+    const path = new URL(request.url()).pathname;
+    if (path.startsWith('/__scopehub/')) requests.push(path);
+  });
+  return requests;
+}
+
+async function assertSampleStorage(page, timeframe) {
+  const stored = await page.evaluate(expected => {
+    let preference;
+    try {
+      preference = JSON.parse(localStorage.getItem('scopehub.preview.sample.v1') ?? 'null');
+    } catch {
+      return null;
+    }
+    return {
+      onlySamplePreference: localStorage.length === 1 && preference !== null,
+      emptySessionStorage: sessionStorage.length === 0,
+      matchesSample: preference?.source === 'scopehub.synthetic' && preference.timeframe === expected
+        && typeof preference.symbol === 'string' && /^SIM\.[.A-Z0-9]+$/.test(preference.symbol)
+        && preference.style === 'candlestick' && preference.cursor === 'crosshair'
+        && preference.panel === 'watchlist' && preference.chartOnly === false && preference.narrow === false
+        && preference.sampleRevision === 'normal' && preference.sampleDate === ''
+        && Object.keys(preference).length === 10,
+    };
+  }, timeframe);
+  expect(stored).toEqual({ onlySamplePreference: true, emptySessionStorage: true, matchesSample: true });
+}
+
+async function inFreshBrowser(browser, server, use) {
+  const context = await browser.newContext();
+  try {
+    // Read the real launcher handoff but set its fragment locally before page
+    // code runs. No capability is put in Playwright navigation URLs or traces.
+    await context.addInitScript(capability => {
+      window.history.replaceState(null, '', '#workspace=' + capability);
+    }, server.capability);
+    const page = await context.newPage();
+    const requests = observeOperations(page);
+    let capabilityInRequestUrl = false;
+    page.on('request', request => { capabilityInRequestUrl ||= request.url().includes(server.capability); });
+    const initial = page.waitForResponse(response =>
+      new URL(response.url()).pathname === endpoint && response.request().postDataJSON()?.type === 'snapshot');
+    await page.goto(server.url);
+    await expect(control(page, 'Open offline sample')).toBeVisible();
+    await expect(page.getByText('No data source')).toBeVisible();
+    expect(await page.evaluate(() => window.location.hash === '')).toBe(true);
+    expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
+    await use(page, await (await initial).json());
+    expect(requests.every(path => path === endpoint)).toBe(true);
+    expect(capabilityInRequestUrl).toBe(false);
+  } finally {
+    await context.close();
+  }
+}
+
+function mutationResponse(operation) {
+  return response => new URL(response.url()).pathname === endpoint
+    && response.request().postDataJSON()?.intent?.operation === operation;
+}
+
+async function act(page, name, operation) {
+  const operationResponse = page.waitForResponse(mutationResponse(operation));
+  await control(page, name).click();
+  const accepted = await operationResponse;
+  const json = await accepted.json();
+  expect(json.result.request_id).toBe(accepted.request().postDataJSON().request_id);
+  return json;
+}
+
+function setTimeframe(revision, timeframe) {
+  return {
+    protocol_version: '1.1', type: 'request', message_id: randomUUID(), timestamp_ms: Date.now(), request_id: randomUUID(),
+    task_id: null,
+    scope: {
+      workspace_id: workspaceId, target: { kind: 'chart', object_id: 'main-chart' }, idempotency_key: randomUUID(),
+      expected_workspace_revision: revision, expected_selection_revision: 0,
+    },
+    intent: { operation: 'chart.setTimeframe', arguments: { timeframe } },
+  };
+}

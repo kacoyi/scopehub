@@ -1,0 +1,38 @@
+{
+  "kind": "workspace-timeframe-delivery-scope",
+  "recorded_at": "2026-11-19",
+  "reviewed_branch": "codex/herdr-durable-workspace",
+  "reviewed_head": "096e09be4d86685f471c45bd5d55c20d8b1c4455",
+  "review_base": "def475d",
+  "task_ids": [
+    "M2-001",
+    "M2-007",
+    "M2-009"
+  ],
+  "delivery": {
+    "operations": [
+      "The shared Rust operation registry implements chart.setTimeframe and workspace.undo for the main chart through the existing 1.1 command envelopes.",
+      "The preview Rust writer and opt-in desktop development bridge compose the registry with a trusted local workspace snapshot and a local-user write grant."
+    ],
+    "authorization": [
+      "The registry uses the existing operation manifest and trusted profile, workspace, principal, actor and optional paired-client identity. It enforces the relevant operation, target, revisions, disclosure and confirmation policy, scoped idempotency and eligible undo.",
+      "The preview admits a page-local launcher capability. The desktop development entry binds a local profile at startup."
+    ],
+    "storage": [
+      "SQLite schema version 1 binds the store to a profile and commits workspace state, operation log and idempotency records transactionally. Filesystem checks protect the profile, database and sidecars.",
+      "The timeframe workflow exercises restore after a writer restart, distinct profiles and exactly one eligible inverse."
+    ],
+    "boundary": "M2-007 is the accepted verification record for this slice. M2-009 tracks the reviewer-observed sample isolation defect and its regression evidence. Hosted run 44562771227 describes the pre-fix source."
+  },
+  "continuing_scope": {
+    "M2-001": "This delivery branch restores the exact definition from main at def475d. The broader active plans continue on codex/herdr-decision-notes, codex/herdr-evidence-selection and codex/herdr-workspace-replay.",
+    "planned_checks": [
+      "operations-workflow",
+      "state-migrations"
+    ],
+    "remaining": [
+      "Complete shared operations and replay across the broader workflow, saved decision notes and selected evidence, profile backup and recovery, versioned migration recovery and production profile integration.",
+      "Verify the applicable native Windows and installed experience gates with the corresponding source and scope."
+    ]
+  }
+}
