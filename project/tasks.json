@@ -5316,7 +5316,8 @@
         "scripts/rust_workspace.py",
         ".github/workflows/verify.yml",
         "project/tasks.json",
-        "project/feedback.json"
+        "project/feedback.json",
+        "tests/project/test_market_probe_owner.py"
       ],
       "decision_refs": [
         "0004",
@@ -5325,7 +5326,8 @@
       "acceptance": [
         "A cold native Windows runner can verify recovery, preserve a visible gap on mismatched replacement and exhaust the bounded retry sequence while preserving the expected terminal cause. Independent request, cleanup and cancellation limits remain enforced.",
         "The real chart interruption reaches only the admitted worker under the test-owned preview. The test observes its confirmed progress, one final projection and unchanged frozen data. Closed-bar browser checks observe preparation and stream progress separately and still reject every altered or incomplete frame.",
-        "The hosted change verification leaves enough bounded time for the full Windows check sequence and retained evidence, including failures. Linux and native Windows outcomes are observed separately."
+        "The hosted change verification leaves enough bounded time for the full Windows check sequence and retained evidence, including failures. Linux and native Windows outcomes are observed separately.",
+        "A provisioned Linux runner launches the pinned Chromium before the chart suites. When required system libraries are absent, install them and verify the same browser starts before continuing."
       ],
       "checks": [
         "rust-contracts-workers",
@@ -5359,7 +5361,8 @@
           ".github/workflows/verify.yml"
         ],
         "hypotheses": [
-          "The Windows redirector adds a process between the helper and its owning Node test. Cold worker startup, retries and browser preparation can individually succeed while a check waiting across them expires."
+          "The Windows redirector adds a process between the helper and its owning Node test. Cold worker startup, retries and browser preparation can individually succeed while a check waiting across them expires.",
+          "Runs 44520641312 and 44521481949 stopped fetching Ubuntu font packages before executing any project check. Starting the pinned browser verifies the existing host runtime and reserves package installation for missing dependencies."
         ],
         "risks": [
           {

@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { painted } from '../ui/chart-pixels.mjs';
+import { replayStage, waitForReplayRequest } from '../ui/replay-stages.mjs';
 import { control, openPanel } from '../ui/workspace-controls.mjs';
 
 const stream = '/__scopehub/market-stream';
@@ -62,7 +63,7 @@ async function readFrozenRows(page) {
 
 async function play(page) {
   await page.mouse.move(1, 1);
-  await control(page, 'Play sample updates').press('Enter');
+  await waitForReplayRequest(page, () => control(page, 'Play sample updates').press('Enter'));
 }
 
 async function captureFrames(page) {
@@ -72,7 +73,7 @@ async function captureFrames(page) {
 }
 
 async function expectGap(page) {
-  await expect(gap(page)).toHaveText('Affected range [2024-01-04 01:08:00, 2024-01-04 01:09:00) UTC · 1 lost update');
+  await expect(gap(page)).toHaveText('Affected range [2024-01-04 01:08:00, 2024-01-04 01:09:00) UTC · 1 lost update', replayStage);
   await expect(chart(page)).toHaveAttribute('data-bars', '39');
   await expect(legend(page)).toContainText(/C 3501\.2Volume 120.*Partial bar/);
 }
@@ -99,7 +100,7 @@ test('a real verified repair adds the missing closed minute to the existing char
   await openPanel(page, 'Data sources');
   const canvas = await chart(page).locator('.chart canvas').first().elementHandle();
   await play(page);
-  await expect(page.getByText('Closed-bar gap repaired in chart', { exact: true })).toBeVisible();
+  await expect(page.getByText('Closed-bar gap repaired in chart', { exact: true })).toBeVisible(replayStage);
   await expect(page.getByText('Frozen history has gaps', { exact: true })).toBeVisible();
   await expect(chart(page)).toHaveAttribute('data-bars', '40');
   await expect(legend(page)).toContainText(/C 3501Volume 130.*Closed bar/);
@@ -144,7 +145,7 @@ test('a real verified repair adds the missing closed minute to the existing char
 test('the real unrepaired sample keeps the missing interval visible and the chart unfilled', async ({ page }, testInfo) => {
   await openRepairSample(page, 'unrepaired');
   await play(page);
-  await expect(page.getByText('Replay gap. An update is missing.', { exact: true })).toBeVisible();
+  await expect(page.getByText('Replay gap. An update is missing.', { exact: true })).toBeVisible(replayStage);
   await expectGap(page);
   const frames = await captureFrames(page);
   expect(frames.map(frame => Object.keys(frame)[0])).toEqual(['subscription', 'event', 'event', 'ok']);
@@ -166,8 +167,22 @@ async function holdRepair(page, terminal) {
 test('a held bridge reply keeps the gap until the valid repair and complete are both received', async ({ page }) => {
   await holdRepair(page);
   await openRepairSample(page, 'repairable');
+  // Keep the real snapshot and worker. Delay just the preparation reply so
+  // the wait for a gap cannot use a single five-second budget from the click.
+  let preparations = 0;
+  await page.route('**/__scopehub/operation', async route => {
+    const { operation, payload } = route.request().postDataJSON();
+    if (operation !== 'market.readHistoryPage' || payload.include_stream_position !== true) return route.continue();
+    const response = await route.fetch();
+    if (response.ok()) {
+      preparations++;
+      await new Promise(resolve => setTimeout(resolve, 5_200));
+    }
+    await route.fulfill({ response });
+  });
   await play(page);
   await expectGap(page);
+  expect(preparations).toBe(1);
   await page.evaluate(() => window.sendClosedBarRepair());
   await expectGap(page);
   await page.evaluate(() => window.finishClosedBarRepair());
@@ -261,7 +276,7 @@ for (const [name, alter, failure = 'The data response failed validation.'] of [
     await openRepairSample(page, 'repairable');
     await trackProjection(page);
     await play(page);
-    await expect(page.getByRole('alert')).toHaveText(`Replay failed. ${failure}`);
+    await expect(page.getByRole('alert')).toHaveText(`Replay failed. ${failure}`, replayStage);
     await expectGap(page);
     expect(await page.evaluate(() => window.closedBarProjectionCounts)).not.toContain('40');
     await readFrozenRows(page);

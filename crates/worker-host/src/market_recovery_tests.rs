@@ -1,5 +1,9 @@
 use super::*;
 
+// These cases exercise one application session using real, cold interpreters.
+// Competing test cases must not consume another session's handshake budget.
+static REAL_WORKER_TEST: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
 fn config() -> WorkerConfig {
     WorkerConfig::development(&PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../.."))
 }
@@ -207,6 +211,7 @@ impl MarketLifecycle for InterruptedWorker<'_> {
 
 #[tokio::test]
 async fn replacement_cannot_rewrite_a_confirmed_closed_bar() {
+    let _session = REAL_WORKER_TEST.lock().await;
     let initial = sample_futures_page().await;
     let mut trace = Trace::default();
     let mut worker = InterruptedWorker::new(&mut trace);
@@ -240,6 +245,7 @@ async fn replacement_cannot_rewrite_a_confirmed_closed_bar() {
 
 #[tokio::test]
 async fn replacement_cannot_hide_new_visible_loss_behind_unchanged_five_minute_bars() {
+    let _session = REAL_WORKER_TEST.lock().await;
     let initial = sample_page(query("SIM.CN.FUTURE.001", "5m", "contracts")).await;
     assert_eq!(initial["quality_state"]["coverage"], "observed");
     assert_eq!(initial["quality_state"]["gaps"], json!([]));
@@ -279,6 +285,7 @@ async fn replacement_cannot_hide_new_visible_loss_behind_unchanged_five_minute_b
 
 #[tokio::test]
 async fn replacement_compares_selected_half_open_coverage_independently_of_freshness() {
+    let _session = REAL_WORKER_TEST.lock().await;
     let from = 1704200520000_i64;
     let to = 1704330600000_i64;
     let mut args = query("SIM.CN.FUTURE.001", "5m", "contracts");
@@ -390,6 +397,7 @@ async fn replacement_compares_selected_half_open_coverage_independently_of_fresh
 
 #[tokio::test]
 async fn owned_worker_exit_during_repair_preserves_gap_and_exact_error() {
+    let _session = REAL_WORKER_TEST.lock().await;
     let mut reads = MarketRegistry::new(MarketWorker::new(Some(config())));
     let mut args = query("SIM.CN.FUTURE.001", "1m", "contracts");
     args["expected_revision"] = json!("scopehub-synthetic-v1:20241013:repairable");
@@ -445,6 +453,7 @@ async fn sample_page(args: Value) -> Value {
 
 #[tokio::test]
 async fn resumes_confirmed_futures_bar_after_owned_worker_exits() {
+    let _session = REAL_WORKER_TEST.lock().await;
     let mut reads = MarketRegistry::new(MarketWorker::new(Some(config())));
     let query = query("SIM.CN.FUTURE.001", "1m", "contracts");
     let initial = reads
@@ -537,6 +546,7 @@ async fn resumes_confirmed_futures_bar_after_owned_worker_exits() {
 
 #[tokio::test]
 async fn replacement_requires_the_confirmed_epoch_sequence_and_bar() {
+    let _session = REAL_WORKER_TEST.lock().await;
     let page = sample_futures_page().await;
     for (fault, reason) in [
         (BoundaryFault::Epoch, "epoch_changed"),
@@ -572,6 +582,7 @@ async fn replacement_requires_the_confirmed_epoch_sequence_and_bar() {
 
 #[tokio::test]
 async fn retries_a_replacement_exit_during_verification_under_one_reconnect_notice() {
+    let _session = REAL_WORKER_TEST.lock().await;
     let page = sample_futures_page().await;
     let mut trace = Trace::default();
     let mut worker = InterruptedWorker::new(&mut trace);
@@ -607,6 +618,7 @@ async fn retries_a_replacement_exit_during_verification_under_one_reconnect_noti
 
 #[tokio::test]
 async fn five_restarts_total_even_when_every_replacement_accepts_before_exiting() {
+    let _session = REAL_WORKER_TEST.lock().await;
     let page = sample_futures_page().await;
     let mut trace = Trace::default();
     let mut worker = InterruptedWorker::new(&mut trace);
@@ -656,6 +668,7 @@ async fn five_restarts_total_even_when_every_replacement_accepts_before_exiting(
 
 #[tokio::test]
 async fn cancellation_during_recovery_cleans_up_before_a_new_selection() {
+    let _session = REAL_WORKER_TEST.lock().await;
     let page = sample_futures_page().await;
     let mut trace = Trace::default();
     let (cancel, cancelled) = tokio::sync::oneshot::channel();
