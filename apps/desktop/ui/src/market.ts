@@ -11,6 +11,12 @@ type Job = {
 };
 const aborted = () => new DOMException('Selection changed', 'AbortError');
 
+class PreviewHttpFailure extends Error {
+  constructor(readonly status: number) {
+    super(`The local preview returned HTTP ${status}.`);
+  }
+}
+
 async function readOperation(
   operation: keyof Inputs, payload: Inputs[keyof Inputs], admitted: () => void, signal?: AbortSignal,
 ): Promise<unknown> {
@@ -22,11 +28,12 @@ async function readOperation(
     if (response.ok) admitted();
     let reply;
     try { reply = await response.json(); } catch (error) {
-      if (response.ok && error instanceof SyntaxError) throw invalidMarketData();
-      throw error;
+      // JSON syntax errors follow a completed transfer. Body transfer errors and
+      // cancellation retain their original rejection.
+      if (!(error instanceof SyntaxError)) throw error;
     }
     if (reply?.ok === false && operationCode(reply.error)) throw reply.error;
-    if (!response.ok) throw new Error('Market preview transport failed');
+    if (!response.ok) throw new PreviewHttpFailure(response.status);
     if (reply?.ok !== true || !reply.result) throw invalidMarketData();
     return reply.result;
   }
@@ -132,6 +139,9 @@ export type MarketFailure = {
 };
 
 export function describeMarketFailure(error: unknown): MarketFailure {
+  if (error instanceof PreviewHttpFailure) {
+    return { kind: 'error', message: error.message, retryable: error.status >= 500 };
+  }
   const retryable = error && typeof error === 'object' && 'retryable' in error && typeof error.retryable === 'boolean'
     ? error.retryable : true;
   switch (operationCode(error)) {

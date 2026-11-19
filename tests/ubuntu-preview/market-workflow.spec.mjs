@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { painted } from '../ui/chart-pixels.mjs';
 import { replayStage, waitForReplayRequest } from '../ui/replay-stages.mjs';
+import { expectSelectedHistory, observeSelectedHistory } from '../ui/selected-history.mjs';
 import { control, openPanel } from '../ui/workspace-controls.mjs';
 
 test.use({ viewport: { width: 1600, height: 900 } });
@@ -268,6 +269,7 @@ test('searches and replays three simulated instruments in one chart session', as
   const external = [];
   await page.addInitScript(observePriceCanvas);
   await page.addInitScript(observeMarketStreams, streamPath);
+  await observeSelectedHistory(page);
   context.on('request', request => {
     const url = new URL(request.url());
     if (!['http:', 'https:'].includes(url.protocol)) return;
@@ -298,6 +300,7 @@ test('searches and replays three simulated instruments in one chart session', as
   await expect(control(page, 'Play sample updates')).toBeVisible();
 
   let verifiedSubscriptions = 0;
+  let historyStart = 0;
   for (const selection of selections) {
     const { id, timeframe, style, count, unit, start, ohl: [open, high, low], observations } = selection;
     await test.step(`${id} ${timeframe} ${style}`, async () => {
@@ -312,7 +315,7 @@ test('searches and replays three simulated instruments in one chart session', as
       const chartName = style === 'Candles' ? 'Candlestick' : style;
       const plot = page.getByRole('img', { name: `${chartName} and volume chart for ${id}`, exact: true });
       const canvas = plot.locator('canvas').first();
-      await expect(canvas).toBeVisible();
+      await expectSelectedHistory(page, canvas, calls, historyStart, selection, testInfo);
       await expect.poll(() => painted(page, style === 'Candles' ? 'candlestick' : 'line')).toBeGreaterThan(20);
 
       const bars = observations.map(([close, volume], index) => ({
@@ -344,6 +347,7 @@ test('searches and replays three simulated instruments in one chart session', as
         [start, tradingDay, open, high, low, original.close, original.volume, 'Partial'].map(String),
       );
       verifiedSubscriptions += await expectReplayProtocol(page, calls, calls.slice(playbackStart), selection, bars);
+      historyStart = calls.length;
     });
   }
 

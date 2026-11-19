@@ -1,0 +1,123 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M1-025",
+  "task_definition_sha256": "8e2e1e72c566711512c01d01d35316b62dfbbc46fe81929a5675e21133727722",
+  "run_id": "20261119T183610.350566Z-33343b68",
+  "recorded_at": "2026-11-19T18:52:50.119440+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "3f61dfd3b0e902b5399d28e2791be7491513ee8d99aff466977ebee8274d40f6",
+    "file_count": 260,
+    "git_head": "03fd774800c93c4129cfc3a83018b5642f71de21",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "c02d0de076347728479e363284eae0fb4e84838d45c4fe881e5bedd20a1ef0ac",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/projects/scopehub-market-selected-history/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-market-selected-history/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9885af88bf2371c1d82a59d066123ebf63071f2dd4e3e4ac4dd650bf1b315ce2"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-market-selected-history/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "4ee3ec06a630c74682875ccfb3121037612be3c0164d2b95d21929cf5cb20b20"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "3f3984cdb92c38d046d2fc4572ed03044e92a9cc30e0d156170b7c8b5dd5b8a4"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "748be13364fa813fdb0ea6d31275e081a1ae38507e4372d68c184a21137b16f0"
+    },
+    {
+      "id": "market-quality-states",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-quality.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "29225d595f01f5ba384c588307dd157794c7bcfe2bdb9d3361639117f6c6df94"
+    },
+    {
+      "id": "market-live-stream",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-stream.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ae5715bc319f45d887d0021794e12e2c61eb6093c9fada8a0edfba4b3c759ef3"
+    }
+  ],
+  "project_definition_sha256": "e332155a3799dbb2d49b729dce5db5bfc3767fec826f705f6129e1f4941414ec",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

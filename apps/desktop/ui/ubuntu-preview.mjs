@@ -7,6 +7,20 @@ const streamRoute = '/__scopehub/market-stream';
 export const maxRequestBytes = 16 * 1024;
 const requestDeadlineMs = 15_000;
 
+function traceHistory(request, response) {
+  const id = request.headers['x-scopehub-test-request-id'];
+  if (process.env.SCOPEHUB_TEST_PREVIEW !== '1' || typeof id !== 'string' || !/^[a-f0-9-]{36}$/.test(id)) {
+    return () => {};
+  }
+  const trace = (stage, detail = {}) => console.info('Preview history', JSON.stringify({ id, stage, ...detail }));
+  trace('received');
+  response.once('finish', () => trace('finished', { status: response.statusCode }));
+  response.once('close', () => {
+    if (!response.writableFinished) trace('closed', response.headersSent ? { status: response.statusCode } : {});
+  });
+  return trace;
+}
+
 export class PreviewFailure extends Error {
   constructor(status, code) {
     super(code);
@@ -196,10 +210,14 @@ export function ubuntuPreview() {
       server.middlewares.use(async (request, response, next) => {
         const stream = request.url === streamRoute;
         if (!stream && request.url !== route) return next();
-        const reject = (status, code) => failureResponse(request, response, new PreviewFailure(status, code));
+        const trace = traceHistory(request, response);
+        const reject = failure => {
+          trace('rejected', { code: failure.code });
+          return failureResponse(request, response, failure);
+        };
         try { assertLocalJsonRequest(request, server.httpServer); }
-        catch (error) { return failureResponse(request, response, error); }
-        if (active.has(stream)) return reject(429, 'BUSY');
+        catch (error) { return reject(error); }
+        if (active.has(stream)) return reject(new PreviewFailure(429, 'BUSY'));
 
         const controller = new AbortController();
         const cancel = failure => {
@@ -213,15 +231,22 @@ export function ubuntuPreview() {
         const deadline = setTimeout(() => cancel(new PreviewFailure(504, 'TIMEOUT')), requestDeadlineMs);
         try {
           const line = await readOperation(request, stream);
+          controller.signal.throwIfAborted();
+          trace('admitted');
           const bytes = await runOperation(root, line, limits.max_message_bytes, controller.signal, stream ? response : undefined);
           if (!response.destroyed && !response.writableEnded) {
             if (!stream) response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
             response.end(bytes);
           }
         } catch (error) {
+          let failure = controller.signal.aborted ? controller.signal.reason : error;
+          if (!(failure instanceof PreviewFailure)) {
+            failure = !request.complete && request.readableAborted
+              ? new PreviewFailure(499, 'CANCELLED') : new PreviewFailure(502, 'WORKER_EXITED');
+          }
+          trace('failed', { code: failure.code });
           if (response.headersSent) response.destroy();
-          else failureResponse(request, response, error instanceof PreviewFailure
-            ? error : new PreviewFailure(502, 'WORKER_EXITED'));
+          else failureResponse(request, response, failure);
         } finally {
           clearTimeout(deadline);
           response.removeListener('close', disconnected);
