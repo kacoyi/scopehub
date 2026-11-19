@@ -2477,6 +2477,10 @@
         {
           "path": "project/evidence/M1-007-1e5b61c5847ddd31.json",
           "sha256": "bbda6d5f1f081c4f98441c657da574d2b1e4f8af0c9382076be9aa020f0ba9c5"
+        },
+        {
+          "path": "project/evidence/M1-007-d969bd5526c01237.json",
+          "sha256": "2e4a947a1b0649b35b6d3b2c16b56cb2b89c14dd014745e6071af96570a7296a"
         }
       ],
       "next_action": null,
@@ -4957,6 +4961,10 @@
         {
           "path": "project/evidence/M2-006-62a25335d312b3d0.json",
           "sha256": "092d6966e27731642be7c21b242b4919e54d11b59e5213365c2dcabfe4422654"
+        },
+        {
+          "path": "project/evidence/M2-006-d969bd5526c01237.json",
+          "sha256": "f2a299b672553c2b59217e6ce0ba6ea56b4e73464b3f9d6cc9a83176f824cb2f"
         }
       ],
       "next_action": null,
@@ -5036,6 +5044,117 @@
           ],
           "data_plan": "No stored data or wire format changes.",
           "cleanup": "Remove ambiguous new-work wording from the receipt recovery and object-selection paths."
+        }
+      }
+    },
+    {
+      "id": "M1-017",
+      "title": "Verify replay admission and completion against their separate deadlines",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-006",
+        "M1-007"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/market-stream.spec.mjs",
+        "tests/ui/replay-stages.mjs",
+        "tests/ubuntu-preview/market-quality.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "The ordinary chart renders both known candle updates through an admitted real worker stream when a valid history preparation pushes total elapsed time beyond the former five-second browser expectation.",
+        "Bounded checks separately identify admission and terminal failures. A successful run still requires the correct intermediate and final candle paints, frozen row, exact frames, and one admitted subscription. Unexpected failed requests cannot count as a successful replay.",
+        "Real retries and epoch-gap reads in the quality journey observe a separate preparation boundary. A prior gap still clears on retry, and failed or gapped streams cannot satisfy a completed-replay assertion."
+      ],
+      "checks": [
+        "market-live-stream",
+        "project-state",
+        "python-contracts-workers",
+        "market-quality-states"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-017-456f99b26e193864.json",
+          "sha256": "5a92b82dc45960b03d3e09f57a6a6e115f9de5a7ce32832a286b19b943cc1a46"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Diagnose the actual failing Ubuntu assertion, then verify the complete real replay under bounded preparation latency while keeping application timeouts and frame checks effective.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/market-stream.spec.mjs",
+          "tests/ubuntu-preview/playwright.config.mjs",
+          "apps/desktop/ui/ubuntu-preview.mjs",
+          "apps/desktop/ui/src/market-admission.ts",
+          "crates/worker-host/src/market.rs",
+          "tests/ubuntu-preview/market-quality.spec.mjs"
+        ],
+        "hypotheses": [
+          "The browser waited five seconds for preparation and an entire subscription together. Each operation has its own application deadline and a slow valid preparation can exhaust the single assertion."
+        ],
+        "risks": [
+          {
+            "failure": "A hung operation or unexpected failed subscription becomes indistinguishable from legitimate admission delay.",
+            "checks": [
+              "market-live-stream",
+              "market-quality-states"
+            ]
+          },
+          {
+            "failure": "A completed message hides a missed intermediate render or a mutation to frozen history.",
+            "checks": [
+              "market-live-stream"
+            ]
+          }
+        ],
+        "rollback": "Retain the failed Ubuntu log and screenshot from run 44504564860. If a stage exceeds its actual application deadline, use the phase evidence to repair that specific path.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "ui",
+            "worker-host"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/market-stream.spec.mjs",
+            "apps/desktop/ui/ubuntu-preview.mjs",
+            "crates/worker-host/src/market.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/domain/stream_handoff"
+            }
+          ],
+          "non_goals": [
+            "Product retry policy, source data, credentials and Windows desktop acceptance."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Observed worker frames, visual values, cancellation and frozen historical rows."
+          ],
+          "change": [
+            "Diagnose preparation, stream entry and completion at their actual boundaries."
+          ],
+          "data_plan": "Only synthetic test traffic and existing diagnostic evidence are used.",
+          "cleanup": "Keep one streamed acceptance path and the existing worker deadlines. Retain reproducible evidence of delayed preparation."
         }
       }
     }

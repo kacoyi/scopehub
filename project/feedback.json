@@ -849,6 +849,25 @@
       "deferral_reason": null
     },
     {
+      "id": "hosted-replay-aggregate-deadline",
+      "source": "Ubuntu Verify delivery run 44504564860 at edb0189, market-live-stream, first canvas replay.",
+      "observation": "The five-second terminal assertion reached Preparing then In progress before timing out. The other seven replay cases passed. The original log and screenshot are retained in the authenticated run artifact.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-017"
+      ],
+      "regression_checks": [
+        "market-live-stream"
+      ],
+      "resolution": {
+        "cause": "The terminal assertion started at the user action and consumed one five-second budget across two real operations. A held preparation reproduced the hosted in-progress timeout. Later Chromium protocol access could also lose an already consumed streaming body.",
+        "correction": "Observe the first stream POST after preparation and apply the bounded preview deadline separately to the terminal outcome. Clone each actual browser response, match it to its request, and retain the verified request count through style and panel changes and reload.",
+        "prevention": "Holding the real preparation for 3.4 seconds reproduces the former timeout. The clean final task run passed all eight replay and thirteen quality cases. It checks both paints against fixture prices, the frozen row, one accepted stream, explicit pre-admission BUSY and no additional subscription through reload."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "three-chart-replay-evidence",
       "source": "Independent M1-001 review against the real three-symbol browser journey at b9778f7.",
       "observation": "An image change at completion and a count of successful replies could pass when a line missed its intermediate close or a failed subscription was followed by success. The single click-to-completion wait also combined real history preparation and stream service.",
