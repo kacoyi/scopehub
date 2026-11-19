@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-016",
+  "focus_task_id": "M1-007",
   "tasks": [
     {
       "id": "M0-001",
@@ -2050,7 +2050,7 @@
       "id": "M1-006",
       "title": "Deliver identity-safe synthetic live updates",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-005"
       ],
@@ -2088,8 +2088,13 @@
         "python-contracts-workers",
         "rust-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Verify selection replacement during both native and preview preparation, freeze the final diff and retain the integrated stream and history checks.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-006-235a2a5920d42aac.json",
+          "sha256": "4a9f9713a26d7e79da980ab1964e22ac418fadb7ae8e6ad4c16e183be1f40caa"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -2189,7 +2194,7 @@
       "id": "M1-007",
       "title": "Expose market quality and connection states",
       "milestone": "M1",
-      "status": "planned",
+      "status": "active",
       "depends_on": [
         "M1-006",
         "M1-016"
@@ -2198,7 +2203,10 @@
         "crates",
         "python",
         "apps/desktop",
-        "tests"
+        "tests",
+        "project/checks.json",
+        "project/development.json",
+        "scripts/ci_artifacts.py"
       ],
       "decision_refs": [
         "0007",
@@ -2220,7 +2228,7 @@
       "blocker": null,
       "closure_reason": null,
       "plan": {
-        "outcome": "Exercise observable loading, ready, empty, stale, disconnected and error states against deterministic event sequences.",
+        "outcome": "Show real loading, ready, empty, stale, disconnected and error states through the chart, preserving source mode, last observation, session, freshness and gaps as independent facts.",
         "change_types": [
           "quality-slice",
           "market-fixtures"
@@ -2239,6 +2247,13 @@
             "failure": "A later selection renders a delayed old update or loses the final bar.",
             "checks": [
               "market-quality-states"
+            ]
+          },
+          {
+            "failure": "Offline simulation appears disconnected, an old historical date appears stale, or a failed read becomes a successful empty result.",
+            "checks": [
+              "market-quality-states",
+              "market-fixtures"
             ]
           }
         ],
@@ -2280,7 +2295,7 @@
             }
           ],
           "non_goals": [
-            "No real feed, local import, persistence or packaged Windows acceptance."
+            "Real provider use, remediating gaps through automatic backfill, editing durable user data and packaged Windows acceptance."
           ],
           "open_questions": []
         },
@@ -2291,7 +2306,7 @@
             "Selection-race and cleanup guarantees"
           ],
           "change": [
-            "Streaming and visible quality states"
+            "Display independently attributable quality, coverage and transport outcomes and preserve a selected chart through recoverable failures."
           ],
           "data_plan": "No durable user format change.",
           "cleanup": "Keep one active subscription per selection; remove temporary stream harness paths after integrated acceptance."
@@ -4187,7 +4202,7 @@
       "id": "M0-025",
       "title": "Run development in Herdr and bind model use to local user content boundaries",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-024"
       ],
@@ -4218,8 +4233,13 @@
         "python-contracts-workers",
         "generated-contracts"
       ],
-      "evidence": [],
-      "next_action": "Exercise the installed Herdr host, implement the role launcher and the local-content evidence controls, verify both roles and resume M1-006.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-025-235a2a5920d42aac.json",
+          "sha256": "49c19f88660e6633ee8aac14f166e4073924e7bf906b70297b566f2669cb6760"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -4302,7 +4322,7 @@
       "id": "M1-016",
       "title": "Correct synthetic market freshness and read explicit quality revisions",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-005",
         "M1-013"
@@ -4332,8 +4352,13 @@
         "architecture",
         "generated-contracts"
       ],
-      "evidence": [],
-      "next_action": "Reproduce simultaneous stale and gapped metadata, implement independent quality derivation and pinned sample selection, and compare frozen history against the existing fixture oracle.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-016-235a2a5920d42aac.json",
+          "sha256": "95e037a7cea271649b9e0ebb56c4e150886beb44764c44dcd813c4977a35454e"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {

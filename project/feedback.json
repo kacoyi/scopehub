@@ -671,7 +671,7 @@
       "source": "Owner direction on local private data, ordinary connected-model use, and Herdr-led development. Inspection of the hosted workflow and session verifier.",
       "observation": "The hosted workflow selected the whole reports directory. The real-model qualification could pass without distinguishing ordinary consent from a one-request private excerpt, and older records did not distinguish the co-developer’s authority from the permissions of each product user.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-025"
       ],
@@ -679,7 +679,11 @@
         "python-contracts-workers",
         "project-state"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The upload selected the entire reports tree, ordinary and private model disclosure were conflated, and qualification measured only transmitted bytes.",
+        "correction": "Herdr role routing is locally exercised. Model grants distinguish ordinary turns from exact saved excerpts. The public artifact selector checks typed evidence, notices, provenance and private log bytes. The same cloud-text rule applies at collection and release; Windows candidate paths are normalized.",
+        "prevention": "Local regression evidence covers both recipient contexts, cross-profile reads, shadowed fields and candidate/field artifacts. The clean task report records the current source; a future configured-model task must also observe an actual session."
+      },
       "deferral_reason": null
     },
     {
@@ -687,7 +691,7 @@
       "source": "Independent Herdr review of the M1-006 working implementation and its real local worker and chart probes.",
       "observation": "A changed bar at the frozen sequence could be ignored, history and replay could reuse a request ID across tasks, and cancellation could keep the next subscription busy. Superseded preparation delayed the new selection. Comparing the whole canvas could pass when the final candle was missing, and a stalled child could retain the caller beyond the configured cleanup budget.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-006"
       ],
@@ -696,7 +700,11 @@
         "rust-contracts-workers",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The initial replay treated all older sequence numbers as harmless and kept separate request ownership paths. The chart, worker lifecycle and test oracle did not independently demonstrate cancellation or the final candle.",
+        "correction": "The shared registry checks the frozen boundary, the worker uses one request ledger and cleanup retains ownership of unreaped children. Browser and native preparation can be superseded.",
+        "prevention": "The live chart check measures both candle closes, a frozen historical readout and selection races. Rust and Python regressions cover conflicting boundary events, identity reuse and bounded cleanup, including the portable desktop bridge."
+      },
       "deferral_reason": null
     },
     {
@@ -704,7 +712,7 @@
       "source": "Independent read-only inspection and local synthetic probe while preparing market-quality acceptance.",
       "observation": "The history provider inferred freshness from one legacy label. With a known gap and a missed observation, the gapped label made stale data appear current. Existing stale and gapped sample revisions could not be explicitly retrieved through the versioned history operation.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-016"
       ],
@@ -712,7 +720,11 @@
         "market-fixtures",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The provider derived freshness from a single display label and always rebuilt the normal revision. The combined replay path could also offer a stream boundary without an observation at the cutoff.",
+        "correction": "Read the specified fixture revision, compute session, freshness and coverage independently, derive the legacy summary, and require a matching observed cutoff for replay.",
+        "prevention": "Worker and frozen-page tests cover closed, delayed, stale and unknown data with gaps, empty selections, pinned revisions and a stale or unknown observation that still has subsequent fixture events."
+      },
       "deferral_reason": null
     }
   ]
