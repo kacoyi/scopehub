@@ -905,6 +905,22 @@
         "prevention": "All eight replay cases pass with the bounded restore. Four independent negative probes reproduced the earlier false passes and confirm a failed extra read, an outstanding read, an unrelated BUSY and early history issuance are rejected."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "workspace-launcher-identity-privacy-and-fresh-read",
+      "source": "Independent checkpoint review of the opted-in local workspace at 9bb4647 with temporary synthetic profiles.",
+      "observation": "The Vite launcher granted access based on loopback and origin without verifying possession of an owner-only launch credential. With a generally traversable POSIX profile root, database and journal sidecars used broad permissions. A second writer could commit a new workspace revision while the first launcher kept returning its startup snapshot to fresh clients.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-007"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

@@ -5338,7 +5338,7 @@
         "desktop-workspace-transport"
       ],
       "evidence": [],
-      "next_action": "Run the focused harness and address concrete independent-review findings before archiving this delivery.",
+      "next_action": "Verify owner-scoped local admission, private file creation, and fresh reads across writers before recording the bounded workspace result.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -5378,6 +5378,13 @@
               "python-contracts-workers",
               "workspace-timeframe",
               "dependency-review"
+            ]
+          },
+          {
+            "failure": "A local caller receives another launcher grant, profile storage is created under shared filesystem permissions, or a live writer returns a stale cached snapshot after a concurrent commit.",
+            "checks": [
+              "workspace-timeframe",
+              "rust-contracts-workers"
             ]
           }
         ],
