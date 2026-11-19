@@ -1,12 +1,12 @@
 import { execFile, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
-import { mkdtemp, rm, stat } from 'node:fs/promises';
+import { chmod, mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { expect, test } from '@playwright/test';
 import { control } from '../ui/workspace-controls.mjs';
@@ -14,11 +14,25 @@ import { control } from '../ui/workspace-controls.mjs';
 const exec = promisify(execFile);
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const ui = join(root, 'apps/desktop/ui');
-const vite = join(ui, 'node_modules/vite/bin/vite.js');
+const vite = pathToFileURL(join(ui, 'node_modules/vite/dist/node/index.js')).href;
+const workspaceBridge = join(root, 'target/debug', process.platform === 'win32' ? 'workspace_bridge.exe' : 'workspace_bridge');
 const python = join(root, '.venv', ...(process.platform === 'win32' ? ['Scripts', 'python.exe'] : ['bin', 'python']));
 const workspaceId = 'synthetic-workspace';
 const endpoint = '/__scopehub/workspace';
 const snapshot = { type: 'snapshot' };
+// This malformed snapshot checks admission without becoming a competing
+// SQLite read when the actual producer is deliberately suspended.
+const admissionProbe = { type: 'snapshot', request_id: 1 };
+const service = `
+  const [entry, mode, port] = process.argv.slice(1);
+  const { createServer } = await import(entry);
+  const server = await createServer({ mode, server: { host: '127.0.0.1', port: Number(port), strictPort: true } });
+  process.once('message', async () => {
+    await server.close();
+    process.disconnect();
+  });
+  await server.listen();
+`;
 
 test.beforeAll(async ({}, testInfo) => {
   testInfo.setTimeout(300_000);
@@ -95,7 +109,7 @@ test('fresh browsers restore committed timeframe and eligible undo after service
     await expect.poll(() => alive(observation[2].writer)).toBe(false);
     await testInfo.attach('workspace-restarts', { body: JSON.stringify(observation), contentType: 'application/json' });
   } finally {
-    await rm(profile.root, { recursive: true, force: true });
+    await profile.close();
   }
 });
 
@@ -125,11 +139,11 @@ test('the opted-in route binds identity, limits input, and drains cancellation w
       const abort = new AbortController();
       const cancelled = post(server, setTimeframe(0, '5m'), {}, abort.signal).catch(error => error);
       try {
-        await expect.poll(async () => (await post(server, snapshot)).status).toBe(429);
+        await expect.poll(async () => (await post(server, admissionProbe)).status).toBe(429);
         abort.abort();
         expect((await cancelled).name).toBe('AbortError');
         // The browser stopped waiting. The admitted line still owns the producer slot.
-        expect((await post(server, snapshot)).status).toBe(429);
+        expect((await post(server, admissionProbe)).status).toBe(429);
       } finally {
         if (alive(writer)) await writerPid(server, 'resume', writer);
       }
@@ -142,7 +156,7 @@ test('the opted-in route binds identity, limits input, and drains cancellation w
       await writerPid(server, 'suspend', writer);
       const inFlight = post(server, setTimeframe(1, '1d'));
       try {
-        await expect.poll(async () => (await post(server, snapshot)).status).toBe(429);
+        await expect.poll(async () => (await post(server, admissionProbe)).status).toBe(429);
       } finally {
         if (alive(writer)) await writerPid(server, 'kill', writer);
       }
@@ -156,7 +170,106 @@ test('the opted-in route binds identity, limits input, and drains cancellation w
       expect(restored).toMatchObject({ revision: 1, timeframe: '5m' });
     });
   } finally {
-    await rm(profile.root, { recursive: true, force: true });
+    await profile.close();
+  }
+});
+
+test('the private launcher handoff is required and a previous launch cannot authorize a request', async ({ browser }) => {
+  const profile = await makeProfile();
+  const port = await freePort();
+  let previous;
+  let handoff;
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      previous = server.capability;
+      handoff = server.handoff;
+      await assertPrivateHandoff(handoff);
+
+      for (const request of [snapshot, setTimeframe(0, '5m')]) {
+        const denied = await post({ url: server.url }, request);
+        expect(denied.status).toBe(403);
+        expect(await denied.json()).toEqual({ ok: false, error: { code: 'PERMISSION_DENIED', retryable: false } });
+      }
+      const visible = await fetch(server.url + '/workspace-access-' + port + '.html');
+      expect(!(await visible.text()).includes(previous)).toBe(true);
+      const allowed = await post(server, snapshot);
+      const payload = await allowed.text();
+      expect(!payload.includes(previous)).toBe(true);
+      expect(state(JSON.parse(payload))).toEqual({ revision: 0, timeframe: '1m', undo: null });
+    });
+    await expect(stat(handoff)).rejects.toMatchObject({ code: 'ENOENT' });
+
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      expect(server.capability !== previous).toBe(true);
+      const expired = await post(server, snapshot, { Authorization: 'Bearer ' + previous });
+      expect(expired.status).toBe(403);
+
+      const anonymous = await browser.newContext();
+      try {
+        const page = await anonymous.newPage();
+        const requests = observeOperations(page);
+        await page.goto(server.url);
+        await expect(control(page, 'Open offline sample')).toBeVisible();
+        await expect(control(page, 'Undo timeframe change')).toHaveCount(0);
+        await control(page, '5m').click();
+        expect(requests).toEqual([]);
+      } finally { await anonymous.close(); }
+
+      await inFreshBrowser(browser, server, async (page, initial) => {
+        expect(state(initial)).toEqual({ revision: 0, timeframe: '1m', undo: null });
+        await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
+      });
+    });
+
+    if (process.getuid) {
+      // This profile contains only test state. Reject it before issuing a
+      // credential when the host supplies it without owner-only permissions.
+      await chmod(profile.root, 0o755);
+      await inService(port, profile, 'ubuntu-workspace', async server => {
+        await expect.poll(server.handoffRejected).toBe(true);
+        await expect(stat(server.handoff)).rejects.toMatchObject({ code: 'ENOENT' });
+        expect((await post(server, snapshot)).status).toBe(403);
+      }, { expectHandoff: false });
+    }
+  } finally {
+    await profile.close();
+  }
+});
+
+test('two live writers read current undo and a stale browser reload recovers from Rust', async ({ browser }) => {
+  const profile = await makeProfile();
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async first => {
+      await inService(await freePort(), profile, 'ubuntu-workspace', async second => {
+        expect(await writerPid(first)).not.toBe(await writerPid(second));
+        const crossLaunch = await post(second, snapshot, { Authorization: 'Bearer ' + first.capability });
+        expect(crossLaunch.status).toBe(403);
+        await inFreshBrowser(browser, first, async (page, initial) => {
+          expect(state(initial)).toEqual({ revision: 0, timeframe: '1m', undo: null });
+          const changed = (await (await post(second, setTimeframe(0, '5m'))).json()).result.outcome;
+          expect(changed).toMatchObject({ state: 'committed', result: { revision: 1, timeframe: '5m' } });
+          const target = { operation_id: changed.receipt.operation_id, committed_workspace_revision: 1 };
+          expect(state(await (await post(first, snapshot)).json())).toEqual({ revision: 1, timeframe: '5m', undo: target });
+
+          const rejected = await act(page, '1d', 'chart.setTimeframe');
+          expect(rejected.result.outcome).toMatchObject({ state: 'failed', error: { code: 'STALE_CONTEXT' } });
+          await expect(page.getByRole('alert')).toHaveText('The workspace changed. Reload its current state.');
+          await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
+          await control(page, 'Reload workspace state').click();
+          await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
+          const undo = page.waitForResponse(mutationResponse('workspace.undo'));
+          await control(page, 'Undo timeframe change').click();
+          const accepted = await undo;
+          expect(accepted.request().postDataJSON().intent.arguments).toEqual({ operation_id: target.operation_id });
+          expect((await accepted.json()).result.outcome).toMatchObject({
+            state: 'committed', result: { revision: 2, timeframe: '1m' },
+          });
+          expect(state(await (await post(second, snapshot)).json())).toEqual({ revision: 2, timeframe: '1m', undo: null });
+        });
+      });
+    });
+  } finally {
+    await profile.close();
   }
 });
 
@@ -192,12 +305,55 @@ test('ordinary and Ubuntu history startup do not open a writer or dispatch data 
       });
     }
   } finally {
-    await rm(profile.root, { recursive: true, force: true });
+    await profile.close();
   }
 });
 
 async function makeProfile() {
-  return { root: await mkdtemp(join(tmpdir(), 'scopehub-ubuntu-test-')), id: 'synthetic-' + randomUUID() };
+  const directory = await mkdtemp(join(tmpdir(), 'scopehub-ubuntu-test-'));
+  const profile = join(directory, 'profile');
+  const close = () => rm(directory, { recursive: true, force: true });
+  try {
+    await exec(workspaceBridge, ['--prepare-profile-root', profile], { timeout: 12_000 });
+    return { root: profile, id: 'synthetic-' + randomUUID(), close };
+  } catch (error) {
+    await close();
+    throw error;
+  }
+}
+
+async function assertPrivateHandoff(handoff) {
+  if (process.platform !== 'win32') {
+    const metadata = await stat(handoff);
+    expect(metadata.mode & 0o777).toBe(0o600);
+    expect(metadata.uid).toBe(process.getuid());
+    return;
+  }
+  // Verify the resulting file's inherited ACL on Windows without reading or
+  // printing its contents or revealing any local identity in the test log.
+  const check = `
+    $ErrorActionPreference = 'Stop'
+    try {
+      $owner = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+      $allowed = @($owner, 'S-1-5-18', 'S-1-5-32-544')
+      $acl = Get-Acl -LiteralPath $env:SCOPEHUB_TEST_HANDOFF
+      $descriptor = [Security.AccessControl.RawSecurityDescriptor]::new($acl.GetSecurityDescriptorBinaryForm(), 0)
+      if ($null -eq $descriptor.DiscretionaryAcl -or $descriptor.Owner.Value -ne $owner) { exit 1 }
+      $ownerInherited = $false
+      foreach ($ace in $descriptor.DiscretionaryAcl) {
+        if ($ace -isnot [Security.AccessControl.CommonAce] -or $ace.IsCallback) { exit 1 }
+        if ($ace.AceQualifier -ne [Security.AccessControl.AceQualifier]::AccessAllowed) { continue }
+        if ($ace.SecurityIdentifier.Value -notin $allowed) { exit 1 }
+        if ($ace.SecurityIdentifier.Value -eq $owner -and $ace.IsInherited) { $ownerInherited = $true }
+      }
+      if (!$ownerInherited) { exit 1 }
+      exit 0
+    } catch { exit 1 }
+  `;
+  const powershell = join(process.env.SystemRoot, 'System32/WindowsPowerShell/v1.0/powershell.exe');
+  await exec(powershell, ['-NoProfile', '-NonInteractive', '-NoLogo', '-Command', check], {
+    timeout: 10_000, windowsHide: true, env: { ...process.env, SCOPEHUB_TEST_HANDOFF: handoff },
+  });
 }
 
 async function freePort() {
@@ -209,9 +365,9 @@ async function freePort() {
   return port;
 }
 
-async function inService(port, profile, mode, use) {
+async function inService(port, profile, mode, use, { expectHandoff = true } = {}) {
   const url = 'http://127.0.0.1:' + port;
-  const child = spawn(process.execPath, [vite, '--mode', mode, '--host', '127.0.0.1', '--port', String(port), '--strictPort'], {
+  const child = spawn(process.execPath, ['--input-type=module', '--eval', service, vite, mode, String(port)], {
     cwd: ui,
     env: {
       ...process.env,
@@ -219,7 +375,7 @@ async function inService(port, profile, mode, use) {
       SCOPEHUB_WORKSPACE_PROFILE_ID: profile.id,
       SCOPEHUB_WORKSPACE_ID: workspaceId,
     },
-    stdio: ['ignore', 'pipe', 'pipe'],
+    stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
   });
   const closed = once(child, 'close');
   let output = '';
@@ -227,7 +383,11 @@ async function inService(port, profile, mode, use) {
     stream.setEncoding('utf8');
     stream.on('data', chunk => { output = (output + chunk).slice(-6000); });
   }
-  const server = { url, pid: child.pid };
+  const server = {
+    url, pid: child.pid,
+    handoff: join(profile.root, 'workspace-access-' + port + '.html'),
+    handoffRejected: () => output.includes('The private workspace handoff could not be issued.'),
+  };
   try {
     const deadline = Date.now() + 10_000;
     for (;;) {
@@ -242,13 +402,27 @@ async function inService(port, profile, mode, use) {
       await response?.body?.cancel();
       await delay(30);
     }
+    if (mode === 'ubuntu-workspace' && expectHandoff) {
+      await expect.poll(async () => {
+        const content = await readFile(server.handoff, 'utf8').catch(error => {
+          if (error.code === 'ENOENT') return '';
+          throw error;
+        });
+        const link = /href="(http:\/\/127\.0\.0\.1:\d+\/#workspace=([a-f0-9]{64}))"/.exec(content);
+        if (!link || new URL(link[1]).origin !== url) return false;
+        const capability = link[2];
+        server.capability = capability;
+        return true;
+      }, { message: 'The launcher issued a private access document', timeout: 12_000 }).toBe(true);
+    }
     await use(server);
   } finally {
-    child.kill('SIGTERM');
+    if (child.connected) child.send('close', () => {});
     const grace = setTimeout(() => child.kill('SIGKILL'), 7_000);
     try {
       const [, signal] = await closed;
       expect(signal).not.toBe('SIGKILL');
+      if (server.capability) expect(!output.includes(server.capability)).toBe(true);
     } finally {
       clearTimeout(grace);
     }
@@ -272,7 +446,10 @@ function alive(pid) {
 
 function post(server, body, headers = {}, signal = AbortSignal.timeout(10_000)) {
   return fetch(server.url + endpoint, {
-    method: 'POST', headers: { Origin: server.url, 'Content-Type': 'application/json', ...headers },
+    method: 'POST', headers: {
+      Origin: server.url, 'Content-Type': 'application/json',
+      ...(server.capability ? { Authorization: 'Bearer ' + server.capability } : {}), ...headers,
+    },
     body: JSON.stringify(body), signal,
   });
 }
@@ -297,16 +474,25 @@ function observeOperations(page) {
 async function inFreshBrowser(browser, server, use) {
   const context = await browser.newContext();
   try {
+    // Read the real launcher handoff but set its fragment locally before page
+    // code runs. No capability is put in Playwright navigation URLs or traces.
+    await context.addInitScript(capability => {
+      window.history.replaceState(null, '', '#workspace=' + capability);
+    }, server.capability);
     const page = await context.newPage();
     const requests = observeOperations(page);
+    let capabilityInRequestUrl = false;
+    page.on('request', request => { capabilityInRequestUrl ||= request.url().includes(server.capability); });
     const initial = page.waitForResponse(response =>
       new URL(response.url()).pathname === endpoint && response.request().postDataJSON()?.type === 'snapshot');
     await page.goto(server.url);
     await expect(control(page, 'Open offline sample')).toBeVisible();
     await expect(page.getByText('No data source')).toBeVisible();
+    expect(await page.evaluate(() => window.location.hash === '')).toBe(true);
     expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
     await use(page, await (await initial).json());
     expect(requests.every(path => path === endpoint)).toBe(true);
+    expect(capabilityInRequestUrl).toBe(false);
   } finally {
     await context.close();
   }

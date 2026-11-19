@@ -18,8 +18,18 @@ type View = {
 
 const desktop = isTauri();
 const nativeWorkspace = desktop && window.__SCOPEHUB_DESKTOP_WORKSPACE__ === true;
-const enabled = nativeWorkspace || (!desktop && import.meta.env.SCOPEHUB_UBUNTU_WORKSPACE);
+const launchCapability = !desktop && import.meta.env.SCOPEHUB_UBUNTU_WORKSPACE ? takeLaunchCapability() : undefined;
+const enabled = nativeWorkspace || launchCapability !== undefined;
 const chart = { kind: 'chart', object_id: 'main-chart' } as const;
+
+function takeLaunchCapability() {
+  const { hash, pathname, search } = window.location;
+  if (!hash.startsWith('#workspace=')) return undefined;
+  // A fragment is local to the browser. Remove it before starting the UI and
+  // keep the grant in memory for this page only.
+  window.history.replaceState(window.history.state, '', pathname + search);
+  return /^#workspace=([a-f0-9]{64})$/.exec(hash)?.[1];
+}
 
 function errorCode(error: unknown) {
   return error && typeof error === 'object' && 'code' in error ? error.code : undefined;
@@ -29,7 +39,8 @@ function describeFailure(error: unknown) {
   switch (errorCode(error)) {
     case 'STALE_CONTEXT': return 'The workspace changed. Reload its current state.';
     case 'BUSY': return 'The local workspace is busy.';
-    case 'PERMISSION_DENIED': return 'This workspace action is no longer authorized.';
+    case 'PERMISSION_DENIED': return nativeWorkspace ? 'This workspace action is no longer authorized.'
+      : 'Open the private workspace link for this session.';
     case 'OUTPUT_INVALID': return 'The workspace reply could not be verified.';
     default: return 'The local workspace is unavailable.';
   }
@@ -45,7 +56,7 @@ async function exchange<T>(body: LocalRequest, signal: AbortSignal): Promise<T> 
   }
   const response = await fetch('/__scopehub/workspace', {
     method: 'POST', mode: 'same-origin', credentials: 'omit', redirect: 'error', signal,
-    headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${launchCapability}` }, body: JSON.stringify(body),
   });
   const reply = await response.json();
   if (reply?.ok === false && errorCode(reply.error)) throw reply.error;

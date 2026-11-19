@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { realpathSync, statSync } from 'node:fs';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { PreviewFailure, assertLocalJsonRequest, failureResponse, maxRequestBytes, readLocalJson } from './ubuntu-preview.mjs';
+import { issueWorkspaceAccess } from './ubuntu-workspace-access.mjs';
 
 const route = '/__scopehub/workspace';
 const chartId = 'main-chart';
@@ -34,7 +35,11 @@ function hostProfile(server, root) {
   }
   const servedDirectories = [root, server.config.publicDir, ...server.config.server.fs.allow].filter(Boolean);
   for (const served of servedDirectories) {
-    const fromServed = relative(served, path);
+    let physical = served;
+    try { physical = realpathSync(served); } catch (error) {
+      if (error.code !== 'ENOENT') throw new Error('The Ubuntu workspace could not verify Vite filesystem isolation.');
+    }
+    const fromServed = relative(physical, path);
     if (!fromServed || !isAbsolute(fromServed) && fromServed !== '..' && !fromServed.startsWith('..' + sep)) {
       throw new Error('The Ubuntu workspace profile must be outside the directories served by Vite.');
     }
@@ -48,16 +53,14 @@ function validWorkspace(workspace, workspaceId) {
     && workspace.visible_range === null && Array.isArray(workspace.layers) && workspace.layers.length === 0;
 }
 
-function undoTarget(receipt) {
-  return {
-    operation_id: receipt.operation_id,
-    committed_workspace_revision: receipt.committed_workspace_revision,
-  };
-}
-
 function validUndo(undo, workspace) {
   return undo === null || !!undo && uuid(undo.operation_id)
     && undo.committed_workspace_revision === workspace.revision;
+}
+
+function validSnapshot(state, workspaceId) {
+  return validWorkspace(state?.workspace, workspaceId) && revision(state.selection_revision)
+    && validUndo(state.undo, state.workspace);
 }
 
 function requestFrame(command, workspaceId) {
@@ -86,7 +89,8 @@ function startWriter(root, { path, profileId, workspaceId }) {
   let startupTimer;
   let killTimer;
   let failure;
-  let snapshot;
+  let ready = false;
+  let snapshotRequestId = 0;
   let pending;
   let remainder = Buffer.alloc(0);
 
@@ -110,11 +114,11 @@ function startWriter(root, { path, profileId, workspaceId }) {
   }
 
   function receive(frame) {
-    if (!snapshot) {
-      const state = frame?.result;
-      if (frame?.ok !== true || !validWorkspace(state?.workspace, workspaceId)
-          || !revision(state.selection_revision) || !validUndo(state.undo, state.workspace)) throw invalidReply();
-      snapshot = state;
+    if (!ready) {
+      if (frame?.ok !== true || frame.private_profile !== true || !validSnapshot(frame.result, workspaceId)) {
+        throw invalidReply();
+      }
+      ready = true;
       clearTimeout(startupTimer);
       startup.resolve();
       return;
@@ -122,7 +126,13 @@ function startWriter(root, { path, profileId, workspaceId }) {
 
     const job = pending;
     if (!job) throw invalidReply();
-    if (frame?.ok === true) {
+    const validFailure = frame?.ok === false && typeof frame.error?.code === 'string';
+    if (job.operation === 'snapshot') {
+      if (frame?.request_id !== job.requestId
+          || !(validFailure || frame.ok === true && validSnapshot(frame.result, workspaceId))) throw invalidReply();
+      // Keep correlation internal to the trusted stdio transport.
+      delete frame.request_id;
+    } else if (frame?.ok === true) {
       const reply = frame.result;
       const outcome = reply?.outcome;
       if (reply?.type !== 'response' || reply?.protocol_version !== '1.1'
@@ -135,12 +145,8 @@ function startWriter(root, { path, profileId, workspaceId }) {
             || receipt?.target?.object_id !== chartId || !uuid(receipt.operation_id)
             || result.revision !== receipt.committed_workspace_revision
             || typeof receipt.undoable !== 'boolean') throw invalidReply();
-        // Explicit idempotent retries can return earlier committed revisions.
-        if (result.revision > snapshot.workspace.revision) {
-          snapshot = { ...snapshot, workspace: result, undo: receipt.undoable ? undoTarget(receipt) : null };
-        }
       } else if (outcome?.state !== 'failed' || typeof outcome.error?.code !== 'string') throw invalidReply();
-    } else if (frame?.ok !== false || typeof frame.error?.code !== 'string') throw invalidReply();
+    } else if (!validFailure) throw invalidReply();
     clearTimeout(job.timer);
     pending = undefined;
     job.resolve(frame);
@@ -176,19 +182,20 @@ function startWriter(root, { path, profileId, workspaceId }) {
   startupTimer = setTimeout(() => stop(timeout()), startupDeadlineMs);
 
   return {
+    ready: startup.promise,
     async handle(body, signal) {
       await startup.promise;
       signal.throwIfAborted();
       if (failure) throw failure;
-      if (body?.type === 'snapshot') {
-        if (Object.keys(body).length !== 1) throw new PreviewFailure(400, 'INVALID_ARGUMENT');
-        return { ok: true, result: snapshot };
-      }
       if (pending) throw new PreviewFailure(429, 'BUSY');
-      const line = requestFrame(body, workspaceId);
+      const snapshot = body?.type === 'snapshot';
+      if (snapshot && Object.keys(body).length !== 1) throw new PreviewFailure(400, 'INVALID_ARGUMENT');
+      const requestId = snapshot ? ++snapshotRequestId : body?.request_id;
+      const line = snapshot ? JSON.stringify({ type: 'snapshot', request_id: requestId }) + '\n'
+        : requestFrame(body, workspaceId);
       const reply = Promise.withResolvers();
       pending = {
-        ...reply, requestId: body.request_id, messageId: body.message_id, operation: body.intent.operation,
+        ...reply, requestId, messageId: body.message_id, operation: snapshot ? 'snapshot' : body.intent.operation,
         timer: setTimeout(() => stop(timeout()), commandDeadlineMs),
       };
       // Once written, let SQLite decide the outcome. A closed browser request
@@ -205,6 +212,8 @@ function startWriter(root, { path, profileId, workspaceId }) {
 
 export function ubuntuWorkspace() {
   let writer;
+  let access;
+  let closing = false;
   return {
     name: 'scopehub-ubuntu-workspace',
     configureServer(server) {
@@ -219,13 +228,25 @@ export function ubuntuWorkspace() {
       const profile = hostProfile(server, root);
       // Vite prepares the next config before closing the current server.
       // Starting on listen keeps the previous producer out of the new session.
-      http.once('listening', () => { writer = startWriter(root, profile); });
+      http.once('listening', () => {
+        const port = http.address().port;
+        writer = startWriter(root, profile);
+        void writer.ready.then(() => {
+          if (closing) return;
+          access = issueWorkspaceAccess(profile.path, port);
+          server.config.logger.info(`Open ${access.name} from the private workspace profile directory.`);
+        }).catch(() => {
+          if (!closing) server.config.logger.error('The private workspace handoff could not be issued.');
+          return writer.close();
+        });
+      });
 
       let active = false;
       server.middlewares.use(async (request, response, next) => {
         if (request.url !== route) return next();
         try {
           assertLocalJsonRequest(request, http);
+          if (!access?.permits(request.headers.authorization)) throw new PreviewFailure(403, 'PERMISSION_DENIED');
           if (active) throw new PreviewFailure(429, 'BUSY');
           if (!writer) throw unavailable();
         } catch (error) {
@@ -257,6 +278,12 @@ export function ubuntuWorkspace() {
       });
     },
     async closeServer() {
+      closing = true;
+      const issued = access;
+      access = undefined;
+      try { issued?.close(); } catch {
+        // The removed grant cannot be reused even if its local file remains.
+      }
       await writer?.close();
     },
   };
