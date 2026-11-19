@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-011",
+  "focus_task_id": "M4-008",
   "tasks": [
     {
       "id": "M0-001",
@@ -7960,6 +7960,139 @@
           ],
           "data_plan": "Keep connection metadata and successful ordinary pairs in the bound session only. Project only the typed question and bounded recent pairs. The first route uses no credential references or private provider conversation handle; preserve only synthetic verification evidence.",
           "cleanup": "Cancel pending work, clear the grant on disconnect or route replacement and start disconnected after process restart. Preserve all existing storage migrations."
+        }
+      }
+    },
+    {
+      "id": "M4-008",
+      "title": "Connect a profile-owned cloud text credential to the selected model",
+      "milestone": "M4",
+      "status": "active",
+      "depends_on": [
+        "M4-006"
+      ],
+      "scope": [
+        "python/ai",
+        "crates/platform",
+        "crates/worker-host",
+        "crates/application",
+        "apps/desktop",
+        "contracts",
+        "tests",
+        "project"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0009",
+        "0011",
+        "0019"
+      ],
+      "acceptance": [
+        "Select the OpenAI Responses text adapter and model in ordinary product settings. Disclose its named destination, data categories and account-based price before connection. Use the activated route for successive typed questions, preserving the independent Ollama route and explicit demo.",
+        "Resolve only the current profile’s explicitly supplied credential inside the trusted connector, using Windows Credential Manager for saved native credentials. Missing, replaced or removed credentials, an unavailable recipient, and changed connection scope produce visible bounded outcomes. Only opaque references are eligible for persistent workspace state.",
+        "Using test-owned synthetic credentials, inspect an actual request at the final connector boundary. Verify the approved destination, redacted handling of authentication errors, store=false, bounded reconstructed conversation and exclusion of saved private records, provider conversation handles and unrelated data. Preserve usable ordinary text after changing back to a different provider.",
+        "Keep controlled transport observations separate from actual metered discussion and native packaging. Real account qualification will run under M4-002 with the owner’s explicit test account and spend scope."
+      ],
+      "checks": [
+        "model-connection-workflow",
+        "model-connection-replay",
+        "operations-workflow",
+        "ui-build",
+        "market-workflow",
+        "generated-contracts",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "python-types",
+        "architecture"
+      ],
+      "next_action": "Implement ordinary text, a profile-bound credential entry and its final provider request. Verify using synthetic credentials and a controlled receiver, then test the native credential boundary independently.",
+      "blocker": null,
+      "closure_reason": null,
+      "evidence": [],
+      "plan": {
+        "outcome": "An end user can select a capable cloud provider and supply their own API credential from ScopeHub, with a named recipient and no silent fallback.",
+        "change_types": [
+          "model-connection",
+          "ui",
+          "permissions",
+          "protocol"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/decisions/0009-model-providers-and-external-workspace-clients.json",
+          "contracts/decisions/0011-local-profiles-and-connected-model-use.json",
+          "contracts/decisions/0019-profile-text-model-route.json",
+          "crates/worker-host/src/text_model.rs",
+          "apps/desktop/ui/src/model-chat.tsx"
+        ],
+        "hypotheses": [
+          "The existing text connection state can route the final projected request through distinct provider adapters without altering chart or private storage. A local credential reference independent of the typed model prevents reusing a secret for another destination."
+        ],
+        "risks": [
+          {
+            "failure": "Authentication material or provider-retained private context enters a persisted or unrelated request.",
+            "checks": [
+              "model-connection-workflow",
+              "model-connection-replay",
+              "operations-workflow"
+            ]
+          },
+          {
+            "failure": "Ordinary local text starts an undisclosed billable call or a failed cloud request silently uses a different service.",
+            "checks": [
+              "model-connection-workflow",
+              "model-connection-replay"
+            ]
+          }
+        ],
+        "rollback": "Disconnect and remove the synthetic credential through the same trusted account. Preserve the existing credential-free adapter and independent configuration.",
+        "implementation": {
+          "modules": [
+            "product-ai",
+            "application",
+            "platform",
+            "worker-host",
+            "desktop",
+            "ui"
+          ],
+          "entrypoints": [
+            "crates/application/src/workspace/text_connection.rs",
+            "crates/worker-host/src/text_model.rs",
+            "apps/desktop/src-tauri/src/bridge.rs",
+            "apps/desktop/ui/src/model-chat.tsx",
+            "python/ai/ollama.py"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ai/model_connections"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence/credentials"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ai/context_policy"
+            }
+          ],
+          "non_goals": [
+            "Real charged calls in automated tests, authenticated third-party proxy origins, audio capture, and claiming provider fitness from controlled traffic."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Per-profile activation, public text contract compatibility, the existing direct Ollama adapter, bounded ordinary turns and independent market data selection."
+          ],
+          "change": [
+            "Offer a named cloud text adapter and trusted credential lifecycle."
+          ],
+          "data_plan": "Keep persistent native secrets in the user credential store. Keep private originals and exports local. Send only the final projected input to the selected provider, without retaining a provider conversation handle.",
+          "cleanup": "Cancel the active turn on disconnect, drop connector-local credential material, and support removing the user’s saved credential."
         }
       }
     }
