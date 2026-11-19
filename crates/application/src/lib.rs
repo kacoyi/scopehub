@@ -17,9 +17,10 @@ pub use folder_manifest::{
 };
 pub use folder_publication::{
     LIST_LOCAL_FOLDER_REVISIONS, PREPARE_LOCAL_FOLDER_PUBLICATION, PUBLISH_LOCAL_FOLDER_REFRESH,
-    READ_LOCAL_FOLDER_REVISION, REVOKE_LOCAL_FOLDER_REVISION, folder_prepare_input,
-    list_local_folder_revisions_input, publish_folder_refresh_input,
-    read_local_folder_revision_input, revoke_local_folder_revision_input,
+    READ_LOCAL_FOLDER_REVISION, READ_LOCAL_FOLDER_SOURCE_ROW, REVOKE_LOCAL_FOLDER_REVISION,
+    folder_prepare_input, list_local_folder_revisions_input, publish_folder_refresh_input,
+    read_local_folder_revision_input, read_local_folder_source_row_input,
+    revoke_local_folder_revision_input,
 };
 pub use folder_refresh::{
     FolderRefreshBase, FolderRefreshCheck, FolderRefreshFile, MAX_STAGED_RECORDS,
@@ -31,10 +32,11 @@ pub use local_import::{
     validate_csv_preview,
 };
 pub use local_publication::{
-    LIST_LOCAL_IMPORT_REVISIONS, LocalDatasetPublication, LocalDatasetStore, PUBLISH_LOCAL_IMPORT,
-    READ_LOCAL_IMPORT_REVISION, REVOKE_LOCAL_IMPORT_REVISION, StoredLocalDataset,
-    list_local_import_revisions_input, local_mapping_fingerprint, publish_local_import_input,
-    read_local_import_revision_input, revoke_local_import_revision_input,
+    FrozenLocalSourceRow, LIST_LOCAL_IMPORT_REVISIONS, LocalDatasetPublication, LocalDatasetStore,
+    PUBLISH_LOCAL_IMPORT, READ_LOCAL_IMPORT_REVISION, READ_LOCAL_IMPORT_SOURCE_ROW,
+    REVOKE_LOCAL_IMPORT_REVISION, StoredLocalDataset, list_local_import_revisions_input,
+    local_mapping_fingerprint, publish_local_import_input, read_local_import_revision_input,
+    read_local_import_source_row_input, revoke_local_import_revision_input,
 };
 pub use replay::{SUBSCRIBE, SubscriptionFuture, SubscriptionPort};
 pub use reviewed_mapping::{
@@ -176,11 +178,13 @@ impl Operation {
                     | PUBLISH_LOCAL_IMPORT
                     | LIST_LOCAL_IMPORT_REVISIONS
                     | READ_LOCAL_IMPORT_REVISION
+                    | READ_LOCAL_IMPORT_SOURCE_ROW
                     | PREVIEW_LOCAL_FOLDER_REFRESH
                     | PREPARE_LOCAL_FOLDER_PUBLICATION
                     | PUBLISH_LOCAL_FOLDER_REFRESH
                     | LIST_LOCAL_FOLDER_REVISIONS
                     | READ_LOCAL_FOLDER_REVISION
+                    | READ_LOCAL_FOLDER_SOURCE_ROW
                     | REVOKE_LOCAL_FOLDER_REVISION
                     | REVOKE_LOCAL_IMPORT_REVISION
             ) && !matches!(actor, Actor::LocalUser))

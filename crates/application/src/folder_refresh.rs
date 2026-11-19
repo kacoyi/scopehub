@@ -695,6 +695,35 @@ mod tests {
         assert_eq!(blocked["bars"][0]["status"], "unverified");
         assert_eq!(blocked["publication_allowed"], false);
 
+        let compare = |paths: [&str; 2]| {
+            let files = paths
+                .into_iter()
+                .map(|path| FolderRefreshFile {
+                    relative_path: path.into(),
+                    sha256: current.sha256.clone(),
+                    check: current.check.clone(),
+                })
+                .collect();
+            folder_refresh_output(Actor::LocalUser, &base, files, || false).unwrap()
+        };
+        let forward = compare(paths);
+        let reverse = compare([paths[1], paths[0]]);
+        assert_eq!(
+            serde_json::to_vec(&forward).unwrap(),
+            serde_json::to_vec(&reverse).unwrap()
+        );
+        assert_eq!(
+            forward["bars"][0]["alternatives"].as_array().unwrap().len(),
+            1
+        );
+        assert_eq!(
+            forward["bars"][0]["alternatives"][0]["sources"]
+                .as_array()
+                .unwrap()
+                .len(),
+            2
+        );
+
         let output =
             folder_refresh_output(Actor::LocalUser, &base, vec![current], || false).unwrap();
         assert!(output.get("base").is_none());
