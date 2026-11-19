@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { ChartCursorMode, ChartStyle, HistoryChartHandle } from './chart-adapter/history';
 import { DecisionNotes } from './decision-notes';
+import { UnavailableSharedSelection } from './frozen-evidence';
 import { instrumentName, symbol } from './instrument-display';
 import { isClosedBarGapRevision, sampleRevisionInstrument, type ChartHistory, type Instrument, type SampleRevision } from './market';
 import { ReplayGapDetails, replayGapReason } from './market-quality';
@@ -215,6 +216,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
       <section className="plot-workspace" aria-label="Price chart">
         {plot}
         <footer className="chart-footer"><span>{sample ? (date ? date + ' UTC' : 'Jan 2024') : 'ScopeHub'}</span>
+          <UnavailableSharedSelection workspace={workspace} />
           {workspace?.pending && <span role="status">{workspace.pending === 'open' ? 'Loading local workspace…'
             : workspace.pending === 'evidence' ? 'Sharing chart evidence…' : 'Saving timeframe…'}</span>}
           {workspace?.error && <><span role="alert" className="workspace-error">{workspace.error}</span>

@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { readLocalImportRevision, revokeLocalImportRevision } from './local-import-transport';
 import { FrozenLocalChart } from './local-preview-chart';
-import { openAuthenticatedFrozenChart, type FrozenChartResult } from './frozen-evidence';
+import { openAuthenticatedFrozenChart, UnavailableSharedSelection, type FrozenChartResult } from './frozen-evidence';
+import { displayAccessDenied, useWatchPublishedRevision, type PublishedRevisionAccess } from './published-revision-access';
 import type { LocalWorkspace } from './use-local-workspace';
 
 export function RevisionAccessActions({ disabled, onRevoke }: { disabled: boolean; onRevoke: () => void }) {
@@ -24,19 +25,32 @@ function failureMessage(error: unknown, fallback: string) {
   return 'message' in error && typeof error.message === 'string' ? error.message : fallback;
 }
 
-export function OpenLocalRevisionDialog({ onClose, onRevoked, workspace, canRevoke }: {
-  onClose: () => void; onRevoked: (revisionId: string) => void; workspace: LocalWorkspace | undefined; canRevoke: boolean;
+const unavailable = 'This frozen chart is unavailable in the current profile.';
+
+export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, canRevoke }: {
+  onClose: () => void; revisionAccess: PublishedRevisionAccess; workspace: LocalWorkspace | undefined; canRevoke: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const active = useRef(false);
   const heading = useId();
   const [draft, setDraft] = useState('');
   const [frozen, setFrozen] = useState<FrozenChartResult>();
+  const [openingId, setOpeningId] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string>();
   const [notice, setNotice] = useState<string>();
   const revisionId = draft.trim().toLowerCase();
   const validId = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(revisionId);
+  const watchedId = openingId ?? frozen?.revision.revision_id;
+  const lostAccess = watchedId !== undefined && revisionAccess.revoked.has(watchedId);
+  const visibleFrozen = lostAccess ? undefined : frozen;
+  useWatchPublishedRevision(lostAccess ? undefined : watchedId, revisionAccess.verify, workspace);
+
+  useEffect(() => {
+    if (!lostAccess) return;
+    setFrozen(undefined);
+    setFailure(unavailable);
+  }, [lostAccess]);
 
   useEffect(() => {
     const node = dialog.current;
@@ -64,24 +78,38 @@ export function OpenLocalRevisionDialog({ onClose, onRevoked, workspace, canRevo
     if (!validId || active.current) return;
     setFrozen(undefined);
     await request(async () => {
-      const reply = workspace ? await openAuthenticatedFrozenChart(revisionId, crypto.randomUUID())
-        : await readLocalImportRevision({ version: 1, revision_id: revisionId }, crypto.randomUUID());
-      if (reply.revision.revision_id !== revisionId || reply.bars.length !== reply.revision.bar_count) {
-        throw new Error('The frozen chart reply could not be verified.');
+      setOpeningId(revisionId);
+      const denied = { code: workspace ? 'SNAPSHOT_UNAVAILABLE' : 'PERMISSION_DENIED' };
+      try {
+        if (!revisionAccess.canDisplay(revisionId)) throw denied;
+        const reply = workspace ? await openAuthenticatedFrozenChart(revisionId, crypto.randomUUID())
+          : await readLocalImportRevision({ version: 1, revision_id: revisionId }, crypto.randomUUID());
+        if (!revisionAccess.canDisplay(revisionId)) throw denied;
+        if (reply.revision.revision_id !== revisionId || reply.bars.length !== reply.revision.bar_count) {
+          throw new Error('The frozen chart reply could not be verified.');
+        }
+        setFrozen(reply);
+      } catch (error) {
+        if (displayAccessDenied(error)) {
+          revisionAccess.revoke(revisionId);
+          workspace?.reload();
+        }
+        throw error;
+      } finally {
+        setOpeningId(undefined);
       }
-      setFrozen(reply);
     }, 'Unable to open the frozen chart.');
   }
 
   async function revoke() {
-    if (!frozen) return;
+    if (!visibleFrozen) return;
     await request(async () => {
-      const revision_id = frozen.revision.revision_id;
+      const revision_id = visibleFrozen.revision.revision_id;
       const reply = await revokeLocalImportRevision({ version: 1, revision_id }, crypto.randomUUID());
       if (reply.revision_id !== revision_id) throw new Error('The access removal reply could not be verified.');
       setFrozen(undefined);
       setNotice('Access removed for this published revision.');
-      onRevoked(revision_id);
+      revisionAccess.revoke(revision_id);
       workspace?.reload();
     }, 'Unable to remove access to this revision.');
   }
@@ -110,11 +138,12 @@ export function OpenLocalRevisionDialog({ onClose, onRevoked, workspace, canRevo
       {busy && <p role="status">Working with the frozen revision…</p>}
       {failure && <p className="local-import-error" role="alert">{failure}</p>}
       {notice && <p role="status">{notice}</p>}
-      {frozen && <>
-        <FrozenLocalChart key={frozen.revision.revision_id} result={frozen} workspace={workspace} />
+      {!visibleFrozen && <UnavailableSharedSelection workspace={workspace} />}
+      {visibleFrozen && <>
+        <FrozenLocalChart key={visibleFrozen.revision.revision_id} result={visibleFrozen} workspace={workspace} access={revisionAccess} />
         <div className="local-import-card">
-          <p>Source file · {frozen.revision.relative_path}</p>
-          {canRevoke && <RevisionAccessActions key={frozen.revision.revision_id} disabled={busy} onRevoke={() => void revoke()} />}
+          <p>Source file · {visibleFrozen.revision.relative_path}</p>
+          {canRevoke && <RevisionAccessActions key={visibleFrozen.revision.revision_id} disabled={busy} onRevoke={() => void revoke()} />}
         </div>
       </>}
     </div>

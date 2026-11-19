@@ -169,6 +169,7 @@ pub trait WorkspaceTransaction {
         &self,
         revision_id: &str,
     ) -> Result<Option<crate::StoredLocalDataset>, Error>;
+    fn local_evidence_display_allowed(&self, revision_id: &str) -> Result<bool, Error>;
     fn chart_revision(&self) -> Result<Revision, Error>;
     fn replay(&self, key: &WorkspaceReplayKey<'_>) -> Result<Option<WorkspaceReplay>, Error>;
     fn undo_candidate(

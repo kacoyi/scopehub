@@ -49,6 +49,7 @@ enum Lane {
 enum Request {
     Snapshot,
     FrozenChart(String),
+    FrozenChartStatus(String),
     Operation(Value),
 }
 
@@ -119,13 +120,14 @@ impl WorkspaceBridge {
         operation: Option<&str>,
         payload: Value,
     ) -> Result<Value, Error> {
-        if !self.workspace_enabled {
+        let chart_status = operation.is_none() && payload["type"] == "frozen_chart_status";
+        if !self.workspace_enabled && !chart_status {
             return Err(failure(ErrorCode::PERMISSIONDENIED));
         }
         let lane = self.admit()?;
         let request = match operation {
             None if payload == json!({"type": "snapshot"}) => Request::Snapshot,
-            None if payload["type"] == "frozen_chart" => {
+            None if payload["type"] == "frozen_chart" || chart_status => {
                 let revision_id = payload["revision_id"]
                     .as_str()
                     .filter(|id| {
@@ -136,7 +138,11 @@ impl WorkspaceBridge {
                                 .is_some_and(|request_id| request_id.len() == 36)
                     })
                     .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
-                Request::FrozenChart(revision_id.to_owned())
+                if chart_status {
+                    Request::FrozenChartStatus(revision_id.to_owned())
+                } else {
+                    Request::FrozenChart(revision_id.to_owned())
+                }
             }
             Some(operation)
                 if payload["type"] == "request"
@@ -157,9 +163,13 @@ impl WorkspaceBridge {
             }
             _ => return Err(failure(ErrorCode::INVALIDARGUMENT)),
         };
-        Self::with_bound(lane, true, move |bound| bound.dispatch(request))
-            .await?
-            .ok_or_else(|| failure(ErrorCode::INTERNALERROR))
+        let reply =
+            Self::with_bound(lane, !chart_status, move |bound| bound.dispatch(request)).await?;
+        match reply {
+            Some(reply) => Ok(reply),
+            None if chart_status => Ok(json!({"available": false})),
+            None => Err(failure(ErrorCode::INTERNALERROR)),
+        }
     }
 
     pub(super) async fn find(
@@ -313,6 +323,13 @@ impl BoundWorkspace {
             Request::FrozenChart(revision_id) => self
                 .registry
                 .open_evidence_chart(&local_import_access(&self.profile_id), &revision_id),
+            Request::FrozenChartStatus(revision_id) => {
+                let available = self.registry.evidence_chart_display_allowed(
+                    &local_import_access(&self.profile_id),
+                    &revision_id,
+                )?;
+                Ok(json!({"available": available}))
+            }
             Request::Operation(payload) => self.registry.execute_workspace(&access, payload),
         }
     }

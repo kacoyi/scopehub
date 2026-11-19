@@ -2,6 +2,38 @@
   "schema_version": "1.0",
   "items": [
     {
+      "id": "published-evidence-ui-retains-revoked-content",
+      "source": "Independent Chromium review at cecda1c in .reports/independent-evidence-cecda1c/browser-observations.json.",
+      "observation": "After real peer revocation and focus refresh, the rendered inspection retained a close. Explicit refresh removed that inspection but retained the frozen chart, source SHA-256 and expandable published source rows. The focused baseline Chromium run in .reports/evidence-revocation-red-1461/results.json also reproduced a delayed formerly authorized chart body reappearing after revocation. The corrected Chromium workspace and native-bridge browser checks in .reports/runs/20261119T161404.568704Z-6c3e3adc removed the inspection, chart, source SHA-256 and rows, rejected delayed redisplay and preserved other authorized display and independent live-folder access.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "desktop-workspace-transport",
+        "local-import-publication"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "unavailable-evidence-clear-unreachable",
+      "source": "Independent Chromium review at cecda1c in .reports/independent-evidence-cecda1c/browser-observations.json.",
+      "observation": "A fresh authorized window observed a revoked shared selection, but the workspace and the denied published-chart dialog offered no way to clear it. The Rust registry accepted an explicit null for the current revision. The focused baseline Chromium run in .reports/evidence-revocation-red-1461/results.json reproduced both missing controls. The corrected Chromium workspace check in .reports/runs/20261119T161404.568704Z-6c3e3adc found both controls and committed explicit null through the current selection token. The workspace projection and undo receipt were preserved and a later entitled interval could be selected.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
       "id": "verification-lifetime",
       "source": "scripts/check.py",
       "observation": "Timeout handling discards captured output and subprocess.run does not explicitly terminate the check process group.",

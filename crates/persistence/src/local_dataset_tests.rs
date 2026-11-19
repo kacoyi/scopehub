@@ -567,6 +567,23 @@ fn chart_evidence_migrates_populated_v5_and_rechecks_scope_grants_and_frozen_tar
         first.open_evidence_chart(&user, &id).unwrap_err().code,
         ErrorCode::PERMISSIONDENIED
     );
+    assert_eq!(
+        first
+            .evidence_chart_display_allowed(&ai, &id)
+            .unwrap_err()
+            .code,
+        ErrorCode::PERMISSIONDENIED
+    );
+    assert!(
+        first
+            .evidence_chart_display_allowed(&local_import, &id)
+            .unwrap()
+    );
+    assert!(
+        !first
+            .evidence_chart_display_allowed(&local_import, &revoked)
+            .unwrap()
+    );
     let chart = first.open_evidence_chart(&local_import, &id).unwrap();
     assert_eq!(chart["snapshot"]["dataset_id"], id);
     assert_eq!(chart["bars"][1]["bar"]["close"], 8);
@@ -758,6 +775,11 @@ fn chart_evidence_migrates_populated_v5_and_rechecks_scope_grants_and_frozen_tar
         before.undo.unwrap().operation_id
     );
     assert!(store.revoke_local_dataset(&id).unwrap());
+    assert!(
+        !reopened
+            .evidence_chart_display_allowed(&local_import, &id)
+            .unwrap()
+    );
     assert_fault(
         reopened
             .execute_evidence_intent(&ai, Some(&grant), read(9, json!(["close"])))

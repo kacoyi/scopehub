@@ -1,8 +1,9 @@
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import type {
   Bar, FrozenSnapshot, ProjectedChartReply11, ReadLocalImportRevisionOutput, ReadProjectedChart11,
 } from '../../../../contracts/generated/protocol';
 import { exchangeWorkspace, type LocalWorkspace } from './use-local-workspace';
+import { displayAccessDenied, type PublishedRevisionAccess } from './published-revision-access';
 
 export type FrozenChartResult = ReadLocalImportRevisionOutput & { snapshot?: FrozenSnapshot };
 
@@ -20,8 +21,8 @@ export async function openAuthenticatedFrozenChart(revisionId: string, requestId
 const barLabel = (time: number) => new Date(time).toISOString().replace('T', ' ').replace('.000Z', ' UTC');
 const inspectFields = ['time_ms', 'close'] as const;
 
-export function FrozenEvidenceControls({ snapshot, bars, workspace }: {
-  snapshot: FrozenSnapshot; bars: readonly Bar[]; workspace: LocalWorkspace;
+export function FrozenEvidenceControls({ snapshot, bars, workspace, access }: {
+  snapshot: FrozenSnapshot; bars: readonly Bar[]; workspace: LocalWorkspace; access: PublishedRevisionAccess;
 }) {
   const heading = useId();
   const [barTime, setBarTime] = useState(() => bars.at(-1)?.time_ms);
@@ -33,11 +34,6 @@ export function FrozenEvidenceControls({ snapshot, bars, workspace }: {
   const current = available?.revision_id === snapshot.dataset_id ? available.range : undefined;
   const blocked = !state || pending || Boolean(workspace.pending || workspace.error);
   const reload = workspace.reload;
-
-  useEffect(() => {
-    window.addEventListener('focus', reload);
-    return () => window.removeEventListener('focus', reload);
-  }, [reload]);
 
   async function inspect() {
     if (!state || !current || blocked) return;
@@ -64,8 +60,10 @@ export function FrozenEvidenceControls({ snapshot, bars, workspace }: {
       const message = result.rows.length === 1
         ? `${barLabel(first.time_ms)} · Close ${first.close}`
         : `${result.rows.length} bars · First close ${first.close} at ${barLabel(first.time_ms)}`;
-      setInspection({ revision: state.selection_revision, message });
+      if (access.canDisplay(snapshot.dataset_id)) setInspection({ revision: state.selection_revision, message });
     } catch (error) {
+      if (displayAccessDenied(error)) void access.verify(snapshot.dataset_id);
+      if (!access.canDisplay(snapshot.dataset_id)) return;
       const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
       setInspection({
         revision: state.selection_revision,
@@ -102,7 +100,21 @@ export function FrozenEvidenceControls({ snapshot, bars, workspace }: {
         onClick={() => { setInspection(undefined); reload(); }}>Refresh shared selection</button>
     </div>
     {workspace.error && <p role="alert" className="workspace-error">{workspace.error}</p>}
-    {inspection && inspection.revision === state?.selection_revision &&
+    {current && inspection && inspection.revision === state?.selection_revision &&
       <p role={inspection.failed ? 'alert' : 'status'}>{inspection.message}</p>}
   </section>;
+}
+
+export function UnavailableSharedSelection({ workspace }: { workspace: LocalWorkspace | undefined }) {
+  const target = workspace?.snapshot?.chart_evidence;
+  if (!workspace || !target || !('unavailable' in target)) return null;
+  return <div className="local-publication-actions">
+    <span role="status">The shared selection is unavailable.</span>
+    <button type="button" className="secondary-button" disabled={Boolean(workspace.pending || workspace.error)}
+      onClick={() => workspace.chooseEvidence(null)}>Clear shared selection</button>
+    {workspace.error && <>
+      <span role="alert">{workspace.error}</span>
+      <button type="button" className="secondary-button" onClick={workspace.reload}>Refresh shared selection</button>
+    </>}
+  </div>;
 }

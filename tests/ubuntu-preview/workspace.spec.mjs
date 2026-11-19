@@ -1,7 +1,7 @@
 import { execFile, spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { once } from 'node:events';
-import { chmod, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -12,6 +12,7 @@ import { promisify } from 'node:util';
 import { expect, test } from '@playwright/test';
 import { control } from '../ui/workspace-controls.mjs';
 import { painted } from '../ui/chart-pixels.mjs';
+import { startLocalImportBridge } from '../ui/local-import-bridge.mjs';
 import { assertUnsuitableWindowsHandoffsRejected, assertWindowsPrivateHandoff } from './workspace_test_handoff_acl.mjs';
 
 const exec = promisify(execFile);
@@ -224,6 +225,156 @@ test('frozen chart shares two visible bars and clears the independent selection'
     await profile.close();
   }
 });
+
+test('published revocation removes visible and delayed frozen evidence and leaves an authorized clear', async ({ browser }, testInfo) => {
+  const fixture = await publishRevocationFixture(testInfo);
+  const port = Number(process.env.SCOPEHUB_EVIDENCE_REVOCATION_PORT ?? await freePort());
+  const { revoked, entitled, profile, market } = fixture;
+  const held = Promise.withResolvers();
+  const deliver = Promise.withResolvers();
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      const revision = revoked.revision_id;
+      const open = async (page, id, start = true) => {
+        await control(page, 'Open published CSV').click();
+        const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+        await dialog.getByLabel('Revision ID').fill(id);
+        if (start) await control(dialog, 'Open frozen chart').click();
+        return dialog;
+      };
+      const frozen = dialog => dialog.getByRole('region', { name: 'Frozen local CSV chart' });
+      const focus = page => page.evaluate(() => window.dispatchEvent(new Event('focus')));
+      const action = async (page, scope, button, operation) => {
+        const accepted = page.waitForResponse(evidenceResponse(operation));
+        await control(scope, button).click();
+        return (await accepted).json();
+      };
+      await inFreshBrowser(browser, server, async page => {
+        const baseline = (await act(page, '5m', 'chart.setTimeframe')).result.outcome;
+        const dialog = await open(page, revision);
+        await expect(frozen(dialog)).toBeVisible();
+        const evidence = dialog.getByRole('region', { name: 'Shared chart evidence' });
+        expect((await action(page, evidence, 'Share selected bar', 'workspace.selectEvidence')).result.selection.selection_revision).toBe(1);
+        await action(page, evidence, 'Inspect shared bar', 'workspace.readChartProjection');
+        await expect(evidence.getByText('Close 44.25')).toBeVisible();
+        await dialog.locator('details summary').click();
+        await expect(dialog.getByRole('table', { name: 'Published source rows' })).toBeVisible();
+        await inFreshBrowser(browser, server, async pending => {
+          const lateDialog = await open(pending, revision, false);
+          await pending.route(`**${endpoint}`, async route => {
+            if (route.request().postDataJSON()?.type !== 'frozen_chart') return route.continue();
+            const response = await route.fetch();
+            held.resolve(await response.json());
+            await deliver.promise;
+            await route.fulfill({ response });
+          }, { times: 1 });
+          await control(lateDialog, 'Open frozen chart').click();
+          expect((await held.promise).result.revision.revision_id).toBe(revision);
+
+          const peerRevoke = await market('revokeLocalImportRevision', { version: 1, revision_id: revision });
+          expect(peerRevoke.revision_id).toBe(revision);
+          const refreshed = page.waitForResponse(response => response.request().postDataJSON()?.type === 'snapshot');
+          await focus(page);
+          expect((await (await refreshed).json()).result.chart_evidence).toEqual({ unavailable: true });
+          await expect.soft(evidence.getByText('Close 44.25')).toHaveCount(0, { timeout: 2500 });
+          await expect.soft(frozen(dialog)).toHaveCount(0, { timeout: 2500 });
+          await expect.soft(dialog.getByText(revoked.source_sha256, { exact: true })).toHaveCount(0, { timeout: 2500 });
+          await expect.soft(dialog.getByRole('table', { name: 'Published source rows' })).toHaveCount(0, { timeout: 2500 });
+
+          await focus(pending);
+          // Wait for the visible denied state before delivering the formerly valid body.
+          await expect.soft(lateDialog.getByText('This frozen chart is unavailable in the current profile.')).toBeVisible({ timeout: 3500 });
+          const lateResponse = pending.waitForResponse(response => response.request().postDataJSON()?.type === 'frozen_chart');
+          deliver.resolve();
+          await lateResponse;
+          await expect.soft(frozen(lateDialog)).toHaveCount(0, { timeout: 2500 });
+
+          await inFreshBrowser(browser, server, async (fresh, initial) => {
+            expect(initial.result.chart_evidence).toEqual({ unavailable: true });
+            expect(initial.result.workspace.revision).toBe(baseline.result.revision);
+            expect(initial.result.undo.operation_id).toBe(baseline.receipt.operation_id);
+            const workspaceClear = control(fresh, 'Clear shared selection');
+            await expect.soft(workspaceClear).toBeVisible({ timeout: 2500 });
+            const denied = await open(fresh, revision);
+            await expect(denied.getByText('This frozen chart is unavailable in the current profile.')).toBeVisible();
+            const modalClear = control(denied, 'Clear shared selection');
+            await expect(modalClear).toBeEnabled();
+            const accepted = await action(fresh, denied, 'Clear shared selection', 'workspace.selectEvidence');
+            expect(accepted.result.selection).toEqual({ workspace_id: 'main', selection_revision: 2, target: null });
+            const cleared = (await (await post(server, snapshot)).json()).result;
+            expect(cleared.workspace).toEqual(baseline.result);
+            expect(cleared.undo.operation_id).toBe(baseline.receipt.operation_id);
+            await control(denied, 'Close').click();
+            const other = await open(fresh, entitled.revision_id);
+            await expect(frozen(other)).toBeVisible();
+            const selected = await action(fresh, other, 'Share selected bar', 'workspace.selectEvidence');
+            expect(selected.result.selection.target.snapshot.dataset_id).toBe(entitled.revision_id);
+            expect(selected.result.selection.selection_revision).toBe(3);
+          });
+        });
+      });
+    });
+  } finally {
+    deliver.resolve();
+    await fixture.close();
+  }
+});
+
+async function publishRevocationFixture(testInfo) {
+  const binary = join(root, 'target/debug/examples', process.platform === 'win32' ? 'local_import_bridge.exe' : 'local_import_bridge');
+  await exec('cargo', ['build', '--locked', '-p', 'scopehub-desktop', '--example', 'local_import_bridge',
+    '--features', 'portable-test-bridge', '--target-dir', 'target'], { cwd: root, timeout: 90_000 });
+  const temp = await mkdtemp(join(tmpdir(), 'scopehub-evidence-revocation-'));
+  const app = join(temp, 'app');
+  const folder = join(temp, 'folder');
+  const path = join(app, 'workspace-dev');
+  let bridge;
+  const close = async () => {
+    await bridge?.close();
+    await rm(temp, { recursive: true, force: true });
+  };
+  try {
+    await mkdir(app, { mode: 0o700 });
+    await mkdir(folder, { mode: 0o700 });
+    const sources = [
+      ['revoked.csv', 'FIX,30,34,29,31.5,120', 'FIX,42,47,40,44.25,'],
+      ['entitled.csv', 'KEEP,60,64,59,61.5,25', 'KEEP,62,67,60,64.25,8'],
+    ].map(([name, a, b]) => [name, `Date,Symbol,Open,High,Low,Close,Volume\n2026-02-03,${a}\n2026-02-04,${b}\n`]);
+    for (const [name, csv] of sources) await writeFile(join(folder, name), csv);
+    bridge = startLocalImportBridge(binary, app, folder);
+    const market = async (name, payload) => {
+      const frame = await bridge.request('execute_operation', { operation: `market.${name}`, requestId: randomUUID(), payload });
+      expect(frame.error, JSON.stringify(frame.error)).toBeUndefined();
+      return frame.result;
+    };
+    const catalog = (await bridge.request('choose_local_csv_folder', {})).result;
+    const mapping = {
+      ...evidenceSeries, version: 1, revision: 'revocation-fixture', encoding: 'utf-8', delimiter: ',',
+      record_kind: 'native_ohlcv', volume_semantics: 'per_bar', timestamp_convention: 'bar_start',
+      timestamp_format: '%Y-%m-%d', trading_day_format: '%Y-%m-%d', daily_start_time: '00:00:00',
+      columns: { symbol: 'Symbol', timestamp: 'Date', trading_day: 'Date', open: 'Open', high: 'High', low: 'Low', close: 'Close', volume: 'Volume' },
+    };
+    delete mapping.roll_method;
+    const revisions = [];
+    for (const [name, csv] of sources) {
+      const input = {
+        version: 1, folder_id: catalog.folder_id, file_id: catalog.files.find(file => file.relative_path === name).file_id,
+        expected_sha256: createHash('sha256').update(csv).digest('hex'),
+      };
+      await market('previewLocalImport', { ...input, row_limit: 10, mapping });
+      const { record } = await market('saveLocalImportMapping', { ...input, row_limit: 10, mapping });
+      revisions.push((await market('publishLocalImport', { ...input, review_revision: record.review_revision })).revision);
+    }
+    const db = new DatabaseSync(join(path, 'workspace.sqlite3'), { readOnly: true });
+    const { profile_id: id } = db.prepare('SELECT profile_id FROM profile_binding WHERE singleton = 1').get();
+    db.close();
+    await testInfo.attach('published-revisions', { body: JSON.stringify(revisions.map(revision => revision.revision_id)), contentType: 'application/json' });
+    return { revoked: revisions[0], entitled: revisions[1], profile: { root: path, id, workspaceId: 'main' }, market, close };
+  } catch (error) {
+    await close();
+    throw error;
+  }
+}
 
 function evidenceResponse(operation) {
   return response => new URL(response.url()).pathname === endpoint
@@ -947,7 +1098,7 @@ async function inService(port, profile, mode, use, { expectHandoff = true, termi
       ...process.env,
       SCOPEHUB_WORKSPACE_PROFILE_ROOT: profile.root,
       SCOPEHUB_WORKSPACE_PROFILE_ID: profile.id,
-      SCOPEHUB_WORKSPACE_ID: workspaceId,
+      SCOPEHUB_WORKSPACE_ID: profile.workspaceId ?? workspaceId,
     },
     stdio: terminalSignal ? ['pipe', 'pipe', 'pipe'] : ['ignore', 'pipe', 'pipe', 'ipc'],
   });

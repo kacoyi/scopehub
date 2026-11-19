@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ChartWorkspace } from './chart-workspace';
 import { LocalImportEditor, type LocalFolderCatalog } from './local-import-editor';
 import { cancelLocalPreview, chooseLocalCsvFolder, hasLocalCsvPicker, previewLocalImport } from './local-import-transport';
 import { LocalPreviewChart } from './local-preview-chart';
 import { OpenLocalRevisionDialog } from './local-revision-dialog';
+import { usePublishedRevisionAccess } from './published-revision-access';
 import { readSampleView, saveSampleView } from './sample-view';
 import { useLocalWorkspace } from './use-local-workspace';
 import './style.css';
@@ -21,8 +22,14 @@ function App() {
   const [choosing, setChoosing] = useState(false);
   const [pickerError, setPickerError] = useState<string>();
   const [openingRevision, setOpeningRevision] = useState(false);
-  const [revokedRevisionId, setRevokedRevisionId] = useState<string>();
-  const workspace = useLocalWorkspace();
+  const localWorkspace = useLocalWorkspace();
+  const revisionAccess = usePublishedRevisionAccess(localWorkspace);
+  const snapshot = localWorkspace?.snapshot;
+  const target = snapshot?.chart_evidence;
+  const targetRevoked = Boolean(target && 'revision_id' in target && revisionAccess.revoked.has(target.revision_id));
+  const displaySnapshot = useMemo(() => snapshot && targetRevoked
+    ? { ...snapshot, chart_evidence: { unavailable: true as const } } : snapshot, [snapshot, targetRevoked]);
+  const workspace = localWorkspace && { ...localWorkspace, snapshot: displaySnapshot };
   useEffect(() => {
     const navigate = () => {
       const chosen = window.location.hash === '#demo';
@@ -84,11 +91,11 @@ function App() {
           </div>
         </header>
         <LocalImportEditor key={folder.folder_id} initialCatalog={folder} chooseFolder={chooseFolder}
-          previewImport={previewLocalImport} cancelPreview={cancelLocalPreview} revokedRevisionId={revokedRevisionId}
+          previewImport={previewLocalImport} cancelPreview={cancelLocalPreview} revisionAccess={revisionAccess}
           renderChart={result => <LocalPreviewChart result={result} />} workspace={workspace} />
       </main>
     </div>}
-    {openingRevision && <OpenLocalRevisionDialog onClose={() => setOpeningRevision(false)} onRevoked={setRevokedRevisionId}
+    {openingRevision && <OpenLocalRevisionDialog onClose={() => setOpeningRevision(false)} revisionAccess={revisionAccess}
       workspace={workspace} canRevoke={hasLocalCsvPicker()} />}
   </>;
 }

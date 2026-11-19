@@ -553,6 +553,10 @@ impl WorkspaceTransaction for SqliteTransaction<'_> {
         }
     }
 
+    fn local_evidence_display_allowed(&self, revision_id: &str) -> Result<bool, Error> {
+        local_dataset::display_allowed(self.connection, revision_id)
+    }
+
     fn chart_revision(&self) -> Result<Revision, Error> {
         chart_revision(self.connection, &self.binding.workspace_id)
     }

@@ -125,6 +125,21 @@ fn check_revision_id(revision_id: &str) -> Result<(), Error> {
     Ok(())
 }
 
+pub(super) fn display_allowed(connection: &Connection, revision_id: &str) -> Result<bool, Error> {
+    check_revision_id(revision_id)?;
+    connection
+        .query_row(
+            "SELECT EXISTS(
+                SELECT 1 FROM local_dataset_revisions AS revision
+                LEFT JOIN local_dataset_display_revocations AS revoked USING (revision_id)
+                WHERE revision.revision_id = ?1 AND revoked.revision_id IS NULL
+            )",
+            [revision_id],
+            |row| row.get(0),
+        )
+        .map_err(store_error)
+}
+
 fn retain_original(connection: &Connection, digest: &str, original: &[u8]) -> Result<(), Error> {
     let identical: Option<bool> = connection
         .query_row(
