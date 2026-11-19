@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M4-006",
+  "focus_task_id": "M3-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -7587,7 +7587,7 @@
       "id": "M4-006",
       "title": "Connect a selected text model and complete ordinary turns from the desktop",
       "milestone": "M4",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-001"
       ],
@@ -7627,8 +7627,13 @@
         "typescript-contracts",
         "rust-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Verify the ordinary workspace text connection, profile grant boundaries and owned synthetic HTTP traffic; archive passing evidence and hand off shared chart collaboration and real-model qualification to their M4 tasks.",
+      "evidence": [
+        {
+          "path": "project/evidence/M4-006-4499f45a417f3f97.json",
+          "sha256": "b3e6b9e841849fb31d0b8eaaadacd76fe35636d97e263713370e9c5603fdf835"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
