@@ -39,6 +39,10 @@ mod native {
     pub(crate) struct Directory(File);
 
     impl Directory {
+        pub(crate) fn association_path(&self, selected: &Path) -> io::Result<PathBuf> {
+            Ok(selected.to_owned())
+        }
+
         pub(crate) fn open_root(path: &Path) -> io::Result<Self> {
             let mut components = path.components();
             if components.next() != Some(Component::RootDir) {
@@ -134,6 +138,14 @@ mod native {
     }
 
     impl Directory {
+        pub(crate) fn association_path(&self, _: &Path) -> io::Result<PathBuf> {
+            // All components have passed the reparse-point checks and remain
+            // pinned against modification and rename. Resolve the on-disk
+            // spelling here so short names and caller casing cannot split
+            // the mapping key for the same admitted directory.
+            self.path.canonicalize()
+        }
+
         pub(crate) fn open_root(path: &Path) -> io::Result<Self> {
             let mut components = path.components();
             let Some(Component::Prefix(prefix)) = components.next() else {
@@ -145,7 +157,7 @@ mod native {
             if components.next() != Some(Component::RootDir) {
                 return Err(io::ErrorKind::InvalidInput.into());
             }
-            let root = PathBuf::from(format!(r"\\?\{}:\", char::from(drive)));
+            let root = PathBuf::from(format!(r"\\?\{}:\", char::from(drive.to_ascii_uppercase())));
             let mut directory = Self {
                 pins: vec![Arc::new(pin_directory(&root)?)],
                 path: root,
@@ -224,12 +236,16 @@ mod native {
         ffi::OsStr,
         fs::{File, Metadata, ReadDir},
         io,
-        path::Path,
+        path::{Path, PathBuf},
     };
 
     pub(crate) struct Directory;
 
     impl Directory {
+        pub(crate) fn association_path(&self, _: &Path) -> io::Result<PathBuf> {
+            Err(io::ErrorKind::Unsupported.into())
+        }
+
         pub(crate) fn open_root(_: &Path) -> io::Result<Self> {
             Err(io::ErrorKind::Unsupported.into())
         }

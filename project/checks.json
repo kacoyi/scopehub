@@ -488,6 +488,56 @@
       ],
       "timeout_seconds": 900,
       "cadence": "change"
+    },
+    {
+      "id": "decision-note-lifecycle",
+      "status": "implemented",
+      "purpose": "Verify profile-local decision notes and v1 through v3 migrations. Exercise confirmation, replay, deletion, complete backup capacity, stage expiry and disposal, marker union, and rollback when killed before commit.",
+      "platforms": "all",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-application",
+        "-p",
+        "scopehub-persistence",
+        "decision_note"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
+      "id": "workspace-timeframe",
+      "status": "implemented",
+      "purpose": "Exercise the real opted-in local writer through browser and process restart, timeframe undo, terminal cleanup, and human decision-note confirmation, deletion, backup download and staged restore.",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "change"
+    },
+    {
+      "id": "desktop-workspace-transport",
+      "status": "implemented",
+      "purpose": "Exercise the built desktop UI with substituted Tauri IPC for default startup, authorized timeframe and undo, and rejection. The portable Rust bridge checks exercise the actual registry and storage.",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/desktop-workspace.config.mjs"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "change"
     }
   ],
   "milestones": [
@@ -524,7 +574,9 @@
       "checks": [
         "operations-workflow",
         "state-migrations",
-        "workspace-layout"
+        "workspace-layout",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
       ]
     },
     {
@@ -703,6 +755,22 @@
       "architecture",
       "python-contracts-workers",
       "rust-format"
+    ],
+    "decision-note-slice": [
+      "environment",
+      "project-state",
+      "generated-contracts",
+      "architecture",
+      "python-types",
+      "python-contracts-workers",
+      "typescript-contracts",
+      "ui-build",
+      "rust-format",
+      "rust-contracts-workers",
+      "rust-lints",
+      "decision-note-lifecycle",
+      "workspace-timeframe",
+      "desktop-workspace-transport"
     ]
   },
   "required_change_checks": [
@@ -729,7 +797,9 @@
     "market-workflow",
     "market-worker-interruption",
     "market-recovery-ui",
-    "market-recovery"
+    "market-recovery",
+    "workspace-timeframe",
+    "desktop-workspace-transport"
   ],
   "gate_changes": []
 }

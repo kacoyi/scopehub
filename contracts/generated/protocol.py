@@ -1,4 +1,4 @@
-# Generated from contracts/schemas/protocol.schema.json; sha256=4d769c506985548abe56216be160277edf713d08c250c5ccbe9d061470e4b501. Do not edit.
+# Generated from contracts/schemas/protocol.schema.json; sha256=6b2f457b4b2cc72c2d415bf0ecd8609f3825f9f4331a8e80d6bc1ec29130789d. Do not edit.
 from __future__ import annotations
 from typing import Literal, NotRequired, TypedDict
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
@@ -10,7 +10,7 @@ Metadata = dict[str, JsonValue]
 WorkerRole = Literal['market', 'ai', 'indicator']
 ProtocolVersion = Literal['1.0']
 ErrorCode = Literal['INVALID_ARGUMENT', 'UNSUPPORTED_CAPABILITY', 'PERMISSION_DENIED', 'CONFIRMATION_REQUIRED', 'CANCELLED', 'TIMEOUT', 'WORKER_EXITED', 'PROTOCOL_MISMATCH', 'DATA_UNAVAILABLE', 'STALE_CONTEXT', 'RESOURCE_LIMIT', 'OUTPUT_INVALID', 'PROVIDER_NOT_CONFIGURED', 'INTERNAL_ERROR', 'BUSY', 'SNAPSHOT_UNAVAILABLE']
-OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'market.subscribe', 'market.previewLocalImport', 'workspace.readChartProjection', 'workspace.selectEvidence']
+OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'market.subscribe', 'market.previewLocalImport', 'market.saveLocalImportMapping', 'market.loadLocalImportMapping', 'workspace.readChartProjection', 'workspace.selectEvidence', 'decisionNote.save', 'decisionNote.read', 'decisionNote.appendOutcome', 'decisionNote.delete', 'decisionNote.exportBackup', 'decisionNote.previewRestore', 'decisionNote.restoreBackup']
 ChartStyle = Literal['candlestick', 'line']
 TaskStatus = Literal['queued', 'running', 'awaiting_confirmation', 'completed', 'failed', 'cancelled']
 Tradability = Literal['non_tradable', 'unknown']
@@ -656,6 +656,64 @@ class LocalImportPreviewError(TypedDict):
     ok: Literal[False]
     result: None
     error: MarketPageFault
+class SaveLocalImportMappingRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.saveLocalImportMapping']
+    payload: SaveLocalImportMappingInput
+class SaveLocalImportMappingResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.saveLocalImportMapping']
+    ok: Literal[True]
+    result: SaveLocalImportMappingOutput
+    error: None
+class SaveLocalImportMappingError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.saveLocalImportMapping']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
+class LoadLocalImportMappingRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.loadLocalImportMapping']
+    payload: LoadLocalImportMappingInput
+class LoadLocalImportMappingResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.loadLocalImportMapping']
+    ok: Literal[True]
+    result: LoadLocalImportMappingOutput
+    error: None
+class LoadLocalImportMappingError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.loadLocalImportMapping']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
 class WorkerHello11(TypedDict):
     protocol_version: ProtocolVersion11
     message_id: Uuid
@@ -918,7 +976,7 @@ class CancelTaskError11(TypedDict):
     operation: Literal['task.cancel']
     request_id: Uuid
     error: WorkspaceFault11
-Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat | MarketHistoryPageRequest | MarketHistoryPageResponse | MarketHistoryPageError | MarketSubscriptionRequest | MarketSubscriptionResponse | MarketSubscriptionError | LocalImportPreviewRequest | LocalImportPreviewResponse | LocalImportPreviewError | MarketBarUpdateEvent | MarketBarCorrectionEvent | MarketStreamGapEvent | WorkerHello11 | ScopedMutationRequest11 | ScopedMutationResponse11 | TrustedConfirmationDecision11 | PreviewReady11 | ArtifactChunk11 | TaskTerminalEvent11 | TaskCancelRequest11 | CancelMemberRequest11 | ReadProjectedChart11 | ProjectedChartResponse11 | SharedSelectionEvent11 | SharedSelectionRequest11 | AiToolRequest11 | AiToolResultDelivery11 | AiToolResultAck11 | ProjectedChartError11 | IndicatorCompute11 | IndicatorComputed11 | IndicatorInputSegment11 | SharedSelectionResponse11 | SharedSelectionError11 | SharedContextRequest11 | SharedContextResponse11 | SharedContextError11 | CancelTaskResponse11 | CancelTaskError11
+Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat | MarketHistoryPageRequest | MarketHistoryPageResponse | MarketHistoryPageError | MarketSubscriptionRequest | MarketSubscriptionResponse | MarketSubscriptionError | LocalImportPreviewRequest | LocalImportPreviewResponse | LocalImportPreviewError | SaveLocalImportMappingRequest | SaveLocalImportMappingResponse | SaveLocalImportMappingError | LoadLocalImportMappingRequest | LoadLocalImportMappingResponse | LoadLocalImportMappingError | MarketBarUpdateEvent | MarketBarCorrectionEvent | MarketStreamGapEvent | WorkerHello11 | ScopedMutationRequest11 | ScopedMutationResponse11 | TrustedConfirmationDecision11 | PreviewReady11 | ArtifactChunk11 | TaskTerminalEvent11 | TaskCancelRequest11 | CancelMemberRequest11 | ReadProjectedChart11 | ProjectedChartResponse11 | SharedSelectionEvent11 | SharedSelectionRequest11 | AiToolRequest11 | AiToolResultDelivery11 | AiToolResultAck11 | ProjectedChartError11 | IndicatorCompute11 | IndicatorComputed11 | IndicatorInputSegment11 | SharedSelectionResponse11 | SharedSelectionError11 | SharedContextRequest11 | SharedContextResponse11 | SharedContextError11 | CancelTaskResponse11 | CancelTaskError11
 ProtocolVersion11 = Literal['1.1']
 class WorkspaceObject11(TypedDict):
     kind: Literal['chart', 'layer', 'layout', 'dataset', 'workspace']
@@ -1523,3 +1581,296 @@ class LocalImportPreviewOutput(TypedDict):
     sha256: Hash
     preview: CsvPreview
 LocalImportPreviewReply11 = LocalImportPreviewResponse | LocalImportPreviewError
+class SavedLocalImportMapping(TypedDict):
+    review_revision: int
+    header_sha256: Hash
+    mapping: CsvMappingV1
+class SaveLocalImportMappingInput(TypedDict):
+    version: int
+    folder_id: Uuid
+    file_id: Uuid
+    expected_sha256: Hash
+    mapping: CsvMappingV1
+    row_limit: NotRequired[int]
+class SaveLocalImportMappingOutput(TypedDict):
+    version: int
+    record: SavedLocalImportMapping
+class LoadLocalImportMappingInput(TypedDict):
+    version: int
+    folder_id: Uuid
+    file_id: Uuid
+class LoadLocalImportMappingOutput(TypedDict):
+    version: int
+    status: Literal['saved', 'not_saved', 'review_required']
+    record: SavedLocalImportMapping | None
+    source_sha256: Hash | None
+SaveLocalImportMappingReply11 = SaveLocalImportMappingResponse | SaveLocalImportMappingError
+LoadLocalImportMappingReply11 = LoadLocalImportMappingResponse | LoadLocalImportMappingError
+DecisionNoteUuid11 = str
+DecisionNoteDate = str
+class DecisionNoteEvidenceRef(TypedDict):
+    source_id: str
+    source_revision: str
+    locator: str
+class DecisionNoteOriginal(TypedDict):
+    note_id: DecisionNoteUuid11
+    decided_on: DecisionNoteDate
+    thesis: str
+    evidence_refs: list[DecisionNoteEvidenceRef]
+    choice: str
+class DecisionNoteSummary(TypedDict):
+    note_id: DecisionNoteUuid11
+    decided_on: DecisionNoteDate
+class DecisionNoteOutcome(TypedDict):
+    outcome_id: DecisionNoteUuid11
+    observed_on: DecisionNoteDate
+    outcome: str
+class DecisionNoteReadOutput(TypedDict):
+    note: DecisionNoteOriginal | None
+    notes: list[DecisionNoteSummary]
+    outcomes: list[DecisionNoteOutcome]
+    next_offset: Revision | None
+class DecisionNoteTarget(TypedDict):
+    kind: Literal['decision_note']
+    object_id: DecisionNoteUuid11
+class DecisionNoteReceipt11(TypedDict):
+    operation_id: DecisionNoteUuid11
+    workspace_id: OpaqueId
+    target: DecisionNoteTarget
+    committed_workspace_revision: Revision
+    undoable: Literal[False]
+class DecisionNoteReadScope11(TypedDict):
+    workspace_id: OpaqueId
+class DecisionNoteWriteScope11(TypedDict):
+    workspace_id: OpaqueId
+    target: DecisionNoteTarget
+    expected_workspace_revision: Revision
+    idempotency_key: DecisionNoteUuid11
+class DecisionNoteConfirmation11(TypedDict):
+    challenge_id: DecisionNoteUuid11
+    decision: Literal['approve', 'decline']
+class DecisionNoteSaveInput(TypedDict):
+    decided_on: DecisionNoteDate
+    thesis: str
+    evidence_refs: list[DecisionNoteEvidenceRef]
+    choice: str
+class DecisionNoteSaveIntent11(TypedDict):
+    operation: Literal['decisionNote.save']
+    arguments: DecisionNoteSaveInput
+class DecisionNoteSaveCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: DecisionNoteUuid11
+    scope: DecisionNoteWriteScope11
+    intent: DecisionNoteSaveIntent11
+    confirmation: DecisionNoteConfirmation11 | None
+class DecisionNoteSaveCommitted11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['decisionNote.save']
+    receipt: DecisionNoteReceipt11
+class DecisionNoteSaveConfirmationRequired11(TypedDict):
+    state: Literal['confirmation_required']
+    operation: Literal['decisionNote.save']
+    challenge_id: DecisionNoteUuid11
+    expires_at_ms: Timestamp
+DecisionNoteSaveOutcome11 = DecisionNoteSaveCommitted11 | DecisionNoteSaveConfirmationRequired11 | ScopedFailure11
+class DecisionNoteSaveReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: DecisionNoteUuid11
+    outcome: DecisionNoteSaveOutcome11
+class DecisionNoteReadInput(TypedDict):
+    note_id: DecisionNoteUuid11 | None
+    offset: Revision
+class DecisionNoteReadIntent11(TypedDict):
+    operation: Literal['decisionNote.read']
+    arguments: DecisionNoteReadInput
+class DecisionNoteReadCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: DecisionNoteUuid11
+    scope: DecisionNoteReadScope11
+    intent: DecisionNoteReadIntent11
+class DecisionNoteReadCompleted11(TypedDict):
+    state: Literal['completed']
+    operation: Literal['decisionNote.read']
+    result: DecisionNoteReadOutput
+DecisionNoteReadOutcome11 = DecisionNoteReadCompleted11 | ScopedFailure11
+class DecisionNoteReadReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: DecisionNoteUuid11
+    outcome: DecisionNoteReadOutcome11
+class DecisionNoteAppendOutcomeInput(TypedDict):
+    observed_on: DecisionNoteDate
+    outcome: str
+class DecisionNoteAppendOutcomeIntent11(TypedDict):
+    operation: Literal['decisionNote.appendOutcome']
+    arguments: DecisionNoteAppendOutcomeInput
+class DecisionNoteAppendOutcomeCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: DecisionNoteUuid11
+    scope: DecisionNoteWriteScope11
+    intent: DecisionNoteAppendOutcomeIntent11
+    confirmation: DecisionNoteConfirmation11 | None
+class DecisionNoteAppendOutcomeCommitted11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['decisionNote.appendOutcome']
+    receipt: DecisionNoteReceipt11
+class DecisionNoteAppendOutcomeConfirmationRequired11(TypedDict):
+    state: Literal['confirmation_required']
+    operation: Literal['decisionNote.appendOutcome']
+    challenge_id: DecisionNoteUuid11
+    expires_at_ms: Timestamp
+DecisionNoteAppendOutcomeOutcome11 = DecisionNoteAppendOutcomeCommitted11 | DecisionNoteAppendOutcomeConfirmationRequired11 | ScopedFailure11
+class DecisionNoteAppendOutcomeReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: DecisionNoteUuid11
+    outcome: DecisionNoteAppendOutcomeOutcome11
+class DecisionNoteDeleteInput(TypedDict):
+    pass
+class DecisionNoteDeleteIntent11(TypedDict):
+    operation: Literal['decisionNote.delete']
+    arguments: DecisionNoteDeleteInput
+class DecisionNoteDeleteCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: DecisionNoteUuid11
+    scope: DecisionNoteWriteScope11
+    intent: DecisionNoteDeleteIntent11
+    confirmation: DecisionNoteConfirmation11 | None
+class DecisionNoteDeleteCommitted11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['decisionNote.delete']
+    receipt: DecisionNoteReceipt11
+class DecisionNoteDeleteConfirmationRequired11(TypedDict):
+    state: Literal['confirmation_required']
+    operation: Literal['decisionNote.delete']
+    challenge_id: DecisionNoteUuid11
+    expires_at_ms: Timestamp
+DecisionNoteDeleteOutcome11 = DecisionNoteDeleteCommitted11 | DecisionNoteDeleteConfirmationRequired11 | ScopedFailure11
+class DecisionNoteDeleteReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: DecisionNoteUuid11
+    outcome: DecisionNoteDeleteOutcome11
+class DecisionNoteBackupEntry(TypedDict):
+    original: DecisionNoteOriginal
+    outcomes: list[DecisionNoteOutcome]
+class DecisionNoteBackupDeletion(TypedDict):
+    note_id: DecisionNoteUuid11
+    deleted_at_ms: Timestamp
+class DecisionNoteBackupV1(TypedDict):
+    format: Literal['scopehub.decision-notes']
+    version: int
+    profile_binding: str
+    captured_workspace_revision: Revision
+    notes: list[DecisionNoteBackupEntry]
+    deletions: list[DecisionNoteBackupDeletion]
+class DecisionNoteRestoreScope11(TypedDict):
+    workspace_id: OpaqueId
+    expected_workspace_revision: Revision
+    idempotency_key: DecisionNoteUuid11
+class DecisionNoteRestoreSummary(TypedDict):
+    added_notes: Revision
+    added_outcomes: Revision
+    removed_notes: Revision
+    suppressed_notes: Revision
+    imported_deletions: Revision
+    independent_copy_warning: bool
+class DecisionNoteExportBackupInput(TypedDict):
+    pass
+class DecisionNotePreviewRestoreInput(TypedDict):
+    backup: DecisionNoteBackupV1
+class DecisionNoteRestoreBackupInput(TypedDict):
+    stage_id: DecisionNoteUuid11
+    decision: Literal['approve', 'decline']
+class DecisionNoteExportBackupIntent11(TypedDict):
+    operation: Literal['decisionNote.exportBackup']
+    arguments: DecisionNoteExportBackupInput
+class DecisionNoteExportBackupCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: DecisionNoteUuid11
+    scope: DecisionNoteReadScope11
+    intent: DecisionNoteExportBackupIntent11
+class DecisionNoteExportBackupCompleted11(TypedDict):
+    state: Literal['completed']
+    operation: Literal['decisionNote.exportBackup']
+    result: DecisionNoteBackupV1
+DecisionNoteExportBackupOutcome11 = DecisionNoteExportBackupCompleted11 | ScopedFailure11
+class DecisionNoteExportBackupReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: DecisionNoteUuid11
+    outcome: DecisionNoteExportBackupOutcome11
+class DecisionNotePreviewRestoreIntent11(TypedDict):
+    operation: Literal['decisionNote.previewRestore']
+    arguments: DecisionNotePreviewRestoreInput
+class DecisionNotePreviewRestoreCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: DecisionNoteUuid11
+    scope: DecisionNoteRestoreScope11
+    intent: DecisionNotePreviewRestoreIntent11
+class DecisionNotePreviewRestoreConfirmationRequired11(TypedDict):
+    state: Literal['confirmation_required']
+    operation: Literal['decisionNote.previewRestore']
+    stage_id: DecisionNoteUuid11
+    expires_at_ms: Timestamp
+    summary: DecisionNoteRestoreSummary
+DecisionNotePreviewRestoreOutcome11 = DecisionNotePreviewRestoreConfirmationRequired11 | ScopedFailure11
+class DecisionNotePreviewRestoreReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: DecisionNoteUuid11
+    outcome: DecisionNotePreviewRestoreOutcome11
+class DecisionNoteRestoreBackupIntent11(TypedDict):
+    operation: Literal['decisionNote.restoreBackup']
+    arguments: DecisionNoteRestoreBackupInput
+class DecisionNoteRestoreBackupCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: DecisionNoteUuid11
+    scope: DecisionNoteRestoreScope11
+    intent: DecisionNoteRestoreBackupIntent11
+class DecisionNoteRestoreBackupCommitted11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['decisionNote.restoreBackup']
+    receipt: OperationReceipt11
+DecisionNoteRestoreBackupOutcome11 = DecisionNoteRestoreBackupCommitted11 | ScopedFailure11
+class DecisionNoteRestoreBackupReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: DecisionNoteUuid11
+    outcome: DecisionNoteRestoreBackupOutcome11

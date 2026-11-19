@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "observed_at": "2026-11-19T13:32:23.194091+00:00",
   "lock_sha256": {
-    "Cargo.lock": "f756478fa32337dfd8f17d43e7d56a035a29b90623e6933ae2b02ee8aa3fa276",
+    "Cargo.lock": "a634feb3ddaf50fb6bceeaf2261b5997c73fe7a062f6f1e65c164a333ff0a239",
     "uv.lock": "628c3231c45d1c644d8909dcf009367266104f5978d3d87976af6760c78c2842",
     "pnpm-lock.yaml": "baa4c0c5c4776cdb58bb3e654f5cadd4e681c9b45f82312b3cfa7a88376ddcfc"
   },
@@ -723,6 +723,20 @@
     },
     {
       "ecosystem": "crates.io",
+      "name": "fallible-iterator",
+      "version": "0.3.0",
+      "license": "MIT/Apache-2.0",
+      "metadata_url": "https://crates.io/crates/fallible-iterator/0.3.0"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "fallible-streaming-iterator",
+      "version": "0.1.9",
+      "license": "MIT/Apache-2.0",
+      "metadata_url": "https://crates.io/crates/fallible-streaming-iterator/0.1.9"
+    },
+    {
+      "ecosystem": "crates.io",
       "name": "fancy-regex",
       "version": "0.19.2",
       "license": "MIT",
@@ -1374,6 +1388,13 @@
     },
     {
       "ecosystem": "crates.io",
+      "name": "libsqlite3-sys",
+      "version": "0.40.0",
+      "license": "MIT",
+      "metadata_url": "https://crates.io/crates/libsqlite3-sys/0.40.0"
+    },
+    {
+      "ecosystem": "crates.io",
       "name": "litemap",
       "version": "0.8.3",
       "license": "Unicode-3.0",
@@ -1987,6 +2008,13 @@
       "version": "0.17.2",
       "license": "MIT",
       "metadata_url": "https://crates.io/crates/rfd/0.17.2"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "rusqlite",
+      "version": "0.43.0",
+      "license": "MIT",
+      "metadata_url": "https://crates.io/crates/rusqlite/0.43.0"
     },
     {
       "ecosystem": "crates.io",
@@ -2687,6 +2715,13 @@
       "version": "0.8.0",
       "license": "MIT",
       "metadata_url": "https://crates.io/crates/uuid-simd/0.8.0"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "vcpkg",
+      "version": "0.2.15",
+      "license": "MIT/Apache-2.0",
+      "metadata_url": "https://crates.io/crates/vcpkg/0.2.15"
     },
     {
       "ecosystem": "crates.io",

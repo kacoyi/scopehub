@@ -34,6 +34,8 @@ BROWSER_OUTPUTS = {
     'market-recovery': ('results.json', 'market-closed-bar-repair-', (
         'verified-closed-bar-repair.png', 'unresolved-closed-bar-gap.png',
     )),
+    'workspace-timeframe': ('results.json', 'workspace-', ()),
+    'desktop-workspace-transport': ('results.json', 'desktop-workspace-', ()),
     'chart-history': ('browser-results.json', 'history-', (
         'unconfigured.png', 'history-line.png', 'history-candles.png',
     )),

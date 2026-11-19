@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=4d769c506985548abe56216be160277edf713d08c250c5ccbe9d061470e4b501. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=6b2f457b4b2cc72c2d415bf0ecd8609f3825f9f4331a8e80d6bc1ec29130789d. Do not edit.
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type OpaqueId = string;
 export type Uuid = string;
@@ -8,7 +8,7 @@ export type Metadata = Record<string, JsonValue>;
 export type WorkerRole = "market" | "ai" | "indicator";
 export type ProtocolVersion = "1.0";
 export type ErrorCode = "INVALID_ARGUMENT" | "UNSUPPORTED_CAPABILITY" | "PERMISSION_DENIED" | "CONFIRMATION_REQUIRED" | "CANCELLED" | "TIMEOUT" | "WORKER_EXITED" | "PROTOCOL_MISMATCH" | "DATA_UNAVAILABLE" | "STALE_CONTEXT" | "RESOURCE_LIMIT" | "OUTPUT_INVALID" | "PROVIDER_NOT_CONFIGURED" | "INTERNAL_ERROR" | "BUSY" | "SNAPSHOT_UNAVAILABLE";
-export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "market.previewLocalImport" | "workspace.readChartProjection" | "workspace.selectEvidence";
+export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "market.previewLocalImport" | "market.saveLocalImportMapping" | "market.loadLocalImportMapping" | "workspace.readChartProjection" | "workspace.selectEvidence" | "decisionNote.save" | "decisionNote.read" | "decisionNote.appendOutcome" | "decisionNote.delete" | "decisionNote.exportBackup" | "decisionNote.previewRestore" | "decisionNote.restoreBackup";
 export type ChartStyle = "candlestick" | "line";
 export type TaskStatus = "queued" | "running" | "awaiting_confirmation" | "completed" | "failed" | "cancelled";
 export type Tradability = "non_tradable" | "unknown";
@@ -761,6 +761,70 @@ export type LocalImportPreviewError = {
   result: null;
   error: MarketPageFault;
 };
+export type SaveLocalImportMappingRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.saveLocalImportMapping";
+  payload: SaveLocalImportMappingInput;
+};
+export type SaveLocalImportMappingResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.saveLocalImportMapping";
+  ok: true;
+  result: SaveLocalImportMappingOutput;
+  error: null;
+};
+export type SaveLocalImportMappingError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.saveLocalImportMapping";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type LoadLocalImportMappingRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.loadLocalImportMapping";
+  payload: LoadLocalImportMappingInput;
+};
+export type LoadLocalImportMappingResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.loadLocalImportMapping";
+  ok: true;
+  result: LoadLocalImportMappingOutput;
+  error: null;
+};
+export type LoadLocalImportMappingError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.loadLocalImportMapping";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
 export type WorkerHello11 = {
   protocol_version: ProtocolVersion11;
   message_id: Uuid;
@@ -1050,7 +1114,7 @@ export type CancelTaskError11 = {
   request_id: Uuid;
   error: WorkspaceFault11;
 };
-export type Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat | MarketHistoryPageRequest | MarketHistoryPageResponse | MarketHistoryPageError | MarketSubscriptionRequest | MarketSubscriptionResponse | MarketSubscriptionError | LocalImportPreviewRequest | LocalImportPreviewResponse | LocalImportPreviewError | MarketBarUpdateEvent | MarketBarCorrectionEvent | MarketStreamGapEvent | WorkerHello11 | ScopedMutationRequest11 | ScopedMutationResponse11 | TrustedConfirmationDecision11 | PreviewReady11 | ArtifactChunk11 | TaskTerminalEvent11 | TaskCancelRequest11 | CancelMemberRequest11 | ReadProjectedChart11 | ProjectedChartResponse11 | SharedSelectionEvent11 | SharedSelectionRequest11 | AiToolRequest11 | AiToolResultDelivery11 | AiToolResultAck11 | ProjectedChartError11 | IndicatorCompute11 | IndicatorComputed11 | IndicatorInputSegment11 | SharedSelectionResponse11 | SharedSelectionError11 | SharedContextRequest11 | SharedContextResponse11 | SharedContextError11 | CancelTaskResponse11 | CancelTaskError11;
+export type Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat | MarketHistoryPageRequest | MarketHistoryPageResponse | MarketHistoryPageError | MarketSubscriptionRequest | MarketSubscriptionResponse | MarketSubscriptionError | LocalImportPreviewRequest | LocalImportPreviewResponse | LocalImportPreviewError | SaveLocalImportMappingRequest | SaveLocalImportMappingResponse | SaveLocalImportMappingError | LoadLocalImportMappingRequest | LoadLocalImportMappingResponse | LoadLocalImportMappingError | MarketBarUpdateEvent | MarketBarCorrectionEvent | MarketStreamGapEvent | WorkerHello11 | ScopedMutationRequest11 | ScopedMutationResponse11 | TrustedConfirmationDecision11 | PreviewReady11 | ArtifactChunk11 | TaskTerminalEvent11 | TaskCancelRequest11 | CancelMemberRequest11 | ReadProjectedChart11 | ProjectedChartResponse11 | SharedSelectionEvent11 | SharedSelectionRequest11 | AiToolRequest11 | AiToolResultDelivery11 | AiToolResultAck11 | ProjectedChartError11 | IndicatorCompute11 | IndicatorComputed11 | IndicatorInputSegment11 | SharedSelectionResponse11 | SharedSelectionError11 | SharedContextRequest11 | SharedContextResponse11 | SharedContextError11 | CancelTaskResponse11 | CancelTaskError11;
 export type ProtocolVersion11 = "1.1";
 export type WorkspaceObject11 = {
   kind: "chart" | "layer" | "layout" | "dataset" | "workspace";
@@ -1767,3 +1831,352 @@ export type LocalImportPreviewOutput = {
   preview: CsvPreview;
 };
 export type LocalImportPreviewReply11 = LocalImportPreviewResponse | LocalImportPreviewError;
+export type SavedLocalImportMapping = {
+  review_revision: number;
+  header_sha256: Hash;
+  mapping: CsvMappingV1;
+};
+export type SaveLocalImportMappingInput = {
+  version: number;
+  folder_id: Uuid;
+  file_id: Uuid;
+  expected_sha256: Hash;
+  mapping: CsvMappingV1;
+  row_limit?: number;
+};
+export type SaveLocalImportMappingOutput = {
+  version: number;
+  record: SavedLocalImportMapping;
+};
+export type LoadLocalImportMappingInput = {
+  version: number;
+  folder_id: Uuid;
+  file_id: Uuid;
+};
+export type LoadLocalImportMappingOutput = {
+  version: number;
+  status: "saved" | "not_saved" | "review_required";
+  record: (SavedLocalImportMapping | null);
+  source_sha256: (Hash | null);
+};
+export type SaveLocalImportMappingReply11 = SaveLocalImportMappingResponse | SaveLocalImportMappingError;
+export type LoadLocalImportMappingReply11 = LoadLocalImportMappingResponse | LoadLocalImportMappingError;
+export type DecisionNoteUuid11 = string;
+export type DecisionNoteDate = string;
+export type DecisionNoteEvidenceRef = {
+  source_id: string;
+  source_revision: string;
+  locator: string;
+};
+export type DecisionNoteOriginal = {
+  note_id: DecisionNoteUuid11;
+  decided_on: DecisionNoteDate;
+  thesis: string;
+  evidence_refs: Array<DecisionNoteEvidenceRef>;
+  choice: string;
+};
+export type DecisionNoteSummary = {
+  note_id: DecisionNoteUuid11;
+  decided_on: DecisionNoteDate;
+};
+export type DecisionNoteOutcome = {
+  outcome_id: DecisionNoteUuid11;
+  observed_on: DecisionNoteDate;
+  outcome: string;
+};
+export type DecisionNoteReadOutput = {
+  note: (DecisionNoteOriginal | null);
+  notes: Array<DecisionNoteSummary>;
+  outcomes: Array<DecisionNoteOutcome>;
+  next_offset: (Revision | null);
+};
+export type DecisionNoteTarget = {
+  kind: "decision_note";
+  object_id: DecisionNoteUuid11;
+};
+export type DecisionNoteReceipt11 = {
+  operation_id: DecisionNoteUuid11;
+  workspace_id: OpaqueId;
+  target: DecisionNoteTarget;
+  committed_workspace_revision: Revision;
+  undoable: false;
+};
+export type DecisionNoteReadScope11 = {
+  workspace_id: OpaqueId;
+};
+export type DecisionNoteWriteScope11 = {
+  workspace_id: OpaqueId;
+  target: DecisionNoteTarget;
+  expected_workspace_revision: Revision;
+  idempotency_key: DecisionNoteUuid11;
+};
+export type DecisionNoteConfirmation11 = {
+  challenge_id: DecisionNoteUuid11;
+  decision: "approve" | "decline";
+};
+export type DecisionNoteSaveInput = {
+  decided_on: DecisionNoteDate;
+  thesis: string;
+  evidence_refs: Array<DecisionNoteEvidenceRef>;
+  choice: string;
+};
+export type DecisionNoteSaveIntent11 = {
+  operation: "decisionNote.save";
+  arguments: DecisionNoteSaveInput;
+};
+export type DecisionNoteSaveCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: DecisionNoteUuid11;
+  scope: DecisionNoteWriteScope11;
+  intent: DecisionNoteSaveIntent11;
+  confirmation: (DecisionNoteConfirmation11 | null);
+};
+export type DecisionNoteSaveCommitted11 = {
+  state: "committed";
+  operation: "decisionNote.save";
+  receipt: DecisionNoteReceipt11;
+};
+export type DecisionNoteSaveConfirmationRequired11 = {
+  state: "confirmation_required";
+  operation: "decisionNote.save";
+  challenge_id: DecisionNoteUuid11;
+  expires_at_ms: Timestamp;
+};
+export type DecisionNoteSaveOutcome11 = DecisionNoteSaveCommitted11 | DecisionNoteSaveConfirmationRequired11 | ScopedFailure11;
+export type DecisionNoteSaveReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: DecisionNoteUuid11;
+  outcome: DecisionNoteSaveOutcome11;
+};
+export type DecisionNoteReadInput = {
+  note_id: (DecisionNoteUuid11 | null);
+  offset: Revision;
+};
+export type DecisionNoteReadIntent11 = {
+  operation: "decisionNote.read";
+  arguments: DecisionNoteReadInput;
+};
+export type DecisionNoteReadCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: DecisionNoteUuid11;
+  scope: DecisionNoteReadScope11;
+  intent: DecisionNoteReadIntent11;
+};
+export type DecisionNoteReadCompleted11 = {
+  state: "completed";
+  operation: "decisionNote.read";
+  result: DecisionNoteReadOutput;
+};
+export type DecisionNoteReadOutcome11 = DecisionNoteReadCompleted11 | ScopedFailure11;
+export type DecisionNoteReadReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: DecisionNoteUuid11;
+  outcome: DecisionNoteReadOutcome11;
+};
+export type DecisionNoteAppendOutcomeInput = {
+  observed_on: DecisionNoteDate;
+  outcome: string;
+};
+export type DecisionNoteAppendOutcomeIntent11 = {
+  operation: "decisionNote.appendOutcome";
+  arguments: DecisionNoteAppendOutcomeInput;
+};
+export type DecisionNoteAppendOutcomeCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: DecisionNoteUuid11;
+  scope: DecisionNoteWriteScope11;
+  intent: DecisionNoteAppendOutcomeIntent11;
+  confirmation: (DecisionNoteConfirmation11 | null);
+};
+export type DecisionNoteAppendOutcomeCommitted11 = {
+  state: "committed";
+  operation: "decisionNote.appendOutcome";
+  receipt: DecisionNoteReceipt11;
+};
+export type DecisionNoteAppendOutcomeConfirmationRequired11 = {
+  state: "confirmation_required";
+  operation: "decisionNote.appendOutcome";
+  challenge_id: DecisionNoteUuid11;
+  expires_at_ms: Timestamp;
+};
+export type DecisionNoteAppendOutcomeOutcome11 = DecisionNoteAppendOutcomeCommitted11 | DecisionNoteAppendOutcomeConfirmationRequired11 | ScopedFailure11;
+export type DecisionNoteAppendOutcomeReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: DecisionNoteUuid11;
+  outcome: DecisionNoteAppendOutcomeOutcome11;
+};
+export type DecisionNoteDeleteInput = {
+};
+export type DecisionNoteDeleteIntent11 = {
+  operation: "decisionNote.delete";
+  arguments: DecisionNoteDeleteInput;
+};
+export type DecisionNoteDeleteCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: DecisionNoteUuid11;
+  scope: DecisionNoteWriteScope11;
+  intent: DecisionNoteDeleteIntent11;
+  confirmation: (DecisionNoteConfirmation11 | null);
+};
+export type DecisionNoteDeleteCommitted11 = {
+  state: "committed";
+  operation: "decisionNote.delete";
+  receipt: DecisionNoteReceipt11;
+};
+export type DecisionNoteDeleteConfirmationRequired11 = {
+  state: "confirmation_required";
+  operation: "decisionNote.delete";
+  challenge_id: DecisionNoteUuid11;
+  expires_at_ms: Timestamp;
+};
+export type DecisionNoteDeleteOutcome11 = DecisionNoteDeleteCommitted11 | DecisionNoteDeleteConfirmationRequired11 | ScopedFailure11;
+export type DecisionNoteDeleteReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: DecisionNoteUuid11;
+  outcome: DecisionNoteDeleteOutcome11;
+};
+export type DecisionNoteBackupEntry = {
+  original: DecisionNoteOriginal;
+  outcomes: Array<DecisionNoteOutcome>;
+};
+export type DecisionNoteBackupDeletion = {
+  note_id: DecisionNoteUuid11;
+  deleted_at_ms: Timestamp;
+};
+export type DecisionNoteBackupV1 = {
+  format: "scopehub.decision-notes";
+  version: number;
+  profile_binding: string;
+  captured_workspace_revision: Revision;
+  notes: Array<DecisionNoteBackupEntry>;
+  deletions: Array<DecisionNoteBackupDeletion>;
+};
+export type DecisionNoteRestoreScope11 = {
+  workspace_id: OpaqueId;
+  expected_workspace_revision: Revision;
+  idempotency_key: DecisionNoteUuid11;
+};
+export type DecisionNoteRestoreSummary = {
+  added_notes: Revision;
+  added_outcomes: Revision;
+  removed_notes: Revision;
+  suppressed_notes: Revision;
+  imported_deletions: Revision;
+  independent_copy_warning: boolean;
+};
+export type DecisionNoteExportBackupInput = {
+};
+export type DecisionNotePreviewRestoreInput = {
+  backup: DecisionNoteBackupV1;
+};
+export type DecisionNoteRestoreBackupInput = {
+  stage_id: DecisionNoteUuid11;
+  decision: "approve" | "decline";
+};
+export type DecisionNoteExportBackupIntent11 = {
+  operation: "decisionNote.exportBackup";
+  arguments: DecisionNoteExportBackupInput;
+};
+export type DecisionNoteExportBackupCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: DecisionNoteUuid11;
+  scope: DecisionNoteReadScope11;
+  intent: DecisionNoteExportBackupIntent11;
+};
+export type DecisionNoteExportBackupCompleted11 = {
+  state: "completed";
+  operation: "decisionNote.exportBackup";
+  result: DecisionNoteBackupV1;
+};
+export type DecisionNoteExportBackupOutcome11 = DecisionNoteExportBackupCompleted11 | ScopedFailure11;
+export type DecisionNoteExportBackupReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: DecisionNoteUuid11;
+  outcome: DecisionNoteExportBackupOutcome11;
+};
+export type DecisionNotePreviewRestoreIntent11 = {
+  operation: "decisionNote.previewRestore";
+  arguments: DecisionNotePreviewRestoreInput;
+};
+export type DecisionNotePreviewRestoreCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: DecisionNoteUuid11;
+  scope: DecisionNoteRestoreScope11;
+  intent: DecisionNotePreviewRestoreIntent11;
+};
+export type DecisionNotePreviewRestoreConfirmationRequired11 = {
+  state: "confirmation_required";
+  operation: "decisionNote.previewRestore";
+  stage_id: DecisionNoteUuid11;
+  expires_at_ms: Timestamp;
+  summary: DecisionNoteRestoreSummary;
+};
+export type DecisionNotePreviewRestoreOutcome11 = DecisionNotePreviewRestoreConfirmationRequired11 | ScopedFailure11;
+export type DecisionNotePreviewRestoreReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: DecisionNoteUuid11;
+  outcome: DecisionNotePreviewRestoreOutcome11;
+};
+export type DecisionNoteRestoreBackupIntent11 = {
+  operation: "decisionNote.restoreBackup";
+  arguments: DecisionNoteRestoreBackupInput;
+};
+export type DecisionNoteRestoreBackupCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: DecisionNoteUuid11;
+  scope: DecisionNoteRestoreScope11;
+  intent: DecisionNoteRestoreBackupIntent11;
+};
+export type DecisionNoteRestoreBackupCommitted11 = {
+  state: "committed";
+  operation: "decisionNote.restoreBackup";
+  receipt: OperationReceipt11;
+};
+export type DecisionNoteRestoreBackupOutcome11 = DecisionNoteRestoreBackupCommitted11 | ScopedFailure11;
+export type DecisionNoteRestoreBackupReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: DecisionNoteUuid11;
+  outcome: DecisionNoteRestoreBackupOutcome11;
+};

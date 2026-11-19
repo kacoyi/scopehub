@@ -110,7 +110,7 @@
       ],
       "invariants": [
         "Reject unsupported operations; actor identity comes from trusted transports",
-        "History reads use explicit synthetic sources. Local CSV preview requires the trusted desktop human transport and a live file selection"
+        "History reads use explicit synthetic sources. Local CSV preview and reviewed mapping operations require the trusted desktop human transport and a live file selection"
       ],
       "checks": [
         "rust-contracts-workers"
@@ -282,23 +282,28 @@
     },
     {
       "id": "persistence",
-      "status": "planned",
+      "status": "implemented",
       "paths": [
         "crates/persistence"
       ],
-      "responsibility": "Transactional SQLite storage and versioned migrations.",
-      "public_entries": [],
+      "responsibility": "Profile-bound SQLite workspace transactions, committed operation receipts, and versioned migrations.",
+      "public_entries": [
+        "crates/persistence/src/lib.rs"
+      ],
       "dependencies": [
         "domain",
         "application"
       ],
       "owns": [
-        "Physical storage and migrations"
+        "Physical storage and migrations",
+        "Stored reviewed mapping versions and their source header associations"
       ],
       "invariants": [
-        "Core single-writer path; preserve accepted versions"
+        "Use the Rust core single-writer path and preserve accepted versions",
+        "Append reviewed mapping versions within the bound profile transaction"
       ],
       "checks": [
+        "rust-contracts-workers",
         "state-migrations"
       ]
     },
@@ -431,7 +436,7 @@
         "M2-001"
       ],
       "delivery": "current-contract",
-      "boundary": "Operations, restoration and migration need integrated acceptance."
+      "boundary": "The Rust profile store supports a scoped timeframe change and undo across process restart. Desktop access, private records, backup and complete migration acceptance remain under M2-001."
     },
     {
       "id": "indicator-workflow",
@@ -517,7 +522,7 @@
         "M1-008"
       ],
       "delivery": "current-contract",
-      "boundary": "The Windows development desktop offers a native folder picker and a session preview with editable mappings. Native picker observation, durable mapping reuse, publication and repeatable refresh require integrated acceptance."
+      "boundary": "The Windows desktop offers a native folder picker and editable local CSV preview. An explicit save records a mapping version and header association in the profile SQLite store. A new session can reuse the mapping after selecting the source again. A changed header requires review. Native Windows verification of durable reuse, staged dataset publication and repeatable folder refresh remain pending."
     },
     {
       "id": "workspace-layout",
@@ -646,6 +651,13 @@
       "writer": "providers",
       "status": "implemented",
       "rule": "Source adapters own source semantics and provenance, not application database writes."
+    },
+    {
+      "id": "reviewed-local-import-mappings",
+      "owner": "application",
+      "writer": "persistence",
+      "status": "implemented",
+      "rule": "An explicit local review appends a mapping version associated with the selected source and its decoded header in the current profile. Resolve a live selection again before reuse. Saving a mapping grants no source access."
     },
     {
       "id": "worker-session",

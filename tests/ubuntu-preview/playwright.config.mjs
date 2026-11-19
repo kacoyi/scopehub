@@ -4,7 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from '@playwright/test';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
-const baseURL = 'http://127.0.0.1:1421';
+const port = Number(process.env.SCOPEHUB_UBUNTU_PREVIEW_PORT ?? 1421);
+const baseURL = `http://127.0.0.1:${port}`;
 const ciRun = process.env.GITHUB_ACTIONS === 'true' && process.env.SCOPEHUB_RUN_DIR;
 // Playwright also loads this file in its workers. Keep their artifacts in the same run.
 const output = ciRun
@@ -29,10 +30,11 @@ export default defineConfig({
     trace: ciRun ? 'off' : 'retain-on-failure',
   },
   webServer: {
-    command: 'pnpm dev:ubuntu --port 1421',
+    command: `pnpm dev:ubuntu --port ${port}`,
     cwd: root,
     url: baseURL,
     reuseExistingServer: false,
     timeout: 300_000,
+    env: { SCOPEHUB_TEST_PREVIEW: '1' },
   },
 });

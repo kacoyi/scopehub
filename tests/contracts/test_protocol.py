@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 import unittest
 
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, FormatChecker
 from referencing import Registry, Resource
 
 from worker_runtime.protocol import MAX_MESSAGE_BYTES, SCHEMA, ProtocolError, decode_line, encode_message
@@ -29,6 +29,22 @@ class ProtocolTests(unittest.TestCase):
         for wire in [b'x' * (MAX_MESSAGE_BYTES + 1), b'\xff\n']:
             with self.assertRaises(ProtocolError):
                 decode_line(wire)
+
+    def test_private_workspace_vectors_and_worker_separation(self):
+        registry = Registry().with_resource(SCHEMA['$id'], Resource.from_contents(SCHEMA))
+        examples = json.loads((ROOT / 'tests/fixtures/decision-note-protocol-cases.json').read_text())
+        for example in examples:
+            with self.subTest(name=example['name']):
+                file = ROOT / 'contracts/schemas/operations' / f'{example["operation"]}.v1.1.{example["direction"]}.schema.json'
+                projection = json.loads(file.read_text())
+                validator = Draft202012Validator(projection, registry=registry, format_checker=FormatChecker())
+                self.assertEqual(validator.is_valid(example['message']), example['valid'])
+                wire = json.dumps(example['message']).encode()
+                if example.get('shared_fault'):
+                    self.assertEqual(decode_line(wire), example['message'])
+                else:
+                    with self.assertRaises(ProtocolError):
+                        decode_line(wire)
 
     def test_every_schema_compiles_without_network(self):
         registry = Registry().with_resource(SCHEMA['$id'], Resource.from_contents(SCHEMA))

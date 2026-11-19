@@ -1,5 +1,8 @@
 import { invoke, isTauri } from '@tauri-apps/api/core';
-import type { LocalImportPreviewInput, LocalImportPreviewOutput } from '../../../../contracts/generated/protocol';
+import type {
+  LoadLocalImportMappingInput, LoadLocalImportMappingOutput, LocalImportPreviewInput, LocalImportPreviewOutput,
+  SaveLocalImportMappingInput, SaveLocalImportMappingOutput,
+} from '../../../../contracts/generated/protocol';
 import type { LocalFolderCatalog } from './local-import-editor';
 
 export function hasLocalCsvPicker() {
@@ -19,6 +22,20 @@ export async function previewLocalImport(payload: LocalImportPreviewInput, reque
   requireNative();
   return invoke<LocalImportPreviewOutput>('execute_operation', {
     operation: 'market.previewLocalImport', payload, requestId,
+  });
+}
+
+export async function saveLocalImportMapping(payload: SaveLocalImportMappingInput, requestId: string) {
+  requireNative();
+  return invoke<SaveLocalImportMappingOutput>('execute_operation', {
+    operation: 'market.saveLocalImportMapping', payload, requestId,
+  });
+}
+
+export async function loadLocalImportMapping(payload: LoadLocalImportMappingInput, requestId: string) {
+  requireNative();
+  return invoke<LoadLocalImportMappingOutput>('execute_operation', {
+    operation: 'market.loadLocalImportMapping', payload, requestId,
   });
 }
 

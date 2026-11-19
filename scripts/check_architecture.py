@@ -215,6 +215,8 @@ def main():
         for key in ['effect', 'confirmation', 'undoable', 'actors']:
             if actual[name][key] != expected[name][key]:
                 errors.append(f'Operation policy drift: {name}.{key}')
+        if actual[name].get('transport') != expected[name].get('transport'):
+            errors.append(f'Operation policy drift: {name}.transport')
         binding = actual[name].get('wire_bindings', {}).get(manifest['protocol_version'], actual[name])
         for direction in ['input', 'output']:
             if expected[name][direction + '_spec'] != binding[direction] or binding[direction] not in schema['$defs']:

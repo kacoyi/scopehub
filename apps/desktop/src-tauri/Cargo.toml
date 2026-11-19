@@ -12,9 +12,11 @@ portable_test_lib = true
 [dependencies]
 scopehub-application = { path = "../../../crates/application" }
 scopehub-domain = { path = "../../../crates/domain" }
+scopehub-persistence = { path = "../../../crates/persistence" }
 scopehub-platform = { path = "../../../crates/platform" }
 scopehub-worker-host = { path = "../../../crates/worker-host" }
 serde_json.workspace = true
+sha2 = "0.10"
 tokio.workspace = true
 
 [target.'cfg(windows)'.dependencies]

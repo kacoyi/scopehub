@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type {
   CsvColumnMappingV1, CsvMappingV1, CsvPreview, LocalImportPreviewInput, LocalImportPreviewOutput, PreviewIssue, PreviewRow,
 } from '../../../../contracts/generated/protocol';
+import { loadLocalImportMapping, saveLocalImportMapping } from './local-import-transport';
 import './local-import.css';
 
 export type LocalFolderFile = {
@@ -26,10 +27,18 @@ type Props = {
   renderChart: (preview: LocalImportPreviewOutput) => ReactNode;
 };
 
-type Inspection = { output: LocalImportPreviewOutput; draft: CsvMappingV1; rowLimit: number; raw: boolean };
-type Pending = { cancelled: boolean; cancel: () => Promise<void> };
-type Failure = { message: string; sha256?: string };
+type Inspection = { output: LocalImportPreviewOutput; draft: CsvMappingV1; mapping: CsvMappingV1; rowLimit: number; raw: boolean };
+type ImportAction = 'preview' | 'save' | 'load';
+type Pending = { action: ImportAction; cancelled: boolean; cancel: () => Promise<void> };
+type Progress = { action: ImportAction; phase: 'running' | 'cancelling' | 'cancelled' };
+type Failure = { message: string; sha256?: string; headerUnavailable?: boolean };
 type DraftTextField = Exclude<keyof CsvMappingV1, 'version' | 'revision' | 'columns'>;
+
+const actionText = {
+  preview: { running: 'Reading local CSV…', label: 'preview', cancelled: 'Preview cancelled.', failure: 'Unable to preview this CSV file.' },
+  save: { running: 'Saving reviewed mapping…', label: 'save', cancelled: 'Save cancelled.', failure: 'Unable to save the reviewed mapping.' },
+  load: { running: 'Checking for a reviewed mapping…', label: 'load', cancelled: 'Load cancelled.', failure: 'Unable to load a reviewed mapping.' },
+};
 
 const columnFields = [
   ['symbol', 'Symbol column'], ['timestamp', 'Timestamp column'], ['trading_day', 'Trading day column'],
@@ -53,16 +62,21 @@ function newMapping(): CsvMappingV1 {
   return { version: 1, revision: 'preview', encoding: 'utf-8', delimiter: ',', record_kind: 'unclassified' };
 }
 
+function importErrorCode(error: unknown) {
+  return error && typeof error === 'object' && 'code' in error ? error.code : undefined;
+}
+
 function describeImportFailure(error: unknown, fallback: string): Failure {
   if (!error || typeof error !== 'object') return { message: fallback };
-  const code = 'code' in error ? error.code : undefined;
+  const code = importErrorCode(error);
   if (code === 'SNAPSHOT_UNAVAILABLE') return { message: 'The file changed since it was inspected. Inspect raw rows again to review the current file.' };
   if (code === 'STALE_CONTEXT') return { message: 'The folder selection has expired. Choose the folder again.' };
-  if (code === 'CANCELLED') return { message: 'Preview cancelled.' };
   const message = 'message' in error && typeof error.message === 'string' && error.message ? error.message : fallback;
   const details = 'details' in error ? error.details : undefined;
-  if (details && typeof details === 'object' && 'sha256' in details && typeof details.sha256 === 'string') {
-    return { message, sha256: details.sha256 };
+  if (details && typeof details === 'object') {
+    const sha256 = 'sha256' in details && typeof details.sha256 === 'string' ? details.sha256 : undefined;
+    const headerUnavailable = code === 'DATA_UNAVAILABLE' && 'reason' in details && details.reason === 'csv_header_unavailable';
+    return sha256 === undefined ? { message, headerUnavailable } : { message, sha256, headerUnavailable };
   }
   return { message };
 }
@@ -174,10 +188,13 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   const [draft, setDraft] = useState(newMapping);
   const [rowLimit, setRowLimit] = useState(50);
   const [inspection, setInspection] = useState<Inspection>();
+  const [loadedSourceHash, setLoadedSourceHash] = useState<string>();
   const [failure, setFailure] = useState<Failure>();
+  const [mappingFailure, setMappingFailure] = useState<Failure>();
+  const [mappingNotice, setMappingNotice] = useState<string>();
   const [pickerFailure, setPickerFailure] = useState<string>();
   const [opening, setOpening] = useState(false);
-  const [progress, setProgress] = useState<'reading' | 'cancelling' | 'cancelled'>();
+  const [progress, setProgress] = useState<Progress>();
   const active = useRef<Pending | undefined>(undefined);
   const picker = useRef(false);
   const alive = useRef(true);
@@ -194,15 +211,23 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
 
   const file = catalog.files.find(item => item.file_id === fileId && item.kind === 'csv');
   const native = draft.record_kind === 'native_ohlcv';
-  const busy = opening || progress === 'reading' || progress === 'cancelling';
+  const busy = opening || (progress !== undefined && progress.phase !== 'cancelled');
   const observed = inspection?.output.file_id === fileId ? inspection.output : undefined;
   const sameLayout = inspection?.draft.encoding === draft.encoding && inspection?.draft.delimiter === draft.delimiter;
   const visible = sameLayout ? observed?.preview : undefined;
+  const displayedSourceHash = visible ? observed?.sha256 : loadedSourceHash;
   const mapped = !inspection?.raw && inspection?.draft === draft && inspection.rowLimit === rowLimit && !failure ? observed : undefined;
+  const reviewed = mapped?.preview.series && mapped.preview.issues.length === 0
+    && mapped.preview.rows.some(row => row.normalized?.is_closed) ? inspection : undefined;
   const columns = [...new Set((visible?.header ?? []).filter(column => column.length > 0
     && (column.length <= 1_024 || (column.length <= 2_048 && [...column].length <= 1_024))))];
   let noVolume = 'No volume column';
   while (columns.includes(noVolume)) noVolume += ' ';
+
+  function clearMappingFeedback() {
+    setMappingFailure(undefined);
+    setMappingNotice(undefined);
+  }
 
   function updateDraft(key: DraftTextField, value: string) {
     setDraft(previous => {
@@ -212,6 +237,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     });
     setFailure(undefined);
     setProgress(undefined);
+    clearMappingFeedback();
   }
 
   function selectColumn(key: keyof CsvColumnMappingV1, value: string) {
@@ -224,14 +250,17 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     });
     setFailure(undefined);
     setProgress(undefined);
+    clearMappingFeedback();
   }
 
   function selectFile(id: string) {
     setFileId(id);
     setDraft(newMapping());
     setInspection(undefined);
+    setLoadedSourceHash(undefined);
     setFailure(undefined);
     setProgress(undefined);
+    clearMappingFeedback();
   }
 
   async function replaceFolder() {
@@ -249,42 +278,105 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     }
   }
 
-  async function inspect(raw: boolean) {
-    if (!file || active.current || picker.current) return;
+  async function runRequest<T>(action: ImportAction, invoke: (id: string) => Promise<T>, accept: (value: T) => void) {
+    if (active.current || picker.current) return;
     const id = crypto.randomUUID();
-    const request: Pending = { cancelled: false, cancel: () => cancelPreview(id) };
-    const mapping: CsvMappingV1 = {
-      ...draft, revision: `preview-${++revision.current}`,
-      record_kind: raw && native ? 'unclassified' : draft.record_kind,
-    };
-    const input: LocalImportPreviewInput = {
-      version: 1, folder_id: catalog.folder_id, file_id: file.file_id, mapping, row_limit: rowLimit,
-      ...(!raw && observed ? { expected_sha256: observed.sha256 } : {}),
-    };
+    const request: Pending = { action, cancelled: false, cancel: () => cancelPreview(id) };
     active.current = request;
-    setProgress('reading');
-    setFailure(undefined);
+    setProgress({ action, phase: 'running' });
+    if (action === 'preview') setFailure(undefined);
+    else clearMappingFeedback();
+    let cancelled = false;
     try {
-      const output = await previewImport(input, id);
-      if (active.current === request && !request.cancelled) setInspection({ output, draft, rowLimit, raw });
+      const reply = await invoke(id);
+      cancelled = request.cancelled && action !== 'save';
+      // A successful save reply confirms a durable commit even after a cancel request.
+      if (active.current === request && !cancelled) accept(reply);
     } catch (error) {
-      if (active.current === request && !request.cancelled) setFailure(describeImportFailure(error, 'Unable to preview this CSV file.'));
+      cancelled = importErrorCode(error) === 'CANCELLED' || (request.cancelled && action !== 'save');
+      if (active.current === request && !cancelled) {
+        const failure = describeImportFailure(error, actionText[action].failure);
+        if (action === 'preview') {
+          setFailure(failure);
+        } else {
+          if (action === 'load' && failure.headerUnavailable) {
+            setInspection(undefined);
+            setLoadedSourceHash(undefined);
+            setFailure(undefined);
+          }
+          setMappingFailure(failure);
+        }
+      }
     } finally {
       if (active.current === request) {
         active.current = undefined;
-        setProgress(request.cancelled ? 'cancelled' : undefined);
+        setProgress(cancelled ? { action, phase: 'cancelled' } : undefined);
       }
     }
   }
 
-  function cancel() {
-    if (!active.current) return;
-    setProgress('cancelling');
-    cancelPending(active.current);
+  async function inspect(raw: boolean) {
+    if (!file || active.current || picker.current) return;
+    const mapping: CsvMappingV1 = {
+      ...draft, revision: `preview-${++revision.current}`,
+      record_kind: raw && native ? 'unclassified' : draft.record_kind,
+    };
+    const sourceHash = loadedSourceHash ?? observed?.sha256;
+    const input: LocalImportPreviewInput = {
+      version: 1, folder_id: catalog.folder_id, file_id: file.file_id, mapping, row_limit: rowLimit,
+      ...(!raw && sourceHash ? { expected_sha256: sourceHash } : {}),
+    };
+    await runRequest('preview', id => previewImport(input, id), output => {
+      setLoadedSourceHash(undefined);
+      setInspection({ output, draft, mapping, rowLimit, raw });
+      clearMappingFeedback();
+    });
   }
 
-  const progressText = opening ? 'Waiting for folder selection…' : progress === 'reading' ? 'Reading local CSV…'
-    : progress === 'cancelling' ? 'Cancelling preview…' : progress === 'cancelled' ? 'Preview cancelled.' : undefined;
+  async function saveMapping() {
+    if (!file || !reviewed) return;
+    await runRequest('save', id => saveLocalImportMapping({
+      version: 1, folder_id: catalog.folder_id, file_id: file.file_id,
+      expected_sha256: reviewed.output.sha256, mapping: reviewed.mapping, row_limit: reviewed.rowLimit,
+    }, id), reply => {
+      setMappingNotice(`Reviewed mapping revision ${reply.record.review_revision} saved for this profile.`);
+    });
+  }
+
+  async function loadMapping() {
+    if (!file) return;
+    await runRequest('load', id => loadLocalImportMapping({
+      version: 1, folder_id: catalog.folder_id, file_id: file.file_id,
+    }, id), reply => {
+      if (reply.status === 'not_saved') {
+        setMappingNotice('This profile has no reviewed mapping for this file.');
+      } else if (reply.status === 'review_required') {
+        setInspection(undefined);
+        setLoadedSourceHash(reply.source_sha256 ?? undefined);
+        setFailure(undefined);
+        setMappingNotice('The CSV header has changed. Inspect the current raw rows and review the mapping.');
+      } else if (reply.record && reply.source_sha256) {
+        setDraft(reply.record.mapping);
+        setLoadedSourceHash(reply.source_sha256);
+        if (observed?.sha256 !== reply.source_sha256) setInspection(undefined);
+        setFailure(undefined);
+        setMappingNotice(`Reviewed mapping revision ${reply.record.review_revision} loaded. Preview it against the current file.`);
+      } else {
+        setMappingFailure({ message: 'The saved mapping reply could not be verified.' });
+      }
+    });
+  }
+
+  function cancel() {
+    const request = active.current;
+    if (!request) return;
+    setProgress({ action: request.action, phase: 'cancelling' });
+    cancelPending(request);
+  }
+
+  const progressText = opening ? 'Waiting for folder selection…' : progress?.phase === 'running' ? actionText[progress.action].running
+    : progress?.phase === 'cancelling' ? `Cancelling ${actionText[progress.action].label}…`
+      : progress?.phase === 'cancelled' ? actionText[progress.action].cancelled : undefined;
 
   return <section className="local-import-editor" aria-label="Local CSV import">
     <div className="local-import-heading">
@@ -294,6 +386,9 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     {pickerFailure && <p className="local-import-error" role="alert">{pickerFailure}</p>}
     {failure && <div className="local-import-error" role="alert">{failure.message}
       {failure.sha256 && <div>Complete file SHA-256 <code>{failure.sha256}</code></div>}
+    </div>}
+    {mappingFailure && <div className="local-import-error" role="alert">{mappingFailure.message}
+      {mappingFailure.sha256 && <div>Complete file SHA-256 <code>{mappingFailure.sha256}</code></div>}
     </div>}
     <div className="local-import-grid">
       <div className="local-import-controls">
@@ -324,6 +419,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
             </select></label>
           </div>
           <button type="button" className="secondary-button" disabled={!file} onClick={() => void inspect(true)}>Inspect raw rows</button>
+          <button type="button" className="secondary-button" disabled={!file} onClick={() => void loadMapping()}>Load reviewed mapping</button>
         </fieldset>
         {native && <fieldset className="local-import-card" disabled={busy || !file}>
           <legend>Bar mapping</legend>
@@ -360,19 +456,20 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
             </label>)}
           </div>
           <button type="button" className="primary local-import-preview" onClick={() => void inspect(false)}>Preview mapping</button>
-          <p className="local-import-session-note">Mapping edits are available in this session.</p>
+          {reviewed && <button type="button" className="secondary-button" onClick={() => void saveMapping()}>Save reviewed mapping</button>}
         </fieldset>}
       </div>
       <div className="local-import-results">
         {progressText && <div className="local-import-card local-import-progress">
           <p role="status">{progressText}</p>
-          {(progress === 'reading' || progress === 'cancelling') &&
-            <button type="button" className="secondary-button" disabled={progress === 'cancelling'} onClick={cancel}>Cancel preview</button>}
+          {progress && progress.phase !== 'cancelled' &&
+            <button type="button" className="secondary-button" disabled={progress.phase === 'cancelling'} onClick={cancel}>Cancel {actionText[progress.action].label}</button>}
         </div>}
-        {observed && visible && <section className="local-import-card" aria-label="Preview source">
-          <h2>{observed.relative_path}</h2>
-          <p>{visible.rows.length} source records{visible.truncated ? ' · Preview omits later records' : ''}{mapped && ` · Mapping v${visible.mapping_version} · ${visible.mapping_revision}`}</p>
-          <div className="local-import-hash"><strong>Complete file SHA-256</strong><code>{observed.sha256}</code></div>
+        {mappingNotice && <div className="local-import-card" role="status">{mappingNotice}</div>}
+        {file && displayedSourceHash && <section className="local-import-card" aria-label={visible ? 'Preview source' : 'Current source'}>
+          <h2>{file.relative_path}</h2>
+          {visible && <p>{visible.rows.length} source records{visible.truncated ? ' · Preview omits later records' : ''}{mapped && ` · Mapping v${visible.mapping_version} · ${visible.mapping_revision}`}</p>}
+          <div className="local-import-hash"><strong>Complete file SHA-256</strong><code>{displayedSourceHash}</code></div>
         </section>}
         {mapped && <>{renderChart(mapped)}<NormalizedBars preview={mapped.preview} /></>}
         {visible ? <><RawRows key={visible.mapping_revision} preview={visible} /><Diagnostics preview={visible} /></> :

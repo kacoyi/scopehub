@@ -138,6 +138,19 @@ class LocalImportWorkerTests(unittest.TestCase):
         self.assertEqual(result['preview']['file_sha256'], sha256(content).hexdigest())
         self.assertEqual(result['preview']['rows'][0]['raw_fields'], ['SYNTH', note.decode()])
 
+    def test_later_decode_failure_returns_header_and_whole_file_digest(self):
+        content = CSV_PREFIX + b'\xff\n'
+        process = worker(b''.join(map(line, request(content, row_limit=1))))
+        self.assertEqual((process.returncode, process.stderr), (0, b''))
+        reply, = self.reply_frames(process.stdout)
+        result = json.loads(reply)
+        self.assertTrue(result['ok'])
+        preview = result['preview']
+        self.assertEqual(preview['header'], ['Ticker', 'Date', 'Open', 'High', 'Low', 'Close', 'Shares', 'Note'])
+        self.assertEqual(preview['file_sha256'], sha256(content).hexdigest())
+        self.assertEqual(preview['rows'], [])
+        self.assertEqual(preview['issues'][0]['code'], 'decode_failed')
+
     def test_zero_progress_is_terminal_for_hello_and_partial_reply(self):
         content = b'Ticker,Note\nSYNTH,' + b'X' * 90_000 + b'\n'
         mapping = {**MAPPING, 'record_kind': 'quote_snapshot'}

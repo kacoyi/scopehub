@@ -1,0 +1,18 @@
+[package]
+name = "scopehub-persistence"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+scopehub-application = { path = "../application" }
+scopehub-domain = { path = "../domain" }
+rusqlite = { version = "0.43.0", default-features = false, features = ["bundled"] }
+serde_json.workspace = true
+
+[dev-dependencies]
+uuid.workspace = true
+
+[lints]
+workspace = true

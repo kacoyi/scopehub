@@ -45,7 +45,6 @@
   font: inherit;
 }
 .local-import-preview { margin-top: 12px; }
-.local-import-session-note { margin-top: 5px; font-size: 12px; }
 .local-import-progress { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .local-import-error { margin-bottom: 14px; padding: 9px 12px; border: 1px solid #784950; border-radius: 5px; color: #ffb0ac; }
 .local-import-error code, .local-import-hash code { overflow-wrap: anywhere; }

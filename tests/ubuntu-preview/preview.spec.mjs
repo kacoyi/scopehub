@@ -1,5 +1,8 @@
+import { setTimeout as delay } from 'node:timers/promises';
 import { expect, test } from '@playwright/test';
 import { painted } from '../ui/chart-pixels.mjs';
+import { replayStage } from '../ui/replay-stages.mjs';
+import { future, openDefaultSample } from '../ui/sample-startup.mjs';
 import { control, leaveSample, openPanel, watchlistSymbol } from '../ui/workspace-controls.mjs';
 import { observeTimeLabels } from './time-axis.mjs';
 
@@ -41,7 +44,7 @@ test('open the chart workspace, find symbols from the keyboard and inspect bars 
     await page.keyboard.press('Tab');
   }
   await expect(entry).toBeFocused();
-  await page.keyboard.press('Enter');
+  await openDefaultSample(page, { trigger: () => page.keyboard.press('Enter') });
   await expectSeries(page, 'SIM.CN.FUTURE.001', '1m', 40);
   await expect(page.getByText('Offline sample', { exact: true }).first()).toBeVisible();
   await expect.poll(() => painted(page, 'candlestick')).toBeGreaterThan(20);
@@ -140,7 +143,7 @@ async function expectNarrowPlot(page) {
 
 test('an explicit sample link opens a usable plot on a narrow screen', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/#demo');
+  await openDefaultSample(page);
   await expectSeries(page, 'SIM.CN.FUTURE.001', '1m', 40);
   await expect(control(page, 'Watchlist')).toHaveAttribute('aria-expanded', 'false');
   await expect(watchlistSymbol(page, 'SIM.US.STOCK.001')).not.toBeVisible();
@@ -177,7 +180,9 @@ test('retry the catalog and current history after the browser loses its local co
   await expect(chart).toHaveCount(0);
 
   await context.setOffline(false);
-  await page.getByRole('button', { name: 'Retry demo' }).click();
+  await openDefaultSample(page, {
+    trigger: () => page.getByRole('button', { name: 'Retry demo' }).click(),
+  });
   await expectSeries(page, 'SIM.CN.FUTURE.001', '1m', 40);
   await context.setOffline(true);
   await page.getByRole('button', { name: '5m', exact: true }).click();
@@ -206,7 +211,7 @@ test('retry the catalog and current history after the browser loses its local co
 test('time axis labels fit the chart and the intraday plot can zoom and pan', async ({ page }, testInfo) => {
   await page.addInitScript(observeTimeLabels);
   await page.goto('/');
-  await control(page, 'Open offline sample').click();
+  await openDefaultSample(page, { trigger: () => control(page, 'Open offline sample').click() });
   await page.getByRole('button', { name: /CN\.FUTURE\.001/ }).click();
   await expectSeries(page, 'SIM.CN.FUTURE.001', '1m', 40);
   const ticks = () => page.evaluate(() => window.readTimeLabels().ticks);
@@ -265,6 +270,75 @@ test('time axis labels fit the chart and the intraday plot can zoom and pan', as
   await expectSeries(page, 'SIM.CN.FUTURE.001', '1d', 2);
   const daily = await expectReadable();
   expect(daily.map(label => label.text)).toEqual(['2024-01-03', '2024-01-04']);
+});
+
+test('the default chart opens after separate delays to catalog and history replies', async ({ page }, testInfo) => {
+  await page.goto('/');
+  const operations = [];
+  let start;
+  let beforeHistory;
+  await page.route(`**${endpoint}`, async route => {
+    const { operation } = route.request().postDataJSON();
+    const response = await route.fetch(replayStage);
+    // Hold each real reply outside the worker deadlines. Their combined delay
+    // alone exceeds the former five-second render wait.
+    await delay(2_750);
+    operations.push(operation);
+    if (operation === 'market.readHistoryPage') {
+      beforeHistory = {
+        elapsed: performance.now() - start,
+        loading: await page.getByText('Loading synthetic history…', { exact: true }).isVisible(),
+        charts: await page.locator('.chart canvas').count(),
+      };
+    }
+    await route.fulfill({ response });
+  });
+
+  await openDefaultSample(page, { trigger: () => {
+    start = performance.now();
+    return control(page, 'Open offline sample').click();
+  } });
+  expect(operations).toEqual(['instrument.search', 'market.readHistoryPage']);
+  expect(beforeHistory).toMatchObject({ loading: true, charts: 0 });
+  expect(beforeHistory.elapsed).toBeGreaterThan(5_000);
+  await testInfo.attach('held-startup-replies', {
+    body: JSON.stringify({ operations, ...beforeHistory }),
+    contentType: 'application/json',
+  });
+  await expectSeries(page, future, '1m', 40);
+  await expect(page.getByText('Simulated', { exact: true })).toBeVisible();
+  await expect.poll(() => painted(page, 'candlestick')).toBeGreaterThan(20);
+  await page.mouse.move(1, 1);
+  await expect(page.getByLabel('Selected bar')).toHaveText(
+    'O 3501.6H 3502L 3500.8C 3500.8Volume 110Trading day 2024-01-04Partial bar',
+  );
+});
+
+test('a real worker rejection during chart startup remains visible', async ({ page }) => {
+  let workerReply;
+  await page.route(`**${endpoint}`, async route => {
+    const call = route.request().postDataJSON();
+    if (call.operation !== 'market.readHistoryPage') return route.continue();
+    call.payload.expected_revision = 'scopehub-synthetic-v1:20241013:missing';
+    const response = await route.fetch({ ...replayStage, postData: call });
+    workerReply = { status: response.status(), body: await response.json() };
+    await route.fulfill({ response });
+  });
+
+  const [catalog] = await Promise.all([
+    page.waitForResponse(response => new URL(response.url()).pathname === endpoint
+      && response.request().postDataJSON()?.operation === 'instrument.search', replayStage),
+    page.goto('/#demo'),
+  ]);
+  expect(catalog.status()).toBe(200);
+  expect(await catalog.json()).toMatchObject({ ok: true });
+  await expect.poll(() => workerReply, replayStage).toBeDefined();
+  expect(workerReply).toMatchObject({
+    status: 200, body: { ok: false, error: { code: 'SNAPSHOT_UNAVAILABLE', retryable: false } },
+  });
+  await expect(page.getByRole('alert')).toHaveText('The selected historical revision is unavailable.');
+  await expect(page.locator('.chart canvas')).toHaveCount(0);
+  await expect(control(page, 'Retry history')).toHaveCount(0);
 });
 
 test('the loopback endpoint limits callers, operations and providers and reports ordinary read errors', async ({ request, baseURL }) => {

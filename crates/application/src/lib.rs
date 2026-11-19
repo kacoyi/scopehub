@@ -3,13 +3,37 @@
 mod history;
 mod local_import;
 mod replay;
+mod reviewed_mapping;
+mod workspace;
 
 pub use local_import::{
     DEFAULT_PREVIEW_ROWS, LocalImportPort, PREVIEW_LOCAL_IMPORT, preview_local_import,
 };
 pub use replay::{SUBSCRIBE, SubscriptionFuture, SubscriptionPort};
+pub use reviewed_mapping::{
+    LOAD_LOCAL_IMPORT_MAPPING, MappingCommitGuard, ReviewedImportMapping, ReviewedMappingStore,
+    SAVE_LOCAL_IMPORT_MAPPING, load_mapping_input, load_mapping_output, mapping_header_digest,
+    reviewed_preview_header, save_mapping_input,
+};
+pub use workspace::{
+    DECISION_NOTE_APPEND_OUTCOME, DECISION_NOTE_BACKUP_MAX_BYTES,
+    DECISION_NOTE_BACKUP_MAX_DELETIONS, DECISION_NOTE_BACKUP_MAX_NOTES,
+    DECISION_NOTE_BACKUP_MAX_OUTCOMES, DECISION_NOTE_DELETE, DECISION_NOTE_EXPORT_BACKUP,
+    DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, DECISION_NOTE_READ,
+    DECISION_NOTE_RESTORE_BACKUP, DECISION_NOTE_SAVE, DecisionNoteBackupData, DecisionNoteChange,
+    DecisionNoteMutation, DecisionNoteOutcomeAddition, DecisionNoteReceipt, DecisionNoteReplay,
+    DecisionNoteRestorePlan, LOCAL_WORKSPACE_OPERATIONS, MAIN_CHART_ID, SET_TIMEFRAME, Timeframe,
+    UNDO, WorkspaceAccess, WorkspaceBinding, WorkspaceChange, WorkspaceReceipt, WorkspaceReplay,
+    WorkspaceReplayKey, WorkspaceSnapshot, WorkspaceState, WorkspaceStore, WorkspaceTransaction,
+    WorkspaceUndoAccess, WorkspaceUndoTarget,
+};
 
-use std::{collections::HashSet, future::Future, pin::Pin, sync::LazyLock};
+use std::{
+    collections::HashSet,
+    future::Future,
+    pin::Pin,
+    sync::{LazyLock, OnceLock},
+};
 
 use scopehub_domain::{
     protocol::{
@@ -38,7 +62,7 @@ pub enum Actor {
 }
 
 impl Actor {
-    fn as_str(self) -> &'static str {
+    pub fn as_str(self) -> &'static str {
         match self {
             Self::User | Self::LocalUser => "user",
             Self::Ai => "ai",
@@ -100,6 +124,40 @@ struct Operation {
     actors: Vec<String>,
     input: jsonschema::Validator,
     output: jsonschema::Validator,
+    wire: Option<WireBinding>,
+    confirmation_required: bool,
+    undoable: bool,
+}
+
+struct WireBinding {
+    input: String,
+    output: String,
+    validators: OnceLock<(jsonschema::Validator, jsonschema::Validator)>,
+}
+
+impl Operation {
+    fn authorize(&self, actor: Actor) -> Result<(), Error> {
+        if !self.actors.iter().any(|allowed| allowed == actor.as_str())
+            || (matches!(
+                self.name.as_str(),
+                PREVIEW_LOCAL_IMPORT | LOAD_LOCAL_IMPORT_MAPPING | SAVE_LOCAL_IMPORT_MAPPING
+            ) && !matches!(actor, Actor::LocalUser))
+        {
+            return Err(failure(ErrorCode::PERMISSIONDENIED));
+        }
+        Ok(())
+    }
+
+    fn wire_validators(&self) -> (&jsonschema::Validator, &jsonschema::Validator) {
+        let binding = self
+            .wire
+            .as_ref()
+            .expect("registered 1.1 operation binding");
+        let (input, output) = binding
+            .validators
+            .get_or_init(|| (validator(&binding.input), validator(&binding.output)));
+        (input, output)
+    }
 }
 
 fn validator(definition: &str) -> jsonschema::Validator {
@@ -118,6 +176,9 @@ fn validator(definition: &str) -> jsonschema::Validator {
 static OPERATIONS: LazyLock<Vec<Operation>> = LazyLock::new(|| {
     let manifest: Value = serde_json::from_str(include_str!("../../../contracts/contract.json"))
         .expect("embedded operation catalog");
+    let protocol = manifest["protocol_version"]
+        .as_str()
+        .expect("catalog protocol version");
     manifest["operations"]
         .as_array()
         .expect("operation array")
@@ -127,20 +188,35 @@ static OPERATIONS: LazyLock<Vec<Operation>> = LazyLock::new(|| {
             actors: serde_json::from_value(op["actors"].clone()).expect("actor list"),
             input: validator(op["input"].as_str().expect("input definition")),
             output: validator(op["output"].as_str().expect("output definition")),
+            wire: op["wire_bindings"][protocol]
+                .as_object()
+                .map(|binding| WireBinding {
+                    input: binding["input"]
+                        .as_str()
+                        .expect("wire input definition")
+                        .into(),
+                    output: binding["output"]
+                        .as_str()
+                        .expect("wire output definition")
+                        .into(),
+                    validators: OnceLock::new(),
+                }),
+            confirmation_required: op["confirmation"].as_bool() != Some(false),
+            undoable: op["undoable"].as_bool().expect("undo policy"),
         })
         .collect()
 });
 
-fn authorized_operation(actor: Actor, name: &str) -> Result<&'static Operation, Error> {
-    let op = OPERATIONS
+fn operation(name: &str) -> Result<&'static Operation, Error> {
+    OPERATIONS
         .iter()
         .find(|op| op.name == name)
-        .ok_or_else(|| failure(ErrorCode::UNSUPPORTEDCAPABILITY))?;
-    if !op.actors.iter().any(|allowed| allowed == actor.as_str())
-        || (name == PREVIEW_LOCAL_IMPORT && !matches!(actor, Actor::LocalUser))
-    {
-        return Err(failure(ErrorCode::PERMISSIONDENIED));
-    }
+        .ok_or_else(|| failure(ErrorCode::UNSUPPORTEDCAPABILITY))
+}
+
+fn authorized_operation(actor: Actor, name: &str) -> Result<&'static Operation, Error> {
+    let op = operation(name)?;
+    op.authorize(actor)?;
     Ok(op)
 }
 
@@ -152,9 +228,13 @@ fn authorized_operation(actor: Actor, name: &str) -> Result<&'static Operation, 
 ///     registry.port_mut();
 /// }
 /// ```
-pub struct MarketRegistry<P> {
+pub struct OperationRegistry<P> {
     port: P,
+    note_confirmation: Option<workspace::PendingDecisionNoteConfirmation>,
+    note_restore: workspace::DecisionNoteRestoreStaging,
 }
+
+pub type MarketRegistry<P> = OperationRegistry<P>;
 
 enum ReadFailure {
     Worker(Error),
@@ -181,11 +261,17 @@ impl From<Error> for ReadFailure {
     }
 }
 
-impl<P: MarketPort> MarketRegistry<P> {
+impl<P> OperationRegistry<P> {
     pub fn new(port: P) -> Self {
-        Self { port }
+        Self {
+            port,
+            note_confirmation: None,
+            note_restore: workspace::DecisionNoteRestoreStaging::default(),
+        }
     }
+}
 
+impl<P: MarketPort> MarketRegistry<P> {
     pub async fn execute(
         &mut self,
         actor: Actor,

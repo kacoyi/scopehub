@@ -1,6 +1,6 @@
 use std::{future, path::PathBuf};
 
-use scopehub_application::{MarketFuture, MarketStatus, ShutdownFuture};
+use scopehub_application::{MarketFuture, MarketStatus, SET_TIMEFRAME, ShutdownFuture, UNDO};
 use serde_json::json;
 use tokio::sync::oneshot::error::TryRecvError;
 
@@ -21,8 +21,19 @@ impl ImportFixture {
                 .unwrap()
                 .as_nanos()
         ));
+        #[cfg(target_os = "linux")]
+        {
+            use std::os::unix::fs::DirBuilderExt;
+            std::fs::DirBuilder::new()
+                .mode(0o700)
+                .create(&path)
+                .unwrap();
+        }
+        #[cfg(windows)]
         std::fs::create_dir(&path).unwrap();
-        Self(path.canonicalize().unwrap())
+        #[cfg(target_os = "linux")]
+        let path = path.canonicalize().unwrap();
+        Self(path)
     }
 }
 
@@ -208,14 +219,7 @@ async fn native_registry_returns_source_bound_raw_and_normalized_previews() {
     let selected = folders
         .catalog(granted["folder_id"].as_str().unwrap().parse().unwrap())
         .unwrap();
-    let equity_mapping = json!({
-        "version":1,"revision":"equity-fixture-2","encoding":"utf-8","delimiter":",","record_kind":"native_ohlcv",
-        "columns":{"symbol":"Ticker","timestamp":"Date","trading_day":"Date","open":"Open","high":"High","low":"Low","close":"Close","volume":"Shares"},
-        "instrument_kind":"equity","venue":"TEST","timezone":"UTC","calendar_id":"fixture-calendar-1","session_scope":"regular",
-        "timeframe":"1d","quantity_unit":"shares","price_adjustment":"raw","volume_semantics":"per_bar",
-        "timestamp_convention":"bar_start","timestamp_format":"%Y-%m-%d","trading_day_format":"%Y-%m-%d","daily_start_time":"09:30:00"
-    });
-    let mut input = import_request(&selected, "equity.csv", equity_mapping);
+    let mut input = import_request(&selected, "equity.csv", equity_mapping());
     input["expected_sha256"] =
         json!("92eb8b04506ac61dd43097b78e5ff15d4aa89b4c525a014b8816e3fa7b21ee1e");
     input["row_limit"] = json!(1);
@@ -327,8 +331,464 @@ async fn native_registry_returns_source_bound_raw_and_normalized_previews() {
 }
 
 #[cfg(any(target_os = "linux", windows))]
+fn equity_mapping() -> Value {
+    json!({
+        "version":1,"revision":"equity-fixture-2","encoding":"utf-8","delimiter":",","record_kind":"native_ohlcv",
+        "columns":{"symbol":"Ticker","timestamp":"Date","trading_day":"Date","open":"Open","high":"High","low":"Low","close":"Close","volume":"Shares"},
+        "instrument_kind":"equity","venue":"TEST","timezone":"UTC","calendar_id":"fixture-calendar-1","session_scope":"regular",
+        "timeframe":"1d","quantity_unit":"shares","price_adjustment":"raw","volume_semantics":"per_bar",
+        "timestamp_convention":"bar_start","timestamp_format":"%Y-%m-%d","trading_day_format":"%Y-%m-%d","daily_start_time":"09:30:00"
+    })
+}
+
+#[cfg(any(target_os = "linux", windows))]
+async fn select_csv(state: &State, folder: &Path) -> Value {
+    let catalog = state
+        .choose_local_csv_folder(|| async { Some(folder.to_owned()) })
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(catalog["files"][0]["kind"], "csv");
+    json!({
+        "version": 1,
+        "folder_id": catalog["folder_id"],
+        "file_id": catalog["files"][0]["file_id"],
+    })
+}
+
+#[cfg(any(target_os = "linux", windows))]
+async fn execute_import(state: &State, operation: &str, payload: Value) -> Result<Value, Error> {
+    state.execute("main", Some(operation), payload, None).await
+}
+
+#[cfg(any(target_os = "linux", windows))]
 #[tokio::test]
-async fn pending_local_preview_stops_on_cancellation_selection_change_or_shutdown() {
+async fn reviewed_mapping_save_requires_the_exact_public_preview() {
+    use sha2::{Digest, Sha256};
+    use std::fs;
+
+    let fixture = ImportFixture::new();
+    let profile = fixture.0.join("profile");
+    let source = fixture.0.join("source");
+    fs::create_dir(&source).unwrap();
+    let csv = source.join("source.csv");
+    let content = b"Ticker,Date,Open,High,Low,Close,AltClose,Shares\n000418,2026-11-19,4,7,3,5,6,20\n000418,2026-11-20,6,7,4,5,6,21\n";
+    fs::write(&csv, content).unwrap();
+    fs::write(source.join("unreviewed.csv"), content).unwrap();
+
+    let state = state_with_local_profile(Some(&profile));
+    let ids = select_csv(&state, &source).await;
+    let mut request = ids.clone();
+    request["mapping"] = equity_mapping();
+    request["row_limit"] = json!(1);
+    let mut save = request.clone();
+    save["expected_sha256"] = json!(format!("{:x}", Sha256::digest(content)));
+    assert_eq!(
+        execute_import(&state, SAVE_LOCAL_IMPORT_MAPPING, save.clone())
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALIDARGUMENT,
+        "a save cannot establish its own preview",
+    );
+    assert!(!profile.exists());
+
+    let shown = execute_import(&state, PREVIEW_LOCAL_IMPORT, request)
+        .await
+        .unwrap();
+    assert_eq!(shown["preview"]["rows"][0]["normalized"]["close"], 5.0);
+    assert_eq!(shown["sha256"], save["expected_sha256"]);
+
+    let mut unreviewed_mapping = save.clone();
+    unreviewed_mapping["mapping"]["columns"]["close"] = json!("AltClose");
+    assert_eq!(
+        unreviewed_mapping["mapping"]["revision"],
+        save["mapping"]["revision"]
+    );
+    assert_eq!(
+        execute_import(&state, SAVE_LOCAL_IMPORT_MAPPING, unreviewed_mapping)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALIDARGUMENT,
+        "the same revision label cannot authorize another column mapping",
+    );
+
+    let folder = state
+        .local_folders()
+        .catalog(ids["folder_id"].as_str().unwrap().parse().unwrap())
+        .unwrap();
+    let mut unreviewed_file = import_request(&folder, "unreviewed.csv", equity_mapping());
+    unreviewed_file["row_limit"] = save["row_limit"].clone();
+    unreviewed_file["expected_sha256"] = save["expected_sha256"].clone();
+    assert_eq!(
+        execute_import(&state, SAVE_LOCAL_IMPORT_MAPPING, unreviewed_file)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALIDARGUMENT,
+        "a different file with identical bytes requires its own preview",
+    );
+
+    let mut unreviewed_sample = save.clone();
+    unreviewed_sample["row_limit"] = json!(2);
+    assert_eq!(
+        execute_import(&state, SAVE_LOCAL_IMPORT_MAPPING, unreviewed_sample)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALIDARGUMENT,
+    );
+    assert!(!profile.exists());
+
+    // Change a row beyond the sample. The matching receipt cannot replace the live reread.
+    let mut changed = content.to_vec();
+    changed[content.len() - 2] = b'2';
+    fs::write(&csv, &changed).unwrap();
+    assert_eq!(
+        execute_import(&state, SAVE_LOCAL_IMPORT_MAPPING, save.clone())
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::SNAPSHOTUNAVAILABLE,
+    );
+    assert!(!profile.exists());
+
+    // Retry the same reviewed bytes after cancellation before admission.
+    fs::write(&csv, content).unwrap();
+    state.local_import.cancel("save-before-admission");
+    assert_eq!(
+        state
+            .execute(
+                "main",
+                Some(SAVE_LOCAL_IMPORT_MAPPING),
+                save.clone(),
+                Some("save-before-admission")
+            )
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::CANCELLED,
+    );
+    assert!(!profile.exists());
+    let saved = execute_import(&state, SAVE_LOCAL_IMPORT_MAPPING, save.clone())
+        .await
+        .unwrap();
+    assert_eq!(saved["record"]["review_revision"], 1);
+    assert_eq!(saved["record"]["mapping"], equity_mapping());
+
+    // Selecting the same path again still creates a new grant.
+    let new_ids = select_csv(&state, &source).await;
+    assert_ne!(ids["folder_id"], new_ids["folder_id"]);
+    assert_eq!(
+        execute_import(&state, SAVE_LOCAL_IMPORT_MAPPING, save.clone())
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::STALECONTEXT,
+    );
+    save["folder_id"] = new_ids["folder_id"].clone();
+    save["file_id"] = new_ids["file_id"].clone();
+    let loaded = execute_import(&state, LOAD_LOCAL_IMPORT_MAPPING, new_ids)
+        .await
+        .unwrap();
+    assert_eq!(loaded["status"], "saved");
+    assert_eq!(
+        execute_import(&state, SAVE_LOCAL_IMPORT_MAPPING, save)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALIDARGUMENT,
+    );
+    state.shutdown().await;
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[tokio::test]
+async fn reviewed_mapping_reuses_live_source_after_restart_and_requires_review_for_changed_header()
+{
+    use sha2::{Digest, Sha256};
+    use std::fs;
+
+    let fixture = ImportFixture::new();
+    let profile = fixture.0.join("profile");
+    let other_profile = fixture.0.join("other-profile");
+    let source = fixture.0.join("source");
+    let other_source = fixture.0.join("other-source");
+    fs::create_dir(&source).unwrap();
+    fs::create_dir(&other_source).unwrap();
+    let csv = source.join("source.csv");
+    let content = b"Ticker,Date,Open,High,Low,Close,Shares\n000418,2026-11-19,4,6,3,5,20\n000418,2026-11-20,6,7,4,5,21\n";
+    fs::write(&csv, content).unwrap();
+    fs::write(other_source.join("source.csv"), content).unwrap();
+
+    let first = state_with_local_profile(Some(&profile));
+    let selected = source.canonicalize().unwrap();
+    let first_ids = select_csv(&first, &selected).await;
+    let mut uncorrected = first_ids.clone();
+    uncorrected["row_limit"] = json!(1);
+    uncorrected["mapping"] = equity_mapping();
+    uncorrected["mapping"]["columns"]["close"] = json!("WrongClose");
+    let raw = execute_import(&first, PREVIEW_LOCAL_IMPORT, uncorrected.clone())
+        .await
+        .unwrap();
+    assert!(raw["preview"]["rows"][0]["normalized"].is_null());
+    assert!(
+        !profile.exists(),
+        "opening a preview must not provision a workspace"
+    );
+    uncorrected["expected_sha256"] = raw["sha256"].clone();
+    assert_eq!(
+        execute_import(&first, SAVE_LOCAL_IMPORT_MAPPING, uncorrected.clone())
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALIDARGUMENT
+    );
+    assert!(
+        !profile.exists(),
+        "a failed review must not provision a workspace"
+    );
+
+    let mut corrected = uncorrected;
+    corrected["mapping"] = equity_mapping();
+    let corrected_preview = execute_import(&first, PREVIEW_LOCAL_IMPORT, corrected.clone())
+        .await
+        .unwrap();
+    assert_eq!(
+        corrected_preview["preview"]["rows"][0]["normalized"]["close"],
+        5.0
+    );
+    let saved = first
+        .execute(
+            "main",
+            Some(SAVE_LOCAL_IMPORT_MAPPING),
+            corrected.clone(),
+            None,
+        )
+        .await
+        .unwrap();
+    assert_eq!(saved["record"]["review_revision"], 1);
+    assert_eq!(saved["record"]["mapping"], equity_mapping());
+    assert_eq!(saved["record"]["header_sha256"].as_str().unwrap().len(), 64);
+    assert!(profile.join("workspace-dev/workspace.sqlite3").is_file());
+    for (operation, payload) in [
+        (None, json!({"type": "snapshot"})),
+        (Some("decisionNote.read"), note_read()),
+    ] {
+        assert_eq!(
+            first
+                .execute("main", operation, payload, None)
+                .await
+                .unwrap_err()
+                .code,
+            ErrorCode::PERMISSIONDENIED,
+            "opening the writer for mapping confers no workspace grant",
+        );
+    }
+    first.shutdown().await;
+    drop(first);
+
+    let restarted = state_with_development_workspace(Some(&profile));
+    assert_eq!(snapshot(&restarted).await["workspace"]["revision"], 0);
+    assert_eq!(
+        execute_import(&restarted, LOAD_LOCAL_IMPORT_MAPPING, first_ids)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::STALECONTEXT
+    );
+    let ids = select_csv(&restarted, &source).await;
+    // A data row changed beyond the review sample, preserving the decoded header.
+    let updated = b"Ticker,Date,Open,High,Low,Close,Shares\n000418,2026-11-19,4,6,3,5,20\n000418,2026-11-20,6,7,4,5,22\n";
+    fs::write(&csv, updated).unwrap();
+    let loaded = execute_import(&restarted, LOAD_LOCAL_IMPORT_MAPPING, ids.clone())
+        .await
+        .unwrap();
+    assert_eq!(loaded["status"], "saved");
+    assert_eq!(loaded["record"], saved["record"]);
+    assert_eq!(
+        loaded["source_sha256"],
+        format!("{:x}", Sha256::digest(updated))
+    );
+    assert_ne!(loaded["source_sha256"], raw["sha256"]);
+    let mut preview = ids.clone();
+    preview["expected_sha256"] = loaded["source_sha256"].clone();
+    preview["mapping"] = loaded["record"]["mapping"].clone();
+    let bar = execute_import(&restarted, PREVIEW_LOCAL_IMPORT, preview.clone())
+        .await
+        .unwrap();
+    assert_eq!(bar["preview"]["rows"][0]["normalized"]["close"], 5.0);
+    assert_eq!(bar["preview"]["rows"][0]["raw_fields"][0], "000418");
+
+    let isolated = state_with_local_profile(Some(&other_profile));
+    let isolated_ids = select_csv(&isolated, &source).await;
+    assert_eq!(
+        execute_import(&isolated, LOAD_LOCAL_IMPORT_MAPPING, isolated_ids)
+            .await
+            .unwrap()["status"],
+        "not_saved"
+    );
+    isolated.shutdown().await;
+    assert!(!other_profile.exists());
+
+    let damaged_body =
+        b"Ticker,Date,Open,High,Low,Close,Shares\n000418,2026-11-19,4,6,3,5,20\n\xff\n";
+    fs::write(&csv, damaged_body).unwrap();
+    let damaged_hash = format!("{:x}", Sha256::digest(damaged_body));
+    let loaded_with_damage = execute_import(&restarted, LOAD_LOCAL_IMPORT_MAPPING, ids.clone())
+        .await
+        .unwrap();
+    assert_eq!(loaded_with_damage["status"], "saved");
+    assert_eq!(loaded_with_damage["record"], saved["record"]);
+    assert_eq!(loaded_with_damage["source_sha256"], damaged_hash);
+
+    preview["expected_sha256"] = json!(damaged_hash);
+    let damaged_preview = execute_import(&restarted, PREVIEW_LOCAL_IMPORT, preview)
+        .await
+        .unwrap();
+    assert_eq!(damaged_preview["sha256"], damaged_hash);
+    assert_eq!(damaged_preview["preview"]["header"][5], "Close");
+    assert!(
+        damaged_preview["preview"]["issues"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|issue| issue["code"] == "decode_failed")
+    );
+    assert!(
+        damaged_preview["preview"]["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|row| row["normalized"].is_null())
+    );
+
+    let changed_header = b"Ticker,Date,Open,High,Low,Last,Shares\n000418,2026-11-19,4,6,3,5,20\n";
+    fs::write(&csv, changed_header).unwrap();
+    let changed = execute_import(&restarted, LOAD_LOCAL_IMPORT_MAPPING, ids.clone())
+        .await
+        .unwrap();
+    assert_eq!(changed["status"], "review_required");
+    assert!(changed["record"].is_null());
+    assert_eq!(
+        changed["source_sha256"],
+        format!("{:x}", Sha256::digest(changed_header))
+    );
+
+    let damaged_header =
+        b"Ticker,D\xffate,Open,High,Low,Close,Shares\n000418,2026-11-19,4,6,3,5,20\n";
+    fs::write(&csv, damaged_header).unwrap();
+    let unavailable = execute_import(&restarted, LOAD_LOCAL_IMPORT_MAPPING, ids)
+        .await
+        .unwrap_err();
+    assert_eq!(unavailable.code, ErrorCode::DATAUNAVAILABLE);
+    assert!(unavailable.message.to_lowercase().contains("header"));
+    assert_eq!(
+        unavailable.details.get("reason"),
+        Some(&json!("csv_header_unavailable"))
+    );
+    assert_eq!(
+        unavailable.details.get("sha256"),
+        Some(&json!(format!("{:x}", Sha256::digest(damaged_header)))),
+    );
+    let other_ids = select_csv(&restarted, &other_source).await;
+    assert_eq!(
+        execute_import(&restarted, LOAD_LOCAL_IMPORT_MAPPING, other_ids)
+            .await
+            .unwrap()["status"],
+        "not_saved"
+    );
+    restarted.shutdown().await;
+}
+
+#[cfg(windows)]
+#[tokio::test]
+async fn reviewed_mapping_reopens_a_legacy_v4_windows_key() {
+    use scopehub_application::{MappingCommitGuard, mapping_header_digest};
+    use sha2::{Digest, Sha256};
+    use std::{fs, os::windows::ffi::OsStrExt};
+
+    struct FixtureSeed;
+
+    impl MappingCommitGuard for FixtureSeed {
+        fn commit<T>(&self, write: impl FnOnce() -> Result<T, Error>) -> Result<T, Error> {
+            write()
+        }
+    }
+
+    // Reproduce the original v4 key framing for a canonical selector whose
+    // admitted spelling was already the long on-disk path.
+    fn legacy_fingerprint(domain: &[u8], path: &Path) -> [u8; 32] {
+        let mut hash = Sha256::new();
+        hash.update(domain);
+        hash.update([0]);
+        for part in path.components() {
+            let units: Vec<_> = part.as_os_str().encode_wide().collect();
+            hash.update((2 * units.len() as u64).to_be_bytes());
+            for unit in units {
+                hash.update(unit.to_be_bytes());
+            }
+        }
+        hash.finalize().into()
+    }
+
+    let fixture = ImportFixture::new();
+    let source = fixture.0.join("Legacy Mapping Source");
+    let profile = fixture.0.join("profile");
+    fs::create_dir(&source).unwrap();
+    fs::write(
+        source.join("source.csv"),
+        b"Ticker,Date,Open,High,Low,Close,Shares\n000418,2026-11-19,4,6,3,5,20\n",
+    )
+    .unwrap();
+    let canonical = source.canonicalize().unwrap();
+    let mut legacy_key = Sha256::new();
+    legacy_key.update(b"scopehub-local-mapping-source-v1\0");
+    legacy_key.update(legacy_fingerprint(b"scopehub-local-folder-v1", &canonical));
+    legacy_key.update(legacy_fingerprint(
+        b"scopehub-local-relative-file-v1",
+        Path::new("source.csv"),
+    ));
+
+    let first = state_with_local_profile(Some(&profile));
+    let mut payload = select_csv(&first, &canonical).await;
+    payload["mapping"] = equity_mapping();
+    let shown = execute_import(&first, PREVIEW_LOCAL_IMPORT, payload)
+        .await
+        .unwrap();
+    let mapping = serde_json::from_value(equity_mapping()).unwrap();
+    let header = mapping_header_digest(&shown, &mapping).unwrap();
+    // Seed a real SQLite v4 record with the old key, independently of the
+    // corrected host association code.
+    let seeded = first
+        .workspace
+        .save(
+            format!("{:x}", legacy_key.finalize()),
+            header,
+            mapping,
+            FixtureSeed,
+        )
+        .await
+        .unwrap();
+    first.shutdown().await;
+
+    let reopened = state_with_local_profile(Some(&profile));
+    let alternate = source.with_file_name("lEGACY mAPPING sOURCE");
+    assert_eq!(alternate.canonicalize().unwrap(), canonical);
+    let ids = select_csv(&reopened, &alternate).await;
+    let loaded = execute_import(&reopened, LOAD_LOCAL_IMPORT_MAPPING, ids)
+        .await
+        .unwrap();
+    assert_eq!(loaded["status"], "saved");
+    assert_eq!(loaded["record"], seeded["record"]);
+    assert_eq!(loaded["source_sha256"], shown["sha256"]);
+    reopened.shutdown().await;
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[tokio::test]
+async fn pending_local_import_stops_on_cancellation_selection_change_or_shutdown() {
     use scopehub_platform::local_folder::{Cancellation, FolderError};
     use std::fs;
 
@@ -347,7 +807,8 @@ async fn pending_local_preview_stops_on_cancellation_selection_change_or_shutdow
         let fixture = ImportFixture::new();
         let selected = fixture.0.join("selected");
         fs::create_dir(&selected).unwrap();
-        fs::write(selected.join("source.csv"), b"contract,quote\nTEST,7\n").unwrap();
+        let content = b"contract,quote\nTEST,7\n";
+        fs::write(selected.join("source.csv"), content).unwrap();
         let module = fixture.0.join("python").join("worker_runtime");
         fs::create_dir_all(&module).unwrap();
         fs::write(module.join("local_import.py"), r#"
@@ -376,8 +837,12 @@ time.sleep(30)
             "source.csv",
             json!({"version":1,"revision":"1","encoding":"utf-8","delimiter":",","record_kind":"quote_snapshot"}),
         );
-        let preview =
-            state.execute_local_operation(PREVIEW_LOCAL_IMPORT, request, Some("preview-1"));
+        let preview = state.execute(
+            "main",
+            Some(PREVIEW_LOCAL_IMPORT),
+            request,
+            Some("preview-1"),
+        );
         tokio::pin!(preview);
         let ready = fixture.0.join("received");
         tokio::select! {
@@ -412,10 +877,77 @@ time.sleep(30)
                 folders.adopt_selected(&selected, &Cancellation::default()),
                 Err(FolderError::SelectionUnavailable)
             ));
-            fs::rename(selected, fixture.0.join("released")).unwrap();
+            fs::rename(&selected, fixture.0.join("released")).unwrap();
         }
         state.shutdown().await;
     }
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[test]
+fn cancelling_an_admitted_reviewed_save_keeps_the_profile_unwritten() {
+    use std::{fs, task::Poll};
+
+    // Occupy the only blocking slot after getting a real public preview so the
+    // save can be cancelled deterministically while its live reread is pending.
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .max_blocking_threads(1)
+        .build()
+        .unwrap();
+    runtime.block_on(async {
+        let fixture = ImportFixture::new();
+        let profile = fixture.0.join("profile");
+        let source = fixture.0.join("source");
+        fs::create_dir(&source).unwrap();
+        fs::write(
+            source.join("source.csv"),
+            b"Ticker,Date,Open,High,Low,Close,Shares\n000418,2026-11-19,4,6,3,5,20\n",
+        )
+        .unwrap();
+
+        let state = state_with_local_profile(Some(&profile));
+        let ids = select_csv(&state, &source).await;
+        let mut save = ids.clone();
+        save["mapping"] = equity_mapping();
+        let shown = execute_import(&state, PREVIEW_LOCAL_IMPORT, save.clone())
+            .await
+            .unwrap();
+        save["expected_sha256"] = shown["sha256"].clone();
+
+        let (entered, blocking_slot_held) = oneshot::channel();
+        let (release, released) = oneshot::channel::<()>();
+        let blocker = tokio::task::spawn_blocking(move || {
+            entered.send(()).unwrap();
+            let _ = released.blocking_recv();
+        });
+        blocking_slot_held.await.unwrap();
+        let save = state.execute(
+            "main",
+            Some(SAVE_LOCAL_IMPORT_MAPPING),
+            save,
+            Some("save-with-pending-read"),
+        );
+        tokio::pin!(save);
+        future::poll_fn(|context| {
+            assert!(std::future::Future::poll(save.as_mut(), context).is_pending());
+            Poll::Ready(())
+        })
+        .await;
+        state.local_import.cancel("save-with-pending-read");
+        let result = tokio::time::timeout(Duration::from_secs(3), save).await;
+        release.send(()).unwrap();
+        blocker.await.unwrap();
+        assert_eq!(result.unwrap().unwrap_err().code, ErrorCode::CANCELLED);
+        assert_eq!(
+            execute_import(&state, LOAD_LOCAL_IMPORT_MAPPING, ids)
+                .await
+                .unwrap()["status"],
+            "not_saved",
+        );
+        assert!(!profile.exists());
+        state.shutdown().await;
+    });
 }
 
 struct DelayedPage {
@@ -561,4 +1093,299 @@ async fn new_history_loads_while_preparation_is_held_and_only_its_owner_can_canc
     assert!(
         matches!(state.begin_replay(ReplayTask::Preparation(NEW.into())), Err(error) if error.code == ErrorCode::CANCELLED)
     );
+}
+
+struct AppLocalData(PathBuf);
+
+impl AppLocalData {
+    fn new() -> Self {
+        use std::{
+            sync::atomic::{AtomicU64, Ordering},
+            time::{SystemTime, UNIX_EPOCH},
+        };
+
+        static SEQUENCE: AtomicU64 = AtomicU64::new(0);
+        let stamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let sequence = SEQUENCE.fetch_add(1, Ordering::Relaxed);
+        let temporary = std::env::temp_dir();
+        #[cfg(unix)]
+        let temporary = temporary.canonicalize().unwrap();
+        let path = temporary.join(format!(
+            "scopehub-desktop-test-{}-{stamp}-{sequence}",
+            std::process::id(),
+        ));
+        scopehub_persistence::SqliteWorkspace::prepare_profile_root(&path).unwrap();
+        Self(path)
+    }
+
+    fn database(&self) -> PathBuf {
+        self.0.join("workspace-dev").join("workspace.sqlite3")
+    }
+}
+
+impl Drop for AppLocalData {
+    fn drop(&mut self) {
+        std::fs::remove_dir_all(&self.0).unwrap();
+    }
+}
+
+fn uuid(number: u64) -> String {
+    format!("00000000-0000-4000-8000-{number:012x}")
+}
+
+fn mutation(revision: u64, operation: &str, arguments: Value, id: u64) -> Value {
+    json!({
+        "protocol_version": "1.1", "type": "request", "task_id": null, "timestamp_ms": 123,
+        "message_id": uuid(id + 1), "request_id": uuid(id + 2),
+        "scope": {
+            "workspace_id": "main", "target": {"kind": "chart", "object_id": "main-chart"},
+            "expected_workspace_revision": revision, "expected_selection_revision": 0,
+            "idempotency_key": uuid(id + 3),
+        },
+        "intent": {"operation": operation, "arguments": arguments},
+    })
+}
+
+fn note_read() -> Value {
+    json!({
+        "protocol_version": "1.1", "type": "request", "timestamp_ms": 123,
+        "message_id": uuid(60), "request_id": uuid(61),
+        "scope": {"workspace_id": "main"},
+        "intent": {"operation": "decisionNote.read", "arguments": {"note_id": null, "offset": 0}},
+    })
+}
+
+async fn snapshot(state: &State) -> Value {
+    state
+        .execute("main", None, json!({"type": "snapshot"}), None)
+        .await
+        .unwrap()
+}
+
+#[tokio::test]
+async fn desktop_dispatch_restores_replays_and_undoes_with_one_owned_connection() {
+    let profile = AppLocalData::new();
+    let first = state_with_development_workspace(Some(&profile.0));
+    let opened = snapshot(&first).await;
+    assert_eq!(opened["workspace"]["revision"], 0);
+    assert_eq!(opened["workspace"]["timeframe"], "1m");
+    assert_eq!(opened["selection_revision"], 0);
+    assert!(opened["workspace"]["dataset"].is_null());
+    assert!(opened["undo"].is_null());
+    assert!(first.reads.lock().await.status().process_id.is_none());
+
+    let set = mutation(0, "chart.setTimeframe", json!({"timeframe": "5m"}), 10);
+    let reply = first
+        .execute("main", Some(SET_TIMEFRAME), set.clone(), None)
+        .await
+        .unwrap();
+    assert_eq!(reply["request_id"], set["request_id"]);
+    assert_eq!(reply["outcome"]["result"]["timeframe"], "5m");
+    assert_eq!(reply["outcome"]["result"]["revision"], 1);
+    let receipt = &reply["outcome"]["receipt"];
+    let operation_id = receipt["operation_id"].as_str().unwrap();
+    first.shutdown().await;
+    assert!(!profile.database().with_extension("sqlite3-wal").exists());
+    assert_eq!(
+        first
+            .execute("main", Some(SET_TIMEFRAME), set.clone(), None)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::CANCELLED,
+    );
+
+    let restarted = state_with_development_workspace(Some(&profile.0));
+    let restored = snapshot(&restarted).await;
+    assert_eq!(restored["workspace"]["timeframe"], "5m");
+    assert_eq!(restored["workspace"]["revision"], 1);
+    assert_eq!(
+        restored["undo"],
+        json!({
+            "operation_id": operation_id, "committed_workspace_revision": 1,
+        })
+    );
+    let mut retry = set;
+    retry["message_id"] = json!(uuid(21));
+    retry["request_id"] = json!(uuid(22));
+    let repeated = restarted
+        .execute("main", Some(SET_TIMEFRAME), retry, None)
+        .await
+        .unwrap();
+    assert_eq!(repeated["request_id"], uuid(22));
+    assert_eq!(&repeated["outcome"]["receipt"], receipt);
+
+    let undo = mutation(
+        1,
+        "workspace.undo",
+        json!({"operation_id": operation_id}),
+        30,
+    );
+    let inverse = restarted
+        .execute("main", Some(UNDO), undo, None)
+        .await
+        .unwrap();
+    assert_eq!(inverse["outcome"]["result"]["timeframe"], "1m");
+    assert_eq!(inverse["outcome"]["result"]["revision"], 2);
+    assert_ne!(inverse["outcome"]["receipt"]["operation_id"], operation_id);
+    restarted.shutdown().await;
+
+    let third = state_with_development_workspace(Some(&profile.0));
+    let restored = snapshot(&third).await;
+    assert_eq!(restored["workspace"]["timeframe"], "1m");
+    assert_eq!(restored["workspace"]["revision"], 2);
+    assert!(restored["undo"].is_null());
+    assert!(third.reads.lock().await.status().process_id.is_none());
+    third.shutdown().await;
+}
+
+#[tokio::test]
+async fn desktop_rejects_other_windows_forged_identity_and_unconfigured_mutations() {
+    let profile = AppLocalData::new();
+    let command = mutation(0, "chart.setTimeframe", json!({"timeframe": "5m"}), 50);
+    let disabled = state();
+    for (operation, request) in [
+        (Some(SET_TIMEFRAME), command.clone()),
+        (Some("decisionNote.read"), note_read()),
+        (None, json!({"type": "snapshot"})),
+    ] {
+        assert_eq!(
+            disabled
+                .execute("main", operation, request, None)
+                .await
+                .unwrap_err()
+                .code,
+            ErrorCode::PERMISSIONDENIED,
+        );
+    }
+    assert!(!profile.database().exists());
+
+    let desktop = state_with_development_workspace(Some(&profile.0));
+    for (operation, request) in [
+        (Some(SET_TIMEFRAME), command.clone()),
+        (Some("decisionNote.read"), note_read()),
+        (None, json!({"type": "snapshot"})),
+    ] {
+        assert_eq!(
+            desktop
+                .execute("other-window", operation, request, None)
+                .await
+                .unwrap_err()
+                .code,
+            ErrorCode::PERMISSIONDENIED,
+        );
+    }
+    for (operation, request) in [
+        (Some(UNDO), command.clone()),
+        (Some(SET_TIMEFRAME), json!({"type": "snapshot"})),
+        (None, command.clone()),
+        (None, Value::Null),
+        (Some(SET_TIMEFRAME), Value::Null),
+        (Some("instrument.search"), Value::Null),
+        (None, json!({"type": "snapshot", "profile_root": "/caller"})),
+    ] {
+        assert_eq!(
+            desktop
+                .execute("main", operation, request, None)
+                .await
+                .unwrap_err()
+                .code,
+            ErrorCode::INVALIDARGUMENT,
+        );
+    }
+    assert_eq!(
+        desktop
+            .execute("main", Some("workspace.getContext"), json!({}), None)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::UNSUPPORTEDCAPABILITY,
+    );
+    for (field, value) in [
+        ("profile_root", "/caller"),
+        ("principal_id", "other"),
+        ("client_id", "client"),
+        ("grant", "all"),
+    ] {
+        let mut forged = command.clone();
+        forged["scope"][field] = json!(value);
+        assert_eq!(
+            desktop
+                .execute("main", Some(SET_TIMEFRAME), forged, None)
+                .await
+                .unwrap_err()
+                .code,
+            ErrorCode::INVALIDARGUMENT,
+        );
+    }
+    let mut other_workspace = command;
+    other_workspace["scope"]["workspace_id"] = json!("caller-workspace");
+    let rejected = desktop
+        .execute("main", Some(SET_TIMEFRAME), other_workspace, None)
+        .await
+        .unwrap();
+    assert_eq!(rejected["outcome"]["error"]["code"], "PERMISSION_DENIED");
+    let notes = desktop
+        .execute("main", Some("decisionNote.read"), note_read(), None)
+        .await
+        .unwrap();
+    assert_eq!(notes["outcome"]["state"], "completed");
+    assert_eq!(notes["outcome"]["result"]["notes"], json!([]));
+    assert_eq!(snapshot(&desktop).await["workspace"]["revision"], 0);
+    assert!(desktop.reads.lock().await.status().process_id.is_none());
+    desktop.shutdown().await;
+}
+
+#[tokio::test]
+async fn copied_workspace_bytes_cannot_enable_a_grant_or_cross_native_profiles() {
+    let first = AppLocalData::new();
+    let writer = state_with_development_workspace(Some(&first.0));
+    let command = mutation(0, "chart.setTimeframe", json!({"timeframe": "5m"}), 100);
+    let reply = writer
+        .execute("main", Some(SET_TIMEFRAME), command, None)
+        .await
+        .unwrap();
+    assert_eq!(reply["outcome"]["result"]["timeframe"], "5m");
+    writer.shutdown().await;
+
+    // Normal startup has no workspace grant, even when workspace bytes exist.
+    let ordinary = state();
+    assert_eq!(
+        ordinary
+            .execute("main", None, json!({"type": "snapshot"}), None)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::PERMISSIONDENIED,
+    );
+    assert!(first.database().is_file());
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let database = first.database();
+        let mode =
+            |path: &std::path::Path| std::fs::metadata(path).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode(database.parent().unwrap()), 0o700);
+        assert_eq!(mode(&database), 0o600);
+    }
+
+    let other = AppLocalData::new();
+    let copy = other.database();
+    scopehub_persistence::SqliteWorkspace::prepare_profile_root(copy.parent().unwrap()).unwrap();
+    std::fs::copy(first.database(), &copy).unwrap();
+    let before = std::fs::read(&copy).unwrap();
+    let foreign = state_with_development_workspace(Some(&other.0));
+    assert_eq!(
+        foreign
+            .execute("main", None, json!({"type": "snapshot"}), None)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INTERNALERROR,
+    );
+    assert_eq!(std::fs::read(&copy).unwrap(), before);
+    foreign.shutdown().await;
 }

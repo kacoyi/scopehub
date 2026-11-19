@@ -1,0 +1,240 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M1-019",
+  "task_definition_sha256": "94eee7e39b9cf14f8ad8393548145acae0ec40fc8d9fdef7888b81b7cac2f16d",
+  "run_id": "20261119T135209.802226Z-95a49bd4",
+  "recorded_at": "2026-11-19T14:14:19.360870+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "1dc02f748469dffe8b4653dd7e3bab29f283605f26d359a5d85cb25b532170b8",
+    "file_count": 234,
+    "git_head": "d8988c9e0833edd7515f6fa3dcbc1e8dd619b292",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "a5c00379c62d812b1eadcd52ab3e99f1bb937142d072803cbcfc8d20be4ac65e",
+  "environment": {
+    "system": "Windows",
+    "release": "2025Server",
+    "machine": "AMD64",
+    "python": "3.12.10",
+    "python_executable": "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+    "tools": {
+      "node": "v24.22.2",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (5411378eb 2026-10-08 x86_64-pc-windows-msvc)"
+    }
+  },
+  "checks": [
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "09d50ddad8971260edbec8c2cd3f54fcbbaac33d99e44fdf26de65482860784a"
+    },
+    {
+      "id": "market-recovery",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-closed-bar-repair.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "7d2120d8b2d7f8f8d0c23f02ccfe19ab3ff53b59e1fb9881e69855a1c2b75d7a"
+    },
+    {
+      "id": "market-worker-interruption",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/worker-interruption.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "bdb13e89cb68d45eaa991905649bdaa396e839d6ad6bf296f2feecfc5a5463f3"
+    },
+    {
+      "id": "market-recovery-ui",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-recovery-ui.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "bd1a9c59bc58c4255120d6d7428b3ad8c2bdd94eae9840bf15ccd787445f4eb5"
+    },
+    {
+      "id": "rust-format",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "rust-lints",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "scripts/rust_workspace.py",
+        "clippy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d468105a700464ceb079bc62ab5cb46ca37740e116d5f5dfd49ba2253e525de8"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a0e44a5ffddf360b688ca2ea48d313c4e23d7f408312085040dd43170f4831d4"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5fb59c31f74e1d893e408496863c0873d17adbed6272936f2989a4773dcf7621"
+    },
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "32b2e8049847ad0886b6fab2c3a3ba1e31b7ca3b388e52f4e67c1dccf3158b25"
+    },
+    {
+      "id": "market-fixtures",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "-m",
+        "unittest",
+        "tests.integration.test_market_fixtures",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "229440d89dc54c22a4a9e145c72288b096ab622dfca91b23aaa68cb5660ca801"
+    },
+    {
+      "id": "python-types",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "-m",
+        "mypy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e522fa370334927ac2ccb7106100045b572938dd238093267de825336e6704f2"
+    },
+    {
+      "id": "dependency-review",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "scripts/dependencies.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "08ae3550ee00106777d669a8bd4bb2f076e4f3db4eb7fe192a6f8e3b11edd0f4"
+    },
+    {
+      "id": "market-quality-states",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-quality.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "bea341002ca94a3f6cbd2246863b6bb937cd156b74f403e439ea606bdf9fbe15"
+    },
+    {
+      "id": "market-live-stream",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-stream.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "92113114298b4af9ce9e644e5c64e71d055838ca6a4af18679c08a2d2d637967"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "b0acec019dfc7b7b378acd54ae77cfa347f481a4fa2308a8d0741effc9020433"
+    }
+  ],
+  "project_definition_sha256": "774b70681f6439199da7bd45b986e2a0e933c204b206710573db04c1e6cf37bb",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "ci": {
+    "provider": "github-actions",
+    "repository": "kacoyi/scopehub",
+    "run_id": "44536924867",
+    "run_attempt": "1",
+    "event": "pull_request",
+    "head_sha": "f8e8bc3b03838a35d86d183be07a0f6641fde1b1",
+    "checkout_sha": "d8988c9e0833edd7515f6fa3dcbc1e8dd619b292",
+    "run_url": "https://github.com/kacoyi/scopehub/actions/runs/44536924867"
+  }
+}

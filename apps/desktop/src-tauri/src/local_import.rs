@@ -1,23 +1,37 @@
 //! Compose the local human's filesystem selection with the private preview worker.
 
 use std::{
+    collections::VecDeque,
     future::Future,
     path::PathBuf,
-    sync::{Arc, Mutex as SyncMutex},
+    sync::{
+        Arc, Mutex as SyncMutex,
+        atomic::{AtomicU8, Ordering},
+    },
     time::Duration,
 };
 
 use scopehub_application::{
-    Actor, DEFAULT_PREVIEW_ROWS, LocalImportPort, MarketFuture, failure, preview_local_import,
+    Actor, DEFAULT_PREVIEW_ROWS, LocalImportPort, MappingCommitGuard, MarketFuture, failure,
+    load_mapping_input, load_mapping_output, preview_local_import, reviewed_preview_header,
+    save_mapping_input,
 };
-use scopehub_domain::protocol::{Error, ErrorCode, LocalImportPreviewInput};
+use scopehub_domain::protocol::{CsvMappingV1, Error, ErrorCode, LocalImportPreviewInput};
 use scopehub_platform::local_folder::{
-    Cancellation, FileId, FileKind, FolderCatalog, FolderError, FolderId, LocalFolderHost,
-    MAX_PREVIEW_BYTES,
+    Cancellation, FileId, FileKind, FolderCatalog, FolderError, FolderId, FrozenFile,
+    LocalFolderHost, MAX_PREVIEW_BYTES,
 };
 use scopehub_worker_host::{local_import, market::WorkerConfig};
 use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
 use tokio::sync::{Mutex, MutexGuard, Notify};
+
+use crate::workspace::WorkspaceBridge;
+
+const MAX_EARLY_CANCELLATIONS: usize = 64;
+const ACTIVE: u8 = 0;
+const CANCELLED: u8 = 1;
+const COMMITTING: u8 = 2;
 
 pub(super) struct LocalImport {
     pub(super) folders: Arc<LocalFolderHost>,
@@ -31,24 +45,90 @@ pub(super) struct LocalImport {
 struct PreviewState {
     closing: bool,
     active: Option<(Option<String>, Arc<PreviewCancellation>)>,
+    early_cancellations: VecDeque<String>,
+    reviewed: Option<ReviewedPreview>,
+}
+
+struct ReviewedPreview {
+    binding: PreviewBinding,
+    header_sha256: String,
+}
+
+#[derive(PartialEq, Eq)]
+struct PreviewBinding {
+    folder: FolderId,
+    file: FileId,
+    source_sha256: String,
+    mapping_sha256: [u8; 32],
+    row_limit: u64,
+}
+
+impl PreviewBinding {
+    fn new(
+        folder: FolderId,
+        file: FileId,
+        source_sha256: String,
+        mapping: &CsvMappingV1,
+        row_limit: Option<u64>,
+    ) -> Result<Self, Error> {
+        let bytes = serde_json::to_vec(mapping).map_err(|_| failure(ErrorCode::INTERNALERROR))?;
+        Ok(Self {
+            folder,
+            file,
+            source_sha256,
+            mapping_sha256: Sha256::digest(bytes).into(),
+            row_limit: row_limit.unwrap_or(u64::from(DEFAULT_PREVIEW_ROWS)),
+        })
+    }
 }
 
 #[derive(Default)]
 struct PreviewCancellation {
     file: Cancellation,
     notify: Notify,
+    phase: AtomicU8,
 }
 
 impl PreviewCancellation {
     fn cancel(&self) {
-        self.file.cancel();
-        self.notify.notify_one();
+        if self
+            .phase
+            .compare_exchange(ACTIVE, CANCELLED, Ordering::AcqRel, Ordering::Acquire)
+            .is_ok()
+        {
+            self.file.cancel();
+            self.notify.notify_one();
+        }
+    }
+
+    fn is_cancelled(&self) -> bool {
+        self.phase.load(Ordering::Acquire) == CANCELLED
     }
 
     async fn cancelled(&self) {
-        if !self.file.is_cancelled() {
+        if !self.is_cancelled() {
             self.notify.notified().await;
         }
+    }
+}
+
+struct MappingGuard {
+    cancel: Arc<PreviewCancellation>,
+    folders: Arc<LocalFolderHost>,
+    folder: FolderId,
+}
+
+impl MappingCommitGuard for MappingGuard {
+    fn commit<T>(&self, apply: impl FnOnce() -> Result<T, Error>) -> Result<T, Error> {
+        self.folders
+            .with_current(self.folder, || {
+                self.cancel
+                    .phase
+                    .compare_exchange(ACTIVE, COMMITTING, Ordering::AcqRel, Ordering::Acquire)
+                    .map_err(|_| failure(ErrorCode::CANCELLED))?;
+                apply()
+            })
+            .map_err(folder_failure)?
     }
 }
 
@@ -100,9 +180,13 @@ impl LocalImport {
         .await
         .map_err(|_| failure(ErrorCode::INTERNALERROR))?
         .map_err(folder_failure)?;
+        let mut state = self.state.lock().expect("preview state");
         self.folders
             .check_current(catalog.folder_id)
             .map_err(folder_failure)?;
+        state
+            .reviewed
+            .take_if(|review| review.binding.folder != catalog.folder_id);
         Ok(Some(catalog_metadata(catalog)))
     }
 
@@ -116,16 +200,11 @@ impl LocalImport {
         Ok(())
     }
 
-    pub(super) async fn preview(
+    fn reserve(
         &self,
-        payload: Value,
         request_id: Option<&str>,
-    ) -> Result<Value, Error> {
-        if request_id.is_some_and(|id| {
-            id.is_empty()
-                || id.len() > 64
-                || !id.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'-')
-        }) {
+    ) -> Result<(PreviewSlot<'_>, PreviewPort<'_>), Error> {
+        if request_id.is_some_and(|id| !valid_request_id(id)) {
             return Err(failure(ErrorCode::INVALIDARGUMENT));
         }
         let admission = self
@@ -138,22 +217,154 @@ impl LocalImport {
             if state.closing {
                 return Err(failure(ErrorCode::CANCELLED));
             }
+            if let Some(index) = state
+                .early_cancellations
+                .iter()
+                .position(|id| Some(id.as_str()) == request_id)
+            {
+                state.early_cancellations.remove(index);
+                return Err(failure(ErrorCode::CANCELLED));
+            }
             state.active = Some((request_id.map(str::to_owned), Arc::clone(&cancel)));
         }
-        let _slot = PreviewSlot {
+        let slot = PreviewSlot {
             _admission: admission,
             state: &self.state,
         };
-        let mut port = PreviewPort { host: self, cancel };
-        preview_local_import(Actor::LocalUser, payload, &mut port).await
+        Ok((slot, PreviewPort { host: self, cancel }))
+    }
+
+    pub(super) async fn preview(
+        &self,
+        payload: Value,
+        request_id: Option<&str>,
+    ) -> Result<Value, Error> {
+        let (_slot, mut port) = self.reserve(request_id)?;
+        let (input, output) = preview_local_import(Actor::LocalUser, payload, &mut port).await?;
+        if let Some(header_sha256) = reviewed_preview_header(&input, &output) {
+            let folder = folder_id(&input.folder_id)?;
+            let binding = PreviewBinding::new(
+                folder,
+                file_id(&input.file_id)?,
+                output["sha256"]
+                    .as_str()
+                    .expect("validated source hash")
+                    .to_owned(),
+                &input.mapping,
+                input.row_limit,
+            )?;
+            let mut state = self.state.lock().expect("preview state");
+            port.check_live(folder)?;
+            // A failed or cancelled attempt leaves the previous completed review available.
+            state.reviewed = Some(ReviewedPreview {
+                binding,
+                header_sha256,
+            });
+        }
+        Ok(output)
+    }
+
+    pub(super) async fn save_mapping(
+        &self,
+        workspace: &WorkspaceBridge,
+        payload: Value,
+        request_id: Option<&str>,
+    ) -> Result<Value, Error> {
+        let input = save_mapping_input(Actor::LocalUser, payload)?;
+        let (_slot, port) = self.reserve(request_id)?;
+        let folder = folder_id(&input.folder_id)?;
+        let file = file_id(&input.file_id)?;
+        let source_key = self
+            .folders
+            .source_key(folder, file)
+            .map_err(folder_failure)?;
+        let binding = PreviewBinding::new(
+            folder,
+            file,
+            input.expected_sha256,
+            &input.mapping,
+            input.row_limit,
+        )?;
+        let header = self
+            .state
+            .lock()
+            .expect("preview state")
+            .reviewed
+            .as_ref()
+            .filter(|review| review.binding == binding)
+            .map(|review| review.header_sha256.clone())
+            .ok_or_else(|| {
+                let mut error = failure(ErrorCode::INVALIDARGUMENT);
+                error.message =
+                    "Preview this mapping and review a normalized bar before saving.".into();
+                error
+            })?;
+        port.read_file(folder, file, Some(binding.source_sha256))
+            .await?;
+        let guard = MappingGuard {
+            cancel: Arc::clone(&port.cancel),
+            folders: Arc::clone(&self.folders),
+            folder,
+        };
+        workspace
+            .save(source_key, header, input.mapping, guard)
+            .await
+    }
+
+    pub(super) async fn load_mapping(
+        &self,
+        workspace: &WorkspaceBridge,
+        payload: Value,
+        request_id: Option<&str>,
+    ) -> Result<Value, Error> {
+        let input = load_mapping_input(Actor::LocalUser, payload)?;
+        let (_slot, mut port) = self.reserve(request_id)?;
+        let folder = folder_id(&input.folder_id)?;
+        let file = file_id(&input.file_id)?;
+        let source_key = self
+            .folders
+            .source_key(folder, file)
+            .map_err(folder_failure)?;
+        let record = workspace.find(source_key).await?;
+        port.check_live(folder)?;
+        let Some(record) = record else {
+            return load_mapping_output(Actor::LocalUser, None, None);
+        };
+        let mut mapping = record.mapping.clone();
+        // Inspect the current header without applying any of the saved field roles.
+        mapping.record_kind = "unclassified".into();
+        let (_, preview) = preview_local_import(
+            Actor::LocalUser,
+            json!({
+                "version": 1,
+                "folder_id": input.folder_id,
+                "file_id": input.file_id,
+                "mapping": mapping,
+                "row_limit": 1,
+            }),
+            &mut port,
+        )
+        .await?;
+        let output = load_mapping_output(Actor::LocalUser, Some(record), Some(&preview));
+        port.check_live(folder)?;
+        output
     }
 
     pub(super) fn cancel(&self, request_id: &str) {
-        let state = self.state.lock().expect("preview state");
+        if !valid_request_id(request_id) {
+            return;
+        }
+        let mut state = self.state.lock().expect("preview state");
         if let Some((Some(id), cancel)) = &state.active
             && id == request_id
         {
             cancel.cancel();
+        } else if !state.closing && !state.early_cancellations.iter().any(|id| id == request_id) {
+            // A native cancel can arrive before the asynchronous execute call.
+            if state.early_cancellations.len() == MAX_EARLY_CANCELLATIONS {
+                state.early_cancellations.pop_front();
+            }
+            state.early_cancellations.push_back(request_id.to_owned());
         }
     }
 
@@ -161,6 +372,7 @@ impl LocalImport {
         {
             let mut state = self.state.lock().expect("preview state");
             state.closing = true;
+            state.reviewed = None;
             if let Some((_, cancel)) = &state.active {
                 cancel.cancel();
             }
@@ -171,6 +383,10 @@ impl LocalImport {
         let _admission = self.admission.lock().await;
         release.await.expect("local folder shutdown");
     }
+}
+
+fn valid_request_id(id: &str) -> bool {
+    !id.is_empty() && id.len() <= 64 && id.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'-')
 }
 
 fn catalog_metadata(catalog: FolderCatalog) -> Value {
@@ -206,7 +422,7 @@ struct PreviewPort<'a> {
 
 impl PreviewPort<'_> {
     fn check_live(&self, folder: FolderId) -> Result<(), Error> {
-        if self.cancel.file.is_cancelled() {
+        if self.cancel.is_cancelled() {
             return Err(failure(ErrorCode::CANCELLED));
         }
         self.host
@@ -227,22 +443,13 @@ impl PreviewPort<'_> {
         }
     }
 
-    async fn read_preview(&self, request: &LocalImportPreviewInput) -> Result<Value, Error> {
-        let folder = folder_id(request)?;
-        let file: FileId = request
-            .file_id
-            .parse()
-            .map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
-        if file.to_string() != request.file_id {
-            return Err(failure(ErrorCode::INVALIDARGUMENT));
-        }
-        let expected_sha256 = request.expected_sha256.clone();
-        let config = self
-            .host
-            .config
-            .as_ref()
-            .ok_or_else(|| failure(ErrorCode::PROVIDERNOTCONFIGURED))?;
-
+    async fn read_file(
+        &self,
+        folder: FolderId,
+        file: FileId,
+        expected_sha256: Option<String>,
+    ) -> Result<FrozenFile, Error> {
+        self.check_live(folder)?;
         let folders = Arc::clone(&self.host.folders);
         let cancel = Arc::clone(&self.cancel);
         let read = tokio::task::spawn_blocking(move || {
@@ -257,6 +464,20 @@ impl PreviewPort<'_> {
             result = read => result.map_err(|_| failure(ErrorCode::INTERNALERROR))?.map_err(folder_failure)?,
         };
         self.check_live(folder)?;
+        Ok(frozen)
+    }
+
+    async fn read_preview(&self, request: &LocalImportPreviewInput) -> Result<Value, Error> {
+        let folder = folder_id(&request.folder_id)?;
+        let file = file_id(&request.file_id)?;
+        let config = self
+            .host
+            .config
+            .as_ref()
+            .ok_or_else(|| failure(ErrorCode::PROVIDERNOTCONFIGURED))?;
+        let frozen = self
+            .read_file(folder, file, request.expected_sha256.clone())
+            .await?;
         let bytes = frozen.content.as_deref().ok_or_else(|| {
             let mut error = failure(ErrorCode::RESOURCELIMIT);
             error.message =
@@ -286,6 +507,7 @@ impl PreviewPort<'_> {
         let preview = preview.map_err(|mut error| {
             if error.code == ErrorCode::RESOURCELIMIT {
                 error.message = "The preview exceeds the response budget. Request fewer rows or select a smaller CSV file.".into();
+                error.details.insert("sha256".into(), json!(frozen.sha256));
             }
             error
         })?;
@@ -304,7 +526,7 @@ impl PreviewPort<'_> {
 
 impl LocalImportPort for PreviewPort<'_> {
     fn ensure_live(&self, input: &LocalImportPreviewInput) -> Result<(), Error> {
-        self.check_live(folder_id(input)?)
+        self.check_live(folder_id(&input.folder_id)?)
     }
 
     fn preview<'a>(&'a mut self, input: &'a LocalImportPreviewInput) -> MarketFuture<'a> {
@@ -312,12 +534,21 @@ impl LocalImportPort for PreviewPort<'_> {
     }
 }
 
-fn folder_id(input: &LocalImportPreviewInput) -> Result<FolderId, Error> {
+fn folder_id(input: &str) -> Result<FolderId, Error> {
     let id: FolderId = input
-        .folder_id
         .parse()
         .map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
-    if id.to_string() != input.folder_id {
+    if id.to_string() != input {
+        return Err(failure(ErrorCode::INVALIDARGUMENT));
+    }
+    Ok(id)
+}
+
+fn file_id(input: &str) -> Result<FileId, Error> {
+    let id: FileId = input
+        .parse()
+        .map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
+    if id.to_string() != input {
         return Err(failure(ErrorCode::INVALIDARGUMENT));
     }
     Ok(id)
