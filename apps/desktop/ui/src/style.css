@@ -197,3 +197,7 @@ th { position: sticky; top: 0; background: var(--surface); color: var(--muted); 
 .private-record-body section .private-record-actions { margin-top: 12px; }
 .private-record-detail ol { display: grid; gap: 10px; padding-left: 22px; }
 .private-record-detail p { white-space: pre-wrap; }
+
+.private-review-target { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 10px; }
+.private-review-target dd { margin: 0; font-weight: 620; }
+.private-record-editor > section { margin: 8px 0; }

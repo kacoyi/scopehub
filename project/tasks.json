@@ -389,7 +389,7 @@
         "local-import-publication"
       ],
       "evidence": [],
-      "next_action": "Carry the profile-local v8 evidence and the runnable state-migrations gate into M2-001 integration alongside the selected chart and native CSV checks. Combine with the separate source-matched Windows validation before handoff.",
+      "next_action": "Have the coordinator independently confirm the two-window private-record repair on the integrated branch. Carry the local Chromium and SQLite regression evidence into the source-matched task and Windows verification.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -426,6 +426,7 @@
           "Restore stages can retain only pending inserts and release them when the revision changes, a deadline expires or the session ends. Revision-based projection refresh can preserve a surviving note's unsubmitted outcome draft while clearing deleted list entries and details.",
           "The published single-series CSV revision UUID identifies the frozen chart and scopes its instrument identity. Derive the history-chain-v1 hash from the exact stored bars. Use the exclusive bar-start coverage bound as the deterministic cutoff for this closed-bar source, which carries no observation clock.",
           "Native publication browsing can use stored v5 revision summaries while v6 selection and projected chart reads continue through scoped workspace permissions. Opening a library row follows the same revocation checks as opening by revision ID.",
+          "Two real browser windows sharing a workspace must clear unavailable private bodies and invalid reviews. If a peer corrects a record that remains authorized, preserve the local draft and explicitly review it against the current record. Independent pending approvals on one writer are bounded and cancellation is scoped to the exact challenge. Restore reports all current surviving records, including those absent from the archive.",
           "A private records panel reachable from the native and enabled Ubuntu workspace serves all three types through one typed read and write contract. Manual capture keeps existing transient conversation and speech flows independent.",
           "A bounded logical private-record archive can merge missing records and the union of known tombstones without retaining prior bodies, outbound grants or a secondary search index.",
           "Use the workspace revision and the selected record revision for correction and deletion. A revision-bound local approval stages only the pending changes. Committing and replaying use a random challenge with no private body or fingerprint in the approval request, log or receipt. The state-migrations gate runs the persistence suite without a name filter. It covers genuine v1–v7 fixtures, rollback and reopen, private archive recovery, deletion cleanup and refusal of restored approval or outbound access."

@@ -1,5 +1,5 @@
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     sync::{Arc, Mutex, MutexGuard, mpsc},
     thread,
     time::Instant,
@@ -41,6 +41,7 @@ const MAX_RECORD_BYTES: usize = 8 * 1024;
 const MAX_BACKUP_BYTES: usize = 512 * 1024;
 const MAX_RECORDS: usize = 48;
 const MAX_IDENTITIES: usize = 1024;
+const MAX_PENDING_CHANGES: usize = 8;
 
 pub struct PrivateRecordPlan {
     pub record_id: Option<String>,
@@ -84,23 +85,18 @@ struct PendingChange {
 }
 
 #[derive(Default)]
-pub(crate) struct PrivateRecordStaging(Arc<Mutex<Option<PendingChange>>>);
+pub(crate) struct PrivateRecordStaging(Arc<Mutex<HashMap<Uuid, PendingChange>>>);
 
 impl PrivateRecordStaging {
-    fn pending(&self) -> MutexGuard<'_, Option<PendingChange>> {
+    fn pending(&self) -> MutexGuard<'_, HashMap<Uuid, PendingChange>> {
         self.0
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
 
     pub(super) fn observe(&self, revision: Revision) {
-        let mut pending = self.pending();
-        if pending
-            .as_ref()
-            .is_some_and(|stage| stage.scope.expected_workspace_revision < revision)
-        {
-            pending.take();
-        }
+        self.pending()
+            .retain(|_, stage| stage.scope.expected_workspace_revision >= revision);
     }
 
     pub(super) fn observe_local_access(&self, access: &WorkspaceAccess<'_>) {
@@ -110,13 +106,8 @@ impl PrivateRecordStaging {
         {
             return;
         }
-        let mut pending = self.pending();
-        if pending
-            .as_ref()
-            .is_some_and(|stage| stage.principal_id == access.principal_id)
-        {
-            pending.take();
-        }
+        self.pending()
+            .retain(|_, stage| stage.principal_id != access.principal_id);
     }
 
     fn install(&self, stage: PendingChange, wait: mpsc::Receiver<()>) -> Result<(), Error> {
@@ -124,6 +115,13 @@ impl PrivateRecordStaging {
         let id = stage.id;
         let expires = stage.expires;
         let mut pending = self.pending();
+        let same_request = |other: &PendingChange| {
+            other.principal_id == stage.principal_id
+                && other.scope.idempotency_key == stage.scope.idempotency_key
+        };
+        if pending.len() >= MAX_PENDING_CHANGES && !pending.values().any(same_request) {
+            return Err(failure(ErrorCode::RESOURCELIMIT));
+        }
         thread::Builder::new()
             .name("private-record-deadline".into())
             .spawn(move || {
@@ -132,24 +130,23 @@ impl PrivateRecordStaging {
                     Err(mpsc::RecvTimeoutError::Timeout)
                 ) && let Some(state) = weak.upgrade()
                 {
-                    let mut stage = state
+                    state
                         .lock()
-                        .unwrap_or_else(std::sync::PoisonError::into_inner);
-                    if stage.as_ref().is_some_and(|stage| stage.id == id) {
-                        stage.take();
-                    }
+                        .unwrap_or_else(std::sync::PoisonError::into_inner)
+                        .remove(&id);
                 }
             })
             .map_err(|_| failure(ErrorCode::INTERNALERROR))?;
         // Only this registry owns the strong reference and the pending draft.
-        *pending = Some(stage);
+        pending.retain(|_, previous| !same_request(previous));
+        pending.insert(id, stage);
         Ok(())
     }
 }
 
 impl Drop for PrivateRecordStaging {
     fn drop(&mut self) {
-        self.pending().take();
+        self.pending().clear();
     }
 }
 
@@ -339,16 +336,15 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             }
             let mut pending = self.private_record_stage.pending();
             let stage = pending
-                .as_ref()
+                .get(&challenge)
                 .filter(|stage| {
-                    stage.id == challenge
-                        && stage.principal_id == key.principal_id
+                    stage.principal_id == key.principal_id
                         && stage.scope == scope
                         && Instant::now() < stage.expires
                 })
                 .ok_or_else(|| failure(ErrorCode::CONFIRMATIONREQUIRED))?;
             if !approving {
-                pending.take();
+                pending.remove(&challenge);
                 return Ok((
                     reply.failed(&private_record_failure(ErrorCode::CANCELLED))?,
                     false,
@@ -577,13 +573,13 @@ fn plan_restore(
         validate_content(&entry.content)?;
         if deletions.contains(&entry.record_id) {
             plan.summary.suppressed += 1;
-        } else if records.contains(&entry.record_id) {
-            plan.summary.kept += 1;
-        } else {
+        } else if !records.contains(&entry.record_id) {
             plan.added.push(entry);
         }
     }
-    check_capacity(records.len() - removed + plan.added.len(), deletions.len())?;
+    let kept = records.len() - removed;
+    check_capacity(kept + plan.added.len(), deletions.len())?;
+    plan.summary.kept = kept as u64;
     plan.summary.added = plan.added.len() as u64;
     plan.summary.removed = removed as u64;
     plan.summary.imported_deletions = plan.deletions.len() as u64;

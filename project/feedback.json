@@ -2,6 +2,22 @@
   "schema_version": "1.0",
   "items": [
     {
+      "id": "private-record-multiwindow-review",
+      "source": "Independent t47 review of 8c9d27f, recorded in the M2-001 Herdr review terminal.",
+      "observation": "The synthetic two-window fixture retained a deleted memory on writer loss, discarded a local draft on peer correction, and kept a stale deletion review visible after known removal. Reviews omitted record identity. The reviewer identified cross-window cancellation interference and found that restore preview accounts only for current records also in the archive. The unchanged 57a9cab runtime reproduced those findings through the real Chromium and Rust routes. The repair passed six local Chromium lifecycle and review cases and the SQLite persistence suite. Independent confirmation remains pending.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "private-record-lifecycle"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
       "id": "published-evidence-ui-retains-revoked-content",
       "source": "Independent Chromium review at cecda1c in .reports/independent-evidence-cecda1c/browser-observations.json.",
       "observation": "After real peer revocation and focus refresh, the rendered inspection retained a close. Explicit refresh removed that inspection but retained the frozen chart, source SHA-256 and expandable published source rows. The focused baseline Chromium run in .reports/evidence-revocation-red-1461/results.json also reproduced a delayed formerly authorized chart body reappearing after revocation. The corrected Chromium workspace and native-bridge browser checks in .reports/runs/20261119T161404.568704Z-6c3e3adc removed the inspection, chart, source SHA-256 and rows, rejected delayed redisplay and preserved other authorized display and independent live-folder access.",
