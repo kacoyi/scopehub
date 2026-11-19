@@ -1633,6 +1633,23 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "revision-entitlement-probe-competes-with-open",
+      "source": "Standard-user Windows 11 WebView2 and native Rust trace at dbdd831, with the real single-file and folder source-row workflow.",
+      "observation": "Immediately after a folder revision was revoked, the same-window single-file open returned BUSY while its simultaneous frozen_chart_status succeeded. The earlier workspace reload and single-file enumeration had already completed. Both the folder and the single-file reads succeeded independently. The first failed attempt showed The market worker is busy and no chart.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "local-folder-refresh-preview",
+        "local-import-publication",
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
