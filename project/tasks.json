@@ -813,7 +813,7 @@
         "project-state"
       ],
       "evidence": [],
-      "next_action": "Verify the three independent review findings against the final ordinary chart, then archive the interruption, recovery and frozen snapshot evidence together.",
+      "next_action": "Verify replacement coverage and the two returned repair bars against the original digest format. After independent review, archive the complete interruption and repaired/unrepaired chart evidence.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -865,6 +865,13 @@
               "rust-contracts-workers",
               "market-recovery",
               "market-worker-interruption"
+            ]
+          },
+          {
+            "failure": "The same row digest hides changed visible coverage or a structurally valid repair frame carries different bars from its declared digest.",
+            "checks": [
+              "rust-contracts-workers",
+              "market-recovery"
             ]
           }
         ],

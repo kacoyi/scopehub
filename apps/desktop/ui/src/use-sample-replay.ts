@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { MarketStreamGap, MarketStreamGapEvent, MarketSubscriptionOutput } from '../../../../contracts/generated/protocol';
 import { describeMarketFailure, invalidMarketData, readStreamPosition, type Bar, type ChartHistory, type MarketFailure } from './market';
-import { projectClosedBarRepair } from './market-repair';
+import { projectClosedBarRepair, validateClosedBarRepair, type ClosedBarRepair } from './market-repair';
 import { samePosition, subscribeSample, type ReplayRecoveryStatus } from './market-replay';
 
 export type ReplayGap = {
@@ -56,15 +56,15 @@ export function useSampleReplay(history: ChartHistory | undefined) {
         subscription?: MarketSubscriptionOutput;
         recovery?: ReplayRecoveryStatus;
         gapEvent?: MarketStreamGapEvent;
-        repairedBars?: readonly Bar[];
+        repair?: ClosedBarRepair;
       } = {};
       let sequence = after.sequence;
       let observed = snapshot.as_of_ms;
       const result = await subscribeSample({ series: snapshot.series, snapshot, after }, signal, frame => {
         if (signal.aborted) return;
         if ('repair' in frame) {
-          if (!stream.gapEvent || stream.repairedBars) throw invalidMarketData();
-          stream.repairedBars = projectClosedBarRepair(frame.repair, history, stream.gapEvent, bar, observed);
+          if (!stream.gapEvent || stream.repair) throw invalidMarketData();
+          stream.repair = validateClosedBarRepair(frame.repair, history, stream.gapEvent, bar, observed);
           return;
         }
         if (gap) throw invalidMarketData();
@@ -123,10 +123,19 @@ export function useSampleReplay(history: ChartHistory | undefined) {
         hasUpdate = true;
         update({ state: stream.recovery === 'resumed' ? 'resumed' : 'playing' });
       });
-      if (stream.repairedBars) {
+      if (stream.repair) {
         if (result?.status !== 'complete') throw invalidMarketData();
+        signal.throwIfAborted();
+        const repairedBars = await projectClosedBarRepair(stream.repair, history);
+        signal.throwIfAborted();
+        if (!repairedBars) {
+          update({ state: 'failed', failure: {
+            kind: 'invalid-data', message: 'The closed-bar repair could not be verified.', retryable: false,
+          } });
+          return;
+        }
         gap = undefined;
-        update({ state: 'complete' }, stream.repairedBars);
+        update({ state: 'complete' }, repairedBars);
       } else if (result?.status === 'gapped' && typeof result.reason === 'string') {
         if ((gap && gap.reason !== result.reason)
           || (stream.subscription?.status === 'backfill_required' && stream.subscription.reason !== result.reason)) {

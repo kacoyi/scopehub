@@ -903,6 +903,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "market-recovery-replacement-coverage-and-bar-digest",
+      "source": "Independent follow-up review of 2d55f0a using the real provider and captured bridge frames.",
+      "observation": "A same-hash replacement page declared a new visible gap while recovery still allowed completion. Altering the missing closed bar volume from 90 to 91 on an otherwise genuine repair frame retained its original digest and the chart accepted the altered value.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-003"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "market-recovery"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

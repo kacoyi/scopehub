@@ -77,6 +77,17 @@ async function expectGap(page) {
   await expect(legend(page)).toContainText(/C 3501\.2Volume 120.*Partial bar/);
 }
 
+async function trackProjection(page) {
+  await chart(page).evaluate(element => {
+    const counts = [element.getAttribute('data-bars')];
+    const observer = new MutationObserver(records => {
+      counts.push(...records.map(record => record.oldValue), element.getAttribute('data-bars'));
+    });
+    observer.observe(element, { attributes: true, attributeOldValue: true, attributeFilter: ['data-bars'] });
+    window.closedBarProjectionCounts = counts;
+  });
+}
+
 test('a real verified repair adds the missing closed minute to the existing chart and keeps its source rows fixed', async ({ page }, testInfo) => {
   const calls = [];
   page.on('request', request => {
@@ -164,6 +175,56 @@ test('a held bridge reply keeps the gap until the valid repair and complete are 
   await expect(chart(page)).toHaveAttribute('data-bars', '40');
 });
 
+for (const action of ['stop', 'reselect']) {
+  test(`${action} cancels the chart projection while the final repair digest is pending`, async ({ page }) => {
+    const pageErrors = [];
+    page.on('pageerror', error => pageErrors.push(error.message));
+    await page.addInitScript(() => {
+      const subtle = crypto.subtle;
+      const digest = subtle.digest.bind(subtle);
+      const held = Promise.withResolvers();
+      window.releaseClosedBarDigest = held.resolve;
+      let calls = 0;
+      subtle.digest = async (...args) => {
+        const call = ++calls;
+        const result = await digest(...args);
+        // The seed and two bars use one SHA-256 call each.
+        if (call === 3) {
+          window.closedBarDigestHeld = true;
+          await held.promise;
+        }
+        return result;
+      };
+    });
+    await openRepairSample(page, 'repairable');
+    await trackProjection(page);
+    await play(page);
+    await page.waitForFunction(() => window.closedBarDigestHeld);
+    expect((await captureFrames(page)).at(-1)).toEqual({ ok: true, result: { status: 'complete' } });
+    await expectGap(page);
+
+    if (action === 'stop') {
+      await control(page, 'Stop replay').click();
+      await expect(chart(page)).toHaveAttribute('data-bars', '39');
+      await expect(legend(page)).toContainText(/C 3500\.8Volume 110.*Partial bar/);
+    } else {
+      await control(page, '5m').click();
+      await expect(chart(page)).toHaveAttribute('data-timeframe', '5m');
+      await expect(chart(page)).toHaveAttribute('data-bars', '8');
+    }
+    await page.evaluate(async () => {
+      window.releaseClosedBarDigest();
+      // Allow the completed digest and resulting React updates to reach the view.
+      await new Promise(requestAnimationFrame);
+      await new Promise(requestAnimationFrame);
+    });
+    expect(await page.evaluate(() => window.closedBarProjectionCounts)).not.toContain('40');
+    await expect(page.getByText('Closed-bar gap repaired in chart', { exact: true })).toHaveCount(0);
+    await expect(page.locator('.replay-status')).toHaveCount(0);
+    expect(pageErrors).toEqual([]);
+  });
+}
+
 test('a worker-exited terminal leaves an already visible gap and discards a staged repair', async ({ page }) => {
   await holdRepair(page, { ok: false, error: { code: 'WORKER_EXITED', retryable: true } });
   await openRepairSample(page, 'repairable');
@@ -178,12 +239,17 @@ test('a worker-exited terminal leaves an already visible gap and discards a stag
   await readFrozenRows(page);
 });
 
-for (const [name, alter] of [
+for (const [name, alter, failure = 'The data response failed validation.'] of [
   ['wrong repair cursor', frames => { frames[3].repair.position.sequence--; }],
   ['wrong repair bounds', frames => { frames[3].repair.snapshot.from_ms--; }],
   ['an update in place of a repair', frames => { frames[3] = frames[1]; }],
   ['complete without a repair', frames => { frames.splice(3, 1); }],
   ['a repair with a gapped terminal', frames => { frames[4].result = { status: 'gapped', reason: 'sequence_gap' }; }],
+  ['a missing-minute volume changed from 90 to 91 with the original repair digest', frames => {
+    expect(frames[3].repair.bars[0].volume).toBe(90);
+    expect(frames[3].repair.snapshot.content_hash).toMatch(/^[0-9a-f]{64}$/);
+    frames[3].repair.bars[0].volume = 91;
+  }, 'The closed-bar repair could not be verified.'],
 ]) {
   test(`a bridge reply altered to carry ${name} leaves the gap visible`, async ({ page }) => {
     await page.route(`**${stream}`, async route => {
@@ -193,9 +259,11 @@ for (const [name, alter] of [
       await route.fulfill({ status: 200, contentType: 'application/x-ndjson', body: frames.map(frame => JSON.stringify(frame) + '\n').join('') });
     });
     await openRepairSample(page, 'repairable');
+    await trackProjection(page);
     await play(page);
-    await expect(page.getByRole('alert')).toHaveText('Replay failed. The data response failed validation.');
+    await expect(page.getByRole('alert')).toHaveText(`Replay failed. ${failure}`);
     await expectGap(page);
+    expect(await page.evaluate(() => window.closedBarProjectionCounts)).not.toContain('40');
     await readFrozenRows(page);
   });
 }
