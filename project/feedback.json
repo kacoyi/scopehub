@@ -1848,6 +1848,21 @@
         "prevention": "Both single-file and folder controls reproduced BUSY before the change. The native Windows same-window operation opened the independently entitled file in one read after folder revocation. Real Chromium with a peer writer still suppressed a formerly authorized response after revocation."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "workspace-sample-reopen-transport-terminal",
+      "source": "Ubuntu PR run 44601667278 at head 4aeddf2, merged test checkout 611de0d, workspace-timeframe screenshot and failure.",
+      "observation": "On the second explicit 1m sample open, the catalog displayed three instruments and the chart showed a disconnected local preview with Retry history. The assertion reported only a missing history element after five seconds. The other 23 workspace scenarios passed.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-010"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
