@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-008",
+  "focus_task_id": "M3-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -616,7 +616,7 @@
       "id": "M3-001",
       "title": "Deliver reproducible indicator previews and accepted versions",
       "milestone": "M3",
-      "status": "planned",
+      "status": "active",
       "depends_on": [
         "M2-001"
       ],
@@ -639,12 +639,115 @@
         "Pin the visible and warm-up windows, exact snapshot and resolved typed parameters through confirmation, preview terminal result and durable acceptance. Run the independent numeric and approved trusted-Python examples in indicator-preview. Inspect output after cache clearing, revocation and restart without rerunning Python."
       ],
       "checks": [
-        "indicator-workflow"
+        "indicator-declarative-preview",
+        "indicator-workflow",
+        "generated-contracts",
+        "market-workflow",
+        "operations-workflow",
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "state-migrations",
+        "typescript-contracts",
+        "ui-build"
       ],
       "evidence": [],
-      "next_action": "Implement the indicator engine and preview-to-acceptance workflow.",
+      "next_action": "Build immutable acceptance, removal and restoration on the confirmed layout v9 checkpoint 5eebdb9. Keep the verified declarative preview and complete the separately approved trusted-Python slice before task closure.",
       "blocker": null,
-      "closure_reason": null
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A user previews a declarative indicator on a real frozen chart, compares it with accepted output, accepts one immutable result, and restores that result with its exact input and typed parameters while current rights permit.",
+        "change_types": [
+          "indicators",
+          "protocol",
+          "ui",
+          "permissions",
+          "persistence"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/schemas/protocol.schema.json",
+          "project/delivery.json",
+          "crates/application/src/workspace.rs",
+          "apps/desktop/ui/src/chart-adapter/history.ts"
+        ],
+        "hypotheses": [
+          "The existing frozen-history and source-rights paths can supply exact on-device indicator input without another market reader.",
+          "A bounded, typed declarative evaluator and independent preview lifetime can run before the durable layout checkpoint lands."
+        ],
+        "risks": [
+          {
+            "failure": "The preview uses a different revision, skips a missing calendar bucket, ignores typed defaults or evaluates out of range.",
+            "checks": [
+              "indicator-workflow",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A failed, cancelled or unauthorized preview changes the chart or accepted output, or a stale result is accepted.",
+            "checks": [
+              "indicator-workflow",
+              "operations-workflow"
+            ]
+          },
+          {
+            "failure": "A failed v10 migration damages v9 layout data, or restart or revocation discloses accepted results improperly.",
+            "checks": [
+              "indicator-workflow",
+              "state-migrations"
+            ]
+          }
+        ],
+        "rollback": "Keep preview state disposable and independent of accepted layers. On failed acceptance roll back all durable changes together. Verify an interrupted v10 migration against the populated v9 layout checkpoint before retrying.",
+        "implementation": {
+          "modules": [
+            "domain",
+            "application",
+            "persistence",
+            "desktop",
+            "ui"
+          ],
+          "entrypoints": [
+            "crates/application/src/lib.rs",
+            "crates/application/src/workspace.rs",
+            "apps/desktop/src-tauri/src/bridge.rs",
+            "apps/desktop/ui/src/chart-adapter/history.ts",
+            "contracts/schemas/protocol.schema.json"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/indicators"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization/data_purposes"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scenarios"
+            }
+          ],
+          "non_goals": [
+            "External data transmission, unrestricted commands, automatic trusted execution, and changes to the layout migration."
+          ],
+          "open_questions": [
+            "The layout owner confirmed 5eebdb9 as the real v9 checkpoint. Compose that source before implementing v10 and verify preservation on a populated v9 database.",
+            "Trusted, user-selected Python and per-run approval remain a later slice of M3-001."
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Shared registry, frozen chart history, local source rights, market rendering and existing durable workspace state."
+          ],
+          "change": [
+            "Validate and execute typed declarative drafts with cancellable preview lifetimes.",
+            "Accept a matching result at most once and recheck current rights when restoring visible output."
+          ],
+          "data_plan": "Pin the immutable input revision, series, as-of, visible and warm-up bounds, input hash, code identity, engine and resolved typed parameters. Persist validated output and provenance with a workspace operation receipt after coordinating v9.",
+          "cleanup": "Dispose cancelled or superseded previews and isolate validation failures. Retain accepted artifacts independently of disposable preview state. Restore only entitled output and never rerun code on restore."
+        }
+      }
     },
     {
       "id": "M4-001",

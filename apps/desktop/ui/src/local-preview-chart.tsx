@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
-import type { Bar, LocalImportPreviewOutput, PreviewSeries, ReadLocalFolderRevisionOutput } from '../../../../contracts/generated/protocol';
+import type { Bar, IndicatorResult, LocalImportPreviewOutput, PreviewSeries, ReadLocalFolderRevisionOutput } from '../../../../contracts/generated/protocol';
 import type { ChartStyle, HistoryChartHandle } from './chart-adapter/history';
 import { FrozenEvidenceControls, type FrozenChartResult } from './frozen-evidence';
+import { IndicatorPreview } from './indicator-preview';
 import { PriceChart } from './price-chart';
 import type { PublishedRevisionAccess } from './published-revision-access';
 import type { LocalWorkspace } from './use-local-workspace';
@@ -15,9 +16,10 @@ type ChartProps = {
   bars: readonly Bar[] | undefined;
   emptyMessage?: string;
   controls?: ReactNode;
+  indicatorPreview?: IndicatorResult | undefined;
 };
 
-function LocalBarChart({ title, label, styleLabel, series, symbol, bars, emptyMessage, controls }: ChartProps) {
+function LocalBarChart({ title, label, styleLabel, series, symbol, bars, emptyMessage, controls, indicatorPreview }: ChartProps) {
   const [style, setStyle] = useState<ChartStyle>('candlestick');
   const handle = useRef<HistoryChartHandle | null>(null);
   const projection = useMemo(() => {
@@ -43,7 +45,7 @@ function LocalBarChart({ title, label, styleLabel, series, symbol, bars, emptyMe
     {projection && series ? <>
       <div className="local-chart-canvas">
         <PriceChart instrument={projection.instrument} history={projection.history} handle={handle} style={style}
-          cursor="crosshair" replayBar={undefined} repairedBars={undefined} />
+          cursor="crosshair" replayBar={undefined} repairedBars={undefined} indicatorPreview={indicatorPreview} />
       </div>
       <footer className="chart-footer">
         <span>{series.venue} · {series.timezone}</span><span>Volume in {series.quantity_unit}</span><span>{series.price_adjustment}</span>
@@ -83,6 +85,7 @@ export function FrozenLocalChart({ result, workspace, access }: {
   result: FrozenChartResult; workspace: LocalWorkspace | undefined; access: PublishedRevisionAccess;
 }) {
   const [page, setPage] = useState(0);
+  const [indicatorPreview, setIndicatorPreview] = useState<IndicatorResult>();
   const { revision, bars: events } = result;
   const bars = useMemo(() => events.map(event => event.bar), [events]);
   const rows = useMemo(() => events.flatMap(({ bar, locators }) => locators.map(locator => ({ bar, locator }))), [events]);
@@ -91,7 +94,9 @@ export function FrozenLocalChart({ result, workspace, access }: {
   const last = Math.min(first + pageSize, rows.length);
   return <>
     <LocalBarChart title="Frozen chart" label="Frozen local CSV chart" styleLabel="Frozen chart style"
-      series={revision.series} symbol={revision.symbol} bars={bars} />
+      series={revision.series} symbol={revision.symbol} bars={bars} indicatorPreview={indicatorPreview} />
+    {result.snapshot && workspace && <IndicatorPreview snapshot={result.snapshot} bars={bars} workspace={workspace}
+      access={access} showResult={setIndicatorPreview} />}
     {result.snapshot && workspace && <FrozenEvidenceControls snapshot={result.snapshot} bars={bars} workspace={workspace} access={access} />}
     <section className="local-import-card" aria-label="Published source provenance">
       <h2>Published source provenance</h2>

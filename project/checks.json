@@ -185,6 +185,24 @@
       "cadence": "change"
     },
     {
+      "id": "indicator-declarative-preview",
+      "status": "implemented",
+      "purpose": "Exercise the shared registry and chart adapter with independent declarative preview values, warm-up, cancellation, invalid output and source revocation.",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs",
+        "--grep",
+        "indicator-preview"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
       "id": "indicator-workflow",
       "status": "planned",
       "purpose": "Verify deterministic indicators, output validation and failure isolation",

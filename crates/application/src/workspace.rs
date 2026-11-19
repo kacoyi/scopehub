@@ -21,9 +21,12 @@ use crate::{
 
 mod backup;
 mod evidence;
+mod indicators;
 mod notes;
 mod private_records;
 
+pub(crate) use indicators::IndicatorStage;
+pub use indicators::{CANCEL_INDICATOR_TASK, CREATE_INDICATOR_DRAFT, RUN_INDICATOR_PREVIEW};
 pub(crate) use private_records::PrivateRecordStaging;
 pub use private_records::{
     PRIVATE_RECORD_CHANGE, PRIVATE_RECORD_EXPORT, PRIVATE_RECORD_OPERATIONS, PRIVATE_RECORD_READ,
@@ -55,6 +58,9 @@ pub const LOCAL_WORKSPACE_OPERATIONS: &[&str] = &[
     UNDO,
     SELECT_EVIDENCE,
     READ_CHART_PROJECTION,
+    CREATE_INDICATOR_DRAFT,
+    RUN_INDICATOR_PREVIEW,
+    CANCEL_INDICATOR_TASK,
     DECISION_NOTE_SAVE,
     DECISION_NOTE_READ,
     DECISION_NOTE_APPEND_OUTCOME,
@@ -197,6 +203,9 @@ pub trait WorkspaceTransaction {
         revision_id: &str,
     ) -> Result<Option<crate::StoredLocalDataset>, Error>;
     fn local_evidence_display_allowed(&self, revision_id: &str) -> Result<bool, Error>;
+    fn indicator_compute_allowed(&self, _revision_id: &str) -> Result<bool, Error> {
+        Ok(false)
+    }
     fn chart_revision(&self) -> Result<Revision, Error>;
     fn replay(&self, key: &WorkspaceReplayKey<'_>) -> Result<Option<WorkspaceReplay>, Error>;
     fn undo_candidate(
@@ -386,9 +395,21 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         if evidence_operation_name(&request).is_some() {
             return self.execute_evidence_request(access, request);
         }
+        if request["operation"] == CANCEL_INDICATOR_TASK {
+            return self.cancel_indicator_job(access, &request);
+        }
         let name = request["intent"]["operation"]
             .as_str()
             .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
+        match name {
+            CREATE_INDICATOR_DRAFT => {
+                return self.execute_indicator(access, CREATE_INDICATOR_DRAFT, request);
+            }
+            RUN_INDICATOR_PREVIEW => {
+                return self.execute_indicator(access, RUN_INDICATOR_PREVIEW, request);
+            }
+            _ => {}
+        }
         if DECISION_NOTE_OPERATIONS.contains(&name) {
             let result = self.execute_decision_note(access, operation(name)?, request)?;
             if let Some(revision) =

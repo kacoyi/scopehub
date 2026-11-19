@@ -1,8 +1,8 @@
 import {
-  CandlestickSeries, ColorType, CrosshairMode, HistogramSeries, LineSeries, createChart,
-  type ISeriesApi, type Time, type UTCTimestamp,
+  CandlestickSeries, ColorType, CrosshairMode, HistogramSeries, LineSeries, createChart, createSeriesMarkers,
+  type ISeriesApi, type LineWidth, type SeriesMarker, type Time, type UTCTimestamp,
 } from 'lightweight-charts';
-import type { Bar, DatasetDescriptor, Instrument } from '../../../../../contracts/generated/protocol';
+import type { Bar, DatasetDescriptor, IndicatorResult, Instrument } from '../../../../../contracts/generated/protocol';
 
 export type ChartStyle = 'candlestick' | 'line';
 export type ChartCursorMode = 'crosshair' | 'pan';
@@ -21,6 +21,7 @@ export interface HistoryChartHandle {
   setStyle(style: ChartStyle): void;
   replaceBars(bars: readonly Bar[]): void;
   updateLast(bar: Bar): void;
+  setIndicatorPreview(result: IndicatorResult | undefined): void;
 }
 
 // Chart-library units and lifecycle stay inside this replaceable adapter.
@@ -88,6 +89,42 @@ export function mountHistoryChart(
     const volumes = chart.addSeries(HistogramSeries, { priceFormat: { type: 'volume' }, priceLineVisible: false, lastValueVisible: false }, 1);
     volumes.setData(bars.map(volume));
     chart.panes()[1]?.setHeight(100);
+    const markerPositions = { above: 'aboveBar', below: 'belowBar', on: 'inBar' } as const;
+    let markerPlugin = createSeriesMarkers<Time>(priceSeries, []);
+    let indicatorMarkers: SeriesMarker<Time>[] = [];
+    let indicatorSeries: (ISeriesApi<'Line'> | ISeriesApi<'Histogram'>)[] = [];
+
+    function setIndicatorPreview(result: IndicatorResult | undefined) {
+      const nextSeries: typeof indicatorSeries = [];
+      const panes = new Map<string, number>();
+      const markers = (result?.markers ?? []).map(marker => ({
+        time: (marker.time_ms / 1000) as UTCTimestamp, position: markerPositions[marker.position],
+        shape: 'circle' as const, color: marker.color, text: marker.label,
+      }));
+      try {
+        for (const spec of result?.series ?? []) {
+          const pane = spec.pane === 'price' ? 0 : panes.get(spec.pane) ?? chart.panes().length;
+          if (pane !== 0) panes.set(spec.pane, pane);
+          const options = { color: spec.style.color, lastValueVisible: false, priceLineVisible: false };
+          const series = spec.type === 'line'
+            ? chart.addSeries(LineSeries, { ...options, lineWidth: spec.style.width as LineWidth, lineStyle: 2 }, pane)
+            : chart.addSeries(HistogramSeries, options, pane);
+          nextSeries.push(series);
+          series.setData(spec.points.map(point => {
+            const time = (point.time_ms / 1000) as UTCTimestamp;
+            return point.value === null ? { time } : { time, value: point.value };
+          }));
+        }
+        markerPlugin.setMarkers(markers);
+      } catch (error) {
+        for (const series of nextSeries) chart.removeSeries(series);
+        throw error;
+      }
+      for (const series of indicatorSeries) chart.removeSeries(series);
+      indicatorSeries = nextSeries;
+      indicatorMarkers = markers;
+    }
+
     const timeScale = chart.timeScale();
     timeScale.fitContent();
 
@@ -140,8 +177,10 @@ export function mountHistoryChart(
         if (nextStyle === style) return;
         const range = timeScale.getVisibleLogicalRange();
         const next = addPriceSeries(nextStyle);
+        markerPlugin.detach();
         chart.removeSeries(priceSeries);
         priceSeries = next;
+        markerPlugin = createSeriesMarkers(priceSeries, indicatorMarkers);
         style = nextStyle;
         if (range) timeScale.setVisibleLogicalRange(range);
       },
@@ -161,6 +200,7 @@ export function mountHistoryChart(
         const selected = (inspectedTime === undefined ? undefined : lookup.get(inspectedTime / 1000)) ?? bars.at(-1);
         if (selected) select(selected);
       },
+      setIndicatorPreview,
       updateLast(bar) {
         const previous = bars.at(-1);
         if (bar === previous || bar.time_ms !== previous?.time_ms) return;

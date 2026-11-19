@@ -392,26 +392,28 @@ function evidenceBars(a, b) {
   ];
 }
 
-async function seedFrozenEvidence(profile, id, a, b) {
+async function seedFrozenEvidence(profile, id, a, b, fixture = evidenceBars(a, b)) {
   const create = exec(workspaceBridge, [profile.root, profile.id, workspaceId], { timeout: 12_000 });
   create.child.stdin.end();
   await create;
   // Independent fixture inputs. The application reopens and verifies the actual
   // SQLite revision. No operation, authorization or chart reply is stubbed.
   const database = new DatabaseSync(join(profile.root, 'workspace.sqlite3'));
-  const csv = Buffer.from('Date,Symbol,Open,High,Low,Close,Volume\n2026-02-03,FIX,30,34,29,31.5,120\n2026-02-04,FIX,42,47,40,44.25,\n');
+  const csv = Buffer.from(['Date,Symbol,Open,High,Low,Close,Volume', ...fixture.map(bar =>
+    [bar.trading_day, 'FIX', bar.open, bar.high, bar.low, bar.close, bar.volume].join(',')), ''].join('\n'));
   const digest = createHash('sha256').update(csv).digest('hex');
   const mappingDigest = 'b'.repeat(64);
-  const bars = evidenceBars(a, b).map((bar, index) => ({
+  const bars = fixture.map((bar, index) => ({
     bar, locators: [{ record_number: index + 1, line_start: index + 2, line_end: index + 2 }],
   }));
+  const sourceKey = 'source-fixture-' + id;
   try {
     database.exec('PRAGMA foreign_keys = ON; BEGIN');
-    database.prepare('INSERT INTO reviewed_import_mappings VALUES (?, ?, ?, ?)').run('source-fixture', 1, 'a'.repeat(64), '{}');
+    database.prepare('INSERT INTO reviewed_import_mappings VALUES (?, ?, ?, ?)').run(sourceKey, 1, 'a'.repeat(64), '{}');
     database.prepare('INSERT INTO local_dataset_source_blobs VALUES (?, ?)').run(digest, csv);
     database.prepare('INSERT INTO local_dataset_revisions VALUES (?, ?, ?, ?, ?, ?, ?)').run(
-      id, 'source-fixture', 'frozen-fixture.csv', digest, 1, mappingDigest,
-      JSON.stringify({ symbol: 'FIX', series: evidenceSeries, source_record_count: 2, bars }),
+      id, sourceKey, 'frozen-fixture.csv', digest, 1, mappingDigest,
+      JSON.stringify({ symbol: 'FIX', series: evidenceSeries, source_record_count: bars.length, bars }),
     );
     database.exec('COMMIT');
   } finally {
@@ -447,6 +449,151 @@ function independentEvidenceHash(id, a, b) {
   }
   return result.toString('hex');
 }
+
+test('indicator-preview evaluates real frozen chart bytes and isolates failure and cancellation', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  const port = await freePort();
+  const id = randomUUID();
+  const other = randomUUID();
+  const day = 86_400_000;
+  const a = Date.parse('2026-02-03T00:00:00Z');
+  const makeBars = (closes, offsets) => closes.map((close, index) => ({
+    time_ms: a + offsets[index] * day, trading_day: new Date(a + offsets[index] * day).toISOString().slice(0, 10),
+    open: close, high: close, low: close, close, volume: index === 1 ? null : 10 + index, is_closed: true,
+  }));
+  const bars = makeBars([1, 3, 5], [0, 1, 2]);
+  const revised = makeBars([10, 14, 20], [0, 1, 3]);
+  const command = () => ({
+    protocol_version: '1.1', type: 'request', request_id: randomUUID(),
+    message_id: randomUUID(), timestamp_ms: Date.now(),
+  });
+  const mutation = (operation, args, target = { kind: 'chart', object_id: 'main-chart' }) => ({
+    ...command(), task_id: null, scope: {
+      workspace_id: workspaceId, target, expected_workspace_revision: 0,
+      expected_selection_revision: 0, idempotency_key: randomUUID(),
+    }, intent: { operation, arguments: args },
+  });
+  const status = task_id => ({ type: 'indicator_preview_status', request_id: randomUUID(), task_id });
+  const resultPoints = artifact => artifact.result.series.map(series => series.points.map(point => point.value));
+  const reply = async (server, body) => (await (await post(server, body)).json()).result;
+  const observation = {};
+  try {
+    await seedFrozenEvidence(profile, id, a, a + day, bars);
+    await seedFrozenEvidence(profile, other, a, a + day, revised);
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        await control(page, 'Open published CSV').click();
+        const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+        await dialog.getByLabel('Revision ID').fill(id);
+        const opened = page.waitForResponse(response => response.request().postDataJSON()?.type === 'frozen_chart');
+        await dialog.getByRole('button', { name: 'Open frozen chart' }).click();
+        const source = (await (await opened).json()).result.snapshot;
+        const chart = dialog.getByRole('region', { name: 'Frozen local CSV chart' });
+        const plot = chart.getByRole('img', { name: 'Candlestick and volume chart for FIX' });
+        await expect(plot).toBeVisible();
+        const initialCanvasCount = await plot.locator('canvas').count();
+        const preview = dialog.getByRole('region', { name: 'Indicator preview' });
+        const run = async () => {
+          const response = page.waitForResponse(async response => response.request().postDataJSON()?.type === 'indicator_preview_status'
+            && (await response.json()).result?.status === 'ready');
+          await preview.getByRole('button', { name: 'Run preview' }).click();
+          const terminal = (await (await response).json()).result;
+          expect(terminal.status).toBe('ready');
+          await expect(preview.getByText(/Preview layers/)).toBeVisible();
+          return terminal;
+        };
+        const first = await run();
+        expect(resultPoints(first.event.artifact)).toEqual([[null, 2, 4], [null, 1, 1]]);
+        expect(first.resolved_parameters).toEqual({ period: 2 });
+        expect(first.event.snapshot).toMatchObject({ dataset_id: id, from_ms: a, to_ms: a + 2 * day + 1, warmup_bars: 0 });
+        await expect.poll(() => plot.locator('canvas').count()).toBeGreaterThan(initialCanvasCount);
+        await expect(chart.getByText('The indicator layer could not be displayed.')).toHaveCount(0);
+        await preview.getByText('Preview provenance and values').click();
+        await expect(preview.getByRole('table', { name: 'Indicator preview values' }).getByRole('row').last())
+          .toContainText('2026-02-05T00:00:00.000Z41');
+
+        await preview.getByLabel('Rolling period').fill('3');
+        const second = await run();
+        expect(resultPoints(second.event.artifact)).toEqual([[null, null, 3], [null, null, Math.sqrt(8 / 3)]]);
+        expect(second.event.params_hash).not.toBe(first.event.params_hash);
+        expect(second.event.snapshot.content_hash).toBe(first.event.snapshot.content_hash);
+
+        await preview.getByLabel('First visible bar').selectOption(String(a + 2 * day));
+        const warmed = await run();
+        expect(warmed.event.snapshot).toMatchObject({ from_ms: a + 2 * day, to_ms: a + 2 * day + 1, warmup_bars: 2 });
+        expect(warmed.warmup_from_ms).toBe(a);
+        expect(warmed.event.snapshot.content_hash).not.toBe(second.event.snapshot.content_hash);
+        expect(resultPoints(warmed.event.artifact)).toEqual([[3], [Math.sqrt(8 / 3)]]);
+        const replayed = await reply(server, status(warmed.task_id));
+        expect(replayed).toEqual(warmed);
+
+        // Run another real revision and cancel a distinct staged job before delivery.
+        const alternate = await reply(server, { type: 'frozen_chart', request_id: randomUUID(), revision_id: other });
+        const target = frozen => ({
+          kind: 'chart_interval', snapshot: frozen, range: { from_ms: frozen.from_ms, to_ms: frozen.to_ms },
+        });
+        const constant = value => ({ op: 'constant', value });
+        const close = { op: 'field', field: 'close' };
+        const style = { color: '#001122', width: 2 };
+        const series = (id, value) => ({ kind: 'line', id, pane: 'price', style, value });
+        const draft = await reply(server, mutation('indicator.createDraft', { language: 'declarative', source: {
+          parameters: [{ type: 'number', name: 'threshold', default: 12 }],
+          outputs: [
+            series('mean', { op: 'rolling_mean', value: close, window: { periods: 2 } }),
+            series('volume', { op: 'field', field: 'volume' }),
+            { kind: 'marker_when', position: 'above', label: 'Above threshold', color: '#001122',
+              when: { op: 'gt', left: close, right: { op: 'number_parameter', name: 'threshold' } } },
+          ],
+        } }));
+        expect(draft.outcome.state).toBe('committed');
+        const submit = async frozen => {
+          const request = mutation('indicator.runPreview', {
+            draft_id: draft.outcome.result.draft_id, snapshot: frozen, parameters: [],
+          }, target(frozen));
+          return (await reply(server, request)).outcome.result.task_id;
+        };
+        const cancellable = await submit(source);
+        const remaining = await submit(alternate.snapshot);
+        const cancelled = await reply(server, { ...command(), operation: 'task.cancel', task_id: cancellable });
+        expect(cancelled.outcome).toEqual({ status: 'cancelled' });
+        expect((await reply(server, status(cancellable))).event.outcome).toEqual({ status: 'cancelled' });
+        await expect.poll(async () => (await reply(server, status(remaining))).status).toBe('ready');
+        const otherReady = await reply(server, status(remaining));
+        expect(resultPoints(otherReady.event.artifact)).toEqual([[null, 12, null], [10, null, 12]]);
+        expect(otherReady.event.artifact.result.markers.map(marker => marker.time_ms)).toEqual([a + day, a + 3 * day]);
+
+        const invalid = await reply(server, mutation('indicator.createDraft', { language: 'declarative', source: {
+          parameters: [], outputs: [series('overflow', { op: 'multiply', left: constant(1e308), right: constant(1e308) })],
+        } }));
+        const failed = await reply(server, mutation('indicator.runPreview', {
+          draft_id: invalid.outcome.result.draft_id, snapshot: source, parameters: [],
+        }, target(source)));
+        const failedId = failed.outcome.result.task_id;
+        await expect.poll(async () => (await reply(server, status(failedId))).status).toBe('terminal');
+        expect((await reply(server, status(failedId))).event.outcome).toMatchObject({
+          status: 'failed', error: { code: 'OUTPUT_INVALID' },
+        });
+        await expect(preview.getByText(/Period 3 · 2 warm-up bars/)).toBeVisible();
+        await expect(plot).toBeVisible();
+        expect((await reply(server, status(warmed.task_id))).event.artifact).toEqual(warmed.event.artifact);
+
+        const database = new DatabaseSync(join(profile.root, 'workspace.sqlite3'));
+        try {
+          database.prepare('INSERT INTO local_dataset_display_revocations (revision_id) VALUES (?)').run(other);
+        } finally {
+          database.close();
+        }
+        const withheld = await (await post(server, status(remaining))).json();
+        expect(withheld).toMatchObject({ ok: false, error: { code: 'PERMISSION_DENIED' } });
+        expect(withheld.result).toBeUndefined();
+        observation.preview = { initial: first.event.snapshot, warmed: warmed.event.snapshot, cancelled, withheld };
+      });
+    });
+    await testInfo.attach('indicator-preview', { body: JSON.stringify(observation), contentType: 'application/json' });
+  } finally {
+    await profile.close();
+  }
+});
 
 test('private decision notes require consent and retain the dated original separately from outcomes', async ({ browser }) => {
   const profile = await makeProfile();

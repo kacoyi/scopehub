@@ -138,7 +138,8 @@
       ],
       "input": "IndicatorCreateDraftInput",
       "output": "IndicatorCreateDraftOutput",
-      "implementation": "planned",
+      "implementation": "implemented",
+      "implementation_scope": "Protocol 1.1 profile-local human dispatch stages a typed declarative draft. Trusted Python is pending.",
       "wire_bindings": {
         "1.1": {
           "input": "IndicatorCreateDraftCommand11",
@@ -157,7 +158,8 @@
       ],
       "input": "IndicatorRunPreviewInput",
       "output": "IndicatorRunPreviewOutput",
-      "implementation": "planned",
+      "implementation": "implemented",
+      "implementation_scope": "Protocol 1.1 profile-local human dispatch freezes an authorized published CSV interval, validates and runs declarative output, and exposes correlated bounded preview status.",
       "wire_bindings": {
         "1.1": {
           "input": "IndicatorRunPreviewCommand11",
@@ -234,7 +236,8 @@
       ],
       "input": "TaskCancelInput",
       "output": "TaskCancelOutput",
-      "implementation": "planned",
+      "implementation": "implemented",
+      "implementation_scope": "Protocol 1.1 profile-local human dispatch cancels an unpublished declarative indicator preview.",
       "wire_bindings": {
         "1.1": {
           "input": "TaskCancelRequest11",

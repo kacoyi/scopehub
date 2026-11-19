@@ -376,3 +376,160 @@ fn counts(profile: &Profile) -> (i64, i64) {
         [], |row| Ok((row.get(0)?, row.get(1)?))
     ).unwrap()
 }
+
+#[test]
+fn indicator_preview_binds_local_source_grants_and_frozen_input() {
+    use scopehub_application::{
+        CREATE_INDICATOR_DRAFT, READ_LOCAL_IMPORT_REVISION, RUN_INDICATOR_PREVIEW,
+    };
+    use serde_json::Value;
+
+    let profile = Profile::new();
+    let mut registry = OperationRegistry::new(store(&profile.0));
+    let id = Uuid::new_v4().to_string();
+    let source_hash = "a".repeat(64);
+    let conn = profile.sqlite();
+    conn.execute(
+        "INSERT INTO reviewed_import_mappings VALUES ('indicator-test', 1, ?1, '{}')",
+        [&source_hash],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO local_dataset_source_blobs VALUES (?1, X'01')",
+        [&source_hash],
+    )
+    .unwrap();
+    let day = 86_400_000_i64;
+    let start = 1_770_076_800_000_i64;
+    let bars: Vec<_> = [1, 3, 5].into_iter().enumerate().map(|(index, close)| {
+        json!({
+            "bar": {
+                "time_ms": start + index as i64 * day, "trading_day": format!("2026-02-0{}", index + 3),
+                "open": close, "high": close, "low": close, "close": close,
+                "volume": null, "is_closed": true,
+            },
+            "locators": [{"record_number": index + 1, "line_start": index + 2, "line_end": index + 2}],
+        })
+    }).collect();
+    let data = json!({
+        "symbol": "FIX", "source_record_count": bars.len(), "bars": bars,
+        "series": {"instrument_kind": "equity", "venue": "FIXTURE", "timeframe": "1d",
+          "calendar_id": "fixture-calendar", "session_scope": "regular", "timezone": "UTC",
+          "quantity_unit": "shares", "price_adjustment": "raw", "roll_method": null},
+    });
+    conn.execute(
+        "INSERT INTO local_dataset_revisions VALUES (?1, 'indicator-test', 'fixture.csv', ?2, 1, ?2, ?3)",
+        [&id, &source_hash, &data.to_string()],
+    ).unwrap();
+    let access = || WorkspaceAccess {
+        operations: &[CREATE_INDICATOR_DRAFT, RUN_INDICATOR_PREVIEW],
+        ..support::access()
+    };
+    let local_display = WorkspaceAccess {
+        actor: Actor::LocalUser,
+        operations: &[READ_LOCAL_IMPORT_REVISION],
+        ..access()
+    };
+    let frozen = registry.open_evidence_chart(&local_display, &id).unwrap()["snapshot"].clone();
+    let create = CREATE_INDICATOR_DRAFT;
+    let bound = |name: &str, arguments: Value, target: Value| {
+        let mut request = support::command(name, 0, Uuid::new_v4(), arguments);
+        request["scope"]["target"] = target;
+        request
+    };
+    let draft_request = bound(
+        create,
+        json!({
+            "language": "declarative", "source": {
+                "parameters": [{"type": "integer", "name": "period", "default": 2}],
+                "outputs": [{"id": "mean", "kind": "line", "pane": "price", "style": {"color": "#123456", "width": 2},
+                    "value": {"op": "rolling_mean", "value": {"op": "field", "field": "close"},
+                              "window": {"parameter": "period"}}}],
+            },
+        }),
+        json!({"kind": "chart", "object_id": "main-chart"}),
+    );
+    let draft = registry
+        .execute_workspace(&access(), draft_request)
+        .unwrap()["outcome"]["result"]["draft_id"]
+        .clone();
+    assert!(draft.is_string());
+    let run = bound(
+        RUN_INDICATOR_PREVIEW,
+        json!({"draft_id": draft, "snapshot": frozen, "parameters": []}),
+        json!({"kind": "chart_interval", "snapshot": frozen, "range": {"from_ms": start + day, "to_ms": start + 2 * day + 1}}),
+    );
+    assert_failed(
+        &registry
+            .execute_workspace(
+                &WorkspaceAccess {
+                    operations: &[READ_LOCAL_IMPORT_REVISION],
+                    ..access()
+                },
+                run.clone(),
+            )
+            .unwrap(),
+        "PERMISSION_DENIED",
+    );
+    let mut forged = run.clone();
+    forged["intent"]["arguments"]["snapshot"]["content_hash"] = json!("0".repeat(64));
+    forged["scope"]["target"]["snapshot"]["content_hash"] = json!("0".repeat(64));
+    assert_failed(
+        &registry.execute_workspace(&access(), forged).unwrap(),
+        "SNAPSHOT_UNAVAILABLE",
+    );
+    let started = registry.execute_workspace(&access(), run.clone()).unwrap();
+    let task = started["outcome"]["result"]["task_id"].as_str().unwrap();
+    assert_eq!(
+        registry.execute_workspace(&access(), run).unwrap()["outcome"],
+        started["outcome"]
+    );
+
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+    let ready = loop {
+        let status = registry.indicator_preview_status(&access(), task).unwrap();
+        if status["status"] != "running" {
+            break status;
+        }
+        assert!(std::time::Instant::now() < deadline);
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    };
+    assert_eq!(ready["status"], "ready");
+    assert_eq!(ready["warmup_from_ms"], start);
+    assert_eq!(ready["event"]["snapshot"]["warmup_bars"], 1);
+    assert_ne!(
+        ready["event"]["snapshot"]["content_hash"],
+        frozen["content_hash"]
+    );
+    assert_eq!(ready["resolved_parameters"], json!({"period": 2}));
+    assert_eq!(
+        ready["event"]["artifact"]["result"]["series"][0]["points"],
+        json!([
+            {"time_ms": start + day, "value": 2.0}, {"time_ms": start + 2 * day, "value": 4.0},
+        ])
+    );
+    assert_eq!(
+        registry.indicator_preview_status(&access(), task).unwrap(),
+        ready
+    );
+    conn.execute(
+        "INSERT INTO local_dataset_display_revocations (revision_id) VALUES (?1)",
+        [&id],
+    )
+    .unwrap();
+    assert_eq!(
+        registry
+            .indicator_preview_status(&access(), task)
+            .unwrap_err()
+            .code,
+        ErrorCode::PERMISSIONDENIED
+    );
+    assert_eq!(
+        registry
+            .workspace_snapshot(&access())
+            .unwrap()
+            .workspace
+            .revision,
+        0
+    );
+}

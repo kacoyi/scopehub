@@ -129,6 +129,22 @@ fn serve(
                 )?;
             }
         } else if let Ok(request) = &request
+            && request["type"] == "indicator_preview_status"
+        {
+            let result = match (request["request_id"].as_str(), request["task_id"].as_str()) {
+                (Some(id), Some(task_id))
+                    if request.as_object().is_some_and(|object| object.len() == 3)
+                        && uuid::Uuid::parse_str(id).is_ok()
+                        && uuid::Uuid::parse_str(task_id).is_ok() =>
+                {
+                    registry.indicator_preview_status(access, task_id)
+                }
+                _ => Err(failure(ErrorCode::INVALIDARGUMENT)),
+            };
+            let mut frame = result_frame(result);
+            frame["request_id"] = request["request_id"].clone();
+            write_frame(&mut output, frame)?;
+        } else if let Ok(request) = &request
             && matches!(
                 request["type"].as_str(),
                 Some("frozen_chart" | "frozen_chart_status")

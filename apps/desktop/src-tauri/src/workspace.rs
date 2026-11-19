@@ -64,6 +64,7 @@ enum Request {
     Snapshot,
     FrozenChart(String),
     FrozenChartStatus(String),
+    IndicatorPreviewStatus(String),
     Operation(Value),
 }
 
@@ -158,10 +159,25 @@ impl WorkspaceBridge {
                     Request::FrozenChart(revision_id.to_owned())
                 }
             }
+            None if payload["type"] == "indicator_preview_status" => {
+                let task_id = payload["task_id"]
+                    .as_str()
+                    .filter(|id| {
+                        id.len() == 36
+                            && payload.as_object().is_some_and(|object| object.len() == 3)
+                            && payload["request_id"]
+                                .as_str()
+                                .is_some_and(|request_id| request_id.len() == 36)
+                    })
+                    .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
+                Request::IndicatorPreviewStatus(task_id.into())
+            }
             Some(operation)
                 if payload["type"] == "request"
                     && (payload["intent"]["operation"] == operation
-                        || evidence_operation_name(&payload) == Some(operation)) =>
+                        || evidence_operation_name(&payload) == Some(operation)
+                        || operation == scopehub_application::CANCEL_INDICATOR_TASK
+                            && payload["operation"] == operation) =>
             {
                 let limit = if matches!(
                     operation,
@@ -527,6 +543,9 @@ impl BoundWorkspace {
                     &revision_id,
                 )?;
                 Ok(json!({"available": available}))
+            }
+            Request::IndicatorPreviewStatus(task_id) => {
+                self.registry.indicator_preview_status(&access, &task_id)
             }
             Request::Operation(payload) => self.registry.execute_workspace(&access, payload),
         }

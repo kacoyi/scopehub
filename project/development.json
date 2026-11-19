@@ -75,14 +75,14 @@
       "paths": [
         "crates/domain"
       ],
-      "responsibility": "Cross-language domain types and structural wire validation.",
+      "responsibility": "Cross-language domain types, structural wire validation and bounded declarative indicator evaluation.",
       "public_entries": [
         "crates/domain/src/lib.rs",
         "crates/domain/src/wire.rs"
       ],
       "dependencies": [],
       "owns": [
-        "Domain vocabulary and wire decoding invariants"
+        "Domain vocabulary, wire decoding invariants and declarative indicator calculation semantics"
       ],
       "invariants": [
         "No UI, database or adapter dependencies"
@@ -450,7 +450,7 @@
         "M3-001"
       ],
       "delivery": "current-contract",
-      "boundary": "Declarative and trusted-Python gates are unimplemented."
+      "boundary": "A local human can run and cancel typed declarative previews on authorized frozen CSV chart intervals. Immutable acceptance and restoration, other source adapters and trusted Python remain pending."
     },
     {
       "id": "product-ai-collaboration",

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { mountHistoryChart, type ChartCursorMode, type ChartStyle, type HistoryChartData, type HistoryChartHandle } from './chart-adapter/history';
+import type { IndicatorResult } from '../../../../contracts/generated/protocol';
 import type { Bar, Instrument } from './market';
 
 type ChartInstrument = Pick<Instrument, 'id' | 'name' | 'display_symbol' | 'asset_class' | 'price_tick'> & Partial<Pick<Instrument, 'currency'>>;
@@ -9,15 +10,17 @@ type Props = {
   handle: RefObject<HistoryChartHandle | null>;
   replayBar: Bar | undefined;
   repairedBars: readonly Bar[] | undefined;
+  indicatorPreview?: IndicatorResult | undefined;
 };
 
-export function PriceChart({ instrument, history, style, cursor, handle, replayBar, repairedBars }: Props) {
+export function PriceChart({ instrument, history, style, cursor, handle, replayBar, repairedBars, indicatorPreview }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const firstStyle = useRef(style);
   const lastProjection = useRef<readonly Bar[]>(history.bars);
   const bars = repairedBars ?? history.bars;
   const [selected, setSelected] = useState<Bar | undefined>(history.bars.at(-1));
   const [failed, setFailed] = useState(false);
+  const [indicatorFailed, setIndicatorFailed] = useState(false);
   useEffect(() => {
     if (!container.current) return;
     setSelected(history.bars.at(-1));
@@ -31,6 +34,12 @@ export function PriceChart({ instrument, history, style, cursor, handle, replayB
   }, [history, instrument, handle]);
   useEffect(() => { handle.current?.setStyle(style); }, [style, history, handle]);
   useEffect(() => { handle.current?.setCursor(cursor); }, [cursor, history, handle]);
+  useEffect(() => {
+    try {
+      handle.current?.setIndicatorPreview(indicatorPreview);
+      setIndicatorFailed(false);
+    } catch { setIndicatorFailed(true); }
+  }, [indicatorPreview, history, handle]);
   useEffect(() => {
     const chart = handle.current;
     if (!chart) return;
@@ -59,6 +68,7 @@ export function PriceChart({ instrument, history, style, cursor, handle, replayB
         <span className={selected.is_closed ? 'bar-phase' : 'bar-phase partial'}>{selected.is_closed ? 'Closed bar' : 'Partial bar'}</span>
       </div>}
     </div>
+    {indicatorFailed && <p className="chart-notice" role="alert">The indicator layer could not be displayed.</p>}
     {failed && <p className="chart-notice" role="alert">The chart could not be displayed. Review the bars in the data table.</p>}
     <div className="chart" ref={container} role="img" aria-label={`${style === 'line' ? 'Close-price line' : 'Candlestick'} and volume chart for ${instrument.id}`} />
   </div>;

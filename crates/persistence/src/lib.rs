@@ -616,6 +616,13 @@ impl WorkspaceTransaction for SqliteTransaction<'_> {
         local_dataset::display_allowed(self.connection, revision_id)
     }
 
+    fn indicator_compute_allowed(&self, revision_id: &str) -> Result<bool, Error> {
+        // These revisions contain native CSV selected and published by this
+        // profile. That local source policy allows on-device declarative analysis.
+        // Other adapters must establish their own affirmative purpose rights.
+        local_dataset::display_allowed(self.connection, revision_id)
+    }
+
     fn chart_revision(&self) -> Result<Revision, Error> {
         chart_revision(self.connection, &self.binding.workspace_id)
     }
