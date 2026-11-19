@@ -1,5 +1,8 @@
 //! Typed, bounded evaluation over a single immutable bar series.
 
+mod calendar;
+pub use calendar::{BucketCalendar, TradingSession};
+
 use std::collections::{BTreeMap, HashSet, VecDeque};
 
 use serde_json::{Value, json};
@@ -147,7 +150,48 @@ impl Program {
         )
     }
 
-    pub fn evaluate(
+    pub fn evaluate_with_calendar(
+        &self,
+        bars: &[Bar],
+        visible_start: usize,
+        calendar: &BucketCalendar,
+        cancelled: impl Fn() -> bool,
+        provenance: IndicatorProvenance,
+    ) -> Result<IndicatorResult> {
+        if bars.len() > MAX_BARS {
+            return Err(IndicatorError::Limit);
+        }
+        if bars.iter().any(|bar| !calendar.contains(bar.time_ms)) {
+            return Err(IndicatorError::Invalid);
+        }
+        let follows = |a: &Bar, b: &Bar| calendar.actual_successor(a.time_ms, b.time_ms);
+        let mut result = self.evaluate(bars, visible_start, follows, cancelled, provenance)?;
+        if self.warmup_bars > 0 {
+            if calendar.verified() {
+                result.diagnostics.push(Diagnostic {
+                    code: "session_schedule_applied".into(),
+                    message: "The source's scheduled closures add no indicator buckets.".into(),
+                    severity: Severity::Info,
+                });
+                if bars.windows(2).any(|pair| !follows(&pair[0], &pair[1])) {
+                    result.diagnostics.push(Diagnostic {
+                        code: "missing_expected_buckets".into(),
+                        message: "One or more expected market buckets are missing. Affected windows are unknown.".into(),
+                        severity: Severity::Warning,
+                    });
+                }
+            } else {
+                result.diagnostics.push(Diagnostic {
+                    code: "calendar_unverified".into(),
+                    message: "This source has no verified session schedule. Indicator windows restart after timestamp gaps.".into(),
+                    severity: Severity::Info,
+                });
+            }
+        }
+        Ok(result)
+    }
+
+    fn evaluate(
         &self,
         bars: &[Bar],
         visible_start: usize,

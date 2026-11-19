@@ -633,6 +633,32 @@
       "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
+      "name": "workspace.previewLayout",
+      "input_spec": "WorkspacePreviewLayoutCommand11",
+      "output_spec": "WorkspacePreviewLayoutReply11",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "schema_requirement": "Validate the built-in layout version and interactions at the current workspace and selection revisions. Bind a preview to its exact edit and authenticated scope, with a new receipt for each committed change or inverse."
+    },
+    {
+      "name": "workspace.applyLayout",
+      "input_spec": "WorkspaceApplyLayoutCommand11",
+      "output_spec": "WorkspaceApplyLayoutReply11",
+      "effect": "workspace",
+      "confirmation": false,
+      "undoable": true,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "schema_requirement": "Validate the built-in layout version and interactions at the current workspace and selection revisions. Bind a preview to its exact edit and authenticated scope, with a new receipt for each committed change or inverse."
+    },
+    {
       "name": "workspace.undo",
       "input_spec": "WorkspaceUndoCommand11",
       "output_spec": "WorkspaceUndoReply11",

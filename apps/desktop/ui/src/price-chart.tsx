@@ -11,9 +11,10 @@ type Props = {
   replayBar: Bar | undefined;
   repairedBars: readonly Bar[] | undefined;
   indicatorPreview?: IndicatorResult | undefined;
+  acceptedIndicators?: readonly IndicatorResult[] | undefined;
 };
 
-export function PriceChart({ instrument, history, style, cursor, handle, replayBar, repairedBars, indicatorPreview }: Props) {
+export function PriceChart({ instrument, history, style, cursor, handle, replayBar, repairedBars, indicatorPreview, acceptedIndicators }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const firstStyle = useRef(style);
   const lastProjection = useRef<readonly Bar[]>(history.bars);
@@ -36,10 +37,10 @@ export function PriceChart({ instrument, history, style, cursor, handle, replayB
   useEffect(() => { handle.current?.setCursor(cursor); }, [cursor, history, handle]);
   useEffect(() => {
     try {
-      handle.current?.setIndicatorPreview(indicatorPreview);
+      handle.current?.setIndicatorLayers(indicatorPreview, acceptedIndicators ?? []);
       setIndicatorFailed(false);
     } catch { setIndicatorFailed(true); }
-  }, [indicatorPreview, history, handle]);
+  }, [indicatorPreview, acceptedIndicators, history, handle]);
   useEffect(() => {
     const chart = handle.current;
     if (!chart) return;

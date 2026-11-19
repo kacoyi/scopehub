@@ -16,7 +16,13 @@ const evidenceOperations = [selectEvidence, readChartProjection];
 const frozenChartControls = ['frozen_chart', 'frozen_chart_status'];
 const previewStatus = 'indicator_preview_status';
 const cancelIndicator = 'task.cancel';
-const indicatorOperations = ['indicator.createDraft', 'indicator.runPreview'];
+const acceptIndicator = 'indicator.acceptVersion';
+const removeIndicator = 'indicator.remove';
+const indicatorConfirmation = 'confirmation.respond';
+const acceptedLayers = 'indicator_accepted_layers';
+const acceptedOutput = 'indicator_accepted_output';
+const indicatorReads = [previewStatus, acceptedLayers, acceptedOutput];
+const indicatorOperations = ['indicator.createDraft', 'indicator.runPreview', acceptIndicator, removeIndicator];
 const exportBackup = 'decisionNote.exportBackup';
 const previewRestore = 'decisionNote.previewRestore';
 const restoreBackup = 'decisionNote.restoreBackup';
@@ -110,7 +116,7 @@ function requestLimit(operation) {
 }
 
 function responseLimit(operation) {
-  if (operation === 'frozen_chart' || operation === previewStatus) return 4 * 1024 * 1024 + maxRequestBytes;
+  if (operation === 'frozen_chart' || operation === previewStatus || operation === acceptedOutput) return 4 * 1024 * 1024 + maxRequestBytes;
   if (operation === readChartProjection) return maxResponseBytes;
   if (operation === exportBackup || operation === exportPrivateRecords) return maxBackupFrameBytes;
   return noteOperations.includes(operation) || privateRecordOperations.includes(operation) ? maxResponseBytes : maxRequestBytes;
@@ -123,17 +129,18 @@ function requestFrame(command, workspaceId) {
     }
     return JSON.stringify(command) + '\n';
   }
-  if (command?.type === previewStatus) {
-    if (Object.keys(command).length !== 3 || !uuid(command.request_id) || !uuid(command.task_id)) {
+  if (indicatorReads.includes(command?.type)) {
+    const key = command.type === previewStatus ? 'task_id' : command.type === acceptedLayers ? 'revision_id' : 'layer_id';
+    if (Object.keys(command).length !== 3 || !uuid(command.request_id) || !uuid(command[key])) {
       throw new PreviewFailure(400, 'INVALID_ARGUMENT');
     }
     return JSON.stringify(command) + '\n';
   }
   const evidence = evidenceOperations.includes(command?.operation);
-  const cancel = command?.operation === cancelIndicator;
-  const name = evidence || cancel ? command.operation : command?.intent?.operation;
-  if (!evidence && !cancel && !indicatorOperations.includes(name) && !mutations.includes(name) && !noteOperations.includes(name) && !privateRecordOperations.includes(name)) throw new PreviewFailure(403, 'PERMISSION_DENIED');
-  if (!cancel && (evidence ? command.workspace_id : command?.scope?.workspace_id) !== workspaceId) throw new PreviewFailure(403, 'PERMISSION_DENIED');
+  const control = [cancelIndicator, indicatorConfirmation].includes(command?.operation);
+  const name = evidence || control ? command.operation : command?.intent?.operation;
+  if (!evidence && !control && !indicatorOperations.includes(name) && !mutations.includes(name) && !noteOperations.includes(name) && !privateRecordOperations.includes(name)) throw new PreviewFailure(403, 'PERMISSION_DENIED');
+  if (!control && (evidence ? command.workspace_id : command?.scope?.workspace_id) !== workspaceId) throw new PreviewFailure(403, 'PERMISSION_DENIED');
   if (command.protocol_version !== '1.1' || command.type !== 'request'
       || !uuid(command.request_id) || !uuid(command.message_id)) {
     throw new PreviewFailure(400, 'INVALID_ARGUMENT');
@@ -157,11 +164,33 @@ function validIndicatorStatus(result, taskId) {
 }
 
 function validIndicatorOutcome(outcome, job, workspaceId) {
+  if (job.operation === acceptIndicator && outcome?.state === 'awaiting_confirmation') {
+    const { challenge } = outcome;
+    return challenge?.operation === acceptIndicator && challenge.workspace_id === workspaceId
+      && uuid(challenge.challenge_id) && uuid(challenge.task_id) && revision(challenge.expires_at_ms)
+      && challenge.target?.kind === 'chart_interval' && challenge.workspace_revision === job.workspaceRevision;
+  }
   const { receipt, result } = outcome ?? {};
-  return outcome?.state === 'committed' && outcome.operation === job.operation && uuid(receipt?.operation_id)
-    && receipt.workspace_id === workspaceId && receipt.committed_workspace_revision === job.workspaceRevision
-    && receipt.undoable === false && (job.operation === 'indicator.createDraft'
-      ? uuid(result?.draft_id) && /^[a-f0-9]{64}$/.test(result.code_hash) : uuid(result?.task_id));
+  const name = job.operation === indicatorConfirmation ? acceptIndicator : job.operation;
+  if (outcome?.state !== 'committed' || outcome.operation !== name
+    || !uuid(receipt?.operation_id) || receipt.workspace_id !== workspaceId) return false;
+  if (name === acceptIndicator || name === removeIndicator) {
+    return receipt.undoable === true && revision(receipt.committed_workspace_revision)
+      && (job.operation === indicatorConfirmation || receipt.committed_workspace_revision === job.workspaceRevision + 1)
+      && (name === acceptIndicator
+        ? receipt.target?.kind === 'chart_interval' && uuid(result?.version_id) && uuid(result?.layer_id)
+        : receipt.target?.kind === 'layer' && receipt.target.object_id === job.layerId && result?.operation_id === receipt.operation_id);
+  }
+  return receipt.committed_workspace_revision === job.workspaceRevision && receipt.undoable === false
+    && (name === 'indicator.createDraft' ? uuid(result?.draft_id) && /^[a-f0-9]{64}$/.test(result.code_hash) : uuid(result?.task_id));
+}
+
+function validAcceptedIndicatorReply(result, job) {
+  if (job.operation === acceptedLayers) return result?.dataset_id === job.revisionId
+    && Array.isArray(result.layers) && result.layers.length <= 256
+    && result.layers.every(layer => uuid(layer.layer_id) && uuid(layer.version_id) && typeof layer.available === 'boolean');
+  return result?.layer_id === job.layerId && uuid(result.version_id)
+    && result.document?.artifact?.storage === 'inline' && Array.isArray(result.document.artifact.result?.series);
 }
 
 function validEvidenceReply(reply, job, workspaceId) {
@@ -291,6 +320,10 @@ function startWriter(root, { path, profileId, workspaceId }) {
       if (frame?.request_id !== job.requestId || !(validFailure || frame?.ok === true
         && typeof frame.result?.available === 'boolean' && Object.keys(frame.result).length === 1)) throw invalidReply();
       delete frame.request_id;
+    } else if (job.operation === acceptedLayers || job.operation === acceptedOutput) {
+      if (frame?.request_id !== job.requestId
+          || !(validFailure || frame.ok === true && validAcceptedIndicatorReply(frame.result, job))) throw invalidReply();
+      delete frame.request_id;
     } else if (job.operation === previewStatus) {
       if (frame?.request_id !== job.requestId
           || !(validFailure || frame.ok === true && validIndicatorStatus(frame.result, job.taskId))) throw invalidReply();
@@ -315,7 +348,7 @@ function startWriter(root, { path, profileId, workspaceId }) {
         if (!validEvidenceReply(reply, job, workspaceId)) throw invalidReply();
       } else if (outcome?.state === 'failed') {
         if (typeof outcome.error?.code !== 'string') throw invalidReply();
-      } else if (indicatorOperations.includes(job.operation)) {
+      } else if (indicatorOperations.includes(job.operation) || job.operation === indicatorConfirmation) {
         if (!validIndicatorOutcome(outcome, job, workspaceId)) throw invalidReply();
       } else if (noteOperations.includes(job.operation)) {
         if (!validNoteOutcome(outcome, job, workspaceId)) throw invalidReply();
@@ -324,8 +357,10 @@ function startWriter(root, { path, profileId, workspaceId }) {
       } else if (outcome?.state === 'committed') {
         const { result, receipt } = outcome;
         if (outcome.operation !== job.operation || !validWorkspace(result, workspaceId)
-            || receipt?.workspace_id !== workspaceId || receipt?.target?.kind !== 'chart'
-            || receipt?.target?.object_id !== chartId || !uuid(receipt.operation_id)
+            || receipt?.workspace_id !== workspaceId
+            || (job.layerId ? receipt?.target?.kind !== 'layer' || receipt.target.object_id !== job.layerId
+              : receipt?.target?.kind !== 'chart' || receipt.target.object_id !== chartId)
+            || !uuid(receipt.operation_id)
             || result.revision !== receipt.committed_workspace_revision
             || typeof receipt.undoable !== 'boolean') throw invalidReply();
       } else throw invalidReply();
@@ -380,10 +415,12 @@ function startWriter(root, { path, profileId, workspaceId }) {
         : requestFrame(body, workspaceId);
       const reply = Promise.withResolvers();
       const noteId = body?.scope?.target?.object_id ?? body?.intent?.arguments?.note_id;
-      const operation = snapshot || frozenChartControls.includes(body.type) || body.type === previewStatus ? body.type : body.operation ?? body.intent?.operation;
+      const operation = snapshot || frozenChartControls.includes(body.type) || indicatorReads.includes(body.type) ? body.type : body.operation ?? body.intent?.operation;
       pending = {
         ...reply, requestId, messageId: body.message_id, operation,
-        revisionId: body.revision_id, taskId: body.task_id, selectionRevision: body.expected_selection_revision,
+        revisionId: body.revision_id, taskId: body.task_id,
+        layerId: body.layer_id ?? (body.scope?.target?.kind === 'layer' ? body.scope.target.object_id : undefined),
+        selectionRevision: body.expected_selection_revision,
         recordId: typeof body.intent?.arguments?.record_id === 'string'
           ? body.intent.arguments.record_id.toLowerCase() : body.intent?.arguments?.record_id,
         recordAction: body.intent?.arguments?.action, workspaceRevision: body.scope?.expected_workspace_revision,

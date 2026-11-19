@@ -10,6 +10,11 @@ const LAYOUT_TABLES: [&str; 3] = [
     "workspace_layouts",
     "workspace_source_preference",
 ];
+const INDICATOR_TABLES: [&str; 3] = [
+    "indicator_layer_operations",
+    "indicator_layer_state",
+    "indicator_versions",
+];
 const PRIVATE_RECORD_ID: &str = "9014c000-88f0-43e7-9069-000000000001";
 const DELETED_RECORD_ID: &str = "9014c000-88f0-43e7-9069-000000000002";
 
@@ -221,10 +226,21 @@ fn populated_v8_layout_migration_rolls_back_and_restores_all_previous_state() {
     fs::write(restored.db(), backup).unwrap();
     for recovered in [&profile, &profile, &restored] {
         let v9 = recovered.open().unwrap();
-        assert_eq!(integer_pragma(&v9.connection, "user_version"), 9);
-        assert_eq!(ledger(&v9.connection), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        assert_eq!(
+            integer_pragma(&v9.connection, "user_version"),
+            SCHEMA_VERSION
+        );
+        assert_eq!(
+            ledger(&v9.connection),
+            (1..=SCHEMA_VERSION).collect::<Vec<_>>()
+        );
         let mut expected_tables = prior_tables.clone();
-        expected_tables.extend(LAYOUT_TABLES.map(String::from));
+        expected_tables.extend(
+            LAYOUT_TABLES
+                .into_iter()
+                .chain(INDICATOR_TABLES)
+                .map(String::from),
+        );
         expected_tables.sort();
         assert_eq!(tables(&v9.connection), expected_tables);
         for table in LAYOUT_TABLES {
@@ -237,7 +253,12 @@ fn populated_v8_layout_migration_rolls_back_and_restores_all_previous_state() {
             assert_eq!(rows, 0);
         }
         assert_legacy_state(&v9);
-        let (_, _, evidence, layouts, source) = v9.snapshot(None, true).unwrap();
+        let StoredWorkspaceView {
+            chart_evidence: evidence,
+            layouts,
+            source,
+            ..
+        } = v9.snapshot(None, true).unwrap();
         assert!(
             matches!(evidence, Some(ChartEvidenceStatus::Available(target)) if target == legacy.displayed)
         );
@@ -256,4 +277,97 @@ fn populated_v8_layout_migration_rolls_back_and_restores_all_previous_state() {
                 .is_none()
         );
     }
+}
+
+#[test]
+fn populated_v9_indicator_migration_rolls_back_and_keeps_layout_rows() {
+    let profile = Profile::new();
+    let (mut v9, legacy) = populated_v6(&profile);
+    {
+        let tx = v9.connection.transaction().unwrap();
+        for (version, ddl) in [
+            (
+                FOLDER_MANIFEST_SCHEMA_VERSION,
+                include_str!("folder_manifest.sql"),
+            ),
+            (
+                PRIVATE_RECORD_SCHEMA_VERSION,
+                include_str!("private_records.sql"),
+            ),
+            (
+                WORKSPACE_LAYOUT_SCHEMA_VERSION,
+                include_str!("workspace_layout.sql"),
+            ),
+        ] {
+            tx.execute_batch(ddl).unwrap();
+            record_migration(&tx, version).unwrap();
+        }
+        populate_v8_private_records(&tx);
+        let mut layout = scopehub_application::WorkspaceLayoutState::default().active;
+        layout.name = Some("Synthetic v9 layout".into());
+        tx.execute(
+            "INSERT INTO workspace_layouts (workspace_id, name, layout) VALUES ('workspace', '', ?1)",
+            [serde_json::to_string(&layout).unwrap()],
+        ).unwrap();
+        workspace_layout::write_source(
+            &tx,
+            "workspace",
+            &WorkspaceSourcePreference::Frozen(legacy.displayed.revision_id.clone()),
+        )
+        .unwrap();
+        tx.commit().unwrap();
+    }
+    let old_tables = tables(&v9.connection);
+    v9.connection
+        .execute_batch(
+            "CREATE TRIGGER fail_indicator_migration
+         BEFORE INSERT ON schema_migrations WHEN NEW.version = 10
+         BEGIN SELECT raise(ABORT, 'synthetic v10 ledger failure'); END;",
+        )
+        .unwrap();
+    drop(v9);
+    assert!(matches!(profile.open(), Err(OpenWorkspaceError::Database)));
+
+    let raw = profile.raw_connection();
+    assert_eq!(integer_pragma(&raw, "user_version"), 9);
+    assert_eq!(ledger(&raw), (1..=9).collect::<Vec<_>>());
+    assert_eq!(tables(&raw), old_tables);
+    let layout = workspace_layout::read(&raw, "workspace").unwrap().active;
+    let source = workspace_layout::source_view(&raw, "workspace")
+        .unwrap()
+        .unwrap();
+    assert_eq!(layout.name.as_deref(), Some("Synthetic v9 layout"));
+    assert!(
+        source.preference
+            == WorkspaceSourcePreference::Frozen(legacy.displayed.revision_id.clone())
+    );
+    raw.execute_batch("DROP TRIGGER fail_indicator_migration")
+        .unwrap();
+    drop(raw);
+
+    let v10 = profile.open().unwrap();
+    assert_eq!(integer_pragma(&v10.connection, "user_version"), 10);
+    assert_eq!(ledger(&v10.connection), (1..=10).collect::<Vec<_>>());
+    assert_eq!(
+        workspace_layout::read(&v10.connection, "workspace")
+            .unwrap()
+            .active,
+        layout
+    );
+    assert!(
+        workspace_layout::source_view(&v10.connection, "workspace")
+            .unwrap()
+            .unwrap()
+            .preference
+            == source.preference
+    );
+    assert!(
+        v10.read_local_dataset(&legacy.displayed.revision_id)
+            .unwrap()
+            .is_some()
+    );
+    assert_eq!(
+        indicator_versions::active_count(&v10.connection, "workspace").unwrap(),
+        0
+    );
 }

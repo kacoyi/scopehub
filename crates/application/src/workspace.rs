@@ -29,7 +29,11 @@ mod source;
 pub use source::{FrozenWorkspaceSourceStatus, WorkspaceSourcePreference, WorkspaceSourceView};
 
 pub(crate) use indicators::IndicatorStage;
-pub use indicators::{CANCEL_INDICATOR_TASK, CREATE_INDICATOR_DRAFT, RUN_INDICATOR_PREVIEW};
+pub use indicators::{
+    ACCEPT_INDICATOR_VERSION, CANCEL_INDICATOR_TASK, CREATE_INDICATOR_DRAFT,
+    INDICATOR_CONFIRMATION, IndicatorLayerRef, IndicatorLayerUndo, IndicatorVersionRecord,
+    MAX_ACTIVE_INDICATOR_LAYERS, REMOVE_INDICATOR_LAYER, RUN_INDICATOR_PREVIEW,
+};
 pub(crate) use private_records::PrivateRecordStaging;
 pub use private_records::{
     PRIVATE_RECORD_CHANGE, PRIVATE_RECORD_EXPORT, PRIVATE_RECORD_OPERATIONS, PRIVATE_RECORD_READ,
@@ -69,6 +73,9 @@ pub const LOCAL_WORKSPACE_OPERATIONS: &[&str] = &[
     READ_CHART_PROJECTION,
     CREATE_INDICATOR_DRAFT,
     RUN_INDICATOR_PREVIEW,
+    ACCEPT_INDICATOR_VERSION,
+    REMOVE_INDICATOR_LAYER,
+    INDICATOR_CONFIRMATION,
     CANCEL_INDICATOR_TASK,
     DECISION_NOTE_SAVE,
     DECISION_NOTE_READ,
@@ -257,6 +264,38 @@ pub trait WorkspaceTransaction {
     fn indicator_compute_allowed(&self, _revision_id: &str) -> Result<bool, Error> {
         Ok(false)
     }
+    fn indicator_retention_allowed(&self, revision_id: &str) -> Result<bool, Error>;
+    fn active_indicator_count(&self) -> Result<u64, Error>;
+    fn indicator_preview_accepted(&self, preview_id: &str) -> Result<bool, Error>;
+    fn indicator_layer(&self, layer_id: &str) -> Result<Option<IndicatorLayerRef>, Error>;
+    fn indicator_layers(&self, revision_id: &str) -> Result<Vec<IndicatorLayerRef>, Error>;
+    fn indicator_operation_layer(
+        &self,
+        operation_id: &str,
+    ) -> Result<Option<IndicatorLayerRef>, Error>;
+    fn indicator_layer_undo(
+        &self,
+        operation_id: &str,
+        principal_id: &str,
+        layer_id: &str,
+    ) -> Result<Option<IndicatorLayerUndo>, Error>;
+    fn indicator_confirmation_receipt(
+        &self,
+        challenge_id: &str,
+        principal_id: &str,
+    ) -> Result<Option<(IndicatorLayerRef, WorkspaceReceipt)>, Error>;
+    fn indicator_document(&self, layer_id: &str) -> Result<Option<Value>, Error>;
+    fn record_indicator_version(
+        &mut self,
+        change: &WorkspaceChange<'_>,
+        version: &IndicatorVersionRecord,
+    ) -> Result<(), Error>;
+    fn record_indicator_layer(
+        &mut self,
+        change: &WorkspaceChange<'_>,
+        layer: &IndicatorLayerRef,
+        active: bool,
+    ) -> Result<(), Error>;
     fn chart_revision(&self) -> Result<Revision, Error>;
     fn replay(&self, key: &WorkspaceReplayKey<'_>) -> Result<Option<WorkspaceReplay>, Error>;
     fn undo_candidate(
@@ -289,6 +328,14 @@ pub trait WorkspaceTransaction {
     ) -> Result<(), Error>;
 }
 
+pub struct StoredWorkspaceView {
+    pub state: WorkspaceState,
+    pub chart_undo: Option<WorkspaceUndoTarget>,
+    pub chart_evidence: Option<ChartEvidenceStatus>,
+    pub layouts: WorkspaceLayoutSnapshot,
+    pub source: Option<WorkspaceSourceView>,
+}
+
 pub trait WorkspaceStore: Send {
     fn binding(&self) -> &WorkspaceBinding;
     /// Restore the state and its currently eligible undo in one read snapshot.
@@ -296,16 +343,7 @@ pub trait WorkspaceStore: Send {
         &self,
         undo: Option<WorkspaceUndoAccess<'_>>,
         disclose_chart_evidence: bool,
-    ) -> Result<
-        (
-            WorkspaceState,
-            Option<WorkspaceUndoTarget>,
-            Option<ChartEvidenceStatus>,
-            WorkspaceLayoutSnapshot,
-            Option<WorkspaceSourceView>,
-        ),
-        Error,
-    >;
+    ) -> Result<StoredWorkspaceView, Error>;
     /// Read the selection token, target and current source entitlement in a single snapshot.
     fn inspect<T>(
         &self,
@@ -380,7 +418,13 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             principal_id: access.principal_id,
             paired_client_id: access.paired_client_id,
         });
-        let (state, undo, chart_evidence, layouts, source) = self.port.snapshot(
+        let StoredWorkspaceView {
+            state,
+            chart_undo,
+            chart_evidence,
+            layouts,
+            source,
+        } = self.port.snapshot(
             undo,
             evidence::local_display(access) && access.operations.contains(&READ_CHART_PROJECTION),
         )?;
@@ -389,7 +433,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         Ok(WorkspaceSnapshot {
             workspace: workspace_projection(access.workspace_id, state.revision, state.timeframe),
             selection_revision: state.selection_revision,
-            undo,
+            undo: chart_undo,
             source: source.filter(|_| evidence::local_display(access)),
             layouts: access
                 .operations
@@ -453,6 +497,9 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         if evidence_operation_name(&request).is_some() {
             return self.execute_evidence_request(access, request);
         }
+        if request["operation"] == INDICATOR_CONFIRMATION {
+            return self.resolve_indicator_confirmation(access, &request);
+        }
         if request["operation"] == CANCEL_INDICATOR_TASK {
             return self.cancel_indicator_job(access, &request);
         }
@@ -460,6 +507,12 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             .as_str()
             .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
         match name {
+            ACCEPT_INDICATOR_VERSION => {
+                return self.execute_indicator_layer(access, ACCEPT_INDICATOR_VERSION, request);
+            }
+            REMOVE_INDICATOR_LAYER => {
+                return self.execute_indicator_layer(access, REMOVE_INDICATOR_LAYER, request);
+            }
             CREATE_INDICATOR_DRAFT => {
                 return self.execute_indicator(access, CREATE_INDICATOR_DRAFT, request);
             }
@@ -535,6 +588,9 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
                 });
             }
             self.port.transact(|tx| {
+                if op.name == UNDO && matches!(&scope.target, EvidenceTarget11::WorkspaceObject11(target) if target.kind == WorkspaceObject11Kind::Layer) {
+                    return indicators::undo_indicator_layer(tx, access, &scope, arguments, &reply);
+                }
                 execute_mutation(
                     tx,
                     access,

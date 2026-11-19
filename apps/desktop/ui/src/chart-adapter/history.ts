@@ -21,7 +21,7 @@ export interface HistoryChartHandle {
   setStyle(style: ChartStyle): void;
   replaceBars(bars: readonly Bar[]): void;
   updateLast(bar: Bar): void;
-  setIndicatorPreview(result: IndicatorResult | undefined): void;
+  setIndicatorLayers(preview: IndicatorResult | undefined, accepted: readonly IndicatorResult[]): void;
 }
 
 // Chart-library units and lifecycle stay inside this replaceable adapter.
@@ -94,26 +94,32 @@ export function mountHistoryChart(
     let indicatorMarkers: SeriesMarker<Time>[] = [];
     let indicatorSeries: (ISeriesApi<'Line'> | ISeriesApi<'Histogram'>)[] = [];
 
-    function setIndicatorPreview(result: IndicatorResult | undefined) {
+    function setIndicatorLayers(preview: IndicatorResult | undefined, accepted: readonly IndicatorResult[]) {
       const nextSeries: typeof indicatorSeries = [];
       const panes = new Map<string, number>();
-      const markers = (result?.markers ?? []).map(marker => ({
+      const layers = [
+        ...accepted.map(result => ({ result, preview: false })),
+        ...(preview ? [{ result: preview, preview: true }] : []),
+      ];
+      const markers = layers.flatMap(layer => layer.result.markers).sort((a, b) => a.time_ms - b.time_ms).map(marker => ({
         time: (marker.time_ms / 1000) as UTCTimestamp, position: markerPositions[marker.position],
         shape: 'circle' as const, color: marker.color, text: marker.label,
       }));
       try {
-        for (const spec of result?.series ?? []) {
-          const pane = spec.pane === 'price' ? 0 : panes.get(spec.pane) ?? chart.panes().length;
-          if (pane !== 0) panes.set(spec.pane, pane);
-          const options = { color: spec.style.color, lastValueVisible: false, priceLineVisible: false };
-          const series = spec.type === 'line'
-            ? chart.addSeries(LineSeries, { ...options, lineWidth: spec.style.width as LineWidth, lineStyle: 2 }, pane)
-            : chart.addSeries(HistogramSeries, options, pane);
-          nextSeries.push(series);
-          series.setData(spec.points.map(point => {
-            const time = (point.time_ms / 1000) as UTCTimestamp;
-            return point.value === null ? { time } : { time, value: point.value };
-          }));
+        for (const layer of layers) {
+          for (const spec of layer.result.series) {
+            const pane = spec.pane === 'price' ? 0 : panes.get(spec.pane) ?? chart.panes().length;
+            if (pane !== 0) panes.set(spec.pane, pane);
+            const options = { color: spec.style.color, lastValueVisible: false, priceLineVisible: false };
+            const series = spec.type === 'line'
+              ? chart.addSeries(LineSeries, { ...options, lineWidth: spec.style.width as LineWidth, lineStyle: layer.preview ? 2 : 0 }, pane)
+              : chart.addSeries(HistogramSeries, options, pane);
+            nextSeries.push(series);
+            series.setData(spec.points.map(point => {
+              const time = (point.time_ms / 1000) as UTCTimestamp;
+              return point.value === null ? { time } : { time, value: point.value };
+            }));
+          }
         }
         markerPlugin.setMarkers(markers);
       } catch (error) {
@@ -200,7 +206,7 @@ export function mountHistoryChart(
         const selected = (inspectedTime === undefined ? undefined : lookup.get(inspectedTime / 1000)) ?? bars.at(-1);
         if (selected) select(selected);
       },
-      setIndicatorPreview,
+      setIndicatorLayers,
       updateLast(bar) {
         const previous = bars.at(-1);
         if (bar === previous || bar.time_ms !== previous?.time_ms) return;

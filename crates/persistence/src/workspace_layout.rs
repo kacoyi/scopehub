@@ -1,10 +1,10 @@
 use rusqlite::{Connection, OptionalExtension, params};
 use scopehub_application::{
-    Actor, WorkspaceLayoutChange, WorkspaceLayoutState, WorkspaceUndoAccess, WorkspaceUndoTarget,
+    Actor, FrozenWorkspaceSourceStatus, WorkspaceLayoutChange, WorkspaceLayoutState,
+    WorkspaceSourcePreference, WorkspaceSourceView, WorkspaceUndoAccess, WorkspaceUndoTarget,
     failure,
 };
 use scopehub_domain::protocol::{Error, ErrorCode, NamedWorkspaceLayout11, WorkspaceLayout11};
-use serde::de::DeserializeOwned;
 
 use crate::{revision, store_error};
 
@@ -18,9 +18,11 @@ pub fn read(connection: &Connection, workspace_id: &str) -> Result<WorkspaceLayo
         let name: String = row.get(0).map_err(store_error)?;
         let layout: String = row.get(1).map_err(store_error)?;
         if name.is_empty() {
-            layouts.active = decode(&layout)?;
+            layouts.active = checked_json(serde_json::from_str(&layout))?;
         } else {
-            layouts.saved.insert(name, decode(&layout)?);
+            layouts
+                .saved
+                .insert(name, checked_json(serde_json::from_str(&layout))?);
         }
     }
     Ok(layouts)
@@ -51,10 +53,15 @@ pub fn change(
         .map_err(store_error)?;
     row.map(|(before, after, saved_name, saved_before)| {
         Ok(WorkspaceLayoutChange {
-            before: decode(&before)?,
-            after: decode(&after)?,
+            before: checked_json(serde_json::from_str(&before))?,
+            after: checked_json(serde_json::from_str(&after))?,
             saved_name,
-            saved_before: saved_before.as_deref().map(decode).transpose()?,
+            saved_before: checked_json(
+                saved_before
+                    .as_deref()
+                    .map(serde_json::from_str)
+                    .transpose(),
+            )?,
         })
     })
     .transpose()
@@ -99,9 +106,7 @@ pub fn write(
     edit: &WorkspaceLayoutChange,
     saved_after: Option<&WorkspaceLayout11>,
 ) -> Result<(), Error> {
-    let encode = |layout: &NamedWorkspaceLayout11| {
-        serde_json::to_string(layout).map_err(|_| failure(ErrorCode::INTERNALERROR))
-    };
+    let encode = |layout: &NamedWorkspaceLayout11| checked_json(serde_json::to_string(layout));
     let after = encode(&edit.after)?;
     store_row(connection, workspace_id, "", &after)?;
     if let Some(name) = &edit.saved_name {
@@ -148,17 +153,13 @@ fn store_row(
     Ok(())
 }
 
-fn decode<T: DeserializeOwned>(json: &str) -> Result<T, Error> {
-    serde_json::from_str(json).map_err(|_| failure(ErrorCode::INTERNALERROR))
+fn checked_json<T>(value: serde_json::Result<T>) -> Result<T, Error> {
+    value.map_err(|_| failure(ErrorCode::INTERNALERROR))
 }
 
 fn encode_definition(layout: &WorkspaceLayout11) -> Result<String, Error> {
-    serde_json::to_string(layout).map_err(|_| failure(ErrorCode::INTERNALERROR))
+    checked_json(serde_json::to_string(layout))
 }
-
-use scopehub_application::{
-    FrozenWorkspaceSourceStatus, WorkspaceSourcePreference, WorkspaceSourceView,
-};
 
 pub fn source_view(
     connection: &Connection,

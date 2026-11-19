@@ -131,6 +131,15 @@ fn serve(
                 )?;
             }
         } else if let Ok(request) = &request
+            && matches!(
+                request["type"].as_str(),
+                Some("indicator_accepted_layers" | "indicator_accepted_output")
+            )
+        {
+            let mut frame = result_frame(registry.read_accepted_indicator(access, request));
+            frame["request_id"] = request["request_id"].clone();
+            write_frame(&mut output, frame)?;
+        } else if let Ok(request) = &request
             && request["type"] == "indicator_preview_status"
         {
             let result = match (request["request_id"].as_str(), request["task_id"].as_str()) {

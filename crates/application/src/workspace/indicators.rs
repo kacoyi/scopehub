@@ -1,5 +1,12 @@
 //! Profile-bound declarative indicator commands and disposable preview jobs.
 
+mod accepted;
+pub(super) use accepted::undo_indicator_layer;
+pub use accepted::{
+    ACCEPT_INDICATOR_VERSION, INDICATOR_CONFIRMATION, IndicatorLayerRef, IndicatorLayerUndo,
+    IndicatorVersionRecord, MAX_ACTIVE_INDICATOR_LAYERS, REMOVE_INDICATOR_LAYER,
+};
+
 use std::{
     collections::VecDeque,
     sync::{
@@ -10,7 +17,7 @@ use std::{
 };
 
 use scopehub_domain::{
-    indicator::{IndicatorError, MAX_BARS, Program},
+    indicator::{BucketCalendar, IndicatorError, MAX_BARS, Program},
     protocol::{
         Bar, DeclarativeSource11, Error, ErrorCode, EvidenceTarget11, FrozenSnapshot,
         IndicatorProvenance, MutationScope11, OperationReceipt11, SnapshotPreview11,
@@ -35,7 +42,7 @@ pub const CREATE_INDICATOR_DRAFT: &str = "indicator.createDraft";
 pub const RUN_INDICATOR_PREVIEW: &str = "indicator.runPreview";
 pub const CANCEL_INDICATOR_TASK: &str = "task.cancel";
 
-const ENGINE_VERSION: &str = "scopehub-declarative-1";
+const ENGINE_VERSION: &str = "scopehub-declarative-2";
 const MAX_DRAFTS: usize = 16;
 const MAX_JOBS: usize = 8;
 const MAX_RUNNING: usize = 2;
@@ -107,6 +114,7 @@ pub(crate) struct IndicatorStage {
     drafts: VecDeque<Draft>,
     jobs: VecDeque<Job>,
     workers: Arc<AtomicUsize>,
+    approval: Option<accepted::Approval>,
 }
 
 impl Drop for IndicatorStage {
@@ -602,15 +610,13 @@ fn compute(
         dataset_id: input.snapshot.dataset_id.clone(),
         dataset_revision: input.snapshot.dataset_revision.clone(),
     };
+    // Native CSV mappings name a calendar, but contain no verified sessions.
+    let calendar = BucketCalendar::unverified(input.period_ms).map_err(evaluator_error)?;
     let result = program
-        .evaluate(
+        .evaluate_with_calendar(
             &input.bars,
             input.first_visible,
-            |previous, next| {
-                // Imported mappings name a calendar, but carry no verified closure schedule.
-                // Continue over observed consecutive buckets only.
-                next.time_ms - previous.time_ms == input.period_ms
-            },
+            &calendar,
             &stopped,
             provenance,
         )
@@ -643,4 +649,55 @@ fn evaluator_error(error: IndicatorError) -> Error {
         IndicatorError::Nonfinite => ErrorCode::OUTPUTINVALID,
         IndicatorError::Cancelled => ErrorCode::CANCELLED,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rejects_aggregate_output_that_cannot_fit_the_negotiated_frame() {
+        let snapshot: FrozenSnapshot = serde_json::from_value(json!({
+            "series": {"instrument_id": "fixture", "provider_id": "scopehub.local-csv", "timeframe": "1m",
+                "price_adjustment": "raw", "session_scope": "regular", "calendar_id": "fixture", "quantity_unit": "shares"},
+            "dataset_id": new_id(), "dataset_revision": "fixture", "from_ms": 1_000_000_000_000_i64,
+            "to_ms": 1_000_600_000_000_i64, "warmup_bars": 0, "as_of_ms": 1_000_600_000_000_i64,
+            "content_hash": "0".repeat(64),
+        })).unwrap();
+        let bars = (0..10_000)
+            .map(|i| Bar {
+                time_ms: snapshot.from_ms + i * 60_000,
+                trading_day: "2001-09-09".into(),
+                open: 0.0,
+                high: 0.0,
+                low: 0.0,
+                close: 0.0,
+                volume: None,
+                is_closed: true,
+            })
+            .collect();
+        let outputs: Vec<_> = (0..16).map(|i| json!({
+            "id": format!("series-{i}"), "kind": "line", "pane": "price", "style": {"color": "#123456", "width": 1},
+            "value": {"op": "field", "field": "close"},
+        })).collect();
+        let source = serde_json::from_value(json!({"outputs": outputs, "parameters": []})).unwrap();
+        let result = compute(
+            Input {
+                snapshot,
+                bars,
+                first_visible: 0,
+                period_ms: 60_000,
+            },
+            Program::prepare(source, &[]).unwrap(),
+            "1".repeat(64),
+            || false,
+        );
+        assert!(matches!(
+            result,
+            Err(Error {
+                code: ErrorCode::RESOURCELIMIT,
+                ..
+            })
+        ));
+    }
 }

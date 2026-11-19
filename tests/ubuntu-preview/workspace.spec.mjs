@@ -467,9 +467,10 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
     protocol_version: '1.1', type: 'request', request_id: randomUUID(),
     message_id: randomUUID(), timestamp_ms: Date.now(),
   });
+  let workspaceRevision = 0;
   const mutation = (operation, args, target = { kind: 'chart', object_id: 'main-chart' }) => ({
     ...command(), task_id: null, scope: {
-      workspace_id: workspaceId, target, expected_workspace_revision: 0,
+      workspace_id: workspaceId, target, expected_workspace_revision: workspaceRevision,
       expected_selection_revision: 0, idempotency_key: randomUUID(),
     }, intent: { operation, arguments: args },
   });
@@ -477,6 +478,8 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
   const resultPoints = artifact => artifact.result.series.map(series => series.points.map(point => point.value));
   const reply = async (server, body) => (await (await post(server, body)).json()).result;
   const observation = {};
+  let savedLayer;
+  let savedOutput;
   try {
     await seedFrozenEvidence(profile, id, a, a + day, bars);
     await seedFrozenEvidence(profile, other, a, a + day, revised);
@@ -505,6 +508,7 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         const first = await run();
         expect(resultPoints(first.event.artifact)).toEqual([[null, 2, 4], [null, 1, 1]]);
         expect(first.resolved_parameters).toEqual({ period: 2 });
+        await expect(preview.getByText('This source has no verified session schedule. Indicator windows restart after timestamp gaps.')).toBeVisible();
         expect(first.event.snapshot).toMatchObject({ dataset_id: id, from_ms: a, to_ms: a + 2 * day + 1, warmup_bars: 0 });
         await expect.poll(() => plot.locator('canvas').count()).toBeGreaterThan(initialCanvasCount);
         await expect(chart.getByText('The indicator layer could not be displayed.')).toHaveCount(0);
@@ -586,10 +590,92 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         const withheld = await (await post(server, status(remaining))).json();
         expect(withheld).toMatchObject({ ok: false, error: { code: 'PERMISSION_DENIED' } });
         expect(withheld.result).toBeUndefined();
-        observation.preview = { initial: first.event.snapshot, warmed: warmed.event.snapshot, cancelled, withheld };
+        const stage = async () => {
+          const replyFrame = page.waitForResponse(response => response.request().postDataJSON()?.intent?.operation === 'indicator.acceptVersion');
+          await preview.getByRole('button', { name: 'Accept preview' }).click();
+          const response = await replyFrame;
+          const challenge = (await response.json()).result.outcome.challenge;
+          expect(challenge).toMatchObject({ task_id: warmed.task_id, workspace_revision: 0, selection_revision: 0 });
+          expect(challenge.target.range).toEqual({ from_ms: a + 2 * day, to_ms: a + 2 * day + 1 });
+          expect(challenge.parameters_hash).toMatch(/^[0-9a-f]{64}$/);
+          return response.request().postDataJSON();
+        };
+        await stage();
+        await preview.getByRole('button', { name: 'Cancel indicator acceptance' }).click();
+        await expect(preview.getByRole('button', { name: 'Accept preview' })).toBeEnabled();
+        const acceptRequest = await stage();
+        const decision = page.waitForResponse(response => response.request().postDataJSON()?.operation === 'confirmation.respond');
+        await preview.getByRole('button', { name: 'Confirm indicator acceptance' }).click();
+        const committed = (await (await decision).json()).result.outcome;
+        expect(committed).toMatchObject({ state: 'committed', receipt: { committed_workspace_revision: 1, undoable: true } });
+        savedLayer = committed.result;
+        await expect(preview.getByRole('region', { name: 'Accepted indicators' })).toBeVisible();
+        await expect(preview.getByText(/Preview layers/)).toHaveCount(0);
+        workspaceRevision = 1;
+
+        const outputRequest = () => ({ type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: savedLayer.layer_id });
+        savedOutput = await reply(server, outputRequest());
+        expect(savedOutput.document.artifact).toEqual(warmed.event.artifact);
+        expect(savedOutput.document.snapshot).toEqual(warmed.event.snapshot);
+        expect(savedOutput.document.resolved_parameters).toEqual({ period: 3 });
+        expect(savedOutput.document.warmup_from_ms).toBe(a);
+        const retry = { ...acceptRequest, message_id: randomUUID(), request_id: randomUUID() };
+        expect((await reply(server, retry)).outcome).toEqual(committed);
+        expect((await reply(server, { ...retry, scope: { ...retry.scope, idempotency_key: randomUUID() } })).outcome)
+          .toMatchObject({ state: 'failed', error: { code: 'STALE_CONTEXT' } });
+
+        const nextFailure = await reply(server, mutation('indicator.runPreview', {
+          draft_id: invalid.outcome.result.draft_id, snapshot: source, parameters: [],
+        }, target(source)));
+        const nextFailureId = nextFailure.outcome.result.task_id;
+        await expect.poll(async () => (await reply(server, status(nextFailureId))).status).toBe('terminal');
+        expect((await reply(server, status(nextFailureId))).event.outcome.status).toBe('failed');
+        expect(await reply(server, outputRequest())).toEqual(savedOutput);
+        await expect(plot).toBeVisible();
+
+        await preview.getByRole('button', { name: 'Remove accepted layer' }).click();
+        await expect(preview.getByRole('region', { name: 'Accepted indicators' })).toHaveCount(0);
+        await preview.getByRole('button', { name: 'Undo indicator removal' }).click();
+        await expect(preview.getByRole('region', { name: 'Accepted indicators' })).toBeVisible();
+        expect(await reply(server, outputRequest())).toEqual(savedOutput);
+        observation.preview = { initial: first.event.snapshot, warmed: warmed.event.snapshot, cancelled, withheld, committed };
+
+      });
+    });
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        let reruns = 0;
+        page.on('request', request => { if (request.postDataJSON()?.intent?.operation === 'indicator.runPreview') reruns += 1; });
+        await control(page, 'Open published CSV').click();
+        const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+        await dialog.getByLabel('Revision ID').fill(id);
+        await dialog.getByRole('button', { name: 'Open frozen chart' }).click();
+        const accepted = dialog.getByRole('region', { name: 'Accepted indicators' });
+        await expect(accepted.getByText(savedLayer.version_id)).toBeVisible();
+        await accepted.getByText('Accepted provenance and values').click();
+        await expect(accepted.getByText('mean · 3')).toBeVisible();
+        expect(reruns).toBe(0);
+        const restore = { type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: savedLayer.layer_id };
+        expect(await reply(server, restore)).toEqual(savedOutput);
+
+        const database = new DatabaseSync(join(profile.root, 'workspace.sqlite3'));
+        try {
+          database.prepare('INSERT INTO local_dataset_display_revocations (revision_id) VALUES (?)').run(id);
+          const counts = database.prepare('SELECT count(*) AS count FROM indicator_versions').get();
+          expect(counts.count).toBe(1);
+        } finally {
+          database.close();
+        }
+        const withheld = await (await post(server, restore)).json();
+        expect(withheld).toMatchObject({ ok: false, error: { code: 'PERMISSION_DENIED' } });
+        expect(withheld.result).toBeUndefined();
+        expect(await reply(server, { type: 'indicator_accepted_layers', request_id: randomUUID(), revision_id: id }))
+          .toMatchObject({ layers: [{ ...savedLayer, available: false }] });
+        observation.restored = { reruns, withheld, version: savedLayer.version_id };
       });
     });
     await testInfo.attach('indicator-preview', { body: JSON.stringify(observation), contentType: 'application/json' });
+
   } finally {
     await profile.close();
   }

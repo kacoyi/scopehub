@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import type {
-  IndicatorCreateDraftCommand11, IndicatorRunPreviewCommand11, TaskCancelRequest11,
+  IndicatorAcceptVersionCommand11, IndicatorCreateDraftCommand11, IndicatorRemoveCommand11,
+  IndicatorRunPreviewCommand11, TaskCancelRequest11, TrustedConfirmationDecision11,
   ChartSetTimeframeCommand11, ChartSetTimeframeReply11, OperationReceipt11, Workspace,
   DecisionNoteAppendOutcomeCommand11, DecisionNoteDeleteCommand11, DecisionNoteReadCommand11, DecisionNoteSaveCommand11,
   DecisionNoteExportBackupCommand11, DecisionNotePreviewRestoreCommand11, DecisionNoteRestoreBackupCommand11,
@@ -18,6 +19,9 @@ type LocalRequest = { type: 'snapshot' } | Command | DecisionNoteReadCommand11 |
   | PrivateRecordChangeCommand11 | PrivateRecordExportCommand11 | PrivateRecordReadCommand11
   | SharedSelectionRequest11 | ReadProjectedChart11
   | IndicatorCreateDraftCommand11 | IndicatorRunPreviewCommand11 | TaskCancelRequest11
+  | IndicatorAcceptVersionCommand11 | IndicatorRemoveCommand11 | TrustedConfirmationDecision11
+  | { type: 'indicator_accepted_layers'; request_id: string; revision_id: string }
+  | { type: 'indicator_accepted_output'; request_id: string; layer_id: string }
   | { type: 'indicator_preview_status'; request_id: string; task_id: string }
   | { type: 'frozen_chart' | 'frozen_chart_status'; request_id: string; revision_id: string };
 type UndoTarget = Pick<OperationReceipt11, 'operation_id' | 'committed_workspace_revision'>;

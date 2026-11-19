@@ -178,7 +178,8 @@
       ],
       "input": "IndicatorAcceptVersionInput",
       "output": "IndicatorAcceptVersionOutput",
-      "implementation": "planned",
+      "implementation": "implemented",
+      "implementation_scope": "Protocol 1.1 profile-local human confirmation commits one exact published preview, immutable validated output, and a replayable undo receipt under current source rights.",
       "wire_bindings": {
         "1.1": {
           "input": "IndicatorAcceptVersionCommand11",
@@ -197,7 +198,8 @@
       ],
       "input": "IndicatorRemoveInput",
       "output": "IndicatorRemoveOutput",
-      "implementation": "planned",
+      "implementation": "implemented",
+      "implementation_scope": "Protocol 1.1 profile-local human dispatch detaches an accepted chart layer with a repeatable receipt and a revision-bound inverse. The immutable version remains retained.",
       "wire_bindings": {
         "1.1": {
           "input": "IndicatorRemoveCommand11",

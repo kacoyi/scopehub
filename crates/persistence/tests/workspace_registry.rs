@@ -380,7 +380,8 @@ fn counts(profile: &Profile) -> (i64, i64) {
 #[test]
 fn indicator_preview_binds_local_source_grants_and_frozen_input() {
     use scopehub_application::{
-        CREATE_INDICATOR_DRAFT, READ_LOCAL_IMPORT_REVISION, RUN_INDICATOR_PREVIEW,
+        ACCEPT_INDICATOR_VERSION, CREATE_INDICATOR_DRAFT, INDICATOR_CONFIRMATION,
+        READ_LOCAL_IMPORT_REVISION, RUN_INDICATOR_PREVIEW,
     };
     use serde_json::Value;
 
@@ -422,7 +423,11 @@ fn indicator_preview_binds_local_source_grants_and_frozen_input() {
         [&id, &source_hash, &data.to_string()],
     ).unwrap();
     let access = || WorkspaceAccess {
-        operations: &[CREATE_INDICATOR_DRAFT, RUN_INDICATOR_PREVIEW],
+        operations: &[
+            CREATE_INDICATOR_DRAFT,
+            RUN_INDICATOR_PREVIEW,
+            ACCEPT_INDICATOR_VERSION,
+        ],
         ..support::access()
     };
     let local_display = WorkspaceAccess {
@@ -481,7 +486,7 @@ fn indicator_preview_binds_local_source_grants_and_frozen_input() {
     let started = registry.execute_workspace(&access(), run.clone()).unwrap();
     let task = started["outcome"]["result"]["task_id"].as_str().unwrap();
     assert_eq!(
-        registry.execute_workspace(&access(), run).unwrap()["outcome"],
+        registry.execute_workspace(&access(), run.clone()).unwrap()["outcome"],
         started["outcome"]
     );
 
@@ -512,6 +517,94 @@ fn indicator_preview_binds_local_source_grants_and_frozen_input() {
         registry.indicator_preview_status(&access(), task).unwrap(),
         ready
     );
+    let accept = bound(
+        ACCEPT_INDICATOR_VERSION,
+        json!({
+            "preview_id": ready["event"]["preview_id"],
+            "result_hash": ready["event"]["artifact"]["result_hash"],
+        }),
+        run["scope"]["target"].clone(),
+    );
+    let challenge = registry
+        .execute_workspace(&access(), accept.clone())
+        .unwrap()["outcome"]["challenge"]
+        .clone();
+    assert_eq!(challenge["task_id"], task);
+    let approval = json!({
+        "type": "request", "protocol_version": "1.1", "operation": INDICATOR_CONFIRMATION,
+        "message_id": Uuid::new_v4().to_string(), "request_id": Uuid::new_v4().to_string(),
+        "timestamp_ms": 0, "challenge_id": challenge["challenge_id"], "decision": "approve",
+    });
+    conn.execute_batch(
+        "CREATE TRIGGER refuse_indicator_artifact BEFORE INSERT ON indicator_versions
+         BEGIN SELECT raise(ABORT, 'synthetic indicator write failure'); END;",
+    )
+    .unwrap();
+    assert_failed(
+        &registry
+            .execute_workspace(&access(), approval.clone())
+            .unwrap(),
+        "INTERNAL_ERROR",
+    );
+    let versions: i64 = conn
+        .query_row("SELECT count(*) FROM indicator_versions", [], |row| {
+            row.get(0)
+        })
+        .unwrap();
+    let writes: i64 = conn
+        .query_row("SELECT count(*) FROM operation_log", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(
+        (
+            versions,
+            writes,
+            registry
+                .workspace_snapshot(&access())
+                .unwrap()
+                .workspace
+                .revision
+        ),
+        (0, 0, 0)
+    );
+    conn.execute_batch("DROP TRIGGER refuse_indicator_artifact")
+        .unwrap();
+
+    let committed = registry
+        .execute_workspace(&access(), approval.clone())
+        .unwrap()["outcome"]
+        .clone();
+    assert_eq!(committed["state"], "committed", "{committed}");
+    assert_eq!(committed["receipt"]["committed_workspace_revision"], 1);
+    let layer = committed["result"]["layer_id"].as_str().unwrap();
+    let accepted = registry
+        .accepted_indicator_output(&access(), layer)
+        .unwrap();
+    assert_eq!(accepted["document"]["artifact"], ready["event"]["artifact"]);
+    drop(registry);
+
+    let mut registry = OperationRegistry::new(store(&profile.0));
+    assert_eq!(
+        registry.execute_workspace(&access(), approval).unwrap()["outcome"],
+        committed
+    );
+    assert_eq!(
+        registry.execute_workspace(&access(), accept).unwrap()["outcome"],
+        committed
+    );
+    assert_eq!(
+        registry
+            .accepted_indicator_output(&access(), layer)
+            .unwrap(),
+        accepted
+    );
+    assert_eq!(
+        registry
+            .indicator_preview_status(&access(), task)
+            .unwrap_err()
+            .code,
+        ErrorCode::STALECONTEXT
+    );
+
     conn.execute(
         "INSERT INTO local_dataset_display_revocations (revision_id) VALUES (?1)",
         [&id],
@@ -519,10 +612,14 @@ fn indicator_preview_binds_local_source_grants_and_frozen_input() {
     .unwrap();
     assert_eq!(
         registry
-            .indicator_preview_status(&access(), task)
+            .accepted_indicator_output(&access(), layer)
             .unwrap_err()
             .code,
         ErrorCode::PERMISSIONDENIED
+    );
+    assert_eq!(
+        registry.accepted_indicator_layers(&access(), &id).unwrap()["layers"][0]["available"],
+        false
     );
     assert_eq!(
         registry
@@ -530,6 +627,6 @@ fn indicator_preview_binds_local_source_grants_and_frozen_input() {
             .unwrap()
             .workspace
             .revision,
-        0
+        1
     );
 }

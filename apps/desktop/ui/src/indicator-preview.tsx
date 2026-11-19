@@ -4,6 +4,7 @@ import type {
   IndicatorCreateDraftReply11, IndicatorRunPreviewCommand11, IndicatorRunPreviewReply11,
   IndicatorResult, MutationScope11, PreviewReady11, TaskTerminalEvent11,
 } from '../../../../contracts/generated/protocol';
+import { IndicatorAcceptance } from './indicator-acceptance';
 import { displayAccessDenied, type PublishedRevisionAccess } from './published-revision-access';
 import { exchangeWorkspace, type LocalWorkspace } from './use-local-workspace';
 
@@ -51,9 +52,10 @@ function describeError(error: unknown) {
 type Props = {
   snapshot: FrozenSnapshot; bars: readonly Bar[]; workspace: LocalWorkspace; access: PublishedRevisionAccess;
   showResult: (result: IndicatorResult | undefined) => void;
+  showAccepted: (results: readonly IndicatorResult[]) => void;
 };
 
-export function IndicatorPreview({ snapshot, bars, workspace, access, showResult }: Props) {
+export function IndicatorPreview({ snapshot, bars, workspace, access, showResult, showAccepted }: Props) {
   const heading = useId();
   const [period, setPeriod] = useState('2');
   const [first, setFirst] = useState(snapshot.from_ms);
@@ -159,7 +161,9 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
     }
   }
 
-  const points = result?.event.artifact.storage === 'inline' ? result.event.artifact.result.series : undefined;
+  const clearPreview = () => { showResult(undefined); setResult(undefined); };
+  const output = result?.event.artifact.storage === 'inline' ? result.event.artifact.result : undefined;
+  const points = output?.series;
   const ready = result?.event.snapshot;
   const date = (time: number) => new Date(time).toISOString();
   return <section className="local-import-card" aria-labelledby={heading}>
@@ -178,15 +182,14 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
         || !Number.isSafeInteger(Number(period)) || first > last}
         onClick={() => void preview()}>Run preview</button>
       {running && <button type="button" className="secondary-button" disabled={!taskId} onClick={() => void cancel()}>Cancel preview</button>}
-      {result && <button type="button" className="secondary-button" onClick={() => {
-        showResult(undefined); setResult(undefined);
-      }}>Clear preview</button>}
+      {result && <button type="button" className="secondary-button" onClick={clearPreview}>Clear preview</button>}
     </div>
     {running && <p role="status">Calculating rolling mean and population standard deviation…</p>}
     {message && <p role={message.error ? 'alert' : 'status'}>{message.text}</p>}
     {ready && points && <div>
       <p role="status">Preview layers · rolling mean and population standard deviation</p>
       <p>Period {String(result.resolved_parameters.period)} · {ready.warmup_bars} warm-up bars</p>
+      {output?.diagnostics.map(diagnostic => <p key={diagnostic.code}>{diagnostic.message}</p>)}
       <details>
         <summary>Preview provenance and values</summary>
         <dl>
@@ -207,5 +210,7 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
         </table>
       </details>
     </div>}
+    <IndicatorAcceptance preview={result?.event} snapshot={snapshot} workspace={workspace} access={access}
+      clearPreview={clearPreview} showAccepted={showAccepted} />
   </section>;
 }
