@@ -1754,6 +1754,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "rolling-deviation-retains-expired-price",
+      "source": "Independent Chromium and Rust registry review of the published three-row CSV on 12c73d8.",
+      "observation": "After 133.33 leaves a two-close window containing 120.21 twice, the complete-range preview calculated a nonzero population standard deviation, a reciprocal of 2652710.767830974 and a nonzero-volatility marker. The identical last day with one warm-up bar correctly returned zero.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M3-001"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "indicator-declarative-preview"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
