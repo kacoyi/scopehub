@@ -5361,9 +5361,13 @@
         {
           "path": "project/evidence/M1-019-da1cca2453fa7f86.json",
           "sha256": "77d244a24ecb44fef4d4f406d0b3dc633880ff7f3a06b4a0a6abbc3bd73d8f91"
+        },
+        {
+          "path": "project/evidence/M1-019-1139dbf6ff2e06ed.json",
+          "sha256": "164c58576a2e1725828a2c9e28f762a4d74d4fa8cbc4a825ac73f3f961e1ffbb"
         }
       ],
-      "next_action": "Compare real Windows interruption and resume across the original and minimal locked environments, then verify the scoped checks with complete Windows and Ubuntu evidence.",
+      "next_action": "Retain hosted Windows evidence for the final test-server revision. Linux verified all selected checks, and a Windows 11 guest completed two cold worker replacements with the reduced locked environment.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
