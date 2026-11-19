@@ -75,6 +75,10 @@ pub fn mapping_header_digest(preview: &Value, mapping: &CsvMappingV1) -> Option<
     {
         return None;
     }
+    ordered_header_digest(header, mapping)
+}
+
+pub(crate) fn ordered_header_digest(header: &[Value], mapping: &CsvMappingV1) -> Option<String> {
     let material = json!([
         "scopehub-local-import-header-v1",
         mapping.encoding,
@@ -139,7 +143,11 @@ pub fn load_mapping_output(
 }
 
 impl<S: ReviewedMappingStore> OperationRegistry<S> {
-    fn authorize_mapping(&self, access: &WorkspaceAccess<'_>, name: &str) -> Result<(), Error> {
+    pub(crate) fn authorize_local_import(
+        &self,
+        access: &WorkspaceAccess<'_>,
+        name: &str,
+    ) -> Result<(), Error> {
         authorized_operation(access.actor, name)?;
         let binding = self.port.binding();
         if access.profile_id != binding.profile_id
@@ -158,7 +166,7 @@ impl<S: ReviewedMappingStore> OperationRegistry<S> {
         access: &WorkspaceAccess<'_>,
         source_key: &str,
     ) -> Result<Option<ReviewedImportMapping>, Error> {
-        self.authorize_mapping(access, LOAD_LOCAL_IMPORT_MAPPING)?;
+        self.authorize_local_import(access, LOAD_LOCAL_IMPORT_MAPPING)?;
         self.port.load_mapping(source_key)
     }
 
@@ -170,7 +178,7 @@ impl<S: ReviewedMappingStore> OperationRegistry<S> {
         mapping: &CsvMappingV1,
         guard: &impl MappingCommitGuard,
     ) -> Result<Value, Error> {
-        self.authorize_mapping(access, SAVE_LOCAL_IMPORT_MAPPING)?;
+        self.authorize_local_import(access, SAVE_LOCAL_IMPORT_MAPPING)?;
         let op = authorized_operation(access.actor, SAVE_LOCAL_IMPORT_MAPPING)?;
         if !op.output.is_valid(&json!({"version":1,"record":{
             "review_revision":1,"header_sha256":header_sha256,"mapping":mapping

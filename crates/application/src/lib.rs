@@ -2,12 +2,19 @@
 
 mod history;
 mod local_import;
+mod local_publication;
 mod replay;
 mod reviewed_mapping;
 mod workspace;
 
 pub use local_import::{
     DEFAULT_PREVIEW_ROWS, LocalImportPort, PREVIEW_LOCAL_IMPORT, preview_local_import,
+};
+pub use local_publication::{
+    LocalDatasetPublication, LocalDatasetStore, PUBLISH_LOCAL_IMPORT, READ_LOCAL_IMPORT_REVISION,
+    REVOKE_LOCAL_IMPORT_REVISION, StoredLocalDataset, local_mapping_fingerprint,
+    publish_local_import_input, read_local_import_revision_input,
+    revoke_local_import_revision_input,
 };
 pub use replay::{SUBSCRIBE, SubscriptionFuture, SubscriptionPort};
 pub use reviewed_mapping::{
@@ -140,7 +147,12 @@ impl Operation {
         if !self.actors.iter().any(|allowed| allowed == actor.as_str())
             || (matches!(
                 self.name.as_str(),
-                PREVIEW_LOCAL_IMPORT | LOAD_LOCAL_IMPORT_MAPPING | SAVE_LOCAL_IMPORT_MAPPING
+                PREVIEW_LOCAL_IMPORT
+                    | LOAD_LOCAL_IMPORT_MAPPING
+                    | SAVE_LOCAL_IMPORT_MAPPING
+                    | PUBLISH_LOCAL_IMPORT
+                    | READ_LOCAL_IMPORT_REVISION
+                    | REVOKE_LOCAL_IMPORT_REVISION
             ) && !matches!(actor, Actor::LocalUser))
         {
             return Err(failure(ErrorCode::PERMISSIONDENIED));

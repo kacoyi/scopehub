@@ -4,6 +4,7 @@ import { ChartWorkspace } from './chart-workspace';
 import { LocalImportEditor, type LocalFolderCatalog } from './local-import-editor';
 import { cancelLocalPreview, chooseLocalCsvFolder, hasLocalCsvPicker, previewLocalImport } from './local-import-transport';
 import { LocalPreviewChart } from './local-preview-chart';
+import { OpenLocalRevisionDialog } from './local-revision-dialog';
 import { readSampleView, saveSampleView } from './sample-view';
 import { useLocalWorkspace } from './use-local-workspace';
 import './style.css';
@@ -19,6 +20,8 @@ function App() {
   const [folder, setFolder] = useState<LocalFolderCatalog | null>(null);
   const [choosing, setChoosing] = useState(false);
   const [pickerError, setPickerError] = useState<string>();
+  const [openingRevision, setOpeningRevision] = useState(false);
+  const [revokedRevisionId, setRevokedRevisionId] = useState<string>();
   const workspace = useLocalWorkspace();
   useEffect(() => {
     const navigate = () => {
@@ -60,6 +63,7 @@ function App() {
   };
   const localActions = hasLocalCsvPicker() ? {
     choose: () => { void chooseFromWorkspace(); },
+    openRevision: () => setOpeningRevision(true),
     resume: folder ? () => setLocal(true) : undefined,
     choosing,
     error: pickerError,
@@ -73,13 +77,17 @@ function App() {
         <header className="topbar local-source-bar">
           <div className="brand" aria-label="ScopeHub"><span className="brand-mark" aria-hidden="true">S</span><strong>ScopeHub</strong></div>
           <span className="local-source-label"><i aria-hidden="true" />Local CSV</span>
-          <button type="button" className="secondary-button" onClick={openSample}>Open offline sample</button>
+          <div className="local-source-controls">
+            <button type="button" className="secondary-button" aria-haspopup="dialog" onClick={() => setOpeningRevision(true)}>Open published CSV</button>
+            <button type="button" className="secondary-button" onClick={openSample}>Open offline sample</button>
+          </div>
         </header>
         <LocalImportEditor key={folder.folder_id} initialCatalog={folder} chooseFolder={chooseFolder}
-          previewImport={previewLocalImport} cancelPreview={cancelLocalPreview}
+          previewImport={previewLocalImport} cancelPreview={cancelLocalPreview} revokedRevisionId={revokedRevisionId}
           renderChart={result => <LocalPreviewChart result={result} />} />
       </main>
     </div>}
+    {openingRevision && <OpenLocalRevisionDialog onClose={() => setOpeningRevision(false)} onRevoked={setRevokedRevisionId} />}
   </>;
 }
 

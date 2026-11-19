@@ -82,6 +82,9 @@
         "market.previewLocalImport",
         "market.saveLocalImportMapping",
         "market.loadLocalImportMapping",
+        "market.readLocalImportRevision",
+        "market.revokeLocalImportRevision",
+        "market.publishLocalImport",
         "workspace.readChartProjection",
         "workspace.selectEvidence",
         "decisionNote.save",
@@ -3738,6 +3741,33 @@
         },
         {
           "$ref": "#/$defs/LoadLocalImportMappingError"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalImportRevisionRequest"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalImportRevisionResponse"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalImportRevisionError"
+        },
+        {
+          "$ref": "#/$defs/RevokeLocalImportRevisionRequest"
+        },
+        {
+          "$ref": "#/$defs/RevokeLocalImportRevisionResponse"
+        },
+        {
+          "$ref": "#/$defs/RevokeLocalImportRevisionError"
+        },
+        {
+          "$ref": "#/$defs/PublishLocalImportRequest"
+        },
+        {
+          "$ref": "#/$defs/PublishLocalImportResponse"
+        },
+        {
+          "$ref": "#/$defs/PublishLocalImportError"
         },
         {
           "$ref": "#/$defs/MarketBarUpdateEvent"
@@ -11391,6 +11421,712 @@
         "type",
         "request_id",
         "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "LocalImportRowLocator": {
+      "type": "object",
+      "properties": {
+        "record_number": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "line_start": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4194305
+        },
+        "line_end": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4194305
+        }
+      },
+      "required": [
+        "record_number",
+        "line_start",
+        "line_end"
+      ],
+      "additionalProperties": false
+    },
+    "PublishedLocalImportBar": {
+      "type": "object",
+      "properties": {
+        "bar": {
+          "$ref": "#/$defs/Bar"
+        },
+        "locators": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LocalImportRowLocator"
+          },
+          "minItems": 1,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "bar",
+        "locators"
+      ],
+      "additionalProperties": false
+    },
+    "PublishedLocalImportRevision": {
+      "type": "object",
+      "properties": {
+        "revision_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "relative_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32768
+        },
+        "source_sha256": {
+          "$ref": "#/$defs/Hash",
+          "maxLength": 64,
+          "type": "string"
+        },
+        "mapping_sha256": {
+          "$ref": "#/$defs/Hash",
+          "maxLength": 64,
+          "type": "string"
+        },
+        "review_revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "symbol": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "series": {
+          "$ref": "#/$defs/PreviewSeries"
+        },
+        "bar_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "source_record_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        }
+      },
+      "required": [
+        "revision_id",
+        "relative_path",
+        "source_sha256",
+        "mapping_sha256",
+        "review_revision",
+        "symbol",
+        "series",
+        "bar_count",
+        "source_record_count"
+      ],
+      "additionalProperties": false
+    },
+    "PublishLocalImportInput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "folder_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "file_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "expected_sha256": {
+          "$ref": "#/$defs/Hash",
+          "maxLength": 64,
+          "type": "string"
+        },
+        "review_revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "version",
+        "folder_id",
+        "file_id",
+        "expected_sha256",
+        "review_revision"
+      ],
+      "additionalProperties": false
+    },
+    "PublishLocalImportOutput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "revision": {
+          "$ref": "#/$defs/PublishedLocalImportRevision"
+        }
+      },
+      "required": [
+        "version",
+        "revision"
+      ],
+      "additionalProperties": false
+    },
+    "ReadLocalImportRevisionInput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "revision_id": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "version",
+        "revision_id"
+      ],
+      "additionalProperties": false
+    },
+    "ReadLocalImportRevisionOutput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "revision": {
+          "$ref": "#/$defs/PublishedLocalImportRevision"
+        },
+        "bars": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PublishedLocalImportBar"
+          },
+          "minItems": 1,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "version",
+        "revision",
+        "bars"
+      ],
+      "additionalProperties": false
+    },
+    "PublishLocalImportRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.publishLocalImport"
+        },
+        "payload": {
+          "$ref": "#/$defs/PublishLocalImportInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "PublishLocalImportResponse": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.publishLocalImport"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": true
+        },
+        "result": {
+          "$ref": "#/$defs/PublishLocalImportOutput"
+        },
+        "error": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "PublishLocalImportError": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.publishLocalImport"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": false
+        },
+        "result": {
+          "type": "null"
+        },
+        "error": {
+          "$ref": "#/$defs/MarketPageFault"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "PublishLocalImportReply11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/PublishLocalImportResponse"
+        },
+        {
+          "$ref": "#/$defs/PublishLocalImportError"
+        }
+      ]
+    },
+    "ReadLocalImportRevisionRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.readLocalImportRevision"
+        },
+        "payload": {
+          "$ref": "#/$defs/ReadLocalImportRevisionInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "ReadLocalImportRevisionResponse": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.readLocalImportRevision"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": true
+        },
+        "result": {
+          "$ref": "#/$defs/ReadLocalImportRevisionOutput"
+        },
+        "error": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "ReadLocalImportRevisionError": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.readLocalImportRevision"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": false
+        },
+        "result": {
+          "type": "null"
+        },
+        "error": {
+          "$ref": "#/$defs/MarketPageFault"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "ReadLocalImportRevisionReply11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ReadLocalImportRevisionResponse"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalImportRevisionError"
+        }
+      ]
+    },
+    "RevokeLocalImportRevisionInput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "revision_id": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "version",
+        "revision_id"
+      ],
+      "additionalProperties": false
+    },
+    "RevokeLocalImportRevisionRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.revokeLocalImportRevision"
+        },
+        "payload": {
+          "$ref": "#/$defs/RevokeLocalImportRevisionInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "RevokeLocalImportRevisionResponse": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.revokeLocalImportRevision"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": true
+        },
+        "result": {
+          "$ref": "#/$defs/RevokeLocalImportRevisionOutput"
+        },
+        "error": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "RevokeLocalImportRevisionError": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.revokeLocalImportRevision"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": false
+        },
+        "result": {
+          "type": "null"
+        },
+        "error": {
+          "$ref": "#/$defs/MarketPageFault"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "RevokeLocalImportRevisionReply11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/RevokeLocalImportRevisionResponse"
+        },
+        {
+          "$ref": "#/$defs/RevokeLocalImportRevisionError"
+        }
+      ]
+    },
+    "RevokeLocalImportRevisionOutput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "revision_id": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "version",
+        "revision_id"
       ],
       "additionalProperties": false
     }

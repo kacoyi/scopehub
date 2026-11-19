@@ -6,11 +6,12 @@ use serde_json::json;
 
 use super::*;
 
-const SOURCE_KEY: &str = "synthetic-equity";
-const FIRST_HEADER: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+pub(super) const SOURCE_KEY: &str = "synthetic-equity";
+pub(super) const FIRST_HEADER: &str =
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const SECOND_HEADER: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
-fn test_mapping(revision: &str) -> CsvMappingV1 {
+pub(super) fn test_mapping(revision: &str) -> CsvMappingV1 {
     serde_json::from_value(json!({
         "version": 1,
         "revision": revision,
@@ -38,7 +39,7 @@ fn test_mapping(revision: &str) -> CsvMappingV1 {
     .unwrap()
 }
 
-struct CommitMapping;
+pub(super) struct CommitMapping;
 
 impl MappingCommitGuard for CommitMapping {
     fn commit<T>(&self, apply: impl FnOnce() -> Result<T, Error>) -> Result<T, Error> {
@@ -171,7 +172,7 @@ fn concurrent_writers_allocate_distinct_versions_for_the_same_source() {
     );
 }
 
-fn v3_workspace(profile: &Profile) -> Connection {
+pub(super) fn v3_workspace(profile: &Profile) -> Connection {
     let mut connection = profile.raw_connection();
     connection
         .pragma_update(None, "foreign_keys", true)
@@ -202,7 +203,7 @@ fn v3_workspace(profile: &Profile) -> Connection {
     connection
 }
 
-fn ledger(connection: &Connection) -> Vec<i64> {
+pub(super) fn ledger(connection: &Connection) -> Vec<i64> {
     let mut query = connection
         .prepare("SELECT version FROM schema_migrations ORDER BY version")
         .unwrap();
@@ -221,8 +222,8 @@ fn v3_upgrade_is_atomic_and_preserves_workspace_notes_and_outcomes() {
         .transaction_with_behavior(TransactionBehavior::Immediate)
         .unwrap();
     migrate(&transaction, &Profile::binding()).unwrap();
-    assert_eq!(ledger(&transaction), [1, 2, 3, 4]);
-    assert_eq!(integer_pragma(&transaction, "user_version"), 4);
+    assert_eq!(ledger(&transaction), [1, 2, 3, 4, 5]);
+    assert_eq!(integer_pragma(&transaction, "user_version"), SCHEMA_VERSION);
     drop(transaction);
     assert_eq!(ledger(&database), [1, 2, 3]);
     assert_eq!(integer_pragma(&database, "user_version"), 3);
@@ -245,7 +246,7 @@ fn v3_upgrade_is_atomic_and_preserves_workspace_notes_and_outcomes() {
     assert_eq!(fs::read(profile.db()).unwrap(), v3_bytes);
 
     let writer = profile.open().unwrap();
-    assert_eq!(ledger(&writer.connection), [1, 2, 3, 4]);
+    assert_eq!(ledger(&writer.connection), [1, 2, 3, 4, 5]);
     let state = writer.snapshot(None).unwrap().0;
     assert_eq!(
         (state.revision, state.timeframe),
@@ -277,7 +278,10 @@ fn v3_with_an_invalid_ledger_is_refused_before_any_upgrade() {
 fn fresh_workspace_has_the_complete_ledger_and_no_reviewed_mapping() {
     let profile = Profile::new();
     let writer = profile.open().unwrap();
-    assert_eq!(ledger(&writer.connection), [1, 2, 3, 4]);
-    assert_eq!(integer_pragma(&writer.connection, "user_version"), 4);
+    assert_eq!(ledger(&writer.connection), [1, 2, 3, 4, 5]);
+    assert_eq!(
+        integer_pragma(&writer.connection, "user_version"),
+        SCHEMA_VERSION
+    );
     assert!(writer.load_mapping(SOURCE_KEY).unwrap().is_none());
 }

@@ -340,6 +340,18 @@
       "timeout_seconds": 180
     },
     {
+      "id": "local-import-publication",
+      "status": "implemented",
+      "purpose": "Exercise the built UI through the profile-bound Rust desktop state, complete-file normalization, SQLite and the chart adapter. Verify a publication above the preview row limit, retry, held rows, a changed single-file revision, frozen reads after restart and display-right removal. The test supplies the selected directory through a synthetic picker.",
+      "platforms": "all",
+      "command": [
+        "{python}",
+        "scripts/check_local_import_publication.py"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
       "id": "local-folder-import",
       "status": "planned",
       "purpose": "Exercise the folder picker, editable mapping, source lineage, idempotent refresh and schema drift through the actual local chart workflow.",

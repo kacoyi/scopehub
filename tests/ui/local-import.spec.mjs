@@ -1,5 +1,10 @@
 import { test as base, expect } from '@playwright/test';
-import { createHash } from 'node:crypto';
+import { spawn } from 'node:child_process';
+import { createHash, randomUUID } from 'node:crypto';
+import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { createInterface } from 'node:readline';
 import { painted } from './chart-pixels.mjs';
 import { control, openPanel } from './workspace-controls.mjs';
 
@@ -436,5 +441,198 @@ base('ordinary browser without native transport has no folder selection action',
   await page.goto('/');
   await expect(control(page, 'Open offline sample')).toBeVisible();
   await expect(control(page, 'Choose local CSV folder')).toHaveCount(0);
+  await expect(control(page, 'Open published CSV')).toHaveCount(0);
   await expect(page.locator('input[type=file]')).toHaveCount(0);
+});
+
+function startLocalImportBridge(binary, profile, folder) {
+  const child = spawn(binary, [profile, folder], { stdio: ['pipe', 'pipe', 'pipe'] });
+  const output = createInterface({ input: child.stdout })[Symbol.asyncIterator]();
+  let diagnostic = '';
+  child.stderr.on('data', data => { diagnostic = (diagnostic + data.toString()).slice(-2048); });
+  child.stdin.on('error', error => { diagnostic = String(error); });
+  const ended = new Promise(resolve => {
+    child.once('error', error => { diagnostic = String(error); });
+    child.once('close', resolve);
+  });
+  let queue = Promise.resolve();
+  return {
+    request(command, args) {
+      const result = queue.then(async () => {
+        child.stdin.write(JSON.stringify({ command, args }) + '\n');
+        const reply = await output.next();
+        if (reply.done) throw new Error(`Local import bridge stopped: ${diagnostic}`);
+        return JSON.parse(reply.value);
+      });
+      queue = result.catch(() => undefined);
+      return result;
+    },
+    async close() {
+      child.stdin.end();
+      await ended;
+    },
+  };
+}
+
+base('built UI publishes all 502 native bars through Rust and reopens, replaces and revokes frozen revisions', {
+  tag: '@profile-local-csv',
+}, async ({ page, baseURL }) => {
+  const binary = process.env.SCOPEHUB_LOCAL_IMPORT_BRIDGE;
+  base.skip(!binary, 'Set SCOPEHUB_LOCAL_IMPORT_BRIDGE to the portable Rust test example.');
+  const temporary = await mkdtemp(join(await realpath(tmpdir()), 'scopehub-local-import-ui-'));
+  const profile = join(temporary, 'profile');
+  const folder = join(temporary, 'synthetic-csv');
+  let bridge;
+  try {
+    await mkdir(profile, { mode: 0o700 });
+    await mkdir(folder, { mode: 0o700 });
+    const file = join(folder, 'daily.csv');
+    const heldFile = join(folder, 'held.csv');
+    const header = [...equity.header, 'VendorMemo', 'is_closed'];
+    const rows = Array.from({ length: 502 }, (_, index) => {
+      const day = new Date(Date.UTC(2024, 0, index + 1)).toISOString().slice(0, 10);
+      return index === 501
+        ? ['000731', day, '300', '306', '299', '305', '', 'Tail was not sampled', 'true']
+        : ['000731', day, '36', '39', '34', '38', '120', 'Original extra field', 'true'];
+    });
+    const csv = (records) => [header, ...records].map(row => row.join(',')).join('\n') + '\n';
+    const original = csv(rows);
+    const hash = createHash('sha256').update(original).digest('hex');
+    await writeFile(file, original);
+    await writeFile(heldFile, csv([...rows.slice(0, -1), [...rows.at(-1).slice(0, -1), 'false']]));
+    bridge = startLocalImportBridge(binary, profile, folder);
+    const calls = [];
+    const requestUrls = [];
+    page.on('request', request => requestUrls.push(request.url()));
+    await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
+      const reply = await bridge.request(command, args);
+      calls.push({ command, args, reply });
+      return reply;
+    });
+    await page.addInitScript(() => {
+      window.isTauri = true;
+      window.__TAURI_INTERNALS__ = {
+        async invoke(command, args) {
+          const reply = await window.testNativeInvoke(command, args);
+          if (reply.error) throw reply.error;
+          return reply.result;
+        },
+      };
+    });
+    const operations = (name) => calls.filter(call => call.args?.operation === name);
+    const publish = control(page, 'Publish complete file');
+    const open = control(page, 'Open frozen chart');
+    const published = page.getByRole('region', { name: 'Published local CSV' });
+    const frozen = page.getByRole('region', { name: 'Frozen local CSV chart' });
+    const provenance = page.getByRole('region', { name: 'Published source provenance' });
+    const sample = page.getByRole('region', { name: 'Preview source' });
+
+    async function previewAndSave() {
+      await select(page, 'Rows per preview').selectOption('1');
+      await control(page, 'Inspect raw rows').click();
+      await expect(sample).toContainText('Preview omits later records');
+      await enterMapping(page, equity);
+      await control(page, 'Preview mapping').click();
+      await expect(page.getByRole('table', { name: 'Normalized bars' }).locator('tbody tr')).toHaveCount(1);
+      await expect(publish).toHaveCount(0);
+      await control(page, 'Save reviewed mapping').click();
+      await expect(publish).toBeEnabled();
+    }
+
+    await page.goto('/');
+    await control(page, 'Choose local CSV folder').last().click();
+    await previewAndSave();
+    await expect(page.getByText('Original extra field', { exact: true })).toBeVisible();
+    await publish.click();
+    await expect(published).toContainText('000731 · 502 bars · daily.csv');
+    const [first] = operations('market.publishLocalImport');
+    const revision = first.reply.result.revision;
+    expect(first.args.payload).toEqual({
+      version: 1, folder_id: expect.any(String), file_id: expect.any(String), expected_sha256: hash, review_revision: 1,
+    });
+    expect(revision).toMatchObject({ source_sha256: hash, bar_count: 502, source_record_count: 502 });
+
+    await publish.click();
+    await expect.poll(() => operations('market.publishLocalImport').length).toBe(2);
+    expect(operations('market.publishLocalImport')[1].reply.result.revision).toEqual(revision);
+    await open.click();
+    await expect(frozen.locator('.history')).toHaveAttribute('data-bars', '502');
+    await expect(frozen.getByLabel('Selected bar')).toContainText('C 305');
+    await expect(frozen.getByLabel('Selected bar')).toContainText('Volume Unknown');
+    await expect.poll(() => painted(page, 'candlestick')).toBeGreaterThan(20);
+    await expect(provenance).toContainText(revision.revision_id);
+    await expect(provenance).toContainText(hash);
+    await provenance.getByText('Source rows (502)', { exact: true }).click();
+    const sourceRow = provenance.getByRole('table', { name: 'Published source rows' }).locator('tbody tr').first();
+    await expect(sourceRow.getByRole('rowheader')).toHaveText('1');
+    await expect(sourceRow.getByRole('cell')).toHaveText(['2', '2024-01-01T01:30:00.000Z', '2024-01-01', '38']);
+
+    await writeFile(file, original.replace(',305,', ',304,'));
+    await publish.click();
+    await expect(page.getByRole('alert')).toContainText('The file changed since it was inspected.');
+    await expect(frozen.getByLabel('Selected bar')).toContainText('C 305');
+    await select(page, 'CSV file').selectOption({ label: 'held.csv' });
+    await previewAndSave();
+    await publish.click();
+    await expect(page.getByRole('alert')).toContainText('Review CSV record 502.');
+    await expect(page.getByRole('alert')).toContainText('Source lines 503.');
+    await expect(frozen.getByLabel('Selected bar')).toContainText('C 305');
+
+    await select(page, 'CSV file').selectOption({ label: 'daily.csv' });
+    await control(page, 'Load reviewed mapping').click();
+    await expect(page.getByText('Reviewed mapping revision 1 loaded. Preview it against the current file.')).toBeVisible();
+    await expect(publish).toHaveCount(0);
+    await control(page, 'Preview mapping').click();
+    await expect(publish).toBeEnabled();
+    await publish.click();
+    await expect(published.locator('code')).not.toHaveText(revision.revision_id);
+    const replacement = operations('market.publishLocalImport').at(-1).reply.result.revision;
+    expect(replacement.source_sha256).not.toBe(hash);
+    expect(replacement.mapping_sha256).toBe(revision.mapping_sha256);
+    expect(replacement.revision_id).not.toBe(revision.revision_id);
+    await open.click();
+    await expect(frozen.getByLabel('Selected bar')).toContainText('C 304');
+
+    await bridge.close();
+    bridge = startLocalImportBridge(binary, profile, folder);
+    const folderSelections = calls.filter(call => call.command === 'choose_local_csv_folder').length;
+    await page.reload();
+    await control(page, 'Open published CSV').click();
+    const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+    await dialog.getByRole('textbox', { name: 'Revision ID' }).fill(revision.revision_id);
+    await open.click();
+    await expect(frozen.getByLabel('Selected bar')).toContainText('C 305');
+    await expect(provenance).toContainText(revision.revision_id);
+    expect(calls.filter(call => call.command === 'choose_local_csv_folder')).toHaveLength(folderSelections);
+    const reads = operations('market.readLocalImportRevision');
+    expect(reads).toHaveLength(3);
+    const replyDigest = reply => createHash('sha256').update(JSON.stringify(reply)).digest('hex');
+    expect(replyDigest(reads[2].reply)).toBe(replyDigest(reads[0].reply));
+    expect(reads[2].reply.result.bars.at(-1)).toMatchObject({
+      bar: { close: 305, volume: null }, locators: [{ record_number: 502, line_start: 503, line_end: 503 }],
+    });
+
+    await control(page, 'Remove frozen chart access').click();
+    await expect(dialog).toContainText('The original CSV copy stays in this profile.');
+    await control(page, 'Keep access').click();
+    await expect(frozen).toBeVisible();
+    await control(page, 'Remove frozen chart access').click();
+    await control(page, 'Remove access').click();
+    await expect(page.getByText('Access removed for this published revision.', { exact: true })).toBeVisible();
+    await expect(frozen).toHaveCount(0);
+    const afterRevocation = await bridge.request('execute_operation', {
+      operation: 'market.readLocalImportRevision', requestId: randomUUID(),
+      payload: { version: 1, revision_id: revision.revision_id },
+    });
+    expect(afterRevocation.error?.code).toBe('PERMISSION_DENIED');
+    await open.click();
+    await expect(dialog.getByRole('alert')).toContainText('This profile does not have permission to display this revision.');
+    await dialog.getByRole('textbox', { name: 'Revision ID' }).fill(replacement.revision_id);
+    await open.click();
+    await expect(frozen.getByLabel('Selected bar')).toContainText('C 304');
+    expect(requestUrls.every(url => new URL(url).origin === baseURL && !new URL(url).pathname.startsWith('/__scopehub/'))).toBe(true);
+  } finally {
+    await bridge?.close();
+    await rm(temporary, { recursive: true, force: true });
+  }
 });

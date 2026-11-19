@@ -167,6 +167,32 @@ fn identifies_same_size_edits_without_rewriting_an_existing_frozen_read() {
 }
 
 #[test]
+fn final_source_verification_skips_commit_on_edit_cancel_or_revocation() {
+    let temp = TempDir::new();
+    let source = write(&temp.0, "equity.csv", EQUITY);
+    let host = LocalFolderHost::default();
+    let cancellation = Cancellation::default();
+    let selected = host.adopt_selected(&temp.0, &cancellation).unwrap();
+    let id = file(&selected, "equity.csv").file_id;
+    let verify = |cancellation: &Cancellation| {
+        host.with_verified_current(selected.folder_id, id, EQUITY_SHA256, cancellation, || 1)
+    };
+    assert_eq!(verify(&cancellation), Ok(1));
+
+    fs::write(&source, CORRECTED_EQUITY).unwrap();
+    assert_eq!(verify(&cancellation), Err(FolderError::ContentChanged));
+    fs::write(&source, EQUITY).unwrap();
+    let cancelled = Cancellation::default();
+    cancelled.cancel();
+    assert_eq!(verify(&cancelled), Err(FolderError::Cancelled));
+    host.revoke(selected.folder_id).unwrap();
+    assert_eq!(
+        verify(&cancellation),
+        Err(FolderError::SelectionUnavailable)
+    );
+}
+
+#[test]
 fn cancelled_requests_leave_the_previous_selection_available() {
     let temp = TempDir::new();
     let first = temp.directory("first");

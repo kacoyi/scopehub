@@ -363,6 +363,128 @@ async fn execute_import(state: &State, operation: &str, payload: Value) -> Resul
 
 #[cfg(any(target_os = "linux", windows))]
 #[tokio::test]
+async fn local_publication_keeps_the_prior_chart_after_changed_bytes_and_cancellation() {
+    use scopehub_application::REVOKE_LOCAL_IMPORT_REVISION;
+    use std::fs;
+
+    let fixture = ImportFixture::new();
+    let profile = fixture.0.join("profile");
+    let source = fixture.0.join("source");
+    fs::create_dir(&source).unwrap();
+    let csv = source.join("source.csv");
+    let initial = "Ticker,Date,Open,High,Low,Close,Shares\n000418,2026-11-19,4,7,3,5,20\n";
+    fs::write(&csv, initial).unwrap();
+    let state = state_with_local_profile(Some(&profile));
+    let ids = select_csv(&state, &source).await;
+    let mut preview_input = ids.clone();
+    preview_input["mapping"] = equity_mapping();
+    preview_input["row_limit"] = json!(1);
+    let shown = execute_import(&state, PREVIEW_LOCAL_IMPORT, preview_input.clone())
+        .await
+        .unwrap();
+    let mut save = preview_input.clone();
+    save["expected_sha256"] = shown["sha256"].clone();
+    let saved = execute_import(&state, SAVE_LOCAL_IMPORT_MAPPING, save)
+        .await
+        .unwrap();
+    let mut publish = ids;
+    publish["expected_sha256"] = shown["sha256"].clone();
+    publish["review_revision"] = saved["record"]["review_revision"].clone();
+    let first = execute_import(&state, PUBLISH_LOCAL_IMPORT, publish.clone())
+        .await
+        .unwrap();
+    let read = json!({"version":1,"revision_id":first["revision"]["revision_id"]});
+    let frozen = execute_import(&state, READ_LOCAL_IMPORT_REVISION, read.clone())
+        .await
+        .unwrap();
+
+    let added = format!("{initial}000418,2026-11-20,4,8,3,6,21\n");
+    fs::write(&csv, &added).unwrap();
+    let shown = execute_import(&state, PREVIEW_LOCAL_IMPORT, preview_input)
+        .await
+        .unwrap();
+    publish["expected_sha256"] = shown["sha256"].clone();
+    assert_eq!(shown["preview"]["rows"].as_array().unwrap().len(), 1);
+    assert_eq!(shown["preview"]["truncated"], true);
+    fs::write(&csv, added.replace(",6,21", ",7,21")).unwrap();
+    assert_eq!(
+        execute_import(&state, PUBLISH_LOCAL_IMPORT, publish.clone())
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::SNAPSHOTUNAVAILABLE
+    );
+    fs::write(&csv, &added).unwrap();
+    state.cancel_local_import("publish-cancelled");
+    assert_eq!(
+        state
+            .execute(
+                "main",
+                Some(PUBLISH_LOCAL_IMPORT),
+                publish.clone(),
+                Some("publish-cancelled")
+            )
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::CANCELLED
+    );
+    assert_eq!(
+        execute_import(&state, READ_LOCAL_IMPORT_REVISION, read.clone())
+            .await
+            .unwrap(),
+        frozen
+    );
+    let next = execute_import(&state, PUBLISH_LOCAL_IMPORT, publish.clone())
+        .await
+        .unwrap();
+    assert_eq!(next["revision"]["bar_count"], 2);
+    assert_ne!(
+        next["revision"]["revision_id"],
+        first["revision"]["revision_id"]
+    );
+    assert_eq!(
+        execute_import(&state, PUBLISH_LOCAL_IMPORT, publish)
+            .await
+            .unwrap(),
+        next
+    );
+    state.shutdown().await;
+
+    let restarted = state_with_local_profile(Some(&profile));
+    assert_eq!(
+        execute_import(&restarted, READ_LOCAL_IMPORT_REVISION, read.clone())
+            .await
+            .unwrap(),
+        frozen
+    );
+    let other = state_with_local_profile(Some(&fixture.0.join("other-profile")));
+    assert_eq!(
+        execute_import(&other, READ_LOCAL_IMPORT_REVISION, read.clone())
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::SNAPSHOTUNAVAILABLE
+    );
+    assert_eq!(
+        execute_import(&restarted, REVOKE_LOCAL_IMPORT_REVISION, read.clone())
+            .await
+            .unwrap(),
+        read
+    );
+    assert_eq!(
+        execute_import(&restarted, READ_LOCAL_IMPORT_REVISION, read)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::PERMISSIONDENIED
+    );
+    restarted.shutdown().await;
+    other.shutdown().await;
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[tokio::test]
 async fn reviewed_mapping_save_requires_the_exact_public_preview() {
     use sha2::{Digest, Sha256};
     use std::fs;

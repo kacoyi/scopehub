@@ -13,13 +13,15 @@ from time import time_ns
 from typing import BinaryIO
 from uuid import UUID, uuid4
 
-from contracts.generated.protocol import CsvPreview, WorkerHello11
-from providers.local_folder import MAX_FILE_BYTES, MAX_PREVIEW_ROWS, preview_csv
+from contracts.generated.protocol import WorkerHello11
+from providers.local_folder import (
+    MAX_FILE_BYTES, MAX_PREVIEW_ROWS, CsvPublicationLimit, CsvReviewRequired, check_complete_csv, preview_csv,
+)
 from worker_runtime.protocol import MAX_MESSAGE_BYTES, ProtocolError, assert_finite, encode_message
 
 
 CHUNK_BYTES = 192 * 1024
-_HEADER_FIELDS = {'version', 'request_id', 'byte_count', 'sha256', 'mapping', 'row_limit'}
+_HEADER_FIELDS = {'version', 'request_id', 'byte_count', 'sha256', 'mapping'}
 _CHUNK_FIELDS = {'version', 'request_id', 'index', 'data'}
 _DIGEST = re.compile(r'[0-9a-f]{64}')
 _JSON = json.JSONEncoder(ensure_ascii=False, allow_nan=False, separators=(',', ':'))
@@ -91,23 +93,32 @@ def _read_content(source: BinaryIO, request_id: str, byte_count: int) -> bytes:
     return bytes(content)
 
 
-def _preview(source: BinaryIO, header: dict[str, object], request_id: str) -> CsvPreview:
+def _analyze(source: BinaryIO, header: dict[str, object], request_id: str) -> dict[str, object]:
     version = header.get('version')
     byte_count = header.get('byte_count')
     digest = header.get('sha256')
     mapping = header.get('mapping')
-    row_limit = header.get('row_limit')
     if (
-        header.keys() != _HEADER_FIELDS or type(version) is not int or version != 1
+        type(version) is not int or version != 1
         or type(byte_count) is not int or not 0 <= byte_count <= MAX_FILE_BYTES
         or not isinstance(digest, str) or not _DIGEST.fullmatch(digest)
-        or not isinstance(mapping, dict) or type(row_limit) is not int or not 1 <= row_limit <= MAX_PREVIEW_ROWS
+        or not isinstance(mapping, dict)
+    ):
+        raise _InvalidFrame
+    complete = header.keys() == _HEADER_FIELDS | {'complete'} and header['complete'] is True
+    row_limit = header.get('row_limit')
+    if not complete and (
+        header.keys() != _HEADER_FIELDS | {'row_limit'}
+        or type(row_limit) is not int or not 1 <= row_limit <= MAX_PREVIEW_ROWS
     ):
         raise _InvalidFrame
     content = _read_content(source, request_id, byte_count)
     if sha256(content).hexdigest() != digest:
         raise _InvalidFrame
-    return preview_csv(content, mapping, row_limit=row_limit)
+    if complete:
+        return {'publication': check_complete_csv(content, mapping)}
+    assert isinstance(row_limit, int)
+    return {'preview': preview_csv(content, mapping, row_limit=row_limit)}
 
 
 def _encode_frame(payload: dict[str, object]) -> bytes | None:
@@ -135,7 +146,8 @@ def _advertise(target: BinaryIO) -> None:
     hello: WorkerHello11 = {
         'protocol_version': '1.1', 'type': 'hello', 'message_id': str(uuid4()),
         'timestamp_ms': time_ns() // 1_000_000, 'role': 'market', 'worker_version': '0.1.0',
-        'supported_protocols': ['1.0', '1.1'], 'capabilities': ['market.previewLocalImport'],
+        'supported_protocols': ['1.0', '1.1'],
+        'capabilities': ['market.previewLocalImport', 'market.checkLocalImport'],
     }
     _write_frame(target, encode_message(hello))
 
@@ -150,10 +162,16 @@ def run(source: BinaryIO, target: BinaryIO) -> int:
 
     envelope: dict[str, object] = {'version': 1, 'request_id': request_id}
     try:
-        preview = _preview(source, header, request_id)
-        line = _encode_frame({**envelope, 'ok': True, 'preview': preview})
+        analysis = _analyze(source, header, request_id)
+        line = _encode_frame({**envelope, 'ok': True, **analysis})
         if line is None:
             line = _encode_frame({**envelope, 'ok': False, 'error': 'RESOURCE_LIMIT'})
+    except CsvPublicationLimit:
+        line = _encode_frame({**envelope, 'ok': False, 'error': 'RESOURCE_LIMIT'})
+    except CsvReviewRequired as error:
+        line = _encode_frame({
+            **envelope, 'ok': False, 'error': 'REVIEW_REQUIRED', 'issue': error.issue, 'locator': error.locator,
+        })
     except (ValueError, RecursionError):
         line = _encode_frame({**envelope, 'ok': False, 'error': 'INVALID_ARGUMENT'})
     except OSError:

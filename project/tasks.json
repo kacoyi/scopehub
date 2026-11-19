@@ -2712,6 +2712,7 @@
         "market-fixtures",
         "chart-history",
         "local-folder-import",
+        "local-import-publication",
         "project-state",
         "python-contracts-workers",
         "architecture",
@@ -2725,7 +2726,7 @@
         "state-migrations"
       ],
       "evidence": [],
-      "next_action": "Verify the preview-bound save and separate CSV header diagnosis on native Windows. In a separate slice, stage dataset publication and folder refresh, then verify immutable revision reads, retry, alias handling and interruption recovery.",
+      "next_action": "Stage a folder refresh manifest for a published series. Match byte-identical aliases, isolate new or changed structures, and present added, replaced and missing inputs for review before implementing a multi-file commit. Independently verify the current publication path on native Windows.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -2753,7 +2754,9 @@
           "Explicit source mappings can normalize native OHLCV bars without inferring a price, volume unit or session from ambiguous financial fields. File identities and row locators can connect every accepted row to its original input.",
           "A stable host-derived source identity and exact ordered header digest can associate a reviewed mapping across restarts while every read still requires a freshly selected folder and file.",
           "A transient host-side fingerprint of an eligible public preview can bind the explicit save to the same active grant, file, checksum, mapping, and preview sample without retaining source rows.",
-          "The first logical CSV record can establish the decoded header even when a later row cannot be decoded, provided the header boundary is verified with the existing CSV parser."
+          "The first logical CSV record can establish the decoded header even when a later row cannot be decoded, provided the header boundary is verified with the existing CSV parser.",
+          "The current native grant, selected catalog file, full file fingerprint and persisted mapping identity can jointly authorize publication without accepting normalized bars from the UI.",
+          "Immutable storage and a transactional idempotency key can return the same revision on retry and preserve the previous publication on interruption."
         ],
         "risks": [
           {
@@ -2813,6 +2816,15 @@
               "python-contracts-workers",
               "local-folder-import"
             ]
+          },
+          {
+            "failure": "Only sampled rows are published or a later ambiguous row is silently dropped, or a frozen chart reread changes after the selected file is modified.",
+            "checks": [
+              "market-fixtures",
+              "rust-contracts-workers",
+              "local-folder-import",
+              "state-migrations"
+            ]
           }
         ],
         "rollback": "Keep the accepted mapping, immutable source identities and last published revision while staging changes. Rejected rows and unsupported files remain inspectable in the selected local session. Stage a mapping version in the current SQLite transaction and roll it back if cancellation or source revocation wins before commit. Keep the previous reviewed version available after failures.",
@@ -2858,9 +2870,14 @@
           ],
           "non_goals": [
             "Remote data channels, cloud transmissions, inferred settlement/trade conversions and the separate real-provider connection workflow.",
-            "This mapping slice excludes durable dataset publication, automated folder refresh and persistent folder grants."
+            "First publication and explicit compatible replacement cover one selected file and one fully resolved native bar series. No persistent folder grant is issued."
           ],
-          "open_questions": []
+          "open_questions": [
+            "Stage added files and detect byte-identical aliases within a folder without treating an alias as new economic events. Preserve all contributing source locators and prove results are independent of folder enumeration order.",
+            "Hold changed headers, mixed series and competing corrections for review. Support explicit multi-file replacement and missing-file withdrawal with a complete reviewed manifest, atomic publication and restart/retry evidence.",
+            "Provide history discovery by series and source row inspection outside the 500-row sample. The initial frozen chart is reopenable by revision ID and provides original file and individual source row identities.",
+            "Verify the picker, publication, migration and frozen chart path in the native Windows application."
+          ]
         },
         "evolution": {
           "kind": "additive",
@@ -2871,10 +2888,12 @@
             "Add a separately authorized local-folder source with reviewable versioned mappings and snapshots.",
             "Add immutable reviewed mapping versions in the existing profile database, including an explicit review-required result for a changed header.",
             "Require a prior completed public preview before the existing single-click save. Keep the live file reread and guarded SQLite commit.",
-            "Compare the complete ordered decoded header independently of later decode failures. Preserve the source checksum and explicitly identify unverifiable headers."
+            "Compare the complete ordered decoded header independently of later decode failures. Preserve the source checksum and explicitly identify unverifiable headers.",
+          "Add explicit complete-file publication and frozen reads for one resolved native CSV bar series. Check up to 4 MiB and 10,000 original records, hold incomplete or ambiguous results, and retain source bytes, mapping fingerprint and all row locators. Exact retries reuse the immutable revision.",
+          "Support explicit and separately reviewable republishing of compatible changed bytes as a new single-file revision. Reopen an earlier revision by ID with no directory grant. A separate local human action removes that revision's display permission while preserving its stored original."
           ],
-          "data_plan": "Keep source bytes, mapping, evidence locators and dataset revisions on the active profile. Migrate long-lived state through its owning Rust writer when publication is introduced. Integrate the profile writer and migration history from af89eff. Preserve workspace schema v1, decision notes v2 and backup and restore v3. Apply reviewed mapping schema v4 transactionally and verify both populated v3 databases and fresh initialization. Persist an opaque per-source association, ordered header digest and reviewed mapping. Derive folder access only from the current trusted selection.",
-          "cleanup": "Cancel uncommitted staging on failure and close file handles when the selected folder or profile changes. Close the profile writer and cancel uncommitted mapping operations when the host shuts down."
+          "data_plan": "Keep source bytes, mapping, evidence locators and dataset revisions on the active profile. Migrate long-lived state through its owning Rust writer when publication is introduced. Integrate the profile writer and migration history from af89eff. Preserve workspace schema v1, decision notes v2 and backup and restore v3. Apply reviewed mapping schema v4 transactionally and verify both populated v3 databases and fresh initialization. Persist an opaque per-source association, ordered header digest and reviewed mapping. Derive folder access only from the current trusted selection. Add a transactional v4 to v5 migration owned by the existing profile writer. Test upgrade with populated workspace, decision-note and reviewed mapping data, plus new and reopened profiles. A failed or cancelled publication leaves previous revisions readable without rereading the folder. Recover a failed migration from the preserved pre-upgrade profile.",
+          "cleanup": "Cancel uncommitted staging on failure and close file handles when the selected folder or profile changes. Close the profile writer and cancel uncommitted mapping operations when the host shuts down. Release any uncommitted complete-file data after cancellation, changed bytes or write failure."
         }
       }
     },

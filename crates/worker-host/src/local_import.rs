@@ -4,7 +4,7 @@ use std::{future::Future, process::Stdio, time::Duration};
 
 use base64::{Engine, engine::general_purpose::STANDARD};
 use scopehub_application::{PREVIEW_LOCAL_IMPORT, failure};
-use scopehub_domain::protocol::{Error, ErrorCode};
+use scopehub_domain::protocol::{Error, ErrorCode, LocalImportRowLocator, PreviewIssue};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use tokio::{
@@ -24,6 +24,23 @@ use crate::{
 const MAX_SOURCE_BYTES: usize = 4 * 1024 * 1024;
 const CHUNK_BYTES: usize = 192 * 1024;
 const VERSION: u8 = 1;
+const CHECK_LOCAL_IMPORT: &str = "market.checkLocalImport";
+
+#[derive(Clone, Copy, Serialize)]
+#[serde(untagged)]
+enum Check {
+    Preview { row_limit: u32 },
+    Complete { complete: bool },
+}
+
+impl Check {
+    fn capability(self) -> &'static str {
+        match self {
+            Self::Preview { .. } => PREVIEW_LOCAL_IMPORT,
+            Self::Complete { .. } => CHECK_LOCAL_IMPORT,
+        }
+    }
+}
 
 #[derive(Serialize)]
 struct Header<'a> {
@@ -32,23 +49,35 @@ struct Header<'a> {
     byte_count: usize,
     sha256: &'a str,
     mapping: &'a Value,
-    row_limit: u32,
+    #[serde(flatten)]
+    check: Check,
 }
 
 #[derive(Deserialize)]
 #[serde(untagged)]
 enum Response {
-    Success(SuccessFrame),
+    Preview(PreviewFrame),
+    Complete(CompleteFrame),
+    Review(ReviewFrame),
     Failure(FailureFrame),
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct SuccessFrame {
+struct PreviewFrame {
     version: u8,
     request_id: String,
     ok: bool,
     preview: Value,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CompleteFrame {
+    version: u8,
+    request_id: String,
+    ok: bool,
+    publication: Value,
 }
 
 #[derive(Deserialize)]
@@ -58,6 +87,24 @@ struct FailureFrame {
     request_id: String,
     ok: bool,
     error: WorkerFailure,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ReviewFrame {
+    version: u8,
+    request_id: String,
+    ok: bool,
+    #[serde(rename = "error")]
+    _error: ReviewRequired,
+    issue: PreviewIssue,
+    locator: Option<LocalImportRowLocator>,
+}
+
+#[derive(Deserialize)]
+enum ReviewRequired {
+    #[serde(rename = "REVIEW_REQUIRED")]
+    Csv,
 }
 
 #[derive(Deserialize)]
@@ -97,14 +144,58 @@ impl Drop for Process {
     }
 }
 
-/// Preview immutable bytes already read and verified by Rust. This child
-/// receives only the bytes, their digest and the reviewed source mapping.
+/// Preview immutable bytes already read and verified by Rust.
 pub async fn preview(
     config: &WorkerConfig,
     content: &[u8],
     sha256: &str,
     mapping: &Value,
     row_limit: u32,
+    cancelled: impl Future<Output = ()>,
+) -> Result<Value, Error> {
+    analyze(
+        config,
+        content,
+        sha256,
+        mapping,
+        Check::Preview { row_limit },
+        cancelled,
+    )
+    .await
+}
+
+/// Validate and normalize the complete file using the saved source mapping.
+/// The child receives the authorized bytes and has no source or storage path.
+pub async fn complete(
+    config: &WorkerConfig,
+    content: &[u8],
+    sha256: &str,
+    mapping: &Value,
+    cancelled: impl Future<Output = ()>,
+) -> Result<Value, Error> {
+    analyze(
+        config,
+        content,
+        sha256,
+        mapping,
+        Check::Complete { complete: true },
+        cancelled,
+    )
+    .await
+    .map_err(|mut error| {
+        if error.code == ErrorCode::RESOURCELIMIT {
+            error.message = "Publication supports up to 10,000 source records and 4 MiB per file or result. Select a smaller CSV file.".into();
+        }
+        error
+    })
+}
+
+async fn analyze(
+    config: &WorkerConfig,
+    content: &[u8],
+    sha256: &str,
+    mapping: &Value,
+    check: Check,
     cancelled: impl Future<Output = ()>,
 ) -> Result<Value, Error> {
     if content.len() > MAX_SOURCE_BYTES {
@@ -115,7 +206,7 @@ pub async fn preview(
             .bytes()
             .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
         || !mapping.is_object()
-        || !(1..=500).contains(&row_limit)
+        || matches!(check, Check::Preview { row_limit } if !(1..=500).contains(&row_limit))
     {
         return Err(failure(ErrorCode::INVALIDARGUMENT));
     }
@@ -126,7 +217,7 @@ pub async fn preview(
         byte_count: content.len(),
         sha256,
         mapping,
-        row_limit,
+        check,
     })?;
     let mut process = Process {
         runtime: Handle::current(),
@@ -135,7 +226,7 @@ pub async fn preview(
     let result = tokio::select! {
         biased;
         () = cancelled => Err(failure(ErrorCode::CANCELLED)),
-        result = tokio::time::timeout(config.deadline, exchange(config, &mut process, &header, content, &request_id, sha256)) =>
+        result = tokio::time::timeout(config.deadline, exchange(config, &mut process, &header, content, &request_id, sha256, check)) =>
             result.unwrap_or_else(|_| Err(failure(ErrorCode::TIMEOUT))),
     };
     if let Some(mut cleanup) = process.reclaim() {
@@ -151,6 +242,7 @@ async fn exchange(
     content: &[u8],
     request_id: &str,
     sha256: &str,
+    check: Check,
 ) -> Result<Value, Error> {
     let permit = worker_slot()?;
     let child = config
@@ -169,8 +261,13 @@ async fn exchange(
     let mut output = BufReader::new(child.stdout.take().expect("piped stdout"));
     let hello = read_frame(&mut output).await.map_err(protocol_failure)?;
     let negotiated =
-        negotiate_worker(&hello, "market", &[PREVIEW_LOCAL_IMPORT]).map_err(protocol_failure)?;
-    if negotiated.version != "1.1" || negotiated.capabilities.len() != 1 {
+        negotiate_worker(&hello, "market", &[check.capability()]).map_err(protocol_failure)?;
+    if negotiated.version != "1.1"
+        || negotiated
+            .capabilities
+            .iter()
+            .any(|name| !matches!(name.as_str(), PREVIEW_LOCAL_IMPORT | CHECK_LOCAL_IMPORT))
+    {
         return Err(failure(ErrorCode::PROTOCOLMISMATCH));
     }
     input.write_all(header).await.map_err(worker_io)?;
@@ -186,7 +283,7 @@ async fn exchange(
     drop(input);
 
     let frame = read_frame(&mut output).await.map_err(protocol_failure)?;
-    let result = decode(&frame, request_id, sha256);
+    let result = decode(&frame, request_id, sha256, check);
     if !output.fill_buf().await.map_err(worker_io)?.is_empty() {
         return Err(failure(ErrorCode::OUTPUTINVALID));
     }
@@ -211,15 +308,15 @@ fn encode(message: &impl Serialize) -> Result<Vec<u8>, Error> {
     Ok(frame)
 }
 
-fn decode(frame: &[u8], request_id: &str, sha256: &str) -> Result<Value, Error> {
+fn decode(frame: &[u8], request_id: &str, sha256: &str, check: Check) -> Result<Value, Error> {
     let body = frame.strip_suffix(b"\n").unwrap_or(frame);
     let body = body.strip_suffix(b"\r").unwrap_or(body);
     if body.contains(&b'\r') || body.contains(&b'\n') {
         return Err(failure(ErrorCode::OUTPUTINVALID));
     }
     let response = serde_json::from_slice(body).map_err(|_| failure(ErrorCode::OUTPUTINVALID))?;
-    match response {
-        Response::Success(reply)
+    match (check, response) {
+        (Check::Preview { .. }, Response::Preview(reply))
             if reply.version == VERSION
                 && reply.request_id == request_id
                 && reply.ok
@@ -227,7 +324,20 @@ fn decode(frame: &[u8], request_id: &str, sha256: &str) -> Result<Value, Error> 
         {
             Ok(reply.preview)
         }
-        Response::Failure(reply)
+        (Check::Complete { .. }, Response::Complete(reply))
+            if reply.version == VERSION
+                && reply.request_id == request_id
+                && reply.ok
+                && reply.publication["file_sha256"].as_str() == Some(sha256) =>
+        {
+            Ok(reply.publication)
+        }
+        (Check::Complete { .. }, Response::Review(reply))
+            if reply.version == VERSION && reply.request_id == request_id && !reply.ok =>
+        {
+            Err(csv_review_required(reply))
+        }
+        (_, Response::Failure(reply))
             if reply.version == VERSION && reply.request_id == request_id && !reply.ok =>
         {
             Err(failure(match reply.error {
@@ -237,6 +347,31 @@ fn decode(frame: &[u8], request_id: &str, sha256: &str) -> Result<Value, Error> 
         }
         _ => Err(failure(ErrorCode::OUTPUTINVALID)),
     }
+}
+
+fn csv_review_required(reply: ReviewFrame) -> Error {
+    let mut error = failure(ErrorCode::DATAUNAVAILABLE);
+    let message = match &reply.locator {
+        Some(locator) => format!(
+            "Review CSV record {}. {}",
+            locator.record_number, reply.issue.message
+        ),
+        None => reply.issue.message,
+    };
+    error.message = message.chars().take(512).collect();
+    error
+        .details
+        .insert("reason".into(), json!("csv_review_required"));
+    error
+        .details
+        .insert("issue_code".into(), json!(reply.issue.code));
+    error
+        .details
+        .insert("field".into(), json!(reply.issue.field));
+    if let Some(locator) = reply.locator {
+        error.details.insert("locator".into(), json!(locator));
+    }
+    error
 }
 
 #[cfg(test)]
@@ -301,6 +436,18 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn refuses_a_preview_only_worker_before_sending_publication_data() {
+        let fixture = Fixture::new(
+            "import sys\nif sys.stdin.buffer.read(1):\n    open('unexpected-input', 'w').close()\n",
+        );
+        let error = complete(&fixture.0, b"", DIGEST, &json!({}), future::pending())
+            .await
+            .unwrap_err();
+        assert_eq!(error.code, ErrorCode::PROTOCOLMISMATCH);
+        assert!(!fixture.0.root.join("unexpected-input").exists());
+    }
+
+    #[tokio::test]
     async fn retains_no_result_from_exited_and_oversized_children() {
         for (script, code) in [
             (
@@ -351,6 +498,47 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn complete_checks_the_real_file_and_reports_row_review() {
+        const SOURCE: &[u8] = b"Ticker,Date,Open,High,Low,Close,Shares\n000071,2026-01-06,8,10,7,9,\n000071,2026-01-07,8,10,7,10,200\n";
+        const SOURCE_DIGEST: &str =
+            "0a3afa84fbc09d578380626056f80f90132c6fd048bfcf1698df3c5402b0bd90";
+        let config = development_config();
+        let mut mapping = json!({
+            "version": 1, "revision": "complete-fixture", "encoding": "utf-8",
+            "delimiter": ",", "record_kind": "native_ohlcv", "instrument_kind": "equity",
+            "venue": "TEST", "timezone": "UTC", "calendar_id": "fixture-calendar",
+            "session_scope": "regular", "timeframe": "1d", "quantity_unit": "shares",
+            "price_adjustment": "unadjusted", "volume_semantics": "per_bar",
+            "timestamp_convention": "bar_start", "timestamp_format": "%Y-%m-%d",
+            "trading_day_format": "%Y-%m-%d", "daily_start_time": "09:30:00",
+            "columns": {
+                "symbol": "Ticker", "timestamp": "Date", "trading_day": "Date",
+                "open": "Open", "high": "High", "low": "Low", "close": "Close", "volume": "Shares"
+            }
+        });
+        let checked = complete(&config, SOURCE, SOURCE_DIGEST, &mapping, future::pending())
+            .await
+            .unwrap();
+        assert_eq!(checked["mapping_revision"], "complete-fixture");
+        assert_eq!(checked["source_record_count"], 2);
+        assert_eq!(checked["symbol"], "000071");
+        assert!(checked["bars"][0]["bar"]["volume"].is_null());
+        assert_eq!(
+            checked["bars"][1]["locators"],
+            json!([{"record_number": 2, "line_start": 3, "line_end": 3}])
+        );
+
+        mapping["columns"]["open"] = json!("Shares");
+        mapping["columns"]["volume"] = Value::Null;
+        let reviewed = complete(&config, SOURCE, SOURCE_DIGEST, &mapping, future::pending())
+            .await
+            .unwrap_err();
+        assert_eq!(reviewed.code, ErrorCode::DATAUNAVAILABLE);
+        assert_eq!(reviewed.details["issue_code"], "invalid_number");
+        assert_eq!(reviewed.details["locator"]["record_number"], 1);
+    }
+
+    #[tokio::test]
     async fn cancelled_in_flight_child_is_reaped_before_result() {
         let fixture = Fixture::new(
             "import os, pathlib, sys, time\nsys.stdin.buffer.read()\npathlib.Path('entered').write_text(str(os.getpid()), encoding='ascii')\ntime.sleep(60)\n",
@@ -389,10 +577,14 @@ mod tests {
             "version": 1, "request_id": "first", "ok": true, "preview": {"file_sha256": DIGEST},
         });
         let frame = encode(&result).unwrap();
-        assert_eq!(decode(&frame, "first", DIGEST).unwrap(), result["preview"]);
+        let check = Check::Preview { row_limit: 1 };
+        assert_eq!(
+            decode(&frame, "first", DIGEST, check).unwrap(),
+            result["preview"]
+        );
         for (id, hash) in [("second", DIGEST), ("first", "bad-digest")] {
             assert_eq!(
-                decode(&frame, id, hash).unwrap_err().code,
+                decode(&frame, id, hash, check).unwrap_err().code,
                 ErrorCode::OUTPUTINVALID
             );
         }

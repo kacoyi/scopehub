@@ -83,7 +83,7 @@ fn matches_source(input: &LocalImportPreviewInput, output: &Value) -> bool {
         })
 }
 
-fn valid_bar(bar: &Value) -> bool {
+pub(crate) fn valid_bar(bar: &Value) -> bool {
     let price = |field: &str| bar[field].as_f64().unwrap_or(f64::NAN);
     let (low, high, open, close) = (price("low"), price("high"), price("open"), price("close"));
     low <= open

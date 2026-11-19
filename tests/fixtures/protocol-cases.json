@@ -1001,5 +1001,55 @@
     "name": "local CSV mapping review revision is a positive safe integer",
     "valid": false,
     "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.saveLocalImportMapping\",\"ok\":true,\"result\":{\"version\":1,\"record\":{\"review_revision\":9007199254740992,\"header_sha256\":\"6381b2c0ad85079009a9c4f09b87f182f791f3e60a5f2f0187d566737a4a6092\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-equity-reviewed\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"timestamp\":\"Time\",\"trading_day\":\"Day\",\"open\":\"Open\",\"high\":\"High\",\"low\":\"Low\",\"close\":\"Close\",\"volume\":null},\"instrument_kind\":\"equity\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-exchange\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"volume_semantics\":\"per_bar\",\"timestamp_convention\":\"bar_start\",\"timestamp_format\":\"%Y-%m-%d %H:%M\",\"trading_day_format\":\"%Y-%m-%d\"}}},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local CSV publication binds the reviewed mapping",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.publishLocalImport\",\"task_id\":null,\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"review_revision\":2}}\n"
+  },
+  {
+    "name": "1.1 local CSV publication rejects a substituted mapping",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.publishLocalImport\",\"task_id\":null,\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"review_revision\":2,\"mapping\":{}}}\n"
+  },
+  {
+    "name": "1.1 local CSV publication returns a revision receipt",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.publishLocalImport\",\"ok\":true,\"result\":{\"version\":1,\"revision\":{\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"relative_path\":\"equities/fixture.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"review_revision\":2,\"symbol\":\"000418\",\"series\":{\"instrument_kind\":\"equity\",\"venue\":\"TEST\",\"timeframe\":\"1d\",\"calendar_id\":\"reviewed-calendar\",\"session_scope\":\"regular\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"roll_method\":null},\"bar_count\":1,\"source_record_count\":2}},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local CSV frozen read takes only the revision identity",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportRevision\",\"task_id\":null,\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\"}}\n"
+  },
+  {
+    "name": "1.1 local CSV frozen read rejects a folder grant",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportRevision\",\"task_id\":null,\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"folder_id\":\"00000000-0000-4000-8000-000000000003\"}}\n"
+  },
+  {
+    "name": "1.1 local CSV frozen bar retains both original row locators",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportRevision\",\"ok\":true,\"result\":{\"version\":1,\"revision\":{\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"relative_path\":\"equities/fixture.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"review_revision\":2,\"symbol\":\"000418\",\"series\":{\"instrument_kind\":\"equity\",\"venue\":\"TEST\",\"timeframe\":\"1d\",\"calendar_id\":\"reviewed-calendar\",\"session_scope\":\"regular\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"roll_method\":null},\"bar_count\":1,\"source_record_count\":2},\"bars\":[{\"bar\":{\"time_ms\":1763541000000,\"trading_day\":\"2025-11-19\",\"open\":4,\"high\":7,\"low\":3,\"close\":5,\"volume\":null,\"is_closed\":true},\"locators\":[{\"record_number\":1,\"line_start\":2,\"line_end\":2},{\"record_number\":2,\"line_start\":3,\"line_end\":4}]}]},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local CSV frozen bar requires source locators",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportRevision\",\"ok\":true,\"result\":{\"version\":1,\"revision\":{\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"relative_path\":\"equities/fixture.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"review_revision\":2,\"symbol\":\"000418\",\"series\":{\"instrument_kind\":\"equity\",\"venue\":\"TEST\",\"timeframe\":\"1d\",\"calendar_id\":\"reviewed-calendar\",\"session_scope\":\"regular\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"roll_method\":null},\"bar_count\":1,\"source_record_count\":2},\"bars\":[{\"bar\":{\"time_ms\":1763541000000,\"trading_day\":\"2025-11-19\",\"open\":4,\"high\":7,\"low\":3,\"close\":5,\"volume\":null,\"is_closed\":true},\"locators\":[]}]},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local CSV display-right revocation takes a revision identity",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.revokeLocalImportRevision\",\"task_id\":null,\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\"}}\n"
+  },
+  {
+    "name": "1.1 local CSV display-right revocation rejects an injected profile",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.revokeLocalImportRevision\",\"task_id\":null,\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"profile_id\":\"another\"}}\n"
+  },
+  {
+    "name": "1.1 local CSV display-right revocation returns the revision identity",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.revokeLocalImportRevision\",\"ok\":true,\"result\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\"},\"error\":null}\n"
   }
 ]

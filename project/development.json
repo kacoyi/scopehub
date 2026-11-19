@@ -110,7 +110,7 @@
       ],
       "invariants": [
         "Reject unsupported operations; actor identity comes from trusted transports",
-        "History reads use explicit synthetic sources. Local CSV preview and reviewed mapping operations require the trusted desktop human transport and a live file selection"
+        "Synthetic history reads use explicit sources. Local CSV preview, reviewed mapping and full publication require the trusted desktop human transport and a live file selection. Frozen reads require profile entitlement and use immutable stored data."
       ],
       "checks": [
         "rust-contracts-workers"
@@ -296,11 +296,13 @@
       ],
       "owns": [
         "Physical storage and migrations",
-        "Stored reviewed mapping versions and their source header associations"
+        "Stored reviewed mapping versions and their source header associations",
+        "Published local CSV revisions, retained source bytes and display rights"
       ],
       "invariants": [
         "Use the Rust core single-writer path and preserve accepted versions",
-        "Append reviewed mapping versions within the bound profile transaction"
+        "Append reviewed mapping versions within the bound profile transaction",
+        "Bind each local CSV revision to the accepted mapping, deduplicate original bytes and check display rights on frozen reads"
       ],
       "checks": [
         "rust-contracts-workers",
@@ -658,6 +660,13 @@
       "writer": "persistence",
       "status": "implemented",
       "rule": "An explicit local review appends a mapping version associated with the selected source and its decoded header in the current profile. Resolve a live selection again before reuse. Saving a mapping grants no source access."
+    },
+    {
+      "id": "published-local-csv-revisions",
+      "owner": "application",
+      "writer": "persistence",
+      "status": "implemented",
+      "rule": "Publish only a fully checked source under an active native selection and genuine reviewed mapping. Store source bytes, mapping identity, frozen bars and row locators in the profile. Frozen reads require that profile's display right and never reopen the selected directory."
     },
     {
       "id": "worker-session",

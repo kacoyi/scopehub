@@ -1,4 +1,5 @@
 import base64
+from datetime import date, timedelta
 from hashlib import sha256
 from io import BytesIO
 import json
@@ -8,6 +9,7 @@ import subprocess
 import sys
 import unittest
 
+from providers.local_folder import MAX_PUBLICATION_RECORDS
 from worker_runtime.local_import import run
 from worker_runtime.protocol import decode_line
 
@@ -65,6 +67,12 @@ def request(content, **header_fields):
     return frames
 
 
+def complete_request(content, **header_fields):
+    frames = request(content, complete=True, **header_fields)
+    del frames[0]['row_limit']
+    return frames
+
+
 def worker(data):
     env = {key: value for key, value in os.environ.items() if key.upper() in {'SYSTEMROOT', 'WINDIR', 'TEMP', 'TMP'}}
     # Exercise the locked IANA data with no operating-system zone database.
@@ -97,7 +105,7 @@ class LocalImportWorkerTests(unittest.TestCase):
         hello_line, *replies = stdout.splitlines(keepends=True)
         hello = decode_line(hello_line)
         self.assertEqual((hello['type'], hello['protocol_version'], hello['role']), ('hello', '1.1', 'market'))
-        self.assertEqual(hello['capabilities'], ['market.previewLocalImport'])
+        self.assertEqual(hello['capabilities'], ['market.previewLocalImport', 'market.checkLocalImport'])
         return replies
 
     def test_child_previews_normalized_and_rejected_rows_using_hash_of_all_chunks(self):
@@ -123,6 +131,71 @@ class LocalImportWorkerTests(unittest.TestCase):
         self.assertEqual((rejected['record_number'], rejected['line_start'], rejected['line_end']), (2, 3, 3))
         self.assertIsNone(rejected['normalized'])
         self.assertEqual(rejected['issues'][0]['code'], 'ohlc_bounds')
+
+    def test_complete_series_includes_rows_beyond_the_preview_and_duplicate_locators(self):
+        header = b'Ticker,Date,Open,High,Low,Close,Shares,"Note\r\nfrom source"\r\n'
+        dates = [date(2024, 1, 1) + timedelta(days=index) for index in range(503)]
+        rows = [f'000071,{day},8,10,7,9,,raw\r\n'.encode() for day in reversed(dates)]
+        rows += [b'000071,2024-01-01,8,10,7,9,,"retained\r\nunknown"\r\n']
+        content = header + b''.join(rows)
+        process = worker(b''.join(map(line, complete_request(content))))
+        self.assertEqual((process.returncode, process.stderr), (0, b''))
+        reply, = self.reply_frames(process.stdout)
+        checked = json.loads(reply)['publication']
+        self.assertEqual(checked['file_sha256'], sha256(content).hexdigest())
+        self.assertEqual(checked['mapping_revision'], MAPPING['revision'])
+        self.assertEqual(checked['header'][-1], 'Note\r\nfrom source')
+        self.assertEqual(checked['symbol'], '000071')
+        self.assertEqual(checked['source_record_count'], 504)
+        self.assertEqual(len(checked['bars']), 503)
+        first, last = checked['bars'][0], checked['bars'][-1]
+        self.assertEqual(first['bar']['trading_day'], str(dates[0]))
+        self.assertIsNone(first['bar']['volume'])
+        self.assertEqual(first['locators'], [
+            {'record_number': 503, 'line_start': 505, 'line_end': 505},
+            {'record_number': 504, 'line_start': 506, 'line_end': 507},
+        ])
+        self.assertEqual(last['bar']['trading_day'], str(dates[-1]))
+        self.assertEqual(last['locators'], [{'record_number': 1, 'line_start': 3, 'line_end': 3}])
+
+    def test_complete_series_holds_late_invalid_or_ambiguous_rows(self):
+        content = b'Ticker,Date,Open,High,Low,Close,Shares,Note\n' + b'000071,2026-01-06,8,10,7,9,200,test\n' * 501
+        cases = {
+            'ohlc_bounds': b'000071,2026-01-07,8,10,7,11,200,test\n',
+            'conflicting_bar': b'000071,2026-01-06,8,10,7,10,200,test\n',
+            'multiple_symbols': b'000072,2026-01-07,8,10,7,9,200,test\n',
+            'csv_syntax': b'000071,2026-01-07,8,10,7,9,200,"unterminated',
+            'row_width': b'000071,2026-01-07,8,10,7,9,200\n',
+        }
+        for code, later_row in cases.items():
+            with self.subTest(issue=code):
+                result = BytesIO()
+                self.assertEqual(run(BytesIO(b''.join(map(line, complete_request(content + later_row)))), result), 0)
+                reply, = self.reply_frames(result.getvalue())
+                held = json.loads(reply)
+                self.assertFalse(held['ok'])
+                self.assertEqual(held['error'], 'REVIEW_REQUIRED')
+                self.assertEqual(held['issue']['code'], code)
+                self.assertEqual(held['locator'], {'record_number': 502, 'line_start': 503, 'line_end': 503})
+                self.assertNotIn('publication', held)
+
+    def test_complete_series_fails_closed_at_the_source_record_budget(self):
+        content = b'Ticker,Date,Open,High,Low,Close,Shares,Note\n' + b'000071,2026-01-06,8,10,7,9,200,test\n' * (MAX_PUBLICATION_RECORDS + 1)
+        result = BytesIO()
+        self.assertEqual(run(BytesIO(b''.join(map(line, complete_request(content)))), result), 0)
+        reply, = self.reply_frames(result.getvalue())
+        self.assertEqual(json.loads(reply), {**FRAME_ID, 'ok': False, 'error': 'RESOURCE_LIMIT'})
+
+    def test_complete_series_requires_the_exact_source_digest_and_no_preview_limit(self):
+        header, chunk = complete_request(CSV_PREFIX, sha256=sha256(CSV_PREFIX[:-1] + b' ').hexdigest())
+        invalid_headers = [header, {
+            **header, 'sha256': sha256(CSV_PREFIX).hexdigest(), 'row_limit': 1,
+        }]
+        for invalid in invalid_headers:
+            result = BytesIO()
+            self.assertEqual(run(BytesIO(line(invalid) + line(chunk)), result), 0)
+            reply, = self.reply_frames(result.getvalue())
+            self.assertEqual(json.loads(reply), {**FRAME_ID, 'ok': False, 'error': 'INVALID_ARGUMENT'})
 
     def test_short_writes_drain_the_entire_reply(self):
         note = b'X' * 90_000

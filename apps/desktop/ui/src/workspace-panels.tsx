@@ -13,6 +13,7 @@ export const panelLabels: Record<Panel, string> = { watchlist: 'Watchlist', data
 
 export type LocalSourceActions = {
   choose: () => void;
+  openRevision: () => void;
   resume: (() => void) | undefined;
   choosing: boolean;
   error: string | undefined;
@@ -22,6 +23,9 @@ export function LocalSourceButtons({ actions }: { actions: LocalSourceActions })
   return <div className="local-source-actions">
     <button type="button" className="secondary-button" disabled={actions.choosing} onClick={actions.choose}>
       Choose local CSV folder
+    </button>
+    <button type="button" className="secondary-button" aria-haspopup="dialog" disabled={actions.choosing} onClick={actions.openRevision}>
+      Open published CSV
     </button>
     {actions.resume && <button type="button" className="secondary-button" disabled={actions.choosing} onClick={actions.resume}>
       Back to local CSV preview

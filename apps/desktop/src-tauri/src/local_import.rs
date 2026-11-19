@@ -13,8 +13,8 @@ use std::{
 
 use scopehub_application::{
     Actor, DEFAULT_PREVIEW_ROWS, LocalImportPort, MappingCommitGuard, MarketFuture, failure,
-    load_mapping_input, load_mapping_output, preview_local_import, reviewed_preview_header,
-    save_mapping_input,
+    load_mapping_input, load_mapping_output, preview_local_import, publish_local_import_input,
+    reviewed_preview_header, save_mapping_input,
 };
 use scopehub_domain::protocol::{CsvMappingV1, Error, ErrorCode, LocalImportPreviewInput};
 use scopehub_platform::local_folder::{
@@ -116,19 +116,29 @@ struct MappingGuard {
     cancel: Arc<PreviewCancellation>,
     folders: Arc<LocalFolderHost>,
     folder: FolderId,
+    source: Option<(FileId, String)>,
 }
 
 impl MappingCommitGuard for MappingGuard {
     fn commit<T>(&self, apply: impl FnOnce() -> Result<T, Error>) -> Result<T, Error> {
-        self.folders
-            .with_current(self.folder, || {
-                self.cancel
-                    .phase
-                    .compare_exchange(ACTIVE, COMMITTING, Ordering::AcqRel, Ordering::Acquire)
-                    .map_err(|_| failure(ErrorCode::CANCELLED))?;
-                apply()
-            })
-            .map_err(folder_failure)?
+        let apply = || {
+            self.cancel
+                .phase
+                .compare_exchange(ACTIVE, COMMITTING, Ordering::AcqRel, Ordering::Acquire)
+                .map_err(|_| failure(ErrorCode::CANCELLED))?;
+            apply()
+        };
+        match &self.source {
+            Some((file, sha256)) => self.folders.with_verified_current(
+                self.folder,
+                *file,
+                sha256,
+                &self.cancel.file,
+                apply,
+            ),
+            None => self.folders.with_current(self.folder, apply),
+        }
+        .map_err(folder_failure)?
     }
 }
 
@@ -299,12 +309,13 @@ impl LocalImport {
                     "Preview this mapping and review a normalized bar before saving.".into();
                 error
             })?;
-        port.read_file(folder, file, Some(binding.source_sha256))
+        port.read_file(folder, file, FileRead::Preview(Some(binding.source_sha256)))
             .await?;
         let guard = MappingGuard {
             cancel: Arc::clone(&port.cancel),
             folders: Arc::clone(&self.folders),
             folder,
+            source: None,
         };
         workspace
             .save(source_key, header, input.mapping, guard)
@@ -348,6 +359,90 @@ impl LocalImport {
         let output = load_mapping_output(Actor::LocalUser, Some(record), Some(&preview));
         port.check_live(folder)?;
         output
+    }
+
+    pub(super) async fn publish(
+        &self,
+        workspace: &WorkspaceBridge,
+        payload: Value,
+        request_id: Option<&str>,
+    ) -> Result<Value, Error> {
+        let input = publish_local_import_input(Actor::LocalUser, payload)?;
+        let (_slot, port) = self.reserve(request_id)?;
+        let folder = folder_id(&input.folder_id)?;
+        let file = file_id(&input.file_id)?;
+        let source_key = self
+            .folders
+            .source_key(folder, file)
+            .map_err(folder_failure)?;
+        let reviewed = workspace
+            .find(source_key.clone())
+            .await?
+            .filter(|record| record.review_revision == input.review_revision)
+            .ok_or_else(|| {
+                let mut error = failure(ErrorCode::STALECONTEXT);
+                error.message = "Load the current saved mapping before publishing this CSV.".into();
+                error
+            })?;
+        let binding = PreviewBinding::new(
+            folder,
+            file,
+            input.expected_sha256.clone(),
+            &reviewed.mapping,
+            None,
+        )?;
+        let previewed = self
+            .state
+            .lock()
+            .expect("preview state")
+            .reviewed
+            .as_ref()
+            .is_some_and(|review| {
+                let accepted = &review.binding;
+                accepted.folder == binding.folder
+                    && accepted.file == binding.file
+                    && accepted.source_sha256 == binding.source_sha256
+                    && accepted.mapping_sha256 == binding.mapping_sha256
+                    && review.header_sha256 == reviewed.header_sha256
+            });
+        if !previewed {
+            let mut error = failure(ErrorCode::STALECONTEXT);
+            error.message =
+                "Preview the current CSV with its saved mapping before publishing.".into();
+            return Err(error);
+        }
+        let frozen = port
+            .read_file(folder, file, FileRead::Publication(input.expected_sha256))
+            .await?;
+        let original = frozen.content.as_deref().ok_or_else(|| {
+            let mut error = failure(ErrorCode::RESOURCELIMIT);
+            error.message = "Publication supports CSV files up to 4 MiB.".into();
+            error
+        })?;
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| failure(ErrorCode::PROVIDERNOTCONFIGURED))?;
+        let mapping = serde_json::to_value(&reviewed.mapping)
+            .map_err(|_| failure(ErrorCode::INTERNALERROR))?;
+        let content = local_import::complete(
+            config,
+            original,
+            &frozen.sha256,
+            &mapping,
+            port.stopped(folder),
+        )
+        .await;
+        port.check_live(folder)?;
+        let guard = MappingGuard {
+            cancel: Arc::clone(&port.cancel),
+            folders: Arc::clone(&self.folders),
+            folder,
+            source: Some((file, frozen.sha256.clone())),
+        };
+        workspace
+            .publish(source_key, frozen, reviewed, content?, guard)
+            .await
     }
 
     pub(super) fn cancel(&self, request_id: &str) {
@@ -420,6 +515,11 @@ struct PreviewPort<'a> {
     cancel: Arc<PreviewCancellation>,
 }
 
+enum FileRead {
+    Preview(Option<String>),
+    Publication(String),
+}
+
 impl PreviewPort<'_> {
     fn check_live(&self, folder: FolderId) -> Result<(), Error> {
         if self.cancel.is_cancelled() {
@@ -447,13 +547,18 @@ impl PreviewPort<'_> {
         &self,
         folder: FolderId,
         file: FileId,
-        expected_sha256: Option<String>,
+        mode: FileRead,
     ) -> Result<FrozenFile, Error> {
         self.check_live(folder)?;
         let folders = Arc::clone(&self.host.folders);
         let cancel = Arc::clone(&self.cancel);
-        let read = tokio::task::spawn_blocking(move || {
-            folders.read(folder, file, expected_sha256.as_deref(), &cancel.file)
+        let read = tokio::task::spawn_blocking(move || match mode {
+            FileRead::Preview(digest) => {
+                folders.read(folder, file, digest.as_deref(), &cancel.file)
+            }
+            FileRead::Publication(digest) => {
+                folders.read_for_publication(folder, file, &digest, &cancel.file)
+            }
         });
         let frozen = tokio::select! {
             biased;
@@ -476,7 +581,11 @@ impl PreviewPort<'_> {
             .as_ref()
             .ok_or_else(|| failure(ErrorCode::PROVIDERNOTCONFIGURED))?;
         let frozen = self
-            .read_file(folder, file, request.expected_sha256.clone())
+            .read_file(
+                folder,
+                file,
+                FileRead::Preview(request.expected_sha256.clone()),
+            )
             .await?;
         let bytes = frozen.content.as_deref().ok_or_else(|| {
             let mut error = failure(ErrorCode::RESOURCELIMIT);
