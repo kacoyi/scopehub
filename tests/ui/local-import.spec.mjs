@@ -1547,6 +1547,73 @@ base('keeps the selected folder library available during workspace startup and r
   }
 });
 
+for (const kind of ['single-file', 'folder']) {
+  base(`protects the ${kind} foreground open from its own initial entitlement probe`, {
+    tag: '@profile-folder-refresh',
+  }, async ({ page }) => {
+    const id = randomUUID();
+    const clock = new Date('2026-04-16T08:00:00Z');
+    await page.clock.install({ time: clock });
+    await page.clock.pauseAt(new Date(clock.getTime() + 1000));
+    const foreground = Promise.withResolvers();
+    const release = Promise.withResolvers();
+    let awaitingAdmission = false;
+    let competing = false;
+    let reads = 0;
+    await page.exposeFunction('testRevisionAdmission', async (command, { operation, payload }) => {
+      expect(command).toBe('execute_operation');
+      if (payload.type === 'snapshot') {
+        return { result: { workspace: { id: 'main', revision: 1, timeframe: '1d' }, selection_revision: 0, undo: null } };
+      }
+      if (operation?.startsWith('market.list')) {
+        return { result: { version: 1, revisions: [], next_after_revision_id: null } };
+      }
+      if (payload.type === 'frozen_chart_status' || payload.include_details === false) {
+        if (awaitingAdmission) competing = true;
+        return { result: { available: true, revision: { revision_id: id } } };
+      }
+      expect(payload.revision_id).toBe(id);
+      expect(operation ?? payload.type).toBe(kind === 'folder' ? 'market.readLocalFolderRevision' : 'frozen_chart');
+      reads++;
+      awaitingAdmission = true;
+      foreground.resolve();
+      await release.promise;
+      awaitingAdmission = false;
+      return { error: competing
+        ? { code: 'BUSY', message: 'The market worker is busy.', retryable: true }
+        : { code: 'SNAPSHOT_UNAVAILABLE' } };
+    });
+    await page.addInitScript(() => {
+      window.isTauri = true;
+      window.__SCOPEHUB_DESKTOP_WORKSPACE__ = true;
+      window.__TAURI_INTERNALS__ = {
+        async invoke(command, args) {
+          const reply = await window.testRevisionAdmission(command, args);
+          if (reply.error) throw reply.error;
+          return reply.result;
+        },
+      };
+    });
+    try {
+      await page.goto('/');
+      await control(page, 'Open published CSV').last().click();
+      const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+      if (kind === 'folder') await dialog.getByRole('button', { name: 'Folder revisions' }).click();
+      await dialog.getByRole('textbox', { name: 'Revision ID' }).fill(id);
+      const submit = kind === 'folder' ? 'Open frozen folder revision' : 'Open frozen chart';
+      await dialog.getByRole('button', { name: submit, exact: true }).click();
+      await foreground.promise;
+      await page.clock.runFor(80);
+      release.resolve();
+      await expect(dialog.getByRole('alert')).toHaveText('This frozen chart is unavailable in the current profile.');
+      expect(reads).toBe(1);
+      expect(competing).toBe(false);
+    } finally {
+      release.resolve();
+    }
+  });
+}
+
 base('publishes a reviewed folder once and reopens its frozen provenance without a folder grant', {
   tag: '@profile-folder-import',
 }, async ({ page }) => {
