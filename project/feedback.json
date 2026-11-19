@@ -866,6 +866,21 @@
         "prevention": "Holding the real preparation for 3.4 seconds reproduces the former timeout. The clean final task run passed all eight replay and thirteen quality cases. It checks both paints against fixture prices, the frozen row, one accepted stream, explicit pre-admission BUSY and no additional subscription through reload."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "hosted-restored-chart-deadline",
+      "source": "Hosted Windows Verify delivery run 44509534715, market-live-stream, first test after page reload.",
+      "observation": "The five-second selected-bar assertion expired. The failure screenshot already shows the restored simulated futures chart, selected line style, open data window, forty bars and the original partial close of 3500.8 with volume 110. The other seven stream cases passed.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-018"
+      ],
+      "regression_checks": [
+        "market-live-stream"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

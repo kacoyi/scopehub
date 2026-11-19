@@ -13,6 +13,47 @@ const busy = { ok: false, error: { code: 'BUSY', retryable: true } };
 const admissionFailure = { timeout: 3_000 };
 const playReplay = page => waitForReplayRequest(page, () => control(page, 'Play sample updates').click());
 
+async function openDefaultSample(page, trigger = () => page.goto('/#demo')) {
+  const replies = [];
+  const observe = response => {
+    const request = response.request();
+    if (request.method() === 'POST' && new URL(request.url()).pathname === operation) {
+      replies.push({ call: request.postDataJSON(), response });
+    }
+  };
+  const read = async name => {
+    const admitted = () => replies.find(({ call, response }) => call.operation === name && response.status() !== 429);
+    await expect.poll(() => Boolean(admitted()), { ...replayStage, message: `Waiting for ${name} during sample startup` }).toBe(true);
+    const { call, response } = admitted();
+    expect(response.status(), name).toBe(200);
+    const body = await response.json();
+    expect(body.ok, name).toBe(true);
+    return { payload: call.payload, result: body.result };
+  };
+  page.on('response', observe);
+  try {
+    await trigger();
+    const catalog = await read('instrument.search');
+    expect(catalog.result.instruments.map(item => item.id)).toContain('SIM.CN.FUTURE.001');
+    const { payload, result } = await read('market.readHistoryPage');
+    expect(payload.series).toMatchObject({ instrument_id: 'SIM.CN.FUTURE.001', provider_id: 'scopehub.synthetic', timeframe: '1m' });
+    expect(payload.snapshot).toBeUndefined();
+    expect(payload.include_stream_position).toBeUndefined();
+    expect(result.snapshot.series).toEqual(payload.series);
+    expect(result.snapshot.dataset_revision).toBe('scopehub-synthetic-v1:20241013:normal');
+    expect(result.total_bars).toBe(40);
+    expect(result.bars).toHaveLength(40);
+    for (const { response } of replies.filter(reply => reply.response.status() === 429)) {
+      expect(await response.json()).toEqual(busy);
+    }
+    expect(replies.filter(({ response }) => response.status() !== 429).map(({ call }) => call.operation))
+      .toEqual(['instrument.search', 'market.readHistoryPage']);
+    return result.snapshot;
+  } finally {
+    page.off('response', observe);
+  }
+}
+
 async function trackSubscriptions(page) {
   const attempts = [];
   page.on('request', request => {
@@ -111,13 +152,13 @@ test('starts only by choice, streams the interim and final bar onto the canvas, 
   await page.goto('/');
   await expect(control(page, 'Open offline sample')).toBeVisible();
   expect(calls).toEqual([]);
-  await control(page, 'Open offline sample').click();
+  const initialSnapshot = await openDefaultSample(page, () => control(page, 'Open offline sample').click());
   await expect(chart(page)).toHaveAttribute('data-bars', '40');
   await expect.poll(() => painted(page, 'candlestick')).toBeGreaterThan(20);
   // The entry button occupies chart space until the first history arrives.
   await page.mouse.move(1, 1);
   await priceText(page, '3500\\.8', 110, 'Partial');
-  expect(calls.map(call => call.operation)).toEqual(['instrument.search', 'market.readHistoryPage']);
+  expect(subscriptions).toHaveLength(0);
   const canvas = chart(page).locator('.chart canvas').first();
   const originalCanvas = await canvas.elementHandle();
   const initial = await canvas.evaluate(el => window.followLastCandle(el));
@@ -186,8 +227,21 @@ test('starts only by choice, streams the interim and final bar onto the canvas, 
   await expect(page.getByRole('table', { name: 'Historical bars' }).locator('tbody tr').last().getByRole('cell')).toHaveText(
     ['2024-01-04T01:09:00.000Z', '2024-01-04', '3501.6', '3502', '3500.8', '3500.8', '110', 'Partial'],
   );
-  await page.reload();
+  // Both reads use the real loopback worker. Slow successful replies independently
+  // so that their combined latency exceeds the former five-second render wait.
+  await page.route(`**${operation}`, async route => {
+    const response = await route.fetch(replayStage);
+    if (response.ok()) await delay(2_750);
+    await route.fulfill({ response });
+  });
+  const restoredSnapshot = await openDefaultSample(page, () => page.reload({ waitUntil: 'domcontentloaded' }));
+  expect(restoredSnapshot).toEqual(initialSnapshot);
   await priceText(page, '3500\\.8', 110, 'Partial');
+  await expect(chart(page)).toHaveAttribute('data-bars', '40');
+  await expect(control(page, 'Close-price line')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('table', { name: 'Historical bars' }).locator('tbody tr')).toHaveCount(40);
+  await expect(page.getByText('Simulated', { exact: true })).toBeVisible();
+  await expect.poll(() => painted(page, 'line')).toBeGreaterThan(20);
   await expect(status(page)).toHaveCount(0);
   expect(subscriptions).toHaveLength(verifiedAttempts.length);
 });
@@ -225,7 +279,7 @@ test('changing symbol and timeframe during preparation loads the new chart befor
   });
 
   try {
-    await page.goto('/#demo');
+    await openDefaultSample(page);
     await expect(chart(page)).toHaveAttribute('data-instrument', 'SIM.CN.FUTURE.001');
     await control(page, 'Play sample updates').click();
     const [{ request, reply }] = await Promise.all([
@@ -259,7 +313,7 @@ test('changing symbol and timeframe during preparation loads the new chart befor
 
 test('selection change cancels the owned replay and releases the slot for the new selection', async ({ page }) => {
   const subscriptions = await trackSubscriptions(page);
-  await page.goto('/#demo');
+  await openDefaultSample(page);
   await expect(chart(page)).toHaveAttribute('data-instrument', 'SIM.CN.FUTURE.001');
   await playReplay(page);
   await expect(status(page)).toHaveText('Synthetic replay in progress', replayStage);
@@ -305,7 +359,7 @@ test('replacement history waits for a cancelled preparation past the old cleanup
   });
 
   try {
-    await page.goto('/#demo');
+    await openDefaultSample(page);
     await expect(chart(page)).toHaveAttribute('data-instrument', 'SIM.CN.FUTURE.001');
     await control(page, 'Play sample updates').click();
     const previous = await preparation.promise;
@@ -340,7 +394,7 @@ test('replacement replay admits exactly one stream after the old cleanup bound',
     await route.continue();
   });
 
-  await page.goto('/#demo');
+  await openDefaultSample(page);
   await playReplay(page);
   await expect(status(page)).toHaveText('Synthetic replay in progress', replayStage);
   const cancelled = page.waitForEvent('requestfailed', {
@@ -367,7 +421,7 @@ test('persistent admission contention stops and offers explicit replay retry', a
     attempts++;
     return route.fulfill({ status: 429, json: busy });
   });
-  await page.goto('/#demo');
+  await openDefaultSample(page);
   await playReplay(page);
   await expect(status(page)).toContainText('The market worker is busy.', admissionFailure);
   await expect(control(page, 'Retry replay')).toBeVisible();
@@ -381,7 +435,7 @@ test('a BUSY terminal frame does not admit another replay', async ({ page }) => 
     admitted++;
     return route.fulfill({ contentType: 'application/x-ndjson', body: JSON.stringify(busy) + '\n' });
   });
-  await page.goto('/#demo');
+  await openDefaultSample(page);
   await playReplay(page);
   await expect(status(page)).toContainText('The market worker is busy.', replayStage);
   expect(admitted).toBe(1);
@@ -394,7 +448,7 @@ test('a crossed epoch produces a visible gap and leaves the chart at its frozen 
     body.payload.after.epoch = 'prior-epoch';
     await route.continue({ postData: JSON.stringify(body) });
   });
-  await page.goto('/#demo');
+  await openDefaultSample(page);
   await playReplay(page);
   await expect(status(page)).toHaveText('Replay gap. The stream restarted.', replayStage);
   await priceText(page, '3500\\.8', 110, 'Partial');

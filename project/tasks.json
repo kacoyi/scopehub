@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-001",
+  "focus_task_id": "M1-018",
   "tasks": [
     {
       "id": "M0-001",
@@ -2451,6 +2451,10 @@
         {
           "path": "project/evidence/M1-007-d969bd5526c01237.json",
           "sha256": "2e4a947a1b0649b35b6d3b2c16b56cb2b89c14dd014745e6071af96570a7296a"
+        },
+        {
+          "path": "project/evidence/M1-007-4c613128f41d7f9f.json",
+          "sha256": "c76b96b248cfc97ca2581348df6f9f0eed7de9c70a8627a08bdd69a22e296c7e"
         }
       ],
       "next_action": null,
@@ -4935,6 +4939,10 @@
         {
           "path": "project/evidence/M2-006-d969bd5526c01237.json",
           "sha256": "f2a299b672553c2b59217e6ce0ba6ea56b4e73464b3f9d6cc9a83176f824cb2f"
+        },
+        {
+          "path": "project/evidence/M2-006-4c613128f41d7f9f.json",
+          "sha256": "cf2abbaf8dc35b42a01a19c881e1ea1c011cd44d91dad3a74c1ae6753359f388"
         }
       ],
       "next_action": null,
@@ -5052,6 +5060,10 @@
         {
           "path": "project/evidence/M1-017-456f99b26e193864.json",
           "sha256": "5a92b82dc45960b03d3e09f57a6a6e115f9de5a7ce32832a286b19b943cc1a46"
+        },
+        {
+          "path": "project/evidence/M1-017-4c613128f41d7f9f.json",
+          "sha256": "6934bc1cceb8f51adce5150d92ee361c41f742d5124d6a955bdf3aa6a96bed18"
         }
       ],
       "next_action": null,
@@ -5125,6 +5137,100 @@
           ],
           "data_plan": "Only synthetic test traffic and existing diagnostic evidence are used.",
           "cleanup": "Keep one streamed acceptance path and the existing worker deadlines. Retain reproducible evidence of delayed preparation."
+        }
+      }
+    },
+    {
+      "id": "M1-018",
+      "title": "Verify offline chart restoration across catalog, history and paint",
+      "milestone": "M1",
+      "status": "active",
+      "depends_on": [
+        "M1-017"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/market-stream.spec.mjs",
+        "tests/ui",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "An unconfigured start makes no market request. Explicit sample selection and restoration read the real catalog and requested synthetic history in order. The restored view identifies the selected source, instrument, timeframe and frozen data.",
+        "A delayed but valid catalog and history restore the chosen layout, forty bars and original last close without starting another subscription. An unsuccessful operation or missing render fails its own bounded check."
+      ],
+      "checks": [
+        "market-live-stream",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Reproduce the hosted reload failure with real delayed reads and verify cold startup, history and paint independently.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Verify the visible chart after an explicit sample is reopened, including a cold catalog and history load.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/market-stream.spec.mjs",
+          "tests/ui/replay-stages.mjs",
+          "apps/desktop/ui/src/main.tsx",
+          "apps/desktop/ui/src/use-market-data.ts",
+          "apps/desktop/ui/ubuntu-preview.mjs"
+        ],
+        "hypotheses": [
+          "Windows completed the replay and later captured the restored chart. The reload assertion started its five-second render budget before the two serial reads had completed."
+        ],
+        "risks": [
+          {
+            "failure": "A missing, failed or unrelated operation satisfies the restoration check.",
+            "checks": [
+              "market-live-stream"
+            ]
+          },
+          {
+            "failure": "The restored chart shows the replay projection, loses the explicit source or automatically replays.",
+            "checks": [
+              "market-live-stream"
+            ]
+          }
+        ],
+        "rollback": "Keep the original Windows run and the controlled local failure. Compare the operation and render evidence before changing application policy.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "ui"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/market-stream.spec.mjs",
+            "apps/desktop/ui/src/use-market-data.ts"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changes to the chart renderer, market data, application resource limits or release status."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "User-selected sample restoration, frozen data, chart rendering and subscription lifecycle."
+          ],
+          "change": [
+            "Start the render assertion after the independent catalog and history reads."
+          ],
+          "data_plan": "The regression uses synthetic fixtures on loopback.",
+          "cleanup": "Keep a single live path for restoration and use ordinary UI assertions after its bounded reads."
         }
       }
     }
