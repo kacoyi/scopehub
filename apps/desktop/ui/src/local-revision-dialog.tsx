@@ -88,12 +88,12 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
     setFailure(unavailable);
   }, [lostAccess]);
   const listLoading = nativeLocalImport && library.status === 'loading';
-  const working = busy || listLoading;
+  const workspacePending = Boolean(workspace?.pending);
+  const working = busy || listLoading || workspacePending;
 
-  const workspaceOpening = workspace?.pending === 'open' && workspace.snapshot === undefined;
   useEffect(() => {
-    // Opening the profile snapshot also holds the native workspace lane.
-    if (!listLoading || workspaceOpening) return;
+    // Workspace reads and writes share native admission with revision operations.
+    if (!listLoading || workspacePending) return;
     let superseded = false;
     // The desktop admits one workspace operation at a time. Let the user
     // pick a library while the preceding reply is still pending.
@@ -112,7 +112,7 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
       if (!superseded) setListing({ selection, page });
     });
     return () => { superseded = true; };
-  }, [listLoading, selection, workspaceOpening]);
+  }, [listLoading, selection, workspacePending]);
 
   useEffect(() => {
     const node = dialog.current;
@@ -142,7 +142,7 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
   }
 
   async function request(work: () => Promise<void>, fallback: string) {
-    if (active.current || listLoading) return;
+    if (active.current || listLoading || workspacePending) return;
     active.current = true;
     setBusy(true);
     setFailure(undefined);

@@ -242,9 +242,16 @@ pub fn folder_refresh_output(
         return Err(error);
     }
     let mut records = 0;
-    let mut digests = BTreeMap::new();
-    for (&path, &digest) in &prior_sources {
-        digests.entry(digest).or_insert(path);
+    let mut current_canonical = BTreeMap::new();
+    // Keep an accepted representative only while its current bytes still match.
+    // Groups without one take the first current path in sorted order below.
+    for file in &input_files {
+        let path = file.relative_path.as_str();
+        if let Some(digest) = file.sha256.as_deref()
+            && prior_sources.get(path) == Some(&digest)
+        {
+            current_canonical.entry(digest).or_insert(path);
+        }
     }
     let series = json!(accepted.series);
     let mut sources = Vec::new();
@@ -255,7 +262,11 @@ pub fn folder_refresh_output(
         let previous_digest = prior_sources.remove(file.relative_path.as_str());
         let digest = file.sha256.as_deref();
         let alias_of = digest
-            .map(|digest| *digests.entry(digest).or_insert(file.relative_path.as_str()))
+            .map(|digest| {
+                *current_canonical
+                    .entry(digest)
+                    .or_insert(file.relative_path.as_str())
+            })
             .filter(|path| *path != file.relative_path);
         let change = match (previous_digest, digest) {
             (None, _) => "added",
