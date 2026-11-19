@@ -1070,6 +1070,22 @@
         "prevention": "The 11 focused launcher tests cover the role arguments and worktree selection. A real Herdr implementation session completed its scoped commit without a human prompt. See contracts/reviews/2026-11-19-herdr-delegated-approvals.json."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "hosted-selected-stock-history-disconnected",
+      "source": "Windows main verification run 44581311289 at dcafca35796318669c721c53f1a7bff55ef5e46a.",
+      "observation": "The workflow selected SIM.CN.STOCK.001, 5m and the close-price line. The screenshot showed Disconnected from the local preview and Retry history. The assertion waited five seconds for a missing chart canvas. The Windows artifact records no failed HTTP request, socket code or corresponding server event.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-025"
+      ],
+      "regression_checks": [
+        "market-workflow",
+        "market-quality-states"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

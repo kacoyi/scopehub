@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-008",
+  "focus_task_id": "M1-025",
   "tasks": [
     {
       "id": "M0-001",
@@ -6033,6 +6033,112 @@
           ],
           "data_plan": "Use repository code and synthetic local probes. The launcher does not persist credentials or user content.",
           "cleanup": "Only newly started sessions receive new launch arguments. Preserve pending work and retire coordinator-owned test sessions after verification."
+        }
+      }
+    },
+    {
+      "id": "M1-025",
+      "title": "Verify selected sample history after a loopback interruption",
+      "milestone": "M1",
+      "status": "active",
+      "depends_on": [
+        "M1-001",
+        "M1-022"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/market-workflow.spec.mjs",
+        "tests/ui",
+        "apps/desktop/ui/ubuntu-preview.mjs",
+        "apps/desktop/ui/src/use-market-data.ts",
+        "project"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0010"
+      ],
+      "acceptance": [
+        "On an explicit symbol and timeframe change, distinguish the selected history request and any prior cancelled request. A terminal transport or provider result remains attributable to that selection and is observed without waiting for a missing canvas.",
+        "An interrupted selected history read exposes the reason and the explicit retry control. The ordinary retry restores the correct coverage, chart and values through the live loopback Rust worker for that same selection. Preserve unconfigured startup, existing healthy three-instrument canvas assertions and bounded deadlines.",
+        "Retain the Windows main run, a discriminating synthetic control and a source-matched healthy real workflow. Record the first failing stage and any remaining uncertainty in the historical Windows event."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "ui-build",
+        "market-workflow",
+        "market-quality-states",
+        "market-live-stream"
+      ],
+      "evidence": [],
+      "next_action": "Use the retained Windows report, screenshot and selection timeline to distinguish an interrupted current request, deliberate cancellation of obsolete requests, or a client decoding/transport error; fix the demonstrated cause and verify explicit recovery.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The user can recover a correctly attributed failed stock history selection and render its original five-minute line and volume values.",
+        "change_types": [
+          "tooling",
+          "ui"
+        ],
+        "context": [
+          "project/feedback.json",
+          "apps/desktop/ui/src/use-market-data.ts",
+          "tests/ubuntu-preview/market-workflow.spec.mjs",
+          "tests/ui/sample-startup.mjs"
+        ],
+        "hypotheses": [
+          "The screenshot shows the CN stock, 5m, line and Retry history following a disconnected preview. The current assertion waits on a canvas and misses the terminal state and request stage. The original network or worker cause remains unknown."
+        ],
+        "risks": [
+          {
+            "failure": "An old request or an automatic retry hides the failed selected request or paints another series.",
+            "checks": [
+              "market-workflow",
+              "market-quality-states"
+            ]
+          },
+          {
+            "failure": "A substitute response or a larger timeout hides a defect in the real chart, worker or explicit retry.",
+            "checks": [
+              "market-workflow",
+              "market-live-stream"
+            ]
+          }
+        ],
+        "rollback": "Keep the hosted failure and original three-instrument path. Revert a stage change if it hides transport or worker failures.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/use-market-data.ts",
+            "tests/ubuntu-preview/market-workflow.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Real financial providers and installed desktop acceptance have separate entries."
+          ],
+          "open_questions": [
+            "Which request failed in the untraced Windows run?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "User-selected symbol, timeframe, chart style and existing bounded market operations.",
+            "The current explicit retry and all independent financial assertions."
+          ],
+          "change": [
+            "Observe the selected history across transport completion, terminal UI and a user-initiated retry."
+          ],
+          "data_plan": "Use the existing simulated source and disposable local fixtures.",
+          "cleanup": "Keep failed and successful logs and remove temporary listeners with their request scopes."
         }
       }
     }
