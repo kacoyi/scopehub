@@ -32,6 +32,13 @@ MAX_PREVIEW_ROWS = 500
 MAX_PUBLICATION_RECORDS = 10_000
 _MAX_COLUMNS = 512
 _ENCODINGS = {'utf-8', 'utf-8-sig', 'gb18030'}
+_RAW_RECORD_KINDS = {
+    'trade': 'Executed trades are shown in source order with their reported prices and quantities.',
+    'quote_snapshot': 'Quote snapshots stay raw. Reconstructed bars require verified trade and session rules.',
+    'depth_snapshot': 'Order book snapshots are shown with their original levels and quantities.',
+    'reference_data': 'Reference records are shown with their original fields.',
+    'corporate_action': 'Corporate action records are shown with the dates and terms supplied by the source.',
+}
 _CSV_READ_LOCK = Lock()
 
 
@@ -122,8 +129,8 @@ def _read_csv(content: bytes, mapping: Mapping[str, object], *, normalize_rows: 
         if result['mapping_version'] != 1 or result['mapping_revision'] is None:
             issues.append(preview_issue('mapping_version', 'version', 'Use mapping version 1 and supply a mapping revision.'))
         record_kind = mapping.get('record_kind')
-        if record_kind == 'quote_snapshot':
-            issues.append(preview_issue('quote_snapshot', 'record_kind', 'Quote snapshots stay raw. Reconstructed bars require verified trade and session rules.'))
+        if isinstance(record_kind, str) and record_kind in _RAW_RECORD_KINDS:
+            issues.append(preview_issue(record_kind, 'record_kind', _RAW_RECORD_KINDS[record_kind]))
         elif record_kind != 'native_ohlcv':
             issues.append(preview_issue('unsupported_record_kind', 'record_kind', 'Classify this input. Normalization requires closed native OHLCV bars.'))
 

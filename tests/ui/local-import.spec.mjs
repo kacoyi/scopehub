@@ -1231,7 +1231,12 @@ base('edits and reuses a futures mapping, while quotes and unsupported sources s
     await writeFile(futurePath, original);
     await writeFile(join(folder, 'continuous.csv'), bomCsv(continuous.header, continuousRows));
     await writeFile(join(folder, 'quotes.csv'), quotes.map(row => row.join(',')).join('\n') + '\n');
-    await writeFile(join(folder, 'trade-style.csv'), 'Contract,TradingDay,Time,TradePrice,TradeQuantity\nCU2605,20260415,21:00:01,85.6,2\n');
+    const trades = [
+      ['Contract', 'TradingDay', 'Time', 'TradePrice', 'TradeQuantity'],
+      ['CU2605', '20260415', '21:00:01', '85.60', '02'],
+      ['CU2605', '20260415', '21:00:01', '85.65', '03'],
+    ];
+    await writeFile(join(folder, 'trade-style.csv'), trades.map(row => row.join(',')).join('\n') + '\n');
     await writeFile(join(folder, 'unsupported.tsv'), 'Raw trade values\t123\n');
     await writeFile(join(temporary, 'outside.csv'), 'Private sibling\n12\n');
 
@@ -1380,6 +1385,18 @@ base('edits and reuses a futures mapping, while quotes and unsupported sources s
     await expect(raw.getByRole('columnheader', { name: 'TradeQuantity' })).toBeVisible();
     await expect(raw.getByRole('columnheader', { name: 'BidPrice' })).toHaveCount(0);
     await expect(diagnostics).toContainText('Classify this input.');
+    await select(page, 'Record kind').selectOption({ label: 'Executed trades' });
+    await control(page, 'Inspect raw rows').click();
+    await expect(diagnostics).toContainText('Executed trades are shown in source order');
+    const tradeRows = raw.locator('tbody tr');
+    for (const [index, fields] of trades.slice(1).entries()) {
+      await expect(tradeRows.nth(index).getByRole('cell')).toHaveText([String(index + 2), ...fields]);
+    }
+    const tradePreview = last('previewLocalImport');
+    expect(tradePreview.args.payload.mapping.record_kind).toBe('trade');
+    expect(tradePreview.reply.result.preview.issues.map(issue => issue.code)).toEqual(['trade']);
+    expect(tradePreview.reply.result.preview.rows.map(row => row.normalized)).toEqual([null, null]);
+    await expect(publish).toHaveCount(0);
     await expect(normalized).toHaveCount(0);
     await expect(preview.locator('canvas')).toHaveCount(0);
     await expect(page.getByText('Simulated', { exact: true })).toHaveCount(0);
