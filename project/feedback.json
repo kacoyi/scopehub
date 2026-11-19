@@ -1043,6 +1043,17 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-sample-startup-aggregate-wait",
+      "source": "PR 12 hosted Windows run 44531620190, market-workflow and ubuntu-preview logs.",
+      "observation": "The three-symbol journey did not find Play sample updates within five seconds. The desktop, narrow-screen, and Retry demo preview paths hit the same five-second limit waiting for the first history chart. The assertions did not distinguish catalog latency, history latency, and rendering.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M1-020"],
+      "regression_checks": ["market-workflow", "ubuntu-preview"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
