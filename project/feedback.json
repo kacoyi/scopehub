@@ -905,6 +905,21 @@
         "prevention": "All eight replay cases pass with the bounded restore. Four independent negative probes reproduced the earlier false passes and confirm a failed extra read, an outstanding read, an unrelated BUSY and early history issuance are rejected."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "herdr-delegated-interactive-approvals",
+      "source": "Coordinator inspection of the active implementation and review terminals on 2026-11-19, including a linked worktree awaiting an assigned local Git merge.",
+      "observation": "The launcher left the writer approval policy implicit. Routine project checks and previously assigned local Git operations waited at interactive approval prompts in multiple terminals.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-028"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
