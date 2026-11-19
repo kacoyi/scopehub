@@ -8,12 +8,22 @@ import shutil
 import subprocess
 from uuid import uuid4
 
+if __package__:
+    from .ci_artifacts import browser_artifacts
+else:
+    from ci_artifacts import browser_artifacts
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def main():
     run_id = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S') + '-' + uuid4().hex[:8]
-    output = ROOT / '.reports/chart-history/runs' / run_id
+    ci_run = os.environ.get('SCOPEHUB_RUN_DIR') if os.environ.get('GITHUB_ACTIONS') == 'true' else None
+    if ci_run:
+        run_id = Path(ci_run).name
+    reports = ROOT / '.reports'
+    relative = f'chart-history/runs/{run_id}'
+    output = reports / relative
     output.mkdir(parents=True)
     env = {**os.environ, 'SCOPEHUB_HISTORY_REPORT_DIR': str(output)}
     commands = [
@@ -22,6 +32,8 @@ def main():
         ['pnpm', 'build'],
         ['pnpm', 'exec', 'playwright', 'test', '--config', 'tests/ui/playwright.config.mjs'],
     ]
+    if ci_run:
+        commands[-1].extend(['--trace', 'off'])
     outcomes = []
     for command in commands:
         executable = shutil.which(command[0])
@@ -31,16 +43,18 @@ def main():
         outcomes.append({'command': command, 'exit_code': result.returncode})
         if result.returncode:
             break
+    artifacts = (browser_artifacts(reports, relative, 'chart-history') if ci_run
+                 else (path for path in sorted(output.rglob('*')) if path.is_file()))
     report = {
         'status': 'passed' if len(outcomes) == len(commands) and all(item['exit_code'] == 0 for item in outcomes) else 'failed',
         'claim_scope': 'Read-only synthetic history through real Rust/Python and Chromium. Native WebView transport, live updates, automatic reconnect and packaged installation are not tested here.',
         'commands': outcomes,
         'artifacts': [{'path': path.relative_to(ROOT).as_posix(), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
-                      for path in sorted(output.rglob('*')) if path.is_file()],
+                      for path in artifacts],
     }
     contents = json.dumps(report, indent=2) + '\n'
     (output / 'summary.json').write_text(contents, encoding='utf-8')
-    (ROOT / '.reports/chart-history/latest.json').write_text(contents, encoding='utf-8')
+    (reports / 'chart-history/latest.json').write_text(contents, encoding='utf-8')
     print(json.dumps({'report': (output / 'summary.json').relative_to(ROOT).as_posix(), **report}), flush=True)
     raise SystemExit(0 if report['status'] == 'passed' else 1)
 

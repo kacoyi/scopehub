@@ -665,6 +665,22 @@
         "prevention": "Four regressions reproduced the original failures and now pass, including a Git fixture with a completed intermediate task and checks from both review bases. M0-024 archives the clean local result and the matching Linux and Windows hosted results. Product work resumes at M1-006."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "private-content-and-hosted-reports",
+      "source": "Owner direction on local private data, ordinary connected-model use, and Herdr-led development. Inspection of the hosted workflow and session verifier.",
+      "observation": "The hosted workflow selected the whole reports directory. The real-model qualification could pass without distinguishing ordinary consent from a one-request private excerpt, and older records did not distinguish the co-developer’s authority from the permissions of each product user.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-025"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "project-state"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

@@ -12,7 +12,7 @@ from unittest.mock import patch
 from scripts import check as harness
 from scripts.project import (
     ProjectError, archive_evidence, digest, json_bytes, load_project, product_progress, readiness,
-    read_json, review_history, task_context, workfront, verified_main, source_identity,
+    read_json, review_history, task_context, workfront, verified_main, source_identity, validate_model,
 )
 from tests.project.test_continuity import ProjectFixture
 from tests.project.fixtures import task_by_id
@@ -20,6 +20,15 @@ from scripts.verification_evidence import integration_validation, release_artifa
 
 
 class DeliveryTests(ProjectFixture):
+    def test_hosted_report_rejects_private_fields_in_evidence_metadata(self):
+        for target in ('root', 'check', 'environment'):
+            report = read_json(self.report())
+            record = {'root': report, 'check': report['checks'][0], 'environment': report['environment']}[target]
+            record['conversation_text'] = 'Synthetic private fixture.'
+            validate_model(self.root, 'HarnessReport', report)
+            with self.subTest(target=target), self.assertRaises(ProjectError):
+                validate_model(self.root, 'HostedHarnessReport', report)
+
     def edit_decision(self):
         path = self.root / 'contracts/decisions/0003-repository-harness.json'
         decision = read_json(path)
@@ -264,7 +273,7 @@ class DeliveryTests(ProjectFixture):
             'provider': 'fixture',
             'route': 'route',
             'data_revision': 'revision',
-            'authorized_scope': 'fixture scope',
+            'authorized_scope': 'synthetic-model-qualification',
             'observed_at': '2026-11-18T12:00:00Z',
             'model': 'fixture',
             'deployment': 'cloud',
@@ -277,7 +286,8 @@ class DeliveryTests(ProjectFixture):
         self.assertEqual('not_evaluated', mock['cloud_models']['status'])
         for key, modality in [('configured-model-session', 'text'), ('configured-voice-session', 'voice')]:
             (directory / (key + '.observation.json')).write_bytes(
-                json_bytes(dict(original, check=key, modality=modality))
+                json_bytes(dict(original, check=key, modality=modality, authorized_scope=(
+                    'synthetic-voice-qualification' if modality == 'voice' else 'synthetic-model-qualification')))
             )
             observed = collect_session(directory, key, source)
             results.append({'id': key, 'status': 'passed', 'observation': observed})
@@ -290,7 +300,8 @@ class DeliveryTests(ProjectFixture):
         self.assertEqual('not_evaluated', integration_validation(results)['real_market_data']['status'])
         key = 'configured-model-session'
         filename = directory / (key + '.observation.json')
-        filename.write_bytes(json_bytes(dict(original, check=key, modality='text', deployment='local')))
+        filename.write_bytes(json_bytes(dict(original, check=key, modality='text', deployment='local',
+                                             qualification=observed_case('local'))))
         local = integration_validation(
             [{'id': key, 'status': 'passed', 'observation': collect_session(directory, key, source)}]
         )
@@ -300,6 +311,11 @@ class DeliveryTests(ProjectFixture):
         filename.write_bytes(json_bytes(dict(original, check=key, modality='text', deployment='unknown')))
         with self.assertRaisesRegex(ProjectError, 'local or cloud'):
             collect_session(directory, key, source)
+        for field, value in [('route', 'https://example.invalid/private?token=synthetic'),
+                             ('model', 'synthetic private body'), ('authorized_scope', 'synthetic private body')]:
+            filename.write_bytes(json_bytes(dict(original, check=key, modality='text', **{field: value})))
+            with self.subTest(field=field), self.assertRaisesRegex(ProjectError, 'redacted'):
+                collect_session(directory, key, source)
 
     def test_client_family_name_does_not_qualify_a_server_build(self):
         from scripts.verification_evidence import windows_client
@@ -308,6 +324,54 @@ class DeliveryTests(ProjectFixture):
             with self.subTest(product_type=wrong), self.assertRaises(ProjectError):
                 windows_client(dict(host, product_type=wrong))
         self.assertEqual('Windows 11', windows_client(dict(host, product_type=1)))
+
+    def test_primary_cloud_task_requires_the_retained_qualified_cloud_session(self):
+        from scripts.check import checked_session
+        from tests.contracts.test_qualification import observed_case
+
+        key = 'configured-model-session'
+        task_id = 'M0-001'
+        catalog_path = self.root / 'project/checks.json'
+        catalog = read_json(catalog_path)
+        base = next(c for c in catalog['checks'] if c['id'] == 'project-state')
+        catalog['checks'].append(dict(base, id=key, cadence='release'))
+        catalog_path.write_bytes(json_bytes(catalog))
+        ledger = self.ledger()
+        task_by_id(ledger, task_id)['checks'].append(key)
+        self.save_ledger(ledger)
+        policy = self.root / 'project/delivery.json'
+        delivery = read_json(policy)
+        delivery['release_policy']['required_checks'].append(key)
+        policy.write_bytes(json_bytes(delivery))
+        contract_path = self.root / 'engineering-contract-v1.json'
+        spec = read_json(contract_path)
+        spec['ai'] = {'model_connections': {'primary_cloud_route': {'task': task_id, 'check': key}}}
+        contract_path.write_bytes(json_bytes(spec))
+        self.commit_fixture()
+        path = self.report()
+        report = read_json(path)
+        checks = {c['id']: c for c in report['checks']}
+        folder = self.root / '.reports/runs/fixture'
+        observation = folder / (key + '.observation.json')
+        raw = dict(check=key, modality='text', provider='fixture', route='fixture', model='fixture',
+                   data_revision='test', authorized_scope='synthetic-model-qualification', observed_at='2026-11-19T12:00:00Z',
+                   commit=report['source']['git_head'], inputs_sha256=report['source']['sha256'])
+        for route in ('local', 'cloud'):
+            raw.update(deployment=route, qualification=observed_case(route))
+            observation.write_bytes(json_bytes(raw))
+            checks[key]['observation'] = collect_session(folder, key, report['source'])
+            path.write_bytes(json_bytes(report))
+            if route == 'local':
+                with self.assertRaisesRegex(ProjectError, 'observed cloud text'):
+                    checked_session(load_project(self.root), folder, key, report['source'])
+                with self.assertRaisesRegex(ProjectError, 'observed cloud text'):
+                    archive_evidence(self.root, task_id, path)
+            else:
+                self.assertEqual(checks[key]['observation'], checked_session(load_project(self.root), folder, key, report['source']))
+        self.assertIn('path', archive_evidence(self.root, task_id, path))
+        observation.write_bytes(json_bytes(dict(raw, raw_prompt='synthetic private text')))
+        with self.assertRaisesRegex(ProjectError, 'Unexpected fields'):
+            archive_evidence(self.root, task_id, path)
 
     def test_memory_and_latency_verdicts(self):
         profile = {'initial_bars_to_chart_p95_ms': 1000, 'chart_update_p95_ms': 200}

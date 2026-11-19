@@ -1,7 +1,7 @@
 {
   "artifact_type": "engineering_contract",
   "contract_id": "market-ai-workbench.v1",
-  "contract_version": "1.3.0",
+  "contract_version": "1.4.0",
   "language": "en-US",
   "normative_terms": {
     "MUST": "MUST be implemented",
@@ -226,6 +226,10 @@
     "documentation": "No human-facing guides; maintain agent instructions, executable schemas, JSON decisions, machine-readable verification reports, and legally required notices.",
     "development": "project/development.json",
     "owner_decision_inputs": [
+      {
+        "path": "contracts/reviews/2026-11-19-development-and-local-data.json",
+        "pointer": "/owner_direction"
+      },
       {
         "path": "contracts/reviews/2026-11-18-hosted-ux.json",
         "pointer": "/authority"
@@ -729,7 +733,7 @@
     },
     "data_purposes": {
       "local_display": "Allow only licensed and authorized on-device display. An unknown or forbidden downstream purpose leaves permitted local display usable.",
-      "authorization": "At use time intersect current user grants with source entitlements for each field, destination, client and purpose. Trusted Python, embedded cloud model input and external-client transfer each require both affirmative source rights and explicit user consent. Deny unknown purpose or rights before dispatch. Credential access and investment risk acceptance do not establish either grant.",
+      "authorization": "At use time intersect current user grants with source entitlements for each field, destination, client and purpose. Trusted Python, embedded cloud model input and external-client transfer each require both affirmative source rights and explicit user consent. The activated model connection supplies the user grant for ordinary fields already disclosed at setup. Recheck grants and rights at dispatch without prompting again for unchanged scope. Deny unknown purpose or rights before dispatch. Credential access and investment risk acceptance do not establish either grant.",
       "projection": "The core projects the minimum fields for the approved task before serializing. Omit fields without a grant. An authorized applicable field with an unknown value is null. Do not include raw rows, full descriptors, provider metadata, cached results, URLs, diagnostic text or error details that reveal excluded content. Recheck on replay, retrieval, reconnect and after revocation.",
       "restoration": "Restoring a workspace, cache or backup restores references and locally permitted display only. Recheck the present grant and entitlement for each fresh dispatch and export."
     }
@@ -799,7 +803,7 @@
       "deterministic_mock",
       "Model adapters enabled after explicit user configuration"
     ],
-    "default": "No model provider or conversation is active on a fresh installation. Deterministic mock is an explicit offline demo or evaluation choice and is labeled throughout. Choosing a historical market sample never enables a model.",
+    "default": "The unconfigured workspace and market chart work offline. Product AI uses a real configured model. Offer a capable cloud route as the primary setup and a local model as an alternative using the same task-level capability checks. A labeled deterministic mock supports offline development and evaluation. Choosing an offline market sample does not activate a provider.",
     "context": [
       "workspace revision",
       "Current instrument and timeframe",
@@ -809,7 +813,7 @@
       "Authorized capabilities",
       "Task-relevant data snapshots"
     ],
-    "context_policy": "Share only the workspace context needed for the task. Users explicitly enable an external provider and authorize the data scope. Show the fields or sanitized sample before sending local data. Exclude account information and complete raw datasets from default context. Keep credentials out of model context and logs. The trusted connector resolves credential references through the platform store.",
+    "context_policy": "Activating a named connection grants ordinary AI use within the scope displayed at setup. Send the current conversation input, necessary active-turn context, granted workspace fields and authorized tool outcomes directly on normal turns. Enforce source entitlements and apply the private-content excerpt rule before provider serialization. Keep credentials, full private records and unrelated data local.",
     "claim_policy": "Distinguish facts, calculations, inferences, suggestions, and executed actions; claim successful execution only after a successful core response",
     "tool_policy": "Select only from tool schemas provided by the core; bind every mutation to expected_workspace_revision",
     "loop_limits": {
@@ -833,7 +837,14 @@
       "retention": "Default to ephemeral audio and transcript buffers. Clear the buffers after the active conversation, failure or cancellation. Saving a selected passage to a local note requires a separate user action. Do not put raw audio, transcript, prompts or note bodies in logs, diagnostics or evaluation receipts."
     },
     "model_connections": {
+      "primary_cloud_route": {"task": "M4-002", "check": "configured-model-session"},
       "setup": "In AI settings choose a provider and model, supply the credential it needs or select an entitled ScopeHub AI service. Identify the provider or router, destination, processing scope and charge basis before a connection test or first transmission. Resolve credentials in the trusted connector and exclude their values from prompts, tool replies and diagnostics.",
+      "session_grant": {
+        "activation": "Show the route, ordinary data categories, charge basis and how to disconnect at connection setup. The user’s Connect and enable action grants that scope for their profile. A routine chat turn, follow-up, or in-scope tool result proceeds under this grant without another permission prompt. Connecting a microphone route discloses voice use; the user controls capture and stopping capture stops further audio transmission.",
+        "changes": "Request a new choice for a different recipient, expanded disclosure or changed commercial terms. Revalidate an existing connection on restart and stop future transmissions on revocation. Each external client needs its own grant. Connection scope does not authorize account access, arbitrary mutations or running code.",
+        "private_attachments": "Apply persistence.private_content.transfer to any saved private content that would leave the device. A model connection, remembered chart permission or local retrieval result does not attach a private archive. Local model execution stays on the device unless the user separately chooses a remote recipient.",
+        "fitness": "Deliver and qualify a real cloud provider route for core financial collaboration. Evaluate the actual model, route and modality on the same material accuracy, tool and task tests. A qualified local model can support those capabilities. Display limitations and let the user choose an alternate route when a requested capability is unavailable."
+      },
       "capabilities": "Evaluate OpenAI, Google Gemini, Anthropic Claude and OpenRouter as independent candidates. Record text, structured tool calling and duplex audio per tested provider, route and model. A router or compatible request format alone establishes none of these capabilities. Use one qualified adapter for the first real session.",
       "selection": "Display unavailable capabilities and offer supported interactions, including continuing in text. Switching provider, widening the fields sent or incurring a different charge requires the user's choice. Send only the selected context. An unavailable provider cannot silently switch to a different service or a synthetic answer."
     },
@@ -855,7 +866,7 @@
       "oracle": "Use fixed synthetic evidence with independently calculated answers. Test a Chinese utterance containing an alphanumeric symbol, a correction of a decimal or date, an ambiguous number, interruption during speech, cancelled tool work, a denied mutation and continuation in text. Compare the confirmed fields, resource locator, calculated value and core receipt with the fixture before scoring.",
       "pass": "All action-critical fields and authorization outcomes must match exactly after necessary clarification, including zero unconfirmed writes or success claims. The real text and real duplex sessions each record tested route/model/version, modality, observed timings, interruptions and costs within the approved test scope. Preserve redacted outcomes and independently record usability feedback. Mock runs, unavailable service and text fallback retain their own statuses.",
       "reference_case": {
-        "id": "synthetic-futures-correction-v1",
+        "id": "synthetic-futures-correction-v2",
         "instructions": "Use the normal simulated January 2024 CN future one-minute history. Request the last two sample closes and then explicitly correct the interval to the preceding two closed bars. Present the sample price and quantity as a hypothetical chart annotation, ask for clarification on a deliberately ambiguous price, deny an initial write and explicitly approve one new annotation. Decline an alternate paid destination. Use equivalent Chinese speech with the same alphanumeric instrument in the voice run. Allow the user to interrupt, stop capture and finish in text. Retain the two input digests, actual receipt ID, verified numeric outcomes and fee basis.",
         "confirmed": {
           "instrument": "SIM.CN.FUTURE.001",
@@ -876,6 +887,22 @@
           "to_ms": 1704330540000,
           "mean_close": 3501.7,
           "snapshot": "6257002012000ab2bbf2fcb6578264415f260e22c736d4a5bed3b7260a0183e7"
+        },
+        "private_transfer": {
+          "selected_fixture": "SYNTHETIC strategy excerpt: wait for the second close.",
+          "selected_sha256": "ceeb19872434a141732706c0625b8edbd417279e1114e99447eba72529f18c8b",
+          "procedure": "Use only synthetic records with distinguishable surrounding text, another profile and a saved memory. Observe the final serialized requests at the connector and the private fixture spans visible to the receiving model, including local retrieval and any inherited conversation state. Use only this probe’s explicit selection on both deployments. Complete two ordinary turns on one activated connection without repeated approval. Exercise cancelled, approved and edited selections, a changed recipient, revoked access, restoration and a later ordinary turn. For each named probe below report the ordered SHA-256 digests of private spans that would leave the device, including derived copies. Record model_visible_private as the ordered private-span digests accessible to the model at each stage. For next_turn also record reused_private_context from the actual request history and any previous-response or session handle. A handle that can still reference the selected material is reuse even when no private bytes appear in the outbound request. Use a fresh or verifiably clean context after the selected request. Keep raw request bytes and handle values in ephemeral fixture memory. Observe actual completed turns and any redundant prompts.",
+          "stages": [
+            "ordinary",
+            "cancelled",
+            "selected",
+            "edited",
+            "changed_destination",
+            "revoked",
+            "other_profile",
+            "restored",
+            "next_turn"
+          ]
         },
         "effects": {
           "ambiguous": "clarified_before_write",
@@ -978,6 +1005,13 @@
     "cache": "The cache can be cleared without deleting user indicator versions; do not mix different data sources or price adjustment methodologies",
     "log": "Record operations, actors, summaries, statuses, and correlation IDs; redact sensitive fields; do not implement full event sourcing",
     "undo": "Support undo for layer additions and removals, timeframe changes and applied layout edits. Record undo as a new operation. Advertise undo only for supported actions.",
+    "private_content": {
+      "ownership": "Each person owns their ScopeHub records. Scope storage, indexes, backups, retrieval and grants to that user and local profile. The operating-system user’s application-data directory provides the default profile; two isolated profile roots can exercise this boundary. A different local profile, an external assistant and the product development team have no implied access. This requires neither a ScopeHub cloud account nor a shared team database.",
+      "storage": "Authoritative saved conversations, long-term memories, strategies, research and decision notes, annotations and accepted work stay in the user’s local application storage. Apply the same boundary to search indexes, embeddings, summaries and temporary caches. Use local processing for background indexing. A connected provider does not enable remote backup, synchronization, background embedding or training uploads.",
+      "lifecycle": "Respect each content type’s save and retention rules. Raw voice and ordinary transcripts keep their existing ephemeral defaults. Users can inspect, correct or delete saved private material. Remove app-controlled derived copies and apply known deletion markers on restore. Local backup, migration and recovery use the profile boundary and preserve the existing warning for independent older copies.",
+      "transfer": "Preview the exact saved excerpt and its recipient when the user attaches it to a request. Selecting and sending that preview grants the use of those bytes for that request. Exclude surrounding content, other users’ material, private data obtained via tools, and prior private attachments from routine outbound context. Edited bytes, a different destination, or a new request require a new selection. Route remote conversations containing a one-request private excerpt so later ordinary turns do not silently reuse the excerpt or its private paraphrase.",
+      "evidence": "Keep bodies, prompts, embeddings, strategies and transcripts out of source control, routine logs, diagnostics, hosted artifacts and dev-agent context. Use synthetic examples for acceptance. Disclose applicable remote processor retention for material the user chooses to transmit."
+    },
     "notes_and_restore": {
       "live": "Persist a note body, attributed excerpts and saved context only on explicit save. Declining leaves no durable note or derived body. Deleting removes all body-bearing live copies, retrieval indexes, cached summaries, model context and local exports controlled by the app. Keep body-free deletion markers keyed to the original profile and note ID for restore.",
       "audit": "Retain redacted operation ID, principal, timestamp, target identifier, outcome and revision. Exclude note text, quotations, transcripts, prompts, raw input data and model answers from routine logs, diagnostics and receipts. Keep redacted history separate from user content.",
@@ -1027,9 +1061,9 @@
       "Complete source code and lockfiles"
     ],
     "verification_evidence": {
-      "field_input": "For a scheduled field check, retain .reports/observations/<check-id>/observation.json plus its referenced PNG files. Identify kind, commit, inputs_sha256, operator, observed_at, surface, each required action as an object with status=passed and an observed description of its actual visible outcome, and screenshot path/sha256 pairs. Ubuntu requires an explicit text, voice, CLI and desktop disposition; physical Windows additionally identifies its Windows client family, build, architecture, WebView2 and the Ubuntu-reviewed commit. The same execution digest permits a bookkeeping-only commit between observations. Missing primary observations stay blocked. Include the observed Windows OS product type (1 for a client workstation) with family and build. Server builds can share a build number with a client.",
-      "session_input": "A real check writes <check-id>.observation.json under SCOPEHUB_RUN_DIR, containing check, modality, commit, inputs_sha256, provider, route, data_revision, authorized_scope, observed_at and either dataset or model with deployment set to local or cloud. The configured_models summary includes both deployments; cloud_models contains only observed cloud sessions. Installation defaults are independent of either observation. Retain redacted identifiers only. Exit 77 records an unavailable authorized session. A successful command without the matching observation cannot establish qualification. Model and voice observations include the redacted qualification object defined by /ai/qualified_session_acceptance/reference_case: confirmed fields, initial and corrected intervals, observed means and snapshot hashes, effects, approved annotation receipt, authorized monetary limit and actual charge. Voice also supplies measured first-audio latency, interruption, capture and follow-up outcomes.",
-      "candidate_input": "The release check places build-manifest.json in SCOPEHUB_RUN_DIR/candidate and retains the NSIS installer there. The manifest binds commit, inputs_sha256, installer, two Windows observations, and performance by relative path and SHA-256. Windows observations identify the host family (Windows 10/11), numerical build, x64 architecture, WebView2, operator, time, clean-install and upgrade results for the same installer hash. The performance observation binds the same source and installer, CPU, RAM, display scale, refresh rate and raw samples. Use authenticated workflow artifact retrieval for hosted evidence. Each Windows host record includes the workstation product type as well as the family and build."
+      "field_input": "For a scheduled field check, retain .reports/observations/<check-id>/observation.json plus its referenced PNG files. Identify kind, commit, inputs_sha256, operator, observed_at, surface, each required action as an object with status=passed and an observed description of its actual visible outcome, and screenshot path/sha256 pairs. Ubuntu requires an explicit text, voice, CLI and desktop disposition; physical Windows additionally identifies its Windows client family, build, architecture, WebView2 and the Ubuntu-reviewed commit. The same execution digest permits a bookkeeping-only commit between observations. Missing primary observations stay blocked. Include the observed Windows OS product type (1 for a client workstation) with family and build. Server builds can share a build number with a client. Hosted publication accepts only a producer-marked screenshot_scope of synthetic for screenshots captured from the synthetic fixture. Personal screenshots and private profiles stay on the device.",
+      "session_input": "A real check writes <check-id>.observation.json under SCOPEHUB_RUN_DIR, containing check, modality, commit, inputs_sha256, provider, route, data_revision, authorized_scope, observed_at and either dataset or model with deployment set to local or cloud. The configured_models summary includes both deployments; cloud_models contains only observed cloud sessions. Installation defaults are independent of either observation. Use short public or opaque aliases for provider, route, data revision, model and dataset (ASCII letters, digits, dots, underscores and hyphens, up to 96 characters, starting with a letter or digit). Record the scope category synthetic-model-qualification, synthetic-voice-qualification or authorized-market-verification for the respective modality. Keep URLs, account names, credentials, grant text and private values out of aliases. Exit 77 records an unavailable authorized session. A successful command without the matching observation cannot establish qualification. Model and voice observations include the redacted qualification object defined by /ai/qualified_session_acceptance/reference_case: confirmed fields, initial and corrected intervals, observed means and snapshot hashes, effects, approved annotation receipt, authorized monetary limit and actual charge. Voice also supplies measured first-audio latency, interruption, capture and follow-up outcomes. Exercise the fixed synthetic private transfer case in text and voice. Record observed completed turns, extra consent prompts and the per-stage digests of private spans sent off-device and accessible to the receiving model, and whether a later request reused the selected private context. Store only the exit code in command logs for private session, field, external-client and credential checks. Keep prompts, bodies and raw audio out of the retained observation, command output and diagnostics.",
+      "candidate_input": "The release check places build-manifest.json in SCOPEHUB_RUN_DIR/candidate and retains the NSIS installer there. The manifest binds commit, inputs_sha256, installer, two Windows observations, and performance by relative path and SHA-256. Windows observations identify the host family (Windows 10/11), numerical build, x64 architecture, WebView2, operator, time, clean-install and upgrade results for the same installer hash. The performance observation binds the same source and installer, CPU, RAM, display scale, refresh rate and raw samples. Use authenticated workflow artifact retrieval for hosted evidence. Each Windows host record includes the workstation product type as well as the family and build. List packaged third-party license and notice files in third_party_licenses as relative path and SHA-256 pairs. The hosted run retains available verified installer bytes, legal notices and typed failed or partial measurements for diagnosis. Passing acceptance requires the full matching installer, manifest, Windows client observations and complete passing measurements."
     }
   },
   "milestones": [

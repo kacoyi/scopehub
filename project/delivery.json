@@ -36,6 +36,7 @@
       "Ordinary implementation, local experiments, tests and refactoring within accepted boundaries need no additional owner approval.",
       "Keep investment judgments, runtime permissions and engineering correctness separate.",
       "The development AI records consequential technical changes in ADRs; consult the owner on product experience, data, permission, cost or publication consequences according to project/development.json.",
+      "Use Herdr as the development host. Assign scoped parallel work when useful, verify the resulting code at one coordinated revision and continue ready product work within available capacity. Ask the co-developer for a specific missing input or actual product acceptance when their participation is needed.",
       "Use skills only for demonstrated repeatable procedures; keep repository facts in canonical records and executable commands.",
       "Split future milestone tasks into observable slices when work approaches; remove speculative work through explicit cancellation and preserve history."
     ]
@@ -304,6 +305,7 @@
       "when": "Select a chart range and discuss an abnormal-volatility indicator. Inspect a source in another panel, correct the selection, then preview, revise, accept or cancel the indicator.",
       "then": [
         "Claims distinguish observations, calculations and inferences.",
+        "A user who activated the disclosed model connection can finish two ordinary turns with relevant granted fields and tool results without an additional consent prompt.",
         "Execution claims reference actual successful core results.",
         "Context, tool, prompt, model and dataset identities support replay.",
         "The AI reveals the exact row, range or passage for a claim and the user can point back to a different target. Both can return to the previous view.",
@@ -506,6 +508,7 @@
         "A data correction arrives after the decision",
         "A favorable outcome follows an unsupported thesis",
         "User declines to save or share the note",
+        "A restored attachment, a previously shared excerpt, another profile or a private summary appears in the next outbound request",
         "User cancels a restore after the warning",
         "A backup includes an older copy but a newer deletion marker exists",
         "A new model requests a deleted note"

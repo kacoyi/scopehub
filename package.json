@@ -20,6 +20,7 @@
     "desktop:dev": "cd apps/desktop && tauri dev",
     "desktop:build": "cd apps/desktop && tauri build --no-bundle",
     "check:fast": "uv run python scripts/check.py --profile fast",
+    "project:herdr": "uv run python scripts/herdr.py",
     "project:context": "uv run python scripts/project.py context",
     "project:history": "uv run python scripts/project.py history",
     "project:readiness": "uv run python scripts/project.py readiness",

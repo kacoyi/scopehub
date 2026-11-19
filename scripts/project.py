@@ -278,6 +278,13 @@ def load_project(root=ROOT):
     project = {'spec': spec, 'ledger': ledger, 'catalog': catalog, 'tasks': tasks, 'checks': checks,
                'decisions': decisions, 'decision_paths': decision_paths, 'replacements': replacements}
     validate_delivery(root, project)
+    primary = spec.get('ai', {}).get('model_connections', {}).get('primary_cloud_route')
+    if primary is not None:
+        if (not isinstance(primary, dict) or not isinstance(primary.get('task'), str)
+                or not isinstance(primary.get('check'), str) or primary['task'] not in tasks
+                or primary.get('check') not in tasks[primary['task']]['checks']
+                or primary['check'] not in project['delivery']['release_policy']['required_checks']):
+            raise ProjectError('The primary cloud route needs a delivery task and a required release check')
     decision_inputs = spec.get('repository', {}).get('owner_decision_inputs', [])
     if decision_inputs:
         if __package__:
@@ -379,6 +386,13 @@ def summarize_verification(check_ids, results):
 
 def product_progress(project, results):
     by_id = indexed(results, 'check result')
+    primary = project['spec'].get('ai', {}).get('model_connections', {}).get('primary_cloud_route')
+    if primary and by_id.get(primary['check'], {}).get('status') == 'passed':
+        try:
+            verify_primary_model(project, by_id)
+        except ProjectError:
+            key = primary['check']
+            by_id[key] = {**by_id[key], 'status': 'blocked'}
     milestones = []
     for gate in project['catalog']['milestones']:
         tasks = [task for task in project['tasks'].values() if task['milestone'] == gate['id']]
@@ -602,6 +616,16 @@ def verified_main(root, candidate, ci):
     return observed['run']
 
 
+def verify_primary_model(project, results, task_id=None, *, check_id=None):
+    primary = project['spec'].get('ai', {}).get('model_connections', {}).get('primary_cloud_route')
+    if (primary is None or (task_id is not None and task_id != primary['task'])
+            or (check_id is not None and check_id != primary['check'])):
+        return
+    observation = results.get(primary['check'], {}).get('observation', {})
+    if observation.get('deployment') != 'cloud' or observation.get('modality') != 'text':
+        raise ProjectError('The primary model route requires an observed cloud text session')
+
+
 def verified_candidate_files(root, project, report, results, source, report_path, artifact_root, candidate):
     if __package__:
         from .verification_evidence import (
@@ -671,12 +695,14 @@ def verified_candidate_files(root, project, report, results, source, report_path
             raise ProjectError(f'Missing or changed release check evidence: {key}')
         if key in SESSION_CHECKS and result.get('observation') != collect_session(run_dir, key, source):
             raise ProjectError(f'Changed external-session evidence: {key}')
+    verify_primary_model(project, results)
     if report.get('integration_validation') != integration_validation(results.values()):
         raise ProjectError('The integration summary does not match the observed sessions')
     if not isinstance(report.get('candidate_artifacts'), dict):
         raise ProjectError('Release report lacks bound installer and manifest digests')
     return release_artifacts(
-        run_dir, source, project['spec']['acceptance']['performance'], expected=report['candidate_artifacts']
+        run_dir, source, project['spec']['acceptance']['performance'], expected=report['candidate_artifacts'],
+        hosted=artifact_root is not None,
     )
 
 
@@ -862,9 +888,9 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
         raise ProjectError('Task completion has unfinished dependencies')
     results = indexed(report['checks'], 'report check')
     if __package__:
-        from .verification_evidence import FIELD_ACTIONS, field_observation
+        from .verification_evidence import FIELD_ACTIONS, SESSION_CHECKS, collect_session, field_observation
     else:
-        from verification_evidence import FIELD_ACTIONS, field_observation
+        from verification_evidence import FIELD_ACTIONS, SESSION_CHECKS, collect_session, field_observation
     selected = []
     field_records = {}
     for key in task['checks']:
@@ -883,8 +909,13 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
                if artifact_root is not None else local_path(root, result['log']))
         if not log.is_file():
             raise ProjectError(f'Missing verification log: {key}')
+        if key in SESSION_CHECKS:
+            if result['log'] != f".reports/runs/{report['run_id']}/{key}.log":
+                raise ProjectError(f'External-session log belongs to another run: {key}')
+            if result.get('observation') != collect_session(log.parent, key, report['source']):
+                raise ProjectError(f'Changed external-session evidence: {key}')
         if key in FIELD_ACTIONS:
-            observed = field_observation(root, key, artifact_root)
+            observed = field_observation(root, key, artifact_root, hosted=artifact_root is not None)
             if result.get('field_observation') != observed:
                 raise ProjectError(f'Field observation changed after verification: {key}')
             field_records[key] = observed
@@ -893,6 +924,7 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
             raise ProjectError(f'Verification log changed after the run: {key}')
         selected.append({'id': key, 'status': 'passed', 'command': result['command'], 'exit_code': 0,
                          'log_sha256': log_hash})
+    verify_primary_model(project, results, task_id)
     receipt = {
         'schema_version': '1.0', 'task_id': task_id, 'task_definition_sha256': task_definition_hash(task),
         'run_id': report['run_id'], 'recorded_at': datetime.now(timezone.utc).isoformat(),

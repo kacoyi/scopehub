@@ -1318,6 +1318,57 @@
         "checks"
       ]
     },
+    "HostedHarnessReport": {
+      "allOf": [{"$ref": "#/$defs/HarnessReport"}],
+      "properties": {
+        "generated_at": {"type": "string", "format": "date-time"},
+        "source_end": {"$ref": "#/$defs/Source"},
+        "project_state_error": {"type": ["null", "string"]},
+        "status_scope": {"type": "string"},
+        "product_complete": {"type": "boolean"},
+        "limitations": {"type": "array", "items": {"type": "string"}},
+        "worktree_changes": {"type": "array", "items": {"type": "string"}},
+        "candidate_artifacts": {
+          "type": ["null", "object"],
+          "properties": {
+            "manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+            "installer_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+          },
+          "required": ["manifest_sha256", "installer_sha256"],
+          "additionalProperties": false
+        },
+        "milestones": {
+          "type": "array",
+          "items": {"type": "object", "propertyNames": {"enum": ["id", "status", "verification", "checks", "tasks", "later_task_ids", "cancelled_task_ids"]}}
+        },
+        "acceptance": {
+          "type": "array",
+          "items": {"type": "object", "propertyNames": {"enum": ["requirement", "checks", "status"]}}
+        },
+        "integration_gates": {
+          "type": "object", "propertyNames": {"enum": ["requested", "required", "unverified", "status"]}
+        },
+        "integration_validation": {
+          "type": "object", "propertyNames": {"enum": ["configured_models", "cloud_models", "real_market_data", "mock_ai_evaluated"]}
+        },
+        "environment": {
+          "propertyNames": {"enum": ["system", "release", "machine", "python", "python_executable", "tools"]},
+          "properties": {
+            "tools": {
+              "type": "object", "propertyNames": {"enum": ["node", "pnpm", "rustc", "cargo", "uv"]},
+              "additionalProperties": {"type": ["null", "string"]}
+            }
+          }
+        },
+        "checks": {
+          "items": {
+            "propertyNames": {"enum": ["id", "status", "command", "reason", "reason_code", "duration_seconds",
+              "exit_code", "log", "log_sha256", "observation", "field_observation"]}
+          }
+        }
+      },
+      "unevaluatedProperties": false
+    },
     "SourceControl": {
       "type": "object",
       "properties": {
@@ -1905,6 +1956,55 @@
             ],
             "additionalProperties": false
           }
+        },
+        "herdr": {
+          "type": "object",
+          "properties": {
+            "host": {
+              "const": "Herdr"
+            },
+            "profiles": {
+              "type": "object",
+              "properties": {
+                "implement": {
+                  "$ref": "#/$defs/HerdrProfile"
+                },
+                "supervise": {
+                  "$ref": "#/$defs/HerdrProfile"
+                }
+              },
+              "required": [
+                "implement",
+                "supervise"
+              ],
+              "additionalProperties": false
+            },
+            "parallel": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "tooling": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          },
+          "required": [
+            "host",
+            "profiles",
+            "parallel",
+            "tooling"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
@@ -1916,6 +2016,30 @@
         "improvement_metrics",
         "data_ownership"
       ],
+      "additionalProperties": false
+    },
+    "HerdrProfile": {
+      "type": "object",
+      "required": [
+        "model",
+        "reasoning_effort"
+      ],
+      "properties": {
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reasoning_effort": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max",
+            "ultra"
+          ]
+        }
+      },
       "additionalProperties": false
     }
   }

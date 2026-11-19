@@ -377,7 +377,9 @@
     "engineering-contract-v1.json#/indicators/python_mode",
     "engineering-contract-v1.json#/ui/workspace_entry",
     "engineering-contract-v1.json#/persistence/notes_and_restore",
-    "engineering-contract-v1.json#/ai/qualified_session_acceptance"
+    "engineering-contract-v1.json#/ai/qualified_session_acceptance",
+    "engineering-contract-v1.json#/persistence/private_content",
+    "engineering-contract-v1.json#/ai/model_connections/session_grant"
   ],
   "compatible_protocol_versions": [
     "1.0",

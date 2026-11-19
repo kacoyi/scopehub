@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-006",
+  "focus_task_id": "M0-025",
   "tasks": [
     {
       "id": "M0-001",
@@ -309,7 +309,8 @@
         "0002",
         "0003",
         "0004",
-        "0009"
+        "0009",
+        "0011"
       ],
       "acceptance": [
         "Human and AI actions use the same registry, permissions, confirmations, revisions and idempotency semantics.",
@@ -317,7 +318,8 @@
         "Introduce versioned database migrations and recovery tests when persistent state is first introduced.",
         "A user-selected local decision note retains the dated rationale and evidence references across restart. Append later outcomes separately. Exercise deletion and recovery, and verify that declining to save leaves no decision note.",
         "Exercise commit, lost reply, concurrent replay, fresh disclosure authorization, target selection conflict, undo and rollback. Verify note deletion across restart and restoration with and without known deletion markers.",
-        "Provide an explicitly enabled Ubuntu development entry for versioned workspace operations. Exercise a local authorized change, undo and restart against the same Rust authorization and persistence core. Keep the existing synthetic history-only grant restricted and keep the Windows release target."
+        "Provide an explicitly enabled Ubuntu development entry for versioned workspace operations. Exercise a local authorized change, undo and restart against the same Rust authorization and persistence core. Keep the existing synthetic history-only grant restricted and keep the Windows release target.",
+        "Keep saved conversation content, memory, strategy material and derived indexes in the active local user profile. Test two distinct user profiles, local backup and recovery, deletion and cache cleanup. Opening one profile or restoring an older copy never reveals the other user’s data or restores an outbound excerpt grant."
       ],
       "checks": [
         "operations-workflow",
@@ -384,7 +386,8 @@
         "0003",
         "0004",
         "0008",
-        "0009"
+        "0009",
+        "0011"
       ],
       "acceptance": [
         "Mock AI uses actual chart context and core tools to create, inspect and revise an indicator draft.",
@@ -397,7 +400,8 @@
         "From a buy question, compare two explanations using workspace data and a reproducible calculation. Show contrary evidence and update the conclusion when the user corrects a premise. Seek clarification about a possible behavioral pattern. The discussion itself authorizes no mutation.",
         "In the same conversation, carry out a separately scoped chart action. Offer to save the user's choice, including inaction, with the original evidence and disagreement. Reopen the note after a later price move, assess reasoning using information known at the time and surface any data or execution defect separately.",
         "Correlate interleaved tool calls and terminal outcomes; selection changes, pending confirmations and cancellation preserve attributable committed effects. A first question on an unconfigured model offers configuration or an explicit labeled mock without dispatch.",
-        "Exercise portable provider settings, source and purpose disclosure, consent, denial, microphone stop and revocation on Ubuntu with explicit local fixtures. No paid or Windows-only connection is needed for these local cases. Real text and duplex qualification and native credentials retain independent release gates."
+        "Exercise portable provider settings, source and purpose disclosure, consent, denial, microphone stop and revocation on Ubuntu with explicit local fixtures. No paid or Windows-only connection is needed for these local cases. Real text and duplex qualification and native credentials retain independent release gates.",
+        "Through the normal UI and final request builder, activate a disclosed route once and complete successive ordinary turns and authorized tool calls with no repeated consent. A saved conversation, memory or strategy adds only the exact selected excerpt for its named request and recipient. Exercise edits, cancellation, previous-turn attachments, other users, restore and revoked grants, including a provider conversation handle that would otherwise retain private context."
       ],
       "checks": [
         "ai-workflow",
@@ -2323,7 +2327,8 @@
         "0004",
         "0005",
         "0008",
-        "0009"
+        "0009",
+        "0011"
       ],
       "acceptance": [
         "Show provider, data scope, cost basis and microphone state before audio transmission. Keep secrets outside model input and logs. Confirm application recording defaults and stop capture on disable or disconnect.",
@@ -2332,7 +2337,8 @@
         "Select a provider and model separately from a synthetic or user-owned data source. Show the enabled text, tool and audio capabilities, destination and charge basis. A text-only adapter remains usable when voice is unavailable. Reject a silent provider or paid fallback and redact the configured secret in failures.",
         "Observe at least one configured model discussing evidence and revising an interpretation after a correction. Record the actual provider, route where available, model and operation outcomes. Credential-free replay covers a second adapter profile without implying a second live integration. One authorized session may supply both text and voice evidence if each path is actually exercised.",
         "Use the fixed critical-field, correction, ambiguity, interruption, cost/destination and authorization cases in /ai/qualified_session_acceptance. Keep real text and voice outcomes independently attributable.",
-        "Validate the authorized text and voice sessions here. Native credential storage and release-wide credential checks remain mandatory under M5-001 on Windows."
+        "Validate the authorized text and voice sessions here. Native credential storage and release-wide credential checks remain mandatory under M5-001 on Windows.",
+        "Qualify a capable real cloud route for the advertised primary model workflow and score a real text and duplex route according to their observed capability. A qualified local route remains usable. Run the fixed private-transfer probes on synthetic profiles at the last connector boundary and retain only the expected digests and outcomes."
       ],
       "checks": [
         "ai-workflow",
@@ -2397,12 +2403,14 @@
         "0004",
         "0007",
         "0008",
-        "0009"
+        "0009",
+        "0011"
       ],
       "acceptance": [
         "Enable and pair a local client from settings. Through the delivered stdio entry, discover allowed tools and read the desktop's selected instrument, range, source and revision. Return only authorized fields and identify the client at the affected chart.",
         "Grant a chart annotation, apply it once to the visible workspace, then undo it. Exercise duplicate requests, simultaneous human edits, grant revocation, closed workspaces, cross-workspace requests and restricted source fields. The core decides scope and any required confirmation.",
-        "Project each result, diagnostic and replay against current field, purpose and client grants. Exercise a close-only grant, unknown but authorized volume, a selection change and a revoked reconnect."
+        "Project each result, diagnostic and replay against current field, purpose and client grants. Exercise a close-only grant, unknown but authorized volume, a selection change and a revoked reconnect.",
+        "Treat external AI clients as separate recipients. Pairing or enabling an embedded model never grants a client a private archive. Exercise ordinary permitted chart reads and denial of raw private material, indirect tool results, cross-profile reads, and reuse of a disclosure granted to a different recipient."
       ],
       "checks": [
         "external-ai-bridge",
@@ -2430,11 +2438,13 @@
         "0004",
         "0007",
         "0008",
-        "0009"
+        "0009",
+        "0011"
       ],
       "acceptance": [
         "From Codex CLI and one compatible desktop AI application, independently connect to an explicitly selected running workspace with synthetic data. Read the current chart and compare its source, timeframe and selection to the desktop.",
-        "In each client, first attempt a mutation under read-only access. After the user grants write access, add an attributed annotation, inspect it in the same chart and undo it. Record client, version, host, workspace revision and redacted results. Use the client's own model access."
+        "In each client, first attempt a mutation under read-only access. After the user grants write access, add an attributed annotation, inspect it in the same chart and undo it. Record client, version, host, workspace revision and redacted results. Use the client's own model access.",
+        "For each observed client verify that only its user’s approved workspace data cross the bridge. Test the named client independently of any embedded model grant. Use synthetic records for retained verification."
       ],
       "checks": [
         "configured-external-ai-clients",
@@ -4143,6 +4153,121 @@
           ],
           "data_plan": "Exercise versioned synthetic repositories. Product persistence and wire formats are unchanged.",
           "cleanup": "Reuse the existing task graph, gate records and check commands. Restore focus to M1-006 after evidence is recorded."
+        }
+      }
+    },
+    {
+      "id": "M0-025",
+      "title": "Run development in Herdr and bind model use to local user content boundaries",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-024"
+      ],
+      "scope": [
+        "AGENTS.md",
+        "engineering-contract-v1.json",
+        "contracts",
+        "project",
+        "package.json",
+        "scripts",
+        "tests",
+        ".github/workflows"
+      ],
+      "decision_refs": [
+        "0007",
+        "0009",
+        "0010",
+        "0011"
+      ],
+      "acceptance": [
+        "A developer can launch a bounded task in Herdr using the requested implementation or supervision model. Parallel writers have explicit ownership, one integrator and verified results. Ordinary changes and necessary tooling installation proceed under the existing owner grant.",
+        "Local conversations, memory, strategies and their derived data have accountable storage, recovery and downstream-use requirements. Activating a model grants ordinary in-session use within the disclosed scope. Sharing saved private content uses only the selected preview for the named destination.",
+        "Automated qualification distinguishes ordinary chat from private excerpt transfer, and retained verification artifacts exclude unrelated personal files. Product implementation and real model acceptance stay attributable to the product tasks."
+      ],
+      "checks": [
+        "project-state",
+        "architecture",
+        "python-contracts-workers",
+        "generated-contracts"
+      ],
+      "evidence": [],
+      "next_action": "Exercise the installed Herdr host, implement the role launcher and the local-content evidence controls, verify both roles and resume M1-006.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A new development session can start its own Herdr implementation and review work while protecting local product records and keeping ordinary connected-model turns usable.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/development.json",
+          "project/delivery.json",
+          "engineering-contract-v1.json",
+          ".github/workflows/verify.yml",
+          "scripts/session_qualification.py",
+          "scripts/verification_evidence.py",
+          "scripts/development.py"
+        ],
+        "hypotheses": [
+          "The installed Herdr core can run the actual repository and both requested Codex model profiles without changing account defaults. Existing evidence collection and model authorization need a distinction between routine requests and saved private content."
+        ],
+        "risks": [
+          {
+            "failure": "A helper changes someone else’s work or a launcher silently substitutes the wrong model.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          },
+          {
+            "failure": "A cloud route receives saved history or the evidence upload includes a private record.",
+            "checks": [
+              "python-contracts-workers",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Keep the existing local checks and prior delivery evidence. Retain any failed isolated fixture, revert the affected tooling change, and leave product runtime connections disabled until qualified.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/project.py",
+            "scripts/development.py",
+            "scripts/session_qualification.py",
+            ".github/workflows/verify.yml"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/collaboration"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ai/context_policy"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence"
+            }
+          ],
+          "non_goals": [
+            "Implementing a complete storage engine, provisioning a paid product model, or exporting real product content in scaffold tests."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "A fresh offline chart, specific third-party source rights, provider choice and existing local verification commands."
+          ],
+          "change": [
+            "Adopt Herdr for active development and one-time cloud connection scope with separate approval for selected saved private excerpts."
+          ],
+          "data_plan": "Use repository code and synthetic fixtures for all development, subprocess and hosted verification. Keep owned product records and backups in local application storage.",
+          "cleanup": "Reuse the task ledger and native Herdr terminals. Inspect delivered changes, retire only owned temporary sessions and restore the product focus."
         }
       }
     }

@@ -183,6 +183,13 @@ def focused_context(project, key, phase):
         'limitations': ['Navigation is an index; inspect implementation and referenced rules.',
                         'Development collaboration does not specify embedded-AI interactions.'],
     }
+    if 'herdr' in development:
+        result['development_host'] = {
+            'host': development['herdr']['host'],
+            'profiles': development['herdr']['profiles'],
+            'policy': {'path': 'project/development.json', 'pointer': '/herdr'},
+            'launch': f'pnpm project:herdr {key} <implement|review|coordinate> --assignment "<scope>"',
+        }
     if phase == 'verify':
         result['quality_review'] = development.get('quality', {}).get('review', [])
         result['commands'] += [f'pnpm project:record {key} --report <run-report>',

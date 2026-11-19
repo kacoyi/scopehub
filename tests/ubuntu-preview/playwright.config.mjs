@@ -1,14 +1,17 @@
 import { randomUUID } from 'node:crypto';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from '@playwright/test';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const baseURL = 'http://127.0.0.1:1421';
+const ciRun = process.env.GITHUB_ACTIONS === 'true' && process.env.SCOPEHUB_RUN_DIR;
 // Playwright also loads this file in its workers. Keep their artifacts in the same run.
-const output = process.env.SCOPEHUB_UBUNTU_REPORT_DIR ??= join(
-  root, '.reports', 'ubuntu-preview', `${Date.now()}-${randomUUID()}`,
-);
+const output = ciRun
+  ? join(root, '.reports', 'ubuntu-preview', basename(ciRun))
+  : (process.env.SCOPEHUB_UBUNTU_REPORT_DIR ??= join(
+    root, '.reports', 'ubuntu-preview', `${Date.now()}-${randomUUID()}`,
+  ));
 
 export default defineConfig({
   testDir: '.',
@@ -23,7 +26,7 @@ export default defineConfig({
     baseURL,
     viewport: { width: 1366, height: 900 },
     screenshot: 'only-on-failure',
-    trace: 'retain-on-failure',
+    trace: ciRun ? 'off' : 'retain-on-failure',
   },
   webServer: {
     command: 'pnpm dev:ubuntu --port 1421',

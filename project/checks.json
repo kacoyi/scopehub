@@ -234,7 +234,7 @@
     {
       "id": "state-migrations",
       "status": "planned",
-      "purpose": "Validate versioned migration, backup/restore and interruption recovery",
+      "purpose": "Validate versioned migration, backup/restore and interruption recovery Exercise isolated local user profiles, private records and derived indexes, deletion and restoration without replaying a past disclosure grant.",
       "platforms": "all",
       "command": null,
       "timeout_seconds": 900
@@ -327,7 +327,7 @@
     {
       "id": "configured-model-session",
       "status": "planned",
-      "purpose": "Independently verify model and data selection, declared capabilities, transmission scope, contrary evidence, corrections and tool outcomes in an authorized real text session. Record provider, route, model and observed charges where available.",
+      "purpose": "Independently verify model and data selection, declared capabilities, transmission scope, contrary evidence, corrections and tool outcomes in an authorized real text session. Record provider, route, model and observed charges where available. Check ordinary connected turns and exact per-request private excerpts at the actual connector. Report the observed local or cloud deployment.",
       "platforms": "all",
       "command": null,
       "timeout_seconds": 1800,
