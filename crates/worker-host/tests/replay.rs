@@ -141,6 +141,10 @@ impl SubscriptionPort for FaultPort {
         ))
     }
 
+    fn restart_subscription(&mut self, _: u32) -> SubscriptionFuture<'_, ()> {
+        panic!("event validation should not restart the worker")
+    }
+
     fn complete_subscription(&mut self) {
         assert!(!self.completed);
         self.completed = true;

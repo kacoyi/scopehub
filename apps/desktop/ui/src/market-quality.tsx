@@ -1,4 +1,5 @@
 import type { ChartHistory, MarketFailure } from './market';
+import type { ReplayRecoveryStatus } from './market-replay';
 import type { ReplayGap } from './use-sample-replay';
 
 const unknown = 'Unknown';
@@ -66,12 +67,14 @@ export function ReplayGapFacts({ gap }: { gap: ReplayGap }) {
   </section>;
 }
 
-export function MarketQualityFacts({ history, failureKind }: {
+export function MarketQualityFacts({ history, failureKind, workerRecovery }: {
   history: ChartHistory | undefined;
   failureKind: MarketFailure['kind'] | undefined;
+  workerRecovery: ReplayRecoveryStatus | undefined;
 }) {
   const dataset = history?.dataset;
   const quality = history?.quality_state;
+  const workerConnection = workerRecovery ? stateLabel(workerRecovery) : failureKind === 'worker-exited' ? 'Disconnected' : undefined;
   return <dl className="source-facts">
     <dt>Source</dt><dd>{dataset?.provider_id ?? unknown}</dd>
     <dt>Source mode</dt><dd>{(dataset && sourceModes[dataset.mode]) ?? unknown}</dd>
@@ -83,7 +86,7 @@ export function MarketQualityFacts({ history, failureKind }: {
     <dt>Last observed (UTC)</dt><dd>{utcTime(quality?.last_observed_ms)}</dd>
     <dt>Session</dt><dd>{stateLabel(quality?.session_state)}</dd>
     <dt>Connection</dt><dd>{stateLabel(quality?.connection)}</dd>
-    {failureKind === 'worker-exited' && <><dt>Worker connection</dt><dd>Disconnected</dd></>}
+    {workerConnection && <><dt>Worker connection</dt><dd>{workerConnection}</dd></>}
     {failureKind === 'transport-unavailable' && <><dt>Local transport</dt><dd>Unavailable</dd></>}
     <dt>Freshness</dt><dd>{stateLabel(quality?.freshness)}</dd>
     <dt>Coverage</dt><dd>{stateLabel(quality?.coverage)}</dd>

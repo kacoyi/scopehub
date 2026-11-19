@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client';
 import { ChartWorkspace } from './chart-workspace';
 import { readSampleView, saveSampleView } from './sample-view';
 import { useLocalWorkspace } from './use-local-workspace';
-import './style.css';
 
 function initialSource(): boolean {
   if (window.location.hash) return window.location.hash === '#demo';

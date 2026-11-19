@@ -1,0 +1,141 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M1-022",
+  "task_definition_sha256": "1c49bdea9b5f7e599181c6c7079b84cd22870515d010e7baf39534f67f0d648a",
+  "run_id": "20261119T155708.210312Z-61c6f21d",
+  "recorded_at": "2026-11-19T16:00:32.958421+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "c1ce970cceb0b20e49b3c198c852e1bf5bf9f7c49b8ce867d490d6c1ea937f62",
+    "file_count": 236,
+    "git_head": "69c793bc91866c2165a46604c1a7022360ea0e43",
+    "working_tree_dirty": true,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "ea6bcbb84486e82eeb3a3c3f2e767e79a158533dc02baabc8f0961ce297603c0",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/projects/scopehub-m1-quality/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "market-recovery-ui",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-recovery-ui.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "0f96ede14afa12885e948d266a7d05bebedd17184f7f5c1163a0e4a457108117"
+    },
+    {
+      "id": "market-recovery",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-closed-bar-repair.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "31850e0eed588b8415f8c39211205590081bf8d6d483800ea00cb29284e5bb28"
+    },
+    {
+      "id": "market-worker-interruption",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/worker-interruption.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "4fc4ed75cb029267006520fca1218b2af4ca0dac2e3a34e0bf577a10afe2e385"
+    },
+    {
+      "id": "market-live-stream",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-stream.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "939723d91cc16cb448aed54cc316fac7d9b1a61835ad01db8fbe0cf391fe272b"
+    },
+    {
+      "id": "market-quality-states",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-quality.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e1dbc116a157905cd932d7bccef407f32b49451637230c7a0df7b76661c26900"
+    },
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-m1-quality/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "25e0c52757d38ff08740a6ef3e3e905f371e7b17371ab0d9a8451d12b8bf89ad"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-m1-quality/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "b458bd670a8d292a20e8d3a83e849c8ab64954d569d77929398b775d3facb533"
+    }
+  ],
+  "project_definition_sha256": "8ffbc565b7610d6198e7e6fe1fe1d755f0be3a3e22d089f31c6592bd663849a6",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

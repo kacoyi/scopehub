@@ -31,6 +31,11 @@ BROWSER_OUTPUTS = {
     'market-workflow': ('results.json', 'market-workflow-', ('synthetic-market-workflow.png',)),
     'workspace-timeframe': ('results.json', 'workspace-', ()),
     'desktop-workspace-transport': ('results.json', 'desktop-workspace-', ()),
+    'market-worker-interruption': ('results.json', 'worker-interruption-', ()),
+    'market-recovery-ui': ('results.json', 'market-recovery-ui-', ()),
+    'market-recovery': ('results.json', 'market-closed-bar-repair-', (
+        'verified-closed-bar-repair.png', 'unresolved-closed-bar-gap.png',
+    )),
     'chart-history': ('browser-results.json', 'history-', (
         'unconfigured.png', 'history-line.png', 'history-candles.png',
     )),

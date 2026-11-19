@@ -778,7 +778,7 @@
       "id": "M1-003",
       "title": "Verify market interruption and recovery through the chart",
       "milestone": "M1",
-      "status": "planned",
+      "status": "done",
       "depends_on": [
         "M1-001"
       ],
@@ -790,7 +790,12 @@
         "tests",
         "project/checks.json",
         "project/development.json",
-        "scripts/ci_artifacts.py"
+        "scripts/ci_artifacts.py",
+        "pyproject.toml",
+        "uv.lock",
+        "project/dependency-inventory.json",
+        "THIRD_PARTY_NOTICES",
+        "project/delivery.json"
       ],
       "decision_refs": [
         "0001",
@@ -808,17 +813,33 @@
         "market-quality-states",
         "rust-contracts-workers",
         "ui-build",
-        "architecture"
+        "architecture",
+        "market-worker-interruption",
+        "market-recovery-ui",
+        "dependency-review",
+        "python-contracts-workers",
+        "project-state"
       ],
-      "evidence": [],
-      "next_action": "After the simulated chart journey, interrupt the real synthetic worker after its first confirmed update, resume from the same series and frozen observation, then exercise a recoverable missing closed bar.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-003-0ce1a3a93860730f.json",
+          "sha256": "cc2579e5688040722c0f7e9e02b21802a2886514e6c16d7a2b5081b231064624"
+        },
+        {
+          "path": "project/evidence/M1-003-09a5f8e6f83f02ff.json",
+          "sha256": "77e506945e605f4bd59aa490e6fe77d6044443c942dc35bbe645727268f0a172"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
         "outcome": "A user can see a worker interruption, retain the last verified bar and recover without duplicated subscriptions. A missing closed bar appears only after a bounded, verified backfill, or the gap stays visible.",
         "change_types": [
           "market",
-          "stream-slice"
+          "stream-slice",
+          "dependencies",
+          "tooling"
         ],
         "context": [
           "engineering-contract-v1.json",
@@ -846,6 +867,28 @@
               "market-recovery",
               "market-quality-states",
               "market-fixtures"
+            ]
+          },
+          {
+            "failure": "A process test kills the wrong worker or an injected recovery is mistaken for a real process recovery.",
+            "checks": [
+              "market-worker-interruption",
+              "market-recovery-ui"
+            ]
+          },
+          {
+            "failure": "A cropped interval hides a known gap, a replacement changes already closed history, or a worker exit during repair hides disconnection.",
+            "checks": [
+              "rust-contracts-workers",
+              "market-recovery",
+              "market-worker-interruption"
+            ]
+          },
+          {
+            "failure": "The same row digest hides changed visible coverage or a structurally valid repair frame carries different bars from its declared digest.",
+            "checks": [
+              "rust-contracts-workers",
+              "market-recovery"
             ]
           }
         ],
@@ -5765,6 +5808,641 @@
           ],
           "data_plan": "Use only synthetic market data and an isolated development profile in a disposable Windows clone.",
           "cleanup": "Close owned processes and retain the original source, runtime and diagnostic results separately."
+        }
+      }
+    },
+    {
+      "id": "M1-019",
+      "title": "Verify recovery boundaries and owned worker interruption on Windows",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-003"
+      ],
+      "scope": [
+        "crates/worker-host",
+        "tests/ubuntu-preview",
+        "tests/ui",
+        "scripts/rust_workspace.py",
+        ".github/workflows/verify.yml",
+        "project/tasks.json",
+        "project/feedback.json",
+        "tests/project/test_market_probe_owner.py",
+        "pyproject.toml",
+        "uv.lock",
+        "project/dependency-inventory.json",
+        "THIRD_PARTY_NOTICES",
+        "tests/integration/test_worker.py",
+        "tests/project/test_dependencies.py"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "A cold native Windows runner can verify recovery, preserve a visible gap on mismatched replacement and exhaust the bounded retry sequence while preserving the expected terminal cause. Independent request, cleanup and cancellation limits remain enforced.",
+        "The real chart interruption reaches only the admitted worker under the test-owned preview. The test observes its confirmed progress, one final projection and unchanged frozen data. Closed-bar browser checks observe preparation and stream progress separately and still reject every altered or incomplete frame.",
+        "The hosted change verification leaves enough bounded time for the full Windows check sequence and retained evidence, including failures. Linux and native Windows outcomes are observed separately.",
+        "A provisioned Linux runner launches the pinned Chromium before the chart suites. When required system libraries are absent, install them and verify the same browser starts before continuing.",
+        "Default sample startup verifies the completed catalog and its subsequent history before asserting the chart. The real interrupted worker resumes inside the original product budget, and the minimal locked dependency environment enforces every format declared by the protocol and project schemas."
+      ],
+      "checks": [
+        "rust-contracts-workers",
+        "market-recovery",
+        "market-worker-interruption",
+        "market-recovery-ui",
+        "rust-format",
+        "rust-lints",
+        "architecture",
+        "python-contracts-workers",
+        "project-state",
+        "market-fixtures",
+        "python-types",
+        "dependency-review",
+        "market-quality-states",
+        "market-live-stream",
+        "ui-build"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-019-9b158d1aa2e3299c.json",
+          "sha256": "ccfe770fa2f4d38ecb4797143c98dfe0b8811f394d1da1e773872ff60b7c969f"
+        },
+        {
+          "path": "project/evidence/M1-019-da1cca2453fa7f86.json",
+          "sha256": "77d244a24ecb44fef4d4f406d0b3dc633880ff7f3a06b4a0a6abbc3bd73d8f91"
+        },
+        {
+          "path": "project/evidence/M1-019-1139dbf6ff2e06ed.json",
+          "sha256": "164c58576a2e1725828a2c9e28f762a4d74d4fa8cbc4a825ac73f3f961e1ffbb"
+        },
+        {
+          "path": "project/evidence/M1-019-a5c00379c62d812b.json",
+          "sha256": "ade7745a3b59b2b08631312c9316857151498898f102c8aaa2480ccf8f7d24b3"
+        },
+        {
+          "path": "project/evidence/M1-019-875d2aa0a12efd3c.json",
+          "sha256": "c9ce07a16bba084da526c3ca6b293fab69a27f9d35eb73ce3b6ddcba4cad6756"
+        },
+        {
+          "path": "project/evidence/M1-019-e036185761cf4c65.json",
+          "sha256": "7e6b31c53e8c67539b63a4a95aa207f6edac4062dc7bc17c563d82b3fe63aca6"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "One credible cross-platform verification of owned replay interruption and closed-bar repair, with diagnostics retained after failed checks.",
+        "change_types": [
+          "tooling",
+          "market-fixtures",
+          "dependencies",
+          "quality-slice",
+          "stream-slice"
+        ],
+        "context": [
+          "crates/worker-host/src/market.rs",
+          "crates/worker-host/src/market_recovery_tests.rs",
+          "tests/ubuntu-preview/interrupt_owned_worker.py",
+          "tests/ubuntu-preview/market-closed-bar-repair.spec.mjs",
+          "tests/ui/replay-stages.mjs",
+          ".github/workflows/verify.yml"
+        ],
+        "hypotheses": [
+          "The Windows redirector adds a process between the helper and its owning Node test. Cold worker startup, retries and browser preparation can individually succeed while a check waiting across them expires.",
+          "Runs 44520641312 and 44521481949 stopped fetching Ubuntu font packages before executing any project check. Starting the pinned browser verifies the existing host runtime and reserves package installation for missing dependencies.",
+          "The native Windows runner observed reconnecting and resumed before the real stream timed out. The optional schema extra compiles an unused grammar on every worker start. Compare fresh locked environments with the same owned bridge, fixture and monotonic deadlines."
+        ],
+        "risks": [
+          {
+            "failure": "An unrelated process is interrupted or a late/absent result is reported as acceptable.",
+            "checks": [
+              "market-worker-interruption",
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "A blanket delay masks a stalled worker, invalid replacement or unbounded recovery.",
+            "checks": [
+              "rust-contracts-workers",
+              "market-recovery-ui"
+            ]
+          },
+          {
+            "failure": "Removing an optional grammar silently disables a format the wire protocol or project evidence uses, or a chart startup assertion waits across multiple cold operations.",
+            "checks": [
+              "python-contracts-workers",
+              "dependency-review",
+              "market-quality-states",
+              "market-live-stream"
+            ]
+          }
+        ],
+        "rollback": "Retain the cancelled hosted run and its surviving check tails. Exercise controlled missing, delayed or incorrect results before accepting replacement evidence.",
+        "implementation": {
+          "modules": [
+            "worker-host",
+            "development-tooling",
+            "ui"
+          ],
+          "entrypoints": [
+            "crates/worker-host/src/market.rs",
+            "tests/ubuntu-preview/interrupt_owned_worker.py",
+            "tests/ubuntu-preview/market-closed-bar-repair.spec.mjs",
+            ".github/workflows/verify.yml",
+            "python/worker_runtime/protocol.py",
+            "pyproject.toml",
+            "tests/ui/sample-startup.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/runtime"
+            }
+          ],
+          "non_goals": [
+            "New market sources, chart features or release qualification."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Retry limits, confirmed stream position, frozen source data, private process ownership and an observable terminal error."
+          ],
+          "change": [
+            "Bind test observation to actual admitted work and keep the hosted Windows report recoverable under cold builds."
+          ],
+          "data_plan": "Private CI diagnostics and temporary synthetic fixtures cover the regression.",
+          "cleanup": "Keep one restart sequence and one test-owned process tree. Leave unverified hosted results visible."
+        }
+      }
+    },
+    {
+      "id": "M0-027",
+      "title": "Isolate the live publisher advisory request in GitHub verification",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-017"
+      ],
+      "scope": [
+        ".github/workflows/verify.yml",
+        "scripts/dependencies.py",
+        "scripts/publisher_advisory.py",
+        "tests/project/test_dependencies.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Hosted verification uses the existing job read token only for the exact approved public publisher advisory GET. No redirect or other dependency client receives it.",
+        "The live published advisory is bound to the current job attempt and checkout. Missing, unavailable, stale, malformed, or changed metadata fails review. Inventory, notices, immutable Actions, OSV, npm, and target-scope requirements still apply."
+      ],
+      "checks": [
+        "dependency-review",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-027-25105a7b3a4f376a.json",
+          "sha256": "86751b14e19cb2f9b2dfce9baf02de232e84eec447ee98c1f51245acc6c901f4"
+        },
+        {
+          "path": "project/evidence/M0-027-875d2aa0a12efd3c.json",
+          "sha256": "6bb2d38b8253a08a5309e784bb195c2a163e8ea58f35aaa772abae61f8d0558b"
+        },
+        {
+          "path": "project/evidence/M0-027-e036185761cf4c65.json",
+          "sha256": "4b5a6dfb545c543ea9298bac984771f657cc36e6a662180a129f46246425189c"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Recheck the public publisher advisory under the existing CI identity without transmitting it elsewhere.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/dependencies.json",
+          "scripts/dependencies.py",
+          ".github/workflows/verify.yml"
+        ],
+        "hypotheses": [
+          "The Linux runner exhausted its anonymous GitHub REST request quota. A job-scoped authenticated read can avoid that quota when the publisher endpoint accepts the identity."
+        ],
+        "risks": [
+          {
+            "failure": "A redirect, later check, subprocess, or diagnostic receives the token.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An unavailable, stale, or changed publisher reply authorizes a disposition.",
+            "checks": [
+              "dependency-review",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain the run 44536924867 failure. If the approved live endpoint remains unavailable, keep the gate failed and retain its bounded diagnostics.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            ".github/workflows/verify.yml",
+            "scripts/dependencies.py",
+            "scripts/publisher_advisory.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/dependencies.json",
+              "pointer": "/advisory_dispositions"
+            }
+          ],
+          "non_goals": [
+            "Permission expansion, user credentials, product changes, and static advisory waivers."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing online advisory, target coverage, license, and notice acceptance."
+          ],
+          "change": [
+            "Isolate an exact-origin publisher fetch and bind its public result to the current CI invocation."
+          ],
+          "data_plan": "Store only reviewed public advisory fields in the runner temporary directory.",
+          "cleanup": "The fetch has no child checks. The runner owns temporary public evidence and the built-in job credential lifetime."
+        }
+      }
+    },
+    {
+      "id": "M1-021",
+      "title": "Observe cold preview module startup and report terminal failures",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-019"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/market-quality.spec.mjs",
+        "tests/ui",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Verify that an ordinary loopback navigation mounts the unconfigured chart before the quality test opens its controls and sends zero market operations before opt-in.",
+        "A deliberately failed or unavailable first application module must fail startup within its own bounded stage, with the observed terminal reason and without navigation retries.",
+        "Retain the hosted failure and distinguish a locally reproduced readiness defect from any unresolved Windows-specific cause."
+      ],
+      "checks": [
+        "market-quality-states",
+        "ui-build",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-021-3189ca6944144955.json",
+          "sha256": "293b326a5911a39f7855d03e735eae06441d69f306dae531970a3616c8cce9e4"
+        },
+        {
+          "path": "project/evidence/M1-021-080bd752204ca4e1.json",
+          "sha256": "96b216d892bd17b73a8d5059d581516ed56eff2f3731fd60bcc25054deb80927"
+        },
+        {
+          "path": "project/evidence/M1-021-28b425d808c6d1a6.json",
+          "sha256": "ee68c1cb3ce9c7999ed4f38cd04ccdd719f009dcbec97f5b9257b68c0c2adca9"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The bounded readiness and terminal diagnostics passed the local harness. The hosted Windows startup incident remains open until a later instrumented run exposes its terminal reason.",
+      "plan": {
+        "outcome": "A market quality check verifies a rendered chart before interacting with Data sources and reports the first observable startup failure instead of waiting for an absent control.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/market-quality.spec.mjs",
+          "tests/ui/workspace-controls.mjs",
+          "apps/desktop/ui/index.html",
+          "apps/desktop/ui/src/main.tsx",
+          "apps/desktop/ui/vite.config.ts"
+        ],
+        "hypotheses": [
+          "The artifact shows an unmounted chart before any market selection. HTML navigation alone cannot establish whether the application module loaded and React rendered.",
+          "The artifact does not identify a failed module, JavaScript exception, or browser/host fault. A controlled module fault can verify the harness separately from the unresolved Windows cause."
+        ],
+        "risks": [
+          {
+            "failure": "A failed or hung app mount is treated as a pass, retried invisibly, or lost in a whole-test locator timeout.",
+            "checks": [
+              "market-quality-states"
+            ]
+          },
+          {
+            "failure": "A startup diagnostic exposes uncontrolled URLs or replaces the real market checks.",
+            "checks": [
+              "market-quality-states"
+            ]
+          }
+        ],
+        "rollback": "Retain run 44546526143 and the controlled failures. Revert any unverified runtime change and keep the Windows observation open.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/market-quality.spec.mjs",
+            "tests/ui/workspace-controls.mjs",
+            "apps/desktop/ui/index.html",
+            "apps/desktop/ui/src/main.tsx"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Production retries or timeout changes, chart behavior changes, packaged Windows acceptance, and assuming a root cause from a screenshot."
+          ],
+          "open_questions": [
+            "Which first-page event caused the unmounted chart on the hosted Windows runner?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Real loopback chart boot and worker operations, default no-market-call checks, and all quality assertions."
+          ],
+          "change": [
+            "Separate page navigation from observable application readiness and preserve bounded diagnostics on a terminal startup failure."
+          ],
+          "data_plan": "Use only synthetic test content and same-origin resource classifications.",
+          "cleanup": "Detach startup observers after the readiness outcome and leave the test browser to its existing teardown."
+        }
+      }
+    },
+    {
+      "id": "M1-022",
+      "title": "Report sample startup transport terminals and isolate injected recovery controls",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-018",
+        "M1-019",
+        "M1-021"
+      ],
+      "scope": [
+        "tests/ui/sample-startup.mjs",
+        "tests/ubuntu-preview/market-recovery-ui.spec.mjs",
+        "tests/ubuntu-preview/market-recovery-ui.config.mjs",
+        "project/checks.json",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "The shared startup check reports an observed navigation failure, catalog or history transport failure, or rejected operation during that stage, without automatic retries or changes to market UI failure behavior.",
+        "Verify one unmodified loopback baseline through the ordinary catalog, history, preparation and replay. Reuse same-run synthetic responses for exact matching futures requests in injected protocol controls, preserving every protocol assertion and the real stock replacement.",
+        "Run real closed-bar repair and worker interruption checks. Retain the hosted incident and state which underlying connection cause and Windows verification remain unresolved."
+      ],
+      "checks": [
+        "market-recovery-ui",
+        "market-recovery",
+        "market-worker-interruption",
+        "market-live-stream",
+        "market-quality-states",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-022-ea6bcbb84486e82e.json",
+          "sha256": "03cc167aa12699fe16bf0af09a331fb638a1d9f890d64c77544c77e478a1b5a1"
+        },
+        {
+          "path": "project/evidence/M1-022-080bd752204ca4e1.json",
+          "sha256": "d90304f2ab2312f111554f78fc458cd11e26ff32830edb6820aef4a9108ee228"
+        },
+        {
+          "path": "project/evidence/M1-022-28b425d808c6d1a6.json",
+          "sha256": "0380bc1df117580ee13f934ad259ed2984ffde4d965e23346eba956f056e194e"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The Linux task harness verified the diagnostic regression, shared synthetic baseline and both real recovery gates. The original hosted connection cause remains unconfirmed, and this revision has not run on Windows.",
+      "plan": {
+        "outcome": "Expose the actual startup terminal and make injected recovery coverage independent of repeated worker startups.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ui/sample-startup.mjs",
+          "tests/ubuntu-preview/market-recovery-ui.spec.mjs",
+          "tests/ubuntu-preview/market-recovery-ui.config.mjs",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "The hosted workspace mounted and then lost catalog startup. Response-only polling hides a Playwright requestfailed terminal.",
+          "The injected protocol controls can share an exact same-run synthetic baseline while real loopback and recovery coverage remain independent."
+        ],
+        "risks": [
+          {
+            "failure": "Navigation, a transport failure, or a non-BUSY rejection is reported as a generic stage deadline.",
+            "checks": [
+              "market-recovery-ui"
+            ]
+          },
+          {
+            "failure": "A fixture masks request drift or replaces real recovery or interruption evidence.",
+            "checks": [
+              "market-recovery-ui",
+              "market-recovery",
+              "market-worker-interruption",
+              "market-live-stream",
+              "market-quality-states"
+            ]
+          }
+        ],
+        "rollback": "Retain the original hosted failure and staged negative evidence. Keep real gates unchanged if fixture isolation cannot preserve their coverage.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ui/sample-startup.mjs",
+            "tests/ubuntu-preview/market-recovery-ui.spec.mjs",
+            "tests/ubuntu-preview/market-recovery-ui.config.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Production connection policies, retries, market data changes and packaged Windows acceptance."
+          ],
+          "open_questions": [
+            "The published Windows artifacts do not establish which connection error occurred."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Financial assertions, request sequencing, exact BUSY admission, frozen provenance and both real recovery gates."
+          ],
+          "change": [
+            "Observe early terminal outcomes during startup and capture one verified loopback baseline for the injected futures cases."
+          ],
+          "data_plan": "Keep only same-run synthetic responses in test worker memory and use ordinary sanitized reports.",
+          "cleanup": "Close the baseline page and its context after capture. Let Playwright dispose of each case's routes and fixture context."
+        }
+      }
+    },
+    {
+      "id": "M1-023",
+      "title": "Show workspace startup and offer manual recovery before the application mounts",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-021"
+      ],
+      "scope": [
+        "apps/desktop/ui/index.html",
+        "apps/desktop/ui/public",
+        "apps/desktop/ui/src/main.tsx",
+        "apps/desktop/ui/src/style.css",
+        "tests/ubuntu-preview/market-quality.spec.mjs",
+        "project"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "An already delivered desktop or preview document shows an accessible startup state when its application entry fails or remains pending. The user can explicitly reload the same location and reach the ordinary workspace once the entry is available.",
+        "A healthy mount replaces the startup state. Failed and pending entries issue zero market operations and perform no automatic navigation. Startup verification still requires a real chart workspace and reports its original terminal failure.",
+        "Retain the original hosted screenshot and distinguish the historical trigger from the verified rendered-document behavior."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "ui-build",
+        "market-workflow",
+        "market-quality-states"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-023-68b382a58f0aeec4.json",
+          "sha256": "76313198a348202a81afab8f630827635d2ffcf4fede72d078c7b448967c388b"
+        },
+        {
+          "path": "project/evidence/M1-023-a5e300dd1915516d.json",
+          "sha256": "d82b57d913e3ba2231a0114ee2ac6b4b446aff1d415bab3b4809e832d7c21568"
+        },
+        {
+          "path": "project/evidence/M1-023-2d2836848cd36439.json",
+          "sha256": "c3175073fc1e30f945a3f399633d17addb53d3ed5626a2c0ee2d80bf9fce9377"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The delivered startup panel, manual reload, module failure and ordinary chart journey passed on hosted Ubuntu and Windows in run 44573777675. The mechanism behind the earlier blank Windows screenshot remains undetermined.",
+      "plan": {
+        "outcome": "A person can see and recover from an unmounted workspace even while its main JavaScript module is unavailable.",
+        "change_types": [
+          "ui",
+          "tooling"
+        ],
+        "context": [
+          "apps/desktop/ui/index.html",
+          "apps/desktop/ui/src/main.tsx",
+          "apps/desktop/src-tauri/tauri.conf.json",
+          "tests/ubuntu-preview/market-quality.spec.mjs",
+          "tests/ui/workspace-controls.mjs"
+        ],
+        "hypotheses": [
+          "The HTML document currently supplies an empty root. A controlled failure of the first application module leaves no visible workspace or recovery action. The old hosted screenshot alone cannot identify a particular failed request."
+        ],
+        "risks": [
+          {
+            "failure": "The startup notice is mistaken for a mounted chart or causes background navigation, market traffic or an opaque error.",
+            "checks": [
+              "market-quality-states"
+            ]
+          },
+          {
+            "failure": "Reload loses the current location or the fallback remains in the loaded application.",
+            "checks": [
+              "ui-build",
+              "market-workflow",
+              "market-quality-states"
+            ]
+          }
+        ],
+        "rollback": "Keep the bounded diagnostic tests and earlier failure reports. Revert the startup markup and helper together if ordinary mounting regresses.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/index.html",
+            "apps/desktop/ui/src/main.tsx",
+            "tests/ubuntu-preview/market-quality.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Replacing the desktop host, increasing worker timeouts or diagnosing the historical Windows incident from a screenshot."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "The active URL, explicit sample opt-in, default idle workspace, existing Content Security Policy and independent market worker deadlines."
+          ],
+          "change": [
+            "Provide startup status independently of the application bundle and a user-initiated retry."
+          ],
+          "data_plan": "Keep startup state in this document. The recovery control only reloads the current location.",
+          "cleanup": "The successful React mount replaces the temporary markup. Recover by explicitly reloading the same document."
         }
       }
     }

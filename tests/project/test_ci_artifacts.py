@@ -112,7 +112,8 @@ class PublicationTests(ProjectFixture):
     def test_only_current_named_logs_report_and_synthetic_browser_outputs_are_published(self):
         browser_checks = (
             'chart-history', 'ubuntu-preview', 'market-live-stream', 'market-quality-states',
-            'market-workflow', 'workspace-timeframe', 'desktop-workspace-transport',
+            'market-workflow', 'market-worker-interruption', 'market-recovery-ui', 'market-recovery',
+            'workspace-timeframe', 'desktop-workspace-transport',
         )
         self.add_catalog_checks(*browser_checks)
         report = self.hosted_report()
@@ -134,6 +135,11 @@ class PublicationTests(ProjectFixture):
             'runs/fixture/workspace-timeframe/results.json': b'{}\n',
             'runs/fixture/desktop-workspace-transport/results.json': b'{}\n',
             'runs/fixture/market-workflow/browser/market-workflow-symbols/synthetic-market-workflow.png': b'synthetic PNG',
+            'runs/fixture/market-worker-interruption/results.json': b'{}',
+            'runs/fixture/market-recovery-ui/results.json': b'{}',
+            'runs/fixture/market-recovery/results.json': b'{}',
+            'runs/fixture/market-recovery/browser/market-closed-bar-repair-verified/verified-closed-bar-repair.png': b'synthetic PNG',
+            'runs/fixture/market-recovery/browser/market-closed-bar-repair-gap/unresolved-closed-bar-gap.png': b'synthetic PNG',
         }
         for relative, contents in browser.items():
             self.write(relative, contents)
@@ -147,6 +153,9 @@ class PublicationTests(ProjectFixture):
             'runs/fixture/market-quality-states/browser/market-quality-source/trace.zip',
             'runs/fixture/market-workflow/browser/market-workflow-symbols/private.png',
             'runs/fixture/workspace-timeframe/browser/workspace-restore/workspace.sqlite3',
+            'runs/fixture/market-worker-interruption/browser/worker-interruption-market/worker-data.json',
+            'runs/fixture/market-recovery/browser/market-closed-bar-repair-gap/worker-data.json',
+            'runs/fixture/market-recovery/browser/other-case/verified-closed-bar-repair.png',
             '.private',
         ]:
             self.write(relative, self.sentinel)

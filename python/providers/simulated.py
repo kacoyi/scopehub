@@ -19,7 +19,7 @@ from random import Random
 from typing import Literal, Sequence, TypedDict
 from uuid import NAMESPACE_URL, uuid5
 
-from contracts.generated.protocol import Bar, Instrument, MarketGetBarsOutput
+from contracts.generated.protocol import Bar, Instrument, MarketGetBarsOutput, VisibleRange
 
 MINUTE_MS = 60_000
 # The sample clock expects observations every 15 seconds during its windows.
@@ -210,6 +210,29 @@ class BarUpdate(TypedDict):
     bar: Bar
 
 
+@dataclass(frozen=True)
+class GapObservation:
+    observed_at_ms: int
+    expected_sequence: int
+    lost_count: int
+    affected: VisibleRange
+
+    @property
+    def sequence(self) -> int:
+        return self.expected_sequence + self.lost_count
+
+
+ReplayObservation = BarUpdate | GapObservation
+
+
+@dataclass
+class RepairFixture:
+    history: MarketGetBarsOutput
+    updates: list[BarUpdate]
+    gap: GapObservation
+    late_bar: Bar | None
+
+
 class Fixture(TypedDict):
     scenario: Scenario
     instrument: Instrument
@@ -240,6 +263,11 @@ def _minutes(sample: Sample) -> list[Bar]:
     return bars
 
 
+def _dataset_id(instrument_id: str, timeframe: str, revision: str) -> str:
+    identity = f'{instrument_id}|{PROVIDER_ID}|{timeframe}|raw|{revision}'
+    return str(uuid5(NAMESPACE_URL, identity))
+
+
 def build_fixture(instrument_id: str, timeframe: str, scenario: Scenario = 'normal') -> Fixture:
     """Return an independent replay snapshot, with two same-key updates or a stall."""
     sample = next((value for value in _SAMPLES if value.instrument_id == instrument_id), None)
@@ -252,10 +280,9 @@ def build_fixture(instrument_id: str, timeframe: str, scenario: Scenario = 'norm
     as_of = observed_at + (30 * MINUTE_MS if scenario == 'stale' else 0)
     instrument = sample.instrument()
     revision = sample.revision(scenario)
-    identity = f'{sample.instrument_id}|{PROVIDER_ID}|{timeframe}|raw|{revision}'
     history: MarketGetBarsOutput = {
         'dataset': {
-            'id': str(uuid5(NAMESPACE_URL, identity)), 'instrument_id': sample.instrument_id,
+            'id': _dataset_id(sample.instrument_id, timeframe, revision), 'instrument_id': sample.instrument_id,
             'provider_id': PROVIDER_ID, 'mode': 'simulated', 'timeframe': timeframe,
             'price_adjustment': 'raw', 'timezone': sample.timezone,
             'calendar_id': instrument['calendar_id'], 'quantity_unit': instrument['quantity_unit'],
@@ -289,6 +316,28 @@ def build_fixture(instrument_id: str, timeframe: str, scenario: Scenario = 'norm
             bar = aggregate_minutes([*minutes[:-1], updated], timeframe, sample.sessions, as_of_ms=at)[-1]
             updates.append({'observed_at_ms': at, 'bar': bar})
     return {'scenario': scenario, 'instrument': instrument, 'history': history, 'updates': updates}
+
+
+def build_repair_fixture(instrument_id: str, timeframe: str, revision: str | None) -> RepairFixture | None:
+    """Record a delayed closed minute and a control with the same loss but no late row."""
+    if instrument_id != 'SIM.CN.FUTURE.001' or timeframe != '1m' or revision is None:
+        return None
+    fixture_revision = f'{GENERATOR}:20241013'
+    if revision not in (f'{fixture_revision}:repairable', f'{fixture_revision}:unrepaired'):
+        return None
+    fixture = build_fixture(instrument_id, timeframe)
+    history, updates = fixture['history'], fixture['updates']
+    dataset = history['dataset']
+    dataset['id'] = _dataset_id(instrument_id, timeframe, revision)
+    dataset['revision'] = revision
+    dataset['quality'] = 'gapped'
+    late_bar = history['bars'].pop(-2)
+    start = late_bar['time_ms']
+    dataset['provenance']['missing_minute_starts_ms'] = [start]
+    gap = GapObservation(updates[-1]['observed_at_ms'], 2, 1, {'from_ms': start, 'to_ms': start + MINUTE_MS})
+    # Position 2 was lost on the wire. Position 3 records the loss and the
+    # same cutoff can be read separately, with the closed minute if it arrived.
+    return RepairFixture(history, updates, gap, late_bar if revision.endswith(':repairable') else None)
 
 
 def fixture_bytes() -> bytes:

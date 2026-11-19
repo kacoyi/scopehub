@@ -5,6 +5,10 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; }
+.workspace-startup { max-width: 32rem; margin: 15vh auto; padding: 0 1.5rem; }
+.workspace-startup h1 { margin: 0; font-size: 1.5rem; }
+.workspace-startup p { color: var(--muted); }
+.workspace-startup button { padding: .5rem .9rem; border: 1px solid var(--line); }
 button, input { font: inherit; }
 button { cursor: pointer; border: 0; color: inherit; background: transparent; border-radius: 5px; }
 button:hover { background: #252d3d; }
@@ -60,7 +64,7 @@ svg { display: block; width: 19px; height: 19px; flex: none; }
 .chart-footer .workspace-error { color: #ffb0ac; }
 .chart-footer .workspace-error + button { margin: 0; padding: 3px 7px; font-size: inherit; }
 .history-status, .replay-status { color: #8fdabd; }
-.history-status.warning, .replay-status.gap { color: #f0ca84; }
+.history-status.warning, .replay-status.gap, .replay-status.reconnecting { color: #f0ca84; }
 .replay-status.failed, .empty-content h1[role="alert"] { color: #ffb0ac; }
 .workspace-panel { width: clamp(215px, 21vw, 300px); flex: none; overflow: auto; border-left: 1px solid var(--line); background: var(--surface); }
 .panel-data { width: clamp(300px, 34vw, 540px); display: flex; flex-direction: column; }

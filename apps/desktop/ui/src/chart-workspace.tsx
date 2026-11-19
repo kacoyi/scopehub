@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { ChartCursorMode, ChartStyle, HistoryChartHandle } from './chart-adapter/history';
 import { symbol } from './instrument-display';
-import { sampleRevisionInstrument, type ChartHistory, type Instrument, type SampleRevision } from './market';
+import { isClosedBarGapRevision, sampleRevisionInstrument, type ChartHistory, type Instrument, type SampleRevision } from './market';
 import { ReplayGapDetails, replayGapReason } from './market-quality';
 import { PriceChart } from './price-chart';
 import { narrowScreen, readSampleView, saveSampleView } from './sample-view';
@@ -15,6 +15,14 @@ import { WorkspacePanel, panelLabels, type Panel } from './workspace-panels';
 const panelIcons: Record<Panel, WorkspaceIconName> = { watchlist: 'watchlist', data: 'table', sources: 'database' };
 const panelOrder: Panel[] = ['watchlist', 'data', 'sources'];
 const noInstruments: Instrument[] = [];
+const replayLabels = {
+  starting: 'Preparing synthetic replay…',
+  playing: 'Synthetic replay in progress',
+  reconnecting: 'Market worker reconnecting…',
+  resumed: 'Market worker resumed',
+  complete: 'Synthetic replay complete',
+  gap: null,
+};
 
 function Tool({ name, icon, onClick, active, disabled }: {
   name: string; icon: WorkspaceIconName; onClick: () => void; active?: boolean; disabled?: boolean;
@@ -30,12 +38,12 @@ function PlotMessage({ title, children, error = false }: { title: string; childr
   </div></div>;
 }
 
-function HistoryStatus({ history }: { history: ChartHistory }) {
+function HistoryStatus({ history, repaired }: { history: ChartHistory; repaired: boolean }) {
   const { freshness, coverage, connection } = history.quality_state;
   const warnings = [
     freshness === 'stale' && 'Stale data',
     freshness === 'delayed' && 'Delayed observations',
-    coverage === 'gapped' && 'Known gaps',
+    coverage === 'gapped' && (repaired ? 'Frozen history has gaps' : 'Known gaps'),
     connection === 'disconnected' && 'Source disconnected',
   ].filter(Boolean);
   if (warnings.length) return <span className="history-status warning" role="status">{warnings.join(' · ')}</span>;
@@ -67,14 +75,19 @@ export function ChartWorkspace({ sample, leaveSample, workspace }: {
   const { catalog, retryCatalog } = useSampleCatalog(sample);
   const instruments = catalog.state === 'ready' ? catalog.value : noInstruments;
   const selected = instruments.find(item => item.id === chosenId) ?? instruments[0];
-  const sampleRevision = selected?.id === sampleRevisionInstrument ? revision : 'normal';
+  const sampleRevision = selected?.id === sampleRevisionInstrument && (timeframe === '1m' || !isClosedBarGapRevision(revision))
+    ? revision : 'normal';
   const { result, retryHistory } = useHistory(timeframe ? selected : undefined, timeframe, sampleRevision, date);
   const history = result.state === 'ready' ? result.value : undefined;
   const failure = catalog.state === 'error' ? catalog.failure : result.state === 'error' ? result.failure : undefined;
   const { replay, start, stop } = useSampleReplay(history);
-  const playing = replay?.state === 'starting' || replay?.state === 'playing';
+  const workerRecovery = replay?.state === 'reconnecting' || replay?.state === 'resumed' ? replay.state : undefined;
+  const playing = replay?.state === 'starting' || replay?.state === 'playing' || workerRecovery !== undefined;
   const replayFailure = replay?.state === 'failed' ? replay.failure : undefined;
   const replayGap = replay?.gap;
+  const repairedBars = replay?.repairedBars;
+  const replayLabel = replay?.state === 'failed' ? `Replay failed. ${replay.failure.message}`
+    : repairedBars ? 'Closed-bar gap repaired in chart' : replay && replayLabels[replay.state];
   const visiblePanel = focusChart ? null : panel;
   const lastBar = history?.bars.at(-1);
   const canInspect = Boolean(lastBar);
@@ -104,6 +117,14 @@ export function ChartWorkspace({ sample, leaveSample, workspace }: {
     if (item.id !== sampleRevisionInstrument) setRevision('normal');
     if (searchQuery !== null) closeSearch();
     if (window.matchMedia(narrowScreen).matches) closePanel();
+  };
+  const chooseTimeframe = (value: string) => {
+    if (workspace) {
+      workspace.chooseTimeframe(value);
+      return;
+    }
+    setSampleTimeframe(value);
+    if (value !== '1m' && isClosedBarGapRevision(revision)) setRevision('normal');
   };
   useEffect(() => {
     const media = window.matchMedia(narrowScreen);
@@ -148,7 +169,7 @@ export function ChartWorkspace({ sample, leaveSample, workspace }: {
       <PlotMessage title="No bars in this sample range." /></div>;
   } else {
     plot = <PriceChart key={selected.id + ':' + timeframe} instrument={selected} history={history} style={style} cursor={cursor}
-      handle={chart} replayBar={replay?.bar} />;
+      handle={chart} replayBar={replay?.bar} repairedBars={repairedBars} />;
   }
 
   return <main className={'workstation' + (focusChart ? ' chart-only' : '')}>
@@ -160,7 +181,7 @@ export function ChartWorkspace({ sample, leaveSample, workspace }: {
       <div className="toolbar-group periods" role="group" aria-label="Timeframe" aria-busy={workspaceBusy || undefined}>
         {['1m', '5m', '1d'].map(value => <button type="button" key={value} className="period"
           aria-pressed={timeframe === value} disabled={timeframeBlocked}
-          onClick={() => workspace ? workspace.chooseTimeframe(value) : setSampleTimeframe(value)}>{value}</button>)}
+          onClick={() => chooseTimeframe(value)}>{value}</button>)}
         {workspace && <button type="button" className="period" aria-label="Undo timeframe change"
           disabled={timeframeBlocked || !workspace.snapshot?.undo} onClick={workspace.undoTimeframe}>Undo</button>}
       </div>
@@ -187,16 +208,12 @@ export function ChartWorkspace({ sample, leaveSample, workspace }: {
           {workspace?.error && <><span role="alert" className="workspace-error">{workspace.error}</span>
             <button type="button" className="secondary-button" onClick={workspace.reload}>Reload workspace state</button></>}
           {selected && <span>{selected.timezone}</span>}
-          {history && <HistoryStatus history={history} />}
+          {history && <HistoryStatus history={history} repaired={Boolean(repairedBars)} />}
           {canReplay && <button type="button" className="secondary-button replay-button" onClick={playing ? stop : start}>
             {playing ? 'Stop replay' : replayFailure ? 'Retry replay' : 'Play sample updates'}
           </button>}
-          {replay && (!replayGap || replayFailure) && <span role={replay.state === 'failed' ? 'alert' : 'status'} className={'replay-status ' + replay.state}>
-            {replay.state === 'starting' ? 'Preparing synthetic replay…'
-              : replay.state === 'playing' ? 'Synthetic replay in progress'
-              : replay.state === 'complete' ? 'Synthetic replay complete'
-              : replayFailure && `Replay failed. ${replayFailure.message}`}
-          </span>}
+          {replay && replayLabel && (!replayGap || replayFailure) && <span role={replayFailure ? 'alert' : 'status'}
+            className={'replay-status ' + replay.state}>{replayLabel}</span>}
           {replayGap && <>
             <span role="status" className="replay-status gap">Replay gap. {replayGapReason(replayGap)}</span>
             <ReplayGapDetails gap={replayGap} />
@@ -206,7 +223,8 @@ export function ChartWorkspace({ sample, leaveSample, workspace }: {
       {visiblePanel && <>
         <button type="button" className="panel-scrim" aria-label="Dismiss side panel" onClick={closePanel} />
         <WorkspacePanel panel={visiblePanel} sample={sample} selected={selected} instruments={instruments} history={history}
-          failureKind={(failure ?? replayFailure)?.kind} replayGap={replayGap} filters={{ revision: sampleRevision, date, setRevision, setDate }}
+          failureKind={(failure ?? replayFailure)?.kind} workerRecovery={workerRecovery} replayGap={replayGap}
+          filters={{ revision: sampleRevision, timeframe, date, setRevision, setDate }}
           choose={choose} close={closePanel} leave={leaveSample} />
       </>}
       {!focusChart && <nav className="side-tools" aria-label="Workspace panels" ref={dock}>{panelOrder.map(key =>

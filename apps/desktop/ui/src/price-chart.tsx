@@ -7,11 +7,14 @@ type Props = {
   instrument: Instrument; history: MarketGetBarsOutput; style: ChartStyle; cursor: ChartCursorMode;
   handle: RefObject<HistoryChartHandle | null>;
   replayBar: Bar | undefined;
+  repairedBars: readonly Bar[] | undefined;
 };
 
-export function PriceChart({ instrument, history, style, cursor, handle, replayBar }: Props) {
+export function PriceChart({ instrument, history, style, cursor, handle, replayBar, repairedBars }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const firstStyle = useRef(style);
+  const lastProjection = useRef<readonly Bar[]>(history.bars);
+  const bars = repairedBars ?? history.bars;
   const [selected, setSelected] = useState<Bar | undefined>(history.bars.at(-1));
   const [failed, setFailed] = useState(false);
   useEffect(() => {
@@ -21,17 +24,25 @@ export function PriceChart({ instrument, history, style, cursor, handle, replayB
     try {
       const chart = mountHistoryChart(container.current, history, instrument, firstStyle.current, setSelected);
       handle.current = chart;
+      lastProjection.current = history.bars;
       return () => { handle.current = null; chart.dispose(); };
     } catch { setFailed(true); }
   }, [history, instrument, handle]);
   useEffect(() => { handle.current?.setStyle(style); }, [style, history, handle]);
   useEffect(() => { handle.current?.setCursor(cursor); }, [cursor, history, handle]);
   useEffect(() => {
-    const last = replayBar ?? history.bars.at(-1);
-    if (!last) return;
-    try { handle.current?.updateLast(last); } catch { setFailed(true); }
-  }, [replayBar, history, handle]);
-  return <div className="history" data-instrument={history.dataset.instrument_id} data-timeframe={history.dataset.timeframe} data-bars={history.bars.length}>
+    const chart = handle.current;
+    if (!chart) return;
+    try {
+      if (lastProjection.current !== bars) {
+        chart.replaceBars(bars);
+        lastProjection.current = bars;
+      }
+      const last = replayBar ?? bars.at(-1);
+      if (last) chart.updateLast(last);
+    } catch { setFailed(true); }
+  }, [replayBar, bars, history, handle]);
+  return <div className="history" data-instrument={history.dataset.instrument_id} data-timeframe={history.dataset.timeframe} data-bars={bars.length}>
     <div className="chart-legend">
       <div className="legend-title"><span className={'asset-mark ' + instrument.asset_class} aria-hidden="true">
         {instrument.asset_class === 'future' ? 'F' : 'S'}</span>

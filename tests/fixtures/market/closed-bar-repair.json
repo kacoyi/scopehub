@@ -1,0 +1,27 @@
+{
+  "initial_count": 39,
+  "repaired_count": 40,
+  "affected": {"from_ms": 1704330480000, "to_ms": 1704330540000},
+  "cutoff_ms": 1704330600000,
+  "lost_count": 1,
+  "bar": {
+    "time_ms": 1704330480000,
+    "trading_day": "2024-01-04",
+    "open": 3501.8,
+    "high": 3502.0,
+    "low": 3501.6,
+    "close": 3501.6,
+    "volume": 90.0,
+    "is_closed": true
+  },
+  "final_bar": {
+    "time_ms": 1704330540000,
+    "trading_day": "2024-01-04",
+    "open": 3501.6,
+    "high": 3502.0,
+    "low": 3500.8,
+    "close": 3501.0,
+    "volume": 130.0,
+    "is_closed": true
+  }
+}

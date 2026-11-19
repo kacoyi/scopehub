@@ -34,5 +34,6 @@ export default defineConfig({
     url: baseURL,
     reuseExistingServer: false,
     timeout: 300_000,
+    env: { SCOPEHUB_TEST_PREVIEW: '1' },
   },
 });

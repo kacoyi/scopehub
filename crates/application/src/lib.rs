@@ -208,6 +208,31 @@ pub struct OperationRegistry<P> {
     port: P,
 }
 
+enum ReadFailure {
+    Worker(Error),
+    Local(Error),
+}
+
+impl ReadFailure {
+    fn error(&self) -> &Error {
+        match self {
+            Self::Worker(error) | Self::Local(error) => error,
+        }
+    }
+
+    fn into_error(self) -> Error {
+        match self {
+            Self::Worker(error) | Self::Local(error) => error,
+        }
+    }
+}
+
+impl From<Error> for ReadFailure {
+    fn from(error: Error) -> Self {
+        Self::Local(error)
+    }
+}
+
 pub type MarketRegistry<P> = OperationRegistry<P>;
 
 impl<P> OperationRegistry<P> {
@@ -221,14 +246,25 @@ impl<P: MarketPort> MarketRegistry<P> {
         &mut self,
         actor: Actor,
         name: &str,
-        mut payload: Value,
+        payload: Value,
     ) -> Result<Value, Error> {
+        self.execute_read(actor, name, payload)
+            .await
+            .map_err(ReadFailure::into_error)
+    }
+
+    async fn execute_read(
+        &mut self,
+        actor: Actor,
+        name: &str,
+        mut payload: Value,
+    ) -> Result<Value, ReadFailure> {
         let op = authorized_operation(actor, name)?;
         if !READ_OPERATIONS.contains(&name) {
-            return Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY));
+            return Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY).into());
         }
         if !op.input.is_valid(&payload) {
-            return Err(failure(ErrorCode::INVALIDARGUMENT));
+            return Err(failure(ErrorCode::INVALIDARGUMENT).into());
         }
         normalize_integers(&mut payload);
         if name == "instrument.search" {
@@ -241,10 +277,10 @@ impl<P: MarketPort> MarketRegistry<P> {
             &payload["series"]
         };
         if series["provider_id"] != DEMO_PROVIDER {
-            return Err(failure(ErrorCode::PROVIDERNOTCONFIGURED));
+            return Err(failure(ErrorCode::PROVIDERNOTCONFIGURED).into());
         }
         if payload["from_ms"].as_i64() >= payload["to_ms"].as_i64() {
-            return Err(failure(ErrorCode::INVALIDARGUMENT));
+            return Err(failure(ErrorCode::INVALIDARGUMENT).into());
         }
         let page_input = if name == "market.readHistoryPage" {
             let input: MarketHistoryPageInput = serde_json::from_value(payload.clone())
@@ -257,14 +293,14 @@ impl<P: MarketPort> MarketRegistry<P> {
         let pinned = page_input
             .as_ref()
             .is_some_and(|i| i.snapshot.is_some() || i.expected_revision.is_some());
-        let read_error = |error: Error| {
+        let read_error = |error: ReadFailure| {
             if pinned
                 && matches!(
-                    error.code,
+                    error.error().code,
                     ErrorCode::DATAUNAVAILABLE | ErrorCode::PROVIDERNOTCONFIGURED
                 )
             {
-                failure(ErrorCode::SNAPSHOTUNAVAILABLE)
+                failure(ErrorCode::SNAPSHOTUNAVAILABLE).into()
             } else {
                 error
             }
@@ -279,7 +315,7 @@ impl<P: MarketPort> MarketRegistry<P> {
             .instruments
             .into_iter()
             .find(|item| series["instrument_id"] == item.id)
-            .ok_or_else(|| read_error(failure(ErrorCode::DATAUNAVAILABLE)))?;
+            .ok_or_else(|| read_error(failure(ErrorCode::DATAUNAVAILABLE).into()))?;
         if let Some(input) = &page_input {
             history::validate_series(&input.series, &instrument)?;
         }
@@ -324,17 +360,24 @@ impl<P: MarketPort> MarketRegistry<P> {
         &mut self,
         op: &Operation,
         payload: &Value,
-    ) -> Result<(Value, Value), Error> {
-        let output = self.port.request(&op.name, payload).await?;
+    ) -> Result<(Value, Value), ReadFailure> {
+        let output = self
+            .port
+            .request(&op.name, payload)
+            .await
+            .map_err(ReadFailure::Worker)?;
         if !op.output.is_valid(&output) {
-            return Err(failure(ErrorCode::OUTPUTINVALID));
+            return Err(failure(ErrorCode::OUTPUTINVALID).into());
         }
         let mut checked = output.clone();
         normalize_integers(&mut checked);
         Ok((output, checked))
     }
 
-    async fn catalog(&mut self, payload: &Value) -> Result<(Value, InstrumentSearchOutput), Error> {
+    async fn catalog(
+        &mut self,
+        payload: &Value,
+    ) -> Result<(Value, InstrumentSearchOutput), ReadFailure> {
         let op = OPERATIONS
             .iter()
             .find(|op| op.name == "instrument.search")
@@ -354,7 +397,7 @@ impl<P: MarketPort> MarketRegistry<P> {
                         .any(|mapping| mapping.provider_id == DEMO_PROVIDER)
             })
         {
-            return Err(failure(ErrorCode::OUTPUTINVALID));
+            return Err(failure(ErrorCode::OUTPUTINVALID).into());
         }
         Ok((value, catalog))
     }

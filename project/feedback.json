@@ -1059,6 +1059,152 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "market-recovery-gap-and-snapshot-integrity",
+      "source": "Independent review and owned synthetic bridge probes at bebc1c2.",
+      "observation": "Cropping the requested end by one millisecond hid an interior source gap. A replacement worker could change the volume of an earlier closed row under the same revision. A real worker exit during the repair read dropped the disconnection reason.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-003"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "market-worker-interruption",
+        "market-recovery"
+      ],
+      "resolution": {
+        "cause": "Completion depended on repair eligibility, resume compared only the latest bar, and a failed repair read discarded the worker error.",
+        "correction": "Track actual in-range gaps independently of repair, compare closed historical rows at the confirmed boundary, and preserve a worker failure after emitting the validated gap.",
+        "prevention": "A one-millisecond crop, altered previously closed row and owned worker termination each have a regression. The ordinary chart retained the gap and the frozen history on a worker failure."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "market-recovery-replacement-coverage-and-bar-digest",
+      "source": "Independent follow-up review of 2d55f0a using the real provider and captured bridge frames.",
+      "observation": "A same-hash replacement page declared a new visible gap while recovery still allowed completion. Altering the missing closed bar volume from 90 to 91 on an otherwise genuine repair frame retained its original digest and the chart accepted the altered value.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-003"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "market-recovery"
+      ],
+      "resolution": {
+        "cause": "The history row digest excludes quality coverage, and the consumer previously validated a repair digest only by its presence and format.",
+        "correction": "Compare visible half-open gap coverage at the resume boundary. Verify the canonical digest of both received repair bars before projecting them after a completed stream.",
+        "prevention": "The real worker probe stops before re-subscribing when visible coverage changes. An altered volume with its prior digest retains the gap and 39 frozen bars. Stopping or changing selection while verification is pending prevents late projection."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-market-recovery-observation",
+      "source": "Required Windows job 135536750939 at 9d1e403 in run 44517364634.",
+      "observation": "Five Rust cases returned TIMEOUT during replacement verification or retry exhaustion. Ten repair-browser cases failed to observe their expected result under the default five-second assertion. The owned process interruption helper rejected its Windows launcher. The thirty-minute job ceiling cancelled the last suite before artifacts could be staged.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-019"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "market-recovery",
+        "market-worker-interruption",
+        "market-recovery-ui"
+      ],
+      "resolution": {
+        "cause": "Cold worker startup, browser progress assertions and process ownership on Windows exceeded assumptions from the Linux tests. The older hosted time budget also stopped artifact staging.",
+        "correction": "Observe the real accepted worker and its confirmed cursor, verify each preparation and stream result, and isolate the test server from development watchers. Use the bounded Windows change job and retain its results.",
+        "prevention": "Linux and Windows run 44542089017 independently passed Rust recovery and all 12 gap, 18 recovery UI, 13 quality, eight stream and one owned-process interruption cases. The Windows interruption test observed the real replacement and frozen bar."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "cold-worker-restart-and-sample-startup",
+      "source": "Native Windows report 44524484734 at 6a30e60 and genuine worker hello timings on the dedicated Windows 11 guest.",
+      "observation": "The interrupted worker reached reconnecting and resumed, then returned TIMEOUT before the last confirmed bar. Two gap cases also timed out before a cold catalog and its following real history could present a chart. The prior core recovery and closed-bar repair checks passed in the same hosted run.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-019"
+      ],
+      "regression_checks": [
+        "market-worker-interruption",
+        "market-quality-states",
+        "market-recovery-ui",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "An unused schema-format dependency compiled a grammar at each Python process start. Browser assertions also started before the cold catalog and history requests had completed.",
+        "correction": "Keep the required format validators without the unused grammar, and observe successful catalog and history requests in order before checking the chart.",
+        "prevention": "The same real Windows bridge recovered twice in about 2.17 seconds with the slimmer environment. Both hosted jobs in run 44542089017 passed the owned-worker, chart startup and schema format regressions."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "hosted-public-publisher-advisory-rate-limit",
+      "source": "GitHub Actions run 44536924867, hosted Linux dependency-review.",
+      "observation": "The locked inventory passed. The approved live GitHub publisher advisory GET returned HTTP 403 with the anonymous REST rate limit exhausted, so dependency-review failed.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-027"
+      ],
+      "regression_checks": [
+        "dependency-review",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The mandatory publisher advisory check shared the anonymous GitHub REST rate limit of the hosted runner.",
+        "correction": "Fetch the one published advisory in an isolated step using the existing job credential at the exact approved TLS endpoint. The dependency checker validates fresh public metadata bound to that checkout, workflow attempt and runner.",
+        "prevention": "Both jobs in run 44542089017 passed the isolated live fetch and online review of 540 locked packages and seven pinned actions. The regression suite covers refused redirects, stale records, unavailable advisories and credential isolation."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "hosted-preview-app-mount-missing",
+      "source": "Hosted Windows run 44546526143 for PR 9 at e4c4868, market-quality-states first case, compared with the Linux job.",
+      "observation": "The test exhausted its 60-second budget waiting for Data sources after navigation. The screenshot shows a dark page without workspace controls. Windows passed the following twelve cases and the other checks. Linux passed all thirteen quality cases. The published artifacts do not identify the startup terminal reason. An independent Linux HTTP 500 injection on the first application module reproduced the old locator timeout and an identical screenshot. The test now reports actual module and mount failures. The original Windows cause remains unconfirmed, pending an instrumented Windows run.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-021",
+        "M1-023"
+      ],
+      "regression_checks": [
+        "market-quality-states"
+      ],
+      "resolution": {
+        "cause": "The delivered HTML provided an empty application root until JavaScript mounted. Controlled entry failures reproduced the blank screen and the previous wait for an absent chart control. The historical Windows artifacts do not identify the original failing resource.",
+        "correction": "Render a visible startup panel from the document with an explicit reload control. Replace it when the workspace mounts and retain the observed stage in the startup checks.",
+        "prevention": "Hosted Ubuntu and Windows run 44573777675 passed the healthy chart, failed HTTP entry, failed connection, held entry and manual recovery cases. Neither navigation nor market operations started automatically during an entry failure."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "hosted-sample-catalog-terminal-unobserved",
+      "source": "Hosted Windows run 44554402170 for PR 9 at 69c793b, market-recovery-ui; Linux comparison and owner follow-up.",
+      "observation": "The resumed-before-reconnecting case did not reach injected frames. The screenshot shows the mounted workspace reporting a disconnected local preview before any catalog data appeared, while the helper exhausted 18 seconds waiting for instrument.search. The published log shows neither a socket error code nor a Vite server fault. Later cases completed on the same test server.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-022"
+      ],
+      "regression_checks": [
+        "market-recovery-ui",
+        "market-recovery",
+        "market-worker-interruption"
+      ],
+      "resolution": {
+        "cause": "The helper polled for completed POST responses and gave an observed requestfailed event no terminal path before its deadline. A Linux catalog connection-reset injection reproduced the 18-second diagnostic timeout with the mounted workspace and Retry demo. The transport fault in the original Windows run remains unconfirmed.",
+        "correction": "Report document GET failures separately from catalog and history POST terminals. Capture one unmodified futures baseline per Playwright worker and reuse its exact synthetic responses in the injected cases.",
+        "prevention": "The retained Linux task run passed four staged startup fault cases, all eighteen injected protocol controls, real stock replacement and both real recovery gates. A Windows rerun is pending."
+      },
+      "deferral_reason": null
     }
   ]
 }
