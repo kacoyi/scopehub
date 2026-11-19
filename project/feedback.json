@@ -1879,6 +1879,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "private-delete-uncertainty-peer-rename-wait",
+      "source": "Hosted Windows PR run 44601667278, head 4aeddf2, CI checkout 611de0d, workspace-timeframe final peer-rename case.",
+      "observation": "The screenshot shows a body-free Recover deletion result view. A wait for the renamed detail at workspace.spec.mjs line 2039 ended with the 60-second test. The original evidence does not confirm the peer write or the subsequent read stage. Both adjacent lost-reply and committed-WAL cleanup cases passed.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-011"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "private-record-lifecycle"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
