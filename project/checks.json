@@ -377,10 +377,17 @@
     },
     {
       "id": "market-quality-states",
-      "status": "planned",
-      "purpose": "Verify each market connection and data-quality transition independently of the full three-instrument workflow.",
+      "status": "implemented",
+      "purpose": "Exercise the chart with real frozen normal, stale, gapped and empty sample reads, independent session and freshness states, delayed selection, distinct typed failures and retry.",
       "platforms": "all",
-      "command": null,
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-quality.config.mjs"
+      ],
       "timeout_seconds": 900,
       "cadence": "change"
     },
@@ -651,7 +658,8 @@
     "futures-tick-inspection",
     "chart-history",
     "ubuntu-preview",
-    "market-live-stream"
+    "market-live-stream",
+    "market-quality-states"
   ],
   "gate_changes": []
 }

@@ -27,6 +27,7 @@ else:
 ROOT = Path(__file__).resolve().parents[1]
 BROWSER_OUTPUTS = {
     'market-live-stream': ('results.json', 'market-stream-', ('synthetic-replay-final.png',)),
+    'market-quality-states': ('results.json', 'market-quality-', ('synthetic-market-quality.png',)),
     'chart-history': ('browser-results.json', 'history-', (
         'unconfigured.png', 'history-line.png', 'history-candles.png',
     )),
@@ -235,7 +236,11 @@ def stage_artifacts(root, destination, env):
         if summary is not None:
             copy_file(summary, destination / relative / 'summary.json')
             copy_file(destination / relative / 'summary.json', destination / 'chart-history/latest.json')
-    browser_runs = {'ubuntu-preview': f'ubuntu-preview/{run_id}', 'market-live-stream': run + '/market-live-stream'}
+    browser_runs = {
+        'ubuntu-preview': f'ubuntu-preview/{run_id}',
+        'market-live-stream': f'{run}/market-live-stream',
+        'market-quality-states': f'{run}/market-quality-states',
+    }
     for check, directory in browser_runs.items():
         if check in executed:
             for path in browser_artifacts(reports, directory, check):

@@ -191,7 +191,10 @@
         "apps/desktop/ui",
         "crates",
         "python/providers",
-        "tests"
+        "tests",
+        "project/checks.json",
+        "project/development.json",
+        "scripts/ci_artifacts.py"
       ],
       "decision_refs": [
         "0001",
@@ -217,7 +220,7 @@
       "blocker": null,
       "closure_reason": null,
       "plan": {
-        "outcome": "Complete simulated chart interaction with live data identity and explicit quality states.",
+        "outcome": "Open the unconfigured chart, explicitly select the offline sample, search all three instruments, and observe the correct frozen and streaming bars after choosing a timeframe and chart style.",
         "change_types": [
           "ui",
           "market-fixtures"
@@ -226,20 +229,31 @@
           "project/development.json",
           "apps/desktop/ui/src/main.tsx",
           "crates/application/src/lib.rs",
-          "crates/worker-host/src/market.rs"
+          "crates/worker-host/src/market.rs",
+          "tests/fixtures/market/series.json",
+          "tests/ubuntu-preview/market-stream.spec.mjs",
+          "tests/ubuntu-preview/market-quality.spec.mjs"
         ],
         "hypotheses": [
-          "Separate streaming and state slices expose event identity and failure uncertainty before full workflow closure."
+          "A single uninterrupted browser session can select a China future (1m candles), China stock (5m line) and US stock (1d candles). The existing worker fixtures support all three with independently known partial and final values."
         ],
         "risks": [
           {
-            "failure": "A later selection renders a delayed old update or loses the final bar.",
+            "failure": "Changing symbols or timeframes renders an old partial bar, starts an extra subscription, loses an update or mutates the frozen source table.",
             "checks": [
-              "market-workflow"
+              "market-workflow",
+              "market-live-stream"
+            ]
+          },
+          {
+            "failure": "A visible quote lacks a simulated source label, confuses an unknown volume with zero, or loses stale, empty and disconnected states.",
+            "checks": [
+              "market-workflow",
+              "market-quality-states"
             ]
           }
         ],
-        "rollback": "Retain failed event sequences; revert the affected streaming slice without removing historical preview.",
+        "rollback": "Keep the per-step browser evidence and fixture values, isolate the failing UI, application or worker path, repair it and rerun the same three selections.",
         "implementation": {
           "modules": [
             "ui",
@@ -270,7 +284,7 @@
             }
           ],
           "non_goals": [
-            "No real feed, local import, persistence or packaged Windows acceptance."
+            "Real feeds, paid subscriptions, automatic backfill after interruption, local import, durable workspace mutations and physical Windows acceptance have separate tasks."
           ],
           "open_questions": [
             "Refine visible connection and staleness presentation while implementing the state slice."
@@ -283,7 +297,7 @@
             "Selection-race and cleanup guarantees"
           ],
           "change": [
-            "Streaming and visible quality states"
+            "Bind the already implemented history, replay and chart-state paths into one repeatable three-instrument user journey with explicit expected prices, volumes, times and source identity."
           ],
           "data_plan": "No durable user format change.",
           "cleanup": "Keep one active subscription per selection; remove temporary stream harness paths after integrated acceptance."
@@ -2310,7 +2324,8 @@
         "tests",
         "project/checks.json",
         "project/development.json",
-        "scripts/ci_artifacts.py"
+        "scripts/ci_artifacts.py",
+        "project/feedback.json"
       ],
       "decision_refs": [
         "0007",
@@ -2325,7 +2340,10 @@
         "ui-build",
         "market-fixtures",
         "python-types",
-        "architecture"
+        "architecture",
+        "chart-history",
+        "ubuntu-preview",
+        "market-live-stream"
       ],
       "evidence": [],
       "next_action": "Use the normal chart to observe ready data with independent quality, a real empty slice, delayed loading and recoverable connection failures. Reuse the M1-016 sample revisions.",
@@ -2358,6 +2376,12 @@
             "checks": [
               "market-quality-states",
               "market-fixtures"
+            ]
+          },
+          {
+            "failure": "An owned replacement returns BUSY before a superseded worker has used its documented cleanup grace, or retries a stream after data was already accepted.",
+            "checks": [
+              "market-live-stream"
             ]
           }
         ],
@@ -2407,13 +2431,14 @@
           "kind": "additive",
           "preserve": [
             "Explicit synthetic entry and history semantics",
-            "Selection-race and cleanup guarantees"
+            "Selection-race and cleanup guarantees",
+            "Keep normal sample defaults, selection and view restoration, a frozen readout and the intermediate and final replay candle."
           ],
           "change": [
             "Display independently attributable quality, coverage and transport outcomes and preserve a selected chart through recoverable failures."
           ],
-          "data_plan": "No durable user format change.",
-          "cleanup": "Keep one active subscription per selection; remove temporary stream harness paths after integrated acceptance."
+          "data_plan": "Optional revision and UTC date fields extend the existing local sample-view preference. Old preferences open the normal, full-window sample. Unsupported or invalid selections fall back without storing any market data or grants.",
+          "cleanup": "Abort superseded reads and replays. Release the active worker and omit stale results from the next selection."
         }
       }
     },
