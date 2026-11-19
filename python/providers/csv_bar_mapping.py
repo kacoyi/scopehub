@@ -13,6 +13,11 @@ from contracts.generated.protocol import Bar, PreviewIssue, PreviewSeries
 
 _FIELDS = ('symbol', 'timestamp', 'trading_day', 'open', 'high', 'low', 'close', 'volume')
 _PRICES = ('open', 'high', 'low', 'close')
+_SERIES_DECLARATIONS = {
+    'quantityunit': 'quantity_unit',
+    'priceadjustment': 'price_adjustment',
+    'venue': 'venue',
+}
 _SETTLEMENT_NAMES = {name + suffix for name in ('settle', 'settlement') for suffix in ('', 'price', 'px')}
 _CURRENT_SETTLEMENT = _SETTLEMENT_NAMES | {
     prefix + name for prefix in ('current', 'today', 'daily', 'final') for name in _SETTLEMENT_NAMES
@@ -94,6 +99,7 @@ class _NativeMapping:
     zone: ZoneInfo
     daily_start: time | None
     closure_indices: tuple[int, ...]
+    declarations: tuple[tuple[int, str, str], ...]
 
 
 def _column_key(column: str) -> str:
@@ -108,6 +114,8 @@ def auxiliary_role(column: str) -> str | None:
         return 'previous settlement price'
     if key in _CLOSURE_NAMES:
         return 'bar closure flag'
+    if field := _SERIES_DECLARATIONS.get(key):
+        return f'declared {field.replace("_", " ")}'
     return _AUXILIARY_COLUMNS.get(key)
 
 
@@ -126,7 +134,9 @@ def _column_indices(mapping: object, header: list[str], issues: list[PreviewIssu
             issues.append(preview_issue('column_required', field, 'Select the source header for this field.'))
         elif (position := positions.get(column)) is None:
             issues.append(preview_issue('column_missing', field, f'The mapped header {column!r} is missing. Review the file layout.'))
-        elif field in (*_PRICES, 'volume') and (role := auxiliary_role(column)):
+        elif (role := auxiliary_role(column)) and (
+            field in (*_PRICES, 'volume') or _column_key(column) in _SERIES_DECLARATIONS
+        ):
             issues.append(preview_issue('auxiliary_column', field, f'{column!r} is {role}. Select a native bar field.'))
         elif position in assigned and (assigned[position], field) != ('timestamp', 'trading_day'):
             issues.append(preview_issue('column_reused', field, 'Select a distinct source header for this field.'))
@@ -202,7 +212,17 @@ def native_mapping(mapping: Mapping[str, object], header: list[str], issues: lis
     if issues or timestamp is None or trading_day is None or zone is None:
         return None
     closure_indices = tuple(index for index, column in enumerate(header) if _column_key(column) in _CLOSURE_NAMES)
-    return _NativeMapping(series, indices, timestamp, trading_day, zone, daily_start, closure_indices)
+    reviewed = {
+        'quantity_unit': series['quantity_unit'],
+        'price_adjustment': series['price_adjustment'],
+        'venue': series['venue'],
+    }
+    declarations = tuple(
+        (index, declaration, reviewed[declaration])
+        for index, column in enumerate(header)
+        if (declaration := _SERIES_DECLARATIONS.get(_column_key(column))) is not None
+    )
+    return _NativeMapping(series, indices, timestamp, trading_day, zone, daily_start, closure_indices, declarations)
 
 
 def _resolve_time(value: datetime, zone: ZoneInfo) -> datetime:
@@ -261,6 +281,15 @@ def normalize_bar(values: list[str], mapping: _NativeMapping) -> tuple[str, Bar]
             raise BarFieldError(preview_issue('bar_incomplete', 'is_closed', 'The source marks this bar incomplete. Review its raw values or supply a closed bar.'))
         if not flags <= {'true', '1'}:
             raise BarFieldError(preview_issue('bar_closure_ambiguous', 'is_closed', 'Resolve the missing, unrecognized or conflicting source closure flags. Use explicit true or false values.'))
+
+    for index, field, expected in mapping.declarations:
+        declared = values[index].strip()
+        if declared and declared.casefold() != expected.casefold():
+            label = field.replace('_', ' ')
+            raise BarFieldError(preview_issue(
+                f'{field}_mismatch', field,
+                f'The source {label} is {declared[:80]!r}. The reviewed value is {expected[:80]!r}. Review the mapping.',
+            ))
 
     symbol = raw('symbol')
     if not symbol or symbol != symbol.strip():

@@ -149,6 +149,7 @@ pub(crate) fn frozen_output(actor: Actor, revision: &Value, bars: &Value) -> Res
         || !valid_records(
             bars,
             revision["source_record_count"].as_u64().unwrap_or_default(),
+            false,
         )
     {
         return Err(failure(ErrorCode::OUTPUTINVALID));
@@ -156,7 +157,7 @@ pub(crate) fn frozen_output(actor: Actor, revision: &Value, bars: &Value) -> Res
     Ok(output)
 }
 
-pub(crate) fn valid_records(bars: &Value, count: u64) -> bool {
+pub(crate) fn valid_records(bars: &Value, count: u64, retain_conflicts: bool) -> bool {
     let mut previous_time = i64::MIN;
     let mut records = Vec::new();
     let Some(bars) = bars.as_array() else {
@@ -170,7 +171,7 @@ pub(crate) fn valid_records(bars: &Value, count: u64) -> bool {
         let Some(time) = bar["time_ms"].as_i64() else {
             return false;
         };
-        if time <= previous_time || !valid_bar(bar) {
+        if time < previous_time || (time == previous_time && !retain_conflicts) || !valid_bar(bar) {
             return false;
         }
         previous_time = time;

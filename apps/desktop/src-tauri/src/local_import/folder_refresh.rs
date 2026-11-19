@@ -115,7 +115,7 @@ impl LocalImport {
                     .insert(check_file(config, &port, &base.mapping, &frozen).await?)
                     .clone(),
             };
-            if let FolderRefreshCheck::Complete(content) = &check {
+            if let FolderRefreshCheck::Inspected(content) = &check {
                 records += content["source_record_count"].as_u64().unwrap_or_default() as usize;
                 if records > MAX_STAGED_RECORDS {
                     return Err(folder_limit(
@@ -198,7 +198,7 @@ async fn check_file(
 
     let mapping =
         serde_json::to_value(&reviewed.mapping).map_err(|_| failure(ErrorCode::INTERNALERROR))?;
-    let normalized = local_import::complete(
+    let inspected = local_import::inspect_folder_source(
         config,
         bytes,
         &source.sha256,
@@ -207,8 +207,8 @@ async fn check_file(
     )
     .await;
     port.check_live(source.folder_id)?;
-    match normalized {
-        Ok(content) => Ok(FolderRefreshCheck::Complete(Arc::new(content))),
+    match inspected {
+        Ok(content) => Ok(FolderRefreshCheck::Inspected(Arc::new(content))),
         Err(error) if error.code == ErrorCode::RESOURCELIMIT => Ok(FolderRefreshCheck::Unavailable(
             "The complete CSV could not be checked within the 10,000-record and 4 MiB result limits.".into(),
         )),

@@ -430,7 +430,7 @@ async fn folder_refresh_stages_sources_conflicts_and_withdrawals_without_writing
         ),
         (
             "correction.csv",
-            format!("{header}000418,2026-11-19,4,7,3,6,20\n"),
+            format!("{header}000418,2026-11-19,4,7,3,6,20\n000418,2026-11-19,4,7,3,7,20\n"),
         ),
         ("incompatible.csv", accepted.replace("Close", "Last")),
         ("other-symbol.csv", accepted.replace("000418", "000419")),
@@ -444,6 +444,7 @@ async fn folder_refresh_stages_sources_conflicts_and_withdrawals_without_writing
     assert_eq!(staged["base"], published["revision"]);
     assert_eq!(staged["files"][0]["relative_path"], "a-added.csv");
     assert_eq!(staged["files"][0]["change"], "added");
+    assert_eq!(staged["files"][1]["review"], "invalid_rows");
     assert_eq!(staged["files"][2]["review"], "header_changed");
     assert_eq!(staged["files"][3]["review"], "series_mismatch");
     assert_eq!(staged["files"][5]["alias_of"], "source.csv");
@@ -451,7 +452,26 @@ async fn folder_refresh_stages_sources_conflicts_and_withdrawals_without_writing
     assert_eq!(bar["status"], "conflict");
     assert_eq!(bar["accepted"]["bar"]["close"], 5.0);
     assert_eq!(bar["alternatives"][0]["bar"]["close"], 5.0);
-    assert_eq!(bar["alternatives"][1]["bar"]["close"], 6.0);
+    assert_eq!(bar["alternatives"].as_array().unwrap().len(), 3);
+    assert_eq!(
+        bar["accepted"]["locators"],
+        json!([
+            {"record_number": 1, "line_start": 2, "line_end": 2},
+            {"record_number": 2, "line_start": 3, "line_end": 3},
+        ]),
+    );
+    for (index, close, line) in [(1, 6.0, 2), (2, 7.0, 3)] {
+        let alternative = &bar["alternatives"][index];
+        assert_eq!(alternative["bar"]["close"], close);
+        assert_eq!(
+            alternative["sources"],
+            json!([{
+                "relative_path": "correction.csv",
+                "source_sha256": staged["files"][1]["source_sha256"],
+                "record_number": index, "line_start": line, "line_end": line,
+            }]),
+        );
+    }
     let sources = bar["alternatives"][0]["sources"].as_array().unwrap();
     let locators: Vec<_> = sources
         .iter()
@@ -558,7 +578,7 @@ sys.modules.pop('worker_runtime', None)
 sys.path[:0] = [root, str(pathlib.Path(root) / 'python')]
 from worker_runtime import local_import
 
-check = local_import.check_complete_csv
+check = local_import.inspect_folder_csv
 def hold(*args):
     result = check(*args)
     pathlib.Path('checked').touch()
@@ -566,7 +586,7 @@ def hold(*args):
         time.sleep(0.01)
     return result
 
-local_import.check_complete_csv = hold
+local_import.inspect_folder_csv = hold
 raise SystemExit(local_import.run(sys.stdin.buffer, sys.stdout.buffer))
 "#,
     )

@@ -17,6 +17,7 @@ use crate::{
 
 pub const PREVIEW_LOCAL_FOLDER_REFRESH: &str = "market.previewLocalFolderRefresh";
 pub const MAX_STAGED_RECORDS: usize = 20_000;
+const MAX_ALTERNATIVES_PER_BAR: usize = 64;
 
 pub struct FolderRefreshBase {
     pub dataset: StoredLocalDataset,
@@ -31,7 +32,7 @@ pub struct FolderRefreshFile {
 
 #[derive(Clone)]
 pub enum FolderRefreshCheck {
-    Complete(Arc<Value>),
+    Inspected(Arc<Value>),
     HeaderChanged,
     InvalidRows(String),
     Unavailable(String),
@@ -157,7 +158,7 @@ pub fn folder_refresh_output(
         };
 
         let (review, detail) = match &file.check {
-            FolderRefreshCheck::Complete(content) => {
+            FolderRefreshCheck::Inspected(content) => {
                 let digest = digest.ok_or_else(|| failure(ErrorCode::OUTPUTINVALID))?;
                 let header = content["header"]
                     .as_array()
@@ -179,15 +180,28 @@ pub fn folder_refresh_output(
                     )
                 } else {
                     let count = content["source_record_count"].as_u64().unwrap_or_default();
-                    if !valid_records(&content["bars"], count) {
+                    if !valid_records(&content["bars"], count, true) {
                         return Err(failure(ErrorCode::OUTPUTINVALID));
                     }
                     records += count as usize;
                     if records > MAX_STAGED_RECORDS {
                         return Err(failure(ErrorCode::RESOURCELIMIT));
                     }
-                    merge_bars(&mut events, file, digest, bars(content["bars"].clone())?);
-                    ("compatible", None)
+                    let incoming = bars(content["bars"].clone())?;
+                    let conflicts = incoming.windows(2).any(|pair| {
+                        pair[0].bar.time_ms == pair[1].bar.time_ms && pair[0].bar != pair[1].bar
+                    });
+                    merge_bars(&mut events, file, digest, incoming)?;
+                    if conflicts {
+                        (
+                            "invalid_rows",
+                            Some(
+                                "This file has competing values at the same bar start. Review the alternatives below.",
+                            ),
+                        )
+                    } else {
+                        ("compatible", None)
+                    }
                 }
             }
             FolderRefreshCheck::HeaderChanged => (
@@ -197,7 +211,12 @@ pub fn folder_refresh_output(
             FolderRefreshCheck::InvalidRows(detail) => ("invalid_rows", Some(detail.as_str())),
             FolderRefreshCheck::Unavailable(detail) => ("unavailable", Some(detail.as_str())),
         };
-        coverage_unverified |= matches!(review, "header_changed" | "invalid_rows" | "unavailable");
+        coverage_unverified |= matches!(
+            &file.check,
+            FolderRefreshCheck::HeaderChanged
+                | FolderRefreshCheck::InvalidRows(_)
+                | FolderRefreshCheck::Unavailable(_)
+        );
         sources.push(json!({
             "relative_path": file.relative_path,
             "source_sha256": digest,
@@ -254,7 +273,7 @@ fn merge_bars(
     file: &FolderRefreshFile,
     digest: &str,
     incoming: Vec<PublishedLocalImportBar>,
-) {
+) -> Result<(), Error> {
     for incoming in incoming {
         let alternatives = &mut events.entry(incoming.bar.time_ms).or_default().alternatives;
         let sources = incoming.locators.iter().map(|locator| {
@@ -272,7 +291,11 @@ fn merge_bars(
         {
             cached.extend(sources);
         } else {
+            if alternatives.len() >= MAX_ALTERNATIVES_PER_BAR {
+                return Err(failure(ErrorCode::RESOURCELIMIT));
+            }
             alternatives.push((incoming.bar, sources.collect()));
         }
     }
+    Ok(())
 }

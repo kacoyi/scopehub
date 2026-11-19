@@ -1,0 +1,40 @@
+{
+  "recorded_at": "2026-11-19",
+  "kind": "native_folder_refresh_source_handles",
+  "task_id": "M1-008",
+  "source_commit": "875f5e0716ec7c53583d9b5d883d70d89f441135",
+  "decision": "contracts/decisions/0014-local-folder-operation-handles.json",
+  "platform": "Standard-user Windows 11 guest, native MSVC Rust and desktop bridge as reported by t9.",
+  "artifact_origin": "/mnt/testvm/scopehub-win11-qa/trials/ws493/run/native-folder-refresh-875f5e0",
+  "observed": [
+    "All 17 platform and 20 desktop Rust tests passed, including the staged refresh, cancellation and three final manifest identity checks.",
+    "All 90 ordinary external operations succeeded across the five lifecycle phases and the direct, nested and sibling locations.",
+    "Recreating the selected root with identical bytes returned STALE_CONTEXT for the previous grant. A fresh selection read successfully."
+  ],
+  "artifacts": [
+    {
+      "file": ".reports/guest/875f5e0-folder-refresh/BRIDGE.TXT",
+      "sha256": "a26142a47b03a973910a381c382cd4b4d83b49e2bc76b0d2e54638661f689918"
+    },
+    {
+      "file": ".reports/guest/875f5e0-folder-refresh/CHANGES.JSON",
+      "sha256": "aefb7c19aaedc08985614e2d35e6bc9cf4571275dbacccd29b9de60b4138d347"
+    },
+    {
+      "file": ".reports/guest/875f5e0-folder-refresh/DESKTOP.TXT",
+      "sha256": "c365c4a4479432169c6bf22557a139928e2e8b9b1ca947906106fff4d3f14416"
+    },
+    {
+      "file": ".reports/guest/875f5e0-folder-refresh/MAPBUILD.TXT",
+      "sha256": "f50c1c5726c9763d95f47c3e72c991bea6c755ceebea465a2639929af4264ebf"
+    },
+    {
+      "file": ".reports/guest/875f5e0-folder-refresh/PLATFORM.TXT",
+      "sha256": "0ecbaad78cdf9d98dd03feff845b8bf649ec5ac6092fb8e0c8b8184a9a392aab"
+    }
+  ],
+  "pending": [
+    "Verify the updated economic review and v7 store in the joined native application.",
+    "Complete packaged and physical Windows acceptance and owner experience review."
+  ]
+}

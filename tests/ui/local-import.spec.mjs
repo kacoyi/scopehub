@@ -994,3 +994,103 @@ base('stages additions, aliases, conflicts and withdrawals against a frozen loca
     await rm(temporary, { recursive: true, force: true });
   }
 });
+
+base('reviews explicit CSV declarations and competing bars with source provenance', {
+  tag: '@profile-folder-refresh',
+}, async ({ page }) => {
+  const binary = process.env.SCOPEHUB_LOCAL_IMPORT_BRIDGE;
+  base.skip(!binary, 'Set SCOPEHUB_LOCAL_IMPORT_BRIDGE to the portable Rust test example.');
+  const temporary = await mkdtemp(join(await realpath(tmpdir()), 'scopehub-folder-economics-ui-'));
+  const profile = join(temporary, 'profile');
+  const folder = join(temporary, 'synthetic-csv');
+  let bridge;
+  try {
+    await mkdir(profile, { mode: 0o700 });
+    await mkdir(folder, { mode: 0o700 });
+    const row = (close, unit = 'shares', adjustment = 'raw') => [
+      '000731', '2026-04-14', '4', '8', '3', String(close), '20', unit, adjustment,
+    ];
+    const header = [...equity.header, 'quantity_unit', 'price_adjustment'];
+    const csv = (...rows) => [header, ...rows].map(fields => fields.join(',')).join('\n') + '\n';
+    await writeFile(join(folder, 'daily.csv'), csv(row(5)));
+
+    bridge = startLocalImportBridge(binary, profile, folder);
+    const calls = [];
+    await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
+      const reply = await bridge.request(command, args);
+      calls.push({ args, reply });
+      return reply;
+    });
+    await page.addInitScript(() => {
+      window.isTauri = true;
+      window.__TAURI_INTERNALS__ = {
+        async invoke(command, args) {
+          const reply = await window.testNativeInvoke(command, args);
+          if (reply.error) throw reply.error;
+          return reply.result;
+        },
+      };
+    });
+    const resultOf = operation => calls.filter(call => call.args?.operation === operation).at(-1)?.reply.result;
+
+    await page.goto('/');
+    await control(page, 'Choose local CSV folder').last().click();
+    await control(page, 'Inspect raw rows').click();
+    await enterMapping(page, equity);
+    await control(page, 'Preview mapping').click();
+    await control(page, 'Save reviewed mapping').click();
+    await control(page, 'Publish complete file').click();
+    await control(page, 'Open frozen chart').click();
+    const frozen = page.getByRole('region', { name: 'Frozen local CSV chart' });
+    await expect(frozen.getByLabel('Selected bar')).toContainText('C 5');
+
+    await writeFile(join(folder, 'lots.csv'), csv(row(5, 'lots')));
+    await writeFile(join(folder, 'adjusted.csv'), csv(row(5, 'shares', 'split_adjusted')));
+    await writeFile(join(folder, 'competing.csv'), csv(row(6), row(7)));
+
+    const review = page.getByRole('region', { name: 'Folder refresh review' });
+    await control(page, 'Stage folder refresh').click();
+    await expect(review.getByRole('table', { name: 'Folder source changes' })).toBeVisible();
+
+    const staged = resultOf('market.previewLocalFolderRefresh');
+    for (const [path, declaration] of [['lots.csv', 'lots'], ['adjusted.csv', 'split_adjusted']]) {
+      const file = staged.files.find(source => source.relative_path === path);
+      expect.soft(file, `${path} requires an explicit declaration review`).toMatchObject({ review: 'invalid_rows' });
+      expect.soft(file?.detail, `${path} identifies its contradictory declaration`).toContain(declaration);
+    }
+    const bar = staged.bars.find(item => item.time_ms === Date.parse(equity.times[0]));
+    expect.soft(bar.status, 'same-file corrected prices require review').toBe('conflict');
+    expect.soft(bar.accepted.bar.close).toBe(5);
+    expect.soft(bar.accepted.locators).toEqual([{ record_number: 1, line_start: 2, line_end: 2 }]);
+    const alternatives = Object.fromEntries(bar.alternatives.map(entry => [entry.bar.close,
+      entry.sources.map(source => [source.relative_path, source.record_number, source.line_start, source.line_end])]));
+    expect.soft(alternatives, 'all prices have attributable rows, with contradictory files excluded').toEqual({
+      5: [['daily.csv', 1, 2, 2]],
+      6: [['competing.csv', 1, 2, 2]],
+      7: [['competing.csv', 2, 3, 3]],
+    });
+
+    await review.getByLabel('Include unchanged overlaps').check();
+    await review.getByText(/2026-04-14T01:30:00/).click();
+    const shown = await review.innerText();
+    expect.soft(shown).toContain('Competing values · Review required');
+    expect.soft(shown).toMatch(/Accepted.+C 5.+Volume 20 shares/);
+    expect.soft(shown).toMatch(/Current.+C 6.+Volume 20 shares/);
+    expect.soft(shown).toMatch(/Current.+C 7.+Volume 20 shares/);
+    expect.soft(shown).toContain('competing.csv · Record 1 · Lines 2–2');
+    expect.soft(shown).toContain('competing.csv · Record 2 · Lines 3–3');
+    expect.soft(shown).toContain('Venue TEST-SH');
+    expect.soft(shown).toContain('Price adjustment raw');
+
+    const published = resultOf('market.publishLocalImport').revision;
+    const after = await bridge.request('execute_operation', {
+      operation: 'market.readLocalImportRevision', requestId: randomUUID(),
+      payload: { version: 1, revision_id: published.revision_id },
+    });
+    expect(after.result.bars.map(entry => entry.bar.close)).toEqual([5]);
+    await expect(frozen.getByLabel('Selected bar')).toContainText('C 5');
+  } finally {
+    await bridge?.close();
+    await rm(temporary, { recursive: true, force: true });
+  }
+});

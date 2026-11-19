@@ -14,8 +14,9 @@ const barStatus = {
 } satisfies Record<FolderRefreshBar['status'], string>;
 const PAGE_SIZE = 20;
 
-function values(bar: Bar) {
-  return `O ${bar.open} · H ${bar.high} · L ${bar.low} · C ${bar.close} · Volume ${bar.volume ?? 'unknown'} · ${bar.trading_day}`;
+function values(bar: Bar, quantityUnit: string) {
+  const volume = bar.volume === null ? 'unknown' : `${bar.volume} ${quantityUnit}`;
+  return `O ${bar.open} · H ${bar.high} · L ${bar.low} · C ${bar.close} · Volume ${volume} · ${bar.trading_day}`;
 }
 
 export function FolderRefreshReview({ revisionId, busy, result: staged, onPreview }: {
@@ -51,6 +52,9 @@ export function FolderRefreshReview({ revisionId, busy, result: staged, onPrevie
     </form>
     {result && <>
       <p role="status">Read-only preview against {result.base.symbol} · {result.base.relative_path} · {result.base.bar_count.toLocaleString()} accepted bars.</p>
+      <p className="local-import-muted">
+        Venue {result.base.series.venue} · Price adjustment {result.base.series.price_adjustment} · Quantity unit {result.base.series.quantity_unit}
+      </p>
       <div className="local-import-hash"><strong>Compared revision</strong><code>{result.base.revision_id}</code></div>
       <div className="local-import-table table-scroll" tabIndex={0} role="region" aria-label="Scroll folder source changes">
         <table aria-label="Folder source changes">
@@ -75,13 +79,13 @@ export function FolderRefreshReview({ revisionId, busy, result: staged, onPrevie
       {bars.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map(item => <details key={item.time_ms}>
         <summary>{new Date(item.time_ms).toISOString()} · {barStatus[item.status]}</summary>
         {item.accepted && <>
-          <p>Accepted · {values(item.accepted.bar)} · {result.base.relative_path}</p>
+          <p>Accepted · {values(item.accepted.bar, result.base.series.quantity_unit)} · {result.base.relative_path}</p>
           <ul className="local-import-issues">{item.accepted.locators.map(locator => <li key={locator.record_number}>
             Accepted record {locator.record_number} · Lines {locator.line_start}–{locator.line_end}
           </li>)}</ul>
         </>}
         {item.alternatives.map((entry, index) => <div key={index}>
-          <p>Current · {values(entry.bar)}</p>
+          <p>Current · {values(entry.bar, result.base.series.quantity_unit)}</p>
           <ul className="local-import-issues">{entry.sources.map(source => <li key={`${source.relative_path}:${source.record_number}`}>
             {source.relative_path} · Record {source.record_number} · Lines {source.line_start}–{source.line_end}
           </li>)}</ul>

@@ -105,7 +105,9 @@ class LocalImportWorkerTests(unittest.TestCase):
         hello_line, *replies = stdout.splitlines(keepends=True)
         hello = decode_line(hello_line)
         self.assertEqual((hello['type'], hello['protocol_version'], hello['role']), ('hello', '1.1', 'market'))
-        self.assertEqual(hello['capabilities'], ['market.previewLocalImport', 'market.checkLocalImport'])
+        self.assertEqual(hello['capabilities'], [
+            'market.previewLocalImport', 'market.checkLocalImport', 'market.inspectLocalFolderSource',
+        ])
         return replies
 
     def test_child_previews_normalized_and_rejected_rows_using_hash_of_all_chunks(self):
@@ -187,6 +189,44 @@ class LocalImportWorkerTests(unittest.TestCase):
                 self.assertEqual(held['issue']['code'], code)
                 self.assertEqual(held['locator'], {'record_number': 502, 'line_start': 503, 'line_end': 503})
                 self.assertNotIn('publication', held)
+
+    def test_folder_inspection_retains_competing_values_and_complete_publication_refuses_them(self):
+        content = (
+            b'Ticker,Date,Open,High,Low,Close,Shares,Note\r\n'
+            b'000071,2026-01-06,5,8,3,6,200,first\r\n'
+            b'000071,2026-01-06,5,8,3,7,200,"competing\r\nvalue"\r\n'
+            b'000071,2026-01-06,5,8,3,6,200,same\r\n'
+        )
+        frames = request(content, inspect_refresh=True)
+        del frames[0]['row_limit']
+        process = worker(b''.join(map(line, frames)))
+        self.assertEqual((process.returncode, process.stderr), (0, b''))
+        reply, = self.reply_frames(process.stdout)
+        result = json.loads(reply)
+        self.assertTrue(result['ok'])
+        self.assertNotIn('publication', result)
+        checked = result['inspection']
+        self.assertEqual(checked['file_sha256'], sha256(content).hexdigest())
+        self.assertEqual(checked['source_record_count'], 3)
+        self.assertEqual([entry['bar']['close'] for entry in checked['bars']], [6, 7])
+        self.assertEqual([entry['locators'] for entry in checked['bars']], [
+            [
+                {'record_number': 1, 'line_start': 2, 'line_end': 2},
+                {'record_number': 3, 'line_start': 5, 'line_end': 5},
+            ],
+            [{'record_number': 2, 'line_start': 3, 'line_end': 4}],
+        ])
+
+        process = worker(b''.join(map(line, complete_request(content))))
+        self.assertEqual((process.returncode, process.stderr), (0, b''))
+        reply, = self.reply_frames(process.stdout)
+        held = json.loads(reply)
+        self.assertFalse(held['ok'])
+        self.assertEqual(held['error'], 'REVIEW_REQUIRED')
+        self.assertEqual(held['issue']['code'], 'conflicting_bar')
+        self.assertEqual(held['locator'], {'record_number': 2, 'line_start': 3, 'line_end': 4})
+        self.assertNotIn('publication', held)
+        self.assertNotIn('inspection', held)
 
     def test_complete_series_fails_closed_at_the_source_record_budget(self):
         content = b'Ticker,Date,Open,High,Low,Close,Shares,Note\n' + b'000071,2026-01-06,8,10,7,9,200,test\n' * (MAX_PUBLICATION_RECORDS + 1)

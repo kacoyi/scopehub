@@ -227,6 +227,17 @@ def preview_csv(content: bytes, mapping: Mapping[str, object], *, row_limit: int
 
 def check_complete_csv(content: bytes, mapping: Mapping[str, object]) -> CheckedCsv:
     """Return a fully parsed, single native series or hold the entire file for review."""
+    return _check_complete_csv(content, mapping, retain_conflicts=False)
+
+
+def inspect_folder_csv(content: bytes, mapping: Mapping[str, object]) -> CheckedCsv:
+    """Report every eligible value and locator for read-only folder review."""
+    return _check_complete_csv(content, mapping, retain_conflicts=True)
+
+
+def _check_complete_csv(
+    content: bytes, mapping: Mapping[str, object], *, retain_conflicts: bool,
+) -> CheckedCsv:
     if len(content) > MAX_FILE_BYTES:
         raise CsvPublicationLimit
     read = _read_csv(content, mapping)
@@ -236,7 +247,9 @@ def check_complete_csv(content: bytes, mapping: Mapping[str, object]) -> Checked
     series, version, revision = meta['series'], meta['mapping_version'], meta['mapping_revision']
     assert series is not None and version is not None and revision is not None
 
-    bars: dict[int, PublishedLocalImportBar] = {}
+    bars: dict[
+        int, dict[tuple[str, float, float, float, float, float | None, bool], PublishedLocalImportBar],
+    ] = {}
     first_symbol = None
     record_count = 0
     for row in read.records:
@@ -255,17 +268,22 @@ def check_complete_csv(content: bytes, mapping: Mapping[str, object]) -> Checked
         elif symbol != first_symbol:
             issue = preview_issue('multiple_symbols', 'symbol', 'This file contains multiple symbols. Review a file with one native bar series.')
             raise CsvReviewRequired(issue, locator)
-        if prior := bars.get(bar['time_ms']):
-            if prior['bar'] != bar:
-                issue = preview_issue('conflicting_bar', 'timestamp', 'This row disagrees with another bar at the same start time. Review the competing source records.')
-                raise CsvReviewRequired(issue, locator)
+        at_time = bars.setdefault(bar['time_ms'], {})
+        values = (
+            bar['trading_day'], bar['open'], bar['high'], bar['low'], bar['close'],
+            bar['volume'], bar['is_closed'],
+        )
+        if prior := at_time.get(values):
             prior['locators'].append(locator)
         else:
-            bars[bar['time_ms']] = {'bar': bar, 'locators': [locator]}
+            if at_time and not retain_conflicts:
+                issue = preview_issue('conflicting_bar', 'timestamp', 'This row disagrees with another bar at the same start time. Review the competing source records.')
+                raise CsvReviewRequired(issue, locator)
+            at_time[values] = {'bar': bar, 'locators': [locator]}
     if first_symbol is None:
         raise CsvReviewRequired(_no_records())
     return {
         'file_sha256': meta['file_sha256'], 'mapping_version': version, 'mapping_revision': revision,
         'header': meta['header'], 'series': series, 'symbol': first_symbol, 'source_record_count': record_count,
-        'bars': [bars[timestamp] for timestamp in sorted(bars)],
+        'bars': [entry for timestamp in sorted(bars) for entry in bars[timestamp].values()],
     }
