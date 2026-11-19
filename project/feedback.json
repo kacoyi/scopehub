@@ -1633,6 +1633,22 @@
         "prevention": "The retained Linux task run passed four staged startup fault cases, all eighteen injected protocol controls, real stock replacement and both real recovery gates. A Windows rerun is pending."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "hosted-selected-stock-history-disconnected",
+      "source": "Windows main verification run 44581311289 at dcafca35796318669c721c53f1a7bff55ef5e46a.",
+      "observation": "The CN futures replay step passed. The workflow then selected SIM.CN.STOCK.001, 5m and the close-price line. The screenshot shows Disconnected from the local preview and Retry history for the current selection. The assertion at market-workflow.spec.mjs:315 waited five seconds for a missing chart canvas. The retained Playwright report has no trace or test stdout/stderr and the check log contains no request or host event. The original HTTP status, socket code and bridge admission remain indeterminate.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-025"
+      ],
+      "regression_checks": [
+        "market-workflow",
+        "market-quality-states"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
