@@ -2722,10 +2722,11 @@
         "generated-contracts",
         "typescript-contracts",
         "operations-workflow",
-        "state-migrations"
+        "state-migrations",
+        "local-import-ui"
       ],
       "evidence": [],
-      "next_action": "Retain the ca69b26 native folder and preview observation in contracts/reviews/2026-11-19-windows-local-csv.json. Verify the corrected preview-bound save, restart reuse and separate CSV header diagnosis on native Windows. Dataset publication and folder refresh are a separate slice.",
+      "next_action": "Trace the native Windows timeout observed after a successful raw read of three rows. Verify explicit save, process restart, source re-selection and reuse against valid edits, malformed data and a changed header. Continue immutable dataset publication and folder refresh in the separate implementation slice.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -2812,6 +2813,14 @@
               "rust-contracts-workers",
               "python-contracts-workers",
               "local-folder-import"
+            ]
+          },
+          {
+            "failure": "The native desktop times out before showing a valid normalized mapping, leaving a user unable to save an otherwise reviewed data source.",
+            "checks": [
+              "local-import-ui",
+              "local-folder-import",
+              "rust-contracts-workers"
             ]
           }
         ],

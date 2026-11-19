@@ -1237,6 +1237,23 @@
       "regression_checks": ["market-workflow", "ubuntu-preview"],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "native-reviewed-csv-worker-timeout",
+      "source": "Windows 11 native MSVC/WebView2 engineering run on 2f4a0c0 with a selected synthetic 292-byte CSV, followed by two bounded standalone worker comparisons on the same guest.",
+      "observation": "The actual desktop showed the complete digest after reading three raw rows in 2.17 seconds. The first native OHLCV preview subsequently displayed a worker timeout. The same worker exchange run directly twice returned closes 102 and 105, the incomplete-row diagnostic and process exit in 219 ms each. The native save and restart journey remains pending at this observation.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "local-folder-import",
+        "local-import-ui",
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
