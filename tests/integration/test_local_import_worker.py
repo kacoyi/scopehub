@@ -67,6 +67,8 @@ def request(content, **header_fields):
 
 def worker(data):
     env = {key: value for key, value in os.environ.items() if key.upper() in {'SYSTEMROOT', 'WINDIR', 'TEMP', 'TMP'}}
+    # Exercise the locked IANA data with no operating-system zone database.
+    env['PYTHONTZPATH'] = ''
     env['PYTHONPATH'] = os.pathsep.join([str(ROOT), str(ROOT / 'python')])
     return subprocess.run(
         [sys.executable, '-m', 'worker_runtime.local_import'], cwd=ROOT, env=env,

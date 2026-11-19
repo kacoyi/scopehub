@@ -155,6 +155,8 @@ async fn exchange(
     let permit = worker_slot()?;
     let child = config
         .python_command()
+        // Resolve IANA zones from the locked data package in this worker.
+        .env("PYTHONTZPATH", "")
         .args(["-m", "worker_runtime.local_import"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())

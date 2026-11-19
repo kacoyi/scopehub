@@ -1015,6 +1015,23 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "csv-timezones-without-system-tables",
+      "source": "Real local-folder future preview under the merged minimal worker environment with no system IANA search path.",
+      "observation": "A valid Asia/Shanghai night-session mapping produced timezone_unavailable and kept every record raw after an unrelated schema-format dependency stopped installing timezone data. The same mapping with the recorded IANA package restored its original UTC timestamp and explicit trading day.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "market-fixtures"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

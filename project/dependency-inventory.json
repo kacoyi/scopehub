@@ -1,9 +1,9 @@
 {
   "schema_version": "1.0",
-  "observed_at": "2026-11-19T13:21:03.585994+00:00",
+  "observed_at": "2026-11-19T13:32:23.194091+00:00",
   "lock_sha256": {
     "Cargo.lock": "f756478fa32337dfd8f17d43e7d56a035a29b90623e6933ae2b02ee8aa3fa276",
-    "uv.lock": "155121b02d2f804905304ef0bb8a1a252a5e2b02231c5bcae180159f57a42055",
+    "uv.lock": "628c3231c45d1c644d8909dcf009367266104f5978d3d87976af6760c78c2842",
     "pnpm-lock.yaml": "baa4c0c5c4776cdb58bb3e654f5cadd4e681c9b45f82312b3cfa7a88376ddcfc"
   },
   "packages": [
@@ -118,6 +118,13 @@
       "version": "4.16.0",
       "license": "PSF-2.0",
       "metadata_url": "https://pypi.org/pypi/typing-extensions/4.16.0/json"
+    },
+    {
+      "ecosystem": "PyPI",
+      "name": "tzdata",
+      "version": "2026.5",
+      "license": "Apache-2.0",
+      "metadata_url": "https://pypi.org/pypi/tzdata/2026.5/json"
     },
     {
       "ecosystem": "crates.io",

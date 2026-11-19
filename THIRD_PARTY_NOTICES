@@ -70,6 +70,10 @@ PyPI: typing-extensions 4.16.0
 Declared license: PSF-2.0
 Upstream metadata: https://pypi.org/pypi/typing-extensions/4.16.0/json
 
+PyPI: tzdata 2026.5
+Declared license: Apache-2.0
+Upstream metadata: https://pypi.org/pypi/tzdata/2026.5/json
+
 crates.io: adler2 2.0.1
 Declared license: 0BSD OR MIT OR Apache-2.0
 Upstream metadata: https://crates.io/crates/adler2/2.0.1
