@@ -1,10 +1,12 @@
 import { spawn } from 'node:child_process';
 import { realpathSync, statSync } from 'node:fs';
-import { isAbsolute, relative, resolve, sep } from 'node:path';
+import { basename, isAbsolute, relative, resolve, sep } from 'node:path';
 import { PreviewFailure, assertLocalJsonRequest, failureResponse, maxRequestBytes, readLocalJson } from './ubuntu-preview.mjs';
 import { issueWorkspaceAccess } from './ubuntu-workspace-access.mjs';
 
 const route = '/__scopehub/workspace';
+const rawFiles = '/@fs/';
+const privateFile = /^(?:workspace\.sqlite3(?:-(?:wal|shm|journal))?|\.?workspace-access-\d+\.html(?:-[\da-f-]+)?)$/i;
 const chartId = 'main-chart';
 const timeframes = ['1m', '5m', '1d'];
 const mutations = ['chart.setTimeframe', 'workspace.undo'];
@@ -16,6 +18,22 @@ const revision = value => Number.isSafeInteger(value) && value >= 0;
 const unavailable = () => new PreviewFailure(503, 'WORKER_EXITED');
 const invalidReply = () => new PreviewFailure(502, 'OUTPUT_INVALID');
 const timeout = () => new PreviewFailure(504, 'TIMEOUT');
+
+function withinDirectory(directory, path) {
+  const fromDirectory = relative(directory, path);
+  return !isAbsolute(fromDirectory) && fromDirectory !== '..' && !fromDirectory.startsWith('..' + sep);
+}
+
+function isPrivateResource(url, roots) {
+  let pathname;
+  try { pathname = decodeURIComponent(url.split(/[?#]/, 1)[0]); } catch { return false; }
+  if (privateFile.test(basename(pathname))) return true;
+  if (!pathname.startsWith(rawFiles)) return false;
+  // Preserve the requested drive before Vite's raw-file middleware resolves it.
+  const file = pathname.slice(rawFiles.length);
+  const absolute = isAbsolute(file) ? file : '/' + file;
+  return roots.some(root => withinDirectory(root, absolute));
+}
 
 function hostProfile(server, root) {
   const {
@@ -39,12 +57,11 @@ function hostProfile(server, root) {
     try { physical = realpathSync(served); } catch (error) {
       if (error.code !== 'ENOENT') throw new Error('The Ubuntu workspace could not verify Vite filesystem isolation.');
     }
-    const fromServed = relative(physical, path);
-    if (!fromServed || !isAbsolute(fromServed) && fromServed !== '..' && !fromServed.startsWith('..' + sep)) {
+    if (withinDirectory(physical, path)) {
       throw new Error('The Ubuntu workspace profile must be outside the directories served by Vite.');
     }
   }
-  return { path, profileId, workspaceId };
+  return { path, profileId, workspaceId, privateRoots: [resolve(directory), path] };
 }
 
 function validWorkspace(workspace, workspaceId) {
@@ -243,6 +260,10 @@ export function ubuntuWorkspace() {
 
       let active = false;
       server.middlewares.use(async (request, response, next) => {
+        if (isPrivateResource(request.url, profile.privateRoots)) {
+          response.writeHead(404, { 'Cache-Control': 'no-store', 'Content-Length': '0' }).end();
+          return;
+        }
         if (request.url !== route) return next();
         try {
           assertLocalJsonRequest(request, http);
