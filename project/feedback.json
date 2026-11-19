@@ -1042,6 +1042,23 @@
         "prevention": "The 11 focused launcher tests cover the role arguments and worktree selection. A real Herdr implementation session completed its scoped commit without a human prompt. See contracts/reviews/2026-11-19-herdr-delegated-approvals.json."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "native-offline-sample-first-open-timeout",
+      "source": "Standard-user Windows 11 KVM desktop at commit 493238bc489f3c4614850850a0cb67a1913f4c88, after the private 5m and 1m writes.",
+      "observation": "The private workspace read back revision 2 and 1m with its original undo. Opening the offline sample displayed a market worker timeout, an empty watchlist and the Retry demo control. The native driver did not reach sample 5m or restart. Linux and hosted Chromium had passed the private/sample separation tests.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-024"
+      ],
+      "regression_checks": [
+        "market-workflow",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

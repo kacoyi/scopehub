@@ -1,0 +1,23 @@
+{
+  "observed_on": "2026-11-19",
+  "task": "M1-024",
+  "scope": "Native Windows development executable with an isolated synthetic private profile and offline sample.",
+  "original_failure": {
+    "source_commit": "493238bc489f3c4614850850a0cb67a1913f4c88",
+    "archive_sha256": "392a956affa005b72eb57d561c568c915f81166856ed25b97523570c7c766a6e",
+    "executable_sha256": "c614f52855a335fea772429ba44f6cab603a3faf8e08ecbeeb77ffe5652be424",
+    "uv_lock_sha256": "b9c68ec3b7d950cc9d094ddb5c0f732f6dbc2de329c99e989c2676405764035e",
+    "local_artifacts": "native-workspace-sample-startup-red-493238b",
+    "report_sha256": "b553b5c66f1c15f7c15b6952c2fa281b0d9904a0a8882b1e6e0ae945e8420ae7",
+    "webview_screenshot_sha256": "83127188f572b070c9c37e3f3c12fc22510fd9ec286118706d0aabb0a650eb9a",
+    "guest_screenshot_sha256": "04955d031d23ae741de28153e8b028f8ee01b4018d30e480b6e13c00720aa80c",
+    "last_verified_state": {
+      "private_timeframe": "1m",
+      "private_revision": 2,
+      "private_writes": 2
+    },
+    "observed_terminal": "The market worker timed out.",
+    "first_cause": "unconfirmed",
+    "later_journey_observed": false
+  }
+}

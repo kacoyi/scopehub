@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-001",
+  "focus_task_id": "M1-024",
   "tasks": [
     {
       "id": "M0-001",
@@ -5649,6 +5649,122 @@
           ],
           "data_plan": "Use repository code and synthetic local probes. The launcher does not persist credentials or user content.",
           "cleanup": "Only newly started sessions receive new launch arguments. Preserve pending work and retire coordinator-owned test sessions after verification."
+        }
+      }
+    },
+    {
+      "id": "M1-024",
+      "title": "Verify first native sample startup and its isolation from a private workspace",
+      "milestone": "M1",
+      "status": "active",
+      "depends_on": [
+        "M2-009"
+      ],
+      "scope": [
+        "pyproject.toml",
+        "uv.lock",
+        "project",
+        "crates/worker-host",
+        "python/worker_runtime",
+        "apps/desktop/src-tauri",
+        "contracts/reviews/2026-11-19-native-sample-startup.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0010"
+      ],
+      "acceptance": [
+        "An ordinary Windows development WebView opens the explicitly selected offline sample, displays the correct futures bars at 1m and 5m, and restores the 5m simulated chart in a new process. The same account retains the prior private workspace and can undo the original private change.",
+        "Retain the first native failure. Record the real executable, worker environment, observations and any unconfirmed cause. Compare relevant runtime changes in the same standard-user guest using the real default catalog and history requests.",
+        "Verify the shipped combination of source and pinned runtime through the normal entry, preserve schema format checks, worker cleanup, and existing production deadlines."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture",
+        "dependency-review",
+        "market-workflow",
+        "workspace-timeframe",
+        "desktop-workspace-transport",
+        "rust-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Measure the baseline and reviewed reduced worker environment in the same native executable, then test the integrated source and archive results.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The normal private desktop can enter, persist and exit an explicit local sample without losing its original private undo.",
+        "change_types": [
+          "tooling",
+          "dependencies"
+        ],
+        "context": [
+          "pyproject.toml",
+          "crates/worker-host/src/market.rs",
+          "apps/desktop/src-tauri/src/bridge.rs",
+          "apps/desktop/ui/src/use-market-data.ts",
+          "contracts/reviews/2026-11-19-native-sample-startup.json"
+        ],
+        "hypotheses": [
+          "The old worker environment imports a format grammar that lengthens startup. The first GUI failure reported a timeout before the catalog appeared. Its underlying mechanism has not yet been isolated."
+        ],
+        "risks": [
+          {
+            "failure": "A faster partial run masks loss of the sample preference, the private undo, or a terminal worker error.",
+            "checks": [
+              "market-workflow",
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "Changing the validator dependencies drops an actively used wire format or leaves inconsistent locks.",
+            "checks": [
+              "python-contracts-workers",
+              "architecture",
+              "dependency-review",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the original executable, dependency lock, local guest artifacts and synthetic profiles. Restore the previous runtime after each diagnostic comparison.",
+        "implementation": {
+          "modules": [
+            "desktop",
+            "worker-host",
+            "worker-runtime",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "apps/desktop/src-tauri/src/bridge.rs",
+            "crates/worker-host/src/market.rs",
+            "python/worker_runtime/__main__.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Packaged distribution, physical-device experience and connected model sessions have separate gates."
+          ],
+          "open_questions": [
+            "Which native stage exceeded its budget during the original first launch?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Offline sample opt-in, its simulated badge and independent saved preferences.",
+            "Private workspace revisions, original undo receipts, configured format checks and bounded worker operations."
+          ],
+          "change": [
+            "Qualify the normal native sample startup on the integrated runtime and remove measured avoidable cold work."
+          ],
+          "data_plan": "Use only synthetic market data and an isolated development profile in a disposable Windows clone.",
+          "cleanup": "Close owned processes and retain the original source, runtime and diagnostic results separately."
         }
       }
     }
