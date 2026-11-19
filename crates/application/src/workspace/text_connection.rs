@@ -18,6 +18,7 @@ use super::{WorkspaceAccess, WorkspaceReply, WorkspaceStore, permits_scope};
 use crate::{Actor, Operation, OperationRegistry, failure};
 
 pub const AI_TEXT_CONNECTION: &str = "ai.textConnection";
+pub const OPENAI_RESPONSES_DESTINATION: &str = "https://api.openai.com/v1/responses";
 
 const PROPOSAL_TTL: Duration = Duration::from_secs(300);
 const MAX_HISTORY_PAIRS: usize = 4;
@@ -30,6 +31,7 @@ const MOCK_MODEL: &str = "ScopeHub offline mock";
 pub(crate) struct TextConnection {
     proposal: Option<Proposal>,
     active: Option<Grant>,
+    openai_credential_revision: Option<Uuid>,
 }
 
 struct Proposal {
@@ -39,7 +41,14 @@ struct Proposal {
 }
 
 enum Route {
-    Ollama { destination: String, model: String },
+    Ollama {
+        destination: String,
+        model: String,
+    },
+    OpenAiResponses {
+        model: String,
+        credential_revision: Uuid,
+    },
     OfflineMock,
 }
 
@@ -69,13 +78,24 @@ impl Drop for Turn {
 /// One authorized request for the trusted host. The host can cancel, execute
 /// and return the response. It cannot create work or widen its disclosure.
 pub struct TextModelWork {
+    provider: TextModelProvider,
     destination: String,
     request: Value,
     cancelled: Arc<AtomicBool>,
     completion: mpsc::SyncSender<Result<Value, Error>>,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TextModelProvider {
+    Ollama,
+    OpenAiResponses { credential_revision: Uuid },
+}
+
 impl TextModelWork {
+    pub fn provider(&self) -> TextModelProvider {
+        self.provider
+    }
+
     pub fn destination(&self) -> &str {
         &self.destination
     }
@@ -156,6 +176,54 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             .filter(|turn| turn.id == turn_id);
         Ok(turn.and_then(|turn| turn.work.take()))
     }
+
+    /// Only the trusted profile host provides the opaque revision, never the secret.
+    pub fn refresh_openai_credential(
+        &mut self,
+        access: &WorkspaceAccess<'_>,
+        revision: Option<Uuid>,
+    ) -> Result<(), Error> {
+        self.authorize_text_connection(access)?;
+        let connection = &mut self.text_connection;
+        if connection.openai_credential_revision != revision {
+            connection.openai_credential_revision = revision;
+            if connection
+                .proposal
+                .as_ref()
+                .is_some_and(|proposal| proposal.route.is_openai())
+            {
+                connection.proposal = None;
+            }
+            if connection
+                .active
+                .as_ref()
+                .is_some_and(|grant| grant.route.is_openai())
+            {
+                connection.active = None;
+            }
+        }
+        Ok(())
+    }
+
+    /// A native host may refresh the OS entry just before reviewing a cloud
+    /// choice or activating its reviewed proposal.
+    pub fn needs_openai_credential_for_review(&self, args: &Value) -> bool {
+        match args["action"].as_str() {
+            Some("propose") => args["route"]["kind"] == "openai_responses",
+            Some("activate") => self
+                .text_connection
+                .proposal
+                .as_ref()
+                .is_some_and(|proposal| {
+                    proposal.route.is_openai()
+                        && args["proposal_id"]
+                            .as_str()
+                            .and_then(|id| Uuid::parse_str(id).ok())
+                            == Some(proposal.id)
+                }),
+            _ => false,
+        }
+    }
 }
 
 impl TextConnection {
@@ -172,7 +240,7 @@ impl TextConnection {
                 }))
             }
             "propose" => {
-                let route = Route::parse(&args["route"])?;
+                let route = Route::parse(&args["route"], self.openai_credential_revision)?;
                 let id = Uuid::new_v4();
                 let disclosure = route.disclosure();
                 self.active = None;
@@ -241,7 +309,11 @@ impl TextConnection {
 }
 
 impl Route {
-    fn parse(route: &Value) -> Result<Self, Error> {
+    fn is_openai(&self) -> bool {
+        matches!(self, Self::OpenAiResponses { .. })
+    }
+
+    fn parse(route: &Value, credential_revision: Option<Uuid>) -> Result<Self, Error> {
         if route["kind"] == "offline_mock" {
             return Ok(Self::OfflineMock);
         }
@@ -251,6 +323,13 @@ impl Route {
             .all(|byte| byte.is_ascii_alphanumeric() || b"-_.:/".contains(&byte))
         {
             return Err(connection_failure(ErrorCode::INVALIDARGUMENT));
+        }
+        if route["kind"] == "openai_responses" {
+            return Ok(Self::OpenAiResponses {
+                model: model.to_owned(),
+                credential_revision: credential_revision
+                    .ok_or_else(|| connection_failure(ErrorCode::PROVIDERNOTCONFIGURED))?,
+            });
         }
         let origin = route["origin"].as_str().expect("validated origin");
         let valid_origin = origin.split_once("://").is_some_and(|(_, authority)| {
@@ -288,6 +367,10 @@ impl Route {
             Self::Ollama { destination, model } => json!({
                 "kind": "ollama", "destination": destination, "model": model,
                 "scope": "conversation_text", "charge_basis": "endpoint_operator",
+            }),
+            Self::OpenAiResponses { model, .. } => json!({
+                "kind": "openai_responses", "destination": OPENAI_RESPONSES_DESTINATION,
+                "model": model, "scope": "conversation_text", "charge_basis": "openai_api_account",
             }),
             Self::OfflineMock => json!({
                 "kind": "offline_mock", "destination": "This app (offline)", "model": MOCK_MODEL,
@@ -338,15 +421,34 @@ impl Grant {
                     "text": "Offline mock response. A connected text model would answer your question here.",
                 })),
             ),
-            Route::Ollama { destination, model } => (
-                Some(TextModelWork {
-                    destination: destination.clone(),
-                    request: outbound(model, &self.history, question),
-                    cancelled: Arc::clone(&cancelled),
-                    completion: sender,
-                }),
-                None,
-            ),
+            route => {
+                let (provider, destination, model) = match route {
+                    Route::Ollama { destination, model } => {
+                        (TextModelProvider::Ollama, destination.as_str(), model)
+                    }
+                    Route::OpenAiResponses {
+                        model,
+                        credential_revision,
+                    } => (
+                        TextModelProvider::OpenAiResponses {
+                            credential_revision: *credential_revision,
+                        },
+                        OPENAI_RESPONSES_DESTINATION,
+                        model,
+                    ),
+                    Route::OfflineMock => unreachable!("handled offline route"),
+                };
+                (
+                    Some(TextModelWork {
+                        provider,
+                        destination: destination.to_owned(),
+                        request: outbound(model, &self.history, question),
+                        cancelled: Arc::clone(&cancelled),
+                        completion: sender,
+                    }),
+                    None,
+                )
+            }
         };
         self.used_requests.insert(request_id);
         self.turn = Some(Turn {
@@ -381,7 +483,14 @@ impl Grant {
                 json!({"state": "completed", "model": model, "text": text})
             }
             Err(error) => {
-                let fault = connection_failure(error.code);
+                let mut fault = connection_failure(error.code);
+                if self.route.is_openai() {
+                    fault.message = match fault.code {
+                        ErrorCode::PERMISSIONDENIED => "OpenAI rejected the API key or account permissions.",
+                        ErrorCode::PROVIDERNOTCONFIGURED => "The OpenAI API key is missing or has changed. Review the connection again.",
+                        _ => &fault.message,
+                    }.to_owned();
+                }
                 json!({
                     "state": "failed",
                     "error": {"code": fault.code, "message": fault.message, "retryable": fault.retryable},

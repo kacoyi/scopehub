@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=dede32ffd96bd8fa2ca6997ac75ce43587fed23996789f5e81500da2e2c842ed. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=edcbb63f3ee63c1d3400888898a05bcfa32dc72c9edda501884995d247d7e6f8. Do not edit.
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type OpaqueId = string;
 export type Uuid = string;
@@ -3087,7 +3087,11 @@ export type AiTextOllamaChoice = {
 export type AiTextOfflineMockChoice = {
   kind: "offline_mock";
 };
-export type AiTextRouteChoice = AiTextOllamaChoice | AiTextOfflineMockChoice;
+export type AiTextOpenAiChoice = {
+  kind: "openai_responses";
+  model: string;
+};
+export type AiTextRouteChoice = AiTextOllamaChoice | AiTextOfflineMockChoice | AiTextOpenAiChoice;
 export type AiTextOllamaRoute = {
   kind: "ollama";
   destination: string;
@@ -3102,7 +3106,14 @@ export type AiTextOfflineMockRoute = {
   scope: "conversation_text";
   charge_basis: "none";
 };
-export type AiTextRoute = AiTextOllamaRoute | AiTextOfflineMockRoute;
+export type AiTextOpenAiRoute = {
+  kind: "openai_responses";
+  destination: "https://api.openai.com/v1/responses";
+  model: string;
+  scope: "conversation_text";
+  charge_basis: "openai_api_account";
+};
+export type AiTextRoute = AiTextOllamaRoute | AiTextOfflineMockRoute | AiTextOpenAiRoute;
 export type AiTextGrant = {
   connection_id: Uuid;
   route: AiTextRoute;

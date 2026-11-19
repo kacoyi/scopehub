@@ -7972,12 +7972,13 @@
         "M4-006"
       ],
       "scope": [
-        "python/ai",
         "crates/platform",
         "crates/worker-host",
         "crates/application",
+        "crates/persistence/src/bin/workspace_bridge.rs",
         "apps/desktop",
         "contracts",
+        "scripts/check_architecture.py",
         "tests",
         "project"
       ],
@@ -7986,17 +7987,19 @@
         "0007",
         "0009",
         "0011",
-        "0019"
+        "0019",
+        "0020"
       ],
       "acceptance": [
-        "Select the OpenAI Responses text adapter and model in ordinary product settings. Disclose its named destination, data categories and account-based price before connection. Use the activated route for successive typed questions, preserving the independent Ollama route and explicit demo.",
-        "Resolve only the current profile’s explicitly supplied credential inside the trusted connector, using Windows Credential Manager for saved native credentials. Missing, replaced or removed credentials, an unavailable recipient, and changed connection scope produce visible bounded outcomes. Only opaque references are eligible for persistent workspace state.",
+        "Select the OpenAI Responses text adapter and explicitly enter a model ID in ordinary product settings. Disclose its named destination, data categories and account charge basis before activation. Use the activated route for successive typed questions, preserving the independent Ollama route and explicit demo.",
+        "Resolve only the current profile’s explicitly supplied credential inside the trusted connector. Save native Windows credentials in Credential Manager and disclose the Ubuntu preview's session lifetime. Missing, replaced or removed credentials, an unavailable recipient, and changed connection scope produce visible bounded outcomes. Only opaque references enter the operation state.",
         "Using test-owned synthetic credentials, inspect an actual request at the final connector boundary. Verify the approved destination, redacted handling of authentication errors, store=false, bounded reconstructed conversation and exclusion of saved private records, provider conversation handles and unrelated data. Preserve usable ordinary text after changing back to a different provider.",
-        "Keep controlled transport observations separate from actual metered discussion and native packaging. Real account qualification will run under M4-002 with the owner’s explicit test account and spend scope."
+        "Keep controlled transport observations and cross-compilation separate from native Windows Credential Manager runtime and packaging. Real account qualification will run under M4-002 with the owner’s explicit test account and spend scope."
       ],
       "checks": [
         "model-connection-workflow",
         "model-connection-replay",
+        "openai-responses-transport",
         "operations-workflow",
         "ui-build",
         "market-workflow",
@@ -8007,7 +8010,7 @@
         "python-types",
         "architecture"
       ],
-      "next_action": "Implement ordinary text, a profile-bound credential entry and its final provider request. Verify using synthetic credentials and a controlled receiver, then test the native credential boundary independently.",
+      "next_action": "Verify the settings, credential lifecycle, route changes and two-turn HTTPS projection with synthetic credentials. Retain local evidence and hand off the native Windows runtime boundary and real account qualification separately.",
       "blocker": null,
       "closure_reason": null,
       "evidence": [],
@@ -8024,6 +8027,7 @@
           "contracts/decisions/0009-model-providers-and-external-workspace-clients.json",
           "contracts/decisions/0011-local-profiles-and-connected-model-use.json",
           "contracts/decisions/0019-profile-text-model-route.json",
+          "contracts/decisions/0020-profile-openai-responses.json",
           "crates/worker-host/src/text_model.rs",
           "apps/desktop/ui/src/model-chat.tsx"
         ],
@@ -8036,6 +8040,7 @@
             "checks": [
               "model-connection-workflow",
               "model-connection-replay",
+              "openai-responses-transport",
               "operations-workflow"
             ]
           },
@@ -8043,7 +8048,8 @@
             "failure": "Ordinary local text starts an undisclosed billable call or a failed cloud request silently uses a different service.",
             "checks": [
               "model-connection-workflow",
-              "model-connection-replay"
+              "model-connection-replay",
+              "openai-responses-transport"
             ]
           }
         ],
@@ -8060,7 +8066,9 @@
           "entrypoints": [
             "crates/application/src/workspace/text_connection.rs",
             "crates/worker-host/src/text_model.rs",
+            "crates/platform/src/model_credentials.rs",
             "apps/desktop/src-tauri/src/bridge.rs",
+            "apps/desktop/ui/ubuntu-workspace.mjs",
             "apps/desktop/ui/src/model-chat.tsx",
             "python/ai/ollama.py"
           ],
@@ -8089,10 +8097,10 @@
             "Per-profile activation, public text contract compatibility, the existing direct Ollama adapter, bounded ordinary turns and independent market data selection."
           ],
           "change": [
-            "Offer a named cloud text adapter and trusted credential lifecycle."
+            "Offer a fixed-destination native OpenAI Responses text adapter with a trusted provider-discriminated credential lifecycle."
           ],
-          "data_plan": "Keep persistent native secrets in the user credential store. Keep private originals and exports local. Send only the final projected input to the selected provider, without retaining a provider conversation handle.",
-          "cleanup": "Cancel the active turn on disconnect, drop connector-local credential material, and support removing the user’s saved credential."
+          "data_plan": "Keep persistent native secrets in Windows Credential Manager and Ubuntu preview credentials in the private launcher session. The Rust registry receives only each opaque revision. Keep private originals and exports local. Rebuild the bounded input for each Responses request and set store=false. Discard provider handles.",
+          "cleanup": "Cancel active work on disconnect or invalidated credential scope, drop connector-local credential material and support removing the user’s configured credential."
         }
       }
     }

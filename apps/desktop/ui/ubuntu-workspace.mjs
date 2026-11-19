@@ -1,10 +1,14 @@
 import { spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { realpathSync, statSync } from 'node:fs';
 import { basename, isAbsolute, relative, resolve, sep } from 'node:path';
 import { PreviewFailure, assertLocalJsonRequest, failureResponse, maxRequestBytes, readIndicatorSampleHistory, readLocalJson } from './ubuntu-preview.mjs';
 import { issueWorkspaceAccess } from './ubuntu-workspace-access.mjs';
 
 const route = '/__scopehub/workspace';
+const modelCredentialRoute = '/__scopehub/model-credential';
+const credentialChange = 'ai_openai_credential_changed';
+const maxCredentialRequestBytes = 8192;
 const rawFiles = '/@fs/';
 const privateFile = /^(?:workspace\.sqlite3(?:-(?:wal|shm|journal))?|\.?workspace-access-\d+\.html(?:-[\da-f-]+)?)$/i;
 const chartId = 'main-chart';
@@ -295,10 +299,10 @@ function validPrivateRecordOutcome(outcome, job, workspaceId) {
     && receipt.committed_workspace_revision === job.workspaceRevision + 1;
 }
 
-function launchTrustedWorker(root, program, wireRequest, frameBytes, failureMessage) {
+function launchTrustedWorker(root, program, wireRequest, frameBytes, failureMessage, env = process.env) {
   const executable = process.platform === 'win32' ? program + '.exe' : program;
   const child = spawn(resolve(root, 'target/debug', executable), ['--root', root], {
-    cwd: root, stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true,
+    cwd: root, stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true, env,
   });
   const workerFault = code => JSON.stringify({ error: { code, retryable: false, message: failureMessage, details: {} } });
   const finished = Promise.withResolvers();
@@ -354,6 +358,7 @@ function startWriter(root, { path, profileId, workspaceId }) {
   let snapshotRequestId = 0;
   let pending;
   let model;
+  let credential;
   const python = new Map();
   const stoppingPython = new Set();
 
@@ -370,6 +375,7 @@ function startWriter(root, { path, profileId, workspaceId }) {
     if (!model) return;
     const run = model.run;
     model = undefined;
+    if (!run) return;
     run.cancel();
     stoppingPython.add(run.result);
     void run.result.then(() => stoppingPython.delete(run.result));
@@ -391,6 +397,7 @@ function startWriter(root, { path, profileId, workspaceId }) {
   function stop(reason) {
     fail(reason);
     stopModel();
+    credential = undefined;
     for (const task of python.keys()) stopPython(task);
     if (killTimer || child.exitCode !== null || child.signalCode !== null) return;
     child.stdin.end();
@@ -411,7 +418,9 @@ function startWriter(root, { path, profileId, workspaceId }) {
     const job = pending;
     if (!job) throw invalidReply();
     const validFailure = frame?.ok === false && typeof frame.error?.code === 'string';
-    if (job.operation === 'snapshot') {
+    if (job.operation === credentialChange) {
+      if (!(validFailure || frame?.ok === true && frame.result === null)) throw invalidReply();
+    } else if (job.operation === 'snapshot') {
       if (frame?.request_id !== job.requestId
           || !(validFailure || frame.ok === true && validSnapshot(frame.result, workspaceId))) throw invalidReply();
       // Keep correlation internal to the trusted stdio transport.
@@ -506,11 +515,23 @@ function startWriter(root, { path, profileId, workspaceId }) {
       const turn = frame.result?.outcome?.result?.turn_id;
       if (job.operation !== textConnection || job.modelAction !== 'send' || turn !== job.requestId
         || typeof modelRequest !== 'string' || model) throw invalidReply();
-      const run = launchTrustedWorker(root, 'scopehub-text-model-child', modelRequest,
-        512 * 1024, 'Trusted text model execution failed.');
-      const current = { turn, run, result: undefined };
-      model = current;
-      void run.result.then(result => { current.result = result; });
+      const projection = JSON.parse(modelRequest);
+      const cloud = projection.provider === 'openai_responses';
+      if (cloud && (!uuid(projection.credential_revision) || !credential
+          || credential.revision !== projection.credential_revision)) {
+        model = { turn, cloud, run: null, result: '{"error":{"code":"PROVIDER_NOT_CONFIGURED","message":"OpenAI API key unavailable.","retryable":false,"details":{}}}' };
+      } else {
+        const wire = cloud ? JSON.stringify({
+          provider: projection.provider, request: projection.request, credential: credential.secret,
+        }) : modelRequest;
+        // The one-shot cloud carrier needs no inherited developer environment.
+        const env = cloud ? (process.platform === 'win32' ? { SystemRoot: process.env.SystemRoot } : {}) : process.env;
+        const run = launchTrustedWorker(root, 'scopehub-text-model-child', wire,
+          512 * 1024, 'Trusted text model execution failed.', env);
+        const current = { turn, cloud, run, result: undefined };
+        model = current;
+        void run.result.then(result => { current.result = result; });
+      }
     }
     if (job.operation === cancelIndicator && frame.result?.outcome?.status === 'cancelled'
         || job.operation === previewStatus && frame.result?.status === 'terminal') {
@@ -562,7 +583,7 @@ function startWriter(root, { path, profileId, workspaceId }) {
 
   return {
     ready: startup.promise,
-    async handle(body, signal) {
+    async handle(body, signal, trustedCredentialChange = false) {
       await startup.promise;
       signal.throwIfAborted();
       if (failure) throw failure;
@@ -570,7 +591,8 @@ function startWriter(root, { path, profileId, workspaceId }) {
       const snapshot = body?.type === 'snapshot';
       if (snapshot && Object.keys(body).length !== 1) throw new PreviewFailure(400, 'INVALID_ARGUMENT');
       const requestId = snapshot ? ++snapshotRequestId : body?.request_id;
-      let line = snapshot ? JSON.stringify({ type: 'snapshot', request_id: requestId }) + '\n'
+      let line = trustedCredentialChange ? JSON.stringify(body) + '\n'
+        : snapshot ? JSON.stringify({ type: 'snapshot', request_id: requestId }) + '\n'
         : requestFrame(body, workspaceId);
       if (body?.intent?.operation === 'indicator.runPreview'
           && body.intent.arguments?.snapshot?.series?.provider_id === 'scopehub.synthetic') {
@@ -599,7 +621,7 @@ function startWriter(root, { path, profileId, workspaceId }) {
       }
       const reply = Promise.withResolvers();
       const noteId = body?.scope?.target?.object_id ?? body?.intent?.arguments?.note_id;
-      const operation = snapshot || body.type === sourceMutation || frozenChartControls.includes(body.type) || indicatorReads.includes(body.type)
+      const operation = trustedCredentialChange || snapshot || body.type === sourceMutation || frozenChartControls.includes(body.type) || indicatorReads.includes(body.type)
         ? body.type : body.operation ?? body.intent?.operation;
       pending = {
         ...reply, requestId, messageId: body.message_id, operation,
@@ -618,6 +640,30 @@ function startWriter(root, { path, profileId, workspaceId }) {
       // discards delivery, while the producer is drained without resubmission.
       child.stdin.write(line);
       return reply.promise;
+    },
+    async configureCredential(body, signal) {
+      await startup.promise;
+      signal.throwIfAborted();
+      if (failure) throw failure;
+      if (pending) throw new PreviewFailure(429, 'BUSY');
+      const { action, secret } = body ?? {};
+      const fields = Object.keys(body ?? {});
+      if (action === 'replace' && fields.length === 2 && typeof secret === 'string'
+          && secret.length >= 1 && secret.length <= 2048 && !/[^A-Za-z0-9._~+/=-]/.test(secret)) {
+        const next = { revision: randomUUID(), secret };
+        const reply = await this.handle({ type: credentialChange, revision: next.revision }, signal, true);
+        if (!reply.ok) return reply;
+        credential = next;
+        if (model?.cloud) stopModel();
+      } else if (action === 'remove' && fields.length === 1) {
+        const reply = await this.handle({ type: credentialChange, revision: null }, signal, true);
+        if (!reply.ok) return reply;
+        credential = undefined;
+        if (model?.cloud) stopModel();
+      } else if (action !== 'status' || fields.length !== 1) {
+        throw new PreviewFailure(400, 'INVALID_ARGUMENT');
+      }
+      return { ok: true, result: { configured: credential !== undefined, lifetime: 'session' } };
     },
     async close() {
       stop(unavailable());
@@ -663,9 +709,11 @@ export function ubuntuWorkspace() {
           response.writeHead(404, { 'Cache-Control': 'no-store', 'Content-Length': '0' }).end();
           return;
         }
-        if (request.url !== route) return next();
+        const credentialRequest = request.url === modelCredentialRoute;
+        if (request.url !== route && !credentialRequest) return next();
+        const requestBytes = credentialRequest ? maxCredentialRequestBytes : maxBackupFrameBytes;
         try {
-          assertLocalJsonRequest(request, http, maxBackupFrameBytes);
+          assertLocalJsonRequest(request, http, requestBytes);
           if (!access?.permits(request.headers.authorization)) throw new PreviewFailure(403, 'PERMISSION_DENIED');
           if (active) throw new PreviewFailure(429, 'BUSY');
           if (!writer) throw unavailable();
@@ -682,8 +730,9 @@ export function ubuntuWorkspace() {
           failureResponse(request, response, reason);
         }, requestDeadlineMs);
         try {
-          const body = await readLocalJson(request, maxBackupFrameBytes, requestLimit);
-          const reply = await writer.handle(body, controller.signal);
+          const body = await readLocalJson(request, requestBytes, credentialRequest ? undefined : requestLimit);
+          const reply = credentialRequest ? await writer.configureCredential(body, controller.signal)
+            : await writer.handle(body, controller.signal);
           if (!controller.signal.aborted) {
             response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
             response.end(JSON.stringify(reply));

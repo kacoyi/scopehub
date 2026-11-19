@@ -7,7 +7,7 @@
 .model-muted { color: var(--muted); font-size: 13px; }
 .model-route { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 5px 14px; font-size: 13px; }
 .model-route dt { font-weight: 620; }
-.model-route dd { color: inherit; text-align: left; }
+.model-route dd { color: inherit; text-align: left; overflow-wrap: anywhere; }
 .model-transcript { max-height: min(44dvh, 24rem); overflow: auto; }
 .model-transcript:empty { display: none; }
 .model-turn { gap: 6px; }
@@ -18,7 +18,7 @@
 .model-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .model-actions [role="status"] { color: var(--muted); font-size: 13px; }
 .model-form label { display: grid; gap: 4px; min-width: 0; }
-.model-form :is(input, textarea) {
+.model-form :is(input, select, textarea) {
   width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 5px;
   background: var(--layout-background, #131722); color: inherit; font: inherit;
 }

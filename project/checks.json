@@ -661,7 +661,7 @@
     {
       "id": "model-connection-workflow",
       "status": "implemented",
-      "purpose": "Exercise local human model settings, explicit offline mock and configured text turns through the Rust registry and the real Ollama adapter against an owned synthetic HTTP peer.",
+      "purpose": "Exercise local human model settings, explicit offline mock and configured routes through the Rust registry. Check Ollama against an owned synthetic HTTP peer and verify OpenAI credential entry, route disclosure and bounded failure without a real account.",
       "platforms": "all",
       "command": [
         "pnpm",
@@ -677,7 +677,7 @@
     {
       "id": "model-connection-replay",
       "status": "implemented",
-      "purpose": "Replay profile, actor, disclosure, context isolation, expiry, duplicate send and cancellation boundaries without using a provider or opening a storage transaction.",
+      "purpose": "Replay profile, actor, disclosure, context isolation, credential revision, expiry, duplicate send and cancellation boundaries without using a provider or opening a storage transaction.",
       "platforms": "all",
       "command": [
         "cargo",
@@ -686,6 +686,22 @@
         "-p",
         "scopehub-application",
         "text_connection::tests"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
+      "id": "openai-responses-transport",
+      "status": "implemented",
+      "purpose": "Capture the final fixed-destination OpenAI Responses HTTPS requests for two reconstructed turns with synthetic credentials and an isolated TLS peer. Verify redacted authorization failure, local denial and redirect rejection without a real account.",
+      "platforms": "all",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-worker-host",
+        "text_model::openai"
       ],
       "timeout_seconds": 900,
       "cadence": "task"

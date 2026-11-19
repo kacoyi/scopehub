@@ -16,6 +16,7 @@ fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             bridge::execute_operation,
+            bridge::configure_openai_credential,
             bridge::execute_market_subscription,
             bridge::cancel_market_subscription,
             bridge::prepare_market_subscription,
@@ -53,7 +54,7 @@ fn main() {
                     }
                 "#);
             }
-            if cfg!(debug_assertions) && local_data.is_some() {
+            if local_data.is_some() {
                 window = window.initialization_script(r#"
                     if (window.top === window && [
                         'http://127.0.0.1:1420', 'tauri://localhost',

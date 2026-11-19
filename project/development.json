@@ -123,7 +123,7 @@
       "paths": [
         "crates/worker-host"
       ],
-      "responsibility": "Controlled worker lifecycle and correlated, bounded transport.",
+      "responsibility": "Controlled worker lifecycle and correlated, bounded transport, including a direct OpenAI Responses connector.",
       "public_entries": [
         "crates/worker-host/src/lib.rs",
         "crates/worker-host/src/indicator.rs",
@@ -136,23 +136,27 @@
         "application"
       ],
       "owns": [
-        "Owned child processes and request lifecycle"
+        "Owned child processes and request lifecycle",
+        "Fixed-destination OpenAI Responses HTTPS serialization and output validation"
       ],
       "invariants": [
         "No mutable adapter escape through the application registry",
-        "Shutdown releases owned workers"
+        "Shutdown releases owned workers",
+        "The OpenAI connector accepts the admitted credential for one account-scoped request and transmits only the bounded conversation projection"
       ],
       "checks": [
-        "rust-contracts-workers"
+        "rust-contracts-workers",
+        "openai-responses-transport"
       ]
     },
     {
       "id": "desktop",
       "status": "implemented",
       "paths": [
-        "apps/desktop/src-tauri"
+        "apps/desktop/src-tauri",
+        "apps/desktop/ui/ubuntu-workspace.mjs"
       ],
-      "responsibility": "Windows composition root and allowlisted UI transport.",
+      "responsibility": "Windows composition root, private Ubuntu workspace launcher transport and allowlisted UI commands.",
       "public_entries": [
         "apps/desktop/src-tauri/src/bridge.rs",
         "apps/desktop/src-tauri/src/main.rs"
@@ -165,11 +169,13 @@
         "platform"
       ],
       "owns": [
-        "Window identity and application assembly"
+        "Window identity and application assembly",
+        "Trusted credential entry for the active profile and session-only Ubuntu preview key storage"
       ],
       "invariants": [
         "Bind user actor at the transport; no general file/process/SQL command",
-        "Only a native directory picker supplies the root of a local CSV selection"
+        "Only a native directory picker supplies the root of a local CSV selection",
+        "The local human credential command returns configuration state and lifetime. The core receives only an opaque credential revision."
       ],
       "checks": [
         "architecture",
@@ -322,19 +328,21 @@
       "paths": [
         "crates/platform"
       ],
-      "responsibility": "Native resources, including read-only access to a directory explicitly selected by the trusted host.",
+      "responsibility": "Native resources, including read-only access to explicitly selected directories and profile-owned OpenAI credentials.",
       "public_entries": [
-        "crates/platform/src/local_folder.rs"
+        "crates/platform/src/local_folder.rs",
+        "crates/platform/src/model_credentials.rs"
       ],
       "dependencies": [
         "domain",
         "application"
       ],
       "owns": [
-        "OS-specific resources"
+        "OS-specific resources",
+        "Windows current-user credential lifecycle and process-local credential storage for portable sessions"
       ],
       "invariants": [
-        "Credentials remain outside database and logs",
+        "Credential values remain outside the database and logs. The trusted connector resolves the matching revision within the bound profile and provider namespace.",
         "Local import reads resolve catalog-issued file IDs inside the current native selection"
       ],
       "checks": [
@@ -348,7 +356,7 @@
       "paths": [
         "python/ai"
       ],
-      "responsibility": "Configured model adapters and product collaboration execution.",
+      "responsibility": "Credential-free Ollama text adapter and product collaboration execution.",
       "public_entries": [
         "python/ai/ollama.py"
       ],
@@ -356,7 +364,7 @@
         "domain"
       ],
       "owns": [
-        "Configured text model HTTP adapter"
+        "Ollama text model HTTP adapter"
       ],
       "invariants": [
         "Send the final core-projected text request to its selected endpoint. Use no ambient credentials, proxy, implicit fallback or stored private data."
@@ -496,10 +504,12 @@
       },
       "task_ids": [
         "M1-008",
+        "M4-006",
+        "M4-008",
         "M4-002"
       ],
       "delivery": "current-contract",
-      "boundary": "A local CSV folder can be used offline. Optional cloud assistance and model connections require explicit transmission scope. These onboarding workflows await implementation."
+      "boundary": "A local CSV folder can be used offline. Ordinary text setup reviews Ollama or OpenAI Responses for the current profile and session. OpenAI uses the explicitly configured API key and named destination. Controlled transport, native Windows use and real account qualification are verified independently."
     },
     {
       "id": "information-channels",
@@ -727,7 +737,14 @@
       "owner": "application",
       "writer": "application",
       "status": "implemented",
-      "rule": "Profile-bound in-memory route disclosure, grant and bounded successful text pairs. Restart, disconnection, cancellation or a new valid proposal revokes the grant. No storage reads or outbound workspace operations."
+      "rule": "Profile-bound in-memory route disclosure, grant, opaque credential revision and bounded successful text pairs. Restart, disconnection, cancellation or a new valid proposal revokes the grant. A changed credential revision revokes the matching OpenAI review or grant. Projection reads only the current conversation state."
+    },
+    {
+      "id": "native-openai-credential",
+      "owner": "platform",
+      "writer": "platform",
+      "status": "implemented",
+      "rule": "The platform writes or removes a current-user Windows Credential Manager entry scoped to the OpenAI provider and trusted profile. The native connector resolves the value only for that profile and the approved revision."
     }
   ],
   "herdr": {

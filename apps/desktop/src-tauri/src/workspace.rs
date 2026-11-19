@@ -26,9 +26,13 @@ use scopehub_domain::protocol::{
 };
 use scopehub_persistence::SqliteWorkspace;
 use scopehub_platform::local_folder::FrozenFile;
+#[cfg(any(windows, test))]
+use scopehub_platform::model_credentials::CredentialLifetime;
+use scopehub_platform::model_credentials::{CredentialError, OpenAiCredentials};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use tokio::sync::{Mutex, OwnedMutexGuard};
+use uuid::Uuid;
 
 use crate::local_import::{FolderCommitGuard, ImportReceipt, PendingImport, PreparedFolderReview};
 
@@ -58,6 +62,7 @@ const MAX_BACKUP_REQUEST_BYTES: usize = 1024 * 1024;
 pub(super) struct WorkspaceBridge {
     lane: Arc<Mutex<Lane>>,
     workspace_enabled: bool,
+    openai_credentials: Arc<OpenAiCredentials>,
 }
 
 enum Lane {
@@ -85,7 +90,7 @@ struct BoundWorkspace {
 }
 
 impl WorkspaceBridge {
-    pub(super) fn development(app_local_data: Option<&Path>, workspace_enabled: bool) -> Self {
+    pub(super) fn local(app_local_data: Option<&Path>, workspace_enabled: bool) -> Self {
         // The native launcher owns this path. A sample or preview-only session
         // never opens the database.
         let lane = match app_local_data {
@@ -96,6 +101,7 @@ impl WorkspaceBridge {
         Self {
             lane: Arc::new(Mutex::new(lane)),
             workspace_enabled,
+            openai_credentials: Arc::default(),
         }
     }
 
@@ -259,21 +265,26 @@ impl WorkspaceBridge {
     pub(super) async fn dispatch_text_connection(
         &self,
         command: Value,
-    ) -> Result<(Value, Option<TextModelWork>), Error> {
+    ) -> Result<(Value, Option<(String, TextModelWork)>), Error> {
         if command["intent"]["operation"] != AI_TEXT_CONNECTION || command["type"] != "request" {
             return Err(failure(ErrorCode::INVALIDARGUMENT));
         }
         if command.to_string().len() >= MAX_REQUEST_BYTES {
             return Err(failure(ErrorCode::RESOURCELIMIT));
         }
+        let credentials = Arc::clone(&self.openai_credentials);
         Self::with_bound(self.admit()?, true, move |bound| {
-            // Model connection can run in the ordinary workspace. Give this
-            // transport only the text operation, independently of dev access.
-            let access = WorkspaceAccess {
-                operations: &[AI_TEXT_CONNECTION],
-                disclose_workspace_state: false,
-                ..workspace_access(&bound.profile_id)
-            };
+            let access = text_model_access(&bound.profile_id);
+            if command["scope"]["workspace_id"] == access.workspace_id
+                && bound
+                    .registry
+                    .needs_openai_credential_for_review(&command["intent"]["arguments"])
+            {
+                bound.registry.refresh_openai_credential(
+                    &access,
+                    openai_revision(&credentials, &bound.profile_id)?,
+                )?;
+            }
             let reply = bound.registry.execute_workspace(&access, command)?;
             let result = &reply["outcome"]["result"];
             let work = if result["action"] == "send" {
@@ -281,11 +292,57 @@ impl WorkspaceBridge {
                     .as_str()
                     .and_then(|id| uuid::Uuid::parse_str(id).ok())
                     .ok_or_else(|| failure(ErrorCode::OUTPUTINVALID))?;
-                bound.registry.take_text_model_work(&access, id)?
+                bound
+                    .registry
+                    .take_text_model_work(&access, id)?
+                    .map(|work| (bound.profile_id.clone(), work))
             } else {
                 None
             };
             Ok((reply, work))
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::INTERNALERROR))
+    }
+
+    pub(super) fn openai_credentials(&self) -> Arc<OpenAiCredentials> {
+        Arc::clone(&self.openai_credentials)
+    }
+
+    #[cfg(any(windows, test))]
+    pub(super) async fn configure_openai_credential(
+        &self,
+        action: String,
+        secret: Option<String>,
+    ) -> Result<Value, Error> {
+        let credentials = self.openai_credentials();
+        Self::with_bound(self.admit()?, true, move |bound| {
+            let revision = match (action.as_str(), secret) {
+                ("status", None) => openai_revision(&credentials, &bound.profile_id)?,
+                ("replace", Some(secret)) => {
+                    let revision = credentials
+                        .replace(&bound.profile_id, secret)
+                        .map_err(credential_failure)?;
+                    Some(parse_credential_revision(&revision)?)
+                }
+                ("remove", None) => {
+                    credentials
+                        .remove(&bound.profile_id)
+                        .map_err(credential_failure)?;
+                    None
+                }
+                _ => return Err(failure(ErrorCode::INVALIDARGUMENT)),
+            };
+            bound
+                .registry
+                .refresh_openai_credential(&text_model_access(&bound.profile_id), revision)?;
+            Ok(json!({
+                "configured": revision.is_some(),
+                "lifetime": match credentials.lifetime() {
+                    CredentialLifetime::Session => "session",
+                    CredentialLifetime::WindowsCredentialManager => "windows_credential_manager",
+                },
+            }))
         })
         .await?
         .ok_or_else(|| failure(ErrorCode::INTERNALERROR))
@@ -667,6 +724,39 @@ impl WorkspaceBridge {
     }
 }
 
+fn text_model_access(profile_id: &str) -> WorkspaceAccess<'_> {
+    WorkspaceAccess {
+        operations: &[AI_TEXT_CONNECTION],
+        disclose_workspace_state: false,
+        ..workspace_access(profile_id)
+    }
+}
+
+fn openai_revision(
+    credentials: &OpenAiCredentials,
+    profile_id: &str,
+) -> Result<Option<Uuid>, Error> {
+    credentials
+        .revision(profile_id)
+        .map_err(credential_failure)?
+        .as_deref()
+        .map(parse_credential_revision)
+        .transpose()
+}
+
+fn parse_credential_revision(revision: &str) -> Result<Uuid, Error> {
+    Uuid::parse_str(revision).map_err(|_| failure(ErrorCode::INTERNALERROR))
+}
+
+pub(super) fn credential_failure(error: CredentialError) -> Error {
+    let mut fault = failure(match error {
+        CredentialError::InvalidSecret => ErrorCode::INVALIDARGUMENT,
+        CredentialError::StoreUnavailable => ErrorCode::DATAUNAVAILABLE,
+    });
+    fault.message = error.to_string();
+    fault
+}
+
 impl BoundWorkspace {
     fn open(app_local_data: &Path) -> Result<Self, Error> {
         let directory = app_local_data.join(WORKSPACE_DIRECTORY);
@@ -798,7 +888,7 @@ mod tests {
         );
         assert!(!app_data.0.exists());
         for _ in 0..2 {
-            let bridge = WorkspaceBridge::development(Some(&app_data.0), true);
+            let bridge = WorkspaceBridge::local(Some(&app_data.0), true);
             let snapshot = bridge
                 .dispatch(None, json!({"type": "snapshot"}))
                 .await
@@ -817,7 +907,7 @@ mod tests {
 
     #[tokio::test]
     async fn shutdown_waits_for_the_admitted_slot_and_closes_the_lane() {
-        let bridge = WorkspaceBridge::development(None, true);
+        let bridge = WorkspaceBridge::local(None, true);
         let admitted = bridge.lane.lock().await;
         let snapshot = json!({"type": "snapshot"});
         assert_eq!(

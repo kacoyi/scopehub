@@ -1,4 +1,4 @@
-# Generated from contracts/schemas/protocol.schema.json; sha256=dede32ffd96bd8fa2ca6997ac75ce43587fed23996789f5e81500da2e2c842ed. Do not edit.
+# Generated from contracts/schemas/protocol.schema.json; sha256=edcbb63f3ee63c1d3400888898a05bcfa32dc72c9edda501884995d247d7e6f8. Do not edit.
 from __future__ import annotations
 from typing import Literal, NotRequired, TypedDict
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
@@ -2659,7 +2659,10 @@ class AiTextOllamaChoice(TypedDict):
     model: str
 class AiTextOfflineMockChoice(TypedDict):
     kind: Literal['offline_mock']
-AiTextRouteChoice = AiTextOllamaChoice | AiTextOfflineMockChoice
+class AiTextOpenAiChoice(TypedDict):
+    kind: Literal['openai_responses']
+    model: str
+AiTextRouteChoice = AiTextOllamaChoice | AiTextOfflineMockChoice | AiTextOpenAiChoice
 class AiTextOllamaRoute(TypedDict):
     kind: Literal['ollama']
     destination: str
@@ -2672,7 +2675,13 @@ class AiTextOfflineMockRoute(TypedDict):
     model: Literal['ScopeHub offline mock']
     scope: Literal['conversation_text']
     charge_basis: Literal['none']
-AiTextRoute = AiTextOllamaRoute | AiTextOfflineMockRoute
+class AiTextOpenAiRoute(TypedDict):
+    kind: Literal['openai_responses']
+    destination: Literal['https://api.openai.com/v1/responses']
+    model: str
+    scope: Literal['conversation_text']
+    charge_basis: Literal['openai_api_account']
+AiTextRoute = AiTextOllamaRoute | AiTextOfflineMockRoute | AiTextOpenAiRoute
 class AiTextGrant(TypedDict):
     connection_id: Uuid
     route: AiTextRoute
