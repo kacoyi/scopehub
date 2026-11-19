@@ -296,7 +296,8 @@
       "milestone": "M2",
       "status": "planned",
       "depends_on": [
-        "M1-001"
+        "M1-001",
+        "M2-005"
       ],
       "scope": [
         "crates/application",
@@ -326,9 +327,104 @@
         "state-migrations"
       ],
       "evidence": [],
-      "next_action": "Implement operation ownership, persistence and failure-oriented tests.",
+      "next_action": "After the chart workflow and revision clarification, implement the first SQLite-backed timeframe round trip through the shared registry. Extend it to scoped idempotency, explicit private saves and tested backup recovery.",
       "blocker": null,
-      "closure_reason": null
+      "closure_reason": null,
+      "plan": {
+        "outcome": "An authorized human or AI change goes through the same Rust registry, survives process restart in the originating local profile and can be undone by operation ID. Accepted results, private records and deletion decisions survive the documented recovery cases.",
+        "change_types": [
+          "persistence",
+          "permissions"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/contract.json",
+          "contracts/schemas/protocol.schema.json",
+          "crates/application/src/lib.rs",
+          "apps/desktop/src-tauri/src/bridge.rs",
+          "apps/desktop/ui/ubuntu-preview.mjs"
+        ],
+        "hypotheses": [
+          "Start with 1m to 5m, restart the Rust process, undo by the returned operation ID and restart to 1m. Two profiles with the same workspace ID make isolation directly observable.",
+          "A profile-bound, long-lived Rust core can share one transaction owner across the native and explicitly enabled Ubuntu workspace entries."
+        ],
+        "risks": [
+          {
+            "failure": "A lost response, concurrent duplicate or stale selected target applies a change twice or reveals a result after grants change.",
+            "checks": [
+              "operations-workflow"
+            ]
+          },
+          {
+            "failure": "A crash during migration or restore exposes a half-applied workspace, revives a known deleted note, or carries a grant into a different local profile.",
+            "checks": [
+              "state-migrations",
+              "operations-workflow"
+            ]
+          },
+          {
+            "failure": "A private body is retained in a receipt, undo payload, index, app-controlled export or log after deletion.",
+            "checks": [
+              "state-migrations",
+              "operations-workflow"
+            ]
+          }
+        ],
+        "rollback": "Keep the original database and an untouched local backup through staged migration. Exercise interruption before the atomic cutover and verify forward repair or restoring the previous visible state.",
+        "implementation": {
+          "modules": [
+            "application",
+            "domain",
+            "persistence",
+            "desktop",
+            "ui"
+          ],
+          "entrypoints": [
+            "crates/application/src/lib.rs",
+            "apps/desktop/src-tauri/src/bridge.rs",
+            "apps/desktop/ui/ubuntu-preview.mjs",
+            "contracts/schemas/protocol.schema.json",
+            "project/development.json"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization/durable_operations"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization/replay"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence/private_content"
+            },
+            {
+              "path": "contracts/decisions/0011-local-profiles-and-connected-model-use.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Real cloud or voice sessions, financial provider subscriptions, and full indicator computation belong to other tasks."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Synthetic read-only development grant, existing 1.1 reads, explicitly selected sample preferences, established confirmation and private excerpt rules."
+          ],
+          "change": [
+            "Add the profile-local transaction owner and versioned storage, then scoped replay and confirmation, explicit private saves and deletes, and staged backup recovery."
+          ],
+          "data_plan": "Keep application state inside the bound OS-user profile. Use WAL and foreign keys, a versioned migration, redacted receipts and profile-scoped deletion markers. Validate the original database on failure, independent older backup warnings and cross-profile isolation.",
+          "cleanup": "Keep a single write path. Remove provisional adapters once both hosts reach the same application core. Recover without replaying past AI work or reusing external disclosure grants."
+        }
+      }
     },
     {
       "id": "M3-001",
@@ -4551,6 +4647,107 @@
           ],
           "data_plan": "No stored product data changes. Existing reports stay readable.",
           "cleanup": "Use the existing structured harness output and keep a single private-log policy."
+        }
+      }
+    },
+    {
+      "id": "M2-005",
+      "title": "Align shared-selection and durable mutation revision requirements",
+      "milestone": "M2",
+      "status": "active",
+      "depends_on": [
+        "M0-023"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "tests/fixtures/protocol-cases.json",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0010"
+      ],
+      "acceptance": [
+        "The product rule, human request and AI tool intent agree on the independent selection and durable workspace revision preconditions. Shared vectors reject substitution of either revision for the other and preserve valid 1.1 callers."
+      ],
+      "checks": [
+        "project-state",
+        "generated-contracts",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Clarify the controlling rule and exercise the existing request and intent schemas through all language validators.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A developer implementing shared selection or a selection-bound durable write can identify the right revision without changing protocol 1.1 payloads.",
+        "change_types": [
+          "protocol"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/schemas/protocol.schema.json",
+          "contracts/contract.json",
+          "tests/fixtures/protocol-cases.json"
+        ],
+        "hypotheses": [
+          "The wire structs already encode both forms of optimistic concurrency. The broad AI policy sentence disagrees with the specific selection contract."
+        ],
+        "risks": [
+          {
+            "failure": "Requiring a workspace revision for selection rejects valid clients, or substituting a selection token for the durable revision allows a stale mutation.",
+            "checks": [
+              "python-contracts-workers",
+              "rust-contracts-workers",
+              "typescript-contracts"
+            ]
+          }
+        ],
+        "rollback": "Retain the accepted 1.1 schemas and regression vectors. Revisit the policy and add a versioned change only if existing callers actually require a different wire shape.",
+        "implementation": {
+          "modules": [
+            "domain",
+            "application",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "engineering-contract-v1.json",
+            "contracts/schemas/protocol.schema.json",
+            "tests/fixtures/protocol-cases.json"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization/durable_operations"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ai/tool_policy"
+            },
+            {
+              "path": "contracts/decisions/0010-reproducible-operations-and-acceptance.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Implement durable storage, authorize a new actor, change wire identifiers or mark any planned workspace operation implemented."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "Wire 1.1 human and AI requests, current grant checks, and independent selection tokens."
+          ],
+          "change": [
+            "Make the revision requirement for each operation explicit and exercise wrong-token substitution."
+          ],
+          "data_plan": "No saved or transmitted data format changes.",
+          "cleanup": "Replace the conflicting blanket instruction with the rules already used by the registered commands."
         }
       }
     }

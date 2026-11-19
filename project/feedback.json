@@ -745,6 +745,24 @@
         "prevention": "The strict-encoding child-process regression and the private diagnostic test ran locally and on both hosted platforms in run 44498344930. The Windows report, including the successful market replay, was staged and imported. The earlier browser assertion was unavailable in run 44495516299."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "selection-revision-policy-conflict",
+      "source": "M2-001 implementation planning, product AI tool policy compared with registered protocol 1.1 client and AI selection requests.",
+      "observation": "The generic policy requires a workspace revision for every mutation, but workspace.selectEvidence requires the expected selection revision and explicitly allows selection changes without advancing the durable workspace revision.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-005"
+      ],
+      "regression_checks": [
+        "generated-contracts",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
