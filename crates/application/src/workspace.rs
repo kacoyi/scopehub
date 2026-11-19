@@ -1,4 +1,7 @@
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    sync::LazyLock,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use scopehub_domain::{
     protocol::{
@@ -12,9 +15,12 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
-use crate::{Actor, Operation, OperationRegistry, authorized_operation, failure, operation};
+use crate::{
+    Actor, Operation, OperationRegistry, authorized_operation, failure, operation, validator,
+};
 
 mod backup;
+mod evidence;
 mod notes;
 
 pub(crate) use backup::DecisionNoteRestoreStaging;
@@ -23,6 +29,10 @@ pub use backup::{
     DECISION_NOTE_BACKUP_MAX_NOTES, DECISION_NOTE_BACKUP_MAX_OUTCOMES, DECISION_NOTE_EXPORT_BACKUP,
     DECISION_NOTE_PREVIEW_RESTORE, DECISION_NOTE_RESTORE_BACKUP, DecisionNoteBackupData,
     DecisionNoteOutcomeAddition, DecisionNoteRestorePlan,
+};
+pub use evidence::{
+    ChartEvidenceRef, ChartEvidenceStatus, LocalChartAnalysisGrant, READ_CHART_PROJECTION,
+    SELECT_EVIDENCE, evidence_operation_name,
 };
 pub(crate) use notes::PendingDecisionNoteConfirmation;
 pub use notes::{
@@ -36,6 +46,8 @@ pub const UNDO: &str = "workspace.undo";
 pub const LOCAL_WORKSPACE_OPERATIONS: &[&str] = &[
     SET_TIMEFRAME,
     UNDO,
+    SELECT_EVIDENCE,
+    READ_CHART_PROJECTION,
     DECISION_NOTE_SAVE,
     DECISION_NOTE_READ,
     DECISION_NOTE_APPEND_OUTCOME,
@@ -46,6 +58,8 @@ pub const LOCAL_WORKSPACE_OPERATIONS: &[&str] = &[
 ];
 pub const MAIN_CHART_ID: &str = "main-chart";
 const MAX_REVISION: Revision = 9_007_199_254_740_991;
+static BOUND_MUTATION_INTENT: LazyLock<jsonschema::Validator> =
+    LazyLock::new(|| validator("BoundMutationIntent11"));
 
 /// The identity provisioned by the host when it opens a local profile.
 #[derive(Debug, PartialEq, Eq)]
@@ -105,6 +119,7 @@ pub struct WorkspaceSnapshot {
     pub workspace: Workspace,
     pub selection_revision: Revision,
     pub undo: Option<WorkspaceUndoTarget>,
+    pub chart_evidence: Option<Value>,
 }
 
 pub struct WorkspaceUndoTarget {
@@ -151,6 +166,17 @@ pub struct WorkspaceChange<'a> {
 /// A transaction over the single workspace owned by this store.
 pub trait WorkspaceTransaction {
     fn state(&self) -> Result<WorkspaceState, Error>;
+    fn chart_evidence(&self) -> Result<Option<ChartEvidenceRef>, Error>;
+    fn set_chart_evidence(
+        &mut self,
+        selection_revision: Revision,
+        target: Option<&ChartEvidenceRef>,
+    ) -> Result<(), Error>;
+    fn local_evidence_dataset(
+        &self,
+        revision_id: &str,
+    ) -> Result<Option<crate::StoredLocalDataset>, Error>;
+    fn local_evidence_display_allowed(&self, revision_id: &str) -> Result<bool, Error>;
     fn chart_revision(&self) -> Result<Revision, Error>;
     fn replay(&self, key: &WorkspaceReplayKey<'_>) -> Result<Option<WorkspaceReplay>, Error>;
     fn undo_candidate(
@@ -189,7 +215,20 @@ pub trait WorkspaceStore: Send {
     fn snapshot(
         &self,
         undo: Option<WorkspaceUndoAccess<'_>>,
-    ) -> Result<(WorkspaceState, Option<WorkspaceUndoTarget>), Error>;
+        disclose_chart_evidence: bool,
+    ) -> Result<
+        (
+            WorkspaceState,
+            Option<WorkspaceUndoTarget>,
+            Option<ChartEvidenceStatus>,
+        ),
+        Error,
+    >;
+    /// Read the selection token, target and current source entitlement in a single snapshot.
+    fn inspect<T>(
+        &self,
+        read: impl FnOnce(&dyn WorkspaceTransaction) -> Result<T, Error>,
+    ) -> Result<T, Error>;
     fn read_notes(
         &self,
         note_id: Option<&str>,
@@ -257,12 +296,21 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             principal_id: access.principal_id,
             paired_client_id: access.paired_client_id,
         });
-        let (state, undo) = self.port.snapshot(undo)?;
+        let (state, undo, chart_evidence) = self.port.snapshot(
+            undo,
+            evidence::local_display(access) && access.operations.contains(&READ_CHART_PROJECTION),
+        )?;
         self.note_restore.observe(state.revision);
         Ok(WorkspaceSnapshot {
             workspace: workspace_projection(access.workspace_id, state.revision, state.timeframe),
             selection_revision: state.selection_revision,
             undo,
+            chart_evidence: chart_evidence.map(|status| match status {
+                ChartEvidenceStatus::Available(target) => json!({
+                    "revision_id": target.revision_id, "range": target.range,
+                }),
+                ChartEvidenceStatus::Unavailable => json!({"unavailable": true}),
+            }),
         })
     }
 
@@ -271,8 +319,50 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
     pub fn execute_workspace(
         &mut self,
         access: &WorkspaceAccess<'_>,
-        mut request: Value,
+        request: Value,
     ) -> Result<Value, Error> {
+        self.dispatch_workspace(access, request, ChartMutationAccess::Command)
+    }
+
+    /// Admit a chart mutation intent from a trusted on-device AI integration.
+    /// The host supplies current workspace disclosure and effective local
+    /// analysis access independently of the wire intent.
+    pub fn execute_chart_mutation_intent(
+        &mut self,
+        access: &WorkspaceAccess<'_>,
+        grant: Option<&LocalChartAnalysisGrant<'_>>,
+        mut intent: Value,
+    ) -> Result<Value, Error> {
+        if !matches!(access.actor, Actor::Ai) || access.paired_client_id.is_some() {
+            return Err(failure(ErrorCode::PERMISSIONDENIED));
+        }
+        if !BOUND_MUTATION_INTENT.is_valid(&intent) {
+            return Err(failure(ErrorCode::INVALIDARGUMENT));
+        }
+        if !matches!(
+            intent["intent"]["operation"].as_str(),
+            Some(SET_TIMEFRAME | UNDO)
+        ) {
+            return Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY));
+        }
+        intent["type"] = json!("request");
+        intent["protocol_version"] = json!("1.1");
+        intent["message_id"] = json!(Uuid::new_v4().to_string());
+        intent["request_id"] = json!(Uuid::new_v4().to_string());
+        intent["timestamp_ms"] = json!(timestamp_ms()?);
+        intent["task_id"] = Value::Null;
+        self.dispatch_workspace(access, intent, ChartMutationAccess::LocalAnalysis(grant))
+    }
+
+    fn dispatch_workspace(
+        &mut self,
+        access: &WorkspaceAccess<'_>,
+        mut request: Value,
+        mutation_access: ChartMutationAccess<'_>,
+    ) -> Result<Value, Error> {
+        if evidence_operation_name(&request).is_some() {
+            return self.execute_evidence_request(access, request);
+        }
         let name = request["intent"]["operation"]
             .as_str()
             .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
@@ -308,7 +398,15 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             }
             let arguments = &request["intent"]["arguments"];
             self.port.transact(|tx| {
-                execute_mutation(tx, access, &scope, arguments, &reply, &self.note_restore)
+                execute_mutation(
+                    tx,
+                    access,
+                    &scope,
+                    arguments,
+                    &reply,
+                    &self.note_restore,
+                    mutation_access,
+                )
             })
         });
         match result {
@@ -345,17 +443,21 @@ struct WorkspaceReply<'a> {
     timestamp_ms: i64,
 }
 
+fn timestamp_ms() -> Result<i64, Error> {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .ok()
+        .and_then(|duration| i64::try_from(duration.as_millis()).ok())
+        .ok_or_else(|| failure(ErrorCode::INTERNALERROR))
+}
+
 impl<'a> WorkspaceReply<'a> {
     fn new(operation: &'a Operation, request_id: &'a str) -> Result<Self, Error> {
         Ok(Self {
             operation,
             request_id,
             message_id: Uuid::new_v4(),
-            timestamp_ms: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .ok()
-                .and_then(|duration| i64::try_from(duration.as_millis()).ok())
-                .ok_or_else(|| failure(ErrorCode::INTERNALERROR))?,
+            timestamp_ms: timestamp_ms()?,
         })
     }
 
@@ -397,6 +499,32 @@ impl<'a> WorkspaceReply<'a> {
     }
 }
 
+enum ChartMutationAccess<'a> {
+    Command,
+    LocalAnalysis(Option<&'a LocalChartAnalysisGrant<'a>>),
+}
+
+impl ChartMutationAccess<'_> {
+    fn authorize_new_work(
+        self,
+        tx: &dyn WorkspaceTransaction,
+        access: &WorkspaceAccess<'_>,
+    ) -> Result<(), Error> {
+        if !matches!(access.actor, Actor::Ai) {
+            return Ok(());
+        }
+        match (self, tx.chart_evidence()?) {
+            (Self::Command, None) => Ok(()),
+            (Self::LocalAnalysis(Some(grant)), Some(target))
+                if grant.principal_id == access.principal_id =>
+            {
+                evidence::authorize_analysis_target(tx, &target, grant)
+            }
+            _ => Err(failure(ErrorCode::PERMISSIONDENIED)),
+        }
+    }
+}
+
 fn execute_mutation(
     tx: &mut dyn WorkspaceTransaction,
     access: &WorkspaceAccess<'_>,
@@ -404,6 +532,7 @@ fn execute_mutation(
     arguments: &Value,
     reply: &WorkspaceReply<'_>,
     staging: &DecisionNoteRestoreStaging,
+    mutation_access: ChartMutationAccess<'_>,
 ) -> Result<Value, Error> {
     let operation = reply.operation;
     // Compute semantic identity independently of transport correlation.
@@ -433,6 +562,9 @@ fn execute_mutation(
         if saved.digest != digest {
             return Err(failure(ErrorCode::INVALIDARGUMENT));
         }
+        // This reply describes the main chart effect and carries no selected
+        // source fields. A later selection or loss of its analysis grant cannot
+        // change that historical effect. Current workspace disclosure still applies.
         return reply.committed(access.workspace_id, &saved.receipt);
     }
     if !access.operations.contains(&operation.name.as_str()) {
@@ -450,6 +582,8 @@ fn execute_mutation(
     {
         return Err(failure(ErrorCode::STALECONTEXT));
     }
+
+    mutation_access.authorize_new_work(tx, access)?;
 
     let (after, undoes) = if operation.name == SET_TIMEFRAME {
         let timeframe = arguments["timeframe"]

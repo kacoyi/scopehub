@@ -1,10 +1,9 @@
+import { startLocalImportBridge } from './local-import-bridge.mjs';
 import { test as base, expect } from '@playwright/test';
-import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, mkdtemp, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createInterface } from 'node:readline';
 import { painted } from './chart-pixels.mjs';
 import { control, openPanel } from './workspace-controls.mjs';
 
@@ -445,34 +444,6 @@ base('ordinary browser without native transport has no folder selection action',
   await expect(page.locator('input[type=file]')).toHaveCount(0);
 });
 
-function startLocalImportBridge(binary, profile, folder) {
-  const child = spawn(binary, [profile, folder], { stdio: ['pipe', 'pipe', 'pipe'] });
-  const output = createInterface({ input: child.stdout })[Symbol.asyncIterator]();
-  let diagnostic = '';
-  child.stderr.on('data', data => { diagnostic = (diagnostic + data.toString()).slice(-2048); });
-  child.stdin.on('error', error => { diagnostic = String(error); });
-  const ended = new Promise(resolve => {
-    child.once('error', error => { diagnostic = String(error); });
-    child.once('close', resolve);
-  });
-  let queue = Promise.resolve();
-  return {
-    request(command, args) {
-      const result = queue.then(async () => {
-        child.stdin.write(JSON.stringify({ command, args }) + '\n');
-        const reply = await output.next();
-        if (reply.done) throw new Error(`Local import bridge stopped: ${diagnostic}`);
-        return JSON.parse(reply.value);
-      });
-      queue = result.catch(() => undefined);
-      return result;
-    },
-    async close() {
-      child.stdin.end();
-      await ended;
-    },
-  };
-}
 
 base('built UI publishes all 502 native bars through Rust and discovers, reopens and revokes frozen revisions', {
   tag: '@profile-local-csv',
@@ -774,6 +745,105 @@ base('built UI publishes all 502 native bars through Rust and discovers, reopens
     expect(calls.filter(call => call.command === 'choose_local_csv_folder')).toHaveLength(folderSelections);
     expect(requestUrls.every(url => new URL(url).origin === baseURL && !new URL(url).pathname.startsWith('/__scopehub/'))).toBe(true);
   } finally {
+    await peer?.close();
+    await bridge?.close();
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
+base('peer revocation removes frozen editor content and an in-flight library revision', { tag: '@profile-local-csv' }, async ({ page, context }) => {
+  const binary = process.env.SCOPEHUB_LOCAL_IMPORT_BRIDGE;
+  base.skip(!binary, 'Set SCOPEHUB_LOCAL_IMPORT_BRIDGE to the portable Rust test example.');
+  const temporary = await mkdtemp(join(await realpath(tmpdir()), 'scopehub-revoked-editor-'));
+  const profile = join(temporary, 'profile');
+  const folder = join(temporary, 'synthetic-csv');
+  let bridge;
+  let peer;
+  const libraryPage = await context.newPage();
+  const lateBody = Promise.withResolvers();
+  let heldReply;
+  try {
+    await mkdir(profile, { mode: 0o700 });
+    await mkdir(folder, { mode: 0o700 });
+    const csv = [equity.header, ...equity.rows].map(row => row.join(',')).join('\n') + '\n';
+    const hash = createHash('sha256').update(csv).digest('hex');
+    await writeFile(join(folder, 'daily.csv'), csv);
+    bridge = startLocalImportBridge(binary, profile, folder);
+    peer = startLocalImportBridge(binary, profile, folder);
+    let revision;
+    await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
+      const reply = await bridge.request(command, args);
+      if (args?.operation === 'market.publishLocalImport') revision = reply.result?.revision;
+      return reply;
+    });
+    await libraryPage.exposeBinding('testNativeInvoke', async (_, command, args) => {
+      const reply = await bridge.request(command, args);
+      if (args?.operation === 'market.readLocalImportRevision') {
+        heldReply = reply;
+        await lateBody.promise;
+      }
+      return reply;
+    });
+    await context.addInitScript(() => {
+      window.isTauri = true;
+      window.__TAURI_INTERNALS__ = {
+        async invoke(command, args) {
+          const reply = await window.testNativeInvoke(command, args);
+          if (reply.error) throw reply.error;
+          return reply.result;
+        },
+      };
+    });
+
+    await page.goto('/');
+    await control(page, 'Choose local CSV folder').last().click();
+    await control(page, 'Inspect raw rows').click();
+    await enterMapping(page, equity);
+    await control(page, 'Preview mapping').click();
+    await expect(page.getByRole('table', { name: 'Normalized bars' })).toBeVisible();
+    await control(page, 'Save reviewed mapping').click();
+    await control(page, 'Publish complete file').click();
+    await expect(page.getByRole('region', { name: 'Published local CSV' })).toBeVisible();
+    expect(revision.source_sha256).toBe(hash);
+    await control(page, 'Open frozen chart').click();
+    const chart = page.getByRole('region', { name: 'Frozen local CSV chart' });
+    await expect(chart.locator('.history')).toHaveAttribute('data-bars', '2');
+    await page.getByText('Source rows (2)', { exact: true }).click();
+    await expect(page.getByRole('table', { name: 'Published source rows' })).toBeVisible();
+
+    await libraryPage.goto('/');
+    await control(libraryPage, 'Open published CSV').last().click();
+    const dialog = libraryPage.getByRole('dialog', { name: 'Open published CSV' });
+    const entry = dialog.getByRole('button', { name: /Open daily\.csv.*Final close/ });
+    await entry.click();
+    await expect.poll(() => heldReply?.result?.revision.revision_id).toBe(revision.revision_id);
+
+    const revoked = await peer.request('execute_operation', {
+      operation: 'market.revokeLocalImportRevision', requestId: randomUUID(),
+      payload: { version: 1, revision_id: revision.revision_id },
+    });
+    expect(revoked.result.revision_id).toBe(revision.revision_id);
+    await libraryPage.bringToFront();
+    await libraryPage.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await expect(entry).toHaveCount(0, { timeout: 5000 });
+    lateBody.resolve();
+    await expect(dialog.getByRole('alert')).toContainText('This profile does not have permission to display this revision.');
+    await expect(dialog.getByRole('region', { name: 'Frozen local CSV chart' })).toHaveCount(0);
+    await expect(dialog.getByText(hash, { exact: true })).toHaveCount(0);
+    await page.bringToFront();
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await expect(chart).toHaveCount(0, { timeout: 3500 });
+    await expect(page.getByRole('table', { name: 'Published source rows' })).toHaveCount(0);
+    await expect(page.getByRole('table', { name: 'Normalized bars' })).toHaveCount(0);
+    await expect(page.getByText(hash, { exact: true })).toHaveCount(0);
+    await expect(control(page, 'Open frozen chart')).toHaveCount(0);
+
+    await control(page, 'Inspect raw rows').click();
+    await expect(page.getByRole('region', { name: 'Preview source' })).toContainText(hash);
+    await expect(chart).toHaveCount(0);
+  } finally {
+    lateBody.resolve();
+    await libraryPage.close();
     await peer?.close();
     await bridge?.close();
     await rm(temporary, { recursive: true, force: true });

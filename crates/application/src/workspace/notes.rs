@@ -220,7 +220,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         let args = request.intent.arguments;
         let note_id = args.note_id.as_deref().map(canonical_id).transpose()?;
         if self.note_restore.is_pending() {
-            let (state, _) = self.port.snapshot(None)?;
+            let (state, _, _) = self.port.snapshot(None, false)?;
             self.note_restore.observe(state.revision);
         }
         let result = self.port.read_notes(note_id.as_deref(), args.offset)?;

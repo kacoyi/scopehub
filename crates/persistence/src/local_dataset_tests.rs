@@ -60,8 +60,8 @@ fn populated_v4_dataset_migration_is_atomic_and_preserves_existing_state() {
         .transaction_with_behavior(TransactionBehavior::Immediate)
         .unwrap();
     migrate(&transaction, &Profile::binding()).unwrap();
-    assert_eq!(ledger(&transaction), [1, 2, 3, 4, 5]);
-    assert_eq!(integer_pragma(&transaction, "user_version"), 5);
+    assert_eq!(ledger(&transaction), [1, 2, 3, 4, 5, 6]);
+    assert_eq!(integer_pragma(&transaction, "user_version"), SCHEMA_VERSION);
     assert_eq!(dataset_counts(&transaction), (0, 0));
     drop(transaction);
     assert_eq!(ledger(&database), [1, 2, 3, 4]);
@@ -75,9 +75,12 @@ fn populated_v4_dataset_migration_is_atomic_and_preserves_existing_state() {
     assert_eq!(fs::read(profile.db()).unwrap(), backup);
 
     let writer = profile.open().unwrap();
-    assert_eq!(integer_pragma(&writer.connection, "user_version"), 5);
-    assert_eq!(ledger(&writer.connection), [1, 2, 3, 4, 5]);
-    let state = writer.snapshot(None).unwrap().0;
+    assert_eq!(
+        integer_pragma(&writer.connection, "user_version"),
+        SCHEMA_VERSION
+    );
+    assert_eq!(ledger(&writer.connection), [1, 2, 3, 4, 5, 6]);
+    let state = writer.snapshot(None, false).unwrap().0;
     assert_eq!(
         (state.revision, state.timeframe),
         (2, Timeframe::FiveMinutes)
@@ -96,7 +99,7 @@ fn populated_v4_dataset_migration_is_atomic_and_preserves_existing_state() {
     fs::write(restored_profile.db(), backup).unwrap();
     let restored = restored_profile.open().unwrap();
     assert_eq!(restored.load_mapping(SOURCE_KEY).unwrap(), Some(mapping));
-    assert_eq!(restored.snapshot(None).unwrap().0.revision, 2);
+    assert_eq!(restored.snapshot(None, false).unwrap().0.revision, 2);
     assert_eq!(
         restored.read_notes(Some("note"), 0).unwrap().outcomes[0].outcome_id,
         "outcome"
@@ -441,4 +444,379 @@ fn interrupted_publication_discards_staging_and_keeps_the_frozen_revision() {
         newer
     );
     assert_eq!(dataset_counts(&reopened.connection), (2, 2));
+}
+
+#[test]
+fn chart_evidence_migrates_populated_v5_and_rechecks_scope_grants_and_frozen_targets() {
+    use scopehub_application::{
+        LOCAL_WORKSPACE_OPERATIONS, LocalChartAnalysisGrant, OperationRegistry,
+        READ_CHART_PROJECTION, READ_LOCAL_IMPORT_REVISION, SELECT_EVIDENCE, WorkspaceAccess,
+    };
+    use scopehub_domain::protocol::ExportField11;
+
+    let profile = Profile::new();
+    let connection = v4_workspace(&profile);
+    connection
+        .execute_batch(include_str!("local_dataset.sql"))
+        .unwrap();
+    record_migration(&connection, LOCAL_DATASET_SCHEMA_VERSION).unwrap();
+    connection
+        .execute_batch("UPDATE workspaces SET revision = 3, selection_revision = 7;
+             INSERT INTO operation_log VALUES
+               ('ee23de30-c329-463b-85cd-bbe1459223d8', 'workspace', 'chart.setTimeframe', 'user', 'principal', '',
+                'timeframe', 300, 3, 1, '1m', '5m', NULL, NULL);")
+        .unwrap();
+    let v5 = SqliteWorkspace {
+        connection,
+        binding: Profile::binding(),
+    };
+    let mut v5 = v5;
+    let reviewed = v5.load_mapping(SOURCE_KEY).unwrap().unwrap();
+    let mut frozen = content(FIRST_DIGEST, 5, 6);
+    let start = 1_767_346_200_000_i64;
+    let second = start + 86_400_000;
+    let original = b"Date,Instrument,Open,High,Low,Close,Unknown\n2026-01-02,000001,4,6,3,5,retained\n2026-01-03,000001,6,9,4,8,retained\n";
+    let digest = "14b9a3172b4da93b3e3578af17ea729c1de617753a3d6859066156fcad0ddf8b";
+    frozen["file_sha256"] = json!(digest);
+    frozen["source_record_count"] = json!(2);
+    frozen["bars"].as_array_mut().unwrap().push(json!({
+        "bar": {"time_ms": second, "trading_day": "2026-01-03", "open": 6,
+                "high": 9, "low": 4, "close": 8, "volume": null, "is_closed": true},
+        "locators": [{"record_number": 2, "line_start": 3, "line_end": 3}],
+    }));
+    let candidate = LocalDatasetPublication {
+        source_key: SOURCE_KEY,
+        relative_path: "private/synthetic.csv",
+        source_sha256: digest,
+        mapping_sha256: MAPPING_DIGEST,
+        reviewed_mapping: &reviewed,
+        original,
+        content: &frozen,
+    };
+    let id = v5
+        .publish_local_dataset(&candidate, &CommitMapping)
+        .unwrap();
+    let revoked = v5
+        .publish_local_dataset(
+            &LocalDatasetPublication {
+                original: SECOND_CSV,
+                source_sha256: SECOND_DIGEST,
+                content: &content(SECOND_DIGEST, 6, 7),
+                ..candidate
+            },
+            &CommitMapping,
+        )
+        .unwrap();
+    assert!(v5.revoke_local_dataset(&revoked).unwrap());
+
+    let transaction = v5
+        .connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .unwrap();
+    migrate(&transaction, &Profile::binding()).unwrap();
+    assert_eq!(ledger(&transaction), [1, 2, 3, 4, 5, 6]);
+    drop(transaction);
+    assert_eq!(ledger(&v5.connection), [1, 2, 3, 4, 5]);
+    assert_eq!(dataset_counts(&v5.connection), (2, 2));
+    assert!(
+        v5.connection
+            .prepare("SELECT * FROM workspace_chart_evidence")
+            .is_err()
+    );
+    drop(v5);
+
+    let mut store = profile.open().unwrap();
+    assert_eq!(ledger(&store.connection), [1, 2, 3, 4, 5, 6]);
+    assert_eq!(store.load_mapping(SOURCE_KEY).unwrap().unwrap(), reviewed);
+    assert_eq!(
+        store.read_local_dataset(&id).unwrap().unwrap().content,
+        frozen
+    );
+    assert_eq!(
+        store.read_local_dataset(&revoked).err().unwrap().code,
+        ErrorCode::PERMISSIONDENIED
+    );
+    let notes = store.read_notes(Some("note"), 0).unwrap();
+    assert_eq!(notes.note.unwrap().thesis, "thesis");
+    assert_eq!(notes.outcomes[0].outcome_id, "outcome");
+
+    let binding = Profile::binding();
+    let user = WorkspaceAccess {
+        actor: Actor::User,
+        principal_id: "principal",
+        paired_client_id: None,
+        profile_id: &binding.profile_id,
+        workspace_id: &binding.workspace_id,
+        operations: LOCAL_WORKSPACE_OPERATIONS,
+        disclose_workspace_state: true,
+    };
+    let ai = WorkspaceAccess {
+        actor: Actor::Ai,
+        principal_id: "local-analysis-fixture",
+        ..user
+    };
+    let mut first = OperationRegistry::new(profile.open().unwrap());
+    let mut peer = OperationRegistry::new(profile.open().unwrap());
+    let local_import = WorkspaceAccess {
+        actor: Actor::LocalUser,
+        principal_id: user.profile_id,
+        operations: &[READ_LOCAL_IMPORT_REVISION],
+        ..user
+    };
+    assert_eq!(
+        first.open_evidence_chart(&user, &id).unwrap_err().code,
+        ErrorCode::PERMISSIONDENIED
+    );
+    assert_eq!(
+        first
+            .evidence_chart_display_allowed(&ai, &id)
+            .unwrap_err()
+            .code,
+        ErrorCode::PERMISSIONDENIED
+    );
+    assert!(
+        first
+            .evidence_chart_display_allowed(&local_import, &id)
+            .unwrap()
+    );
+    assert!(
+        !first
+            .evidence_chart_display_allowed(&local_import, &revoked)
+            .unwrap()
+    );
+    let chart = first.open_evidence_chart(&local_import, &id).unwrap();
+    assert_eq!(chart["snapshot"]["dataset_id"], id);
+    assert_eq!(chart["bars"][1]["bar"]["close"], 8);
+    let interval = |time: i64| {
+        json!({
+            "kind": "chart_interval", "snapshot": chart["snapshot"],
+            "range": {"from_ms": time, "to_ms": time + 1},
+        })
+    };
+    let select = |revision, target: Value| {
+        json!({
+            "operation": SELECT_EVIDENCE, "workspace_id": user.workspace_id,
+            "expected_selection_revision": revision, "target": target,
+        })
+    };
+    let read = |revision, fields: Value| {
+        json!({
+            "operation": READ_CHART_PROJECTION, "workspace_id": user.workspace_id,
+            "selection_revision": revision, "requested_fields": fields,
+        })
+    };
+    let envelope = |mut args: Value| {
+        args["protocol_version"] = json!("1.1");
+        args["type"] = json!("request");
+        args["timestamp_ms"] = json!(0);
+        args["request_id"] = json!(Uuid::new_v4().to_string());
+        args["message_id"] = json!(Uuid::new_v4().to_string());
+        args
+    };
+    let assert_fault = |reply: Value, code: &str| {
+        assert_eq!(reply["error"]["code"], code, "{reply}");
+        assert_eq!(reply["error"].as_object().unwrap().len(), 3);
+        assert!(reply.get("result").is_none() && reply.get("selection").is_none());
+    };
+
+    let before = first.workspace_snapshot(&user).unwrap();
+    assert_eq!(
+        (before.workspace.revision, before.selection_revision),
+        (3, 7)
+    );
+    let a = first
+        .execute_workspace(&user, envelope(select(7, interval(start))))
+        .unwrap();
+    assert_eq!(a["selection"]["selection_revision"], 8);
+    let lost = peer
+        .execute_workspace(&user, envelope(select(7, interval(second))))
+        .unwrap();
+    assert_fault(lost, "STALE_CONTEXT");
+    let response = peer
+        .execute_workspace(&user, envelope(read(8, json!(["time_ms", "close"]))))
+        .unwrap();
+    assert_eq!(
+        response["result"],
+        json!({
+            "source_reference": id, "revision": id, "fields": ["time_ms", "close"],
+            "rows": [{"time_ms": start, "close": 5.0}],
+        })
+    );
+    let mut forged = interval(second);
+    forged["snapshot"]["content_hash"] = json!("0".repeat(64));
+    assert_fault(
+        peer.execute_workspace(&user, envelope(select(8, forged)))
+            .unwrap(),
+        "SNAPSHOT_UNAVAILABLE",
+    );
+    assert_fault(
+        peer.execute_workspace(&user, envelope(select(8, interval(start + 1))))
+            .unwrap(),
+        "SNAPSHOT_UNAVAILABLE",
+    );
+    let mut missing_target = select(8, Value::Null);
+    missing_target.as_object_mut().unwrap().remove("target");
+    assert_eq!(
+        peer.execute_workspace(&user, envelope(missing_target.clone()))
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALIDARGUMENT,
+    );
+    assert_eq!(
+        peer.execute_evidence_intent(&ai, None, missing_target)
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALIDARGUMENT,
+    );
+    assert_fault(
+        peer.execute_workspace(
+            &user,
+            envelope(select(
+                8,
+                json!({"kind": "chart", "object_id": "main-chart"}),
+            )),
+        )
+        .unwrap(),
+        "UNSUPPORTED_CAPABILITY",
+    );
+    for other in [
+        WorkspaceAccess {
+            profile_id: "different-profile",
+            ..user
+        },
+        WorkspaceAccess {
+            workspace_id: "different-workspace",
+            ..user
+        },
+        WorkspaceAccess {
+            operations: &[],
+            ..user
+        },
+        WorkspaceAccess {
+            paired_client_id: Some("external-client"),
+            ..user
+        },
+    ] {
+        assert_fault(
+            peer.execute_workspace(&other, envelope(read(8, json!(["close"]))))
+                .unwrap(),
+            "PERMISSION_DENIED",
+        );
+        assert_fault(
+            peer.execute_workspace(&other, envelope(select(8, interval(second))))
+                .unwrap(),
+            "PERMISSION_DENIED",
+        );
+    }
+
+    let approved_range = VisibleRange {
+        from_ms: start,
+        to_ms: second + 1,
+    };
+    let grant = LocalChartAnalysisGrant {
+        principal_id: ai.principal_id,
+        revision_id: &id,
+        range: &approved_range,
+        fields: &[ExportField11::Close, ExportField11::Volume],
+    };
+    assert_fault(
+        peer.execute_evidence_intent(&ai, None, select(8, interval(second)))
+            .unwrap(),
+        "PERMISSION_DENIED",
+    );
+    assert_fault(
+        peer.execute_evidence_intent(&ai, None, read(8, json!(["close"])))
+            .unwrap(),
+        "PERMISSION_DENIED",
+    );
+    let b = peer
+        .execute_evidence_intent(&ai, Some(&grant), select(8, interval(second)))
+        .unwrap();
+    assert_eq!(b["selection"]["target"], interval(second));
+    assert_eq!(b["selection"]["selection_revision"], 9);
+    assert_fault(
+        first
+            .execute_workspace(&user, envelope(read(8, json!(["close"]))))
+            .unwrap(),
+        "STALE_CONTEXT",
+    );
+    assert_fault(
+        peer.execute_evidence_intent(&ai, Some(&grant), read(9, json!(["high", "close"])))
+            .unwrap(),
+        "PERMISSION_DENIED",
+    );
+    let response = peer
+        .execute_evidence_intent(&ai, Some(&grant), read(9, json!(["close", "volume"])))
+        .unwrap();
+    assert_eq!(
+        response["result"]["rows"],
+        json!([{"close": 8.0, "volume": null}])
+    );
+
+    let rollback: Result<(), _> = store.transact(|tx| {
+        tx.set_chart_evidence(10, None)?;
+        Err(failure(ErrorCode::CANCELLED))
+    });
+    assert_eq!(rollback.unwrap_err().code, ErrorCode::CANCELLED);
+    drop(first);
+    drop(peer);
+    let mut reopened = OperationRegistry::new(profile.open().unwrap());
+    let restored = reopened.workspace_snapshot(&user).unwrap();
+    assert_eq!(
+        (restored.workspace.revision, restored.selection_revision),
+        (3, 9)
+    );
+    assert_eq!(
+        restored.chart_evidence.unwrap()["range"],
+        interval(second)["range"]
+    );
+    assert_eq!(
+        restored.undo.unwrap().operation_id,
+        before.undo.unwrap().operation_id
+    );
+    assert!(store.revoke_local_dataset(&id).unwrap());
+    assert!(
+        !reopened
+            .evidence_chart_display_allowed(&local_import, &id)
+            .unwrap()
+    );
+    assert_fault(
+        reopened
+            .execute_evidence_intent(&ai, Some(&grant), read(9, json!(["close"])))
+            .unwrap(),
+        "SNAPSHOT_UNAVAILABLE",
+    );
+    assert_fault(
+        reopened
+            .execute_workspace(&user, envelope(select(9, interval(start))))
+            .unwrap(),
+        "SNAPSHOT_UNAVAILABLE",
+    );
+    assert_eq!(
+        reopened.workspace_snapshot(&user).unwrap().chart_evidence,
+        Some(json!({"unavailable": true}))
+    );
+    let cleared = reopened
+        .execute_workspace(&user, envelope(select(9, Value::Null)))
+        .unwrap();
+    assert_eq!(
+        cleared["selection"],
+        json!({
+            "workspace_id": user.workspace_id, "selection_revision": 10, "target": null,
+        })
+    );
+    assert_fault(
+        reopened
+            .execute_workspace(&user, envelope(read(10, json!(["close"]))))
+            .unwrap(),
+        "SNAPSHOT_UNAVAILABLE",
+    );
+    assert_eq!(
+        (
+            store.snapshot(None, false).unwrap().0.revision,
+            store.snapshot(None, false).unwrap().0.selection_revision
+        ),
+        (3, 10)
+    );
+    assert_eq!(dataset_counts(&store.connection), (2, 2));
 }

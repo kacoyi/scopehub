@@ -12,13 +12,14 @@ use rusqlite::{
     Connection, OpenFlags, OptionalExtension, Row, TransactionBehavior, config::DbConfig, params,
 };
 use scopehub_application::{
-    Actor, DecisionNoteBackupData, DecisionNoteChange, DecisionNoteMutation, DecisionNoteReplay,
-    DecisionNoteRestorePlan, SET_TIMEFRAME, Timeframe, UNDO, WorkspaceBinding, WorkspaceChange,
-    WorkspaceReceipt, WorkspaceReplay, WorkspaceReplayKey, WorkspaceState, WorkspaceStore,
-    WorkspaceTransaction, WorkspaceUndoAccess, WorkspaceUndoTarget, failure,
+    Actor, ChartEvidenceRef, ChartEvidenceStatus, DecisionNoteBackupData, DecisionNoteChange,
+    DecisionNoteMutation, DecisionNoteReplay, DecisionNoteRestorePlan, SET_TIMEFRAME,
+    StoredLocalDataset, Timeframe, UNDO, WorkspaceBinding, WorkspaceChange, WorkspaceReceipt,
+    WorkspaceReplay, WorkspaceReplayKey, WorkspaceState, WorkspaceStore, WorkspaceTransaction,
+    WorkspaceUndoAccess, WorkspaceUndoTarget, failure,
 };
 use scopehub_domain::protocol::{
-    DecisionNoteDate, DecisionNoteReadOutput, Error, ErrorCode, Revision,
+    DecisionNoteDate, DecisionNoteReadOutput, Error, ErrorCode, Revision, VisibleRange,
 };
 
 const DATABASE_NAME: &str = "workspace.sqlite3";
@@ -28,7 +29,8 @@ const DECISION_NOTES_SCHEMA_VERSION: i64 = 2;
 const DECISION_NOTE_RESTORE_SCHEMA_VERSION: i64 = 3;
 const REVIEWED_IMPORT_SCHEMA_VERSION: i64 = 4;
 const LOCAL_DATASET_SCHEMA_VERSION: i64 = 5;
-const SCHEMA_VERSION: i64 = LOCAL_DATASET_SCHEMA_VERSION;
+const CHART_EVIDENCE_SCHEMA_VERSION: i64 = 6;
+const SCHEMA_VERSION: i64 = CHART_EVIDENCE_SCHEMA_VERSION;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum OpenWorkspaceError {
@@ -238,6 +240,10 @@ fn migrate(connection: &Connection, binding: &WorkspaceBinding) -> Result<(), Op
         connection.execute_batch(include_str!("local_dataset.sql"))?;
         record_migration(connection, LOCAL_DATASET_SCHEMA_VERSION)?;
     }
+    if version < CHART_EVIDENCE_SCHEMA_VERSION {
+        connection.execute_batch(include_str!("chart_evidence.sql"))?;
+        record_migration(connection, CHART_EVIDENCE_SCHEMA_VERSION)?;
+    }
     Ok(())
 }
 
@@ -308,6 +314,34 @@ fn state(connection: &Connection, workspace_id: &str) -> Result<WorkspaceState, 
         .map_err(store_error)
 }
 
+fn chart_evidence(
+    connection: &Connection,
+    workspace_id: &str,
+) -> Result<Option<(ChartEvidenceRef, bool)>, Error> {
+    connection
+        .query_row(
+            "SELECT evidence.revision_id, from_ms, to_ms, revoked.revision_id IS NOT NULL
+             FROM workspace_chart_evidence AS evidence
+             LEFT JOIN local_dataset_display_revocations AS revoked USING (revision_id)
+             WHERE workspace_id = ?1",
+            [workspace_id],
+            |row| {
+                Ok((
+                    ChartEvidenceRef {
+                        revision_id: row.get(0)?,
+                        range: VisibleRange {
+                            from_ms: row.get(1)?,
+                            to_ms: row.get(2)?,
+                        },
+                    },
+                    row.get(3)?,
+                ))
+            },
+        )
+        .optional()
+        .map_err(store_error)
+}
+
 fn receipt(row: &Row<'_>) -> rusqlite::Result<WorkspaceReceipt> {
     Ok(WorkspaceReceipt {
         operation_id: row.get(0)?,
@@ -361,7 +395,15 @@ impl WorkspaceStore for SqliteWorkspace {
     fn snapshot(
         &self,
         undo: Option<WorkspaceUndoAccess<'_>>,
-    ) -> Result<(WorkspaceState, Option<WorkspaceUndoTarget>), Error> {
+        disclose_chart_evidence: bool,
+    ) -> Result<
+        (
+            WorkspaceState,
+            Option<WorkspaceUndoTarget>,
+            Option<ChartEvidenceStatus>,
+        ),
+        Error,
+    > {
         let snapshot = self
             .connection
             .unchecked_transaction()
@@ -372,8 +414,35 @@ impl WorkspaceStore for SqliteWorkspace {
             .map(|undo| eligible_undo(&snapshot, workspace_id, state, undo))
             .transpose()?
             .flatten();
+        let evidence = if disclose_chart_evidence {
+            chart_evidence(&snapshot, workspace_id)?.map(|(target, revoked)| {
+                if revoked {
+                    ChartEvidenceStatus::Unavailable
+                } else {
+                    ChartEvidenceStatus::Available(target)
+                }
+            })
+        } else {
+            None
+        };
         snapshot.commit().map_err(store_error)?;
-        Ok((state, target))
+        Ok((state, target, evidence))
+    }
+
+    fn inspect<T>(
+        &self,
+        read: impl FnOnce(&dyn WorkspaceTransaction) -> Result<T, Error>,
+    ) -> Result<T, Error> {
+        let snapshot = self
+            .connection
+            .unchecked_transaction()
+            .map_err(store_error)?;
+        let value = read(&SqliteTransaction {
+            connection: &snapshot,
+            binding: &self.binding,
+        })?;
+        snapshot.commit().map_err(store_error)?;
+        Ok(value)
     }
 
     fn transact<T>(
@@ -430,6 +499,62 @@ struct SqliteTransaction<'a> {
 impl WorkspaceTransaction for SqliteTransaction<'_> {
     fn state(&self) -> Result<WorkspaceState, Error> {
         state(self.connection, &self.binding.workspace_id)
+    }
+
+    fn chart_evidence(&self) -> Result<Option<ChartEvidenceRef>, Error> {
+        Ok(chart_evidence(self.connection, &self.binding.workspace_id)?.map(|(target, _)| target))
+    }
+
+    fn set_chart_evidence(
+        &mut self,
+        selection_revision: Revision,
+        target: Option<&ChartEvidenceRef>,
+    ) -> Result<(), Error> {
+        let workspace_id = &self.binding.workspace_id;
+        match target {
+            Some(target) => self.connection.execute(
+                "INSERT INTO workspace_chart_evidence (workspace_id, revision_id, from_ms, to_ms)
+                 VALUES (?1, ?2, ?3, ?4)
+                 ON CONFLICT(workspace_id) DO UPDATE SET revision_id = excluded.revision_id,
+                     from_ms = excluded.from_ms, to_ms = excluded.to_ms",
+                params![
+                    workspace_id,
+                    target.revision_id,
+                    target.range.from_ms,
+                    target.range.to_ms
+                ],
+            ),
+            None => self.connection.execute(
+                "DELETE FROM workspace_chart_evidence WHERE workspace_id = ?1",
+                [workspace_id],
+            ),
+        }
+        .map_err(store_error)?;
+        self.connection
+            .execute(
+                "UPDATE workspaces SET selection_revision = ?2 WHERE id = ?1",
+                params![
+                    workspace_id,
+                    i64::try_from(selection_revision)
+                        .map_err(|_| failure(ErrorCode::INTERNALERROR))?
+                ],
+            )
+            .map_err(store_error)?;
+        Ok(())
+    }
+
+    fn local_evidence_dataset(
+        &self,
+        revision_id: &str,
+    ) -> Result<Option<StoredLocalDataset>, Error> {
+        match local_dataset::read_local_dataset(self.connection, revision_id) {
+            Err(error) if matches!(error.code, ErrorCode::PERMISSIONDENIED) => Ok(None),
+            result => result,
+        }
+    }
+
+    fn local_evidence_display_allowed(&self, revision_id: &str) -> Result<bool, Error> {
+        local_dataset::display_allowed(self.connection, revision_id)
     }
 
     fn chart_revision(&self) -> Result<Revision, Error> {

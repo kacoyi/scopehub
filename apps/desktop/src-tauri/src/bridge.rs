@@ -93,6 +93,16 @@ fn state_with_profile(app_local_data: Option<&Path>, enable_workspace: bool) -> 
 }
 
 impl State {
+    #[cfg(feature = "portable-test-bridge")]
+    pub async fn execute_test_window_operation(
+        &self,
+        operation: Option<&str>,
+        payload: Value,
+        request_id: Option<&str>,
+    ) -> Result<Value, Error> {
+        self.execute("main", operation, payload, request_id).await
+    }
+
     async fn execute(
         &self,
         window_label: &str,

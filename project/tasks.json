@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-008",
+  "focus_task_id": "M2-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -335,6 +335,7 @@
       "scope": [
         "crates/application",
         "crates/persistence",
+        "crates/worker-host/tests/protocol.rs",
         "apps/desktop",
         "contracts",
         "engineering-contract-v1.json",
@@ -381,14 +382,15 @@
         "workspace-timeframe",
         "project-state",
         "python-contracts-workers",
-        "desktop-workspace-transport"
+        "desktop-workspace-transport",
+        "local-import-publication"
       ],
       "evidence": [],
-      "next_action": "Close the remaining shared-operation and state-migration gates. Exercise durable writes bound to a changing shared target, broaden recovery as other workspace records become durable, and retain the local decision-note lifecycle and staged restore regressions.",
+      "next_action": "Verify selected chart mutations, fresh disclosure on retry, rollback and undo together with native CSV discovery, revocation and explicit clear. Complete profile-local conversation, memory and strategy persistence, then verify backup, deletion and recovery before closing M2-001.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
-        "outcome": "An authorized human or AI change goes through the same Rust registry, survives process restart in the originating local profile and can be undone by operation ID. Accepted results, private records and deletion decisions survive the documented recovery cases.",
+        "outcome": "An authorized human or AI change goes through the same Rust registry, survives process restart in the originating local profile and can be undone by operation ID. Accepted results, private records and deletion decisions survive the documented recovery cases. The next slice proves current local human or scoped on-device AI can change the main chart timeframe under independently versioned shared evidence, recover one authorized receipt after a lost response, and undo an eligible chart edit.",
         "change_types": [
           "persistence",
           "permissions",
@@ -403,14 +405,20 @@
           "apps/desktop/src-tauri/src/bridge.rs",
           "apps/desktop/ui/ubuntu-preview.mjs",
           "crates/application/src/workspace.rs",
-          "crates/persistence/src/lib.rs"
+          "crates/persistence/src/lib.rs",
+          "apps/desktop/ui/ubuntu-workspace.mjs",
+          "crates/application/src/local_publication.rs",
+          "crates/persistence/src/local_dataset.sql",
+          "crates/worker-host/tests/protocol.rs"
         ],
         "hypotheses": [
           "Start with 1m to 5m, restart the Rust process, undo by the returned operation ID and restart to 1m. Two profiles with the same workspace ID make isolation directly observable.",
           "A profile-bound, long-lived Rust core can share one transaction owner across the native and explicitly enabled Ubuntu workspace entries.",
           "A synthetic original thesis and a separately dated outcome can be distinguished after restart. Deleting their note can retain a profile-bound marker and redacted operation results without leaving the body available to a live read, undo or idempotent replay.",
           "A logical backup limited to decision notes can recover missing originals and dated outcomes, keep newer work, and suppress marked notes without copying operation history, grants or SQLite journals.",
-          "Restore stages can retain only pending inserts and release them when the revision changes, a deadline expires or the session ends. Revision-based projection refresh can preserve a surviving note's unsubmitted outcome draft while clearing deleted list entries and details."
+          "Restore stages can retain only pending inserts and release them when the revision changes, a deadline expires or the session ends. Revision-based projection refresh can preserve a surviving note's unsubmitted outcome draft while clearing deleted list entries and details.",
+          "The published single-series CSV revision UUID identifies the frozen chart and scopes its instrument identity. Derive the history-chain-v1 hash from the exact stored bars. Use the exclusive bar-start coverage bound as the deterministic cutoff for this closed-bar source, which carries no observation clock.",
+          "Native publication browsing can use stored v5 revision summaries while v6 selection and projected chart reads continue through scoped workspace permissions. Opening a library row follows the same revocation checks as opening by revision ID."
         ],
         "risks": [
           {
@@ -449,9 +457,23 @@
               "rust-contracts-workers",
               "desktop-workspace-transport"
             ]
+          },
+          {
+            "failure": "An old token becomes valid again after reopen, a second writer overwrites an intervening choice, or a revoked dataset or grant discloses private chart data.",
+            "checks": [
+              "rust-contracts-workers",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "Revocation leaves an old chart, provenance, bars or projection visible, an older response restores the bytes, or the unavailable target cannot be cleared without its revoked display right.",
+            "checks": [
+              "workspace-timeframe",
+              "local-import-publication"
+            ]
           }
         ],
-        "rollback": "Keep the selected backup file untouched. Stage a revision-bound restore in memory. Cancel, reject or interrupt before committing the SQLite transaction and verify the previous live notes, deletion state and timeframe remain available across process restart.",
+        "rollback": "Keep the selected backup file untouched. Stage a revision-bound restore in memory. Cancel, reject or interrupt before committing the SQLite transaction and verify the previous live notes, deletion state and timeframe remain available across process restart. Exercise v6 migration rollback and a rejected selection transaction against a populated v5 fixture, then reopen and verify both revisions, undo, notes, mappings and published data.",
         "implementation": {
           "modules": [
             "application",
@@ -472,7 +494,12 @@
             "crates/persistence/src/lib.rs",
             "crates/persistence/src/decision_notes.sql",
             "crates/persistence/src/decision_note_restore.sql",
-            "apps/desktop/ui/src/decision-notes.tsx"
+            "apps/desktop/ui/src/decision-notes.tsx",
+            "apps/desktop/ui/src/use-local-workspace.ts",
+            "apps/desktop/ui/src/local-revision-dialog.tsx",
+            "crates/persistence/tests/workspace_process.rs",
+            "crates/persistence/tests/support/operations_workflow.rs",
+            "apps/desktop/ui/src/local-import-editor.tsx"
           ],
           "rules": [
             {
@@ -498,11 +525,24 @@
             {
               "path": "engineering-contract-v1.json",
               "pointer": "/persistence/notes_and_restore"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/shared_evidence"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization/data_purposes"
+            },
+            {
+              "path": "contracts/contract.json",
+              "pointer": "/operations"
             }
           ],
           "non_goals": [
             "The first backup covers saved decision notes, dated outcomes and deletion markers. Broader workspace settings, accepted indicator versions, saved conversations, credentials, grants, audit history, caches and journals are outside this backup format.",
-            "Real cloud or voice sessions, financial provider subscriptions, and full indicator computation belong to other tasks."
+            "Real cloud or voice sessions, financial provider subscriptions, and full indicator computation belong to other tasks.",
+            "Use the registered main chart as the affected object and the existing published CSV interval as shared context. No new persistence version, additional selection kinds, provider transmission, external recipient admission or new confirmation surface."
           ],
           "open_questions": []
         },
@@ -514,10 +554,13 @@
           "change": [
             "The private hosts dispatch decisionNote.save, decisionNote.read, decisionNote.appendOutcome and decisionNote.delete through the Rust registry. Explicit local confirmation authorizes new writes. Reads and redacted receipt replay use current disclosure access.",
             "Add explicit local decision-note export and revision-bound preview and apply. Recover missing notes and outcomes, preserve other current notes, reject conflicting surviving identities and apply the union of known deletion markers in the same transaction. Warn before approving candidates whose deletion history is unavailable.",
-            "Check complete backup capacity before admitting note additions and restore plans. Keep private drafts separate from refreshed note projections."
+            "Check complete backup capacity before admitting note additions and restore plans. Keep private drafts separate from refreshed note projections.",
+            "Add a shared chart interval and an independently increasing selection token; local hover and chart navigation stay in the UI. Recheck current target access and exact requested fields for projected reads.",
+            "Revalidate the main-chart target and both revision tokens for new chart edits. Require an effective local chart analysis grant for AI mutations using a selected interval. Rebuild chart-only replay results from the immutable receipt under current workspace disclosure.",
+            "Invalidate the open published revision and pending old replies after observing current display entitlement loss. Keep unavailable selection clear controls reachable from both the workspace and the revision dialog."
           ],
-          "data_plan": "Keep application state inside the bound OS-user profile. The v1 to v2 migration retains chart state, undo and replay and adds immutable originals, separate outcomes and profile-scoped deletion markers. Version 3 preserves outcome order and supports several outcomes under one restore receipt. A versioned logical note backup stays scoped to its originating profile and workspace.",
-          "cleanup": "Delete original and outcome bodies, clear body-derived replay fingerprints, and durably resume SQLite WAL cleanup if a reader blocks it. Restore without replaying past AI work or reusing external disclosure grants."
+          "data_plan": "Keep application state inside the bound OS-user profile. The v1 to v2 migration retains chart state, undo and replay and adds immutable originals, separate outcomes and profile-scoped deletion markers. Version 3 preserves outcome order and supports several outcomes under one restore receipt. A versioned logical note backup stays scoped to its originating profile and workspace. Version 6 adds only the selected immutable revision UUID and interval bounds. It preserves the existing selection revision and all workspace, undo, note, mapping, publication and revocation records. The reference restores no disclosure grant.",
+          "cleanup": "Delete original and outcome bodies, clear body-derived replay fingerprints, and durably resume SQLite WAL cleanup if a reader blocks it. Restore without replaying past AI work or reusing external disclosure grants. Clear the selected reference explicitly without resetting its token. Deny a revoked target without restoring or exporting its contents."
         }
       }
     },

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { ChartCursorMode, ChartStyle, HistoryChartHandle } from './chart-adapter/history';
 import { DecisionNotes } from './decision-notes';
+import { UnavailableSharedSelection } from './frozen-evidence';
 import { instrumentName, symbol } from './instrument-display';
 import { isClosedBarGapRevision, sampleRevisionInstrument, type ChartHistory, type Instrument, type SampleRevision } from './market';
 import { ReplayGapDetails, replayGapReason } from './market-quality';
@@ -51,9 +52,10 @@ function HistoryStatus({ history, repaired }: { history: ChartHistory; repaired:
   return history.bars.length ? <span className="history-status" role="status">History ready</span> : null;
 }
 
-export function ChartWorkspace({ sample, leaveSample, localActions, workspace }: {
+export function ChartWorkspace({ sample, leaveSample, localActions, workspace, openPublished }: {
   sample: boolean; leaveSample: () => void; localActions: LocalSourceActions | undefined;
   workspace: LocalWorkspace | undefined;
+  openPublished: (() => void) | undefined;
 }) {
   const [saved] = useState(() => sample ? readSampleView() : undefined);
   const [chosenId, setChosenId] = useState(saved?.symbol ?? '');
@@ -160,7 +162,8 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace }:
   let plot: ReactNode;
   if (!sample) {
     plot = <PlotMessage title="Open a chart">
-      {localActions && <LocalSourceButtons actions={localActions} />}
+      {localActions ? <LocalSourceButtons actions={localActions} /> : openPublished &&
+        <button type="button" className="secondary-button" aria-haspopup="dialog" onClick={openPublished}>Open published CSV</button>}
       <p>Explore three instruments with offline sample data.</p>
       <button type="button" className="primary" onClick={openSample}>Open offline sample <WorkspaceIcon name="arrow" /></button></PlotMessage>;
   } else if (failure) {
@@ -213,7 +216,9 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace }:
       <section className="plot-workspace" aria-label="Price chart">
         {plot}
         <footer className="chart-footer"><span>{sample ? (date ? date + ' UTC' : 'Jan 2024') : 'ScopeHub'}</span>
-          {workspace?.pending && <span role="status">{workspace.pending === 'open' ? 'Loading local workspace…' : 'Saving timeframe…'}</span>}
+          <UnavailableSharedSelection workspace={workspace} />
+          {workspace?.pending && <span role="status">{workspace.pending === 'open' ? 'Loading local workspace…'
+            : workspace.pending === 'evidence' ? 'Sharing chart evidence…' : 'Saving timeframe…'}</span>}
           {workspace?.error && <><span role="alert" className="workspace-error">{workspace.error}</span>
             <button type="button" className="secondary-button" onClick={workspace.reload}>Reload workspace state</button></>}
           {selected && <span>{selected.timezone}</span>}
