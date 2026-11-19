@@ -44,6 +44,8 @@ struct InterruptedWorker<'a> {
     exit_during_repair: bool,
     boundary_fault: Option<BoundaryFault>,
     authentic_resume_hash: Option<String>,
+    initial_quality: Option<Value>,
+    replacement_quality: Option<Value>,
 }
 
 impl<'a> InterruptedWorker<'a> {
@@ -57,6 +59,8 @@ impl<'a> InterruptedWorker<'a> {
             exit_during_repair: false,
             boundary_fault: None,
             authentic_resume_hash: None,
+            initial_quality: None,
+            replacement_quality: None,
         }
     }
 
@@ -93,6 +97,19 @@ impl MarketPort for InterruptedWorker<'_> {
             let pid = self.worker.process_id().expect("owned process");
             if self.trace.processes.last() != Some(&pid) {
                 self.trace.processes.push(pid);
+            }
+            if operation == "market.readHistoryPage" {
+                let quality = if is_resume_read {
+                    &self.replacement_quality
+                } else {
+                    &self.initial_quality
+                };
+                if let Some(quality) = quality {
+                    result["quality_state"]
+                        .as_object_mut()
+                        .unwrap()
+                        .extend(quality.as_object().unwrap().clone());
+                }
             }
             if is_resume_read {
                 match self.boundary_fault {
@@ -222,6 +239,156 @@ async fn replacement_cannot_rewrite_a_confirmed_closed_bar() {
 }
 
 #[tokio::test]
+async fn replacement_cannot_hide_new_visible_loss_behind_unchanged_five_minute_bars() {
+    let initial = sample_page(query("SIM.CN.FUTURE.001", "5m", "contracts")).await;
+    assert_eq!(initial["quality_state"]["coverage"], "observed");
+    assert_eq!(initial["quality_state"]["gaps"], json!([]));
+    let mut trace = Trace::default();
+    let mut worker = InterruptedWorker::new(&mut trace);
+    worker.replacement_quality = Some(json!({
+        "coverage":"gapped", "gaps":[{"from_ms":1704200460000_i64,"to_ms":1704200520000_i64}],
+    }));
+    let mut frames = Vec::new();
+    let result = run_owned_subscription(
+        worker,
+        config().deadline,
+        Actor::User,
+        subscription(&initial),
+        std::future::pending(),
+        |frame| {
+            frames.push(frame);
+            Ok(())
+        },
+    )
+    .await
+    .unwrap();
+    assert_eq!(result, json!({"status":"gapped", "reason":"source_gap"}));
+    assert_eq!(trace.opened.len(), 1);
+    assert_eq!(trace.processes.len(), 2);
+    assert_eq!(trace.exits, trace.processes[..1]);
+    assert_eq!(trace.restarts, [1]);
+    assert!(trace.cleaned);
+    assert_eq!(frames.len(), 3);
+    assert_eq!(
+        frames[0]["subscription"]["from_position"],
+        initial["stream_position"]
+    );
+    assert_eq!(frames[1]["event"]["sequence"], 1);
+    assert_eq!(frames[2]["recovery"]["status"], "reconnecting");
+}
+
+#[tokio::test]
+async fn replacement_compares_selected_half_open_coverage_independently_of_freshness() {
+    let from = 1704200520000_i64;
+    let to = 1704330600000_i64;
+    let mut args = query("SIM.CN.FUTURE.001", "5m", "contracts");
+    args["from_ms"] = json!(from);
+    args["to_ms"] = json!(to);
+    let initial = sample_page(args).await;
+    let known = |gaps: &[(i64, i64)]| {
+        let gaps: Vec<_> = gaps
+            .iter()
+            .map(|(start, end)| json!({"from_ms":start,"to_ms":end}))
+            .collect();
+        json!({"coverage":"gapped", "gaps":gaps})
+    };
+    let source_gap = json!({"status":"gapped", "reason":"source_gap"});
+    let coverage_unknown = json!({"status":"gapped", "reason":"coverage_unknown"});
+    let unknown = json!({"coverage":"unknown"});
+    let mut outside = known(&[(from - 60_000, from), (to, to + 60_000)]);
+    outside["freshness"] = json!("delayed");
+    let overlapping = known(&[(from - 60_000, from + 30_000)]);
+    for (label, original, replacement, resumes, outcome) in [
+        (
+            "adjacent outside",
+            None,
+            outside,
+            true,
+            json!({"status":"complete"}),
+        ),
+        (
+            "same clipped union",
+            Some(overlapping.clone()),
+            known(&[(from + 15_000, from + 30_000), (from, from + 15_000)]),
+            true,
+            source_gap.clone(),
+        ),
+        (
+            "one millisecond of added visible loss",
+            Some(overlapping.clone()),
+            known(&[(from, from + 30_001)]),
+            false,
+            source_gap.clone(),
+        ),
+        (
+            "removed original gap",
+            Some(overlapping),
+            json!({"coverage":"observed"}),
+            false,
+            source_gap,
+        ),
+        (
+            "new unknown coverage",
+            None,
+            unknown.clone(),
+            false,
+            coverage_unknown.clone(),
+        ),
+        (
+            "unchanged unknown coverage",
+            Some(unknown.clone()),
+            unknown,
+            true,
+            coverage_unknown,
+        ),
+    ] {
+        let mut trace = Trace::default();
+        let mut worker = InterruptedWorker::new(&mut trace);
+        worker.initial_quality = original;
+        worker.replacement_quality = Some(replacement);
+        let mut frames = Vec::new();
+        let result = run_owned_subscription(
+            worker,
+            config().deadline,
+            Actor::User,
+            subscription(&initial),
+            std::future::pending(),
+            |frame| {
+                frames.push(frame);
+                Ok(())
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(result, outcome, "{label}");
+        assert_eq!(trace.opened.len(), if resumes { 2 } else { 1 }, "{label}");
+        assert_eq!(trace.restarts, [1], "{label}");
+        assert!(trace.cleaned, "{label}");
+        assert_eq!(
+            frames
+                .iter()
+                .filter(|frame| frame.get("subscription").is_some())
+                .count(),
+            1,
+            "{label}"
+        );
+        assert_eq!(frames[1]["event"]["sequence"], 1, "{label}");
+        assert_eq!(frames[2]["recovery"]["status"], "reconnecting", "{label}");
+        if resumes {
+            assert_eq!(frames.len(), 5, "{label}");
+            assert_eq!(frames[3]["recovery"]["status"], "resumed", "{label}");
+            assert_eq!(frames[4]["event"]["sequence"], 2, "{label}");
+            assert_eq!(
+                frames[4]["event"]["payload"]["bar"]["is_closed"], true,
+                "{label}"
+            );
+        } else {
+            assert_eq!(frames.len(), 3, "{label}");
+        }
+    }
+}
+
+#[tokio::test]
 async fn owned_worker_exit_during_repair_preserves_gap_and_exact_error() {
     let mut reads = MarketRegistry::new(MarketWorker::new(Some(config())));
     let mut args = query("SIM.CN.FUTURE.001", "1m", "contracts");
@@ -263,13 +430,13 @@ async fn owned_worker_exit_during_repair_preserves_gap_and_exact_error() {
 }
 
 async fn sample_futures_page() -> Value {
+    sample_page(query("SIM.CN.FUTURE.001", "1m", "contracts")).await
+}
+
+async fn sample_page(args: Value) -> Value {
     let mut reads = MarketRegistry::new(MarketWorker::new(Some(config())));
     let page = reads
-        .execute(
-            Actor::User,
-            "market.readHistoryPage",
-            query("SIM.CN.FUTURE.001", "1m", "contracts"),
-        )
+        .execute(Actor::User, "market.readHistoryPage", args)
         .await
         .unwrap();
     reads.shutdown().await.unwrap();

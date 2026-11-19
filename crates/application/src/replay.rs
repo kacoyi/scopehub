@@ -1,9 +1,10 @@
 //! Frozen snapshot handoff and bounded event validation for the synthetic replay.
 use scopehub_domain::{
     protocol::{
-        Bar, Error, ErrorCode, FrozenSnapshot, MarketHistoryPageOutput, MarketStreamBarUpdate,
-        MarketStreamGapEvent, MarketStreamGapReason, MarketSubscriptionInput,
-        MarketSubscriptionOutput, Message, StreamPosition, VisibleRange,
+        Bar, Error, ErrorCode, FrozenSnapshot, MarketHistoryPageOutput, MarketQualityState,
+        MarketQualityStateCoverage, MarketStreamBarUpdate, MarketStreamGapEvent,
+        MarketStreamGapReason, MarketSubscriptionInput, MarketSubscriptionOutput, Message,
+        StreamPosition, VisibleRange,
     },
     wire::{POLICY, normalize_integers},
 };
@@ -95,11 +96,7 @@ impl<P: SubscriptionPort> MarketRegistry<P> {
         if bar.time_ms < snapshot.from_ms || bar.is_closed != (snapshot.as_of_ms >= closes_at) {
             return Err(invalid());
         }
-        let has_visible_gap = page
-            .quality_state
-            .gaps
-            .iter()
-            .any(|gap| gap.from_ms.max(snapshot.from_ms) < gap.to_ms.min(snapshot.to_ms));
+        let coverage = SelectedCoverage::at(snapshot, &page.quality_state);
         let repair = match page.quality_state.gaps.as_slice() {
             [missing]
                 if snapshot.series.timeframe == "1m"
@@ -121,7 +118,7 @@ impl<P: SubscriptionPort> MarketRegistry<P> {
             return Ok(gapped(backfill.reason.as_str()));
         }
         if bar.is_closed {
-            return Ok(self.finish_closed_replay(has_visible_gap));
+            return Ok(self.finish_closed_replay(coverage.gap_reason()));
         }
         let mut state = Replay {
             input,
@@ -131,6 +128,7 @@ impl<P: SubscriptionPort> MarketRegistry<P> {
             updates: Vec::new(),
             timezone: page.dataset.timezone,
             repairable_gap: repair,
+            coverage,
         };
         let mut frames_left = POLICY["max_pending_requests"]
             .as_u64()
@@ -155,13 +153,13 @@ impl<P: SubscriptionPort> MarketRegistry<P> {
                 None => {}
                 Some(ReplayEnd::Gap(reason)) => return Ok(gapped(reason)),
                 Some(ReplayEnd::Closed) => {
-                    return Ok(self.finish_closed_replay(has_visible_gap));
+                    return Ok(self.finish_closed_replay(state.coverage.gap_reason()));
                 }
                 Some(ReplayEnd::ReportedGap(event)) => {
                     publish(json!({"event": event}))?;
                     if let Some(repair) = self.repair_closed_bar(actor, &state, &event).await? {
                         publish(json!({"repair": repair}))?;
-                        return Ok(self.finish_closed_replay(false));
+                        return Ok(self.finish_closed_replay(None));
                     }
                     return Ok(gapped(event.payload.reason.as_str()));
                 }
@@ -170,13 +168,9 @@ impl<P: SubscriptionPort> MarketRegistry<P> {
         Ok(gapped("overflow"))
     }
 
-    fn finish_closed_replay(&mut self, has_visible_gap: bool) -> Value {
+    fn finish_closed_replay(&mut self, gap_reason: Option<&str>) -> Value {
         self.port.complete_subscription();
-        if has_visible_gap {
-            gapped("source_gap")
-        } else {
-            json!({"status": "complete"})
-        }
+        gap_reason.map_or_else(|| json!({"status": "complete"}), gapped)
     }
 
     async fn read_replay_page(
@@ -385,6 +379,15 @@ impl<P: SubscriptionPort> MarketRegistry<P> {
         {
             return Ok(Some(gapped("divergent_duplicate")));
         }
+        let coverage = SelectedCoverage::at(snapshot, &page.quality_state);
+        if coverage != state.coverage {
+            let reason = if coverage.gaps.is_empty() && state.coverage.gaps.is_empty() {
+                "coverage_unknown"
+            } else {
+                "source_gap"
+            };
+            return Ok(Some(gapped(reason)));
+        }
         let resumed = MarketSubscriptionInput {
             series: snapshot.series.clone(),
             snapshot: page.snapshot,
@@ -446,6 +449,53 @@ enum ReplayEnd {
     ReportedGap(Box<MarketStreamGapEvent>),
 }
 
+#[derive(PartialEq, Eq)]
+struct SelectedCoverage {
+    gaps: Vec<(i64, i64)>,
+    unknown: bool,
+}
+
+impl SelectedCoverage {
+    fn at(snapshot: &FrozenSnapshot, quality: &MarketQualityState) -> Self {
+        // Source quality can describe gaps across the dataset. Compare the
+        // union of their half-open intersections with the selected range.
+        let mut clipped = Vec::new();
+        let mut unknown = quality.coverage == MarketQualityStateCoverage::Unknown
+            || (quality.coverage == MarketQualityStateCoverage::Gapped && quality.gaps.is_empty());
+        for gap in &quality.gaps {
+            if gap.from_ms >= gap.to_ms {
+                unknown = true;
+                continue;
+            }
+            let from = gap.from_ms.max(snapshot.from_ms);
+            let to = gap.to_ms.min(snapshot.to_ms);
+            if from < to {
+                clipped.push((from, to));
+            }
+        }
+        clipped.sort_unstable();
+        let mut gaps: Vec<(i64, i64)> = Vec::with_capacity(clipped.len());
+        for (from, to) in clipped {
+            if let Some((_, previous_to)) = gaps.last_mut()
+                && from <= *previous_to
+            {
+                *previous_to = (*previous_to).max(to);
+            } else {
+                gaps.push((from, to));
+            }
+        }
+        Self { gaps, unknown }
+    }
+
+    fn gap_reason(&self) -> Option<&'static str> {
+        if !self.gaps.is_empty() {
+            Some("source_gap")
+        } else {
+            self.unknown.then_some("coverage_unknown")
+        }
+    }
+}
+
 struct Replay {
     input: MarketSubscriptionInput,
     closed_bars: Vec<Bar>,
@@ -454,6 +504,7 @@ struct Replay {
     updates: Vec<MarketStreamBarUpdate>,
     timezone: String,
     repairable_gap: Option<VisibleRange>,
+    coverage: SelectedCoverage,
 }
 
 struct ReplayCheckpoint<'a> {
