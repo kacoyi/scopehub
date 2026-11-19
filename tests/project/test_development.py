@@ -142,6 +142,22 @@ class DevelopmentTests(ProjectFixture):
         self.assertEqual('passed', milestone['status'])
         self.assertEqual(['M0-999'], milestone['later_task_ids'])
 
+    def test_cancelled_current_work_cannot_cover_a_capability_delivered_only_later(self):
+        capability = self.record['capabilities'][0]
+        capability['task_ids'] = ['M0-002', 'M0-004']
+        self.save_record()
+        ledger = self.ledger()
+        task_by_id(ledger, 'M0-004')['delivery'] = 'later'
+        self.save_ledger(ledger)
+        load_project(self.root)
+        task_by_id(ledger, 'M0-002').update(status='cancelled', closure_reason='Superseded.')
+        self.save_ledger(ledger)
+        with self.assertRaisesRegex(ProjectError, 'only later delivery'):
+            load_project(self.root)
+        capability['task_ids'].append('M0-001')
+        self.save_record()
+        load_project(self.root)
+
     def test_json_pointers_handle_escapes_and_reject_escape_or_bad_index(self):
         self.save('reference.json', {'a/b': {'~key': ['expected']}})
         self.assertEqual('expected', resolve_source(self.root, {'path': 'reference.json', 'pointer': '/a~1b/~0key/0'}))

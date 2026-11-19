@@ -48,7 +48,9 @@
     ],
     "evolution": [
       "For a refactor, replacement, migration or requirement reset, identify preserved and intentionally changed behavior, affected callers, data handling and cleanup before activation.",
-      "Use direct refactoring for small changes and staged replacement when justified. Each stage stays reviewable and has an exit condition; remove obsolete paths after verified cutover.",
+      "Refactor small changes directly. For a replacement that cannot safely ship in one step, use the existing task dependencies to separate independently testable stages. Record the next working state, affected callers, exit check and recovery point in each stage's acceptance and plan.",
+      "Before switching a caller, capture its required behavior at the public entry, including failure cases and old inputs. Compare both implementations on representative read-only fixtures when useful. Keep one authoritative writer while moving mutations and exercise recovery on a copy of existing data.",
+      "Move callers in bounded groups and verify each through its normal entry. Keep the previous path only while recovery or a supported consumer needs it. Assign remaining cutover or removal work to a successor task with a concrete trigger. After the last caller and supported data version move, remove the obsolete path, transition switch and redundant checks while retaining coverage of current commitments.",
       "Version persistent formats and test migrations against representative old data before use. Retain failed evidence and verify backup/restore or forward repair; an application rollback does not prove data downgrade safety.",
       "Requirement changes supersede current decisions and create successor tasks; never rewrite completed task definitions or accepted ADR rationale."
     ],

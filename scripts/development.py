@@ -93,10 +93,11 @@ def validate_record(root, project, record):
         resolve_source(root, item['source'])
         if not item['task_ids'] or not set(item['task_ids']).issubset(project['tasks']):
             raise ValueError(f'Capability lacks tracked delivery: {item["id"]}')
-        if all(project['tasks'][key]['status'] == 'cancelled' for key in item['task_ids']):
+        surviving = [project['tasks'][key] for key in item['task_ids']
+                     if project['tasks'][key]['status'] != 'cancelled']
+        if not surviving:
             raise ValueError(f'Capability has only cancelled tasks: {item["id"]}')
-        if item['delivery'] == 'current-contract' and all(
-                project['tasks'][key].get('delivery') == 'later' for key in item['task_ids']):
+        if item['delivery'] == 'current-contract' and all(task.get('delivery') == 'later' for task in surviving):
             raise ValueError(f'Current capability has only later delivery: {item["id"]}')
     for task in project['tasks'].values():
         if task['status'] in {'done', 'cancelled'}:

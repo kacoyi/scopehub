@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-006",
+  "focus_task_id": "M0-024",
   "tasks": [
     {
       "id": "M0-001",
@@ -4019,6 +4019,117 @@
           ],
           "data_plan": "Use synthetic input for all regressions. Persist only an explicit local sample preference in the current preview. Specify migration and recovery for future persisted user data.",
           "cleanup": "Replace the broken entry and ambiguous contracts, regenerate all projections and verify history, checks and support claims."
+        }
+      }
+    },
+    {
+      "id": "M0-024",
+      "title": "Keep staged replacements verifiable across multiple revisions",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-023"
+      ],
+      "scope": [
+        "scripts/project.py",
+        "scripts/development.py",
+        "tests/project",
+        "project/development.json",
+        "project/delivery.json",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005",
+        "0007"
+      ],
+      "acceptance": [
+        "A review from either an original or intermediate Git revision follows each recorded replacement through to all its current required checks. Missing coverage, cycles and unreviewed changes fail.",
+        "Completed or cancelled plans retain their original work classification after its retirement. Every unfinished plan still uses current classifications, and every current capability has a surviving current delivery task.",
+        "Developers can find the repair owner, a proportionate staged cutover and recovery procedure, and the condition for resuming the product task in the existing development and delivery policies."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture"
+      ],
+      "evidence": [],
+      "next_action": "Exercise original and intermediate Git bases, retired work classifications and mixed cancelled and later tasks in isolated repositories, then repair the failing validations.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Change implementation or checks over several independently verifiable steps while preserving active product commitments, historical receipts and the next product task.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/project.py",
+          "scripts/development.py",
+          "tests/project/test_delivery.py",
+          "tests/project/test_development.py",
+          "project/delivery.json",
+          "project/development.json"
+        ],
+        "hypotheses": [
+          "The history check currently considers only immediate replacements. Classification validation consults current delivery policy for historical tasks. Separate cancellation and scope checks can hide a surviving requirement."
+        ],
+        "risks": [
+          {
+            "failure": "One branch of a split check disappears or a circular replacement is counted as coverage.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          },
+          {
+            "failure": "A historical record blocks removal of obsolete implementation policy or a current capability loses its accountable work.",
+            "checks": [
+              "python-contracts-workers",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Retain the failing isolated fixture and original Git checkpoint. Revert the tooling change as a unit if it accepts weaker coverage. Resume M1-006 after verification.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/project.py",
+            "scripts/development.py",
+            "tests/project/test_delivery.py",
+            "tests/project/test_development.py"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/evolution"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "contracts/decisions/0007-ai-led-development.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Creating a second planning system, changing product behavior or performing a production data migration."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing task and receipt formats, immutable accepted history, single-step check replacements, current required checks and product scope."
+          ],
+          "change": [
+            "Resolve chains of reviewed gate replacements across revisions, retire unused work classifications and distinguish available delivery from cancelled work."
+          ],
+          "data_plan": "Exercise versioned synthetic repositories. Product persistence and wire formats are unchanged.",
+          "cleanup": "Reuse the existing task graph, gate records and check commands. Restore focus to M1-006 after evidence is recorded."
         }
       }
     }

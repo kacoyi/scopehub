@@ -2,6 +2,7 @@
 
 import argparse
 from datetime import date, datetime, timezone
+from graphlib import CycleError, TopologicalSorter
 import hashlib
 import json
 import os
@@ -130,23 +131,13 @@ def require_refs(values, known, label):
         raise ProjectError(f'{label}: unknown references {sorted(missing)}')
 
 
-def validate_graph(items, field, label):
-    visited, visiting = set(), set()
-
-    def visit(key):
-        if key in visiting:
-            raise ProjectError(f'{label}: cycle at {key}')
-        if key in visited:
-            return
-        visiting.add(key)
-        require_refs(items[key][field], items, f'{label} {key}')
-        for dependency in items[key][field]:
-            visit(dependency)
-        visiting.remove(key)
-        visited.add(key)
-
-    for key in items:
-        visit(key)
+def validate_graph(edges, label):
+    for key, targets in edges.items():
+        require_refs(targets, edges, f'{label} {key}')
+    try:
+        TopologicalSorter(edges).prepare()
+    except CycleError as error:
+        raise ProjectError(f'{label}: cycle at {error.args[1][0]}') from error
 
 
 def windows_x64(environment):
@@ -174,13 +165,16 @@ def load_project(root=ROOT):
     if required != implemented:
         raise ProjectError('Required change checks must equal the implemented change checks')
     changes = indexed(catalog['gate_changes'], 'gate replacement', field='removed_check')
+    successors = {key: [] for key in checks}
     for key, change in changes.items():
-        require_refs([key, *change['replacement_checks']], checks, 'Gate replacement')
+        require_refs([key], checks, 'Gate replacement')
+        successors[key] = change['replacement_checks']
         require_refs([change['task_id']], tasks, 'Gate replacement task')
         task = tasks[change['task_id']]
         if (key in change['replacement_checks'] or 'plan' not in task or task['status'] == 'cancelled'
                 or not set(change['replacement_checks']).issubset(task['checks'])):
             raise ProjectError(f'Gate replacement lacks planned corrective coverage: {key}')
+    validate_graph(successors, 'Gate replacement')
     for gate in gates.values():
         require_refs(gate['checks'], checks, f"Milestone {gate['id']}")
     for name, check_ids in catalog.get('profiles', {}).items():
@@ -206,7 +200,7 @@ def load_project(root=ROOT):
         decisions.append(decision)
         decision_paths[decision['id']] = path.relative_to(root).as_posix()
     decisions = indexed(decisions, 'decision')
-    validate_graph(decisions, 'supersedes', 'Decision supersession')
+    validate_graph({key: item['supersedes'] for key, item in decisions.items()}, 'Decision supersession')
     replacements = {}
     for decision in decisions.values():
         if decision['status'] != 'accepted':
@@ -217,7 +211,7 @@ def load_project(root=ROOT):
             if predecessor in replacements:
                 raise ProjectError(f'Ambiguous decision replacement: {predecessor}')
             replacements[predecessor] = decision['id']
-    validate_graph(tasks, 'depends_on', 'Task dependencies')
+    validate_graph({key: item['depends_on'] for key, item in tasks.items()}, 'Task dependencies')
     for task in tasks.values():
         require_refs([task['milestone']], gates, f"Task {task['id']}")
         require_refs(task['checks'], checks, f"Task {task['id']}")
@@ -339,12 +333,12 @@ def validate_delivery(root, project):
         plan = task.get('plan')
         if not plan:
             continue
-        require_refs(plan['change_types'], types, f"Task plan {task['id']}")
         for path in plan['context']:
             local_path(root, path)
-        # Historical plans retain their original check bindings when policy evolves.
+        # Closed plans keep the classifications and check bindings used at the time.
         if task['status'] in {'done', 'cancelled'}:
             continue
+        require_refs(plan['change_types'], types, f"Task plan {task['id']}")
         required = {key for name in plan['change_types'] for key in types[name]['checks']}
         required.update(key for risk in plan['risks'] for key in risk['checks'])
         if not required.issubset(task['checks']):
@@ -760,7 +754,7 @@ def review_history(root=ROOT, base=None):
     ledger = previous('project/tasks.json')
     compared = []
     catalog = previous('project/checks.json')
-    replaced = []
+    replaced = {}
     if catalog:
         established = set(catalog.get('required_change_checks', [
             check['id'] for check in catalog['checks']
@@ -771,12 +765,17 @@ def review_history(root=ROOT, base=None):
         for entry in catalog.get('gate_changes', []):
             if changes.get(entry['removed_check']) != entry:
                 raise ProjectError(f"Accepted gate replacement changed or disappeared: {entry['removed_check']}")
-        for key in sorted(established - current):
+        # The graph is acyclic. Follow every branch until it reaches a current required check.
+        pending = sorted(established - current, reverse=True)
+        while pending:
+            key = pending.pop()
+            if key in current or key in replaced:
+                continue
             replacement = changes.get(key)
-            if (not replacement or not set(replacement['replacement_checks']).issubset(current)
-                    or project['tasks'][replacement['task_id']]['status'] not in {'active', 'done'}):
+            if not replacement or project['tasks'][replacement['task_id']]['status'] not in {'active', 'done'}:
                 raise ProjectError(f'Established integration gate removed without a reviewed replacement: {key}')
-            replaced.append(replacement)
+            replaced[key] = replacement
+            pending.extend(reversed(replacement['replacement_checks']))
     for task in ledger['tasks'] if ledger else []:
         if task['status'] in {'done', 'cancelled'}:
             current_task = project['tasks'].get(task['id'])
@@ -811,7 +810,7 @@ def review_history(root=ROOT, base=None):
                 raise ProjectError(f"Accepted decision history changed or disappeared: {decision['id']}; supersede it")
             compared.append(decision['id'])
     return {'status': 'passed', 'base_commit': resolved, 'preserved_records': compared,
-            'gate_replacements': replaced}
+            'gate_replacements': list(replaced.values())}
 
 
 def archive_evidence(root, task_id, report_path, artifact_root=None):

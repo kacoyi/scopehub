@@ -645,6 +645,22 @@
         "prevention": "The review record links every finding to a canonical rule, delivery task and check. Cross-language vectors, actual worker reads, browser journeys and independent delivery fixtures must pass. Future product flows keep their own gates."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "multi-revision-maintenance",
+      "source": "Owner question on sustained maintenance, engineering ownership and multi-step rewrites, followed by inspection of repository controls.",
+      "observation": "History checks inspect only immediate successors of an established check. Historical task classifications are resolved against live policy, and cancelled current work can mask a capability assigned only to later delivery.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-024"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

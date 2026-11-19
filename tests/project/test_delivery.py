@@ -643,6 +643,84 @@ class DeliveryTests(ProjectFixture):
         with self.assertRaisesRegex(ProjectError, 'Accepted gate replacement changed'):
             review_history(self.root, replaced)
 
+    def test_split_gate_can_be_replaced_again_from_either_review_base(self):
+        original = self.commit_fixture()
+        path, catalog = self.replace_gate()
+        first = {'removed_check': 'rust-lints', 'replacement_checks': ['replacement-lints', 'project-state'],
+                 'task_id': 'M0-001', 'reason': 'Check source and project consistency separately.'}
+        catalog['gate_changes'].append(first)
+        path.write_bytes(json_bytes(catalog))
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+        intermediate = self.commit_fixture()
+
+        check = next(item for item in catalog['checks'] if item['id'] == 'replacement-lints')
+        catalog['checks'].append(dict(check, id='final-lints'))
+        check.update(status='retired', command=None)
+        milestone = next(item for item in catalog['milestones'] if item['id'] == 'M0')
+        for ids in [catalog['required_change_checks'], milestone['checks']]:
+            ids[ids.index('replacement-lints')] = 'final-lints'
+        ledger = self.ledger()
+        task = task_by_id(ledger, 'M0-002')
+        task.update(status='active', checks=['project-state', 'final-lints'],
+                    plan=task_by_id(ledger, 'M0-001')['plan'])
+        self.save_ledger(ledger)
+        second = {'removed_check': 'replacement-lints', 'replacement_checks': ['final-lints'],
+                  'task_id': 'M0-002', 'reason': 'Preserve the source checks through the next cutover.'}
+        catalog['gate_changes'].append(second)
+        path.write_bytes(json_bytes(catalog))
+        self.assertEqual([first, second], review_history(self.root, original)['gate_replacements'])
+        self.assertEqual([second], review_history(self.root, intermediate)['gate_replacements'])
+
+        # A surviving branch of the split cannot cover a missing or unreviewed branch.
+        task['status'] = 'planned'
+        self.save_ledger(ledger)
+        with self.assertRaisesRegex(ProjectError, 'without a reviewed replacement'):
+            review_history(self.root, original)
+        catalog['gate_changes'].remove(second)
+        path.write_bytes(json_bytes(catalog))
+        with self.assertRaisesRegex(ProjectError, 'without a reviewed replacement'):
+            review_history(self.root, original)
+
+    def test_circular_gate_substitutions_fail_even_with_a_required_leaf(self):
+        path = self.root / 'project/checks.json'
+        catalog = read_json(path)
+        catalog['gate_changes'] = [
+            {'removed_check': 'rust-lints', 'replacement_checks': ['project-state'],
+             'task_id': 'M0-001', 'reason': 'Synthetic first step.'},
+            {'removed_check': 'project-state', 'replacement_checks': ['rust-lints', 'environment'],
+             'task_id': 'M0-001', 'reason': 'Synthetic return to an earlier gate.'},
+        ]
+        ledger = self.ledger()
+        task_by_id(ledger, 'M0-001')['checks'].append('environment')
+        self.save_ledger(ledger)
+        path.write_bytes(json_bytes(catalog))
+        with self.assertRaisesRegex(ProjectError, 'cycle'):
+            load_project(self.root)
+
+    def test_retiring_a_work_classification_preserves_closed_plans_and_checks_open_ones(self):
+        path = self.root / 'project/delivery.json'
+        policy = read_json(path)
+        legacy = dict(policy['change_types'][0], id='old-maintenance')
+        policy['change_types'].append(legacy)
+        path.write_bytes(json_bytes(policy))
+        ledger = self.ledger()
+        task = task_by_id(ledger, 'M0-001')
+        task['plan']['change_types'] = ['old-maintenance']
+        task_by_id(ledger, 'M0-004').update(status='cancelled', closure_reason='Superseded.',
+                                             plan=task['plan'])
+        self.save_ledger(ledger)
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+        accepted = self.commit_fixture()
+
+        policy['change_types'].remove(legacy)
+        path.write_bytes(json_bytes(policy))
+        self.assertEqual('passed', review_history(self.root, accepted)['status'])
+        ledger = self.ledger()
+        task_by_id(ledger, 'M0-002')['plan'] = task_by_id(ledger, 'M0-001')['plan']
+        self.save_ledger(ledger)
+        with self.assertRaisesRegex(ProjectError, 'unknown references.*old-maintenance'):
+            load_project(self.root)
+
     def test_cancelled_history_does_not_prevent_a_delivered_replacement_from_passing(self):
         project = load_project(self.root)
         # Synthetic states test aggregation; real task completion is validated separately.
