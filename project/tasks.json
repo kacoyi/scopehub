@@ -4280,9 +4280,13 @@
         {
           "path": "project/evidence/M2-002-e21bf63bed696d2a.json",
           "sha256": "4b19ab5a1d781570aac857ce7e5a12b6970e1e8b9f9b36f2ffff6b8fcdc819ab"
+        },
+        {
+          "path": "project/evidence/M2-002-27b6d8470e3662ee.json",
+          "sha256": "9044088f286ee9be989fa62cd405a04b75588191df89eff8696b901c8cd437bb"
         }
       ],
-      "next_action": "Archive the matching local layout and compatibility checks. Coordinate shared chart and registry entries with M3 before native Windows and owner review.",
+      "next_action": "Use the integrated Linux layout and source-recovery checkpoint to reconcile the shared chart and registry with M3, then qualify native Windows use and obtain owner experience feedback.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
