@@ -652,3 +652,48 @@ pub(crate) fn undo_indicator_layer(
     tx.record_indicator_layer(&mutation, &layer, undo.before)?;
     Ok(result)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn restores_exact_legacy_csv_output_without_current_engine_or_schedule() {
+        let dataset = "00000000-0000-4000-8000-000000000006";
+        let snapshot = json!({
+            "series": {
+                "instrument_id": "FIX", "provider_id": "local.csv", "timeframe": "1d",
+                "price_adjustment": "raw", "session_scope": "regular",
+                "calendar_id": "unverified", "quantity_unit": "shares",
+            },
+            "dataset_id": dataset, "dataset_revision": "frozen-csv",
+            "from_ms": 100, "to_ms": 300, "as_of_ms": 300, "warmup_bars": 0,
+            "content_hash": "ab".repeat(32),
+        });
+        let parameters = json!({"period": 2});
+        let expected = json!([{"time_ms": 100, "value": null}, {"time_ms": 200, "value": 37.875}]);
+        let result = json!({
+            "series": [{"id": "mean", "pane": "price", "type": "line",
+                "style": {"width": 2, "color": "#123456"}, "points": expected}],
+            "markers": [], "regions": [], "diagnostics": [],
+            "provenance": {
+                "code_hash": "cd".repeat(32), "params_hash": hash(&parameters).unwrap(),
+                "dataset_id": dataset, "dataset_revision": "frozen-csv",
+                "engine_version": "scopehub-declarative-2",
+            },
+        });
+        let document = json!({
+            "source_snapshot": snapshot, "snapshot": snapshot,
+            "resolved_parameters": parameters, "warmup_from_ms": null,
+            "artifact": {"storage": "inline", "result_hash": hash(&result).unwrap(), "result": result},
+        });
+        let stored = serde_json::to_vec(&document).unwrap();
+        let restored = serde_json::from_slice(&stored).unwrap();
+        validate_document(&restored, dataset).unwrap();
+        assert_eq!(
+            restored["artifact"]["result"]["series"][0]["points"],
+            expected
+        );
+        assert_eq!(serde_json::to_vec(&restored).unwrap(), stored);
+    }
+}

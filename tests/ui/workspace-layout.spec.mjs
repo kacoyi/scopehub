@@ -128,12 +128,17 @@ async function withBrowser(browser, server, use, { authorized = true, setup } = 
 }
 
 async function frame(server, request) {
-  const response = await fetch(server.url + endpoint, {
-    method: 'POST', signal: AbortSignal.timeout(5_000),
-    headers: { Origin: server.url, 'Content-Type': 'application/json', Authorization: 'Bearer ' + server.capability },
-    body: JSON.stringify(request),
-  });
-  return response.json();
+  let reply;
+  await expect.poll(async () => {
+    const response = await fetch(server.url + endpoint, {
+      method: 'POST', signal: AbortSignal.timeout(5_000),
+      headers: { Origin: server.url, 'Content-Type': 'application/json', Authorization: 'Bearer ' + server.capability },
+      body: JSON.stringify(request),
+    });
+    reply = await response.json();
+    return reply.error?.code;
+  }, { message: 'The workspace writer admitted the test request' }).not.toBe('BUSY');
+  return reply;
 }
 
 async function send(server, request) {
@@ -143,13 +148,7 @@ async function send(server, request) {
 }
 
 async function snapshot(server) {
-  let reply;
-  await expect.poll(async () => {
-    reply = await frame(server, { type: 'snapshot' });
-    return reply.error?.code !== 'BUSY';
-  }, { message: 'The workspace writer can serve its snapshot' }).toBe(true);
-  expect(reply).toMatchObject({ ok: true });
-  return reply.result;
+  return send(server, { type: 'snapshot' });
 }
 
 async function keyboardActivate(scope, name) {
@@ -759,6 +758,7 @@ test('reopens a frozen local source and retains the named layout through disconn
         expect(hovered.selection_revision).toBe(beforeSelection.selection_revision + 1);
         await keyboardActivate(data, lastBar);
         await expect(control(data, lastBar)).toHaveAttribute('aria-pressed', 'true');
+        await expect.poll(async () => (await snapshot(server)).selection_revision).toBe(beforeSelection.selection_revision + 2);
         const staleSelection = await send(server, { ...queued, request_id: randomUUID(), message_id: randomUUID() });
         expect(staleSelection.error.code).toBe('STALE_CONTEXT');
 
