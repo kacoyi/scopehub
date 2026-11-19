@@ -707,8 +707,8 @@
       "id": "local-private-content",
       "owner": "application",
       "writer": "persistence",
-      "status": "planned",
-      "rule": "The Rust core owns each user’s saved conversations, memories, strategies, retrieval data, deletion and excerpt grants. Storage writes go through the local single-writer path."
+      "status": "implemented",
+      "rule": "The local Rust single writer stores explicitly saved typed exchanges, memories and strategies, and applies corrections, deletion and backup recovery within the bound profile. The core also owns any future retrieval data and excerpt grants. Those behaviors are tracked by their delivery tasks."
     }
   ],
   "herdr": {

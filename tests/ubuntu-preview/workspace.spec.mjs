@@ -1384,12 +1384,12 @@ async function chooseBackup(notes, bytes) {
   return preview;
 }
 
-async function dropApprovalReply(page, server, operation) {
+async function dropApprovalReply(page, server, operation, isApproval = payload => payload.confirmation?.decision === 'approve') {
   const endpointUrl = server.url + endpoint;
   let outcome;
   const handle = async route => {
     const payload = route.request().postDataJSON();
-    if (payload?.intent?.operation !== operation || payload.confirmation?.decision !== 'approve') {
+    if (payload?.intent?.operation !== operation || !isApproval(payload)) {
       await route.continue();
       return;
     }
@@ -1426,3 +1426,165 @@ function setTimeframe(revision, timeframe) {
     intent: { operation: 'chart.setTimeframe', arguments: { timeframe } },
   };
 }
+
+test('private records survive restart, isolate profiles, reject stale approval and preserve deletions', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  const other = await makeProfile();
+  const port = await freePort();
+  const originalTitle = 'Synthetic typed exchange';
+  const correctedTitle = 'Synthetic corrected exchange';
+  const opening = 'Synthetic opening 5d7b40e3';
+  const answer = 'Synthetic assistant answer 2d61aa75';
+  const final = 'Synthetic third turn 50cdf06c';
+  let backup;
+  let firstWriter;
+  async function openRecords(page) {
+    await control(page, 'Private records').click();
+    const dialog = page.getByRole('dialog', { name: 'Private records' });
+    await expect(dialog.getByRole('button', { name: 'New private record' })).toBeVisible();
+    return dialog;
+  }
+  async function approve(dialog, name = 'Save private record') {
+    await dialog.getByRole('button', { name, exact: true }).click();
+  }
+  async function pickBackup(dialog, bytes) {
+    await dialog.getByLabel('Restore local backup').setInputFiles({
+      name: 'private-records.json', mimeType: 'application/json', buffer: bytes,
+    });
+  }
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      firstWriter = await writerPid(server);
+      await inFreshBrowser(browser, server, async page => {
+        const dialog = await openRecords(page);
+        async function start(kind, title) {
+          await dialog.getByRole('button', { name: 'New private record' }).click();
+          await dialog.getByLabel('Record type').selectOption(kind);
+          await dialog.getByLabel('Title').fill(title);
+        }
+        await start('conversation', originalTitle);
+        await dialog.getByRole('group', { name: 'Turn 1' }).getByLabel('Text').fill(opening);
+        await dialog.getByRole('group', { name: 'Turn 2' }).getByLabel('Text').fill(answer);
+        await dialog.getByRole('button', { name: 'Add turn' }).click();
+        await dialog.getByRole('group', { name: 'Turn 3' }).getByLabel('Text').fill(final);
+        await dialog.getByRole('button', { name: 'Review save' }).click();
+        await approve(dialog, 'Cancel review');
+        await expect(dialog.getByText('Action cancelled.')).toBeVisible();
+        const declined = new DatabaseSync(join(profile.root, 'workspace.sqlite3'), { readOnly: true });
+        try { expect(declined.prepare('SELECT count(*) AS count FROM private_records').get().count).toBe(0); }
+        finally { declined.close(); }
+
+        await dialog.getByRole('button', { name: 'Review save' }).click();
+        const lost = await dropApprovalReply(page, server, 'privateRecord.change', payload =>
+          payload.intent.arguments.action === 'resolve' && payload.intent.arguments.decision === 'approve');
+        await approve(dialog);
+        await expect(dialog.getByRole('button', { name: 'Retry confirmation' })).toBeEnabled();
+        expect(lost.outcome()).toMatchObject({ state: 'committed', receipt: { committed_workspace_revision: 1 } });
+        await lost.restore();
+        await approve(dialog, 'Retry confirmation');
+        await expect(dialog.getByRole('heading', { name: originalTitle })).toBeVisible();
+        await dialog.getByRole('button', { name: 'All private records' }).click();
+        for (const [kind, label, title] of [
+          ['memory', 'Memory', 'Synthetic long-term memory'],
+          ['strategy', 'Strategy', 'Synthetic strategy'],
+        ]) {
+          await start(kind, title);
+          await dialog.getByLabel(label, { exact: true }).fill('Synthetic ' + kind + ' body');
+          await dialog.getByRole('button', { name: 'Review save' }).click();
+          await approve(dialog);
+          await expect(dialog.getByRole('heading', { name: title })).toBeVisible();
+          await dialog.getByRole('button', { name: 'All private records' }).click();
+        }
+        const download = page.waitForEvent('download');
+        await dialog.getByRole('button', { name: 'Download local backup' }).click();
+        backup = await readFile(await (await download).path());
+        expect(JSON.parse(backup).records).toHaveLength(3);
+      });
+    });
+    await expect.poll(() => alive(firstWriter)).toBe(false);
+
+    await inService(port, other, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        const dialog = await openRecords(page);
+        await expect(dialog.getByText('No private records saved.')).toBeVisible();
+        await pickBackup(dialog, backup);
+        await expect(dialog.getByRole('alert')).toContainText('unavailable in this local profile');
+        await expect(dialog.getByText(originalTitle)).toHaveCount(0);
+      });
+    });
+
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      expect(await writerPid(server)).not.toBe(firstWriter);
+      await inFreshBrowser(browser, server, async (page, initial) => {
+        expect(initial.result.workspace.revision).toBe(3);
+        const dialog = await openRecords(page);
+        await expect(dialog.getByText('Synthetic long-term memory')).toBeVisible();
+        await expect(dialog.getByText('Synthetic strategy', { exact: false })).toBeVisible();
+        await dialog.getByRole('button', { name: new RegExp(originalTitle) }).click();
+        await expect(dialog.locator('article li')).toHaveText(['You' + opening, 'Assistant' + answer, 'You' + final]);
+
+        await dialog.getByRole('button', { name: 'Correct record' }).click();
+        await dialog.getByLabel('Title').fill(correctedTitle);
+        await dialog.getByRole('group', { name: 'Turn 2' }).getByLabel('Text').fill('Synthetic corrected answer');
+        await dialog.getByRole('button', { name: 'Review save' }).click();
+
+        const database = new DatabaseSync(join(profile.root, 'workspace.sqlite3'));
+        const revision = () => database.prepare('SELECT revision FROM workspaces').get().revision;
+        try {
+          database.exec("CREATE TRIGGER synthetic_reject_correction BEFORE UPDATE ON private_records BEGIN SELECT raise(ABORT, 'synthetic rollback'); END");
+          await approve(dialog);
+          await expect(dialog.getByRole('button', { name: 'Retry confirmation' })).toBeVisible();
+          expect(revision()).toBe(3);
+          expect(database.prepare('SELECT count(*) AS count FROM private_record_receipts').get().count).toBe(3);
+          database.exec('DROP TRIGGER synthetic_reject_correction');
+
+          const peerChange = setTimeframe(3, '5m');
+          await expect.poll(async () => {
+            const response = await post(server, peerChange);
+            return (await response.json()).result?.outcome?.state;
+          }).toBe('committed');
+          await approve(dialog, 'Retry confirmation');
+          await expect(dialog.getByRole('alert')).toContainText('changed');
+          expect(revision()).toBe(4);
+          await dialog.getByRole('button', { name: 'Review save' }).click();
+          await approve(dialog);
+          await expect(dialog.getByRole('heading', { name: correctedTitle })).toBeVisible();
+          await expect(dialog.getByText(answer)).toHaveCount(0);
+          expect(revision()).toBe(5);
+
+          await dialog.getByRole('button', { name: 'Review deletion' }).click();
+          await approve(dialog, 'Delete private record');
+          await expect(dialog.getByText('Private record deleted.')).toBeVisible();
+          await expect(dialog.getByText(correctedTitle)).toHaveCount(0);
+          await pickBackup(dialog, backup);
+          await expect(dialog.getByText(/1 suppressed by known deletions/)).toBeVisible();
+          await approve(dialog, 'Restore private records');
+          await expect(dialog.getByText('Private records restored.')).toBeVisible();
+          expect(revision()).toBe(7);
+          expect(database.prepare('SELECT count(*) AS count FROM private_record_deletions').get().count).toBe(1);
+          expect(database.prepare('SELECT count(*) AS count FROM private_record_cleanup').get().count).toBe(0);
+        } finally { database.close(); }
+      });
+    });
+
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async (page, initial) => {
+        expect(initial.result.workspace.revision).toBe(7);
+        const dialog = await openRecords(page);
+        await expect(dialog.getByText(originalTitle)).toHaveCount(0);
+        await expect(dialog.getByText(correctedTitle)).toHaveCount(0);
+        await expect(dialog.getByRole('button', { name: /Synthetic strategy/ })).toBeVisible();
+      });
+    });
+    await testInfo.attach('private-record-journey', {
+      body: JSON.stringify({
+        typedKinds: 3, orderedSpeakers: true, separatedProfiles: true, initialDecline: true,
+        transactionRollback: true, staleRetry: true, lostReplyReplay: true, walCleanup: true, restart: true, olderBackupSuppressed: true,
+      }),
+      contentType: 'application/json',
+    });
+  } finally {
+    await profile.close();
+    await other.close();
+  }
+});

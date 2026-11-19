@@ -41,7 +41,11 @@ for (const example of read('../fixtures/protocol-cases.json')) {
   });
 }
 
-for (const example of read('../fixtures/decision-note-protocol-cases.json')) {
+const privateWorkspaceCases = [
+  ...read('../fixtures/decision-note-protocol-cases.json'),
+  ...read('../fixtures/private-record-protocol-cases.json'),
+];
+for (const example of privateWorkspaceCases) {
   test(`private workspace: ${example.name}`, () => {
     const projected = read(`../../contracts/schemas/operations/${example.operation}.v1.1.${example.direction}.schema.json`);
     const validator = ajv.getSchema(projected.$id) ?? ajv.compile(projected);

@@ -303,3 +303,124 @@ fn populated_v6_folder_manifest_migration_rolls_back_and_reopens_without_rewriti
     assert_migrated_manifest(&v7, &legacy_tables);
     assert_legacy_workspace(&v7, &legacy);
 }
+
+#[test]
+fn private_record_v8_rollback_preserves_populated_v7_and_its_exact_ledger() {
+    use scopehub_application::{
+        FolderManifestBar, FolderManifestLocator, FolderManifestPublication, FolderManifestRequest,
+        FolderManifestSource, FolderManifestStore,
+    };
+
+    const RELATIVE_PATH: &str = "history/equity.csv";
+    let profile = Profile::new();
+    let (mut v7, legacy) = populated_v6(&profile);
+    {
+        let transaction = v7.connection.transaction().unwrap();
+        transaction
+            .execute_batch(include_str!("folder_manifest.sql"))
+            .unwrap();
+        record_migration(&transaction, FOLDER_MANIFEST_SCHEMA_VERSION).unwrap();
+        transaction.commit().unwrap();
+    }
+    let binding = Profile::binding();
+    let key = FolderManifestRequest {
+        principal_id: &binding.profile_id,
+        idempotency_key: "synthetic-v7-manifest",
+    };
+    let source = FolderManifestSource {
+        relative_path: RELATIVE_PATH,
+        sha256: LEGACY_SHA256,
+        record_count: 1,
+        original: LEGACY_CSV,
+    };
+    let bar = FolderManifestBar {
+        bar: serde_json::from_value(legacy_content(LEGACY_SHA256, 5)["bars"][0]["bar"].clone())
+            .unwrap(),
+        locators: vec![FolderManifestLocator {
+            relative_path: RELATIVE_PATH.into(),
+            record_number: 1,
+            line_start: 2,
+            line_end: 2,
+        }],
+    };
+    let candidate =
+        FolderManifestPublication::new(&legacy.displayed.revision_id, vec![source], vec![bar])
+            .unwrap();
+    let id = v7
+        .publish_folder_manifest(&key, &candidate, &CommitMapping)
+        .unwrap();
+    let stored = v7.read_folder_manifest(&id).unwrap().unwrap();
+    let prior_tables = tables(&v7.connection);
+    assert_eq!(ledger(&v7.connection), [1, 2, 3, 4, 5, 6, 7]);
+    v7.connection
+        .execute_batch("PRAGMA wal_checkpoint(TRUNCATE)")
+        .unwrap();
+    let backup = fs::read(profile.db()).unwrap();
+    v7.connection
+        .execute_batch(
+            "CREATE TRIGGER fail_private_record_migration
+         BEFORE INSERT ON schema_migrations WHEN NEW.version = 8
+         BEGIN SELECT raise(ABORT, 'synthetic v8 ledger failure'); END;",
+        )
+        .unwrap();
+    drop(v7);
+
+    assert!(matches!(profile.open(), Err(OpenWorkspaceError::Database)));
+    let v7 = SqliteWorkspace {
+        connection: profile.raw_connection(),
+        binding: Profile::binding(),
+    };
+    assert_eq!(
+        integer_pragma(&v7.connection, "user_version"),
+        FOLDER_MANIFEST_SCHEMA_VERSION
+    );
+    assert_eq!(ledger(&v7.connection), [1, 2, 3, 4, 5, 6, 7]);
+    assert_eq!(tables(&v7.connection), prior_tables);
+    assert_eq!(v7.read_folder_manifest(&id).unwrap(), Some(stored.clone()));
+    assert_legacy_workspace(&v7, &legacy);
+    v7.connection
+        .execute_batch("DROP TRIGGER fail_private_record_migration")
+        .unwrap();
+    drop(v7);
+
+    let assert_restored = |v8: &SqliteWorkspace| {
+        assert_eq!(
+            integer_pragma(&v8.connection, "user_version"),
+            PRIVATE_RECORD_SCHEMA_VERSION,
+        );
+        assert_eq!(ledger(&v8.connection), [1, 2, 3, 4, 5, 6, 7, 8]);
+        assert_eq!(
+            v8.read_folder_manifest(&id).unwrap().as_ref(),
+            Some(&stored)
+        );
+        assert_eq!(
+            v8.read_folder_manifest_source(&id, RELATIVE_PATH)
+                .unwrap()
+                .as_deref(),
+            Some(LEGACY_CSV),
+        );
+        assert_eq!(
+            v8.replay_folder_manifest(&key, candidate.input_sha256())
+                .unwrap()
+                .as_deref(),
+            Some(id.as_str()),
+        );
+        assert_legacy_workspace(v8, &legacy);
+        assert!(
+            v8.inspect(|tx| tx.private_record_index())
+                .unwrap()
+                .is_empty()
+        );
+        assert!(
+            v8.inspect(|tx| tx.private_record_deletions())
+                .unwrap()
+                .is_empty()
+        );
+    };
+    assert_restored(&profile.open().unwrap());
+
+    let restored = Profile::new();
+    drop(restored.raw_connection());
+    fs::write(restored.db(), backup).unwrap();
+    assert_restored(&restored.open().unwrap());
+}

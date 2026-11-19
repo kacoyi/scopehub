@@ -9,10 +9,11 @@ use scopehub_application::{
     Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, FolderRefreshBase,
     LIST_LOCAL_IMPORT_REVISIONS, LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS,
     LocalDatasetPublication, MappingCommitGuard, OperationRegistry, PREVIEW_LOCAL_FOLDER_REFRESH,
-    PUBLISH_LOCAL_IMPORT, READ_LOCAL_IMPORT_REVISION, REVOKE_LOCAL_IMPORT_REVISION,
-    ReviewedImportMapping, SAVE_LOCAL_IMPORT_MAPPING, WorkspaceAccess, WorkspaceBinding,
-    evidence_operation_name, failure, list_local_import_revisions_input, local_mapping_fingerprint,
-    read_local_import_revision_input, revoke_local_import_revision_input,
+    PRIVATE_RECORD_CHANGE, PUBLISH_LOCAL_IMPORT, READ_LOCAL_IMPORT_REVISION,
+    REVOKE_LOCAL_IMPORT_REVISION, ReviewedImportMapping, SAVE_LOCAL_IMPORT_MAPPING,
+    WorkspaceAccess, WorkspaceBinding, evidence_operation_name, failure,
+    list_local_import_revisions_input, local_mapping_fingerprint, read_local_import_revision_input,
+    revoke_local_import_revision_input,
 };
 use scopehub_domain::protocol::{CsvMappingV1, Error, ErrorCode};
 use scopehub_persistence::SqliteWorkspace;
@@ -154,7 +155,10 @@ impl WorkspaceBridge {
                     && (payload["intent"]["operation"] == operation
                         || evidence_operation_name(&payload) == Some(operation)) =>
             {
-                let limit = if operation == DECISION_NOTE_PREVIEW_RESTORE {
+                let limit = if matches!(
+                    operation,
+                    DECISION_NOTE_PREVIEW_RESTORE | PRIVATE_RECORD_CHANGE
+                ) {
                     MAX_BACKUP_REQUEST_BYTES
                 } else if DECISION_NOTE_OPERATIONS.contains(&operation) {
                     MAX_NOTE_REQUEST_BYTES

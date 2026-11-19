@@ -5,7 +5,9 @@ use scopehub_domain::{
         DecisionNoteExportBackupReply11, DecisionNotePreviewRestoreCommand11,
         DecisionNotePreviewRestoreReply11, DecisionNoteReadCommand11, DecisionNoteReadReply11,
         DecisionNoteRestoreBackupCommand11, DecisionNoteRestoreBackupReply11,
-        DecisionNoteSaveCommand11, DecisionNoteSaveReply11, Message, Request, ToolCall,
+        DecisionNoteSaveCommand11, DecisionNoteSaveReply11, Message, PrivateRecordChangeCommand11,
+        PrivateRecordChangeReply11, PrivateRecordExportCommand11, PrivateRecordExportReply11,
+        PrivateRecordReadCommand11, PrivateRecordReadReply11, Request, ToolCall,
     },
     wire::normalize_integers,
 };
@@ -224,10 +226,13 @@ fn shared_vectors_and_generated_types_agree() {
 fn private_workspace_vectors_use_local_projections_and_generated_types() {
     let manifest: Value =
         serde_json::from_str(include_str!("../../../contracts/contract.json")).unwrap();
-    let cases: Vec<Value> = serde_json::from_str(include_str!(
-        "../../../tests/fixtures/decision-note-protocol-cases.json"
-    ))
-    .unwrap();
+    let cases = [
+        include_str!("../../../tests/fixtures/decision-note-protocol-cases.json"),
+        include_str!("../../../tests/fixtures/private-record-protocol-cases.json"),
+    ]
+    .into_iter()
+    .flat_map(|source| serde_json::from_str::<Vec<Value>>(source).unwrap())
+    .collect::<Vec<_>>();
     let operations: Vec<_> = manifest["operations"]
         .as_array()
         .unwrap()
@@ -293,6 +298,16 @@ fn private_workspace_vectors_use_local_projections_and_generated_types() {
             }
             ("decisionNote.restoreBackup", "output") => {
                 roundtrip::<DecisionNoteRestoreBackupReply11>(message)
+            }
+            ("privateRecord.read", "input") => roundtrip::<PrivateRecordReadCommand11>(message),
+            ("privateRecord.read", "output") => roundtrip::<PrivateRecordReadReply11>(message),
+            ("privateRecord.change", "input") => roundtrip::<PrivateRecordChangeCommand11>(message),
+            ("privateRecord.change", "output") => roundtrip::<PrivateRecordChangeReply11>(message),
+            ("privateRecord.exportBackup", "input") => {
+                roundtrip::<PrivateRecordExportCommand11>(message)
+            }
+            ("privateRecord.exportBackup", "output") => {
+                roundtrip::<PrivateRecordExportReply11>(message)
             }
             _ => panic!("Missing generated type for {operation} {direction}"),
         };

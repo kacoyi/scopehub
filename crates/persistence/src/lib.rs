@@ -4,6 +4,7 @@ mod folder_manifest;
 mod local_dataset;
 mod note_backup;
 mod notes;
+mod private_records;
 mod reviewed_import;
 mod storage;
 
@@ -14,13 +15,14 @@ use rusqlite::{
 };
 use scopehub_application::{
     Actor, ChartEvidenceRef, ChartEvidenceStatus, DecisionNoteBackupData, DecisionNoteChange,
-    DecisionNoteMutation, DecisionNoteReplay, DecisionNoteRestorePlan, SET_TIMEFRAME,
-    StoredLocalDataset, Timeframe, UNDO, WorkspaceBinding, WorkspaceChange, WorkspaceReceipt,
-    WorkspaceReplay, WorkspaceReplayKey, WorkspaceState, WorkspaceStore, WorkspaceTransaction,
-    WorkspaceUndoAccess, WorkspaceUndoTarget, failure,
+    DecisionNoteMutation, DecisionNoteReplay, DecisionNoteRestorePlan, PrivateRecordPlan,
+    SET_TIMEFRAME, StoredLocalDataset, Timeframe, UNDO, WorkspaceBinding, WorkspaceChange,
+    WorkspaceReceipt, WorkspaceReplay, WorkspaceReplayKey, WorkspaceState, WorkspaceStore,
+    WorkspaceTransaction, WorkspaceUndoAccess, WorkspaceUndoTarget, failure,
 };
 use scopehub_domain::protocol::{
-    DecisionNoteDate, DecisionNoteReadOutput, Error, ErrorCode, Revision, VisibleRange,
+    DecisionNoteDate, DecisionNoteReadOutput, Error, ErrorCode, PrivateRecordArchiveEntry,
+    PrivateRecordEntry, PrivateRecordSummary, Revision, VisibleRange,
 };
 
 const DATABASE_NAME: &str = "workspace.sqlite3";
@@ -32,7 +34,8 @@ const REVIEWED_IMPORT_SCHEMA_VERSION: i64 = 4;
 const LOCAL_DATASET_SCHEMA_VERSION: i64 = 5;
 const CHART_EVIDENCE_SCHEMA_VERSION: i64 = 6;
 const FOLDER_MANIFEST_SCHEMA_VERSION: i64 = 7;
-const SCHEMA_VERSION: i64 = FOLDER_MANIFEST_SCHEMA_VERSION;
+const PRIVATE_RECORD_SCHEMA_VERSION: i64 = 8;
+const SCHEMA_VERSION: i64 = PRIVATE_RECORD_SCHEMA_VERSION;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum OpenWorkspaceError {
@@ -154,6 +157,7 @@ impl SqliteWorkspace {
             transaction.commit()?;
         }
         notes::clean_deletions(&connection, &binding)?;
+        private_records::clean(&connection, &binding.workspace_id)?;
         connection.set_db_config(DbConfig::SQLITE_DBCONFIG_NO_CKPT_ON_CLOSE, false)?;
         Ok(Self {
             connection,
@@ -249,6 +253,10 @@ fn migrate(connection: &Connection, binding: &WorkspaceBinding) -> Result<(), Op
     if version < FOLDER_MANIFEST_SCHEMA_VERSION {
         connection.execute_batch(include_str!("folder_manifest.sql"))?;
         record_migration(connection, FOLDER_MANIFEST_SCHEMA_VERSION)?;
+    }
+    if version < PRIVATE_RECORD_SCHEMA_VERSION {
+        connection.execute_batch(include_str!("private_records.sql"))?;
+        record_migration(connection, PRIVATE_RECORD_SCHEMA_VERSION)?;
     }
     Ok(())
 }
@@ -495,6 +503,22 @@ impl WorkspaceStore for SqliteWorkspace {
     fn clean_deleted_note(&mut self) -> Result<(), Error> {
         notes::clean_deletions(&self.connection, &self.binding).map_err(store_error)
     }
+
+    fn clean_private_record_pages(&mut self) -> Result<(), Error> {
+        private_records::clean(&self.connection, &self.binding.workspace_id).map_err(store_error)
+    }
+}
+
+fn checkpoint_private_pages(connection: &Connection) -> rusqlite::Result<()> {
+    let busy: bool =
+        connection.query_row("PRAGMA wal_checkpoint(TRUNCATE)", [], |row| row.get(0))?;
+    if busy {
+        return Err(rusqlite::Error::SqliteFailure(
+            rusqlite::ffi::Error::new(rusqlite::ffi::SQLITE_BUSY),
+            None,
+        ));
+    }
+    Ok(())
 }
 
 struct SqliteTransaction<'a> {
@@ -505,6 +529,35 @@ struct SqliteTransaction<'a> {
 impl WorkspaceTransaction for SqliteTransaction<'_> {
     fn state(&self) -> Result<WorkspaceState, Error> {
         state(self.connection, &self.binding.workspace_id)
+    }
+
+    fn private_record(&self, id: &str) -> Result<Option<PrivateRecordEntry>, Error> {
+        private_records::read(self.connection, &self.binding.workspace_id, id)
+    }
+
+    fn private_record_index(&self) -> Result<Vec<PrivateRecordSummary>, Error> {
+        private_records::index(self.connection, &self.binding.workspace_id)
+    }
+
+    fn private_record_deletions(&self) -> Result<Vec<String>, Error> {
+        private_records::deletions(self.connection, &self.binding.workspace_id)
+    }
+
+    fn private_record_archive_entries(&self) -> Result<Vec<PrivateRecordArchiveEntry>, Error> {
+        private_records::archive(self.connection, &self.binding.workspace_id)
+    }
+
+    fn private_record_receipt_target(&self, operation_id: &str) -> Result<Option<String>, Error> {
+        private_records::receipt_target(self.connection, operation_id)
+    }
+
+    fn record_private_records(
+        &mut self,
+        change: &WorkspaceChange<'_>,
+        plan: &PrivateRecordPlan,
+    ) -> Result<(), Error> {
+        self.record_change(change, None)?;
+        private_records::apply(self.connection, &self.binding.workspace_id, change, plan)
     }
 
     fn chart_evidence(&self) -> Result<Option<ChartEvidenceRef>, Error> {

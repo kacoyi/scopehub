@@ -95,7 +95,10 @@
         "decisionNote.delete",
         "decisionNote.exportBackup",
         "decisionNote.previewRestore",
-        "decisionNote.restoreBackup"
+        "decisionNote.restoreBackup",
+        "privateRecord.read",
+        "privateRecord.change",
+        "privateRecord.exportBackup"
       ]
     },
     "ChartStyle": {
@@ -10129,6 +10132,915 @@
       "required": [
         "kind",
         "object_id"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordUuid11": {
+      "type": "string",
+      "format": "uuid",
+      "minLength": 36,
+      "maxLength": 36,
+      "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$"
+    },
+    "PrivateRecordReadScope11": {
+      "type": "object",
+      "properties": {
+        "workspace_id": {
+          "$ref": "#/$defs/OpaqueId"
+        }
+      },
+      "required": [
+        "workspace_id"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordChangeScope11": {
+      "type": "object",
+      "properties": {
+        "workspace_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "expected_workspace_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "idempotency_key": {
+          "$ref": "#/$defs/PrivateRecordUuid11"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "expected_workspace_revision",
+        "idempotency_key"
+      ],
+      "additionalProperties": false,
+      "description": "The trusted local host supplies the profile and principal. Restore targets the private decision-note collection in the bound workspace."
+    },
+    "PrivateRecordKind": {
+      "type": "string",
+      "enum": [
+        "conversation",
+        "memory",
+        "strategy"
+      ]
+    },
+    "PrivateRecordTurn": {
+      "type": "object",
+      "properties": {
+        "speaker": {
+          "type": "string",
+          "enum": [
+            "user",
+            "assistant"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "speaker",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordConversation": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "conversation"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "turns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PrivateRecordTurn"
+          },
+          "minItems": 2,
+          "maxItems": 16
+        }
+      },
+      "required": [
+        "kind",
+        "title",
+        "turns"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordMemory": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "memory"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "kind",
+        "title",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordStrategy": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "strategy"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "kind",
+        "title",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordContent": {
+      "description": "Explicitly saved typed local content. Conversation turns are in entered order. Text must be nonblank; each encoded content object is limited to 8 KiB.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/PrivateRecordConversation"
+        },
+        {
+          "$ref": "#/$defs/PrivateRecordMemory"
+        },
+        {
+          "$ref": "#/$defs/PrivateRecordStrategy"
+        }
+      ]
+    },
+    "PrivateRecordEntry": {
+      "type": "object",
+      "properties": {
+        "record_id": {
+          "$ref": "#/$defs/PrivateRecordUuid11"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "content": {
+          "$ref": "#/$defs/PrivateRecordContent"
+        }
+      },
+      "required": [
+        "record_id",
+        "revision",
+        "content"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordSummary": {
+      "type": "object",
+      "properties": {
+        "record_id": {
+          "$ref": "#/$defs/PrivateRecordUuid11"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "kind": {
+          "$ref": "#/$defs/PrivateRecordKind"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        }
+      },
+      "required": [
+        "record_id",
+        "revision",
+        "kind",
+        "title"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordArchiveEntry": {
+      "type": "object",
+      "properties": {
+        "record_id": {
+          "$ref": "#/$defs/PrivateRecordUuid11"
+        },
+        "content": {
+          "$ref": "#/$defs/PrivateRecordContent"
+        }
+      },
+      "required": [
+        "record_id",
+        "content"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordBackupV1": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "type": "string",
+          "const": "scopehub.private-records"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "profile_binding": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PrivateRecordArchiveEntry"
+          },
+          "minItems": 0,
+          "maxItems": 48
+        },
+        "deletions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PrivateRecordUuid11"
+          },
+          "minItems": 0,
+          "maxItems": 1024
+        }
+      },
+      "required": [
+        "format",
+        "version",
+        "profile_binding",
+        "records",
+        "deletions"
+      ],
+      "additionalProperties": false,
+      "description": "A profile- and workspace-bound logical backup. It carries only current records and known deleted IDs. The local restore merges missing records, preserves current corrections, applies known tombstones and never restores outbound grants. Maximum size is 512 KiB."
+    },
+    "PrivateRecordReadInput": {
+      "type": "object",
+      "properties": {
+        "record_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PrivateRecordUuid11"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "record_id"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordReadOutput": {
+      "type": "object",
+      "properties": {
+        "workspace_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "record": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PrivateRecordEntry"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PrivateRecordSummary"
+          },
+          "minItems": 0,
+          "maxItems": 48
+        }
+      },
+      "required": [
+        "workspace_revision",
+        "record",
+        "records"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordSaveInput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "save"
+        },
+        "record_id": {
+          "$ref": "#/$defs/PrivateRecordUuid11"
+        },
+        "expected_record_revision": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Revision"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "content": {
+          "$ref": "#/$defs/PrivateRecordContent"
+        }
+      },
+      "required": [
+        "action",
+        "record_id",
+        "expected_record_revision",
+        "content"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordDeleteInput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "delete"
+        },
+        "record_id": {
+          "$ref": "#/$defs/PrivateRecordUuid11"
+        },
+        "expected_record_revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "action",
+        "record_id",
+        "expected_record_revision"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordRestoreInput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "restore"
+        },
+        "backup": {
+          "$ref": "#/$defs/PrivateRecordBackupV1"
+        }
+      },
+      "required": [
+        "action",
+        "backup"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordResolveInput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "resolve"
+        },
+        "challenge_id": {
+          "$ref": "#/$defs/PrivateRecordUuid11"
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "approve",
+            "decline"
+          ]
+        }
+      },
+      "required": [
+        "action",
+        "challenge_id",
+        "decision"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordChangeInput": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/PrivateRecordSaveInput"
+        },
+        {
+          "$ref": "#/$defs/PrivateRecordDeleteInput"
+        },
+        {
+          "$ref": "#/$defs/PrivateRecordRestoreInput"
+        },
+        {
+          "$ref": "#/$defs/PrivateRecordResolveInput"
+        }
+      ]
+    },
+    "PrivateRecordChangeSummary": {
+      "type": "object",
+      "properties": {
+        "added": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 48
+        },
+        "corrected": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "removed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 48
+        },
+        "kept": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 48
+        },
+        "suppressed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 48
+        },
+        "imported_deletions": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1024
+        }
+      },
+      "required": [
+        "added",
+        "corrected",
+        "removed",
+        "kept",
+        "suppressed",
+        "imported_deletions"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordReceipt11": {
+      "type": "object",
+      "properties": {
+        "operation_id": {
+          "$ref": "#/$defs/PrivateRecordUuid11"
+        },
+        "workspace_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "record_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PrivateRecordUuid11"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "committed_workspace_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "undoable": {
+          "type": "boolean",
+          "const": false
+        }
+      },
+      "required": [
+        "operation_id",
+        "workspace_id",
+        "record_id",
+        "committed_workspace_revision",
+        "undoable"
+      ],
+      "additionalProperties": false,
+      "description": "A body-free receipt. An archive merge can change several records and carries no record ID. Private record writes have no undo payload."
+    },
+    "PrivateRecordExportInput": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "PrivateRecordReadIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "privateRecord.read"
+        },
+        "arguments": {
+          "$ref": "#/$defs/PrivateRecordReadInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordReadCommand11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/PrivateRecordUuid11"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/PrivateRecordUuid11"
+        },
+        "scope": {
+          "$ref": "#/$defs/PrivateRecordReadScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/PrivateRecordReadIntent11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "scope",
+        "intent"
+      ],
+      "additionalProperties": false,
+      "description": "Trusted local human workspace entry. Unavailable to worker, model and paired-client transports."
+    },
+    "PrivateRecordReadCompleted11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "completed"
+        },
+        "operation": {
+          "type": "string",
+          "const": "privateRecord.read"
+        },
+        "result": {
+          "$ref": "#/$defs/PrivateRecordReadOutput"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordReadOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/PrivateRecordReadCompleted11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
+    },
+    "PrivateRecordReadReply11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/PrivateRecordUuid11"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/PrivateRecordUuid11"
+        },
+        "outcome": {
+          "$ref": "#/$defs/PrivateRecordReadOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordChangeIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "privateRecord.change"
+        },
+        "arguments": {
+          "$ref": "#/$defs/PrivateRecordChangeInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordChangeCommand11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/PrivateRecordUuid11"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/PrivateRecordUuid11"
+        },
+        "scope": {
+          "$ref": "#/$defs/PrivateRecordChangeScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/PrivateRecordChangeIntent11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "scope",
+        "intent"
+      ],
+      "additionalProperties": false,
+      "description": "Trusted local human workspace entry. Unavailable to worker, model and paired-client transports."
+    },
+    "PrivateRecordChangeCommitted11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "committed"
+        },
+        "operation": {
+          "type": "string",
+          "const": "privateRecord.change"
+        },
+        "receipt": {
+          "$ref": "#/$defs/PrivateRecordReceipt11"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "receipt"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordChangeConfirmationRequired11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "confirmation_required"
+        },
+        "operation": {
+          "type": "string",
+          "const": "privateRecord.change"
+        },
+        "challenge_id": {
+          "$ref": "#/$defs/PrivateRecordUuid11"
+        },
+        "expires_at_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "summary": {
+          "$ref": "#/$defs/PrivateRecordChangeSummary"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "challenge_id",
+        "expires_at_ms",
+        "summary"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordChangeOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/PrivateRecordChangeCommitted11"
+        },
+        {
+          "$ref": "#/$defs/PrivateRecordChangeConfirmationRequired11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
+    },
+    "PrivateRecordChangeReply11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/PrivateRecordUuid11"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/PrivateRecordUuid11"
+        },
+        "outcome": {
+          "$ref": "#/$defs/PrivateRecordChangeOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordExportIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "privateRecord.exportBackup"
+        },
+        "arguments": {
+          "$ref": "#/$defs/PrivateRecordExportInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordExportCommand11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/PrivateRecordUuid11"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/PrivateRecordUuid11"
+        },
+        "scope": {
+          "$ref": "#/$defs/PrivateRecordReadScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/PrivateRecordExportIntent11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "scope",
+        "intent"
+      ],
+      "additionalProperties": false,
+      "description": "Trusted local human workspace entry. Unavailable to worker, model and paired-client transports."
+    },
+    "PrivateRecordExportCompleted11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "completed"
+        },
+        "operation": {
+          "type": "string",
+          "const": "privateRecord.exportBackup"
+        },
+        "result": {
+          "$ref": "#/$defs/PrivateRecordBackupV1"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "PrivateRecordExportOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/PrivateRecordExportCompleted11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
+    },
+    "PrivateRecordExportReply11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/PrivateRecordUuid11"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/PrivateRecordUuid11"
+        },
+        "outcome": {
+          "$ref": "#/$defs/PrivateRecordExportOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
       ],
       "additionalProperties": false
     },

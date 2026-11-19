@@ -19,6 +19,10 @@ const previewRestore = 'decisionNote.previewRestore';
 const restoreBackup = 'decisionNote.restoreBackup';
 const noteOperations = ['decisionNote.save', 'decisionNote.read', 'decisionNote.appendOutcome', 'decisionNote.delete',
   exportBackup, previewRestore, restoreBackup];
+const readPrivateRecords = 'privateRecord.read';
+const changePrivateRecords = 'privateRecord.change';
+const exportPrivateRecords = 'privateRecord.exportBackup';
+const privateRecordOperations = [readPrivateRecords, changePrivateRecords, exportPrivateRecords];
 const maxNoteRequestBytes = 32 * 1024;
 const maxResponseBytes = 256 * 1024;
 const maxBackupFrameBytes = 1024 * 1024;
@@ -98,15 +102,15 @@ function validSnapshot(state, workspaceId) {
 }
 
 function requestLimit(operation) {
-  if (operation === previewRestore) return maxBackupFrameBytes;
+  if (operation === previewRestore || operation === changePrivateRecords) return maxBackupFrameBytes;
   return noteOperations.includes(operation) ? maxNoteRequestBytes : maxRequestBytes;
 }
 
 function responseLimit(operation) {
   if (operation === 'frozen_chart') return 4 * 1024 * 1024 + maxRequestBytes;
   if (operation === readChartProjection) return maxResponseBytes;
-  if (operation === exportBackup) return maxBackupFrameBytes;
-  return noteOperations.includes(operation) ? maxResponseBytes : maxRequestBytes;
+  if (operation === exportBackup || operation === exportPrivateRecords) return maxBackupFrameBytes;
+  return noteOperations.includes(operation) || privateRecordOperations.includes(operation) ? maxResponseBytes : maxRequestBytes;
 }
 
 function requestFrame(command, workspaceId) {
@@ -118,7 +122,7 @@ function requestFrame(command, workspaceId) {
   }
   const evidence = evidenceOperations.includes(command?.operation);
   const name = evidence ? command.operation : command?.intent?.operation;
-  if (!evidence && !mutations.includes(name) && !noteOperations.includes(name)) throw new PreviewFailure(403, 'PERMISSION_DENIED');
+  if (!evidence && !mutations.includes(name) && !noteOperations.includes(name) && !privateRecordOperations.includes(name)) throw new PreviewFailure(403, 'PERMISSION_DENIED');
   if ((evidence ? command.workspace_id : command?.scope?.workspace_id) !== workspaceId) throw new PreviewFailure(403, 'PERMISSION_DENIED');
   if (command.protocol_version !== '1.1' || command.type !== 'request'
       || !uuid(command.request_id) || !uuid(command.message_id)) {
@@ -171,6 +175,31 @@ function validNoteOutcome(outcome, job, workspaceId) {
     && receipt.target?.kind === (isRestore ? 'workspace' : 'decision_note')
     && receipt.target.object_id === (isRestore ? workspaceId : job.noteId)
     && uuid(receipt.operation_id) && revision(receipt.committed_workspace_revision) && receipt.undoable === false;
+}
+
+function validPrivateRecordOutcome(outcome, job, workspaceId) {
+  if (outcome?.operation !== job.operation) return false;
+  if (job.operation === readPrivateRecords) {
+    const { result } = outcome;
+    return outcome.state === 'completed' && revision(result?.workspace_revision) && Array.isArray(result.records)
+      && (job.recordId === null ? result.record === null
+        : result.record?.record_id === job.recordId && result.records.length === 0);
+  }
+  if (job.operation === exportPrivateRecords) {
+    const { result } = outcome;
+    return outcome.state === 'completed' && result?.format === 'scopehub.private-records' && result.version === 1
+      && Array.isArray(result.records) && Array.isArray(result.deletions);
+  }
+  if (outcome.state === 'confirmation_required') {
+    return job.recordAction !== 'resolve' && uuid(outcome.challenge_id) && revision(outcome.expires_at_ms)
+      && ['added', 'corrected', 'removed', 'kept', 'suppressed', 'imported_deletions']
+        .every(field => revision(outcome.summary?.[field]));
+  }
+  const { receipt } = outcome;
+  return job.recordAction === 'resolve' && outcome.state === 'committed' && receipt?.workspace_id === workspaceId
+    && !Object.hasOwn(outcome, 'result') && uuid(receipt.operation_id) && receipt.undoable === false
+    && (receipt.record_id === null || uuid(receipt.record_id))
+    && receipt.committed_workspace_revision === job.workspaceRevision + 1;
 }
 
 function startWriter(root, { path, profileId, workspaceId }) {
@@ -252,6 +281,8 @@ function startWriter(root, { path, profileId, workspaceId }) {
         if (typeof outcome.error?.code !== 'string') throw invalidReply();
       } else if (noteOperations.includes(job.operation)) {
         if (!validNoteOutcome(outcome, job, workspaceId)) throw invalidReply();
+      } else if (privateRecordOperations.includes(job.operation)) {
+        if (!validPrivateRecordOutcome(outcome, job, workspaceId)) throw invalidReply();
       } else if (outcome?.state === 'committed') {
         const { result, receipt } = outcome;
         if (outcome.operation !== job.operation || !validWorkspace(result, workspaceId)
@@ -315,6 +346,9 @@ function startWriter(root, { path, profileId, workspaceId }) {
       pending = {
         ...reply, requestId, messageId: body.message_id, operation,
         revisionId: body.revision_id, selectionRevision: body.expected_selection_revision,
+        recordId: typeof body.intent?.arguments?.record_id === 'string'
+          ? body.intent.arguments.record_id.toLowerCase() : body.intent?.arguments?.record_id,
+        recordAction: body.intent?.arguments?.action, workspaceRevision: body.scope?.expected_workspace_revision,
         noteId: typeof noteId === 'string' ? noteId.toLowerCase() : noteId,
         timer: setTimeout(() => stop(timeout()), commandDeadlineMs),
       };

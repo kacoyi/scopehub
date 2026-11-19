@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=a603e551d32381221da8cf7fb8ded46b4c02c2ddd6b56c7728d1d0d60ab8c911. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=56eb0e4df3b7dde58595960164c21123093e1a2a04c703dc11de5f195dd34f44. Do not edit.
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type OpaqueId = string;
 export type Uuid = string;
@@ -8,7 +8,7 @@ export type Metadata = Record<string, JsonValue>;
 export type WorkerRole = "market" | "ai" | "indicator";
 export type ProtocolVersion = "1.0";
 export type ErrorCode = "INVALID_ARGUMENT" | "UNSUPPORTED_CAPABILITY" | "PERMISSION_DENIED" | "CONFIRMATION_REQUIRED" | "CANCELLED" | "TIMEOUT" | "WORKER_EXITED" | "PROTOCOL_MISMATCH" | "DATA_UNAVAILABLE" | "STALE_CONTEXT" | "RESOURCE_LIMIT" | "OUTPUT_INVALID" | "PROVIDER_NOT_CONFIGURED" | "INTERNAL_ERROR" | "BUSY" | "SNAPSHOT_UNAVAILABLE";
-export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "market.previewLocalImport" | "market.saveLocalImportMapping" | "market.loadLocalImportMapping" | "market.listLocalImportRevisions" | "market.readLocalImportRevision" | "market.previewLocalFolderRefresh" | "market.revokeLocalImportRevision" | "market.publishLocalImport" | "workspace.readChartProjection" | "workspace.selectEvidence" | "decisionNote.save" | "decisionNote.read" | "decisionNote.appendOutcome" | "decisionNote.delete" | "decisionNote.exportBackup" | "decisionNote.previewRestore" | "decisionNote.restoreBackup";
+export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "market.previewLocalImport" | "market.saveLocalImportMapping" | "market.loadLocalImportMapping" | "market.listLocalImportRevisions" | "market.readLocalImportRevision" | "market.previewLocalFolderRefresh" | "market.revokeLocalImportRevision" | "market.publishLocalImport" | "workspace.readChartProjection" | "workspace.selectEvidence" | "decisionNote.save" | "decisionNote.read" | "decisionNote.appendOutcome" | "decisionNote.delete" | "decisionNote.exportBackup" | "decisionNote.previewRestore" | "decisionNote.restoreBackup" | "privateRecord.read" | "privateRecord.change" | "privateRecord.exportBackup";
 export type ChartStyle = "candlestick" | "line";
 export type TaskStatus = "queued" | "running" | "awaiting_confirmation" | "completed" | "failed" | "cancelled";
 export type Tradability = "non_tradable" | "unknown";
@@ -2053,6 +2053,192 @@ export type DecisionNoteReadOutput = {
 export type DecisionNoteTarget = {
   kind: "decision_note";
   object_id: DecisionNoteUuid11;
+};
+export type PrivateRecordUuid11 = string;
+export type PrivateRecordReadScope11 = {
+  workspace_id: OpaqueId;
+};
+export type PrivateRecordChangeScope11 = {
+  workspace_id: OpaqueId;
+  expected_workspace_revision: Revision;
+  idempotency_key: PrivateRecordUuid11;
+};
+export type PrivateRecordKind = "conversation" | "memory" | "strategy";
+export type PrivateRecordTurn = {
+  speaker: "user" | "assistant";
+  text: string;
+};
+export type PrivateRecordConversation = {
+  kind: "conversation";
+  title: string;
+  turns: Array<PrivateRecordTurn>;
+};
+export type PrivateRecordMemory = {
+  kind: "memory";
+  title: string;
+  text: string;
+};
+export type PrivateRecordStrategy = {
+  kind: "strategy";
+  title: string;
+  text: string;
+};
+export type PrivateRecordContent = PrivateRecordConversation | PrivateRecordMemory | PrivateRecordStrategy;
+export type PrivateRecordEntry = {
+  record_id: PrivateRecordUuid11;
+  revision: Revision;
+  content: PrivateRecordContent;
+};
+export type PrivateRecordSummary = {
+  record_id: PrivateRecordUuid11;
+  revision: Revision;
+  kind: PrivateRecordKind;
+  title: string;
+};
+export type PrivateRecordArchiveEntry = {
+  record_id: PrivateRecordUuid11;
+  content: PrivateRecordContent;
+};
+export type PrivateRecordBackupV1 = {
+  format: "scopehub.private-records";
+  version: number;
+  profile_binding: string;
+  records: Array<PrivateRecordArchiveEntry>;
+  deletions: Array<PrivateRecordUuid11>;
+};
+export type PrivateRecordReadInput = {
+  record_id: (PrivateRecordUuid11 | null);
+};
+export type PrivateRecordReadOutput = {
+  workspace_revision: Revision;
+  record: (PrivateRecordEntry | null);
+  records: Array<PrivateRecordSummary>;
+};
+export type PrivateRecordSaveInput = {
+  action: "save";
+  record_id: PrivateRecordUuid11;
+  expected_record_revision: (Revision | null);
+  content: PrivateRecordContent;
+};
+export type PrivateRecordDeleteInput = {
+  action: "delete";
+  record_id: PrivateRecordUuid11;
+  expected_record_revision: Revision;
+};
+export type PrivateRecordRestoreInput = {
+  action: "restore";
+  backup: PrivateRecordBackupV1;
+};
+export type PrivateRecordResolveInput = {
+  action: "resolve";
+  challenge_id: PrivateRecordUuid11;
+  decision: "approve" | "decline";
+};
+export type PrivateRecordChangeInput = PrivateRecordSaveInput | PrivateRecordDeleteInput | PrivateRecordRestoreInput | PrivateRecordResolveInput;
+export type PrivateRecordChangeSummary = {
+  added: number;
+  corrected: number;
+  removed: number;
+  kept: number;
+  suppressed: number;
+  imported_deletions: number;
+};
+export type PrivateRecordReceipt11 = {
+  operation_id: PrivateRecordUuid11;
+  workspace_id: OpaqueId;
+  record_id: (PrivateRecordUuid11 | null);
+  committed_workspace_revision: Revision;
+  undoable: false;
+};
+export type PrivateRecordExportInput = {
+};
+export type PrivateRecordReadIntent11 = {
+  operation: "privateRecord.read";
+  arguments: PrivateRecordReadInput;
+};
+export type PrivateRecordReadCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: PrivateRecordUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: PrivateRecordUuid11;
+  scope: PrivateRecordReadScope11;
+  intent: PrivateRecordReadIntent11;
+};
+export type PrivateRecordReadCompleted11 = {
+  state: "completed";
+  operation: "privateRecord.read";
+  result: PrivateRecordReadOutput;
+};
+export type PrivateRecordReadOutcome11 = PrivateRecordReadCompleted11 | ScopedFailure11;
+export type PrivateRecordReadReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: PrivateRecordUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: PrivateRecordUuid11;
+  outcome: PrivateRecordReadOutcome11;
+};
+export type PrivateRecordChangeIntent11 = {
+  operation: "privateRecord.change";
+  arguments: PrivateRecordChangeInput;
+};
+export type PrivateRecordChangeCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: PrivateRecordUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: PrivateRecordUuid11;
+  scope: PrivateRecordChangeScope11;
+  intent: PrivateRecordChangeIntent11;
+};
+export type PrivateRecordChangeCommitted11 = {
+  state: "committed";
+  operation: "privateRecord.change";
+  receipt: PrivateRecordReceipt11;
+};
+export type PrivateRecordChangeConfirmationRequired11 = {
+  state: "confirmation_required";
+  operation: "privateRecord.change";
+  challenge_id: PrivateRecordUuid11;
+  expires_at_ms: Timestamp;
+  summary: PrivateRecordChangeSummary;
+};
+export type PrivateRecordChangeOutcome11 = PrivateRecordChangeCommitted11 | PrivateRecordChangeConfirmationRequired11 | ScopedFailure11;
+export type PrivateRecordChangeReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: PrivateRecordUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: PrivateRecordUuid11;
+  outcome: PrivateRecordChangeOutcome11;
+};
+export type PrivateRecordExportIntent11 = {
+  operation: "privateRecord.exportBackup";
+  arguments: PrivateRecordExportInput;
+};
+export type PrivateRecordExportCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: PrivateRecordUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: PrivateRecordUuid11;
+  scope: PrivateRecordReadScope11;
+  intent: PrivateRecordExportIntent11;
+};
+export type PrivateRecordExportCompleted11 = {
+  state: "completed";
+  operation: "privateRecord.exportBackup";
+  result: PrivateRecordBackupV1;
+};
+export type PrivateRecordExportOutcome11 = PrivateRecordExportCompleted11 | ScopedFailure11;
+export type PrivateRecordExportReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: PrivateRecordUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: PrivateRecordUuid11;
+  outcome: PrivateRecordExportOutcome11;
 };
 export type DecisionNoteReceipt11 = {
   operation_id: DecisionNoteUuid11;

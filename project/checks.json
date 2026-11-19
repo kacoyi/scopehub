@@ -559,9 +559,27 @@
       "cadence": "task"
     },
     {
+      "id": "private-record-lifecycle",
+      "status": "implemented",
+      "purpose": "Verify profile-local private records, body-free replay, revision and authorization gates, backup recovery, tombstone union and migration rollback.",
+      "platforms": "all",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-application",
+        "-p",
+        "scopehub-persistence",
+        "private_record"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
       "id": "workspace-timeframe",
       "status": "implemented",
-      "purpose": "Exercise the real opted-in local writer through browser and process restart, timeframe undo, terminal cleanup, decision-note confirmation, deletion, backup and restore, and chart evidence selection and narrow projection of actual frozen profile data.",
+      "purpose": "Exercise the real opted-in local writer through browser and process restart, timeframe undo, terminal cleanup, decision-note confirmation, deletion, backup and restore, private-record lifecycle and stale approval, and chart evidence selection and narrow projection of actual frozen profile data.",
       "platforms": "all",
       "command": [
         "pnpm",
@@ -824,6 +842,8 @@
       "rust-lints",
       "operations-workflow",
       "decision-note-lifecycle",
+      "private-record-lifecycle",
+      "local-folder-manifest-storage",
       "workspace-timeframe",
       "desktop-workspace-transport"
     ],

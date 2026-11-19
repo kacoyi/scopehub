@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=a603e551d32381221da8cf7fb8ded46b4c02c2ddd6b56c7728d1d0d60ab8c911. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=56eb0e4df3b7dde58595960164c21123093e1a2a04c703dc11de5f195dd34f44. Do not edit.
 // Structural types and literal discriminators: validate schema refinements before deserializing.
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -187,6 +187,12 @@ pub enum OperationName {
     DecisionNotePreviewRestore,
     #[serde(rename = "decisionNote.restoreBackup")]
     DecisionNoteRestoreBackup,
+    #[serde(rename = "privateRecord.read")]
+    PrivateRecordRead,
+    #[serde(rename = "privateRecord.change")]
+    PrivateRecordChange,
+    #[serde(rename = "privateRecord.exportBackup")]
+    PrivateRecordExportBackup,
 }
 impl OperationName {
     pub fn as_str(&self) -> &'static str {
@@ -224,6 +230,9 @@ impl OperationName {
             Self::DecisionNoteExportBackup => "decisionNote.exportBackup",
             Self::DecisionNotePreviewRestore => "decisionNote.previewRestore",
             Self::DecisionNoteRestoreBackup => "decisionNote.restoreBackup",
+            Self::PrivateRecordRead => "privateRecord.read",
+            Self::PrivateRecordChange => "privateRecord.change",
+            Self::PrivateRecordExportBackup => "privateRecord.exportBackup",
         }
     }
 }
@@ -3494,6 +3503,301 @@ pub struct DecisionNoteReadOutput {
 pub struct DecisionNoteTarget {
     pub kind: DecisionNoteTargetKind,
     pub object_id: DecisionNoteUuid11,
+}
+pub type PrivateRecordUuid11 = String;
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordReadScope11 {
+    pub workspace_id: OpaqueId,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordChangeScope11 {
+    pub workspace_id: OpaqueId,
+    pub expected_workspace_revision: Revision,
+    pub idempotency_key: PrivateRecordUuid11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordKind {
+    #[serde(rename = "conversation")]
+    Conversation,
+    #[serde(rename = "memory")]
+    Memory,
+    #[serde(rename = "strategy")]
+    Strategy,
+}
+impl PrivateRecordKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Conversation => "conversation",
+            Self::Memory => "memory",
+            Self::Strategy => "strategy",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordTurn {
+    pub speaker: PrivateRecordTurnSpeaker,
+    pub text: String,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordConversation {
+    pub kind: PrivateRecordConversationKind,
+    pub title: String,
+    pub turns: Vec<PrivateRecordTurn>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordMemory {
+    pub kind: PrivateRecordMemoryKind,
+    pub title: String,
+    pub text: String,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordStrategy {
+    pub kind: PrivateRecordStrategyKind,
+    pub title: String,
+    pub text: String,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum PrivateRecordContent {
+    PrivateRecordConversation(Box<PrivateRecordConversation>),
+    PrivateRecordMemory(Box<PrivateRecordMemory>),
+    PrivateRecordStrategy(Box<PrivateRecordStrategy>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordEntry {
+    pub record_id: PrivateRecordUuid11,
+    pub revision: Revision,
+    pub content: PrivateRecordContent,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordSummary {
+    pub record_id: PrivateRecordUuid11,
+    pub revision: Revision,
+    pub kind: PrivateRecordKind,
+    pub title: String,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordArchiveEntry {
+    pub record_id: PrivateRecordUuid11,
+    pub content: PrivateRecordContent,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordBackupV1 {
+    pub format: PrivateRecordBackupV1Format,
+    pub version: u64,
+    pub profile_binding: String,
+    pub records: Vec<PrivateRecordArchiveEntry>,
+    pub deletions: Vec<PrivateRecordUuid11>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordReadInput {
+    pub record_id: Option<PrivateRecordUuid11>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordReadOutput {
+    pub workspace_revision: Revision,
+    pub record: Option<PrivateRecordEntry>,
+    pub records: Vec<PrivateRecordSummary>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordSaveInput {
+    pub action: PrivateRecordSaveInputAction,
+    pub record_id: PrivateRecordUuid11,
+    pub expected_record_revision: Option<Revision>,
+    pub content: PrivateRecordContent,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordDeleteInput {
+    pub action: PrivateRecordDeleteInputAction,
+    pub record_id: PrivateRecordUuid11,
+    pub expected_record_revision: Revision,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordRestoreInput {
+    pub action: PrivateRecordRestoreInputAction,
+    pub backup: PrivateRecordBackupV1,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordResolveInput {
+    pub action: PrivateRecordResolveInputAction,
+    pub challenge_id: PrivateRecordUuid11,
+    pub decision: PrivateRecordResolveInputDecision,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum PrivateRecordChangeInput {
+    PrivateRecordSaveInput(Box<PrivateRecordSaveInput>),
+    PrivateRecordDeleteInput(Box<PrivateRecordDeleteInput>),
+    PrivateRecordRestoreInput(Box<PrivateRecordRestoreInput>),
+    PrivateRecordResolveInput(Box<PrivateRecordResolveInput>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordChangeSummary {
+    pub added: u64,
+    pub corrected: u64,
+    pub removed: u64,
+    pub kept: u64,
+    pub suppressed: u64,
+    pub imported_deletions: u64,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordReceipt11 {
+    pub operation_id: PrivateRecordUuid11,
+    pub workspace_id: OpaqueId,
+    pub record_id: Option<PrivateRecordUuid11>,
+    pub committed_workspace_revision: Revision,
+    pub undoable: ConstBool<false>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordExportInput {}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordReadIntent11 {
+    pub operation: PrivateRecordReadIntent11Operation,
+    pub arguments: PrivateRecordReadInput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordReadCommand11 {
+    pub protocol_version: ProtocolVersion11,
+    pub message_id: PrivateRecordUuid11,
+    pub timestamp_ms: Timestamp,
+    pub r#type: PrivateRecordReadCommand11Type,
+    pub request_id: PrivateRecordUuid11,
+    pub scope: PrivateRecordReadScope11,
+    pub intent: PrivateRecordReadIntent11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordReadCompleted11 {
+    pub state: PrivateRecordReadCompleted11State,
+    pub operation: PrivateRecordReadCompleted11Operation,
+    pub result: PrivateRecordReadOutput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum PrivateRecordReadOutcome11 {
+    PrivateRecordReadCompleted11(Box<PrivateRecordReadCompleted11>),
+    ScopedFailure11(Box<ScopedFailure11>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordReadReply11 {
+    pub protocol_version: ProtocolVersion11,
+    pub message_id: PrivateRecordUuid11,
+    pub timestamp_ms: Timestamp,
+    pub r#type: PrivateRecordReadReply11Type,
+    pub request_id: PrivateRecordUuid11,
+    pub outcome: PrivateRecordReadOutcome11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordChangeIntent11 {
+    pub operation: PrivateRecordChangeIntent11Operation,
+    pub arguments: PrivateRecordChangeInput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordChangeCommand11 {
+    pub protocol_version: ProtocolVersion11,
+    pub message_id: PrivateRecordUuid11,
+    pub timestamp_ms: Timestamp,
+    pub r#type: PrivateRecordChangeCommand11Type,
+    pub request_id: PrivateRecordUuid11,
+    pub scope: PrivateRecordChangeScope11,
+    pub intent: PrivateRecordChangeIntent11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordChangeCommitted11 {
+    pub state: PrivateRecordChangeCommitted11State,
+    pub operation: PrivateRecordChangeCommitted11Operation,
+    pub receipt: PrivateRecordReceipt11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordChangeConfirmationRequired11 {
+    pub state: PrivateRecordChangeConfirmationRequired11State,
+    pub operation: PrivateRecordChangeConfirmationRequired11Operation,
+    pub challenge_id: PrivateRecordUuid11,
+    pub expires_at_ms: Timestamp,
+    pub summary: PrivateRecordChangeSummary,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum PrivateRecordChangeOutcome11 {
+    PrivateRecordChangeCommitted11(Box<PrivateRecordChangeCommitted11>),
+    PrivateRecordChangeConfirmationRequired11(Box<PrivateRecordChangeConfirmationRequired11>),
+    ScopedFailure11(Box<ScopedFailure11>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordChangeReply11 {
+    pub protocol_version: ProtocolVersion11,
+    pub message_id: PrivateRecordUuid11,
+    pub timestamp_ms: Timestamp,
+    pub r#type: PrivateRecordChangeReply11Type,
+    pub request_id: PrivateRecordUuid11,
+    pub outcome: PrivateRecordChangeOutcome11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordExportIntent11 {
+    pub operation: PrivateRecordExportIntent11Operation,
+    pub arguments: PrivateRecordExportInput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordExportCommand11 {
+    pub protocol_version: ProtocolVersion11,
+    pub message_id: PrivateRecordUuid11,
+    pub timestamp_ms: Timestamp,
+    pub r#type: PrivateRecordExportCommand11Type,
+    pub request_id: PrivateRecordUuid11,
+    pub scope: PrivateRecordReadScope11,
+    pub intent: PrivateRecordExportIntent11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordExportCompleted11 {
+    pub state: PrivateRecordExportCompleted11State,
+    pub operation: PrivateRecordExportCompleted11Operation,
+    pub result: PrivateRecordBackupV1,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum PrivateRecordExportOutcome11 {
+    PrivateRecordExportCompleted11(Box<PrivateRecordExportCompleted11>),
+    ScopedFailure11(Box<ScopedFailure11>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateRecordExportReply11 {
+    pub protocol_version: ProtocolVersion11,
+    pub message_id: PrivateRecordUuid11,
+    pub timestamp_ms: Timestamp,
+    pub r#type: PrivateRecordExportReply11Type,
+    pub request_id: PrivateRecordUuid11,
+    pub outcome: PrivateRecordExportOutcome11,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -7941,6 +8245,336 @@ impl DecisionNoteTargetKind {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Value => "decision_note",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordTurnSpeaker {
+    #[serde(rename = "user")]
+    User,
+    #[serde(rename = "assistant")]
+    Assistant,
+}
+impl PrivateRecordTurnSpeaker {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::User => "user",
+            Self::Assistant => "assistant",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordConversationKind {
+    #[serde(rename = "conversation")]
+    Value,
+}
+impl PrivateRecordConversationKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "conversation",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordMemoryKind {
+    #[serde(rename = "memory")]
+    Value,
+}
+impl PrivateRecordMemoryKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "memory",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordStrategyKind {
+    #[serde(rename = "strategy")]
+    Value,
+}
+impl PrivateRecordStrategyKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "strategy",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordBackupV1Format {
+    #[serde(rename = "scopehub.private-records")]
+    Value,
+}
+impl PrivateRecordBackupV1Format {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "scopehub.private-records",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordSaveInputAction {
+    #[serde(rename = "save")]
+    Value,
+}
+impl PrivateRecordSaveInputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "save",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordDeleteInputAction {
+    #[serde(rename = "delete")]
+    Value,
+}
+impl PrivateRecordDeleteInputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "delete",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordRestoreInputAction {
+    #[serde(rename = "restore")]
+    Value,
+}
+impl PrivateRecordRestoreInputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "restore",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordResolveInputAction {
+    #[serde(rename = "resolve")]
+    Value,
+}
+impl PrivateRecordResolveInputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "resolve",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordResolveInputDecision {
+    #[serde(rename = "approve")]
+    Approve,
+    #[serde(rename = "decline")]
+    Decline,
+}
+impl PrivateRecordResolveInputDecision {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Approve => "approve",
+            Self::Decline => "decline",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordReadIntent11Operation {
+    #[serde(rename = "privateRecord.read")]
+    Value,
+}
+impl PrivateRecordReadIntent11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "privateRecord.read",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordReadCommand11Type {
+    #[serde(rename = "request")]
+    Value,
+}
+impl PrivateRecordReadCommand11Type {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordReadCompleted11State {
+    #[serde(rename = "completed")]
+    Value,
+}
+impl PrivateRecordReadCompleted11State {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "completed",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordReadCompleted11Operation {
+    #[serde(rename = "privateRecord.read")]
+    Value,
+}
+impl PrivateRecordReadCompleted11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "privateRecord.read",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordReadReply11Type {
+    #[serde(rename = "response")]
+    Value,
+}
+impl PrivateRecordReadReply11Type {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordChangeIntent11Operation {
+    #[serde(rename = "privateRecord.change")]
+    Value,
+}
+impl PrivateRecordChangeIntent11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "privateRecord.change",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordChangeCommand11Type {
+    #[serde(rename = "request")]
+    Value,
+}
+impl PrivateRecordChangeCommand11Type {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordChangeCommitted11State {
+    #[serde(rename = "committed")]
+    Value,
+}
+impl PrivateRecordChangeCommitted11State {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "committed",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordChangeCommitted11Operation {
+    #[serde(rename = "privateRecord.change")]
+    Value,
+}
+impl PrivateRecordChangeCommitted11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "privateRecord.change",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordChangeConfirmationRequired11State {
+    #[serde(rename = "confirmation_required")]
+    Value,
+}
+impl PrivateRecordChangeConfirmationRequired11State {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "confirmation_required",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordChangeConfirmationRequired11Operation {
+    #[serde(rename = "privateRecord.change")]
+    Value,
+}
+impl PrivateRecordChangeConfirmationRequired11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "privateRecord.change",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordChangeReply11Type {
+    #[serde(rename = "response")]
+    Value,
+}
+impl PrivateRecordChangeReply11Type {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordExportIntent11Operation {
+    #[serde(rename = "privateRecord.exportBackup")]
+    Value,
+}
+impl PrivateRecordExportIntent11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "privateRecord.exportBackup",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordExportCommand11Type {
+    #[serde(rename = "request")]
+    Value,
+}
+impl PrivateRecordExportCommand11Type {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordExportCompleted11State {
+    #[serde(rename = "completed")]
+    Value,
+}
+impl PrivateRecordExportCompleted11State {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "completed",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordExportCompleted11Operation {
+    #[serde(rename = "privateRecord.exportBackup")]
+    Value,
+}
+impl PrivateRecordExportCompleted11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "privateRecord.exportBackup",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum PrivateRecordExportReply11Type {
+    #[serde(rename = "response")]
+    Value,
+}
+impl PrivateRecordExportReply11Type {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
         }
     }
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { ChartCursorMode, ChartStyle, HistoryChartHandle } from './chart-adapter/history';
 import { DecisionNotes } from './decision-notes';
+import { PrivateRecords } from './private-records';
 import { UnavailableSharedSelection } from './frozen-evidence';
 import { instrumentName, symbol } from './instrument-display';
 import { isClosedBarGapRevision, sampleRevisionInstrument, type ChartHistory, type Instrument, type SampleRevision } from './market';
@@ -74,6 +75,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   const [focusChart, setFocusChart] = useState(saved?.chartOnly ?? false);
   const [searchQuery, setSearchQuery] = useState<string | null>(null);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [recordsOpen, setRecordsOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
   const chart = useRef<HistoryChartHandle | null>(null);
   const dock = useRef<HTMLElement>(null);
@@ -141,7 +143,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   }, []);
   useEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.isComposing || searchQuery !== null || notesOpen) return;
+      if (event.defaultPrevented || event.isComposing || searchQuery !== null || notesOpen || recordsOpen) return;
       if (event.key === 'Escape') {
         if (focusChart) setFocusChart(false);
         else if (visiblePanel) closePanel();
@@ -156,7 +158,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
     };
     window.addEventListener('keydown', keyboard);
     return () => window.removeEventListener('keydown', keyboard);
-  }, [searchQuery, notesOpen, focusChart, visiblePanel, closePanel]);
+  }, [searchQuery, notesOpen, recordsOpen, focusChart, visiblePanel, closePanel]);
   const openSample = () => { window.location.hash = 'demo'; };
 
   let plot: ReactNode;
@@ -200,7 +202,9 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
         <Tool name="Close-price line" icon="line" active={style === 'line'} onClick={() => setStyle('line')} />
       </div>
       {workspace && <div className="toolbar-group"><button type="button" className="period notes-trigger"
-        aria-haspopup="dialog" disabled={timeframeBlocked} onClick={() => setNotesOpen(true)}>Decision notes</button></div>}
+        aria-haspopup="dialog" disabled={timeframeBlocked} onClick={() => setNotesOpen(true)}>Decision notes</button>
+        <button type="button" className="period notes-trigger" aria-haspopup="dialog"
+          disabled={timeframeBlocked} onClick={() => setRecordsOpen(true)}>Private records</button></div>}
       <span className={'connection' + (sample ? ' sample' : '')} role="status"><i aria-hidden="true" />{sample ? <><span>Offline sample</span><b>Simulated</b></> : 'No data source'}</span>
       <Tool name={focusChart ? 'Exit chart-only view' : 'Chart-only view'} icon={focusChart ? 'collapse' : 'expand'} active={focusChart} onClick={() => setFocusChart(!focusChart)} />
     </header>
@@ -248,6 +252,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
     </div>
     {searchQuery !== null && <SymbolSearch instruments={instruments} initialQuery={searchQuery} sample={sample}
       onChoose={choose} onClose={closeSearch} openSample={openSample} />}
+    {recordsOpen && workspace?.snapshot && <PrivateRecords workspace={workspace} onClose={() => setRecordsOpen(false)} />}
     {notesOpen && workspace?.snapshot && <DecisionNotes workspace={workspace} onClose={() => setNotesOpen(false)} />}
   </main>;
 }
