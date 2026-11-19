@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-001",
+  "focus_task_id": "M1-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -183,7 +183,7 @@
       "id": "M1-001",
       "title": "Deliver the simulated chart workflow",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-007"
       ],
@@ -218,8 +218,13 @@
         "market-quality-states",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Exercise the three search selections through one ordinary chart session and compare the frozen, intermediate and final bars with the independently specified fixture values.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-001-c12974fd7e3eb74f.json",
+          "sha256": "d58a3f67455d7924131a4529b70145cf3c5da02aee710c702f7a479e00a591fd"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
