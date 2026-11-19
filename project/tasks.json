@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M3-001",
+  "focus_task_id": "M2-002",
   "tasks": [
     {
       "id": "M0-001",
@@ -616,7 +616,7 @@
       "id": "M3-001",
       "title": "Deliver reproducible indicator previews and accepted versions",
       "milestone": "M3",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-001"
       ],
@@ -652,8 +652,13 @@
         "typescript-contracts",
         "ui-build"
       ],
-      "evidence": [],
-      "next_action": "Verify the trusted Python and declarative journeys on the composed layout, worker, and numerical source. Retain results through restart and source withdrawal, and preserve opaque unavailable references.",
+      "evidence": [
+        {
+          "path": "project/evidence/M3-001-7a8f067e6328e769.json",
+          "sha256": "013a7190d6ccfdcc2fd304d4c112f0a14312502c5d5ec721d5dca484f14a466e"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
