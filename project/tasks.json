@@ -2700,7 +2700,8 @@
         "0007",
         "0004",
         "0005",
-        "0008"
+        "0008",
+        "0013"
       ],
       "acceptance": [
         "Read only the selected scope. Show raw and normalized rows and a chart preview for equity and futures bar examples with different headers, encodings, units and date conventions. A manual mapping works offline.",
@@ -2727,7 +2728,7 @@
         "local-import-ui"
       ],
       "evidence": [],
-      "next_action": "Verify discovery and the one-row save and publication retry regression in the native Windows desktop on the joined v5 source. Prior standard-user Windows evidence covers two immutable revisions reopened after the source directory was disconnected and mapping reuse under long and short NTFS paths. Continue bounded local preview recovery and the separate reviewed multi-file refresh for additions, aliases, corrections and withdrawals.",
+      "next_action": "Verify browsing and reopening published revisions in the native Windows desktop and verify the integrated preview retry, receipt replay and current entitlement. Continue reviewed folder refresh for additions, aliases, corrections and withdrawals.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -2754,7 +2755,9 @@
           "contracts/reviews/2026-11-19-windows-reviewed-mapping-paths.json",
           "contracts/reviews/2026-11-19-windows-local-publication.json",
           "crates/persistence/src/local_dataset.rs",
-          "apps/desktop/ui/src/local-revision-dialog.tsx"
+          "apps/desktop/ui/src/local-revision-dialog.tsx",
+          "crates/worker-host/src/local_import.rs",
+          "crates/worker-host/src/local_import_windows.rs"
         ],
         "hypotheses": [
           "Explicit source mappings can normalize native OHLCV bars without inferring a price, volume unit or session from ambiguous financial fields. File identities and row locators can connect every accepted row to its original input.",
@@ -2764,7 +2767,8 @@
           "The current native grant, selected catalog file, full file fingerprint and persisted mapping identity can jointly authorize publication without accepting normalized bars from the UI.",
           "Immutable storage and a transactional idempotency key can return the same revision on retry and preserve the previous publication on interruption.",
           "The pre-decode not_saved result after the same-profile restart is consistent with a mapping key derived from different spellings of one directory. Resolve the Windows association path while the admitted non-reparse directory chain is pinned, and retain the existing v4 path-key format.",
-          "A bounded keyset projection from the existing v5 revision and revocation tables can show distinguishing source and series summaries without reading the original CSV blob or granting source access. Existing frozen reads can recheck entitlement for every selection."
+          "A bounded keyset projection from the existing v5 revision and revocation tables can show distinguishing source and series summaries without reading the original CSV blob or granting source access. Existing frozen reads can recheck entitlement for every selection.",
+          "A single replacement can complete a pure preview on already-frozen bytes after the first worker misses its deadline, when the first worker has been reaped and the selection remains current."
         ],
         "risks": [
           {
@@ -2863,6 +2867,13 @@
               "rust-contracts-workers",
               "generated-contracts"
             ]
+          },
+          {
+            "failure": "A timed-out preview overlaps a still-running interpreter, restarts after source revocation, or retries a known rejection or a publication.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-folder-import"
+            ]
           }
         ],
         "rollback": "Keep the accepted mapping, immutable source identities and last published revision while staging changes. Rejected rows and unsupported files remain inspectable in the selected local session. Stage a mapping version in the current SQLite transaction and roll it back if cancellation or source revocation wins before commit. Keep the previous reviewed version available after failures. The library is a read-only projection. Its refresh can restart from the first page and the existing direct-ID read remains available if listing fails.",
@@ -2894,9 +2905,14 @@
             "crates/persistence/src/reviewed_import.rs",
             "crates/persistence/src/local_dataset.rs",
             "crates/application/src/local_publication.rs",
-            "apps/desktop/ui/src/local-revision-dialog.tsx"
+            "apps/desktop/ui/src/local-revision-dialog.tsx",
+            "crates/worker-host/src/local_import_windows.rs"
           ],
           "rules": [
+            {
+              "path": "contracts/decisions/0013-own-the-local-csv-interpreter-directly.json",
+              "pointer": "/decision"
+            },
             {
               "path": "engineering-contract-v1.json",
               "pointer": "/product/data_onboarding"
@@ -2943,10 +2959,12 @@
             "Distinguish the same admitted save request from an independent review. Reuse the exact equivalent latest saved mapping in the writer while allowing a new explicit A-to-B-to-A review. Test changed request purpose or inputs, native grants, source bytes, cancellation and concurrent attempts.",
             "Recover an exact committed publication receipt within the original live native selection before requiring a current reviewed mapping, completed preview or another file read. Check the current display right on every reply. Keep current grant, preview and source validation on the new-publication path. A restart requires a fresh native selection for new source work and still allows entitled frozen reads by revision ID.",
             "Normalize the Windows association path only after trusted selection admission. Retain canonical v4 keys, opaque live grants and source and profile separation.",
-            "Add an explicit, human-only paginated library in Open published CSV. List entitled revisions in stable revision-ID order and read the selected frozen chart through the existing operation."
+            "Add an explicit, human-only paginated library in Open published CSV. List entitled revisions in stable revision-ID order and read the selected frozen chart through the existing operation.",
+            "Retry only a pure local preview once after a five-second worker timeout and confirmed cleanup. Reuse the frozen bytes, fingerprint and mapping, preserve caller deadlines, and stop on a second timeout.",
+            "Targeted verification passed on the standard-user Win11 MSVC archive 255ae9138f7a with 16 local-import controls and one separate ownership run. Independent Linux archive a377f77d50d3 passed 12 controls. ADR 0013 records artifact hashes and scope. The phase and cause of the original GUI timeout remain unknown."
           ],
           "data_plan": "Keep source bytes, mapping, evidence locators and dataset revisions on the active profile. Migrate long-lived state through its owning Rust writer when publication is introduced. Integrate the profile writer and migration history from af89eff. Preserve workspace schema v1, decision notes v2 and backup and restore v3. Apply reviewed mapping schema v4 transactionally and verify both populated v3 databases and fresh initialization. Persist an opaque per-source association, ordered header digest and reviewed mapping. Derive folder access only from the current trusted selection. Add a transactional v4 to v5 migration owned by the existing profile writer. Test upgrade with populated workspace, decision-note and reviewed mapping data, plus new and reopened profiles. A failed or cancelled publication leaves previous revisions readable without rereading the folder. Recover a failed migration from the preserved pre-upgrade profile. Discover from existing immutable v5 records and revocation markers with no new persisted state.",
-          "cleanup": "Cancel uncommitted staging on failure and close file handles when the selected folder or profile changes. Close the profile writer and cancel uncommitted mapping operations when the host shuts down. Release any uncommitted complete-file data after cancellation, changed bytes or write failure. Discard stale list pages on refresh and remove inaccessible entries after a raced selection."
+          "cleanup": "Cancel uncommitted staging on failure and close file handles when the selected folder or profile changes. Close the profile writer and cancel uncommitted mapping operations when the host shuts down. Release any uncommitted complete-file data after cancellation, changed bytes or write failure. Discard stale list pages on refresh and remove inaccessible entries after a raced selection. Keep the worker admission permit through the bounded cleanup. A failed cleanup never authorizes a replacement."
         }
       }
     },
