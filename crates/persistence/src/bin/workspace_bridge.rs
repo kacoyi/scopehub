@@ -129,21 +129,28 @@ fn serve(
                 )?;
             }
         } else if let Ok(request) = &request
-            && request["type"] == "frozen_chart"
+            && matches!(
+                request["type"].as_str(),
+                Some("frozen_chart" | "frozen_chart_status")
+            )
         {
             let result = match request["revision_id"].as_str() {
                 Some(id)
                     if request.as_object().is_some_and(|obj| obj.len() == 3)
                         && request["request_id"].as_str().is_some() =>
                 {
-                    registry.open_evidence_chart(
-                        &WorkspaceAccess {
-                            actor: Actor::LocalUser,
-                            operations: &[READ_LOCAL_IMPORT_REVISION],
-                            ..*access
-                        },
-                        id,
-                    )
+                    let display = WorkspaceAccess {
+                        actor: Actor::LocalUser,
+                        operations: &[READ_LOCAL_IMPORT_REVISION],
+                        ..*access
+                    };
+                    if request["type"] == "frozen_chart_status" {
+                        registry
+                            .evidence_chart_display_allowed(&display, id)
+                            .map(|available| json!({"available": available}))
+                    } else {
+                        registry.open_evidence_chart(&display, id)
+                    }
                 }
                 _ => Err(failure(ErrorCode::INVALIDARGUMENT)),
             };

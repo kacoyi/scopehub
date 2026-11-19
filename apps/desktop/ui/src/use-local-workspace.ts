@@ -14,7 +14,7 @@ type LocalRequest = { type: 'snapshot' } | Command | DecisionNoteReadCommand11 |
   | DecisionNoteAppendOutcomeCommand11 | DecisionNoteDeleteCommand11 | DecisionNoteExportBackupCommand11
   | DecisionNotePreviewRestoreCommand11 | DecisionNoteRestoreBackupCommand11
   | SharedSelectionRequest11 | ReadProjectedChart11
-  | { type: 'frozen_chart'; request_id: string; revision_id: string };
+  | { type: 'frozen_chart' | 'frozen_chart_status'; request_id: string; revision_id: string };
 type UndoTarget = Pick<OperationReceipt11, 'operation_id' | 'committed_workspace_revision'>;
 type ChartEvidence = { revision_id: string; range: VisibleRange } | { unavailable: true };
 type Snapshot = {
@@ -59,7 +59,7 @@ function describeFailure(error: unknown) {
 }
 
 export async function exchangeWorkspace<T>(body: LocalRequest, signal: AbortSignal): Promise<T> {
-  if (nativeWorkspace) {
+  if (nativeWorkspace || desktop && body.type === 'frozen_chart_status') {
     signal.throwIfAborted();
     const operation = body.type === 'request' ? 'operation' in body ? body.operation : body.intent.operation : null;
     const value = await invoke<T>('execute_operation', { operation, payload: body });
@@ -71,6 +71,7 @@ export async function exchangeWorkspace<T>(body: LocalRequest, signal: AbortSign
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${launchCapability}` }, body: JSON.stringify(body),
   });
   const reply = await response.json();
+  signal.throwIfAborted();
   if (reply?.ok === false && errorCode(reply.error)) throw reply.error;
   if (!response.ok || reply?.ok !== true || !reply.result) throw { code: 'OUTPUT_INVALID' };
   return reply.result as T;

@@ -13,6 +13,7 @@ const mutations = ['chart.setTimeframe', 'workspace.undo'];
 const selectEvidence = 'workspace.selectEvidence';
 const readChartProjection = 'workspace.readChartProjection';
 const evidenceOperations = [selectEvidence, readChartProjection];
+const frozenChartControls = ['frozen_chart', 'frozen_chart_status'];
 const exportBackup = 'decisionNote.exportBackup';
 const previewRestore = 'decisionNote.previewRestore';
 const restoreBackup = 'decisionNote.restoreBackup';
@@ -109,7 +110,7 @@ function responseLimit(operation) {
 }
 
 function requestFrame(command, workspaceId) {
-  if (command?.type === 'frozen_chart') {
+  if (frozenChartControls.includes(command?.type)) {
     if (Object.keys(command).length !== 3 || !uuid(command.request_id) || !uuid(command.revision_id)) {
       throw new PreviewFailure(400, 'INVALID_ARGUMENT');
     }
@@ -228,6 +229,10 @@ function startWriter(root, { path, profileId, workspaceId }) {
           || !(validFailure || frame.ok === true && validSnapshot(frame.result, workspaceId))) throw invalidReply();
       // Keep correlation internal to the trusted stdio transport.
       delete frame.request_id;
+    } else if (job.operation === 'frozen_chart_status') {
+      if (frame?.request_id !== job.requestId || !(validFailure || frame?.ok === true
+        && typeof frame.result?.available === 'boolean' && Object.keys(frame.result).length === 1)) throw invalidReply();
+      delete frame.request_id;
     } else if (job.operation === 'frozen_chart') {
       const chart = frame?.result;
       if (frame?.request_id !== job.requestId || !(validFailure || frame?.ok === true
@@ -306,7 +311,7 @@ function startWriter(root, { path, profileId, workspaceId }) {
         : requestFrame(body, workspaceId);
       const reply = Promise.withResolvers();
       const noteId = body?.scope?.target?.object_id ?? body?.intent?.arguments?.note_id;
-      const operation = snapshot || body.type === 'frozen_chart' ? body.type : body.operation ?? body.intent?.operation;
+      const operation = snapshot || frozenChartControls.includes(body.type) ? body.type : body.operation ?? body.intent?.operation;
       pending = {
         ...reply, requestId, messageId: body.message_id, operation,
         revisionId: body.revision_id, selectionRevision: body.expected_selection_revision,

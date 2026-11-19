@@ -1,0 +1,60 @@
+{
+  "schema_version": "1.0",
+  "id": "0013",
+  "title": "Own the qualified local CSV interpreter directly",
+  "status": "accepted",
+  "recorded_at": "2026-11-19",
+  "context": "A standard-user Win11 comparison found that the venv launcher handle can signal before its dedicated interpreter. A later Job experiment likewise observed zero active processes while the retained interpreter handle still returned WAIT_TIMEOUT. Separately, suspending the process before assigning the Job exposed an orphan window on host termination. The original GUI deadline remains unclassified by phase.",
+  "decision": "For the qualified developer-managed Windows CPython 3.12 venv, start the actual executable named by the same venv configuration as the original launcher. Use CPython's launcher environment convention to retain the existing venv prefix, private pipe configuration, source/configuration paths and locked packages. Only this Rust-owned interpreter needs to exit for the one-shot, subprocess-free CSV worker. A custom, packaged or unqualified executable keeps its existing one-shot launch and is ineligible for automatic replacement.",
+  "authority": "The technical owner approved the narrower directly owned interpreter after observing the runtime environment equivalence and process exit on the standard-user native target under ADR 0007.",
+  "alternatives": [
+    {
+      "option": "Use Job accounting or wait for the launcher",
+      "reason": "Both signals precede completion of the actual interpreter on the observed native target."
+    },
+    {
+      "option": "Build an atomic Job-at-create launcher",
+      "reason": "The stable Rust launcher cannot attach the Job attribute. A separate Win32 launch path needs to reproduce private pipe inheritance and avoid races with other process launches. The one-shot CSV worker can instead use the same qualified interpreter directly."
+    }
+  ],
+  "consequences": [
+    "Restore the workspace unsafe-code policy, original package graph, and lock and notice inventory.",
+    "Retain the three native proof cases: the ordinary launcher and its distinct interpreter, equivalent venv paths and package versions for the direct launch, and real exit of the exact directly owned child before retry.",
+    "Bound the local cleanup task by the existing grace period. A wait or termination error prevents replacement. A task releases its admission on bounded completion and drops the child with the existing termination fallback.",
+    "Only a pure local preview may start one replacement on the same frozen bytes, digest and mapping. Honor source reselection, cancellation, and applicable clocks. Complete-file analysis and publication remain one-shot, and market replay keeps its independent timing."
+  ],
+  "supersedes": [
+    "0012"
+  ],
+  "revisit_when": "A packaged or user-configured runtime needs automatic recovery, or the supported CPython venv launcher convention changes.",
+  "related_decisions": [
+    "0007",
+    "0008"
+  ],
+  "verification": {
+    "scope": "Targeted native and independent controls for the local preview recovery slice. These are raw observations and do not close M1-008 or certify an installer.",
+    "original_gui_timeout": {
+      "source": "2f4a0c02f746a35e10b23317ceb7f309b3f068da",
+      "executable_sha256": "940473490f260c91a50c62024b6595d688949abb0cd451172a5ab56968acd7cd",
+      "phase": "unknown",
+      "observation": "Raw preview succeeded before the normalized request returned TIMEOUT. Repeated quiet direct and native checks did not classify that failing exchange phase."
+    },
+    "windows": {
+      "environment": "Windows 11 26H2, standard user, native MSVC and the locked CPython development venv",
+      "source_archive_sha256": "255ae9138f7ae5fbb80037c671e169f3809989695ed204d4ca7d58e77c7c8dde",
+      "observation": "The ordinary venv launcher had a distinct interpreter. Direct launch retained the same runtime, ordered paths, packages and IANA zone. The Rust-owned child was the interpreter and was reaped before replacement. Ownership passed 1/1 in 0.59 seconds and the full local import Rust selection passed 16/16 in 17.02 seconds.",
+      "artifact_sha256": {
+        "csv-qualified-direct-255ae91/RECAP.TXT": "ffdff94f3e221f63063bfd98609867b25bb34bd8ccd84477fe007cbac7423e25",
+        "csv-qualified-direct-255ae91/OWNTEST.TXT": "d9fe3f98646a044cd601eb8de1c8979dbccb1ba9235e398b89656e8df855e902",
+        "csv-qualified-direct-255ae91/ALLTEST.TXT": "ca6e8cf312496f833c5ee18bb14687c67f4afb561e3c74f2e86c1f894bac8820"
+      }
+    },
+    "independent_linux": {
+      "source_archive_sha256": "a377f77d50d379651da0e6c3323b2a86a785ae5ab30e1a283c09b3a8f3737ff6",
+      "observation": "All 12 independent cases passed. A silent first worker was reaped before the single retry with frozen input and a new request ID. Typed rejections survived a stalled teardown. Cancellation, reselection and native lookalike executables prevented replacement. Successful retry preserved the synthetic bar close of 6.",
+      "artifact_sha256": {
+        "independent/summary.jsonl": "fe6246a4a8623f2fdcbf6ff925a8a41e8fbcb0f5458e1fb8e640c88d75156411"
+      }
+    }
+  }
+}

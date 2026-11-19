@@ -69,6 +69,28 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         access: &WorkspaceAccess<'_>,
         revision_id: &str,
     ) -> Result<Value, Error> {
+        self.authorize_evidence_display(access)?;
+        self.port.inspect(|tx| {
+            let dataset = entitled_dataset(tx, revision_id)?;
+            let mut output =
+                frozen_output(access.actor, &dataset.summary(), &dataset.content["bars"])?;
+            output["snapshot"] = json!(FrozenChart::new(&dataset)?.snapshot);
+            Ok(output)
+        })
+    }
+
+    /// Check the current local display entitlement without materializing the stored chart.
+    pub fn evidence_chart_display_allowed(
+        &self,
+        access: &WorkspaceAccess<'_>,
+        revision_id: &str,
+    ) -> Result<bool, Error> {
+        self.authorize_evidence_display(access)?;
+        self.port
+            .inspect(|tx| tx.local_evidence_display_allowed(revision_id))
+    }
+
+    fn authorize_evidence_display(&self, access: &WorkspaceAccess<'_>) -> Result<(), Error> {
         if !matches!(access.actor, Actor::LocalUser)
             || access.principal_id != access.profile_id
             || access.paired_client_id.is_some()
@@ -77,13 +99,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         {
             return Err(failure(ErrorCode::PERMISSIONDENIED));
         }
-        self.port.inspect(|tx| {
-            let dataset = entitled_dataset(tx, revision_id)?;
-            let mut output =
-                frozen_output(access.actor, &dataset.summary(), &dataset.content["bars"])?;
-            output["snapshot"] = json!(FrozenChart::new(&dataset)?.snapshot);
-            Ok(output)
-        })
+        Ok(())
     }
 
     pub(super) fn execute_evidence_request(

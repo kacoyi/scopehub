@@ -21,11 +21,12 @@ async fn dispatch(state: &State, folder: &Path, command: Value) -> Result<Value,
             .unwrap_or(Value::Null)),
         Some("execute_operation") => {
             let payload = args["payload"].take();
-            let operation = args["operation"]
-                .as_str()
-                .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
             state
-                .execute_local_operation(operation, payload, args["requestId"].as_str())
+                .execute_test_window_operation(
+                    args["operation"].as_str(),
+                    payload,
+                    args["requestId"].as_str(),
+                )
                 .await
         }
         _ => Err(failure(ErrorCode::INVALIDARGUMENT)),

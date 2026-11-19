@@ -60,6 +60,118 @@ fn file<'a>(catalog: &'a FolderCatalog, relative: &str) -> &'a FileMetadata {
         .unwrap()
 }
 
+#[cfg(windows)]
+#[test]
+fn windows_source_association_survives_equivalent_selector_spellings() {
+    let temp = TempDir::new();
+    let source = temp.directory("Reviewed Source");
+    let supplied = std::env::temp_dir()
+        .join(temp.0.file_name().unwrap())
+        .join("Reviewed Source");
+    let differently_cased = supplied.with_file_name("rEVIEWED sOURCE");
+    let different = temp.directory("Other Source");
+    for directory in [&source, &different] {
+        write(directory, "equity.csv", EQUITY);
+    }
+
+    let canonical = source.canonicalize().unwrap();
+    assert_ne!(differently_cased.file_name(), canonical.file_name());
+    assert_eq!(supplied.canonicalize().unwrap(), canonical);
+    assert_eq!(differently_cased.canonicalize().unwrap(), canonical);
+
+    let host = LocalFolderHost::default();
+    let cancel = Cancellation::default();
+    let first = host.adopt_selected(&canonical, &cancel).unwrap();
+    let first_file = file(&first, "equity.csv");
+    let key = host
+        .source_key(first.folder_id, first_file.file_id)
+        .unwrap();
+    for path in [&supplied, &differently_cased, &different] {
+        let selected = host.adopt_selected(path, &cancel).unwrap();
+        let csv = file(&selected, "equity.csv");
+        assert_ne!(selected.folder_id, first.folder_id);
+        assert_ne!(csv.file_id, first_file.file_id);
+        let reopened_key = host.source_key(selected.folder_id, csv.file_id).unwrap();
+        if path == &different {
+            assert_ne!(
+                reopened_key, key,
+                "identical bytes in another root are a different source"
+            );
+        } else {
+            assert_eq!(
+                reopened_key, key,
+                "equivalent selector paths share the reviewed source"
+            );
+        }
+        assert_eq!(
+            host.read(
+                selected.folder_id,
+                csv.file_id,
+                Some(EQUITY_SHA256),
+                &cancel
+            )
+            .unwrap()
+            .content
+            .as_deref(),
+            Some(EQUITY)
+        );
+    }
+    assert_eq!(
+        host.source_key(first.folder_id, first_file.file_id),
+        Err(FolderError::SelectionUnavailable)
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_source_association_rejects_a_directory_junction() {
+    use std::process::Command;
+
+    let temp = TempDir::new();
+    // PowerShell 5.1 expects ordinary drive paths when creating the test junction.
+    let root = std::env::temp_dir().join(temp.0.file_name().unwrap());
+    let source = root.join("Selected Source");
+    write(&source, "equity.csv", EQUITY);
+    let junction = root.join("Redirected Source");
+    let powershell = PathBuf::from(std::env::var_os("SystemRoot").unwrap())
+        .join("System32/WindowsPowerShell/v1.0/powershell.exe");
+    let status = Command::new(powershell)
+        .args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "$ErrorActionPreference = 'Stop'; New-Item -ItemType Junction -Path $env:SCOPEHUB_TEST_JUNCTION -Target $env:SCOPEHUB_TEST_JUNCTION_TARGET | Out-Null",
+        ])
+        .env("SCOPEHUB_TEST_JUNCTION", &junction)
+        .env("SCOPEHUB_TEST_JUNCTION_TARGET", &source)
+        .status()
+        .unwrap();
+    assert!(
+        status.success(),
+        "creating the synthetic NTFS junction failed"
+    );
+    assert_eq!(
+        junction.canonicalize().unwrap(),
+        source.canonicalize().unwrap()
+    );
+
+    let host = LocalFolderHost::default();
+    let cancel = Cancellation::default();
+    let selected = host.adopt_selected(&source, &cancel).unwrap();
+    let csv = file(&selected, "equity.csv");
+    assert!(matches!(
+        host.adopt_selected(&junction, &cancel),
+        Err(FolderError::InvalidSelection)
+    ));
+    assert_eq!(
+        host.read(selected.folder_id, csv.file_id, None, &cancel)
+            .unwrap()
+            .sha256,
+        EQUITY_SHA256
+    );
+    fs::remove_dir(junction).unwrap();
+}
+
 #[test]
 fn lists_scoped_metadata_and_reads_equity_future_and_byte_identical_alias() {
     let temp = TempDir::new();

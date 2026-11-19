@@ -745,6 +745,18 @@
       "schema_requirement": "Protocol 1.1 only. A local human explicitly publishes one complete reviewed native CSV series. The Rust registry binds the current selected file, complete source checksum and saved mapping; the authenticated profile writer retains the original bytes and immutable source row provenance."
     },
     {
+      "name": "market.listLocalImportRevisions",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "ListLocalImportRevisionsRequest",
+      "output_spec": "ListLocalImportRevisionsReply11",
+      "schema_requirement": "Protocol 1.1 only. Return a bounded summary page of displayable frozen CSV revisions for the active local human profile. Ascending revision IDs provide a stable exclusive cursor. A caller can opt in to the frozen venue, the first and final bars' trading days, and the final bar's close. The default reply retains its original fields. Listing needs no source directory, returns no source grant or raw content and does not replace read-time authorization."
+    },
+    {
       "name": "market.readLocalImportRevision",
       "effect": "read",
       "confirmation": false,
@@ -1181,7 +1193,7 @@
       "settings"
     ],
     "sqlite": "WAL; foreign keys enabled; transactional writes; versioned and tested migrations",
-    "local_import_publication": "Schema v5 stores immutable single-file revisions and originally selected file bytes once per SHA-256 in the active profile. Each revision references a reviewed mapping and the ordered source locators contributing to each native bar. An explicit display-right revocation denies later reads of that revision without reading or changing the original directory. The application never keeps a durable native directory grant.",
+    "local_import_publication": "Schema v5 stores immutable single-file revisions and originally selected file bytes once per SHA-256 in the active profile. Each revision references a reviewed mapping and the ordered source locators contributing to each native bar. A fresh authorized review with the same full mapping and ordered header reuses the current saved revision. During the trusted desktop session, an exact committed mutation request under its original live native selection recovers its original receipt before new-work checks. A publication receipt still requires current display rights. An explicit display-right revocation denies later reads and receipt replay for that revision. The application never keeps a durable native directory grant. Entitled profiles can still open frozen data by revision ID after restart.",
     "credentials": "Windows Credential Manager; the DB stores references only; mock implementations do not use credentials",
     "cache": "The cache can be cleared without deleting user indicator versions; do not mix different data sources or price adjustment methodologies",
     "log": "Record operations, actors, summaries, statuses, and correlation IDs; redact sensitive fields; do not implement full event sourcing",

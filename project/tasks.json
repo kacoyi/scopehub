@@ -382,10 +382,11 @@
         "workspace-timeframe",
         "project-state",
         "python-contracts-workers",
-        "desktop-workspace-transport"
+        "desktop-workspace-transport",
+        "local-import-publication"
       ],
       "evidence": [],
-      "next_action": "Retain the shared chart operation and decision-note regressions. Close the remaining state-migrations gate for broader durable records and exercise a confirmation-enabled operation against changed targets, grants and revisions as that capability lands.",
+      "next_action": "Verify selected chart mutations, fresh disclosure on retry, rollback and undo together with native CSV discovery, revocation and explicit clear. Complete profile-local conversation, memory and strategy persistence, then verify backup, deletion and recovery before closing M2-001.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -416,7 +417,8 @@
           "A synthetic original thesis and a separately dated outcome can be distinguished after restart. Deleting their note can retain a profile-bound marker and redacted operation results without leaving the body available to a live read, undo or idempotent replay.",
           "A logical backup limited to decision notes can recover missing originals and dated outcomes, keep newer work, and suppress marked notes without copying operation history, grants or SQLite journals.",
           "Restore stages can retain only pending inserts and release them when the revision changes, a deadline expires or the session ends. Revision-based projection refresh can preserve a surviving note's unsubmitted outcome draft while clearing deleted list entries and details.",
-          "The published single-series CSV revision UUID identifies the frozen chart and scopes its instrument identity. Derive the history-chain-v1 hash from the exact stored bars. Use the exclusive bar-start coverage bound as the deterministic cutoff for this closed-bar source, which carries no observation clock."
+          "The published single-series CSV revision UUID identifies the frozen chart and scopes its instrument identity. Derive the history-chain-v1 hash from the exact stored bars. Use the exclusive bar-start coverage bound as the deterministic cutoff for this closed-bar source, which carries no observation clock.",
+          "Native publication browsing can use stored v5 revision summaries while v6 selection and projected chart reads continue through scoped workspace permissions. Opening a library row follows the same revocation checks as opening by revision ID."
         ],
         "risks": [
           {
@@ -462,6 +464,13 @@
               "rust-contracts-workers",
               "workspace-timeframe"
             ]
+          },
+          {
+            "failure": "Revocation leaves an old chart, provenance, bars or projection visible, an older response restores the bytes, or the unavailable target cannot be cleared without its revoked display right.",
+            "checks": [
+              "workspace-timeframe",
+              "local-import-publication"
+            ]
           }
         ],
         "rollback": "Keep the selected backup file untouched. Stage a revision-bound restore in memory. Cancel, reject or interrupt before committing the SQLite transaction and verify the previous live notes, deletion state and timeframe remain available across process restart. Exercise v6 migration rollback and a rejected selection transaction against a populated v5 fixture, then reopen and verify both revisions, undo, notes, mappings and published data.",
@@ -489,7 +498,8 @@
             "apps/desktop/ui/src/use-local-workspace.ts",
             "apps/desktop/ui/src/local-revision-dialog.tsx",
             "crates/persistence/tests/workspace_process.rs",
-            "crates/persistence/tests/support/operations_workflow.rs"
+            "crates/persistence/tests/support/operations_workflow.rs",
+            "apps/desktop/ui/src/local-import-editor.tsx"
           ],
           "rules": [
             {
@@ -546,7 +556,8 @@
             "Add explicit local decision-note export and revision-bound preview and apply. Recover missing notes and outcomes, preserve other current notes, reject conflicting surviving identities and apply the union of known deletion markers in the same transaction. Warn before approving candidates whose deletion history is unavailable.",
             "Check complete backup capacity before admitting note additions and restore plans. Keep private drafts separate from refreshed note projections.",
             "Add a shared chart interval and an independently increasing selection token; local hover and chart navigation stay in the UI. Recheck current target access and exact requested fields for projected reads.",
-            "Revalidate the main-chart target and both revision tokens for new chart edits. Require an effective local chart analysis grant for AI mutations using a selected interval. Rebuild chart-only replay results from the immutable receipt under current workspace disclosure."
+            "Revalidate the main-chart target and both revision tokens for new chart edits. Require an effective local chart analysis grant for AI mutations using a selected interval. Rebuild chart-only replay results from the immutable receipt under current workspace disclosure.",
+            "Invalidate the open published revision and pending old replies after observing current display entitlement loss. Keep unavailable selection clear controls reachable from both the workspace and the revision dialog."
           ],
           "data_plan": "Keep application state inside the bound OS-user profile. The v1 to v2 migration retains chart state, undo and replay and adds immutable originals, separate outcomes and profile-scoped deletion markers. Version 3 preserves outcome order and supports several outcomes under one restore receipt. A versioned logical note backup stays scoped to its originating profile and workspace. Version 6 adds only the selected immutable revision UUID and interval bounds. It preserves the existing selection revision and all workspace, undo, note, mapping, publication and revocation records. The reference restores no disclosure grant.",
           "cleanup": "Delete original and outcome bodies, clear body-derived replay fingerprints, and durably resume SQLite WAL cleanup if a reader blocks it. Restore without replaying past AI work or reusing external disclosure grants. Clear the selected reference explicitly without resetting its token. Deny a revoked target without restoring or exporting its contents."
@@ -2732,7 +2743,8 @@
         "0007",
         "0004",
         "0005",
-        "0008"
+        "0008",
+        "0013"
       ],
       "acceptance": [
         "Read only the selected scope. Show raw and normalized rows and a chart preview for equity and futures bar examples with different headers, encodings, units and date conventions. A manual mapping works offline.",
@@ -2759,11 +2771,11 @@
         "local-import-ui"
       ],
       "evidence": [],
-      "next_action": "Stage a folder refresh manifest for a published series. Match byte-identical aliases, isolate new or changed structures, and present added, replaced and missing inputs for review before implementing a multi-file commit. The Windows 11 desktop at 2f4a0c0 saved and reopened the reviewed mapping and distinguished data and header errors. Verify v5 publication independently on native Windows. Continue bounded cleanup and recovery for the separately observed native CSV worker timeout in the independent recovery work.",
+      "next_action": "Verify the same-name revision labels and ordinary external source replacement in native Windows, and continue reviewed folder refresh for additions, aliases, corrections and withdrawals.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
-        "outcome": "A person chooses a local CSV directory, reviews the actual rows and explicit mapping offline, then publishes a traceable equity or futures series to the chart. Compatible refreshes preserve the accepted mapping and earlier snapshots.",
+        "outcome": "A person chooses a local CSV directory, reviews the actual rows and explicit mapping offline, then publishes a traceable equity or futures series to the chart. Compatible refreshes preserve the accepted mapping and earlier snapshots. After restart, the person can browse displayable revisions for the active profile and explicitly reopen a frozen chart without a folder selection or memorized ID.",
         "change_types": [
           "market-fixtures",
           "ui",
@@ -2782,7 +2794,14 @@
           "crates/persistence/src/lib.rs",
           "apps/desktop/src-tauri/src/workspace.rs",
           "apps/desktop/ui/src/local-import-editor.tsx",
-          "contracts/reviews/2026-11-19-windows-reviewed-mapping.json"
+          "contracts/reviews/2026-11-19-windows-reviewed-mapping.json",
+          "contracts/reviews/2026-11-19-windows-reviewed-mapping-paths.json",
+          "contracts/reviews/2026-11-19-windows-local-publication.json",
+          "crates/persistence/src/local_dataset.rs",
+          "apps/desktop/ui/src/local-revision-dialog.tsx",
+          "crates/worker-host/src/local_import.rs",
+          "crates/worker-host/src/local_import_windows.rs",
+          "contracts/reviews/2026-11-19-windows-published-revision-library.json"
         ],
         "hypotheses": [
           "Explicit source mappings can normalize native OHLCV bars without inferring a price, volume unit or session from ambiguous financial fields. File identities and row locators can connect every accepted row to its original input.",
@@ -2790,7 +2809,11 @@
           "A transient host-side fingerprint of an eligible public preview can bind the explicit save to the same active grant, file, checksum, mapping, and preview sample without retaining source rows.",
           "The first logical CSV record can establish the decoded header even when a later row cannot be decoded, provided the header boundary is verified with the existing CSV parser.",
           "The current native grant, selected catalog file, full file fingerprint and persisted mapping identity can jointly authorize publication without accepting normalized bars from the UI.",
-          "Immutable storage and a transactional idempotency key can return the same revision on retry and preserve the previous publication on interruption."
+          "Immutable storage and a transactional idempotency key can return the same revision on retry and preserve the previous publication on interruption.",
+          "The pre-decode not_saved result after the same-profile restart is consistent with a mapping key derived from different spellings of one directory. Resolve the Windows association path while the admitted non-reparse directory chain is pinned, and retain the existing v4 path-key format.",
+          "A bounded keyset projection from the existing v5 revision and revocation tables can show distinguishing source and series summaries without reading the original CSV blob or granting source access. Existing frozen reads can recheck entitlement for every selection.",
+          "A single replacement can complete a pure preview on already-frozen bytes after the first worker misses its deadline, when the first worker has been reaped and the selection remains current.",
+          "An opt-in list projection of the stored venue, the first and final bars' trading days, and the final bar's close lets a person distinguish same-name corrections such as 305 and 304 before opening either chart. The bar dates describe chart endpoints and carry no publication chronology."
         ],
         "risks": [
           {
@@ -2867,9 +2890,46 @@
               "local-folder-import",
               "rust-contracts-workers"
             ]
+          },
+          {
+            "failure": "An exact save retry advances the saved revision or can reapply an earlier mapping. A delayed publication retry executes source work again, duplicates bars or discloses a revoked frozen revision.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-import-publication"
+            ]
+          },
+          {
+            "failure": "Equivalent native path spellings lose mapping reuse, or canonicalization admits a redirected root or merges distinct sources or profiles.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-folder-import"
+            ]
+          },
+          {
+            "failure": "The library leaks a revoked or other profile revision, shows ambiguous same-file revisions, skips or repeats rows at page boundaries, or reopens a stale selection after restart.",
+            "checks": [
+              "local-import-publication",
+              "rust-contracts-workers",
+              "generated-contracts"
+            ]
+          },
+          {
+            "failure": "A timed-out preview overlaps a still-running interpreter, restarts after source revocation, or retries a known rejection or a publication.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-folder-import"
+            ]
+          },
+          {
+            "failure": "A revision label rounds away a price correction, uses a timestamp's calendar date instead of the stored trading day, implies publication order, or changes the response for callers that did not opt in.",
+            "checks": [
+              "local-import-publication",
+              "rust-contracts-workers",
+              "generated-contracts"
+            ]
           }
         ],
-        "rollback": "Keep the accepted mapping, immutable source identities and last published revision while staging changes. Rejected rows and unsupported files remain inspectable in the selected local session. Stage a mapping version in the current SQLite transaction and roll it back if cancellation or source revocation wins before commit. Keep the previous reviewed version available after failures.",
+        "rollback": "Keep the accepted mapping, immutable source identities and last published revision while staging changes. Rejected rows and unsupported files remain inspectable in the selected local session. Stage a mapping version in the current SQLite transaction and roll it back if cancellation or source revocation wins before commit. Keep the previous reviewed version available after failures. The library is a read-only projection. Its refresh can restart from the first page and the existing direct-ID read remains available if listing fails.",
         "implementation": {
           "modules": [
             "providers",
@@ -2894,9 +2954,18 @@
             "contracts/schemas/protocol.schema.json",
             "crates/persistence/src/lib.rs",
             "apps/desktop/src-tauri/src/workspace.rs",
-            "apps/desktop/ui/src/local-import-editor.tsx"
+            "apps/desktop/ui/src/local-import-editor.tsx",
+            "crates/persistence/src/reviewed_import.rs",
+            "crates/persistence/src/local_dataset.rs",
+            "crates/application/src/local_publication.rs",
+            "apps/desktop/ui/src/local-revision-dialog.tsx",
+            "crates/worker-host/src/local_import_windows.rs"
           ],
           "rules": [
+            {
+              "path": "contracts/decisions/0013-own-the-local-csv-interpreter-directly.json",
+              "pointer": "/decision"
+            },
             {
               "path": "engineering-contract-v1.json",
               "pointer": "/product/data_onboarding"
@@ -2908,23 +2977,30 @@
             {
               "path": "engineering-contract-v1.json",
               "pointer": "/persistence"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization/replay"
             }
           ],
           "non_goals": [
             "Remote data channels, cloud transmissions, inferred settlement/trade conversions and the separate real-provider connection workflow.",
-            "First publication and explicit compatible replacement cover one selected file and one fully resolved native bar series. No persistent folder grant is issued."
+            "First publication and explicit compatible replacement cover one selected file and one fully resolved native bar series. No persistent folder grant is issued.",
+            "Repair replay on the current schema v5. Coordinate separately before any schema migration. Defer folder-manifest work until this repair has passed its regressions.",
+            "Revision discovery uses v5 snapshots and does not add a migration, change folder access, implement folder-wide refresh or make network requests."
           ],
           "open_questions": [
             "Stage added files and detect byte-identical aliases within a folder without treating an alias as new economic events. Preserve all contributing source locators and prove results are independent of folder enumeration order.",
             "Hold changed headers, mixed series and competing corrections for review. Support explicit multi-file replacement and missing-file withdrawal with a complete reviewed manifest, atomic publication and restart/retry evidence.",
-            "Provide history discovery by series and source row inspection outside the 500-row sample. The initial frozen chart is reopenable by revision ID and provides original file and individual source row identities.",
+            "Verify that a person can select each same-name revision by its final close in the native Windows library. Use the stored trading days and venue as context and retain the source digest when the visible market summaries are equal.",
             "Verify the picker, publication, migration and frozen chart path in the native Windows application."
           ]
         },
         "evolution": {
           "kind": "additive",
           "preserve": [
-            "Explicit sample selection, source identity, original frozen historical reads and source rights."
+            "Explicit sample selection, source identity, original frozen historical reads and source rights.",
+            "Direct revision-ID opening and its unavailable and denied results."
           ],
           "change": [
             "Add a separately authorized local-folder source with reviewable versioned mappings and snapshots.",
@@ -2932,10 +3008,16 @@
             "Require a prior completed public preview before the existing single-click save. Keep the live file reread and guarded SQLite commit.",
             "Compare the complete ordered decoded header independently of later decode failures. Preserve the source checksum and explicitly identify unverifiable headers.",
             "Add explicit complete-file publication and frozen reads for one resolved native CSV bar series. Check up to 4 MiB and 10,000 original records, hold incomplete or ambiguous results, and retain source bytes, mapping fingerprint and all row locators. Exact retries reuse the immutable revision.",
-            "Support explicit and separately reviewable republishing of compatible changed bytes as a new single-file revision. Reopen an earlier revision by ID with no directory grant. A separate local human action removes that revision's display permission while preserving its stored original."
+            "Support explicit and separately reviewable republishing of compatible changed bytes as a new single-file revision. Reopen an earlier revision by ID with no directory grant. A separate local human action removes that revision's display permission while preserving its stored original.",
+            "Distinguish the same admitted save request from an independent review. Reuse the exact equivalent latest saved mapping in the writer while allowing a new explicit A-to-B-to-A review. Test changed request purpose or inputs, native grants, source bytes, cancellation and concurrent attempts.",
+            "Recover an exact committed publication receipt within the original live native selection before requiring a current reviewed mapping, completed preview or another file read. Check the current display right on every reply. Keep current grant, preview and source validation on the new-publication path. A restart requires a fresh native selection for new source work and still allows entitled frozen reads by revision ID.",
+            "Normalize the Windows association path only after trusted selection admission. Retain canonical v4 keys, opaque live grants and source and profile separation.",
+            "Add an explicit, human-only paginated library in Open published CSV. List entitled revisions in stable revision-ID order and read the selected frozen chart through the existing operation.",
+            "Retry only a pure local preview once after a five-second worker timeout and confirmed cleanup. Reuse the frozen bytes, fingerprint and mapping, preserve caller deadlines, and stop on a second timeout.",
+            "Targeted verification passed on the standard-user Win11 MSVC archive 255ae9138f7a with 16 local-import controls and one separate ownership run. Independent Linux archive a377f77d50d3 passed 12 controls. ADR 0013 records artifact hashes and scope. The phase and cause of the original GUI timeout remain unknown."
           ],
-          "data_plan": "Keep source bytes, mapping, evidence locators and dataset revisions on the active profile. Migrate long-lived state through its owning Rust writer when publication is introduced. Integrate the profile writer and migration history from af89eff. Preserve workspace schema v1, decision notes v2 and backup and restore v3. Apply reviewed mapping schema v4 transactionally and verify both populated v3 databases and fresh initialization. Persist an opaque per-source association, ordered header digest and reviewed mapping. Derive folder access only from the current trusted selection. Add a transactional v4 to v5 migration owned by the existing profile writer. Test upgrade with populated workspace, decision-note and reviewed mapping data, plus new and reopened profiles. A failed or cancelled publication leaves previous revisions readable without rereading the folder. Recover a failed migration from the preserved pre-upgrade profile.",
-          "cleanup": "Cancel uncommitted staging on failure and close file handles when the selected folder or profile changes. Close the profile writer and cancel uncommitted mapping operations when the host shuts down. Release any uncommitted complete-file data after cancellation, changed bytes or write failure."
+          "data_plan": "Keep source bytes, mapping, evidence locators and dataset revisions on the active profile. Migrate long-lived state through its owning Rust writer when publication is introduced. Integrate the profile writer and migration history from af89eff. Preserve workspace schema v1, decision notes v2 and backup and restore v3. Apply reviewed mapping schema v4 transactionally and verify both populated v3 databases and fresh initialization. Persist an opaque per-source association, ordered header digest and reviewed mapping. Derive folder access only from the current trusted selection. Add a transactional v4 to v5 migration owned by the existing profile writer. Test upgrade with populated workspace, decision-note and reviewed mapping data, plus new and reopened profiles. A failed or cancelled publication leaves previous revisions readable without rereading the folder. Recover a failed migration from the preserved pre-upgrade profile. Discover from existing immutable v5 records and revocation markers with no new persisted state.",
+          "cleanup": "Cancel uncommitted staging on failure and close file handles when the selected folder or profile changes. Close the profile writer and cancel uncommitted mapping operations when the host shuts down. Release any uncommitted complete-file data after cancellation, changed bytes or write failure. Discard stale list pages on refresh and remove inaccessible entries after a raced selection. Keep the worker admission permit through the bounded cleanup. A failed cleanup never authorizes a replacement."
         }
       }
     },
@@ -5924,7 +6006,9 @@
       "title": "Verify serial catalog and history startup in chart previews",
       "milestone": "M1",
       "status": "done",
-      "depends_on": ["M1-001"],
+      "depends_on": [
+        "M1-001"
+      ],
       "scope": [
         "tests/ubuntu-preview/market-workflow.spec.mjs",
         "tests/ubuntu-preview/preview.spec.mjs",
@@ -5932,12 +6016,20 @@
         "project/tasks.json",
         "project/feedback.json"
       ],
-      "decision_refs": ["0004", "0007"],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
       "acceptance": [
         "Default sample startup verifies the exact real catalog and history requests and their separate successful replies before checking chart readiness in both browser suites.",
         "Holding each real reply independently reproduces a startup beyond the old five-second aggregate wait. Exact chart, replay, offline retry, and typed worker-error assertions still apply."
       ],
-      "checks": ["market-workflow", "ubuntu-preview", "project-state", "python-contracts-workers"],
+      "checks": [
+        "market-workflow",
+        "ubuntu-preview",
+        "project-state",
+        "python-contracts-workers"
+      ],
       "evidence": [
         {
           "path": "project/evidence/M1-020-d05ddb38f6fbe253.json",
@@ -5957,24 +6049,54 @@
       "closure_reason": null,
       "plan": {
         "outcome": "Separate catalog and history verification from chart paint in the inherited M1-001 browser paths.",
-        "change_types": ["tooling"],
-        "context": ["tests/ui/sample-startup.mjs", "apps/desktop/ui/ubuntu-preview.mjs"],
-        "hypotheses": ["The two serial worker reads can legitimately outlast the former five-second render wait, including after Retry demo."],
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ui/sample-startup.mjs",
+          "apps/desktop/ui/ubuntu-preview.mjs"
+        ],
+        "hypotheses": [
+          "The two serial worker reads can legitimately outlast the former five-second render wait, including after Retry demo."
+        ],
         "risks": [
-          { "failure": "An unsuccessful worker reply, incorrect series, or missing chart passes as slow startup.", "checks": ["market-workflow", "ubuntu-preview"] }
+          {
+            "failure": "An unsuccessful worker reply, incorrect series, or missing chart passes as slow startup.",
+            "checks": [
+              "market-workflow",
+              "ubuntu-preview"
+            ]
+          }
         ],
         "rollback": "Retain hosted run 44531620190 and the held-response regression before reopening any failing phase.",
         "implementation": {
-          "modules": ["development-tooling"],
-          "entrypoints": ["tests/ui/sample-startup.mjs", "tests/ubuntu-preview/preview.spec.mjs", "tests/ubuntu-preview/market-workflow.spec.mjs"],
-          "rules": [{ "path": "project/delivery.json", "pointer": "/scaffold_maintenance" }],
-          "non_goals": ["Worker deadlines, application retry rules, fixtures, and packaged Windows acceptance."],
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ui/sample-startup.mjs",
+            "tests/ubuntu-preview/preview.spec.mjs",
+            "tests/ubuntu-preview/market-workflow.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Worker deadlines, application retry rules, fixtures, and packaged Windows acceptance."
+          ],
           "open_questions": []
         },
         "evolution": {
           "kind": "refactor",
-          "preserve": ["Explicit synthetic opt-in, replay and chart values, and offline recovery behavior."],
-          "change": ["Use the shared default startup verifier and cover two independently held real replies and a typed worker failure."],
+          "preserve": [
+            "Explicit synthetic opt-in, replay and chart values, and offline recovery behavior."
+          ],
+          "change": [
+            "Use the shared default startup verifier and cover two independently held real replies and a typed worker failure."
+          ],
           "data_plan": "Use only committed synthetic fixtures through the local bridge.",
           "cleanup": "Keep timeout allowances in browser verification and leave product deadlines intact."
         }
@@ -6089,6 +6211,103 @@
           ],
           "data_plan": "Store only reviewed public advisory fields in the runner temporary directory.",
           "cleanup": "The fetch has no child checks. The runner owns temporary public evidence and the built-in job credential lifetime."
+        }
+      }
+    },
+    {
+      "id": "M2-008",
+      "title": "Own browser response waits in the workspace preview harness",
+      "milestone": "M2",
+      "status": "active",
+      "depends_on": [
+        "M2-007"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "A controlled initial document failure in real Chromium reports its navigation error and releases the pending workspace snapshot observation before context teardown.",
+        "Response and download observations in the workspace suite are scoped to the browser action. Test-only HTTP probes consume or cancel the bodies they own. Existing success and rejection assertions continue to pass without retries or extended timeouts.",
+        "Retain the original hosted Windows error and report the harness finding separately from the unresolved origin of that Chromium navigation error."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-008-21f96520ee78a8a1.json",
+          "sha256": "db2977baa24757ef29b37284c9230d2a83511e9215b5065e5735e1cbc6d0ea63"
+        }
+      ],
+      "next_action": "Review the locally verified observer cleanup and independent peer writers, then run the browser suite once on the matching Windows source. If the initial document error recurs, correlate its Chromium failure with receipt of the request at the owned Vite listener using bounded synthetic metadata.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A real navigation error remains the primary assertion failure and leaves no workspace snapshot observer behind.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ubuntu-preview/workspace.config.mjs",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The response promise created before navigation was observed only after successful navigation and UI assertions. Closing the context on failure rejects that abandoned promise."
+        ],
+        "risks": [
+          {
+            "failure": "A snapshot listener survives a rejected action or captures the wrong response.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A test helper masks the original document error or changes a notes authorization assertion.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Keep the original hosted failure and the controlled red result. Scope any repair to the workspace harness and compare the original operation assertions.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changes to product operations, grants, SQLite, public registries, timeouts or runner settings."
+          ],
+          "open_questions": [
+            "The origin of the isolated hosted Chromium document error remains unverified."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Real Chromium, Vite, Rust persistence, the existing test deadlines, and independent synthetic profiles."
+          ],
+          "change": [
+            "Tie the lifetimes of test observations and response bodies to the operations that own them."
+          ],
+          "data_plan": "Use a unique local port and a controlled browser route or temporary synthetic profile.",
+          "cleanup": "Detach pending listeners when an action fails. Consume or cancel owned HTTP response bodies and close the owned browser contexts."
         }
       }
     }
