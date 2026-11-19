@@ -404,7 +404,10 @@
         "M1-003",
         "M1-005",
         "M1-010",
-        "M1-014"
+        "M1-014",
+        "M1-006",
+        "M1-007",
+        "M1-016"
       ],
       "delivery": "current-contract",
       "boundary": "The synthetic chart supports historical reads and explicit, bounded playback of partial and final bars through the shared registry. M1-007 covers quality states and M1-003 covers recovery after disruption. User-configured feeds and physical Windows experience have separate evidence."
