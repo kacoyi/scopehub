@@ -421,7 +421,9 @@ mod decision_note_storage {
         DECISION_NOTE_APPEND_OUTCOME, DECISION_NOTE_DELETE, DECISION_NOTE_SAVE,
         DecisionNoteMutation, DecisionNoteReceipt,
     };
-    use scopehub_domain::protocol::{DecisionNoteEvidenceRef, DecisionNoteOutcome};
+    use scopehub_domain::protocol::{
+        DecisionNoteEvidenceRef, DecisionNoteOriginal, DecisionNoteOutcome,
+    };
 
     use super::*;
 
