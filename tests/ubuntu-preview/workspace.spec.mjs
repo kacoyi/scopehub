@@ -115,6 +115,373 @@ test('fresh browsers restore committed timeframe and eligible undo after service
   }
 });
 
+test('private decision notes require consent and retain the dated original separately from outcomes', async ({ browser }) => {
+  const profile = await makeProfile();
+  const other = await makeProfile();
+  const port = await freePort();
+  const declinedThesis = 'Synthetic draft that should never be saved';
+  const thesis = 'Synthetic thesis at decision time';
+  const outcome = 'Synthetic later observation';
+  let originalWriter;
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      originalWriter = await writerPid(server);
+      await inFreshBrowser(browser, server, async page => {
+        await act(page, '5m', 'chart.setTimeframe');
+        await control(page, 'Decision notes').click();
+        const notes = page.getByRole('dialog', { name: 'Decision notes' });
+        const newNote = notes.getByRole('button', { name: 'New decision note' });
+        await newNote.click();
+        await notes.getByLabel('Decision date').fill('2026-01-02');
+        await notes.getByLabel('Thesis').fill(declinedThesis);
+        await notes.getByLabel('Choice').fill('Synthetic wait decision');
+        await notes.getByRole('button', { name: 'Review decision note' }).click();
+        await expect(notes.getByRole('heading', { name: 'Save this decision note locally?' })).toBeVisible();
+        const declined = page.waitForResponse(mutationResponse('decisionNote.save'));
+        await notes.getByRole('button', { name: 'Cancel action' }).click();
+        expect((await (await declined).json()).result.outcome).toMatchObject({ state: 'failed', error: { code: 'CANCELLED' } });
+        await expect(notes.getByText('No saved decision notes.')).toBeVisible();
+        await expect(notes.getByLabel('Thesis')).toHaveCount(0);
+
+        await newNote.click();
+        await notes.getByLabel('Decision date').fill('2026-01-03');
+        await notes.getByLabel('Thesis').fill(thesis);
+        await notes.getByLabel('Choice').fill('Wait for the next synthetic revision');
+        await notes.getByLabel('Source ID').fill('synthetic-series');
+        await notes.getByLabel('Source revision').fill('frozen-input');
+        await notes.getByLabel('Locator').fill('fixture:2026-01-03');
+        await notes.getByRole('button', { name: 'Review decision note' }).click();
+        await expect(notes.getByRole('heading', { name: 'Save this decision note locally?' })).toBeVisible();
+
+        const lost = await dropApprovalReply(page, server, 'decisionNote.save');
+        await notes.getByRole('button', { name: 'Save decision note' }).click();
+        await expect(notes.getByRole('button', { name: 'Retry confirmation' })).toBeEnabled();
+        const committed = lost.outcome();
+        expect(committed).toMatchObject({ state: 'committed', receipt: { committed_workspace_revision: 2, undoable: false } });
+        expect(committed).not.toHaveProperty('result');
+        await lost.restore();
+        const replay = page.waitForResponse(mutationResponse('decisionNote.save'));
+        await notes.getByRole('button', { name: 'Retry confirmation' }).click();
+        expect((await (await replay).json()).result.outcome).toEqual(committed);
+        await expect(notes.getByText(thesis)).toBeVisible();
+        await expect(notes.getByText('No later outcomes.')).toBeVisible();
+        await notes.getByRole('button', { name: 'Close decision notes' }).click();
+        await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
+        await expect(control(page, 'Undo timeframe change')).toBeEnabled();
+        expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
+      });
+    });
+
+    await inService(await freePort(), other, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        await control(page, 'Decision notes').click();
+        const notes = page.getByRole('dialog', { name: 'Decision notes' });
+        await expect(notes.getByText('No saved decision notes.')).toBeVisible();
+      });
+    });
+
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      expect(await writerPid(server)).not.toBe(originalWriter);
+      await inFreshBrowser(browser, server, async (page, initial) => {
+        expect(state(initial)).toMatchObject({ revision: 2, timeframe: '5m', undo: { committed_workspace_revision: 1 } });
+        await control(page, 'Decision notes').click();
+        const notes = page.getByRole('dialog', { name: 'Decision notes' });
+        await notes.getByRole('button', { name: /2026-01-03/ }).click();
+        const original = notes.getByRole('region', { name: 'Original decision' });
+        await expect(original.getByText(thesis)).toBeVisible();
+        await expect(original.getByText('synthetic-series · frozen-input · fixture:2026-01-03')).toBeVisible();
+        await expect(original.getByText('Wait for the next synthetic revision')).toBeVisible();
+
+        await notes.getByRole('button', { name: 'Add later outcome' }).click();
+        await notes.getByLabel('Outcome date').fill('2026-02-04');
+        await notes.getByLabel('Outcome', { exact: true }).fill(outcome);
+        await notes.getByRole('button', { name: 'Review later outcome' }).click();
+        await notes.getByRole('button', { name: 'Save later outcome' }).click();
+        const outcomes = notes.getByRole('region', { name: 'Later outcomes' });
+        await expect(outcomes.getByText(outcome)).toBeVisible();
+        await expect(outcomes.getByText('2026-02-04')).toBeVisible();
+        await expect(original.getByText('2026-01-03', { exact: true })).toBeVisible();
+
+        await notes.getByRole('button', { name: 'Review deletion' }).click();
+        await expect(notes.getByRole('heading', { name: 'Delete this decision note and its later outcomes?' })).toBeVisible();
+        const lost = await dropApprovalReply(page, server, 'decisionNote.delete');
+        await notes.getByRole('button', { name: 'Delete decision note' }).click();
+        await expect(notes.getByRole('button', { name: 'Retry confirmation' })).toBeEnabled();
+        expect(lost.outcome()).toMatchObject({ state: 'committed', receipt: { committed_workspace_revision: 4 } });
+        await expect(notes.getByText(thesis)).toHaveCount(0);
+        await expect(notes.getByText(outcome)).toHaveCount(0);
+        await lost.restore();
+        await notes.getByRole('button', { name: 'Retry confirmation' }).click();
+        await expect(notes.getByText('No saved decision notes.')).toBeVisible();
+        await expect(notes.getByText(thesis)).toHaveCount(0);
+        await expect(notes.getByText(outcome)).toHaveCount(0);
+        await notes.getByRole('button', { name: 'Close decision notes' }).click();
+        const undo = await act(page, 'Undo timeframe change', 'workspace.undo');
+        expect(undo.result.outcome).toMatchObject({ state: 'committed', result: { revision: 5, timeframe: '1m' } });
+      });
+    });
+
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async (page, initial) => {
+        expect(state(initial)).toMatchObject({ revision: 5, timeframe: '1m', undo: null });
+        await control(page, 'Decision notes').click();
+        const notes = page.getByRole('dialog', { name: 'Decision notes' });
+        await expect(notes.getByText('No saved decision notes.')).toBeVisible();
+      });
+    });
+  } finally {
+    await Promise.all([profile.close(), other.close()]);
+  }
+});
+
+test('decision-note backup restore previews known deletions and independent copies before apply', async ({ browser }) => {
+  const profile = await makeProfile();
+  const independent = await makeProfile(profile.id);
+  const wrongProfile = await makeProfile();
+  const port = await freePort();
+  const deleted = { date: '2026-01-03', thesis: 'Synthetic original later deleted', choice: 'Wait',
+    outcomes: [{ date: '2026-02-03', body: 'Synthetic outcome later deleted' }] };
+  const retained = { date: '2026-01-08', thesis: 'Synthetic retained original', choice: 'Revisit',
+    outcomes: [{ date: '2026-02-08', body: 'Synthetic first retained outcome' },
+      { date: '2026-02-09', body: 'Synthetic second retained outcome' }] };
+  const current = { date: '2026-01-21', thesis: 'Synthetic note saved after backup', choice: 'Observe', outcomes: [] };
+  const warning = /An independent older backup may bring back previously deleted decision notes/;
+  let untouched;
+  let withMarker;
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        await act(page, '5m', 'chart.setTimeframe');
+        await control(page, 'Decision notes').click();
+        const notes = page.getByRole('dialog', { name: 'Decision notes' });
+        await saveBackupTestNote(notes, deleted);
+        await saveBackupTestNote(notes, retained);
+        untouched = await downloadBackupFile(page, notes);
+        const archive = JSON.parse(untouched.toString('utf-8'));
+        expect(Object.keys(archive).sort()).toEqual([
+          'captured_workspace_revision', 'deletions', 'format', 'notes', 'profile_binding', 'version',
+        ]);
+        expect(archive).toMatchObject({ format: 'scopehub.decision-notes', version: 1, deletions: [] });
+        expect(archive.notes).toHaveLength(2);
+
+        await notes.getByRole('button', { name: new RegExp(deleted.date) }).click();
+        await notes.getByRole('button', { name: 'Review deletion' }).click();
+        await notes.getByRole('button', { name: 'Delete decision note' }).click();
+        await expect(notes.getByText('Decision note deleted.')).toBeVisible();
+        await saveBackupTestNote(notes, current);
+
+        const preview = await chooseBackup(notes, untouched);
+        await expect(preview.locator('dd').nth(2)).toHaveText('0');
+        await expect(preview.locator('dd').nth(3)).toHaveText('1');
+        await expect(preview.getByText(warning)).toHaveCount(0);
+        await expect(notes.getByText(deleted.thesis)).toHaveCount(0);
+        await preview.getByRole('button', { name: 'Cancel restore' }).click();
+        await expect(notes.getByText('Restore cancelled.')).toBeVisible();
+        await expect(notes.getByRole('button', { name: new RegExp(current.date) })).toBeVisible();
+
+        await (await chooseBackup(notes, untouched)).getByRole('button', { name: 'Apply restore' }).click();
+        await expect(notes.getByText('Decision-note backup restored.')).toBeVisible();
+        await expect(notes.getByRole('button', { name: new RegExp(deleted.date) })).toHaveCount(0);
+        await expect(notes.getByRole('button', { name: new RegExp(current.date) })).toBeVisible();
+        await assertBackupTestNote(notes, retained);
+        await notes.getByRole('button', { name: 'All decision notes' }).click();
+        withMarker = await downloadBackupFile(page, notes);
+        const afterDeletion = JSON.parse(withMarker.toString('utf-8'));
+        expect(afterDeletion.deletions).toEqual([
+          { note_id: archive.notes.find(note => note.original.decided_on === deleted.date).original.note_id,
+            deleted_at_ms: expect.any(Number) },
+        ]);
+        expect(withMarker.includes(deleted.thesis)).toBe(false);
+        expect(withMarker.includes(deleted.outcomes[0].body)).toBe(false);
+      });
+    });
+
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      const writer = await writerPid(server);
+      await inFreshBrowser(browser, server, async (page, initial) => {
+        expect(state(initial)).toMatchObject({ timeframe: '5m', undo: { committed_workspace_revision: 1 } });
+        await control(page, 'Decision notes').click();
+        const notes = page.getByRole('dialog', { name: 'Decision notes' });
+        await expect(notes.getByRole('button', { name: new RegExp(deleted.date) })).toHaveCount(0);
+        await assertBackupTestNote(notes, retained);
+        await writerPid(server, 'kill', writer);
+        await expect(notes.getByText(retained.thesis)).toHaveCount(0);
+        await expect(notes.getByText(retained.outcomes[0].body)).toHaveCount(0);
+      });
+    });
+
+    await inService(port, independent, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        await control(page, 'Decision notes').click();
+        const notes = page.getByRole('dialog', { name: 'Decision notes' });
+        const preview = await chooseBackup(notes, untouched);
+        await expect(preview.getByText(warning)).toBeVisible();
+        await expect(notes.getByText(deleted.thesis)).toHaveCount(0);
+        await preview.getByRole('button', { name: 'Cancel restore' }).click();
+        await expect(notes.getByText('No saved decision notes.')).toBeVisible();
+        const approval = await chooseBackup(notes, untouched);
+        await expect(approval.getByText(warning)).toBeVisible();
+        await approval.getByRole('button', { name: 'Apply restore' }).click();
+        await expect(notes.getByText('Decision-note backup restored.')).toBeVisible();
+        await assertBackupTestNote(notes, deleted);
+        await notes.getByRole('button', { name: 'All decision notes' }).click();
+        await inFreshBrowser(browser, server, async observer => {
+          await control(observer, 'Decision notes').click();
+          const observedNotes = observer.getByRole('dialog', { name: 'Decision notes' });
+          await assertBackupTestNote(observedNotes, deleted);
+
+          const importMarker = await chooseBackup(notes, withMarker);
+          await expect(importMarker.locator('dd').nth(2)).toHaveText('1');
+          await expect(importMarker.locator('dd').nth(4)).toHaveText('1');
+          await importMarker.getByRole('button', { name: 'Apply restore' }).click();
+          await expect(notes.getByRole('button', { name: new RegExp(deleted.date) })).toHaveCount(0);
+          await expect(observedNotes.getByText(deleted.thesis)).toHaveCount(0);
+          await expect(observedNotes.getByText(deleted.outcomes[0].body)).toHaveCount(0);
+          await expect(observedNotes.getByRole('button', { name: new RegExp(retained.date) })).toBeVisible();
+        });
+        const older = await chooseBackup(notes, untouched);
+        await expect(older.locator('dd').nth(3)).toHaveText('1');
+        await expect(older.getByText(warning)).toHaveCount(0);
+        await older.getByRole('button', { name: 'Cancel restore' }).click();
+        await assertBackupTestNote(notes, retained);
+      });
+    });
+
+    await inService(port, wrongProfile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        await control(page, 'Decision notes').click();
+        const notes = page.getByRole('dialog', { name: 'Decision notes' });
+        const rejected = page.waitForResponse(mutationResponse('decisionNote.previewRestore'));
+        await selectBackupFile(notes, untouched);
+        expect((await (await rejected).json()).result.outcome).toMatchObject({ state: 'failed', error: { code: 'PERMISSION_DENIED' } });
+        await expect(notes.getByText('This backup or action is unavailable for the current local profile.')).toBeVisible();
+        await expect(notes.getByRole('region', { name: 'Restore preview' })).toHaveCount(0);
+        await expect(notes.getByText('No saved decision notes.')).toBeVisible();
+      });
+    });
+  } finally {
+    await Promise.all([profile.close(), independent.close(), wrongProfile.close()]);
+  }
+});
+
+test('decision-note draft keeps its text and date across peer timeframe changes', async ({ browser }) => {
+  const profile = await makeProfile();
+  const fixture = { date: '2026-02-03', thesis: 'Synthetic decision for a pending outcome', choice: 'Wait', outcomes: [] };
+  const draft = 'Synthetic unsubmitted reflection';
+  const date = '2026-04-09';
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        await control(page, 'Decision notes').click();
+        await saveBackupTestNote(page.getByRole('dialog', { name: 'Decision notes' }), fixture);
+      });
+      await inFreshBrowser(browser, server, async observer => {
+        await control(observer, 'Decision notes').click();
+        const notes = observer.locator('dialog.decision-dialog');
+        await assertBackupTestNote(notes, fixture);
+        await notes.getByRole('button', { name: 'Add later outcome' }).click();
+        const outcome = notes.locator('textarea[name="body"]');
+        const outcomeDate = notes.locator('input[name="date"]');
+        await outcome.fill(draft);
+        await outcomeDate.fill(date);
+
+        await inFreshBrowser(browser, server, async peer => {
+          const reloaded = observer.waitForResponse(mutationResponse('decisionNote.read'), { timeout: 10_000 });
+          expect((await act(peer, '5m', 'chart.setTimeframe')).result.outcome.state).toBe('committed');
+          await observer.bringToFront();
+          await reloaded;
+          await expect(outcome).toHaveValue(draft);
+          await expect(outcomeDate).toHaveValue(date);
+
+          await notes.getByRole('button', { name: 'Review later outcome' }).click();
+          const approval = notes.getByRole('button', { name: 'Save later outcome' });
+          await expect(approval).toBeVisible();
+          await peer.bringToFront();
+          expect((await act(peer, '1d', 'chart.setTimeframe')).result.outcome.state).toBe('committed');
+          await observer.bringToFront();
+          await expect(approval).toHaveCount(0);
+          await expect(outcome).toHaveValue(draft);
+          await expect(outcomeDate).toHaveValue(date);
+        });
+
+        await notes.getByRole('button', { name: 'Review later outcome' }).click();
+        await notes.getByRole('button', { name: 'Save later outcome' }).click();
+        await expect(notes.getByRole('region', { name: 'Later outcomes' }).getByText(draft)).toBeVisible();
+        await expect(notes.getByRole('region', { name: 'Later outcomes' }).getByText(date)).toBeVisible();
+        await notes.getByRole('button', { name: 'Add later outcome' }).click();
+        const deletedDraft = 'Synthetic draft to remove on peer deletion';
+        await outcome.fill(deletedDraft);
+        await inFreshBrowser(browser, server, async peer => {
+          await control(peer, 'Decision notes').click();
+          await deleteBackupTestNote(peer.getByRole('dialog', { name: 'Decision notes' }), fixture.date);
+          await observer.bringToFront();
+          await expect(outcome).toHaveCount(0);
+          await expect(notes.getByText(fixture.thesis)).toHaveCount(0);
+          await expect(notes.getByText(draft)).toHaveCount(0);
+          await expect(notes.getByText('No saved decision notes.')).toBeVisible();
+        });
+      });
+    });
+  } finally {
+    await profile.close();
+  }
+});
+
+test('decision-note list removes peer deletions after focus and a rejected detail read', async ({ browser }) => {
+  const profile = await makeProfile();
+  const first = { date: '2026-02-03', thesis: 'Synthetic note removed while a list stays open', choice: 'Wait', outcomes: [] };
+  const second = { date: '2026-02-04', thesis: 'Synthetic note removed before its detail read', choice: 'Wait', outcomes: [] };
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        await control(page, 'Decision notes').click();
+        const notes = page.getByRole('dialog', { name: 'Decision notes' });
+        await saveBackupTestNote(notes, first);
+        await saveBackupTestNote(notes, second);
+      });
+      await inFreshBrowser(browser, server, async observer => {
+        await control(observer, 'Decision notes').click();
+        const notes = observer.getByRole('dialog', { name: 'Decision notes' });
+        const firstRow = notes.getByRole('button', { name: new RegExp(first.date) });
+        const secondRow = notes.getByRole('button', { name: new RegExp(second.date) });
+        await expect(firstRow).toBeVisible();
+        await expect(secondRow).toBeVisible();
+        await inFreshBrowser(browser, server, async peer => {
+          await control(peer, 'Decision notes').click();
+          const peerNotes = peer.getByRole('dialog', { name: 'Decision notes' });
+          await deleteBackupTestNote(peerNotes, first.date);
+          await observer.evaluate(() => window.dispatchEvent(new Event('focus')));
+          await expect(firstRow).toHaveCount(0);
+          await expect(secondRow).toBeVisible();
+
+          const intercepted = Promise.withResolvers();
+          const resume = Promise.withResolvers();
+          await observer.route(server.url + endpoint, async route => {
+            const intent = route.request().postDataJSON()?.intent;
+            if (intent?.operation === 'decisionNote.read' && intent.arguments.note_id !== null) {
+              intercepted.resolve();
+              await resume.promise;
+            }
+            await route.continue();
+          });
+          await secondRow.click();
+          try {
+            await intercepted.promise;
+            await deleteBackupTestNote(peerNotes, second.date);
+          } finally {
+            resume.resolve();
+          }
+          await expect(notes.getByText('This decision note is unavailable.')).toBeVisible();
+          await expect(secondRow).toHaveCount(0);
+          await expect(notes.getByText('No saved decision notes.')).toBeVisible();
+        });
+      });
+    });
+  } finally {
+    await profile.close();
+  }
+});
+
 test('the opted-in route binds identity, limits input, and drains cancellation without replaying after EOF', async () => {
   const profile = await makeProfile();
   const port = await freePort();
@@ -223,6 +590,7 @@ test('the private launcher handoff is required and a previous launch cannot auth
         await page.goto(server.url);
         await expect(control(page, 'Open offline sample')).toBeVisible();
         await expect(control(page, 'Undo timeframe change')).toHaveCount(0);
+        await expect(control(page, 'Decision notes')).toHaveCount(0);
         await control(page, '5m').click();
         expect(requests).toEqual([]);
       } finally { await anonymous.close(); }
@@ -353,13 +721,13 @@ test('ordinary and Ubuntu history startup do not open a writer or dispatch data 
   }
 });
 
-async function makeProfile() {
+async function makeProfile(id = 'synthetic-' + randomUUID()) {
   const directory = await mkdtemp(join(tmpdir(), 'scopehub-ubuntu-test-'));
   const profile = join(directory, 'profile');
   const close = () => rm(directory, { recursive: true, force: true });
   try {
     await exec(workspaceBridge, ['--prepare-profile-root', profile], { timeout: 12_000 });
-    return { root: profile, id: 'synthetic-' + randomUUID(), close };
+    return { root: profile, id, close };
   } catch (error) {
     await close();
     throw error;
@@ -549,6 +917,82 @@ async function inFreshBrowser(browser, server, use) {
 function mutationResponse(operation) {
   return response => new URL(response.url()).pathname === endpoint
     && response.request().postDataJSON()?.intent?.operation === operation;
+}
+
+async function saveBackupTestNote(notes, fixture) {
+  await notes.getByRole('button', { name: 'New decision note' }).click();
+  await notes.getByLabel('Decision date').fill(fixture.date);
+  await notes.getByLabel('Thesis').fill(fixture.thesis);
+  await notes.getByLabel('Choice').fill(fixture.choice);
+  await notes.getByRole('button', { name: 'Review decision note' }).click();
+  await notes.getByRole('button', { name: 'Save decision note' }).click();
+  for (const outcome of fixture.outcomes) {
+    await notes.getByRole('button', { name: 'Add later outcome' }).click();
+    await notes.getByLabel('Outcome date').fill(outcome.date);
+    await notes.getByLabel('Outcome', { exact: true }).fill(outcome.body);
+    await notes.getByRole('button', { name: 'Review later outcome' }).click();
+    await notes.getByRole('button', { name: 'Save later outcome' }).click();
+  }
+  await notes.getByRole('button', { name: 'All decision notes' }).click();
+}
+
+async function deleteBackupTestNote(notes, date) {
+  await notes.getByRole('button', { name: new RegExp(date) }).click();
+  await notes.getByRole('button', { name: 'Review deletion' }).click();
+  await notes.getByRole('button', { name: 'Delete decision note' }).click();
+  await expect(notes.getByText('Decision note deleted.')).toBeVisible();
+}
+
+async function assertBackupTestNote(notes, fixture) {
+  await notes.getByRole('button', { name: new RegExp(fixture.date) }).click();
+  const original = notes.getByRole('region', { name: 'Original decision' });
+  await expect(original.getByText(fixture.date, { exact: true })).toBeVisible();
+  await expect(original.getByText(fixture.thesis)).toBeVisible();
+  await expect(original.getByText(fixture.choice)).toBeVisible();
+  const outcomes = notes.getByRole('region', { name: 'Later outcomes' });
+  for (const outcome of fixture.outcomes) {
+    await expect(outcomes.getByText(outcome.date, { exact: true })).toBeVisible();
+    await expect(outcomes.getByText(outcome.body)).toBeVisible();
+  }
+}
+
+async function downloadBackupFile(page, notes) {
+  const download = page.waitForEvent('download');
+  await notes.getByRole('button', { name: 'Download backup' }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toMatch(/^scopehub-decision-notes-.*\.json$/);
+  return readFile(await file.path());
+}
+
+async function selectBackupFile(notes, bytes) {
+  const picker = notes.getByLabel('Choose backup file');
+  await expect(picker).toBeEnabled();
+  await picker.setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: bytes });
+}
+
+async function chooseBackup(notes, bytes) {
+  await selectBackupFile(notes, bytes);
+  const preview = notes.getByRole('region', { name: 'Restore preview' });
+  await expect(preview).toBeVisible();
+  return preview;
+}
+
+async function dropApprovalReply(page, server, operation) {
+  const endpointUrl = server.url + endpoint;
+  let outcome;
+  const handle = async route => {
+    const payload = route.request().postDataJSON();
+    if (payload?.intent?.operation !== operation || payload.confirmation?.decision !== 'approve') {
+      await route.continue();
+      return;
+    }
+    const response = await route.fetch();
+    outcome = (await response.json()).result.outcome;
+    await response.dispose();
+    await route.abort();
+  };
+  await page.route(endpointUrl, handle);
+  return { outcome: () => outcome, restore: () => page.unroute(endpointUrl, handle) };
 }
 
 async function act(page, name, operation) {

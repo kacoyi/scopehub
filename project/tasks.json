@@ -336,6 +336,8 @@
         "crates/application",
         "crates/persistence",
         "apps/desktop",
+        "contracts",
+        "engineering-contract-v1.json",
         "tests",
         "Cargo.toml",
         "Cargo.lock",
@@ -369,6 +371,7 @@
       "checks": [
         "operations-workflow",
         "state-migrations",
+        "decision-note-lifecycle",
         "architecture",
         "dependency-review",
         "rust-contracts-workers",
@@ -381,7 +384,7 @@
         "desktop-workspace-transport"
       ],
       "evidence": [],
-      "next_action": "Validate native transport for the persisted timeframe and undo, then deliver selected note retention, deletion and scoped backup recovery from the active local profile.",
+      "next_action": "Close the remaining shared-operation and state-migration gates. Exercise durable writes bound to a changing shared target, broaden recovery as other workspace records become durable, and retain the local decision-note lifecycle and staged restore regressions.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -398,17 +401,23 @@
           "contracts/schemas/protocol.schema.json",
           "crates/application/src/lib.rs",
           "apps/desktop/src-tauri/src/bridge.rs",
-          "apps/desktop/ui/ubuntu-preview.mjs"
+          "apps/desktop/ui/ubuntu-preview.mjs",
+          "crates/application/src/workspace.rs",
+          "crates/persistence/src/lib.rs"
         ],
         "hypotheses": [
           "Start with 1m to 5m, restart the Rust process, undo by the returned operation ID and restart to 1m. Two profiles with the same workspace ID make isolation directly observable.",
-          "A profile-bound, long-lived Rust core can share one transaction owner across the native and explicitly enabled Ubuntu workspace entries."
+          "A profile-bound, long-lived Rust core can share one transaction owner across the native and explicitly enabled Ubuntu workspace entries.",
+          "A synthetic original thesis and a separately dated outcome can be distinguished after restart. Deleting their note can retain a profile-bound marker and redacted operation results without leaving the body available to a live read, undo or idempotent replay.",
+          "A logical backup limited to decision notes can recover missing originals and dated outcomes, keep newer work, and suppress marked notes without copying operation history, grants or SQLite journals.",
+          "Restore stages can retain only pending inserts and release them when the revision changes, a deadline expires or the session ends. Revision-based projection refresh can preserve a surviving note's unsubmitted outcome draft while clearing deleted list entries and details."
         ],
         "risks": [
           {
             "failure": "A lost response, concurrent duplicate or stale selected target applies a change twice or reveals a result after grants change.",
             "checks": [
-              "operations-workflow"
+              "operations-workflow",
+              "decision-note-lifecycle"
             ]
           },
           {
@@ -442,7 +451,7 @@
             ]
           }
         ],
-        "rollback": "Keep the original database and an untouched local backup through staged migration. Exercise interruption before the atomic cutover and verify forward repair or restoring the previous visible state.",
+          "rollback": "Keep the selected backup file untouched. Stage a revision-bound restore in memory. Cancel, reject or interrupt before committing the SQLite transaction and verify the previous live notes, deletion state and timeframe remain available across process restart.",
         "implementation": {
           "modules": [
             "application",
@@ -456,7 +465,14 @@
             "apps/desktop/src-tauri/src/bridge.rs",
             "apps/desktop/ui/ubuntu-preview.mjs",
             "contracts/schemas/protocol.schema.json",
-            "project/development.json"
+            "project/development.json",
+            "crates/application/src/workspace.rs",
+            "crates/application/src/workspace/notes.rs",
+            "crates/application/src/workspace/backup.rs",
+            "crates/persistence/src/lib.rs",
+            "crates/persistence/src/decision_notes.sql",
+            "crates/persistence/src/decision_note_restore.sql",
+            "apps/desktop/ui/src/decision-notes.tsx"
           ],
           "rules": [
             {
@@ -478,9 +494,14 @@
             {
               "path": "contracts/decisions/0011-local-profiles-and-connected-model-use.json",
               "pointer": "/decision"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence/notes_and_restore"
             }
           ],
           "non_goals": [
+            "The first backup covers saved decision notes, dated outcomes and deletion markers. Broader workspace settings, accepted indicator versions, saved conversations, credentials, grants, audit history, caches and journals are outside this backup format.",
             "Real cloud or voice sessions, financial provider subscriptions, and full indicator computation belong to other tasks."
           ],
           "open_questions": []
@@ -491,10 +512,12 @@
             "Synthetic read-only development grant, existing 1.1 reads, explicitly selected sample preferences, established confirmation and private excerpt rules."
           ],
           "change": [
-            "Add the profile-local transaction owner and versioned storage, then scoped replay and confirmation, explicit private saves and deletes, and staged backup recovery."
+            "The private hosts dispatch decisionNote.save, decisionNote.read, decisionNote.appendOutcome and decisionNote.delete through the Rust registry. Explicit local confirmation authorizes new writes. Reads and redacted receipt replay use current disclosure access.",
+            "Add explicit local decision-note export and revision-bound preview and apply. Recover missing notes and outcomes, preserve other current notes, reject conflicting surviving identities and apply the union of known deletion markers in the same transaction. Warn before approving candidates whose deletion history is unavailable.",
+            "Check complete backup capacity before admitting note additions and restore plans. Keep private drafts separate from refreshed note projections."
           ],
-          "data_plan": "Keep application state inside the bound OS-user profile. Use WAL and foreign keys, a versioned migration, redacted receipts and profile-scoped deletion markers. Validate the original database on failure, independent older backup warnings and cross-profile isolation.",
-          "cleanup": "Keep a single write path. Remove provisional adapters once both hosts reach the same application core. Recover without replaying past AI work or reusing external disclosure grants."
+          "data_plan": "Keep application state inside the bound OS-user profile. The v1 to v2 migration retains chart state, undo and replay and adds immutable originals, separate outcomes and profile-scoped deletion markers. Version 3 preserves outcome order and supports several outcomes under one restore receipt. A versioned logical note backup stays scoped to its originating profile and workspace.",
+          "cleanup": "Delete original and outcome bodies, clear body-derived replay fingerprints, and durably resume SQLite WAL cleanup if a reader blocks it. Restore without replaying past AI work or reusing external disclosure grants."
         }
       }
     },
@@ -5453,6 +5476,67 @@
           ],
           "data_plan": "Only temporary synthetic profiles are used for the browser checks. They are removed after their owned processes exit.",
           "cleanup": "Keep the process probe test-only. Stage named browser results and retain private working databases locally."
+        }
+      }
+    },
+    {
+      "id": "M1-020",
+      "title": "Verify serial catalog and history startup in chart previews",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": ["M1-001"],
+      "scope": [
+        "tests/ubuntu-preview/market-workflow.spec.mjs",
+        "tests/ubuntu-preview/preview.spec.mjs",
+        "tests/ubuntu-preview/playwright.config.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": ["0004", "0007"],
+      "acceptance": [
+        "Default sample startup verifies the exact real catalog and history requests and their separate successful replies before checking chart readiness in both browser suites.",
+        "Holding each real reply independently reproduces a startup beyond the old five-second aggregate wait. Exact chart, replay, offline retry, and typed worker-error assertions still apply."
+      ],
+      "checks": ["market-workflow", "ubuntu-preview", "project-state", "python-contracts-workers"],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-020-d05ddb38f6fbe253.json",
+          "sha256": "2c3bfc81be3f5e290bacfa225d559024c41b0de1fb06ba944c2d71a30a44ba67"
+        },
+        {
+          "path": "project/evidence/M1-020-262ff58ae7d6230d.json",
+          "sha256": "32348045029b73c35d9eb6cd09b4a785e502b4b65703a817007d066f2edf01e2"
+        },
+        {
+          "path": "project/evidence/M1-020-839a408a8b3f3cd1.json",
+          "sha256": "d1971b1a3fbf4483e55dc8b8339f718142b620ce3cd31e3e5687d5a62efe6426"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Separate catalog and history verification from chart paint in the inherited M1-001 browser paths.",
+        "change_types": ["tooling"],
+        "context": ["tests/ui/sample-startup.mjs", "apps/desktop/ui/ubuntu-preview.mjs"],
+        "hypotheses": ["The two serial worker reads can legitimately outlast the former five-second render wait, including after Retry demo."],
+        "risks": [
+          { "failure": "An unsuccessful worker reply, incorrect series, or missing chart passes as slow startup.", "checks": ["market-workflow", "ubuntu-preview"] }
+        ],
+        "rollback": "Retain hosted run 44531620190 and the held-response regression before reopening any failing phase.",
+        "implementation": {
+          "modules": ["development-tooling"],
+          "entrypoints": ["tests/ui/sample-startup.mjs", "tests/ubuntu-preview/preview.spec.mjs", "tests/ubuntu-preview/market-workflow.spec.mjs"],
+          "rules": [{ "path": "project/delivery.json", "pointer": "/scaffold_maintenance" }],
+          "non_goals": ["Worker deadlines, application retry rules, fixtures, and packaged Windows acceptance."],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": ["Explicit synthetic opt-in, replay and chart values, and offline recovery behavior."],
+          "change": ["Use the shared default startup verifier and cover two independently held real replies and a typed worker failure."],
+          "data_plan": "Use only committed synthetic fixtures through the local bridge.",
+          "cleanup": "Keep timeout allowances in browser verification and leave product deadlines intact."
         }
       }
     }

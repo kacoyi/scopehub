@@ -435,9 +435,27 @@
       "cadence": "task"
     },
     {
+      "id": "decision-note-lifecycle",
+      "status": "implemented",
+      "purpose": "Verify profile-local decision notes and v1 through v3 migrations. Exercise confirmation, replay, deletion, complete backup capacity, stage expiry and disposal, marker union, and rollback when killed before commit.",
+      "platforms": "all",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-application",
+        "-p",
+        "scopehub-persistence",
+        "decision_note"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
       "id": "workspace-timeframe",
       "status": "implemented",
-      "purpose": "Exercise a real local timeframe change, fresh browser and SQLite writer restart, scoped undo, and cancellation through the opted-in development workspace.",
+      "purpose": "Exercise the real opted-in local writer through browser and process restart, timeframe undo, terminal cleanup, and human decision-note confirmation, deletion, backup download and staged restore.",
       "platforms": "all",
       "command": [
         "pnpm",
@@ -680,6 +698,22 @@
       "architecture",
       "python-contracts-workers",
       "rust-format"
+    ],
+    "decision-note-slice": [
+      "environment",
+      "project-state",
+      "generated-contracts",
+      "architecture",
+      "python-types",
+      "python-contracts-workers",
+      "typescript-contracts",
+      "ui-build",
+      "rust-format",
+      "rust-contracts-workers",
+      "rust-lints",
+      "decision-note-lifecycle",
+      "workspace-timeframe",
+      "desktop-workspace-transport"
     ]
   },
   "required_change_checks": [

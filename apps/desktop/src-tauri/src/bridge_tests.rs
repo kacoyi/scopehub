@@ -1,6 +1,6 @@
 use std::{future, path::PathBuf};
 
-use scopehub_application::{MarketFuture, MarketStatus, ShutdownFuture};
+use scopehub_application::{MarketFuture, MarketStatus, SET_TIMEFRAME, ShutdownFuture, UNDO};
 use serde_json::json;
 use tokio::sync::oneshot::error::TryRecvError;
 
@@ -204,6 +204,15 @@ fn mutation(revision: u64, operation: &str, arguments: Value, id: u64) -> Value 
     })
 }
 
+fn note_read() -> Value {
+    json!({
+        "protocol_version": "1.1", "type": "request", "timestamp_ms": 123,
+        "message_id": uuid(60), "request_id": uuid(61),
+        "scope": {"workspace_id": "main"},
+        "intent": {"operation": "decisionNote.read", "arguments": {"note_id": null, "offset": 0}},
+    })
+}
+
 async fn snapshot(state: &State) -> Value {
     state
         .execute("main", None, json!({"type": "snapshot"}))
@@ -292,6 +301,7 @@ async fn desktop_rejects_other_windows_forged_identity_and_unconfigured_mutation
     let disabled = state();
     for (operation, request) in [
         (Some(SET_TIMEFRAME), command.clone()),
+        (Some("decisionNote.read"), note_read()),
         (None, json!({"type": "snapshot"})),
     ] {
         assert_eq!(
@@ -308,6 +318,7 @@ async fn desktop_rejects_other_windows_forged_identity_and_unconfigured_mutation
     let desktop = state_with_development_workspace(Some(&profile.0));
     for (operation, request) in [
         (Some(SET_TIMEFRAME), command.clone()),
+        (Some("decisionNote.read"), note_read()),
         (None, json!({"type": "snapshot"})),
     ] {
         assert_eq!(
@@ -369,6 +380,12 @@ async fn desktop_rejects_other_windows_forged_identity_and_unconfigured_mutation
         .await
         .unwrap();
     assert_eq!(rejected["outcome"]["error"]["code"], "PERMISSION_DENIED");
+    let notes = desktop
+        .execute("main", Some("decisionNote.read"), note_read())
+        .await
+        .unwrap();
+    assert_eq!(notes["outcome"]["state"], "completed");
+    assert_eq!(notes["outcome"]["result"]["notes"], json!([]));
     assert_eq!(snapshot(&desktop).await["workspace"]["revision"], 0);
     assert!(desktop.reads.lock().await.status().process_id.is_none());
     desktop.shutdown().await;

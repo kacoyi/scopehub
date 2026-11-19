@@ -716,6 +716,97 @@
       "input_spec": "SharedSelectionRequest11",
       "output_spec": "SelectEvidenceReply11",
       "schema_requirement": "Use the registered 1.1 schema and session-bound permissions."
+    },
+    {
+      "name": "decisionNote.save",
+      "effect": "persist",
+      "confirmation": true,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "DecisionNoteSaveCommand11",
+      "output_spec": "DecisionNoteSaveReply11",
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. No worker or external client access."
+    },
+    {
+      "name": "decisionNote.read",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "DecisionNoteReadCommand11",
+      "output_spec": "DecisionNoteReadReply11",
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. No worker or external client access."
+    },
+    {
+      "name": "decisionNote.appendOutcome",
+      "effect": "persist",
+      "confirmation": true,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "DecisionNoteAppendOutcomeCommand11",
+      "output_spec": "DecisionNoteAppendOutcomeReply11",
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. No worker or external client access."
+    },
+    {
+      "name": "decisionNote.delete",
+      "effect": "persist",
+      "confirmation": true,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "DecisionNoteDeleteCommand11",
+      "output_spec": "DecisionNoteDeleteReply11",
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. No worker or external client access."
+    },
+    {
+      "name": "decisionNote.exportBackup",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "DecisionNoteExportBackupCommand11",
+      "output_spec": "DecisionNoteExportBackupReply11",
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. This operation is unavailable to workers and external clients."
+    },
+    {
+      "name": "decisionNote.previewRestore",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "DecisionNotePreviewRestoreCommand11",
+      "output_spec": "DecisionNotePreviewRestoreReply11",
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. This operation is unavailable to workers and external clients."
+    },
+    {
+      "name": "decisionNote.restoreBackup",
+      "effect": "persist",
+      "confirmation": true,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "DecisionNoteRestoreBackupCommand11",
+      "output_spec": "DecisionNoteRestoreBackupReply11",
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. This operation is unavailable to workers and external clients."
     }
   ],
   "authorization": {
@@ -1028,7 +1119,14 @@
       "live": "Persist a note body, attributed excerpts and saved context only on explicit save. Declining leaves no durable note or derived body. Deleting removes all body-bearing live copies, retrieval indexes, cached summaries, model context and local exports controlled by the app. Keep body-free deletion markers keyed to the original profile and note ID for restore.",
       "audit": "Retain redacted operation ID, principal, timestamp, target identifier, outcome and revision. Exclude note text, quotations, transcripts, prompts, raw input data and model answers from routine logs, diagnostics and receipts. Keep redacted history separate from user content.",
       "restore": "Preview restoration before modifying live state. Merge known deletion markers from the current profile and backup, applying them after restoring content in the same staged transaction and preserving the current state on failure. Warn before applying an independent older backup that previously deleted content may reappear if its marker is unavailable. Do not claim erasure of copies already exported or transmitted. Require a new grant for external sharing.",
-      "recovery": "Version the backup, schema, mappings, accepted outputs and logical deletion metadata. Exercise process interruption and migration rollback using an untouched backup; verify that the original visible note, permission and deletion state is recoverable."
+      "recovery": "Version the backup, schema, mappings, accepted outputs and logical deletion metadata. Exercise process interruption and migration rollback using an untouched backup; verify that the original visible note, permission and deletion state is recoverable.",
+      "decision_note_backup_v1": {
+        "scope": "The user explicitly exports a versioned, profile-bound decision-note archive to a selected local file. The archive contains original decisions, dated outcomes, deletion markers and snapshot metadata. Credentials, grants, other workspace state, operation or idempotency history, caches, and SQLite files or journals remain outside this archive.",
+        "preview": "Validate the archive and its profile and workspace binding and stage a merge in memory. Return body-free effect counts and warn before applying if an older independent copy may contain notes whose deletion markers are unavailable.",
+        "apply": "Require an explicit local human approval for the staged preview. Recheck current binding, grant and workspace revision, then merge missing originals and outcomes and enforce the union of known deletion markers in a single writer transaction. Retain surviving live records absent from the backup. A conflict in a surviving identity fails the merge. Keep the input backup untouched. The apply command and receipt carry no archive bodies.",
+        "capacity": "Validate the complete projected archive before admitting a save, appended outcome or restore preview. Retain existing records when the projected result exceeds the format's size or item limits. Reserve deletion marker space for admitted originals. Continue to permit deletion in profiles that already exceed a backup limit.",
+        "staging_and_view": "Retain only the new rows and deletion markers necessary for a pending restore. Release the stage when its revision is superseded, its approval expires or the session closes. Refresh both local note lists and details when observed revisions change. Revalidate a surviving note without resetting the text or date of its unsubmitted outcome draft. Discard superseded approvals and remove projections and drafts for deleted or unauthorized notes."
+      }
     }
   },
   "fixtures": {

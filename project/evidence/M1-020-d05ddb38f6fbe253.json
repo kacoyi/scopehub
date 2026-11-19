@@ -1,0 +1,99 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M1-020",
+  "task_definition_sha256": "f4c7882b6ceabe77730414fe1c67d385770ac41b7d5e2e342acdd02dc81fa6e9",
+  "run_id": "20261119T140228.613996Z-9dde5ec8",
+  "recorded_at": "2026-11-19T14:04:51.461034+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "702f5a714a60460f45d69e2a5f3aad4240dc23863d9c658ca0b6ce1be6a3ac13",
+    "file_count": 243,
+    "git_head": "d302c7d8d6132ebfeb04cdbf74ed0a14ad6c4235",
+    "working_tree_dirty": true,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "d05ddb38f6fbe253e4b2d53ba14e6300f09735179a49cf776dffe465747d4eaa",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/projects/scopehub-startup-verification/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "dc11c6a9340a49004d5ab01c9c56b4061a304bcb50c0135dcc6b55462c6d8355"
+    },
+    {
+      "id": "ubuntu-preview",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/playwright.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "b837b8a1bc272e9c1976f751cb201b1f383483cd75b594bfaa135e7bc5b944fd"
+    },
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-startup-verification/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "11d0dcbf6778fca473a04a242ce11d0189a354019572f011f0843209fdcefbf8"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-startup-verification/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "52e1c274c230bdd418dc02a16c0481fd49178416dc3c149f3e26db305fabc2be"
+    }
+  ],
+  "project_definition_sha256": "a83a7ebe19b768ffb1def53b0923678b4ab73c603c11c88f7e692e26439c6d89",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

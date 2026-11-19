@@ -1,7 +1,8 @@
 use std::{path::Path, sync::Arc};
 
 use scopehub_application::{
-    Actor, OperationRegistry, SET_TIMEFRAME, UNDO, WorkspaceAccess, WorkspaceBinding, failure,
+    Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, LOCAL_WORKSPACE_OPERATIONS,
+    OperationRegistry, WorkspaceAccess, WorkspaceBinding, failure,
 };
 use scopehub_domain::protocol::{Error, ErrorCode};
 use scopehub_persistence::SqliteWorkspace;
@@ -11,6 +12,8 @@ use tokio::sync::Mutex;
 
 const WORKSPACE_ID: &str = "main";
 const MAX_REQUEST_BYTES: usize = 16 * 1024;
+const MAX_NOTE_REQUEST_BYTES: usize = 32 * 1024;
+const MAX_BACKUP_REQUEST_BYTES: usize = 1024 * 1024;
 
 pub(super) struct WorkspaceBridge {
     lane: Arc<Mutex<Lane>>,
@@ -19,13 +22,13 @@ pub(super) struct WorkspaceBridge {
 enum Lane {
     Disabled,
     Unavailable,
-    Open(BoundWorkspace),
+    Open(Box<BoundWorkspace>),
     Closed,
 }
 
 enum Request {
     Snapshot,
-    Mutation(Value),
+    Operation(Value),
 }
 
 struct BoundWorkspace {
@@ -49,7 +52,7 @@ impl WorkspaceBridge {
         // provides workspace state and receipts, never a grant.
         let lane = app_local_data
             .and_then(BoundWorkspace::open)
-            .map_or(Lane::Unavailable, Lane::Open);
+            .map_or(Lane::Unavailable, |bound| Lane::Open(Box::new(bound)));
         Self::new(lane)
     }
 
@@ -74,10 +77,17 @@ impl WorkspaceBridge {
             Some(operation)
                 if payload["type"] == "request" && payload["intent"]["operation"] == operation =>
             {
-                if payload.to_string().len() >= MAX_REQUEST_BYTES {
+                let limit = if operation == DECISION_NOTE_PREVIEW_RESTORE {
+                    MAX_BACKUP_REQUEST_BYTES
+                } else if DECISION_NOTE_OPERATIONS.contains(&operation) {
+                    MAX_NOTE_REQUEST_BYTES
+                } else {
+                    MAX_REQUEST_BYTES
+                };
+                if payload.to_string().len() >= limit {
                     return Err(failure(ErrorCode::RESOURCELIMIT));
                 }
-                Request::Mutation(payload)
+                Request::Operation(payload)
             }
             _ => return Err(failure(ErrorCode::INVALIDARGUMENT)),
         };
@@ -134,7 +144,7 @@ impl BoundWorkspace {
             principal_id: &self.profile_id,
             paired_client_id: None,
             workspace_id: WORKSPACE_ID,
-            operations: &[SET_TIMEFRAME, UNDO],
+            operations: LOCAL_WORKSPACE_OPERATIONS,
             disclose_workspace_state: true,
         };
         match request {
@@ -149,7 +159,7 @@ impl BoundWorkspace {
                     })),
                 }))
             }
-            Request::Mutation(payload) => self.registry.execute_workspace(&access, payload),
+            Request::Operation(payload) => self.registry.execute_workspace(&access, payload),
         }
     }
 }

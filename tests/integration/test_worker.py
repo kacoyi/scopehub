@@ -17,11 +17,11 @@ def frame(**payload):
     return (json.dumps({**BASE, **payload}) + '\n').encode()
 
 
-def worker(data, role='market', extra_args=()):
+def worker(data, role='market', extra_args=(), *, python_args=()):
     env = {key: value for key, value in os.environ.items() if key.upper() in {'SYSTEMROOT', 'WINDIR', 'TEMP', 'TMP'}}
     env['PYTHONPATH'] = os.pathsep.join([str(ROOT), str(ROOT / 'python')])
     env['PYTHONIOENCODING'] = 'utf-8'
-    with subprocess.Popen([sys.executable, '-m', 'worker_runtime', '--role', role, *extra_args], cwd=ROOT,
+    with subprocess.Popen([sys.executable, *python_args, '-m', 'worker_runtime', '--role', role, *extra_args], cwd=ROOT,
                           env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
         try:
             stdout, stderr = process.communicate(data, timeout=10)
@@ -33,6 +33,16 @@ def worker(data, role='market', extra_args=()):
 
 
 class WorkerTests(unittest.TestCase):
+    def test_worker_hello_does_not_load_unused_iri_grammar(self):
+        code, messages, imports = worker(b'', extra_args=('--demo',), python_args=('-X', 'importtime'))
+        self.assertEqual(code, 0)
+        self.assertEqual([message['type'] for message in messages], ['hello'])
+        imported_modules = {line.rsplit(b'|', 1)[-1].strip() for line in imports.splitlines()}
+        self.assertIn(b'worker_runtime.protocol', imported_modules)
+        # Import profiling also lists missing optional packages, but only their top-level names.
+        iri_grammar = sorted(name for name in imported_modules if name.startswith(b'rfc3987_syntax.'))
+        self.assertEqual(iri_grammar, [])
+
     def test_each_role_handshakes_and_closes_on_eof(self):
         for role in ['market', 'ai', 'indicator']:
             with self.subTest(role=role):

@@ -967,6 +967,66 @@
       "deferral_reason": null
     },
     {
+      "id": "note-restore-stage-retention",
+      "source": "Synthetic Rust-process review of 89401c9 and independent rerun at 5453889c7e9029c6e80b23612a841abf2c38a9f4, stage_after_peer_deletion in .reports/decision-note-independent-5453889/coordinator-rust.json. The 5453889 decision-note-lifecycle log is in .reports/runs/20261119T133002.616158Z-22e48663/.",
+      "observation": "Staging a missing later outcome copied the existing original note body. A second writer deleted the note and the first writer observed the new revision, but the first process retained the redundant staged payload. Expired payloads were collected only during later mutations. At 5453889, the regression asserted that an outcome-only stage held no original. The independent run observed one added outcome, zero added originals, and after the peer deletion at revision 2, zero live notes and one marker. Both old-stage decisions returned CONFIRMATION_REQUIRED and the detail returned DATA_UNAVAILABLE. Lifecycle regressions passed for observed revision invalidation, deadline expiry without another operation, and disposal.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "decision-note-lifecycle"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "note-restore-export-capacity",
+      "source": "Synthetic Rust-process review of 89401c9 and independent rerun at 5453889c7e9029c6e80b23612a841abf2c38a9f4, complete_backup_capacity in .reports/decision-note-independent-5453889/coordinator-rust.json. The 5453889 decision-note-lifecycle log is in .reports/runs/20261119T133002.616158Z-22e48663/.",
+      "observation": "Two individually valid backups of the same note with 64 and 65 different later outcomes merged successfully. The resulting 129 outcomes were readable, but exporting the combined note failed with RESOURCE_LIMIT. At 5453889, both the independent run and the process regression observed RESOURCE_LIMIT before issuing a stage for the 129-outcome merge, with both archives unchanged. The 128-outcome boundary merged and exported every outcome, and the next append was rejected before approval with the complete export unchanged.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "decision-note-lifecycle"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "note-unrelated-revision-draft-loss",
+      "source": "Synthetic Chromium review of 89401c9 and independent passing outcome_draft_after_peer_timeframe check at 5453889c7e9029c6e80b23612a841abf2c38a9f4 in .reports/decision-note-independent-5453889/coordinator-browser-draft.json. The 5453889 workspace-timeframe log is in .reports/runs/20261119T133002.616158Z-22e48663/.",
+      "observation": "When a peer changed only the chart timeframe, a visible unsaved later-outcome draft and its date were silently discarded. At 5453889 the independent browser observed a fresh detail read after the peer changed 5m to 1d, preserved both draft fields, approved the outcome, and reopened it with the same text and date. The browser regression also passed for invalidating the older approval while keeping the draft and clearing the draft when its note was deleted.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "note-deleted-list-projection",
+      "source": "Synthetic Chromium review of 89401c9 and independent rerun at 5453889c7e9029c6e80b23612a841abf2c38a9f4, deleted_index_rows_and_raced_open in .reports/decision-note-independent-5453889/coordinator-browser-list.json. The 5453889 workspace-timeframe log is in .reports/runs/20261119T133002.616158Z-22e48663/.",
+      "observation": "After a peer deleted a note, a focused list still displayed its date and identity suffix across two polling intervals and after clicking the stale entry returned unavailable. At 5453889 the independent browser and workspace regression observed focus refresh removing the deleted entry and retaining the unrelated entry. A detail read that raced a second deletion returned DATA_UNAVAILABLE, and the list removed the stale entry and showed the empty state.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
       "id": "workspace-profile-static-denial",
       "source": "Hosted Windows workspace-timeframe on a temporary synthetic profile.",
       "observation": "Hosted Windows run 44528913523 at 4a379d8 returned HTTP 200 for a synthetic workspace file check. The check captured status alone, so the returned representation is unknown. It could not distinguish the ordinary HTML fallback from a file response.",
@@ -1001,6 +1061,21 @@
         "cause": "The original Windows assertion used enum operands in PowerShell 5.1 bitwise tests. A later hosted exit 52 combined provider lookup, descriptor read and owner comparison into one stage. A standard-user Windows 11 guest returned the current owner and DACL through both readers in both TEMP spellings, so the precise cause of that hosted exit remains undetermined.",
         "correction": "Use integer masks and explicitly read the owner and access sections through filesystem APIs. Report descriptor reads independently from owner mismatches. Keep the current-SID directory rule, allowed file owners and trustees, inherited rights and an actual read/write handle.",
         "prevention": "The Windows 11 guest passed the revised positive check in both TEMP spellings and reached the intended denial for broad access and missing inheritance on empty synthetic files. Hosted Windows workspace-timeframe at 290bd578 passed the same private handoff case with both negative controls."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-sample-startup-aggregate-wait",
+      "source": "PR 12 hosted Windows run 44531620190, market-workflow and ubuntu-preview logs.",
+      "observation": "The three-symbol journey did not find Play sample updates within five seconds. The desktop, narrow-screen, and Retry demo preview paths hit the same five-second limit waiting for the first history chart. The assertions did not distinguish catalog latency, history latency, and rendering.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M1-020"],
+      "regression_checks": ["market-workflow", "ubuntu-preview"],
+      "resolution": {
+        "cause": "One five-second browser assertion covered two serial worker reads and the first chart render. Holding each real reply reproduced startup beyond that assertion's budget.",
+        "correction": "The shared startup verifier checks the real catalog request and reply, then the scoped history request and reply, before waiting for chart readiness. The preview suite exercises each held reply and a typed worker rejection. Product worker deadlines and retry behavior remain unchanged.",
+        "prevention": "Hosted run 44544324678 for PR head cd93f96d076b0b7f0fa45374c646dfa463e199e3 passed market-workflow (1 case) and ubuntu-preview (7 cases) on Linux and Windows. The preview cases covered independently delayed catalog and history replies, offline Retry demo and a real worker rejection. Both task receipts retain their platform and log digests."
       },
       "deferral_reason": null
     }

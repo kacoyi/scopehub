@@ -8,13 +8,24 @@ use std::{
 };
 
 use scopehub_application::{
-    Actor, OperationRegistry, SET_TIMEFRAME, UNDO, WorkspaceAccess, WorkspaceBinding, failure,
+    Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, LOCAL_WORKSPACE_OPERATIONS,
+    OperationRegistry, WorkspaceAccess, WorkspaceBinding, failure,
 };
 use scopehub_domain::protocol::{Error, ErrorCode};
 use scopehub_persistence::SqliteWorkspace;
 use serde_json::{Value, json};
 
 const MAX_REQUEST_BYTES: u64 = 16 * 1024;
+const MAX_NOTE_REQUEST_BYTES: u64 = 32 * 1024;
+const MAX_BACKUP_REQUEST_BYTES: u64 = 1024 * 1024;
+
+fn request_limit(operation: Option<&str>) -> u64 {
+    match operation {
+        Some(DECISION_NOTE_PREVIEW_RESTORE) => MAX_BACKUP_REQUEST_BYTES,
+        Some(operation) if DECISION_NOTE_OPERATIONS.contains(&operation) => MAX_NOTE_REQUEST_BYTES,
+        _ => MAX_REQUEST_BYTES,
+    }
+}
 
 fn result_frame(result: Result<Value, Error>) -> Value {
     match result {
@@ -73,12 +84,12 @@ fn serve(
         line.clear();
         let count = input
             .by_ref()
-            .take(MAX_REQUEST_BYTES + 1)
+            .take(MAX_BACKUP_REQUEST_BYTES + 1)
             .read_until(b'\n', &mut line)?;
         if count == 0 {
             return Ok(());
         }
-        if count as u64 > MAX_REQUEST_BYTES {
+        if count as u64 > MAX_BACKUP_REQUEST_BYTES {
             return write_frame(
                 &mut output,
                 result_frame(Err(failure(ErrorCode::RESOURCELIMIT))),
@@ -92,6 +103,16 @@ fn serve(
         }
         let request =
             serde_json::from_slice::<Value>(&line).map_err(|_| failure(ErrorCode::INVALIDARGUMENT));
+        let operation = request
+            .as_ref()
+            .ok()
+            .and_then(|request| request["intent"]["operation"].as_str());
+        if count as u64 > request_limit(operation) {
+            return write_frame(
+                &mut output,
+                result_frame(Err(failure(ErrorCode::RESOURCELIMIT))),
+            );
+        }
         if let Ok(request) = &request
             && request["type"] == "snapshot"
         {
@@ -152,7 +173,7 @@ fn main() -> ExitCode {
         principal_id: profile_id,
         paired_client_id: None,
         workspace_id,
-        operations: &[SET_TIMEFRAME, UNDO],
+        operations: LOCAL_WORKSPACE_OPERATIONS,
         disclose_workspace_state: true,
     };
     let io = serve(
