@@ -1158,6 +1158,9 @@ base('reviews explicit CSV declarations and competing bars with source provenanc
     await expect(review.getByRole('table', { name: 'Folder source changes' })).toBeVisible();
 
     const staged = resultOf('market.previewLocalFolderRefresh');
+    expect(staged.review_id).toMatch(/^[0-9a-f]{64}$/);
+    expect(staged.publication_allowed).toBe(false);
+    await expect(review.getByRole('button', { name: 'Review folder publication' })).toHaveCount(0);
     for (const [path, declaration] of [['lots.csv', 'lots'], ['adjusted.csv', 'split_adjusted']]) {
       const file = staged.files.find(source => source.relative_path === path);
       expect.soft(file, `${path} requires an explicit declaration review`).toMatchObject({ review: 'invalid_rows' });
@@ -1194,6 +1197,185 @@ base('reviews explicit CSV declarations and competing bars with source provenanc
     });
     expect(after.result.bars.map(entry => entry.bar.close)).toEqual([5]);
     await expect(frozen.getByLabel('Selected bar')).toContainText('C 5');
+  } finally {
+    await bridge?.close();
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
+base('publishes a reviewed folder once and reopens its frozen provenance without a folder grant', {
+  tag: '@profile-folder-refresh',
+}, async ({ page }) => {
+  const binary = process.env.SCOPEHUB_LOCAL_IMPORT_BRIDGE;
+  base.skip(!binary, 'Set SCOPEHUB_LOCAL_IMPORT_BRIDGE to the portable Rust test example.');
+  const temporary = await mkdtemp(join(await realpath(tmpdir()), 'scopehub-folder-publication-ui-'));
+  const profile = join(temporary, 'profile');
+  const folder = join(temporary, 'synthetic-csv');
+  let bridge;
+  let loseReceipt = true;
+  const calls = [];
+  const operations = name => calls.filter(call => call.args?.operation === `market.${name}`);
+  try {
+    await mkdir(profile, { mode: 0o700 });
+    await mkdir(folder, { mode: 0o700 });
+    const csv = rows => [equity.header, ...rows].map(row => row.join(',')).join('\n') + '\n';
+    const originalPath = join(folder, 'daily.csv');
+    await writeFile(originalPath, csv(equity.rows));
+
+    bridge = startLocalImportBridge(binary, profile, folder);
+    await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
+      const reply = await bridge.request(command, args);
+      calls.push({ command, args, reply });
+      if (args?.operation === 'market.publishLocalFolderRefresh' && reply.result && loseReceipt) {
+        loseReceipt = false;
+        return { error: { code: 'INTERNAL_ERROR', message: 'Publication reply was interrupted.' } };
+      }
+      return reply;
+    });
+    await page.addInitScript(() => {
+      window.isTauri = true;
+      window.__TAURI_INTERNALS__ = {
+        async invoke(command, args) {
+          const reply = await window.testNativeInvoke(command, args);
+          if (reply.error) throw reply.error;
+          return reply.result;
+        },
+      };
+    });
+
+    await page.goto('/');
+    await control(page, 'Choose local CSV folder').last().click();
+    await control(page, 'Inspect raw rows').click();
+    await enterMapping(page, equity);
+    await control(page, 'Preview mapping').click();
+    await control(page, 'Save reviewed mapping').click();
+    await control(page, 'Publish complete file').click();
+    const acceptedId = page.getByLabel('Accepted revision ID');
+    await expect(acceptedId).not.toHaveValue('');
+    const baseId = operations('publishLocalImport')[0].reply.result.revision.revision_id;
+    await expect(acceptedId).toHaveValue(baseId);
+
+    await rm(originalPath);
+    const corrected = close => equity.rows[0].map((value, index) => index === 5 ? String(close) : value);
+    const current = csv([corrected(37), corrected(39)]);
+    const aliasPath = join(folder, 'alias.csv');
+    const currentPath = join(folder, 'current.csv');
+    await writeFile(currentPath, current);
+    await writeFile(aliasPath, current);
+    const hash = createHash('sha256').update(current).digest('hex');
+
+    const review = page.getByRole('region', { name: 'Folder refresh review' });
+    await control(page, 'Stage folder refresh').click();
+    const reviewPublication = review.getByRole('button', { name: 'Review folder publication' });
+    await expect(reviewPublication).toBeDisabled();
+    const staged = operations('previewLocalFolderRefresh')[0].reply.result;
+    const conflictTime = Date.parse(equity.times[0]);
+    const withdrawalTime = Date.parse(equity.times[1]);
+    const conflict = staged.bars.find(bar => bar.time_ms === conflictTime);
+    expect(conflict.status).toBe('conflict');
+    expect(conflict.accepted.bar.close).toBe(38);
+    expect(conflict.alternatives.map(item => item.bar.close).sort()).toEqual([37, 39]);
+    const alternativeIndex = conflict.alternatives.findIndex(item => item.bar.close === 39);
+    await review.getByText(/2026-04-14.+Competing values/).click();
+    await review.getByRole('radio', { name: `Use alternative ${alternativeIndex + 1} for ${new Date(conflictTime).toISOString()}` }).check();
+    await expect(reviewPublication).toBeDisabled();
+    await review.getByRole('checkbox', { name: 'Withdraw source daily.csv' }).check();
+    await expect(reviewPublication).toBeDisabled();
+    await review.getByText(/2026-04-15.+Withdrawal candidate/).click();
+    await review.getByRole('checkbox', { name: `Withdraw bar at ${new Date(withdrawalTime).toISOString()}` }).check();
+    await reviewPublication.click();
+    await expect(review.getByRole('group', { name: 'Publish reviewed folder?' })).toContainText('1 bar from 2 sources');
+    expect(operations('prepareLocalFolderPublication')[0].args.payload).toMatchObject({
+      review_id: staged.review_id,
+      conflicts: [{ time_ms: conflictTime, alternative_index: alternativeIndex }],
+      withdraw_bars: [withdrawalTime],
+      withdraw_sources: ['daily.csv'],
+    });
+
+    await review.getByRole('button', { name: 'Publish reviewed folder' }).click();
+    await expect(page.getByRole('alert')).toHaveText('Publication reply was interrupted.');
+    const first = operations('publishLocalFolderRefresh')[0];
+    expect(first.reply.result.revision).toMatchObject({
+      base_revision_id: baseId, parent_revision_id: null, bar_count: 1, source_count: 2,
+    });
+    const revisionId = first.reply.result.revision.revision_id;
+    await rm(currentPath);
+    await rm(aliasPath);
+    await review.getByRole('button', { name: 'Retry folder publication' }).click();
+    const published = page.getByRole('region', { name: 'Published local folder' });
+    await expect(published).toContainText(revisionId);
+    const retry = operations('publishLocalFolderRefresh')[1];
+    expect(retry.args.payload).toEqual(first.args.payload);
+    expect(retry.args.requestId).not.toBe(first.args.requestId);
+    expect(retry.reply.result).toEqual(first.reply.result);
+
+    await published.getByRole('button', { name: 'Open frozen folder chart' }).click();
+    const chart = page.getByRole('region', { name: 'Frozen local folder chart' });
+    const provenance = page.getByRole('region', { name: 'Published folder source provenance' });
+    await expect(chart.getByLabel('Selected bar')).toContainText('C 39');
+    await provenance.getByText('Source files (2)', { exact: true }).click();
+    await expect(provenance.getByText(hash, { exact: true })).toHaveCount(2);
+    await provenance.getByText('Source rows (2)', { exact: true }).click();
+    const sourceRows = provenance.getByRole('table', { name: 'Published folder source rows' });
+    for (const relativePath of ['alias.csv', 'current.csv']) {
+      const row = sourceRows.getByRole('row', { name: new RegExp(relativePath.replace('.', '\\.')) });
+      await expect(row.getByRole('cell', { name: '3', exact: true })).toBeVisible();
+      await expect(row.getByRole('cell', { name: '39', exact: true })).toBeVisible();
+    }
+
+    await expect(acceptedId).toHaveValue(revisionId);
+    await control(page, 'Stage folder refresh').click();
+    await review.getByText(/2026-04-14.+Withdrawal candidate/).click();
+    await expect(review.getByText('Accepted current.csv · Record 2 · Lines 3–3')).toBeVisible();
+    const childReview = operations('previewLocalFolderRefresh')[1].reply.result;
+    expect(childReview.base).toBeUndefined();
+    expect(childReview.folder_base.revision_id).toBe(revisionId);
+    await review.getByRole('checkbox', { name: 'Withdraw source alias.csv' }).check();
+    await review.getByRole('checkbox', { name: 'Withdraw source current.csv' }).check();
+    await review.getByRole('checkbox', { name: `Withdraw bar at ${new Date(conflictTime).toISOString()}` }).check();
+    await reviewPublication.click();
+    await expect(review.getByRole('group', { name: 'Publish reviewed folder?' })).toContainText('0 bars from 0 sources');
+    await review.getByRole('button', { name: 'Publish reviewed folder' }).click();
+    await expect(published.getByRole('status')).toContainText('0 bars · 0 sources');
+    const child = operations('publishLocalFolderRefresh')[2].reply.result.revision;
+    expect(child).toMatchObject({ base_revision_id: baseId, parent_revision_id: revisionId, bar_count: 0, source_count: 0 });
+    await published.getByRole('button', { name: 'Open frozen folder chart' }).click();
+    await expect(chart).toContainText('This reviewed folder revision withdrew all accepted bars.');
+
+    await bridge.close();
+    await rename(folder, join(temporary, 'moved-sources'));
+    bridge = startLocalImportBridge(binary, profile, folder);
+    await page.reload();
+    await control(page, 'Open published CSV').last().click();
+    const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+    await dialog.getByRole('button', { name: 'Folder revisions' }).click();
+    const entries = dialog.getByRole('button', { name: /Open folder revision from/ });
+    const originalEntry = entries.filter({ hasText: revisionId.slice(0, 8) });
+    const withdrawalEntry = entries.filter({ hasText: child.revision_id.slice(0, 8) });
+    await expect(entries).toHaveCount(2);
+    await expect(originalEntry).toContainText('Final close 39 · Trading day 2026-04-14');
+    await withdrawalEntry.click();
+    await expect(dialog.getByRole('region', { name: 'Frozen local folder chart' })).toContainText('This reviewed folder revision withdrew all accepted bars.');
+    await originalEntry.click();
+    await expect(dialog.getByRole('region', { name: 'Frozen local folder chart' }).getByLabel('Selected bar')).toContainText('C 39');
+    await expect(dialog.getByRole('region', { name: 'Published folder source provenance' })).toContainText(revisionId);
+    expect(calls.filter(call => call.command === 'choose_local_csv_folder')).toHaveLength(1);
+    const original = await bridge.request('execute_operation', {
+      operation: 'market.readLocalImportRevision', requestId: randomUUID(),
+      payload: { version: 1, revision_id: baseId },
+    });
+    expect(original.result.bars.map(item => item.bar.close)).toEqual([38, 40]);
+
+    await dialog.getByRole('button', { name: 'Remove frozen chart access' }).click();
+    await dialog.getByRole('button', { name: 'Remove access', exact: true }).click();
+    await expect(dialog.getByRole('region', { name: 'Frozen local folder chart' })).toHaveCount(0);
+    await expect(originalEntry).toHaveCount(0);
+    await expect(withdrawalEntry).toBeVisible();
+    const revoked = await bridge.request('execute_operation', {
+      operation: 'market.readLocalFolderRevision', requestId: randomUUID(),
+      payload: { version: 1, revision_id: revisionId },
+    });
+    expect(revoked.error.code).toMatch(/PERMISSION_DENIED|SNAPSHOT_UNAVAILABLE/);
   } finally {
     await bridge?.close();
     await rm(temporary, { recursive: true, force: true });

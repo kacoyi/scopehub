@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { exchangeWorkspace, type LocalWorkspace } from './use-local-workspace';
+import { readLocalFolderRevision } from './local-import-transport';
 
 export function displayAccessDenied(error: unknown) {
   return error !== null && typeof error === 'object' && 'code' in error
@@ -32,21 +33,29 @@ export function usePublishedRevisionAccess(workspace: LocalWorkspace | undefined
     }
     selected.current = undefined;
   }, [snapshot, revoke]);
-  const verify = useCallback((id: string) => {
+  const verifyAccess = useCallback((id: string, read: () => Promise<boolean | undefined>) => {
     if (!canDisplay(id)) return;
     const current = checking.current.get(id);
     if (current) return current;
-    const request = exchangeWorkspace<{ available: boolean }>({
-      type: 'frozen_chart_status', request_id: crypto.randomUUID(), revision_id: id,
-    }, AbortSignal.timeout(5000)).then(reply => {
-      if (reply?.available === false) revoke(id);
+    const request = read().then(available => {
+      if (available === false) revoke(id);
     }, error => {
       if (displayAccessDenied(error)) revoke(id);
     }).finally(() => checking.current.delete(id));
     checking.current.set(id, request);
     return request;
   }, [canDisplay, revoke]);
-  return { revoked, canDisplay, revoke, verify };
+  const verify = useCallback((id: string) => verifyAccess(id, async () => {
+    const reply = await exchangeWorkspace<{ available: boolean }>({
+      type: 'frozen_chart_status', request_id: crypto.randomUUID(), revision_id: id,
+    }, AbortSignal.timeout(5000));
+    return reply?.available;
+  }), [verifyAccess]);
+  const verifyFolder = useCallback((id: string) => verifyAccess(id, async () => {
+    const reply = await readLocalFolderRevision({ version: 1, revision_id: id, include_details: false }, crypto.randomUUID());
+    return reply.revision.revision_id === id;
+  }), [verifyAccess]);
+  return { revoked, canDisplay, revoke, verify, verifyFolder };
 }
 
 export type PublishedRevisionAccess = ReturnType<typeof usePublishedRevisionAccess>;

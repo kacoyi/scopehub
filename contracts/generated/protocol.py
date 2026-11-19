@@ -1,4 +1,4 @@
-# Generated from contracts/schemas/protocol.schema.json; sha256=80a30ac150ca70f0dd84a79447ca26ac61d804ee7e513d5ffab08ee1bbe5c827. Do not edit.
+# Generated from contracts/schemas/protocol.schema.json; sha256=85c985411390b52ee989bec6973b29dd84cf385db4429e760dff3689e0f0b4fe. Do not edit.
 from __future__ import annotations
 from typing import Literal, NotRequired, TypedDict
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
@@ -10,7 +10,7 @@ Metadata = dict[str, JsonValue]
 WorkerRole = Literal['market', 'ai', 'indicator']
 ProtocolVersion = Literal['1.0']
 ErrorCode = Literal['INVALID_ARGUMENT', 'UNSUPPORTED_CAPABILITY', 'PERMISSION_DENIED', 'CONFIRMATION_REQUIRED', 'CANCELLED', 'TIMEOUT', 'WORKER_EXITED', 'PROTOCOL_MISMATCH', 'DATA_UNAVAILABLE', 'STALE_CONTEXT', 'RESOURCE_LIMIT', 'OUTPUT_INVALID', 'PROVIDER_NOT_CONFIGURED', 'INTERNAL_ERROR', 'BUSY', 'SNAPSHOT_UNAVAILABLE']
-OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'market.subscribe', 'market.previewLocalImport', 'market.saveLocalImportMapping', 'market.loadLocalImportMapping', 'market.listLocalImportRevisions', 'market.readLocalImportRevision', 'market.readLocalImportSourceRow', 'market.previewLocalFolderRefresh', 'market.revokeLocalImportRevision', 'market.publishLocalImport', 'workspace.readChartProjection', 'workspace.selectEvidence', 'decisionNote.save', 'decisionNote.read', 'decisionNote.appendOutcome', 'decisionNote.delete', 'decisionNote.exportBackup', 'decisionNote.previewRestore', 'decisionNote.restoreBackup']
+OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'market.subscribe', 'market.previewLocalImport', 'market.saveLocalImportMapping', 'market.loadLocalImportMapping', 'market.listLocalImportRevisions', 'market.readLocalImportRevision', 'market.readLocalImportSourceRow', 'market.previewLocalFolderRefresh', 'market.prepareLocalFolderPublication', 'market.publishLocalFolderRefresh', 'market.listLocalFolderRevisions', 'market.readLocalFolderRevision', 'market.revokeLocalFolderRevision', 'market.revokeLocalImportRevision', 'market.publishLocalImport', 'workspace.readChartProjection', 'workspace.selectEvidence', 'decisionNote.save', 'decisionNote.read', 'decisionNote.appendOutcome', 'decisionNote.delete', 'decisionNote.exportBackup', 'decisionNote.previewRestore', 'decisionNote.restoreBackup']
 ChartStyle = Literal['candlestick', 'line']
 TaskStatus = Literal['queued', 'running', 'awaiting_confirmation', 'completed', 'failed', 'cancelled']
 Tradability = Literal['non_tradable', 'unknown']
@@ -830,6 +830,151 @@ class PreviewLocalFolderRefreshError(TypedDict):
     ok: Literal[False]
     result: None
     error: MarketPageFault
+class PrepareLocalFolderPublicationRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.prepareLocalFolderPublication']
+    payload: PrepareLocalFolderPublicationInput
+class PrepareLocalFolderPublicationResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.prepareLocalFolderPublication']
+    ok: Literal[True]
+    result: PrepareLocalFolderPublicationOutput
+    error: None
+class PrepareLocalFolderPublicationError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.prepareLocalFolderPublication']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
+class PublishLocalFolderRefreshRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.publishLocalFolderRefresh']
+    payload: PublishLocalFolderRefreshInput
+class PublishLocalFolderRefreshResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.publishLocalFolderRefresh']
+    ok: Literal[True]
+    result: PublishLocalFolderRefreshOutput
+    error: None
+class PublishLocalFolderRefreshError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.publishLocalFolderRefresh']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
+class ListLocalFolderRevisionsRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.listLocalFolderRevisions']
+    payload: ListLocalFolderRevisionsInput
+class ListLocalFolderRevisionsResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.listLocalFolderRevisions']
+    ok: Literal[True]
+    result: ListLocalFolderRevisionsOutput
+    error: None
+class ListLocalFolderRevisionsError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.listLocalFolderRevisions']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
+class ReadLocalFolderRevisionRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.readLocalFolderRevision']
+    payload: ReadLocalFolderRevisionInput
+class ReadLocalFolderRevisionResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.readLocalFolderRevision']
+    ok: Literal[True]
+    result: ReadLocalFolderRevisionOutput
+    error: None
+class ReadLocalFolderRevisionError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.readLocalFolderRevision']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
+class RevokeLocalFolderRevisionRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.revokeLocalFolderRevision']
+    payload: RevokeLocalFolderRevisionInput
+class RevokeLocalFolderRevisionResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.revokeLocalFolderRevision']
+    ok: Literal[True]
+    result: RevokeLocalFolderRevisionOutput
+    error: None
+class RevokeLocalFolderRevisionError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.revokeLocalFolderRevision']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
 class RevokeLocalImportRevisionRequest(TypedDict):
     protocol_version: Literal['1.1']
     message_id: Uuid
@@ -1150,7 +1295,7 @@ class CancelTaskError11(TypedDict):
     operation: Literal['task.cancel']
     request_id: Uuid
     error: WorkspaceFault11
-Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat | MarketHistoryPageRequest | MarketHistoryPageResponse | MarketHistoryPageError | MarketSubscriptionRequest | MarketSubscriptionResponse | MarketSubscriptionError | LocalImportPreviewRequest | LocalImportPreviewResponse | LocalImportPreviewError | SaveLocalImportMappingRequest | SaveLocalImportMappingResponse | SaveLocalImportMappingError | LoadLocalImportMappingRequest | LoadLocalImportMappingResponse | LoadLocalImportMappingError | ListLocalImportRevisionsRequest | ListLocalImportRevisionsResponse | ListLocalImportRevisionsError | ReadLocalImportRevisionRequest | ReadLocalImportRevisionResponse | ReadLocalImportRevisionError | ReadLocalImportSourceRowRequest | ReadLocalImportSourceRowResponse | ReadLocalImportSourceRowError | PreviewLocalFolderRefreshRequest | PreviewLocalFolderRefreshResponse | PreviewLocalFolderRefreshError | RevokeLocalImportRevisionRequest | RevokeLocalImportRevisionResponse | RevokeLocalImportRevisionError | PublishLocalImportRequest | PublishLocalImportResponse | PublishLocalImportError | MarketBarUpdateEvent | MarketBarCorrectionEvent | MarketStreamGapEvent | WorkerHello11 | ScopedMutationRequest11 | ScopedMutationResponse11 | TrustedConfirmationDecision11 | PreviewReady11 | ArtifactChunk11 | TaskTerminalEvent11 | TaskCancelRequest11 | CancelMemberRequest11 | ReadProjectedChart11 | ProjectedChartResponse11 | SharedSelectionEvent11 | SharedSelectionRequest11 | AiToolRequest11 | AiToolResultDelivery11 | AiToolResultAck11 | ProjectedChartError11 | IndicatorCompute11 | IndicatorComputed11 | IndicatorInputSegment11 | SharedSelectionResponse11 | SharedSelectionError11 | SharedContextRequest11 | SharedContextResponse11 | SharedContextError11 | CancelTaskResponse11 | CancelTaskError11
+Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat | MarketHistoryPageRequest | MarketHistoryPageResponse | MarketHistoryPageError | MarketSubscriptionRequest | MarketSubscriptionResponse | MarketSubscriptionError | LocalImportPreviewRequest | LocalImportPreviewResponse | LocalImportPreviewError | SaveLocalImportMappingRequest | SaveLocalImportMappingResponse | SaveLocalImportMappingError | LoadLocalImportMappingRequest | LoadLocalImportMappingResponse | LoadLocalImportMappingError | ListLocalImportRevisionsRequest | ListLocalImportRevisionsResponse | ListLocalImportRevisionsError | ReadLocalImportRevisionRequest | ReadLocalImportRevisionResponse | ReadLocalImportRevisionError | ReadLocalImportSourceRowRequest | ReadLocalImportSourceRowResponse | ReadLocalImportSourceRowError | PreviewLocalFolderRefreshRequest | PreviewLocalFolderRefreshResponse | PreviewLocalFolderRefreshError | PrepareLocalFolderPublicationRequest | PrepareLocalFolderPublicationResponse | PrepareLocalFolderPublicationError | PublishLocalFolderRefreshRequest | PublishLocalFolderRefreshResponse | PublishLocalFolderRefreshError | ListLocalFolderRevisionsRequest | ListLocalFolderRevisionsResponse | ListLocalFolderRevisionsError | ReadLocalFolderRevisionRequest | ReadLocalFolderRevisionResponse | ReadLocalFolderRevisionError | RevokeLocalFolderRevisionRequest | RevokeLocalFolderRevisionResponse | RevokeLocalFolderRevisionError | RevokeLocalImportRevisionRequest | RevokeLocalImportRevisionResponse | RevokeLocalImportRevisionError | PublishLocalImportRequest | PublishLocalImportResponse | PublishLocalImportError | MarketBarUpdateEvent | MarketBarCorrectionEvent | MarketStreamGapEvent | WorkerHello11 | ScopedMutationRequest11 | ScopedMutationResponse11 | TrustedConfirmationDecision11 | PreviewReady11 | ArtifactChunk11 | TaskTerminalEvent11 | TaskCancelRequest11 | CancelMemberRequest11 | ReadProjectedChart11 | ProjectedChartResponse11 | SharedSelectionEvent11 | SharedSelectionRequest11 | AiToolRequest11 | AiToolResultDelivery11 | AiToolResultAck11 | ProjectedChartError11 | IndicatorCompute11 | IndicatorComputed11 | IndicatorInputSegment11 | SharedSelectionResponse11 | SharedSelectionError11 | SharedContextRequest11 | SharedContextResponse11 | SharedContextError11 | CancelTaskResponse11 | CancelTaskError11
 ProtocolVersion11 = Literal['1.1']
 class WorkspaceObject11(TypedDict):
     kind: Literal['chart', 'layer', 'layout', 'dataset', 'workspace']
@@ -2147,7 +2292,7 @@ class FolderRefreshAlternative(TypedDict):
 class FolderRefreshBar(TypedDict):
     time_ms: Timestamp
     status: Literal['unchanged', 'addition', 'conflict', 'withdrawal', 'unverified']
-    accepted: PublishedLocalImportBar | None
+    accepted: AcceptedFolderRefreshBar | None
     alternatives: list[FolderRefreshAlternative]
 class PreviewLocalFolderRefreshInput(TypedDict):
     version: int
@@ -2155,7 +2300,79 @@ class PreviewLocalFolderRefreshInput(TypedDict):
     revision_id: Uuid
 class PreviewLocalFolderRefreshOutput(TypedDict):
     version: int
-    base: PublishedLocalImportRevision
+    base: NotRequired[PublishedLocalImportRevision]
     files: list[FolderRefreshFile]
     bars: list[FolderRefreshBar]
+    folder_base: NotRequired[PublishedLocalFolderRevision]
+    review_id: NotRequired[Hash]
+    publication_allowed: NotRequired[bool]
 PreviewLocalFolderRefreshReply11 = PreviewLocalFolderRefreshResponse | PreviewLocalFolderRefreshError
+class FolderPublicationConflictChoice(TypedDict):
+    time_ms: Timestamp
+    alternative_index: int
+class PublishedLocalFolderRevision(TypedDict):
+    revision_id: Uuid
+    base_revision_id: Uuid
+    parent_revision_id: Uuid | None
+    origin_path: str
+    symbol: str
+    series: PreviewSeries
+    source_count: int
+    bar_count: int
+    bar_summary: NotRequired[LocalImportRevisionBarSummary]
+class PublishedLocalFolderSource(TypedDict):
+    relative_path: str
+    source_sha256: Hash
+    record_count: int
+class PrepareLocalFolderPublicationInput(TypedDict):
+    version: int
+    folder_id: Uuid
+    review_id: Hash
+    conflicts: list[FolderPublicationConflictChoice]
+    withdraw_bars: list[Timestamp]
+    withdraw_sources: list[str]
+class PrepareLocalFolderPublicationOutput(TypedDict):
+    version: int
+    review_id: Hash
+    candidate_sha256: Hash
+    parent_revision_id: Uuid
+    source_count: int
+    bar_count: int
+class PublishLocalFolderRefreshInput(TypedDict):
+    version: int
+    folder_id: Uuid
+    review_id: Hash
+    candidate_sha256: Hash
+    idempotency_key: Uuid
+class PublishLocalFolderRefreshOutput(TypedDict):
+    version: int
+    revision: PublishedLocalFolderRevision
+class ListLocalFolderRevisionsInput(TypedDict):
+    version: int
+    after_revision_id: CanonicalRevisionCursor | None
+    limit: int
+class ListLocalFolderRevisionsOutput(TypedDict):
+    version: int
+    revisions: list[PublishedLocalFolderRevision]
+    next_after_revision_id: CanonicalRevisionCursor | None
+class ReadLocalFolderRevisionInput(TypedDict):
+    version: int
+    revision_id: Uuid
+    include_details: NotRequired[bool]
+class ReadLocalFolderRevisionOutput(TypedDict):
+    version: int
+    revision: PublishedLocalFolderRevision
+    files: list[PublishedLocalFolderSource]
+    bars: list[FolderRefreshAlternative]
+class RevokeLocalFolderRevisionInput(TypedDict):
+    version: int
+    revision_id: Uuid
+class RevokeLocalFolderRevisionOutput(TypedDict):
+    version: int
+    revision_id: Uuid
+PrepareLocalFolderPublicationReply11 = PrepareLocalFolderPublicationResponse | PrepareLocalFolderPublicationError
+PublishLocalFolderRefreshReply11 = PublishLocalFolderRefreshResponse | PublishLocalFolderRefreshError
+ListLocalFolderRevisionsReply11 = ListLocalFolderRevisionsResponse | ListLocalFolderRevisionsError
+ReadLocalFolderRevisionReply11 = ReadLocalFolderRevisionResponse | ReadLocalFolderRevisionError
+RevokeLocalFolderRevisionReply11 = RevokeLocalFolderRevisionResponse | RevokeLocalFolderRevisionError
+AcceptedFolderRefreshBar = PublishedLocalImportBar | FolderRefreshAlternative

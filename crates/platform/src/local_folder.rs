@@ -194,7 +194,8 @@ impl Selection {
 /// Private catalog of the selected directory at the start of refresh review.
 pub struct FolderRefreshScan {
     selection: Arc<Selection>,
-    accepted_path: PathBuf,
+    previous_paths: Vec<PathBuf>,
+    blocked_prior_paths: Vec<String>,
     directories: BTreeMap<PathBuf, FileIdentity>,
     files: Vec<FileEntry>,
 }
@@ -202,6 +203,10 @@ pub struct FolderRefreshScan {
 impl FolderRefreshScan {
     pub fn files(&self) -> impl Iterator<Item = &FileMetadata> {
         self.files.iter().map(|entry| &entry.metadata)
+    }
+
+    pub fn blocked_prior_paths(&self) -> impl Iterator<Item = &str> {
+        self.blocked_prior_paths.iter().map(String::as_str)
     }
 }
 
@@ -350,40 +355,54 @@ impl LocalFolderHost {
     }
 
     /// Enumerate the live pinned directory for a private, independent review.
-    /// The saved identity proves that the accepted relative path belongs to this
-    /// directory even when the accepted entry is now missing.
-    pub fn scan_for_refresh(
+    /// The saved identity proves the directory association even if the origin
+    /// is absent. Use the requested revision's members to detect opaque paths.
+    pub fn scan_for_refresh<'a>(
         &self,
         folder_id: FolderId,
         accepted_path: &str,
         accepted_key: &str,
+        previous_paths: impl IntoIterator<Item = &'a str>,
         cancel: &Cancellation,
     ) -> Result<FolderRefreshScan, FolderError> {
         let _admission = self.admit_open(&self.reading)?;
         let selection = self.selected(folder_id)?;
         let accepted = Path::new(accepted_path);
-        if accepted.as_os_str().is_empty()
-            || !accepted
-                .components()
-                .all(|part| matches!(part, Component::Normal(_)))
-            || source_key_for_path(&selection, accepted) != accepted_key
-        {
-            return Err(FolderError::InvalidSelection);
-        }
+        check_refresh_origin(&selection, accepted, accepted_key)?;
+        let previous_paths = previous_paths
+            .into_iter()
+            .map(PathBuf::from)
+            .collect::<Vec<_>>();
         let directory = selection.open_directory(cancel)?;
-        let Enumeration { files, directories } = scan_refresh_entries(
+        let (Enumeration { files, directories }, blocked_prior_paths) = scan_refresh_entries(
             &selection,
             &directory,
-            accepted,
+            &previous_paths,
             &selection.directories,
             cancel,
         )?;
         Ok(FolderRefreshScan {
             selection,
-            accepted_path: accepted.to_owned(),
+            previous_paths,
+            blocked_prior_paths,
             directories,
             files,
         })
+    }
+
+    /// Authenticate a receipt's live root association without reading source contents.
+    pub fn verify_refresh_origin(
+        &self,
+        folder_id: FolderId,
+        accepted_path: &str,
+        accepted_key: &str,
+        cancel: &Cancellation,
+    ) -> Result<(), FolderError> {
+        let _admission = self.admit_open(&self.reading)?;
+        let selection = self.selected(folder_id)?;
+        check_refresh_origin(&selection, Path::new(accepted_path), accepted_key)?;
+        let _directory = selection.open_directory(cancel)?;
+        self.with_current(folder_id, || selection.check_live(cancel))?
     }
 
     /// Freeze one complete CSV from the staged enumeration without changing
@@ -426,8 +445,8 @@ impl LocalFolderHost {
     }
 
     /// Recheck every staged pathname and each frozen digest against the live
-    /// grant before returning a comparison. Keep the verified handles open
-    /// through the last enumeration and the reply boundary.
+    /// grant. Keep the verified handles open through the last enumeration and
+    /// while returning a comparison or committing a reviewed revision.
     pub fn with_verified_refresh_current<T>(
         &self,
         scan: &FolderRefreshScan,
@@ -463,14 +482,15 @@ impl LocalFolderHost {
             }
             pinned.push((entry, file, pins, checked));
         }
-        let current = scan_refresh_entries(
+        let (current, blocked_prior_paths) = scan_refresh_entries(
             &selection,
             &directory,
-            &scan.accepted_path,
+            &scan.previous_paths,
             &scan.directories,
             cancel,
         )?;
-        if current.files.len() != scan.files.len()
+        if blocked_prior_paths != scan.blocked_prior_paths
+            || current.files.len() != scan.files.len()
             || current
                 .files
                 .iter()
@@ -617,6 +637,18 @@ fn source_key_for_path(selection: &Selection, path: &Path) -> String {
     digest.update(selection.source_namespace);
     digest.update(path_fingerprint(b"scopehub-local-relative-file-v1", path));
     format!("{:x}", digest.finalize())
+}
+
+fn check_refresh_origin(selection: &Selection, path: &Path, key: &str) -> Result<(), FolderError> {
+    if path.as_os_str().is_empty()
+        || !path
+            .components()
+            .all(|part| matches!(part, Component::Normal(_)))
+        || source_key_for_path(selection, path) != key
+    {
+        return Err(FolderError::InvalidSelection);
+    }
+    Ok(())
 }
 
 fn path_fingerprint(domain: &[u8], path: &Path) -> [u8; 32] {
@@ -766,22 +798,80 @@ fn is_csv_path(path: &Path) -> bool {
 fn scan_refresh_entries(
     selection: &Selection,
     directory: &Directory,
-    accepted: &Path,
+    previous_paths: &[PathBuf],
     expected_directories: &BTreeMap<PathBuf, FileIdentity>,
     cancel: &Cancellation,
-) -> Result<Enumeration, FolderError> {
+) -> Result<(Enumeration, Vec<String>), FolderError> {
     let mut entries = enumerate(directory, true, Some(expected_directories), &|| {
         selection.check_live(cancel)
     })?;
-    // Retain any opaque ancestor that blocks inspection of the accepted path.
-    entries
-        .files
-        .retain(|entry| is_csv_path(&entry.relative) || accepted.starts_with(&entry.relative));
+    // An opaque component can prevent proving that an accepted source is absent.
+    entries.files.retain(|entry| {
+        is_csv_path(&entry.relative)
+            || previous_paths
+                .iter()
+                .any(|path| path.starts_with(&entry.relative))
+    });
     entries
         .files
         .sort_unstable_by(|a, b| a.relative.cmp(&b.relative));
+    #[cfg(windows)]
+    let blocked_prior_paths = windows_opaque_paths(directory, &entries, previous_paths, || {
+        selection.check_live(cancel)
+    })?;
+    #[cfg(not(windows))]
+    let blocked_prior_paths = Vec::new();
     selection.check_live(cancel)?;
-    Ok(entries)
+    Ok((entries, blocked_prior_paths))
+}
+
+#[cfg(windows)]
+fn windows_opaque_paths(
+    root: &Directory,
+    entries: &Enumeration,
+    previous_paths: &[PathBuf],
+    check: impl Fn() -> Result<(), FolderError>,
+) -> Result<Vec<String>, FolderError> {
+    let mut blocked = Vec::new();
+    for path in previous_paths {
+        if path.parent().is_none_or(|parent| {
+            parent.as_os_str().is_empty() || entries.directories.contains_key(parent)
+        }) || entries
+            .files
+            .iter()
+            .any(|entry| path.starts_with(&entry.relative))
+        {
+            continue;
+        }
+        // Windows may resolve a differently spelled component to an opaque
+        // entry. Ask the filesystem through the pinned directory chain, which
+        // also handles directories configured for case-sensitive lookup.
+        let mut components = path.components();
+        components.next_back();
+        let mut parent = None;
+        for component in components {
+            check()?;
+            let Component::Normal(name) = component else {
+                return Err(FolderError::InvalidSelection);
+            };
+            let opened = parent.as_ref().unwrap_or(root).open_directory(name);
+            match opened {
+                Ok(directory) => parent = Some(directory),
+                Err(error) if error.kind() == io::ErrorKind::NotFound => break,
+                Err(error)
+                    if matches!(
+                        error.kind(),
+                        io::ErrorKind::NotADirectory | io::ErrorKind::InvalidData
+                    ) =>
+                {
+                    blocked.push(path.to_string_lossy().into_owned());
+                    break;
+                }
+                Err(_) => return Err(FolderError::Io),
+            }
+        }
+    }
+    Ok(blocked)
 }
 
 fn verify_current_file(

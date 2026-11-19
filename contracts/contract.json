@@ -453,12 +453,112 @@
       "input": "PreviewLocalFolderRefreshInput",
       "output": "PreviewLocalFolderRefreshOutput",
       "implementation": "implemented",
-      "implementation_scope": "A trusted local human previews the current authorized directory against the entitled frozen CSV revision from that directory. Reuse its saved mapping for compatible complete native bars. Retain all attributable locators for equal bars and surface competing values, replaced files and withdrawal candidates for review. Staging has no publication effect.",
+      "implementation_scope": "A trusted local human previews the current authorized directory against an entitled frozen single-file or folder revision from that directory. Reuse its saved mapping for compatible complete native bars. Retain all attributable locators for equal bars and surface competing values, replaced files and withdrawal candidates for review. Staging has no publication effect.",
       "wire_since": "1.1",
       "wire_bindings": {
         "1.1": {
           "input": "PreviewLocalFolderRefreshRequest",
           "output": "PreviewLocalFolderRefreshReply11"
+        }
+      }
+    },
+    {
+      "name": "market.prepareLocalFolderPublication",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "PrepareLocalFolderPublicationInput",
+      "output": "PrepareLocalFolderPublicationOutput",
+      "implementation": "implemented",
+      "implementation_scope": "Build the canonical candidate for one live reviewed preview after the local human chooses every competing bar and acknowledges every withdrawn path and bar. Return the candidate fingerprint and counts.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "PrepareLocalFolderPublicationRequest",
+          "output": "PrepareLocalFolderPublicationReply11"
+        }
+      }
+    },
+    {
+      "name": "market.publishLocalFolderRefresh",
+      "effect": "persist",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "PublishLocalFolderRefreshInput",
+      "output": "PublishLocalFolderRefreshOutput",
+      "implementation": "implemented",
+      "implementation_scope": "An explicit local human action publishes the prepared candidate in one guarded profile transaction. Revalidate current complete files and the selected root. Within the same profile, workspace and root association, an entitled replay matches the idempotency key and canonical candidate digest and returns the committed revision without rereading source content. The renewed local folder grant and the transport request or preview identifiers do not define the durable receipt.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "PublishLocalFolderRefreshRequest",
+          "output": "PublishLocalFolderRefreshReply11"
+        }
+      }
+    },
+    {
+      "name": "market.listLocalFolderRevisions",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "ListLocalFolderRevisionsInput",
+      "output": "ListLocalFolderRevisionsOutput",
+      "implementation": "implemented",
+      "implementation_scope": "List entitled immutable folder revisions in stable revision ID order within the local human profile. Listing needs no directory grant.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "ListLocalFolderRevisionsRequest",
+          "output": "ListLocalFolderRevisionsReply11"
+        }
+      }
+    },
+    {
+      "name": "market.readLocalFolderRevision",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "ReadLocalFolderRevisionInput",
+      "output": "ReadLocalFolderRevisionOutput",
+      "implementation": "implemented",
+      "implementation_scope": "Open an entitled frozen folder revision, chosen bars and source-qualified row locators without reopening the directory. A summary-only request omits file and bar details.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "ReadLocalFolderRevisionRequest",
+          "output": "ReadLocalFolderRevisionReply11"
+        }
+      }
+    },
+    {
+      "name": "market.revokeLocalFolderRevision",
+      "effect": "persist",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "RevokeLocalFolderRevisionInput",
+      "output": "RevokeLocalFolderRevisionOutput",
+      "implementation": "implemented",
+      "implementation_scope": "An explicit local human action removes display rights for a folder revision. Its stored data and separately entitled lineage remain in the profile.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "RevokeLocalFolderRevisionRequest",
+          "output": "RevokeLocalFolderRevisionReply11"
         }
       }
     },

@@ -364,7 +364,7 @@
     {
       "id": "local-folder-refresh-preview",
       "status": "implemented",
-      "purpose": "Stage a current synthetic CSV directory against a frozen v5 publication through the built UI, Rust registry and Python checker. Observe additions, consistent overlaps with every alias locator, conflicts, incomplete coverage, removals and discarded late replies. This check covers the read-only folder preview.",
+      "purpose": "Exercise folder review and guarded publication through the built UI, Rust registry, Python checker and SQLite. Observe additions, all alias locators, competing prices, explicit unit, adjustment and venue contradictions, incomplete coverage and discarded late replies. Publish with explicit source and bar withdrawals, recover a lost reply, and reopen and revoke frozen folder revisions after restart.",
       "platforms": "all",
       "command": [
         "{python}",

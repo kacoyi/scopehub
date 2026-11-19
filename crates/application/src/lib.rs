@@ -1,6 +1,7 @@
 //! Shared operation entry for trusted transports.
 
 mod folder_manifest;
+mod folder_publication;
 mod folder_refresh;
 mod history;
 mod local_import;
@@ -10,12 +11,20 @@ mod reviewed_mapping;
 mod workspace;
 
 pub use folder_manifest::{
-    FolderManifestBar, FolderManifestLocator, FolderManifestPublication, FolderManifestRequest,
-    FolderManifestSource, FolderManifestSourceRef, FolderManifestStore, StoredFolderManifest,
+    FolderManifestAnchor, FolderManifestBar, FolderManifestLocator, FolderManifestPublication,
+    FolderManifestRequest, FolderManifestSource, FolderManifestSourceRef, FolderManifestStore,
+    StoredFolderManifest,
+};
+pub use folder_publication::{
+    LIST_LOCAL_FOLDER_REVISIONS, PREPARE_LOCAL_FOLDER_PUBLICATION, PUBLISH_LOCAL_FOLDER_REFRESH,
+    READ_LOCAL_FOLDER_REVISION, REVOKE_LOCAL_FOLDER_REVISION, folder_prepare_input,
+    list_local_folder_revisions_input, publish_folder_refresh_input,
+    read_local_folder_revision_input, revoke_local_folder_revision_input,
 };
 pub use folder_refresh::{
     FolderRefreshBase, FolderRefreshCheck, FolderRefreshFile, MAX_STAGED_RECORDS,
     PREVIEW_LOCAL_FOLDER_REFRESH, folder_refresh_input, folder_refresh_output,
+    prepare_folder_manifest,
 };
 pub use local_import::{
     DEFAULT_PREVIEW_ROWS, LocalImportPort, PREVIEW_LOCAL_IMPORT, preview_local_import,
@@ -168,6 +177,11 @@ impl Operation {
                     | READ_LOCAL_IMPORT_REVISION
                     | READ_LOCAL_IMPORT_SOURCE_ROW
                     | PREVIEW_LOCAL_FOLDER_REFRESH
+                    | PREPARE_LOCAL_FOLDER_PUBLICATION
+                    | PUBLISH_LOCAL_FOLDER_REFRESH
+                    | LIST_LOCAL_FOLDER_REVISIONS
+                    | READ_LOCAL_FOLDER_REVISION
+                    | REVOKE_LOCAL_FOLDER_REVISION
                     | REVOKE_LOCAL_IMPORT_REVISION
             ) && !matches!(actor, Actor::LocalUser))
         {
