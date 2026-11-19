@@ -26,6 +26,7 @@ else:
 
 ROOT = Path(__file__).resolve().parents[1]
 BROWSER_OUTPUTS = {
+    'market-live-stream': ('results.json', 'market-stream-', ('synthetic-replay-final.png',)),
     'chart-history': ('browser-results.json', 'history-', (
         'unconfigured.png', 'history-line.png', 'history-candles.png',
     )),
@@ -234,9 +235,11 @@ def stage_artifacts(root, destination, env):
         if summary is not None:
             copy_file(summary, destination / relative / 'summary.json')
             copy_file(destination / relative / 'summary.json', destination / 'chart-history/latest.json')
-    if 'ubuntu-preview' in executed:
-        for path in browser_artifacts(reports, f'ubuntu-preview/{run_id}', 'ubuntu-preview'):
-            copy_file(path, destination / path.relative_to(reports))
+    browser_runs = {'ubuntu-preview': f'ubuntu-preview/{run_id}', 'market-live-stream': run + '/market-live-stream'}
+    for check, directory in browser_runs.items():
+        if check in executed:
+            for path in browser_artifacts(reports, directory, check):
+                copy_file(path, destination / path.relative_to(reports))
     candidate = report.get('candidate_artifacts')
     release_check_passed = executed.get('release-artifacts') == 'passed'
     if (candidate is not None and not isinstance(candidate, dict)) or release_check_passed != (candidate is not None):

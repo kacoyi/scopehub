@@ -118,7 +118,7 @@
     {
       "id": "rust-contracts-workers",
       "status": "implemented",
-      "purpose": "Test every eligible Cargo workspace member, including native desktop tests",
+      "purpose": "Test eligible Cargo workspace members, including the portable desktop bridge on non-Windows hosts and the full native desktop tests on Windows x64",
       "platforms": "all",
       "command": [
         "{python}",
@@ -361,10 +361,17 @@
     },
     {
       "id": "market-live-stream",
-      "status": "planned",
-      "purpose": "Verify the identity and sequence of one bounded stream through the shared registry and rendered chart, including selection changes and final bar.",
+      "status": "implemented",
+      "purpose": "Exercise explicit synthetic replay through the ordinary development chart, loopback bridge, shared registry and market worker, including selection cancellation, a visible gap and final canvas update.",
       "platforms": "all",
-      "command": null,
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-stream.config.mjs"
+      ],
       "timeout_seconds": 900,
       "cadence": "change"
     },
@@ -643,7 +650,8 @@
     "market-fixtures",
     "futures-tick-inspection",
     "chart-history",
-    "ubuntu-preview"
+    "ubuntu-preview",
+    "market-live-stream"
   ],
   "gate_changes": []
 }

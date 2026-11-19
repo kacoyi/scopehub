@@ -14,6 +14,7 @@ export interface HistoryChartHandle {
   zoomOut(): void;
   setCursor(mode: ChartCursorMode): void;
   setStyle(style: ChartStyle): void;
+  updateLast(bar: Bar): void;
 }
 
 // Chart-library units and lifecycle stay inside this replaceable adapter.
@@ -21,7 +22,8 @@ export function mountHistoryChart(
   element: HTMLElement, history: MarketGetBarsOutput, instrument: Instrument,
   style: ChartStyle, select: (bar: Bar) => void,
 ): HistoryChartHandle {
-  const lookup = new Map(history.bars.map(bar => [bar.time_ms / 1000, bar]));
+  const bars = [...history.bars];
+  const lookup = new Map(bars.map(bar => [bar.time_ms / 1000, bar]));
   const localTime = new Intl.DateTimeFormat('en-GB', {
     timeZone: history.dataset.timezone, month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
   });
@@ -50,6 +52,10 @@ export function mountHistoryChart(
     const tick = instrument.price_tick ?? '0.01';
     const priceFormat = { type: 'price' as const, precision: tick.split('.')[1]?.length ?? 0, minMove: Number(tick) || 0.01 };
     const timestamp = (bar: Bar) => (bar.time_ms / 1000) as UTCTimestamp;
+    const candle = (bar: Bar) => ({ time: timestamp(bar), open: bar.open, high: bar.high, low: bar.low, close: bar.close });
+    const volume = (bar: Bar) => bar.volume === null
+      ? { time: timestamp(bar) }
+      : { time: timestamp(bar), value: bar.volume, color: bar.close >= bar.open ? 'rgba(67,212,172,0.42)' : 'rgba(241,125,133,0.42)' };
     function addPriceSeries(nextStyle: ChartStyle) {
       let series: ISeriesApi<'Candlestick'> | ISeriesApi<'Line'> | undefined;
       try {
@@ -58,12 +64,10 @@ export function mountHistoryChart(
             priceFormat, upColor: '#43d4ac', downColor: '#f17d85', borderVisible: false,
             wickUpColor: '#43d4ac', wickDownColor: '#f17d85',
           });
-          series.setData(history.bars.map(bar => ({
-            time: timestamp(bar), open: bar.open, high: bar.high, low: bar.low, close: bar.close,
-          })));
+          series.setData(bars.map(candle));
         } else {
           series = chart.addSeries(LineSeries, { priceFormat, color: '#73b8f6', lineWidth: 2 });
-          series.setData(history.bars.map(bar => ({ time: timestamp(bar), value: bar.close })));
+          series.setData(bars.map(bar => ({ time: timestamp(bar), value: bar.close })));
         }
         return series;
       } catch (error) {
@@ -73,9 +77,7 @@ export function mountHistoryChart(
     }
     let priceSeries = addPriceSeries(style);
     const volumes = chart.addSeries(HistogramSeries, { priceFormat: { type: 'volume' }, priceLineVisible: false, lastValueVisible: false }, 1);
-    volumes.setData(history.bars.map(bar => bar.volume === null
-      ? { time: timestamp(bar) }
-      : { time: timestamp(bar), value: bar.volume, color: bar.close >= bar.open ? 'rgba(67,212,172,0.42)' : 'rgba(241,125,133,0.42)' }));
+    volumes.setData(bars.map(volume));
     chart.panes()[1]?.setHeight(100);
     const timeScale = chart.timeScale();
     timeScale.fitContent();
@@ -90,11 +92,13 @@ export function mountHistoryChart(
     }
 
     let cursor: ChartCursorMode = 'crosshair';
+    let inspectedTime: number | undefined;
     const originalCursor = element.style.cursor;
     chart.subscribeCrosshairMove(event => {
       if (cursor === 'pan') return;
       const bar = lookup.get(Number(event.time));
-      const selected = bar ?? history.bars.at(-1);
+      inspectedTime = bar?.time_ms;
+      const selected = bar ?? bars.at(-1);
       if (selected) select(selected);
     });
     element.style.cursor = 'crosshair';
@@ -118,7 +122,8 @@ export function mountHistoryChart(
         chart.applyOptions({ crosshair: { mode: pan ? CrosshairMode.Hidden : CrosshairMode.Magnet } });
         if (pan) {
           chart.clearCrosshairPosition();
-          const last = history.bars.at(-1);
+          inspectedTime = undefined;
+          const last = bars.at(-1);
           if (last) select(last);
         }
       },
@@ -130,6 +135,16 @@ export function mountHistoryChart(
         priceSeries = next;
         style = nextStyle;
         if (range) timeScale.setVisibleLogicalRange(range);
+      },
+      updateLast(bar) {
+        const previous = bars.at(-1);
+        if (bar === previous || bar.time_ms !== previous?.time_ms) return;
+        bars[bars.length - 1] = bar;
+        lookup.set(timestamp(bar), bar);
+        const point = { ...candle(bar), value: bar.close };
+        priceSeries.update(point);
+        volumes.update(volume(bar));
+        if (inspectedTime === undefined || inspectedTime === bar.time_ms) select(bar);
       },
     };
   } catch (error) { chart.remove(); throw error; }

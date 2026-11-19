@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { Channel, invoke } from '@tauri-apps/api/core';
 import type { InstrumentSearchInput, InstrumentSearchOutput, MarketHistoryPageInput, MarketHistoryPageOutput } from '../../../../contracts/generated/protocol';
 
 export type { Bar, DatasetDescriptor, Instrument, MarketGetBarsOutput } from '../../../../contracts/generated/protocol';
@@ -9,11 +9,12 @@ type Job = {
   resolve: (value: unknown) => void; reject: (reason: unknown) => void;
 };
 const aborted = () => new DOMException('Selection changed', 'AbortError');
+const isBusy = (error: unknown) => Boolean(error && typeof error === 'object' && 'code' in error && error.code === 'BUSY');
 
-async function readOperation(operation: keyof Inputs, payload: Inputs[keyof Inputs]): Promise<unknown> {
+async function readOperation(operation: keyof Inputs, payload: Inputs[keyof Inputs], signal?: AbortSignal): Promise<unknown> {
   if (import.meta.env.SCOPEHUB_UBUNTU_PREVIEW) {
     const response = await fetch('/__scopehub/operation', {
-      method: 'POST', mode: 'same-origin', credentials: 'omit', redirect: 'error',
+      method: 'POST', mode: 'same-origin', credentials: 'omit', redirect: 'error', signal: signal ?? null,
       headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ operation, payload }),
     });
     const reply = await response.json();
@@ -27,14 +28,40 @@ async function readOperation(operation: keyof Inputs, payload: Inputs[keyof Inpu
 class HistoryReader {
   private running = false;
   private pending: Job | undefined;
+  private previewReleaseUntil = 0;
 
   read<K extends keyof Inputs>(operation: K, payload: Inputs[K], signal: AbortSignal): Promise<Outputs[K]> {
     return new Promise((resolve, reject) => {
       if (signal.aborted) { reject(aborted()); return; }
       this.pending?.reject(aborted());
-      this.pending = { operation, payload, signal, resolve: value => resolve(value as Outputs[K]), reject };
+      const cancel = () => reject(aborted());
+      signal.addEventListener('abort', cancel, { once: true });
+      this.pending = {
+        operation, payload, signal,
+        resolve: value => { signal.removeEventListener('abort', cancel); resolve(value as Outputs[K]); },
+        reject: reason => { signal.removeEventListener('abort', cancel); reject(reason); },
+      };
       void this.drain();
     });
+  }
+
+  private async execute(job: Job): Promise<unknown> {
+    const preparation = 'include_stream_position' in job.payload && job.payload.include_stream_position;
+    // Preview disconnect cancels the read. Native invoke retains its slot until the core replies.
+    const transportSignal = import.meta.env.SCOPEHUB_UBUNTU_PREVIEW && preparation ? job.signal : undefined;
+    for (;;) {
+      if (job.signal.aborted) throw aborted();
+      try {
+        const result = await readOperation(job.operation, job.payload, transportSignal);
+        this.previewReleaseUntil = 0;
+        return result;
+      } catch (error) {
+        if (transportSignal?.aborted) this.previewReleaseUntil = performance.now() + 1_000;
+        // An aborted fetch can settle before the preview bridge finishes reaping its worker.
+        if (job.signal.aborted || performance.now() >= this.previewReleaseUntil || !isBusy(error)) throw error;
+        await new Promise(resolve => window.setTimeout(resolve, 25));
+      }
+    }
   }
 
   private async drain() {
@@ -46,7 +73,7 @@ class HistoryReader {
         this.pending = undefined;
         if (job.signal.aborted) { job.reject(aborted()); continue; }
         try {
-          const result = await readOperation(job.operation, job.payload);
+          const result = await this.execute(job);
           if (job.signal.aborted) job.reject(aborted());
           else job.resolve(result);
         } catch (error) { job.reject(job.signal.aborted ? aborted() : error); }
@@ -87,6 +114,48 @@ export function errorText(error: unknown): string {
 }
 
 export type ChartHistory = Pick<MarketHistoryPageOutput, 'dataset' | 'bars' | 'snapshot' | 'quality_state'>;
+
+async function prepareNativeReplay(payload: MarketHistoryPageInput, signal: AbortSignal): Promise<MarketHistoryPageOutput> {
+  for (const delay of [50, 100, 200, 400, 800, 0]) {
+    signal.throwIfAborted();
+    const preparationId = crypto.randomUUID();
+    const progress = new Channel<{ started: true }>();
+    let started = false;
+    const cancel = () => {
+      if (started) void invoke('cancel_market_preparation', { preparationId }).catch(() => {});
+    };
+    progress.onmessage = () => {
+      started = true;
+      if (signal.aborted) cancel();
+    };
+    signal.addEventListener('abort', cancel, { once: true });
+    try {
+      return await invoke<MarketHistoryPageOutput>('prepare_market_subscription', { preparationId, payload, progress });
+    } catch (error) {
+      signal.throwIfAborted();
+      if (started || !delay || !isBusy(error)) throw error;
+    } finally {
+      signal.removeEventListener('abort', cancel);
+      progress.onmessage = () => {};
+    }
+    // The superseded preparation or replay may still be reclaiming its worker.
+    await new Promise(resolve => window.setTimeout(resolve, delay));
+  }
+  throw new Error('Replay preparation retry budget exhausted');
+}
+
+export async function readStreamPosition(snapshot: ChartHistory['snapshot'], signal: AbortSignal) {
+  const { series, from_ms, to_ms, warmup_bars } = snapshot;
+  const payload = {
+    series, from_ms, to_ms, warmup_bars, snapshot, page_size: 1, include_stream_position: true,
+  };
+  const page = import.meta.env.SCOPEHUB_UBUNTU_PREVIEW
+    ? await historyReader.read('market.readHistoryPage', payload, signal)
+    : await prepareNativeReplay(payload, signal);
+  signal.throwIfAborted();
+  if (page.snapshot.content_hash !== snapshot.content_hash) throw { code: 'OUTPUT_INVALID' };
+  return page.stream_position;
+}
 
 export async function readSampleHistory(instrument: InstrumentSearchOutput['instruments'][number], timeframe: string, signal: AbortSignal): Promise<ChartHistory> {
   const series = {

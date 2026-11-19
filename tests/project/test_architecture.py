@@ -105,10 +105,13 @@ class ArchitectureTests(unittest.TestCase):
 
     def test_unknown_platform_is_rejected_and_native_selection_includes_desktop(self):
         self.domain('')
-        self.crate('apps/desktop', 'scopehub-desktop', '[package.metadata.scopehub]\ncheck_platform = "windows-x64"\n')
+        self.crate('apps/desktop', 'scopehub-desktop', '[package.metadata.scopehub]\ncheck_platform = "windows-x64"\nportable_test_lib = true\n')
         self.workspace(members='["crates/domain", "apps/desktop"]')
         packages = workspace_packages(self.root)
         linux, coverage = verification_command(packages, 'test', system='Linux', machine='x86_64')
+        self.assertEqual(['scopehub-desktop'], coverage['portable_library_tests'])
+        _, native_tests = verification_command(packages, 'test', system='Windows', machine='AMD64')
+        self.assertEqual([], native_tests['portable_library_tests'])
         self.assertIn('--workspace', linux)
         self.assertEqual(['scopehub-domain'], coverage['included'])
         self.assertEqual('scopehub-desktop', coverage['excluded'][0]['package'])

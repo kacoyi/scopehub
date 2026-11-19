@@ -681,6 +681,23 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "market-replay-boundary-and-selection",
+      "source": "Independent Herdr review of the M1-006 working implementation and its real local worker and chart probes.",
+      "observation": "A changed bar at the frozen sequence could be ignored, history and replay could reuse a request ID across tasks, and cancellation could keep the next subscription busy. Superseded preparation delayed the new selection. Comparing the whole canvas could pass when the final candle was missing, and a stalled child could retain the caller beyond the configured cleanup budget.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-006"
+      ],
+      "regression_checks": [
+        "market-live-stream",
+        "rust-contracts-workers",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

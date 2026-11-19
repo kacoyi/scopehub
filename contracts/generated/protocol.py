@@ -1,4 +1,4 @@
-# Generated from contracts/schemas/protocol.schema.json; sha256=acb92ba543b60bb8b84d16396f18bf9abf94bcfedcfe825fc227536791b5c8a2. Do not edit.
+# Generated from contracts/schemas/protocol.schema.json; sha256=00d5588197a5635a218a3f20f558086ee5336b4d0663fe40557e3abe3a6b950a. Do not edit.
 from __future__ import annotations
 from typing import Literal, NotRequired, TypedDict
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
@@ -10,7 +10,7 @@ Metadata = dict[str, JsonValue]
 WorkerRole = Literal['market', 'ai', 'indicator']
 ProtocolVersion = Literal['1.0']
 ErrorCode = Literal['INVALID_ARGUMENT', 'UNSUPPORTED_CAPABILITY', 'PERMISSION_DENIED', 'CONFIRMATION_REQUIRED', 'CANCELLED', 'TIMEOUT', 'WORKER_EXITED', 'PROTOCOL_MISMATCH', 'DATA_UNAVAILABLE', 'STALE_CONTEXT', 'RESOURCE_LIMIT', 'OUTPUT_INVALID', 'PROVIDER_NOT_CONFIGURED', 'INTERNAL_ERROR', 'BUSY', 'SNAPSHOT_UNAVAILABLE']
-OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'workspace.readChartProjection', 'workspace.selectEvidence']
+OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'market.subscribe', 'workspace.readChartProjection', 'workspace.selectEvidence']
 ChartStyle = Literal['candlestick', 'line']
 TaskStatus = Literal['queued', 'running', 'awaiting_confirmation', 'completed', 'failed', 'cancelled']
 Tradability = Literal['non_tradable', 'unknown']
@@ -494,6 +494,7 @@ class MarketHistoryPageInput(TypedDict):
     snapshot: NotRequired[FrozenSnapshot]
     cursor: NotRequired[HistoryCursor]
     page_size: NotRequired[int]
+    include_stream_position: NotRequired[bool]
 class MarketHistoryPageOutput(TypedDict):
     dataset: DatasetDescriptor
     bars: list[Bar]
@@ -578,6 +579,7 @@ class MarketSubscriptionError(TypedDict):
     ok: Literal[False]
     result: None
     error: MarketPageFault
+MarketSubscriptionReply11 = MarketSubscriptionResponse | MarketSubscriptionError
 class MarketStreamBarUpdate(TypedDict):
     series: SeriesKey
     dataset_revision: OpaqueId

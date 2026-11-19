@@ -9,10 +9,10 @@ from struct import pack
 
 from contracts.generated.protocol import (
     Bar, DatasetDescriptor, FrozenSnapshot, HistoryCursor, MarketHistoryPageInput,
-    MarketHistoryPageOutput, MarketQualityState, SeriesKey, VisibleRange,
+    MarketHistoryPageOutput, MarketQualityState, SeriesKey, StreamPosition, VisibleRange,
 )
 from providers.history import HistoryError
-from providers.simulated import MINUTE_MS, PROVIDER_ID, TIMEFRAMES, build_fixture, instruments
+from providers.simulated import BarUpdate, MINUTE_MS, PROVIDER_ID, TIMEFRAMES, build_fixture, instruments
 
 # The protocol counts framing as well as payload. Account for the longest valid
 # timestamp and UUIDs so every emitted response fits at its actual request time.
@@ -88,7 +88,8 @@ class FrozenHistory:
         return {'snapshot_hash': self.snapshot['content_hash'], 'next_index': index,
                 'prefix_hash': self.prefixes[index].hex(), 'previous_time_ms': self.bars[index-1]['time_ms']}
 
-    def page(self, request: MarketHistoryPageInput, frame_budget: int) -> MarketHistoryPageOutput:
+    def page(self, request: MarketHistoryPageInput, frame_budget: int,
+             stream_position: StreamPosition | None = None) -> MarketHistoryPageOutput:
         pinned = request.get('snapshot')
         if pinned is not None and pinned != self.snapshot:
             raise HistoryError('SNAPSHOT_UNAVAILABLE')
@@ -104,7 +105,7 @@ class FrozenHistory:
         limit = min(len(self.bars), offset + maximum)
         output: MarketHistoryPageOutput = {
             'dataset': self.dataset, 'bars': [], 'snapshot': self.snapshot, 'quality_state': self.quality,
-            'stream_position': None, 'next_cursor': None, 'total_bars': len(self.bars), 'offset': offset,
+            'stream_position': stream_position, 'next_cursor': None, 'total_bars': len(self.bars), 'offset': offset,
         }
         base_size = _encoded_size({**PAGE_ENVELOPE, 'result': output})
         sizes = [0]
@@ -170,7 +171,7 @@ def sample_quality(dataset: DatasetDescriptor, cutoff: int) -> MarketQualityStat
     return state
 
 
-def execute_page(request: MarketHistoryPageInput, frame_budget: int) -> MarketHistoryPageOutput:
+def freeze_sample(request: MarketHistoryPageInput) -> tuple[FrozenHistory, StreamPosition | None, list[BarUpdate]]:
     series = request['series']
     if series['provider_id'] != PROVIDER_ID:
         raise HistoryError('PROVIDER_NOT_CONFIGURED')
@@ -190,14 +191,29 @@ def execute_page(request: MarketHistoryPageInput, frame_budget: int) -> MarketHi
     observed = dataset['provenance']['as_of_ms']
     assert isinstance(observed, int)
     cutoff = request.get('as_of_ms', pinned['as_of_ms'] if pinned is not None else observed)
+    sequence = 0
+    updates = fixture['updates']
     if cutoff != observed:
-        update = next((event for event in fixture['updates'] if event['observed_at_ms'] == cutoff), None)
-        if update is None:
+        sequence = next((index for index, event in enumerate(updates, 1) if event['observed_at_ms'] == cutoff), 0)
+        if not sequence:
             raise HistoryError('SNAPSHOT_UNAVAILABLE')
-        history['bars'][-1] = update['bar']
+        history['bars'][-1] = updates[sequence - 1]['bar']
         dataset['provenance']['as_of_ms'] = cutoff
         dataset['provenance']['last_observed_ms'] = cutoff
     quality = sample_quality(dataset, cutoff)
     frozen = FrozenHistory.freeze(dataset, quality, series, history['bars'],
                                   request['from_ms'], request['to_ms'], request['warmup_bars'])
-    return frozen.page(request, frame_budget)
+    if pinned is not None and pinned != frozen.snapshot:
+        raise HistoryError('SNAPSHOT_UNAVAILABLE')
+    # The epoch identifies immutable fixture replay, so a new worker can resume
+    # the same observation. Bump it if the fixture's position mapping changes.
+    position: StreamPosition | None = None
+    if (request.get('include_stream_position')
+            and request['from_ms'] <= history['bars'][-1]['time_ms'] < request['to_ms']):
+        position = {'stream_id': dataset['id'], 'epoch': 'synthetic-replay-v1', 'sequence': sequence}
+    return frozen, position, updates[sequence:]
+
+
+def execute_page(request: MarketHistoryPageInput, frame_budget: int) -> MarketHistoryPageOutput:
+    frozen, position, _ = freeze_sample(request)
+    return frozen.page(request, frame_budget, position)

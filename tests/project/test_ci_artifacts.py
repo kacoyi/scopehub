@@ -122,6 +122,8 @@ class PublicationTests(ProjectFixture):
             'chart-history/runs/fixture/browser/history-startup/history-candles.png': b'synthetic PNG',
             'ubuntu-preview/fixture/results.json': b'{}\n',
             'ubuntu-preview/fixture/browser/preview-open/futures-candles.png': b'synthetic PNG',
+            'runs/fixture/market-live-stream/results.json': b'{}\n',
+            'runs/fixture/market-live-stream/browser/market-stream-final/synthetic-replay-final.png': b'synthetic PNG',
         }
         for relative, contents in browser.items():
             self.write(relative, contents)

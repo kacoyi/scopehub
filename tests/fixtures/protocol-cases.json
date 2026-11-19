@@ -538,6 +538,16 @@
     "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":0,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.readHistoryPage\",\"payload\":{\"series\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"scopehub.synthetic\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"session_scope\":\"sample-sessions\",\"calendar_id\":\"SIM.CN.FUTURE.001.sample-calendar.v1\",\"quantity_unit\":\"contracts\"},\"from_ms\":0,\"to_ms\":100,\"warmup_bars\":0}}\n"
   },
   {
+    "name": "history explicitly requests a stream handoff",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":0,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.readHistoryPage\",\"payload\":{\"series\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"scopehub.synthetic\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"session_scope\":\"sample-sessions\",\"calendar_id\":\"SIM.CN.FUTURE.001.sample-calendar.v1\",\"quantity_unit\":\"contracts\"},\"from_ms\":0,\"to_ms\":100,\"warmup_bars\":0,\"include_stream_position\":true}}\n"
+  },
+  {
+    "name": "history stream handoff rejects implicit truthiness",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":0,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.readHistoryPage\",\"payload\":{\"series\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"scopehub.synthetic\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"session_scope\":\"sample-sessions\",\"calendar_id\":\"SIM.CN.FUTURE.001.sample-calendar.v1\",\"quantity_unit\":\"contracts\"},\"from_ms\":0,\"to_ms\":100,\"warmup_bars\":0,\"include_stream_position\":\"true\"}}\n"
+  },
+  {
     "name": "frozen market resume request",
     "valid": true,
     "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":0,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.subscribe\",\"payload\":{\"series\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"scopehub.synthetic\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"session_scope\":\"sample-sessions\",\"calendar_id\":\"SIM.CN.FUTURE.001.sample-calendar.v1\",\"quantity_unit\":\"contracts\"},\"snapshot\":{\"series\":{\"instrument_id\":\"SIM.CN.FUTURE.001\",\"provider_id\":\"scopehub.synthetic\",\"timeframe\":\"1m\",\"price_adjustment\":\"raw\",\"session_scope\":\"sample-sessions\",\"calendar_id\":\"SIM.CN.FUTURE.001.sample-calendar.v1\",\"quantity_unit\":\"contracts\"},\"dataset_id\":\"00000000-0000-4000-8000-000000000003\",\"dataset_revision\":\"r1\",\"from_ms\":0,\"to_ms\":100,\"warmup_bars\":0,\"as_of_ms\":90,\"content_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"},\"after\":{\"stream_id\":\"stream1\",\"epoch\":\"run1\",\"sequence\":10}}}\n"

@@ -268,9 +268,9 @@ async fn real_worker_is_lazy_reused_matches_all_golden_histories_and_closes() {
         );
         assert_eq!(core.status().process_id, Some(pid));
     }
-    core.shutdown().await;
+    core.shutdown().await.unwrap();
     assert_eq!(core.status().process_id, None);
-    core.shutdown().await;
+    core.shutdown().await.unwrap();
     assert_eq!(core.status().process_id, None);
     #[cfg(target_os = "linux")]
     assert!(!PathBuf::from(format!("/proc/{pid}")).exists());
@@ -450,5 +450,5 @@ async fn paged_worker_replays_pinned_input_and_registry_verifies_digest_and_iden
             .code,
         ErrorCode::SNAPSHOTUNAVAILABLE
     );
-    core.shutdown().await;
+    core.shutdown().await.unwrap();
 }

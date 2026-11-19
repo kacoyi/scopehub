@@ -73,6 +73,9 @@ fn shared_vectors_and_generated_types_agree() {
                 Message::MarketHistoryPageRequest(_) => {
                     requests.insert("market.readHistoryPage");
                 }
+                Message::MarketSubscriptionRequest(_) => {
+                    requests.insert("market.subscribe");
+                }
                 Message::ReadProjectedChart11(_) => {
                     requests.insert("workspace.readChartProjection");
                 }
@@ -130,18 +133,29 @@ fn shared_vectors_and_generated_types_agree() {
     }
     let manifest: Value =
         serde_json::from_str(include_str!("../../../contracts/contract.json")).unwrap();
-    let expected: BTreeSet<&str> = manifest["operations"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|operation| operation["name"].as_str().unwrap())
-        .collect();
+    let operations_for = |actor: &str| -> BTreeSet<&str> {
+        manifest["operations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|op| {
+                op["actors"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|allowed| allowed == actor)
+            })
+            .map(|operation| operation["name"].as_str().unwrap())
+            .collect()
+    };
     assert_eq!(
-        requests, expected,
+        requests,
+        operations_for("user"),
         "Every human request needs a semantic vector"
     );
     assert_eq!(
-        tools, expected,
+        tools,
+        operations_for("ai"),
         "Every AI tool call needs a semantic vector"
     );
 }

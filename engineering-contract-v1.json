@@ -480,7 +480,7 @@
     "stream_handoff": {
       "position": "Every streaming snapshot carries the last included stream_id, epoch and sequence. Offline history has a null position. Subscribe after that exact position or subscribe before the snapshot and buffer bounded, attributable events until the snapshot boundary is known. An event identifies its series, epoch, sequence, bar time, observed time and update or correction. The first subsequent sequence is boundary + 1.",
       "recovery": "Ignore identical duplicate positions. Divergent content at one position, a skipped sequence, a new epoch or buffer overflow marks affected coverage uncertain and triggers bounded same-series backfill or an explicit gapped state. Never treat an old epoch as the new epoch or mix a previous selection. An explicit correction of a closed bar produces a new revision without altering frozen historical inputs. A stream becomes complete only after snapshot and contiguous replay agree.",
-      "wire": "The internal 1.1 market.subscribe request carries the selected SeriesKey, frozen snapshot and last included StreamPosition, which must agree with the snapshot source. The core accepts a resume only if stream identity, epoch and precise last position match. A successful response either accepts the boundary or returns backfill_required with a recovery time. Distinguish an in-place partial bar update from an explicit correction carrying its superseded and new revision. A market.stream_gap event reports raw losses, affected half-open interval and expected sequence; no new update can silently close a gap. The host must accept events only from the negotiated market role and advertised subscription. This stream is planned; the synthetic historical worker advertises no subscription."
+      "wire": "The internal 1.1 market.subscribe request carries the selected SeriesKey, frozen snapshot and last included StreamPosition, which must agree with the snapshot source. The core accepts a resume only if stream identity, epoch and precise last position match. A successful response either accepts the boundary or returns backfill_required with a recovery time. Distinguish an in-place partial bar update from an explicit correction carrying its superseded and new revision. A market.stream_gap event reports raw losses, affected half-open interval and expected sequence; no new update can silently close a gap. The host must accept events only from the negotiated market role and advertised subscription. The opt-in synthetic worker replays a finite fixture after an explicit include_stream_position history read. Ordinary history keeps a null position."
     }
   },
   "operations": [
@@ -678,6 +678,18 @@
         "ai"
       ],
       "schema_requirement": "Use the versioned MarketHistoryPageInput and MarketHistoryPageOutput schemas. Legacy market.getBars retains its read-only 1.0 shape."
+    },
+    {
+      "name": "market.subscribe",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "MarketSubscriptionRequest",
+      "output_spec": "MarketSubscriptionReply11",
+      "schema_requirement": "Internal protocol 1.1 subscription for an explicitly selected series and a validated frozen boundary."
     },
     {
       "name": "workspace.readChartProjection",

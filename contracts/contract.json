@@ -271,12 +271,32 @@
       "input": "MarketHistoryPageInput",
       "output": "MarketHistoryPageOutput",
       "implementation": "implemented",
-      "implementation_scope": "Protocol 1.1 opt-in synthetic reads, exact frozen input replay, quality reporting and byte-bounded pages. No configured source, live subscription or durable storage.",
+      "implementation_scope": "Protocol 1.1 opt-in synthetic reads, exact frozen input replay, quality reporting and byte-bounded pages. Explicit stream handoff returns a position when the snapshot includes the replay bar.",
       "wire_since": "1.1",
       "wire_bindings": {
         "1.1": {
           "input": "MarketHistoryPageRequest",
           "output": "HistoryPageReply11"
+        }
+      }
+    },
+    {
+      "name": "market.subscribe",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "MarketSubscriptionInput",
+      "output": "MarketSubscriptionOutput",
+      "implementation": "implemented",
+      "implementation_scope": "Explicit, finite synthetic chart replay through the shared Rust registry. Local development transports only.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "MarketSubscriptionRequest",
+          "output": "MarketSubscriptionReply11"
         }
       }
     },
@@ -326,7 +346,7 @@
     "heartbeat response",
     "unsupported request error",
     "cancel terminal response",
-    "The opt-in market worker supports instrument.search and market.getBars for compatible legacy callers. Negotiated 1.1 adds market.readHistoryPage. Workers launched without the sample advertise no market operations."
+    "The opt-in market worker supports instrument.search and market.getBars for compatible legacy callers. Negotiated 1.1 adds market.readHistoryPage and finite market.subscribe replay. Workers launched without the sample advertise no market operations."
   ],
   "clarifications": [
     "Workspace revisions are non-negative safe integers; dataset revisions are opaque provider-owned strings.",

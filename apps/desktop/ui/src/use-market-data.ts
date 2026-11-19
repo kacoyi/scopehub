@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { canRetry, errorText, historyReader, readSampleHistory, type Instrument, type ChartHistory } from './market';
 
 export type Load<T> = { state: 'loading' } | { state: 'error'; message: string; retryable: boolean } | { state: 'ready'; value: T };
@@ -24,8 +24,8 @@ export function useSampleCatalog(enabled: boolean) {
 
 export function useHistory(instrument: Instrument | undefined, timeframe: string) {
   const [attempt, setAttempt] = useState(0);
-  const request = JSON.stringify([instrument?.id, timeframe, attempt]);
-  const [reply, setReply] = useState<{ request: string; data: Load<ChartHistory> }>();
+  const request = useMemo(() => ({}), [instrument, timeframe, attempt]);
+  const [reply, setReply] = useState<{ request: object; data: Load<ChartHistory> }>();
   useEffect(() => {
     if (!instrument) return;
     const controller = new AbortController();

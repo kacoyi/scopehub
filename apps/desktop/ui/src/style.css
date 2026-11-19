@@ -56,6 +56,9 @@ svg { display: block; width: 19px; height: 19px; flex: none; }
 .chart-notice { padding: 8px 12px; }
 .chart-footer { border-top: 1px solid var(--line); padding: 4px 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .chart-footer a { margin-left: auto; color: #aebbd0; }
+.chart-footer .replay-button { margin: 0; padding: 3px 7px; font-size: inherit; }
+.replay-status { color: #8fdabd; }
+.replay-status.gap { color: #f0ca84; }
 .workspace-panel { width: clamp(215px, 21vw, 300px); flex: none; overflow: auto; border-left: 1px solid var(--line); background: var(--surface); }
 .panel-data { width: clamp(300px, 34vw, 540px); display: flex; flex-direction: column; }
 .panel-scrim { display: none; }

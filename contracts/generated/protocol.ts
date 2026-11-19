@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=acb92ba543b60bb8b84d16396f18bf9abf94bcfedcfe825fc227536791b5c8a2. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=00d5588197a5635a218a3f20f558086ee5336b4d0663fe40557e3abe3a6b950a. Do not edit.
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type OpaqueId = string;
 export type Uuid = string;
@@ -8,7 +8,7 @@ export type Metadata = Record<string, JsonValue>;
 export type WorkerRole = "market" | "ai" | "indicator";
 export type ProtocolVersion = "1.0";
 export type ErrorCode = "INVALID_ARGUMENT" | "UNSUPPORTED_CAPABILITY" | "PERMISSION_DENIED" | "CONFIRMATION_REQUIRED" | "CANCELLED" | "TIMEOUT" | "WORKER_EXITED" | "PROTOCOL_MISMATCH" | "DATA_UNAVAILABLE" | "STALE_CONTEXT" | "RESOURCE_LIMIT" | "OUTPUT_INVALID" | "PROVIDER_NOT_CONFIGURED" | "INTERNAL_ERROR" | "BUSY" | "SNAPSHOT_UNAVAILABLE";
-export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "workspace.readChartProjection" | "workspace.selectEvidence";
+export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "workspace.readChartProjection" | "workspace.selectEvidence";
 export type ChartStyle = "candlestick" | "line";
 export type TaskStatus = "queued" | "running" | "awaiting_confirmation" | "completed" | "failed" | "cancelled";
 export type Tradability = "non_tradable" | "unknown";
@@ -578,6 +578,7 @@ export type MarketHistoryPageInput = {
   snapshot?: FrozenSnapshot;
   cursor?: HistoryCursor;
   page_size?: number;
+  include_stream_position?: boolean;
 };
 export type MarketHistoryPageOutput = {
   dataset: DatasetDescriptor;
@@ -674,6 +675,7 @@ export type MarketSubscriptionError = {
   result: null;
   error: MarketPageFault;
 };
+export type MarketSubscriptionReply11 = MarketSubscriptionResponse | MarketSubscriptionError;
 export type MarketStreamBarUpdate = {
   series: SeriesKey;
   dataset_revision: OpaqueId;

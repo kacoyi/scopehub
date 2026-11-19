@@ -9,54 +9,91 @@ import { control, leaveSample, openPanel, watchlistSymbol } from './workspace-co
 const fixtures = JSON.parse(await readFile('tests/fixtures/market/series.json', 'utf8')).fixtures;
 const instruments = [fixtures[0].instrument, fixtures[3].instrument, fixtures[6].instrument];
 
-// Only the native WebView transport is replaced. Normal requests run through
-// the actual Rust registry, child-process host and Python provider.
+function historyBridge(executable) {
+  const child = spawn(executable, [], { stdio: ['pipe', 'pipe', 'pipe'] });
+  const exited = new Promise(resolve => child.once('close', resolve));
+  const lines = createInterface({ input: child.stdout });
+  const pending = [];
+  let stderr = '';
+  child.stderr.on('data', data => { stderr += data; });
+  child.on('error', error => { for (const item of pending.splice(0)) item.reject(error); });
+  child.on('exit', () => { for (const item of pending.splice(0)) item.reject(new Error(`History bridge exited: ${stderr}`)); });
+  lines.on('line', line => pending.shift()?.resolve(JSON.parse(line)));
+  return {
+    read: args => new Promise((resolve, reject) => {
+      pending.push({ resolve, reject });
+      child.stdin.write(JSON.stringify(args) + '\n');
+    }),
+    async close() {
+      child.stdin.end();
+      const deadline = setTimeout(() => child.kill(), 6000);
+      await exited;
+      clearTimeout(deadline);
+      lines.close();
+      expect(child.exitCode, stderr).toBe(0);
+      expect(pending).toHaveLength(0);
+    },
+  };
+}
+
+// Only the native WebView transport is replaced. Both read paths use the
+// actual Rust registry, child-process host and Python provider.
 const test = base.extend({
   backend: async ({ page, baseURL }, use) => {
     const executable = resolve(`target/debug/examples/history_bridge${process.platform === 'win32' ? '.exe' : ''}`);
-    const child = spawn(executable, [], { stdio: ['pipe', 'pipe', 'pipe'] });
-    const exited = new Promise(resolve => child.once('close', resolve));
-    const lines = createInterface({ input: child.stdout });
-    const pending = [];
+    const ordinary = historyBridge(executable);
+    let preparation;
     const calls = [];
+    const commands = [];
     const errors = [];
     const network = [];
     let fault = null;
-    let stderr = '';
+    let prepare = async (_args, read, started) => { await started(); return read(); };
     let active = 0;
     let maximumActive = 0;
-    child.stderr.on('data', data => { stderr += data; });
-    child.on('error', error => { for (const item of pending.splice(0)) item.reject(error); });
-    child.on('exit', () => { for (const item of pending.splice(0)) item.reject(new Error(`History bridge exited: ${stderr}`)); });
-    lines.on('line', line => pending.shift()?.resolve(JSON.parse(line)));
-    const real = args => new Promise((resolve, reject) => {
-      pending.push({ resolve, reject });
-      child.stdin.write(JSON.stringify(args) + '\n');
-    });
     page.on('pageerror', error => errors.push(String(error)));
     page.on('request', request => { if (new URL(request.url()).origin !== baseURL) network.push(request.url()); });
     await page.exposeBinding('nativeOperation', async (_, command, args) => {
+      commands.push({ command, args });
+      if (command === 'cancel_market_preparation') return { ok: true };
+      if (command === 'prepare_market_subscription') {
+        const read = () => {
+          preparation ??= historyBridge(executable);
+          return preparation.read({ operation: 'market.readHistoryPage', payload: args.payload });
+        };
+        const started = () => page.evaluate(id => window.startNativePreparation(id), args.progress);
+        return prepare(args, read, started);
+      }
       expect(command).toBe('execute_operation');
       calls.push(structuredClone(args));
       active++; maximumActive = Math.max(active, maximumActive);
-      try { return fault ? await fault(args, real) : await real(args); }
+      try { return fault ? await fault(args, ordinary.read) : await ordinary.read(args); }
       finally { active--; }
     });
     await page.addInitScript(() => {
-      window.__TAURI_INTERNALS__ = { invoke: async (command, args) => {
-        const reply = await window.nativeOperation(command, args);
-        if (!reply.ok) throw reply.error;
-        return reply.result;
-      } };
+      const callbacks = new Map();
+      let nextId = 0;
+      window.startNativePreparation = id => callbacks.get(id)({ index: 0, message: { started: true } });
+      window.nativePreparationReplies = [];
+      window.__TAURI_INTERNALS__ = {
+        transformCallback(callback) {
+          const id = ++nextId;
+          callbacks.set(id, callback);
+          return id;
+        },
+        unregisterCallback: id => callbacks.delete(id),
+        async invoke(command, args) {
+          const callbackId = args.progress?.id;
+          const reply = await window.nativeOperation(command, callbackId === undefined ? args : { ...args, progress: callbackId });
+          if (callbackId !== undefined) callbacks.delete(callbackId);
+          if (command === 'prepare_market_subscription') window.nativePreparationReplies.push(args.preparationId);
+          if (!reply.ok) throw reply.error;
+          return reply.result;
+        },
+      };
     });
-    await use({ calls, fault: value => { fault = value; }, real });
-    child.stdin.end();
-    const deadline = setTimeout(() => child.kill(), 6000);
-    await exited;
-    clearTimeout(deadline);
-    lines.close();
-    expect(child.exitCode, stderr).toBe(0);
-    expect(pending).toHaveLength(0);
+    await use({ calls, commands, fault: value => { fault = value; }, prepare: value => { prepare = value; } });
+    await Promise.all([ordinary.close(), preparation?.close()]);
     expect(maximumActive).toBeLessThanOrEqual(1);
     expect(errors).toEqual([]);
     expect(network).toEqual([]);
@@ -137,6 +174,66 @@ test('late response cannot overwrite a later selection; only the latest pending 
   expect(backend.calls.filter(call => call.payload.series?.instrument_id === instruments[1].id)).toHaveLength(1);
   backend.fault(null);
 });
+
+for (const [timing, acknowledgeEarly] of [['before', false], ['after', true]]) {
+  test(`native selection replaces a held replay preparation ${timing} its start acknowledgement`, async ({ page, backend }) => {
+    await enter(page);
+    const prepared = Promise.withResolvers();
+    const acknowledge = Promise.withResolvers();
+    const release = Promise.withResolvers();
+    backend.prepare(async (args, read, started) => {
+      try {
+        if (acknowledgeEarly) await started();
+        const reply = await read();
+        prepared.resolve({ args, reply });
+        await acknowledge.promise;
+        if (!acknowledgeEarly) await started();
+        await release.promise;
+        return reply;
+      } catch (error) {
+        prepared.reject(error);
+        throw error;
+      }
+    });
+
+    const history = page.locator('.history');
+    const cancellations = () => backend.commands.filter(({ command }) => command === 'cancel_market_preparation');
+    let preparationId;
+    try {
+      await control(page, 'Play sample updates').click();
+      const [{ args, reply }] = await Promise.all([
+        prepared.promise, expect(page.locator('.replay-status')).toHaveText('Preparing synthetic replay…'),
+      ]);
+      ({ preparationId } = args);
+      expect(args.payload).toMatchObject({ include_stream_position: true, series: { instrument_id: instruments[0].id, timeframe: '1m' } });
+      expect(reply).toMatchObject({ ok: true, result: { stream_position: { sequence: 0 } } });
+
+      await watchlistSymbol(page, instruments[1].id).click();
+      await expect(history).toHaveAttribute('data-instrument', instruments[1].id, { timeout: 4_000 });
+      await control(page, '5m').click();
+      await expect(history).toHaveAttribute('data-timeframe', '5m', { timeout: 4_000 });
+      await expect(history).toHaveAttribute('data-bars', '8');
+      await expect(page.locator('.replay-status')).toHaveCount(0);
+      if (!acknowledgeEarly) expect(cancellations()).toEqual([]);
+      acknowledge.resolve();
+      await expect.poll(cancellations).toEqual([{ command: 'cancel_market_preparation', args: { preparationId } }]);
+      expect(await page.evaluate(() => window.nativePreparationReplies)).toEqual([]);
+    } finally {
+      acknowledge.resolve();
+      release.resolve();
+    }
+
+    // Even if success crosses the cancellation in transit, it must not subscribe or paint.
+    await expect.poll(() => page.evaluate(() => window.nativePreparationReplies)).toEqual([preparationId]);
+    await expect(history).toHaveAttribute('data-instrument', instruments[1].id);
+    await expect(history).toHaveAttribute('data-timeframe', '5m');
+    await expect(page.locator('.replay-status')).toHaveCount(0);
+    expect(backend.calls.slice(2).map(({ payload }) => [payload.series.instrument_id, payload.series.timeframe, payload.include_stream_position])).toEqual([
+      [instruments[1].id, '1m', undefined], [instruments[1].id, '5m', undefined],
+    ]);
+    expect(backend.commands.filter(({ command }) => command === 'execute_market_subscription')).toEqual([]);
+  });
+}
 
 test('empty history, sanitized failures, identity rejection and leaving during a request', async ({ page, backend }) => {
   await enter(page);

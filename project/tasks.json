@@ -2050,7 +2050,7 @@
       "id": "M1-006",
       "title": "Deliver identity-safe synthetic live updates",
       "milestone": "M1",
-      "status": "planned",
+      "status": "active",
       "depends_on": [
         "M1-005"
       ],
@@ -2061,12 +2061,18 @@
         "tests",
         "contracts",
         "project/checks.json",
-        "project/delivery.json"
+        "project/delivery.json",
+        "AGENTS.md",
+        "engineering-contract-v1.json",
+        "project/development.json",
+        "project/feedback.json",
+        "scripts"
       ],
       "decision_refs": [
         "0007",
         "0004",
-        "0005"
+        "0005",
+        "0010"
       ],
       "acceptance": [
         "Add a bounded live-update contract and one rendered stream; reject delayed events after selection changes and preserve final bar state. Record protocol evolution before implementation."
@@ -2083,7 +2089,7 @@
         "rust-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Implement the negotiated 1.1 market subscription and its existing shared wire vectors through the core and Ubuntu chart. Verify contiguous replay, epoch reset, late events, selection cancellation and the final closed bar.",
+      "next_action": "Verify selection replacement during both native and preview preparation, freeze the final diff and retain the integrated stream and history checks.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -2111,6 +2117,21 @@
           {
             "failure": "A later selection renders a delayed old update or loses the final bar.",
             "checks": [
+              "market-live-stream"
+            ]
+          },
+          {
+            "failure": "A conflicting replay at the checkpoint or reused task/request identity changes prices or prevents recovery after cancellation.",
+            "checks": [
+              "rust-contracts-workers",
+              "python-contracts-workers",
+              "market-live-stream"
+            ]
+          },
+          {
+            "failure": "A superseded preparation or unresponsive child stalls selection, shutdown or the next worker. An unrelated pixel change could disguise a lost final candle.",
+            "checks": [
+              "rust-contracts-workers",
               "market-live-stream"
             ]
           }
@@ -2157,7 +2178,7 @@
             "Selection-race and cleanup guarantees"
           ],
           "change": [
-            "Streaming and visible quality states"
+            "Explicit finite synthetic playback from a frozen stream position, including ordered interim and final bars and visible loss of continuity."
           ],
           "data_plan": "No durable user format change.",
           "cleanup": "Keep one active subscription per selection; remove temporary stream harness paths after integrated acceptance."

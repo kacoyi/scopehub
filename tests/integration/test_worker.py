@@ -6,6 +6,7 @@ import sys
 import unittest
 
 from worker_runtime.protocol import MAX_MESSAGE_BYTES, decode_line
+from providers.history_pages import execute_page
 
 ROOT = Path(__file__).resolve().parents[2]
 BASE = {'protocol_version': '1.0', 'message_id': '00000000-0000-4000-8000-000000000001', 'timestamp_ms': 1700000000000}
@@ -48,7 +49,8 @@ class WorkerTests(unittest.TestCase):
         self.assertEqual(set(legacy['capabilities']), {'instrument.search', 'market.getBars'})
         current = worker(b'', extra_args=('--wire-version', '1.1', '--demo'))[1][0]
         self.assertEqual(current['protocol_version'], '1.1')
-        self.assertEqual(set(current['capabilities']), {'instrument.search', 'market.getBars', 'market.readHistoryPage'})
+        self.assertEqual(set(current['capabilities']),
+                         {'instrument.search', 'market.getBars', 'market.readHistoryPage', 'market.subscribe'})
         for role in ['ai','indicator']:
             hello = worker(b'', role, ('--wire-version', '1.1'))[1][0]
             self.assertEqual(hello['capabilities'], [])
@@ -66,6 +68,80 @@ class WorkerTests(unittest.TestCase):
         self.assertEqual(replies[1]['error']['code'], 'CANCELLED')
         self.assertEqual(replies[1], replies[2])
         self.assertEqual(replies[3]['error']['code'], 'PERMISSION_DENIED')
+
+    def test_replay_is_opt_in_and_cancellation_matches_the_owned_task(self):
+        examples = json.loads((ROOT / 'tests/fixtures/protocol-cases.json').read_text())
+        request = json.loads(next(case['wire'] for case in examples if case['name'] == 'frozen market resume request'))
+        series = request['payload']['series']
+        page = execute_page({'series': series, 'from_ms': 0, 'to_ms': 1_720_000_000_000,
+                             'warmup_bars': 0, 'include_stream_position': True}, MAX_MESSAGE_BYTES)
+        request['payload'] = {'series': series, 'snapshot': page['snapshot'], 'after': page['stream_position']}
+        task = '00000000-0000-4000-8000-000000000099'
+        request['task_id'] = task
+        line = frame(**request)
+        current = ('--wire-version', '1.1')
+        for role in ('market', 'ai', 'indicator'):
+            code, replies, _ = worker(line, role, current)
+            self.assertEqual(code, 0)
+            self.assertEqual(replies[1]['error']['code'], 'UNSUPPORTED_CAPABILITY')
+        cancel = dict(protocol_version='1.1', type='cancel', request_id=request['request_id'])
+        code, replies, stderr = worker(
+            line + frame(**cancel, task_id=REQUEST_ID) + frame(**cancel, task_id=task),
+            extra_args=(*current, '--demo'),
+        )
+        self.assertEqual((code, stderr), (0, b''))
+        self.assertEqual(replies[1]['result']['from_position'], page['stream_position'])
+        self.assertTrue(all(reply['operation'] == 'market.subscribe' for reply in replies[1:]))
+        self.assertEqual([reply['error']['code'] for reply in replies[2:]], ['PERMISSION_DENIED', 'CANCELLED'])
+
+    def test_read_and_replay_share_request_ownership_and_terminal_retries(self):
+        examples = {case['name']: json.loads(case['wire']) for case in json.loads(
+            (ROOT / 'tests/fixtures/protocol-cases.json').read_text()) if case['valid']}
+        replay = examples['frozen market resume request']
+        history = examples['versioned history page']
+        history['payload'].update(from_ms=0, to_ms=1_720_000_000_000, include_stream_position=True)
+        page = execute_page(history['payload'], MAX_MESSAGE_BYTES)
+        replay['payload'] = {'series': history['payload']['series'],
+                             'after': page['stream_position'], 'snapshot': page['snapshot']}
+
+        def identity(index):
+            return f'00000000-0000-4000-8000-{index:012x}'
+
+        owner, other = identity(20), identity(21)
+        first, second, recent, next_id, legacy_id = (identity(i) for i in range(10, 15))
+        request = dict(replay, request_id=first, task_id=owner)
+        next_replay = dict(replay, request_id=second, task_id=owner)
+        cancel = dict(protocol_version='1.1', type='cancel', request_id=first, task_id=owner)
+        historical = dict(history, request_id=recent, task_id=owner)
+        legacy = dict(protocol_version='1.0', type='request', operation='market.getBars', task_id=None,
+                      payload={'instrument_id': 'SIM.CN.FUTURE.001', 'provider_id': 'scopehub.synthetic',
+                               'timeframe': '1m', 'from_ms': 0, 'to_ms': 1_720_000_000_000})
+        messages = [
+            historical, dict(replay, request_id=recent, task_id=other), historical,
+            request, request, dict(history, request_id=first, task_id=other),
+            dict(history, request_id=first, task_id=owner), dict(cancel, task_id=other),
+            dict(legacy, request_id=first), next_replay, cancel, cancel, request,
+            next_replay, dict(cancel, request_id=second), dict(replay, request_id=next_id, task_id=owner),
+            dict(cancel, request_id=next_id), dict(legacy, request_id=legacy_id),
+        ]
+        code, replies, stderr = worker(b''.join(frame(**message) for message in messages),
+                                       extra_args=('--wire-version', '1.1', '--demo'))
+        self.assertEqual((code, stderr), (0, b''))
+        outputs = replies[1:]
+        self.assertEqual(len(outputs), len(messages))
+        self.assertEqual([item['error']['code'] if not item['ok'] else None for item in outputs], [
+            None, 'PERMISSION_DENIED', None, None, None, 'PERMISSION_DENIED',
+            'INVALID_ARGUMENT', 'PERMISSION_DENIED', 'PERMISSION_DENIED', 'BUSY',
+            'CANCELLED', 'CANCELLED', 'CANCELLED', None, 'CANCELLED', None, 'CANCELLED', None,
+        ])
+        for left, right in [(0, 2), (3, 4), (10, 11), (10, 12)]:
+            self.assertEqual(outputs[left], outputs[right])
+        self.assertEqual(outputs[1]['operation'], 'market.subscribe')
+        self.assertEqual(outputs[5]['operation'], 'market.readHistoryPage')
+        self.assertEqual(outputs[13]['result']['status'], 'accepted')
+        self.assertEqual(outputs[15]['result']['status'], 'accepted')
+        self.assertEqual(len(outputs[-1]['result']['bars']), 40)
+        self.assertEqual(outputs[-1]['protocol_version'], '1.0')
 
     def test_heartbeat(self):
         code, messages, _ = worker(frame(type='heartbeat'))
