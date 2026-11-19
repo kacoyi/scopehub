@@ -2,10 +2,21 @@
 
 mod history;
 mod replay;
+mod workspace;
 
 pub use replay::{SUBSCRIBE, SubscriptionFuture, SubscriptionPort};
+pub use workspace::{
+    MAIN_CHART_ID, SET_TIMEFRAME, Timeframe, UNDO, WorkspaceAccess, WorkspaceBinding,
+    WorkspaceChange, WorkspaceReceipt, WorkspaceReplay, WorkspaceReplayKey, WorkspaceSnapshot,
+    WorkspaceState, WorkspaceStore, WorkspaceTransaction,
+};
 
-use std::{collections::HashSet, future::Future, pin::Pin, sync::LazyLock};
+use std::{
+    collections::HashSet,
+    future::Future,
+    pin::Pin,
+    sync::{LazyLock, OnceLock},
+};
 
 use scopehub_domain::{
     protocol::{
@@ -33,7 +44,7 @@ pub enum Actor {
 }
 
 impl Actor {
-    fn as_str(self) -> &'static str {
+    pub fn as_str(self) -> &'static str {
         match self {
             Self::User => "user",
             Self::Ai => "ai",
@@ -56,6 +67,7 @@ pub fn failure(code: ErrorCode) -> Error {
         ErrorCode::BUSY => "The market worker is busy.",
         ErrorCode::SNAPSHOTUNAVAILABLE => "The requested market snapshot is unavailable.",
         ErrorCode::RESOURCELIMIT => "The market request exceeded a resource limit.",
+        ErrorCode::STALECONTEXT => "The workspace revision or target has changed.",
         _ => "The operation could not be completed.",
     };
     Error {
@@ -93,6 +105,35 @@ struct Operation {
     actors: Vec<String>,
     input: jsonschema::Validator,
     output: jsonschema::Validator,
+    wire: Option<WireBinding>,
+    confirmation_required: bool,
+    undoable: bool,
+}
+
+struct WireBinding {
+    input: String,
+    output: String,
+    validators: OnceLock<(jsonschema::Validator, jsonschema::Validator)>,
+}
+
+impl Operation {
+    fn authorize(&self, actor: Actor) -> Result<(), Error> {
+        if !self.actors.iter().any(|allowed| allowed == actor.as_str()) {
+            return Err(failure(ErrorCode::PERMISSIONDENIED));
+        }
+        Ok(())
+    }
+
+    fn wire_validators(&self) -> (&jsonschema::Validator, &jsonschema::Validator) {
+        let binding = self
+            .wire
+            .as_ref()
+            .expect("registered 1.1 operation binding");
+        let (input, output) = binding
+            .validators
+            .get_or_init(|| (validator(&binding.input), validator(&binding.output)));
+        (input, output)
+    }
 }
 
 fn validator(definition: &str) -> jsonschema::Validator {
@@ -111,6 +152,9 @@ fn validator(definition: &str) -> jsonschema::Validator {
 static OPERATIONS: LazyLock<Vec<Operation>> = LazyLock::new(|| {
     let manifest: Value = serde_json::from_str(include_str!("../../../contracts/contract.json"))
         .expect("embedded operation catalog");
+    let protocol = manifest["protocol_version"]
+        .as_str()
+        .expect("catalog protocol version");
     manifest["operations"]
         .as_array()
         .expect("operation array")
@@ -120,18 +164,35 @@ static OPERATIONS: LazyLock<Vec<Operation>> = LazyLock::new(|| {
             actors: serde_json::from_value(op["actors"].clone()).expect("actor list"),
             input: validator(op["input"].as_str().expect("input definition")),
             output: validator(op["output"].as_str().expect("output definition")),
+            wire: op["wire_bindings"][protocol]
+                .as_object()
+                .map(|binding| WireBinding {
+                    input: binding["input"]
+                        .as_str()
+                        .expect("wire input definition")
+                        .into(),
+                    output: binding["output"]
+                        .as_str()
+                        .expect("wire output definition")
+                        .into(),
+                    validators: OnceLock::new(),
+                }),
+            confirmation_required: op["confirmation"].as_bool() != Some(false),
+            undoable: op["undoable"].as_bool().expect("undo policy"),
         })
         .collect()
 });
 
-fn authorized_operation(actor: Actor, name: &str) -> Result<&'static Operation, Error> {
-    let op = OPERATIONS
+fn operation(name: &str) -> Result<&'static Operation, Error> {
+    OPERATIONS
         .iter()
         .find(|op| op.name == name)
-        .ok_or_else(|| failure(ErrorCode::UNSUPPORTEDCAPABILITY))?;
-    if !op.actors.iter().any(|allowed| allowed == actor.as_str()) {
-        return Err(failure(ErrorCode::PERMISSIONDENIED));
-    }
+        .ok_or_else(|| failure(ErrorCode::UNSUPPORTEDCAPABILITY))
+}
+
+fn authorized_operation(actor: Actor, name: &str) -> Result<&'static Operation, Error> {
+    let op = operation(name)?;
+    op.authorize(actor)?;
     Ok(op)
 }
 
@@ -143,15 +204,19 @@ fn authorized_operation(actor: Actor, name: &str) -> Result<&'static Operation, 
 ///     registry.port_mut();
 /// }
 /// ```
-pub struct MarketRegistry<P> {
+pub struct OperationRegistry<P> {
     port: P,
 }
 
-impl<P: MarketPort> MarketRegistry<P> {
+pub type MarketRegistry<P> = OperationRegistry<P>;
+
+impl<P> OperationRegistry<P> {
     pub fn new(port: P) -> Self {
         Self { port }
     }
+}
 
+impl<P: MarketPort> MarketRegistry<P> {
     pub async fn execute(
         &mut self,
         actor: Actor,
