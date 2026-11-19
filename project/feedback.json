@@ -1516,6 +1516,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "csv-declared-trades-reported-as-unclassified",
+      "source": "Review of the ordinary CSV editor and Python provider at 3a423ec against product.data_onboarding.financial_content and M1-008.",
+      "observation": "An explicitly classified synthetic trade file with two fills at the same reported time returned the same unsupported_record_kind diagnostic as unknown input. The editor offered closed bars, quotes and unclassified rows only. Declared depth, reference and corporate-action inputs also appeared unclassified. Original rows remained available.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "local-folder-import",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
