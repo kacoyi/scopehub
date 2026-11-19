@@ -10,6 +10,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { expect, test } from '@playwright/test';
 import { control } from '../ui/workspace-controls.mjs';
+import { assertUnsuitableWindowsHandoffsRejected, assertWindowsPrivateHandoff } from './workspace_test_handoff_acl.mjs';
 
 const exec = promisify(execFile);
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -193,6 +194,7 @@ test('the private launcher handoff is required and a previous launch cannot auth
       previous = server.capability;
       handoff = server.handoff;
       await assertPrivateHandoff(handoff);
+      if (process.platform === 'win32') await assertUnsuitableWindowsHandoffsRejected(profile.root);
 
       for (const request of [snapshot, setTimeframe(0, '5m')]) {
         const denied = await post({ url: server.url }, request);
@@ -365,65 +367,13 @@ async function makeProfile() {
 }
 
 async function assertPrivateHandoff(handoff) {
-  if (process.platform !== 'win32') {
-    const metadata = await stat(handoff);
-    expect(metadata.mode & 0o777).toBe(0o600);
-    expect(metadata.uid).toBe(process.getuid());
+  if (process.platform === 'win32') {
+    await assertWindowsPrivateHandoff(handoff);
     return;
   }
-  // Verify the resulting file's inherited ACL on Windows without reading or
-  // printing its contents or revealing any local identity in the test log.
-  const check = `
-    $ErrorActionPreference = 'Stop'
-    $failure = 51
-    try {
-      function Read-Descriptor($path) {
-        $acl = Get-Acl -LiteralPath $path
-        return [Security.AccessControl.RawSecurityDescriptor]::new($acl.GetSecurityDescriptorBinaryForm(), 0)
-      }
-      $path = $env:SCOPEHUB_TEST_HANDOFF
-      $attributes = [int]([IO.File]::GetAttributes($path))
-      $nonFile = [int][IO.FileAttributes]'Directory, ReparsePoint'
-      if (($attributes -band $nonFile) -ne 0) { exit $failure }
-      $failure = 52
-      $user = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-      $allowed = @($user, 'S-1-5-18', 'S-1-5-32-544')
-      $directory = Read-Descriptor ([IO.Path]::GetDirectoryName($path))
-      if ($directory.Owner.Value -ne $user) { exit $failure }
-      $failure = 53
-      $descriptor = Read-Descriptor $path
-      if ($null -eq $descriptor.DiscretionaryAcl -or $descriptor.Owner.Value -notin $allowed) { exit $failure }
-      $failure = 54
-      $required = [int][Security.AccessControl.FileSystemRights]'Read, Write, Delete'
-      $inherited = [int][Security.AccessControl.AceFlags]::Inherited
-      $inheritOnly = [int][Security.AccessControl.AceFlags]::InheritOnly
-      $userInherited = $false
-      foreach ($ace in $descriptor.DiscretionaryAcl) {
-        if ($ace -isnot [Security.AccessControl.CommonAce] -or $ace.IsCallback) { exit $failure }
-        if ($ace.AceQualifier -ne [Security.AccessControl.AceQualifier]::AccessAllowed) { continue }
-        if ($ace.SecurityIdentifier.Value -notin $allowed) { exit $failure }
-        $flags = [int]$ace.AceFlags
-        $access = [int]$ace.AccessMask
-        if ($ace.SecurityIdentifier.Value -eq $user -and
-            ($flags -band $inherited) -ne 0 -and ($flags -band $inheritOnly) -eq 0 -and
-            ($access -band $required) -eq $required) { $userInherited = $true }
-      }
-      if (!$userInherited) { exit $failure }
-      $failure = 55
-      $stream = [IO.File]::Open($path, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite)
-      $stream.Dispose()
-      exit 0
-    } catch { exit $failure }
-  `;
-  const powershell = join(process.env.SystemRoot, 'System32/WindowsPowerShell/v1.0/powershell.exe');
-  try {
-    await exec(powershell, ['-NoProfile', '-NonInteractive', '-NoLogo', '-Command', check], {
-      timeout: 10_000, windowsHide: true, env: { ...process.env, SCOPEHUB_TEST_HANDOFF: handoff },
-    });
-  } catch (error) {
-    const stage = ['file type', 'directory owner', 'file owner and DACL', 'inherited access', 'effective read/write'][error.code - 51];
-    throw new Error(`Private handoff ACL verification failed (${stage ?? 'PowerShell execution'}).`);
-  }
+  const metadata = await stat(handoff);
+  expect(metadata.mode & 0o777).toBe(0o600);
+  expect(metadata.uid).toBe(process.getuid());
 }
 
 async function freePort() {
