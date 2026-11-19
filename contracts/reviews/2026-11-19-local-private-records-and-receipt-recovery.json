@@ -1,0 +1,119 @@
+{
+  "kind": "profile_local_workspace_and_private_record_verification",
+  "observed_on": "2026-11-19",
+  "task_ids": [
+    "M2-001"
+  ],
+  "host": "Standard-user Windows 11 KVM development desktop with local synthetic profiles.",
+  "observations": [
+    {
+      "local_artifacts": "native-private-migrations-24f1228",
+      "source_commit": "24f1228e06067aa0589ff0dfb51e7052c357c02a",
+      "source_archive_sha256": "5994c8b7f0c965722bebe71b363acecc99eccd8f9eaf7fee61ac6aaeee30b6fc",
+      "executable_sha256": "fcba1ab532c25f25734102d536f8a5468e25841e5b1f85b861333507aca7e8f2",
+      "checks": {
+        "STATE.TXT": {
+          "passed": 52,
+          "ignored_subprocess_entries": 4,
+          "sha256": "1a94795543bf70a643e297413efb1a09de94a9f45525f89f7e798b899aa2d921"
+        },
+        "DESKTOP.TXT": {
+          "passed": 21,
+          "ignored_subprocess_entries": 0,
+          "sha256": "cfc2f53ec6969b5c4f5d05719abfced6f11225046cff9d8c3105b1f600ac11b3"
+        }
+      }
+    },
+    {
+      "local_artifacts": "native-combined-storage-folder-3bad802",
+      "source_commit": "3bad8025fb2fef90a242484488b57e914339dcb6",
+      "source_archive_sha256": "5d657ad7d082b3eb3f05eb9a99e68fffc9ea6b00ba8549be8b5f25673946910f",
+      "executable_sha256": "cfa58b0740208e39491fb2dd84506e3f02d8c878ac63efb0a940b775abda15df",
+      "checks": {
+        "STATE.TXT": {
+          "passed": 54,
+          "ignored_subprocess_entries": 4,
+          "sha256": "9f3380ff41440e807aea88c604e9c8c2df43e2c97251a3ea7e69008811a8219b"
+        },
+        "PLATFORM.TXT": {
+          "passed": 18,
+          "ignored_subprocess_entries": 0,
+          "sha256": "76fed84873e5747df0a3393c29a123ee2ddf9d57c0412dedb4e5a8abc1fcb459"
+        },
+        "DESKTOP.TXT": {
+          "passed": 22,
+          "ignored_subprocess_entries": 0,
+          "sha256": "79d374495dd511b315651522611eae26109bfdb9984011754d5b1b4ca967b091"
+        }
+      }
+    },
+    {
+      "local_artifacts": "native-private-records-gui-24f1228",
+      "source_commit": "24f1228e06067aa0589ff0dfb51e7052c357c02a",
+      "source_archive_sha256": "5994c8b7f0c965722bebe71b363acecc99eccd8f9eaf7fee61ac6aaeee30b6fc",
+      "executable_sha256": "fcba1ab532c25f25734102d536f8a5468e25841e5b1f85b861333507aca7e8f2",
+      "report_sha256": "dbccc2ec9dbec28a5fc86fa2515c267fb8c0b3e96849262f3b082982339ad558",
+      "screenshot_sha256": "f3fa8edb57781388543d09ebacff83c23f0292f5648f8acd964501c4db9bddfe",
+      "observed": [
+        "cancelled initial save leaves the profile empty",
+        "conversation, memory and strategy saved locally",
+        "three saved records exported by the ordinary download control",
+        "three speakers and messages restored in order in a new desktop process",
+        "one deleted conversation suppressed; both unrelated records reopened intact"
+      ],
+      "after_restore": {
+        "workspace_revision": 6,
+        "kinds": [
+          "memory",
+          "strategy"
+        ],
+        "deleted": 1,
+        "pending_cleanup": 0
+      }
+    }
+  ],
+  "joined_linux": {
+    "source_commit": "449e9d1846d25e87c87e69f8c5338b1fd68e2c3b",
+    "receipt": "project/evidence/M2-001-8776db8aa3a00bea.json",
+    "passed_checks": 17,
+    "workspace_browser_cases": 23,
+    "desktop_transport_substitute_cases": 4,
+    "source_sha256": "1594731051eb138061492951619da4b01c9b48b974ce1e2a8e552d093ec4c3ad"
+  },
+  "deletion_receipt_recovery": {
+    "candidate": "3b92a6e4ef411412452a099a7bce0f30ba329cc5",
+    "report_sha256": "e2498416019e3fff598404d7aab919b856adb84028fc3cc61e338e401e87fb59",
+    "observations": [
+      "A genuinely dropped committed deletion reply survives a real DATA_UNAVAILABLE detail read. An explicit retry recovers the same body-free receipt at the original scope and revision. The database contains one tombstone and no second mutation.",
+      "A SQLite read snapshot holds the post-commit WAL checkpoint. The initial approval reports BUSY at the committed revision. After the detail disappears and the reader releases its reservation, the original retry clears the pending checkpoint and returns the original receipt.",
+      "A SQLite writer reservation causes pre-commit BUSY. Another window renames the intact record. A successfully refreshed detail leaves the old title hidden in the pending-result UI. The exact retry returns STALE_CONTEXT and creates no tombstone.",
+      "A retry with a different workspace is denied, a peer deletion still retires an unsubmitted approval, and all existing private record lifecycle and cross-window scenarios pass."
+    ],
+    "browser_cases": 9,
+    "storage_cases": 55
+  },
+  "independent_checks": [
+    {
+      "artifact": "coordinator-rust.json",
+      "sha256": "b989c4ed47ed078596199df9b73d1b8b7782771ce61dce1a55196adcbcab72c3"
+    },
+    {
+      "artifact": "coordinator-browser-draft.json",
+      "sha256": "1f3a346ebca443dbabd4e473385046367d386d693c955d76a2cfceff4488b3cd"
+    },
+    {
+      "artifact": "coordinator-browser-list.json",
+      "sha256": "2d21a6c9d758591065220e8f7ab4b8d99c5a581b6075abfd87df2b2c61456c3b"
+    },
+    {
+      "artifact": "browser-observations.json",
+      "sha256": "50278c535fbb164614793121043237199c988eaf5021f0f7fa5fa0d85432bc1a"
+    },
+    {
+      "artifact": "ai-observations.json",
+      "sha256": "5454cfc9d1dacd26d9e9681834e86dadb8a8fb86c8ffb43cca7c9c1cd6cff609"
+    }
+  ],
+  "independent_ui_observation": "The independent component comparison at 449e9d1 used the production React and transport code with a local test host. An ambiguous committed deletion retained a body-free resolution. A peer rename hid the old title and stale approval before an exact retry. Denial removed the pending recovery control. The real Rust and Chromium runs above exercise storage and WAL cleanup.",
+  "scope": "On-device AI grants were supplied through the Rust application boundary. Connected model sessions, packaged installation and physical Windows experience retain their separate acceptance tasks."
+}

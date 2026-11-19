@@ -769,6 +769,18 @@
       "schema_requirement": "Protocol 1.1 only. Return immutable bars and source row provenance by revision ID in the entitled local human profile. This read requires no directory access and neither refreshes the revision nor grants other data access."
     },
     {
+      "name": "market.readLocalImportSourceRow",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "ReadLocalImportSourceRowRequest",
+      "output_spec": "ReadLocalImportSourceRowReply11",
+      "schema_requirement": "Protocol 1.1 only. A local human reads one source record for a displayable single-file frozen CSV revision in the active profile. Resolve the exact published locator and parse the retained bytes using the revision's reviewed encoding and delimiter. Return the source digest, locator, and aligned headers and original field values in source order. The successful result is limited to 64 KiB of UTF-8 JSON. This read uses profile storage and remains available after source removal."
+    },
+    {
       "name": "market.previewLocalFolderRefresh",
       "effect": "read",
       "confirmation": false,
@@ -827,6 +839,18 @@
       "input_spec": "ReadLocalFolderRevisionRequest",
       "output_spec": "ReadLocalFolderRevisionReply11",
       "schema_requirement": "Open an entitled frozen folder revision, chosen bars and source-qualified row locators without reopening the directory. A summary-only request omits file and bar details."
+    },
+    {
+      "name": "market.readLocalFolderSourceRow",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "ReadLocalFolderSourceRowRequest",
+      "output_spec": "ReadLocalFolderSourceRowReply11",
+      "schema_requirement": "Protocol 1.1 only. Read one original CSV record through a displayable frozen folder revision in the active local human profile. Require the exact chosen source path, content digest and record locator in that manifest. Parse retained bytes with the historical reviewed mapping and return aligned headers and original field values. The result is limited to 64 KiB of UTF-8 JSON and remains available after source removal."
     },
     {
       "name": "market.revokeLocalFolderRevision",

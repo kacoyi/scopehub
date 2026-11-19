@@ -6,7 +6,7 @@
       "source": "Independent t47 review of the 4498ebc private-record repair and subsequent two-window observation at 3bad802.",
       "observation": "A committed deletion with a lost approval reply lost its receipt recovery control when a later detail read returned DATA_UNAVAILABLE. A pre-commit BUSY followed by a peer rename retained the stale target title while offering Retry. The 4498ebc Chromium baseline reproduced all three cases with actual SQLite responses. The repaired journey recovered the same deletion receipt following a dropped reply and a blocked post-commit checkpoint, kept exactly one tombstone and completed cleanup. A pre-commit BUSY followed by a peer rename kept the old content hidden and rejected the original resolution as stale. The prior six Chromium private-record journeys also passed. Evidence is retained under .reports/private-record-v8/delete-reply-green.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-001"
       ],
@@ -14,7 +14,11 @@
         "workspace-timeframe",
         "private-record-lifecycle"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The refresh path treated a missing detail as cancellation of an approval whose commit result was unknown.",
+        "correction": "Retain the original body-free resolution until a matching receipt, a definitive stale result or access denial. Drop superseded displayed content independently.",
+        "prevention": "The real browser covers lost reply, committed cleanup BUSY, and pre-commit BUSY with a peer rename. SQLite verifies one tombstone and completed cleanup."
+      },
       "deferral_reason": null
     },
     {
@@ -22,7 +26,7 @@
       "source": "Independent t47 review of 8c9d27f, recorded in the M2-001 Herdr review terminal.",
       "observation": "The synthetic two-window fixture retained a deleted memory on writer loss, discarded a local draft on peer correction, and kept a stale deletion review visible after known removal. Reviews omitted record identity. The reviewer identified cross-window cancellation interference and found that restore preview accounts only for current records also in the archive. The unchanged 57a9cab runtime reproduced those findings through the real Chromium and Rust routes. The repair passed six local Chromium lifecycle and review cases and the SQLite persistence suite. Independent confirmation remains pending.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-001"
       ],
@@ -30,7 +34,11 @@
         "workspace-timeframe",
         "private-record-lifecycle"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The panel and approval stage coupled multiple windows and revisions. The restore preview counted only the intersection with archived records.",
+        "correction": "Separate draft and displayed data, scope each confirmation, clear known inaccessible content, and count all surviving current records during preview.",
+        "prevention": "Two writers exercise connection loss, peer change and deletion. Rust checks independent approvals and restoration with current-only records."
+      },
       "deferral_reason": null
     },
     {
@@ -38,7 +46,7 @@
       "source": "Independent Chromium review at cecda1c in .reports/independent-evidence-cecda1c/browser-observations.json.",
       "observation": "After real peer revocation and focus refresh, the rendered inspection retained a close. Explicit refresh removed that inspection but retained the frozen chart, source SHA-256 and expandable published source rows. The focused baseline Chromium run in .reports/evidence-revocation-red-1461/results.json also reproduced a delayed formerly authorized chart body reappearing after revocation. The corrected Chromium workspace and native-bridge browser checks in .reports/runs/20261119T161404.568704Z-6c3e3adc removed the inspection, chart, source SHA-256 and rows, rejected delayed redisplay and preserved other authorized display and independent live-folder access.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-001"
       ],
@@ -47,7 +55,11 @@
         "desktop-workspace-transport",
         "local-import-publication"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Previously authorized chart, row and inspection projections survived a later source denial.",
+        "correction": "Invalidate each revoked revision across the open chart, provenance, detail editor and pending replies.",
+        "prevention": "The browser exercises expanded rows, focus, a held authorized reply, peer revocation and a still-entitled sibling revision."
+      },
       "deferral_reason": null
     },
     {
@@ -55,14 +67,18 @@
       "source": "Independent Chromium review at cecda1c in .reports/independent-evidence-cecda1c/browser-observations.json.",
       "observation": "A fresh authorized window observed a revoked shared selection, but the workspace and the denied published-chart dialog offered no way to clear it. The Rust registry accepted an explicit null for the current revision. The focused baseline Chromium run in .reports/evidence-revocation-red-1461/results.json reproduced both missing controls. The corrected Chromium workspace check in .reports/runs/20261119T161404.568704Z-6c3e3adc found both controls and committed explicit null through the current selection token. The workspace projection and undo receipt were preserved and a later entitled interval could be selected.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-001"
       ],
       "regression_checks": [
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Clear controls depended on successfully reopening a selected revision.",
+        "correction": "Expose explicit null through the current selection revision in the workspace and the failed-open dialog.",
+        "prevention": "Shared selection clears without changing the durable chart revision or its undo. A different entitled revision remains usable."
+      },
       "deferral_reason": null
     },
     {
@@ -1190,14 +1206,18 @@
       "source": "Synthetic Rust-process review of 89401c9 and independent rerun at 5453889c7e9029c6e80b23612a841abf2c38a9f4, stage_after_peer_deletion in .reports/decision-note-independent-5453889/coordinator-rust.json. The 5453889 decision-note-lifecycle log is in .reports/runs/20261119T133002.616158Z-22e48663/.",
       "observation": "Staging a missing later outcome copied the existing original note body. A second writer deleted the note and the first writer observed the new revision, but the first process retained the redundant staged payload. Expired payloads were collected only during later mutations. At 5453889, the regression asserted that an outcome-only stage held no original. The independent run observed one added outcome, zero added originals, and after the peer deletion at revision 2, zero live notes and one marker. Both old-stage decisions returned CONFIRMATION_REQUIRED and the detail returned DATA_UNAVAILABLE. Lifecycle regressions passed for observed revision invalidation, deadline expiry without another operation, and disposal.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-001"
       ],
       "regression_checks": [
         "decision-note-lifecycle"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "A pending outcome-only restore also retained an existing original. Collection depended on later mutations.",
+        "correction": "Stage only missing content and release it on revision change, session disposal or expiry.",
+        "prevention": "Storage tests exercise peer deletion, expiry and disposal. Independent decline and approve after supersession both require a new review."
+      },
       "deferral_reason": null
     },
     {
@@ -1205,14 +1225,18 @@
       "source": "Synthetic Rust-process review of 89401c9 and independent rerun at 5453889c7e9029c6e80b23612a841abf2c38a9f4, complete_backup_capacity in .reports/decision-note-independent-5453889/coordinator-rust.json. The 5453889 decision-note-lifecycle log is in .reports/runs/20261119T133002.616158Z-22e48663/.",
       "observation": "Two individually valid backups of the same note with 64 and 65 different later outcomes merged successfully. The resulting 129 outcomes were readable, but exporting the combined note failed with RESOURCE_LIMIT. At 5453889, both the independent run and the process regression observed RESOURCE_LIMIT before issuing a stage for the 129-outcome merge, with both archives unchanged. The 128-outcome boundary merged and exported every outcome, and the next append was rejected before approval with the complete export unchanged.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-001"
       ],
       "regression_checks": [
         "decision-note-lifecycle"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Restore checked its input archive without checking the export size of the merged record.",
+        "correction": "Validate the full resulting archive before staging and again before committing.",
+        "prevention": "Two valid inputs with 64 and 65 outcomes are refused unchanged. The 128-outcome case round-trips exactly."
+      },
       "deferral_reason": null
     },
     {
@@ -1220,14 +1244,18 @@
       "source": "Synthetic Chromium review of 89401c9 and independent passing outcome_draft_after_peer_timeframe check at 5453889c7e9029c6e80b23612a841abf2c38a9f4 in .reports/decision-note-independent-5453889/coordinator-browser-draft.json. The 5453889 workspace-timeframe log is in .reports/runs/20261119T133002.616158Z-22e48663/.",
       "observation": "When a peer changed only the chart timeframe, a visible unsaved later-outcome draft and its date were silently discarded. At 5453889 the independent browser observed a fresh detail read after the peer changed 5m to 1d, preserved both draft fields, approved the outcome, and reopened it with the same text and date. The browser regression also passed for invalidating the older approval while keeping the draft and clearing the draft when its note was deleted.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-001"
       ],
       "regression_checks": [
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Refreshing a note after an unrelated workspace edit reset the local outcome form.",
+        "correction": "Track the editable draft independently of refreshed note details and expire superseded approvals.",
+        "prevention": "The two-window browser case preserves the typed date and result, saves the outcome and reopens it after a peer timeframe change."
+      },
       "deferral_reason": null
     },
     {
@@ -1235,14 +1263,18 @@
       "source": "Synthetic Chromium review of 89401c9 and independent rerun at 5453889c7e9029c6e80b23612a841abf2c38a9f4, deleted_index_rows_and_raced_open in .reports/decision-note-independent-5453889/coordinator-browser-list.json. The 5453889 workspace-timeframe log is in .reports/runs/20261119T133002.616158Z-22e48663/.",
       "observation": "After a peer deleted a note, a focused list still displayed its date and identity suffix across two polling intervals and after clicking the stale entry returned unavailable. At 5453889 the independent browser and workspace regression observed focus refresh removing the deleted entry and retaining the unrelated entry. A detail read that raced a second deletion returned DATA_UNAVAILABLE, and the list removed the stale entry and showed the empty state.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-001"
       ],
       "regression_checks": [
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The list retained an old note summary after the underlying note was deleted.",
+        "correction": "Revalidate the focused list and retire an entry when its detail becomes unavailable.",
+        "prevention": "The independent list and raced-detail cases remove only the deleted item. The integrated workspace browser repeats the case with separate writers."
+      },
       "deferral_reason": null
     },
     {
@@ -1341,14 +1373,18 @@
       "source": "Synthetic published CSV and private Rust registry regression at cecda1c80829d42b7a120aba9ab4e3e12221669b. The observed red log is .reports/operations-workflow/cecda1c-red.log.",
       "observation": "The real shared selection advanced to interval A at selection revision 1 while the workspace revision stayed 0. An authenticated generic AI command using those revisions committed the main-chart timeframe at workspace revision 1 despite missing the selected interval's local analysis grant. The operations-workflow regression now requires a denial with no operation or replay row. A separately authorized on-device intent for B can commit through the same registry.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-001"
       ],
       "regression_checks": [
         "operations-workflow"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The generic registry path accepted an AI timeframe intent before checking the current selection-specific on-device grant.",
+        "correction": "Bind the operation to both workspace and selection revisions, then verify the current target and permitted analysis purpose for writes and receipt disclosure.",
+        "prevention": "The SQLite operation workflow proves denied AI access makes no operation or replay record, concurrent retries commit once, and revocation blocks subsequent disclosure."
+      },
       "deferral_reason": null
     },
     {
@@ -1646,6 +1682,22 @@
       "regression_checks": [
         "market-workflow",
         "market-quality-states"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-revision-library-during-native-workspace-startup",
+      "source": "Standard-user Windows 11 WebView2 on commit 3bad802 after publishing and reopening the same synthetic profile.",
+      "observation": "Opening the revision browser during profile startup returned retryable BUSY for both the single-file and folder lists. The dialog showed a generic read failure. A direct folder list still returned BUSY at 3329 ms and returned the two retained revisions at 4204 ms. An explicit refresh then restored the priced parent and the fully withdrawn child. Reopening the priced revision recovered both line 3 locators and close 104. Revoking its display access left the empty child usable.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "local-import-ui",
+        "local-folder-refresh-preview"
       ],
       "resolution": null,
       "deferral_reason": null

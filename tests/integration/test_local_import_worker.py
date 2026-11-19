@@ -73,6 +73,12 @@ def complete_request(content, **header_fields):
     return frames
 
 
+def source_row_request(content, record_number, **header_fields):
+    frames = request(content, record_number=record_number, **header_fields)
+    del frames[0]['row_limit']
+    return frames
+
+
 def worker(data):
     env = {key: value for key, value in os.environ.items() if key.upper() in {'SYSTEMROOT', 'WINDIR', 'TEMP', 'TMP'}}
     # Exercise the locked IANA data with no operating-system zone database.
@@ -107,6 +113,7 @@ class LocalImportWorkerTests(unittest.TestCase):
         self.assertEqual((hello['type'], hello['protocol_version'], hello['role']), ('hello', '1.1', 'market'))
         self.assertEqual(hello['capabilities'], [
             'market.previewLocalImport', 'market.checkLocalImport', 'market.inspectLocalFolderSource',
+            'market.inspectLocalImportSourceRow',
         ])
         return replies
 
@@ -168,6 +175,41 @@ class LocalImportWorkerTests(unittest.TestCase):
         ])
         self.assertEqual(last['bar']['trading_day'], str(dates[-1]))
         self.assertEqual(last['locators'], [{'record_number': 1, 'line_start': 3, 'line_end': 3}])
+
+    def test_source_row_uses_reviewed_encoding_and_counts_quoted_records(self):
+        content = (
+            'Ticker,Date,Open,High,Low,Close,Shares,"备注\r\n原始单位"\r\n'
+            '000071,2026-01-06,8,10,7,9,200,"前一行\r\n不应被返回"\r\n'
+            '000071,2026-01-07,8,10,7,09.00,,"手, 带有""引号""\r\n下一行"\r\n'
+        ).encode('gb18030')
+        frames = source_row_request(content, 2, mapping={**MAPPING, 'encoding': 'gb18030'})
+        process = worker(b''.join(map(line, frames)))
+        self.assertEqual((process.returncode, process.stderr), (0, b''))
+        reply, = self.reply_frames(process.stdout)
+        self.assertEqual(json.loads(reply), {
+            **FRAME_ID, 'ok': True, 'source_row': {
+                'source_sha256': sha256(content).hexdigest(),
+                'locator': {'record_number': 2, 'line_start': 5, 'line_end': 6},
+                'header': ['Ticker', 'Date', 'Open', 'High', 'Low', 'Close', 'Shares', '备注\r\n原始单位'],
+                'raw_fields': ['000071', '2026-01-07', '8', '10', '7', '09.00', '', '手, 带有"引号"\r\n下一行'],
+            },
+        })
+
+    def test_source_row_has_a_separate_frame_limit_and_fails_closed(self):
+        header = b'Ticker,Date,Open,High,Low,Close,Shares,Note\r\n'
+        row = b'000071,2026-01-06,8,10,7,9,200,valid\r\n'
+        oversized = b'000071,2026-01-06,8,10,7,9,200,' + b'x' * (64 * 1024) + b'\r\n'
+        for content, number, expected in (
+            (header + oversized, 1, 'RESOURCE_LIMIT'),
+            (header + row, 2, 'DATA_UNAVAILABLE'),
+            (header + b'"unterminated', 1, 'DATA_UNAVAILABLE'),
+            (header + row, 10_001, 'INVALID_ARGUMENT'),
+        ):
+            with self.subTest(number=number, expected=expected):
+                output = BytesIO()
+                self.assertEqual(run(BytesIO(b''.join(map(line, source_row_request(content, number)))), output), 0)
+                reply, = self.reply_frames(output.getvalue())
+                self.assertEqual(json.loads(reply), {**FRAME_ID, 'ok': False, 'error': expected})
 
     def test_complete_series_holds_late_invalid_or_ambiguous_rows(self):
         content = b'Ticker,Date,Open,High,Low,Close,Shares,Note\n' + b'000071,2026-01-06,8,10,7,9,200,test\n' * 501

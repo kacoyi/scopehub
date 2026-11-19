@@ -773,7 +773,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
         </section>}
         {!frozen && !frozenFolder && <UnavailableSharedSelection workspace={workspace} />}
         {frozen && <FrozenLocalChart key={frozen.revision.revision_id} result={frozen} workspace={workspace} access={revisionAccess} />}
-        {frozenFolder && <FrozenFolderChart key={frozenFolder.revision.revision_id} result={frozenFolder} />}
+        {frozenFolder && <FrozenFolderChart key={frozenFolder.revision.revision_id} result={frozenFolder} access={revisionAccess} />}
         {file && displayedSourceHash && <section className="local-import-card" aria-label={visible ? 'Preview source' : 'Current source'}>
           <h2>{file.relative_path}</h2>
           {visible && <p>{visible.rows.length} source records{visible.truncated ? ' · Preview omits later records' : ''}{mapped && ` · Mapping v${visible.mapping_version} · ${visible.mapping_revision}`}</p>}

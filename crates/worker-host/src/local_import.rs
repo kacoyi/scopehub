@@ -34,10 +34,13 @@ use crate::{
 mod windows;
 
 const MAX_SOURCE_BYTES: usize = 4 * 1024 * 1024;
+const MAX_SOURCE_RECORDS: u64 = 10_000;
+const MAX_SOURCE_ROW_FRAME_BYTES: usize = 64 * 1024;
 const CHUNK_BYTES: usize = 192 * 1024;
 const VERSION: u8 = 1;
 const CHECK_LOCAL_IMPORT: &str = "market.checkLocalImport";
 const INSPECT_LOCAL_FOLDER_SOURCE: &str = "market.inspectLocalFolderSource";
+const INSPECT_LOCAL_IMPORT_SOURCE_ROW: &str = "market.inspectLocalImportSourceRow";
 
 #[derive(Clone, Copy, Serialize)]
 #[serde(untagged)]
@@ -45,6 +48,7 @@ enum Check {
     Preview { row_limit: u32 },
     Complete { complete: bool },
     InspectRefresh { inspect_refresh: bool },
+    ReadSourceRow { record_number: u64 },
 }
 
 impl Check {
@@ -53,6 +57,7 @@ impl Check {
             Self::Preview { .. } => PREVIEW_LOCAL_IMPORT,
             Self::Complete { .. } => CHECK_LOCAL_IMPORT,
             Self::InspectRefresh { .. } => INSPECT_LOCAL_FOLDER_SOURCE,
+            Self::ReadSourceRow { .. } => INSPECT_LOCAL_IMPORT_SOURCE_ROW,
         }
     }
 }
@@ -74,6 +79,7 @@ enum Response {
     Preview(PreviewFrame),
     Complete(CompleteFrame),
     Inspection(InspectionFrame),
+    SourceRow(SourceRowFrame),
     Review(ReviewFrame),
     Failure(FailureFrame),
 }
@@ -103,6 +109,15 @@ struct InspectionFrame {
     request_id: String,
     ok: bool,
     inspection: Value,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SourceRowFrame {
+    version: u8,
+    request_id: String,
+    ok: bool,
+    source_row: Value,
 }
 
 #[derive(Deserialize)]
@@ -137,6 +152,7 @@ enum ReviewRequired {
 enum WorkerFailure {
     ResourceLimit,
     InvalidArgument,
+    DataUnavailable,
 }
 
 /// The child, including its admission permit, stays owned until reaped even
@@ -387,6 +403,30 @@ pub async fn inspect_folder_source(
     .await
 }
 
+/// Parse one logical record from already authorized immutable source bytes.
+pub async fn read_source_row(
+    config: &WorkerConfig,
+    content: &[u8],
+    sha256: &str,
+    mapping: &Value,
+    record_number: u64,
+    cancelled: impl Future<Output = ()>,
+) -> Result<Value, Error> {
+    if !(1..=MAX_SOURCE_RECORDS).contains(&record_number) {
+        return Err(failure(ErrorCode::INVALIDARGUMENT));
+    }
+    analyze(
+        config,
+        content,
+        sha256,
+        mapping,
+        Check::ReadSourceRow { record_number },
+        cancelled,
+        None::<fn() -> Result<(), Error>>,
+    )
+    .await
+}
+
 async fn analyze(
     config: &WorkerConfig,
     content: &[u8],
@@ -486,7 +526,10 @@ async fn exchange(
         || negotiated.capabilities.iter().any(|name| {
             !matches!(
                 name.as_str(),
-                PREVIEW_LOCAL_IMPORT | CHECK_LOCAL_IMPORT | INSPECT_LOCAL_FOLDER_SOURCE
+                PREVIEW_LOCAL_IMPORT
+                    | CHECK_LOCAL_IMPORT
+                    | INSPECT_LOCAL_FOLDER_SOURCE
+                    | INSPECT_LOCAL_IMPORT_SOURCE_ROW
             )
         })
     {
@@ -532,6 +575,11 @@ fn encode(message: &impl Serialize) -> Result<Vec<u8>, Error> {
 }
 
 fn decode(frame: &[u8], request: &Header<'_>) -> Result<Value, Error> {
+    if matches!(request.check, Check::ReadSourceRow { .. })
+        && frame.len() > MAX_SOURCE_ROW_FRAME_BYTES
+    {
+        return Err(failure(ErrorCode::RESOURCELIMIT));
+    }
     let body = frame.strip_suffix(b"\n").unwrap_or(frame);
     let body = body.strip_suffix(b"\r").unwrap_or(body);
     if body.contains(&b'\r') || body.contains(&b'\n') {
@@ -573,6 +621,15 @@ fn decode(frame: &[u8], request: &Header<'_>) -> Result<Value, Error> {
         {
             Ok(reply.inspection)
         }
+        (Check::ReadSourceRow { record_number }, Response::SourceRow(reply))
+            if reply.version == VERSION
+                && reply.request_id == request.request_id
+                && reply.ok
+                && reply.source_row["source_sha256"].as_str() == Some(request.sha256)
+                && reply.source_row["locator"]["record_number"].as_u64() == Some(record_number) =>
+        {
+            Ok(reply.source_row)
+        }
         (Check::Complete { .. } | Check::InspectRefresh { .. }, Response::Review(reply))
             if reply.version == VERSION && reply.request_id == request.request_id && !reply.ok =>
         {
@@ -584,6 +641,12 @@ fn decode(frame: &[u8], request: &Header<'_>) -> Result<Value, Error> {
             Err(failure(match reply.error {
                 WorkerFailure::ResourceLimit => ErrorCode::RESOURCELIMIT,
                 WorkerFailure::InvalidArgument => ErrorCode::INVALIDARGUMENT,
+                WorkerFailure::DataUnavailable
+                    if matches!(request.check, Check::ReadSourceRow { .. }) =>
+                {
+                    ErrorCode::DATAUNAVAILABLE
+                }
+                WorkerFailure::DataUnavailable => ErrorCode::OUTPUTINVALID,
             }))
         }
         _ => Err(failure(ErrorCode::OUTPUTINVALID)),

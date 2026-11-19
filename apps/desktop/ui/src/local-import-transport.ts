@@ -7,8 +7,10 @@ import type {
   PreviewLocalFolderRefreshInput, PreviewLocalFolderRefreshOutput,
   PublishLocalFolderRefreshInput, PublishLocalFolderRefreshOutput,
   ReadLocalFolderRevisionInput, ReadLocalFolderRevisionOutput,
+  ReadLocalFolderSourceRowInput, ReadLocalFolderSourceRowOutput,
   RevokeLocalFolderRevisionInput, RevokeLocalFolderRevisionOutput,
   PublishLocalImportInput, PublishLocalImportOutput, ReadLocalImportRevisionInput, ReadLocalImportRevisionOutput,
+  ReadLocalImportSourceRowInput, ReadLocalImportSourceRowOutput,
   RevokeLocalImportRevisionInput, RevokeLocalImportRevisionOutput,
   SaveLocalImportMappingInput, SaveLocalImportMappingOutput,
 } from '../../../../contracts/generated/protocol';
@@ -62,6 +64,13 @@ export async function readLocalImportRevision(payload: ReadLocalImportRevisionIn
   });
 }
 
+export async function readLocalImportSourceRow(payload: ReadLocalImportSourceRowInput, requestId: string) {
+  requireNative();
+  return invoke<ReadLocalImportSourceRowOutput>('execute_operation', {
+    operation: 'market.readLocalImportSourceRow', payload, requestId,
+  });
+}
+
 export async function listLocalImportRevisions(payload: ListLocalImportRevisionsInput, requestId: string) {
   requireNative();
   return invoke<ListLocalImportRevisionsOutput>('execute_operation', {
@@ -108,6 +117,13 @@ export async function readLocalFolderRevision(payload: ReadLocalFolderRevisionIn
   requireNative();
   return invoke<ReadLocalFolderRevisionOutput>('execute_operation', {
     operation: 'market.readLocalFolderRevision', payload, requestId,
+  });
+}
+
+export async function readLocalFolderSourceRow(payload: ReadLocalFolderSourceRowInput, requestId: string) {
+  requireNative();
+  return invoke<ReadLocalFolderSourceRowOutput>('execute_operation', {
+    operation: 'market.readLocalFolderSourceRow', payload, requestId,
   });
 }
 
