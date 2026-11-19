@@ -133,25 +133,39 @@ fn populated_v6(profile: &Profile) -> (SqliteWorkspace, LegacyPublication) {
     (store, LegacyPublication { displayed, revoked })
 }
 
+// The predecessor fixtures deliberately bypass open(), which always upgrades them.
+fn legacy_chart_view(
+    store: &SqliteWorkspace,
+) -> (
+    WorkspaceState,
+    Option<WorkspaceUndoTarget>,
+    Option<(ChartEvidenceRef, bool)>,
+) {
+    let id = &store.binding.workspace_id;
+    let chart = state(&store.connection, id).unwrap();
+    let undo = eligible_undo(
+        &store.connection,
+        id,
+        chart,
+        WorkspaceUndoAccess {
+            actor: Actor::User,
+            principal_id: "principal",
+            paired_client_id: None,
+        },
+    )
+    .unwrap();
+    let selection = chart_evidence(&store.connection, id).unwrap();
+    (chart, undo, selection)
+}
+
 fn assert_legacy_workspace(store: &SqliteWorkspace, publication: &LegacyPublication) {
-    let (state, undo, selected) = store
-        .snapshot(
-            Some(WorkspaceUndoAccess {
-                actor: Actor::User,
-                principal_id: "principal",
-                paired_client_id: None,
-            }),
-            true,
-        )
-        .unwrap();
+    let (state, undo, selected) = legacy_chart_view(store);
     assert_eq!(
         (state.revision, state.selection_revision, state.timeframe),
         (3, 7, Timeframe::Day)
     );
     assert_eq!(undo.unwrap().operation_id, "legacy-timeframe");
-    assert!(
-        matches!(selected, Some(ChartEvidenceStatus::Available(target)) if target == publication.displayed)
-    );
+    assert!(matches!(selected, Some((target, false)) if target == publication.displayed));
     let replay = store
         .inspect(|tx| tx.replay(&key(SET_TIMEFRAME, "legacy-timeframe-retry")))
         .unwrap()
@@ -386,9 +400,9 @@ fn private_record_v8_rollback_preserves_populated_v7_and_its_exact_ledger() {
     let assert_restored = |v8: &SqliteWorkspace| {
         assert_eq!(
             integer_pragma(&v8.connection, "user_version"),
-            PRIVATE_RECORD_SCHEMA_VERSION,
+            SCHEMA_VERSION,
         );
-        assert_eq!(ledger(&v8.connection), [1, 2, 3, 4, 5, 6, 7, 8]);
+        assert_eq!(ledger(&v8.connection), current_ledger());
         assert_eq!(
             v8.read_folder_manifest(&id).unwrap().as_ref(),
             Some(&stored)
@@ -424,3 +438,6 @@ fn private_record_v8_rollback_preserves_populated_v7_and_its_exact_ledger() {
     fs::write(restored.db(), backup).unwrap();
     assert_restored(&restored.open().unwrap());
 }
+
+#[path = "layout_migration_tests.rs"]
+mod layout_migration_tests;

@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=81b482afd494d8336a677360e000a324a04674ea3621256388a4dba6069f68fe. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=aedc6fbca39dc1cf48974397a1363a2ba67c006f21ef45df6c93e7ee497fcc7a. Do not edit.
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type OpaqueId = string;
 export type Uuid = string;
@@ -8,7 +8,7 @@ export type Metadata = Record<string, JsonValue>;
 export type WorkerRole = "market" | "ai" | "indicator";
 export type ProtocolVersion = "1.0";
 export type ErrorCode = "INVALID_ARGUMENT" | "UNSUPPORTED_CAPABILITY" | "PERMISSION_DENIED" | "CONFIRMATION_REQUIRED" | "CANCELLED" | "TIMEOUT" | "WORKER_EXITED" | "PROTOCOL_MISMATCH" | "DATA_UNAVAILABLE" | "STALE_CONTEXT" | "RESOURCE_LIMIT" | "OUTPUT_INVALID" | "PROVIDER_NOT_CONFIGURED" | "INTERNAL_ERROR" | "BUSY" | "SNAPSHOT_UNAVAILABLE";
-export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "market.previewLocalImport" | "market.saveLocalImportMapping" | "market.loadLocalImportMapping" | "market.listLocalImportRevisions" | "market.readLocalImportRevision" | "market.previewLocalFolderRefresh" | "market.prepareLocalFolderPublication" | "market.publishLocalFolderRefresh" | "market.listLocalFolderRevisions" | "market.readLocalFolderRevision" | "market.revokeLocalFolderRevision" | "market.revokeLocalImportRevision" | "market.publishLocalImport" | "workspace.readChartProjection" | "workspace.selectEvidence" | "decisionNote.save" | "decisionNote.read" | "decisionNote.appendOutcome" | "decisionNote.delete" | "decisionNote.exportBackup" | "decisionNote.previewRestore" | "decisionNote.restoreBackup" | "privateRecord.read" | "privateRecord.change" | "privateRecord.exportBackup";
+export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "market.previewLocalImport" | "market.saveLocalImportMapping" | "market.loadLocalImportMapping" | "market.listLocalImportRevisions" | "market.readLocalImportRevision" | "market.previewLocalFolderRefresh" | "market.prepareLocalFolderPublication" | "market.publishLocalFolderRefresh" | "market.listLocalFolderRevisions" | "market.readLocalFolderRevision" | "market.revokeLocalFolderRevision" | "market.revokeLocalImportRevision" | "market.publishLocalImport" | "workspace.readChartProjection" | "workspace.selectEvidence" | "decisionNote.save" | "decisionNote.read" | "decisionNote.appendOutcome" | "decisionNote.delete" | "decisionNote.exportBackup" | "decisionNote.previewRestore" | "decisionNote.restoreBackup" | "privateRecord.read" | "privateRecord.change" | "privateRecord.exportBackup" | "workspace.previewLayout" | "workspace.applyLayout";
 export type ChartStyle = "candlestick" | "line";
 export type TaskStatus = "queued" | "running" | "awaiting_confirmation" | "completed" | "failed" | "cancelled";
 export type Tradability = "non_tradable" | "unknown";
@@ -1652,7 +1652,15 @@ export type WorkspaceUndoIntent11 = {
   operation: "workspace.undo";
   arguments: WorkspaceUndoArguments11;
 };
-export type MutationIntent11 = WorkspaceOpenInstrumentIntent11 | ChartSetTimeframeIntent11 | ChartSetStyleIntent11 | ChartAddAnnotationIntent11 | ChartRemoveLayerIntent11 | IndicatorCreateDraftIntent11 | IndicatorRunPreviewIntent11 | IndicatorAcceptVersionIntent11 | IndicatorRemoveIntent11 | WorkspaceUndoIntent11;
+export type WorkspacePreviewLayoutIntent11 = {
+  operation: "workspace.previewLayout";
+  arguments: WorkspacePreviewLayoutInput11;
+};
+export type WorkspaceApplyLayoutIntent11 = {
+  operation: "workspace.applyLayout";
+  arguments: WorkspaceApplyLayoutInput11;
+};
+export type MutationIntent11 = WorkspaceOpenInstrumentIntent11 | ChartSetTimeframeIntent11 | ChartSetStyleIntent11 | ChartAddAnnotationIntent11 | ChartRemoveLayerIntent11 | IndicatorCreateDraftIntent11 | IndicatorRunPreviewIntent11 | IndicatorAcceptVersionIntent11 | IndicatorRemoveIntent11 | WorkspaceUndoIntent11 | WorkspacePreviewLayoutIntent11 | WorkspaceApplyLayoutIntent11;
 export type ScopedFailure11 = {
   state: "failed";
   error: WorkspaceFault11;
@@ -1748,7 +1756,18 @@ export type WorkspaceUndoCommitted11 = {
   receipt: OperationReceipt11;
   result: WorkspaceUndoOutput;
 };
-export type MutationOutcome11 = WorkspaceOpenInstrumentCommitted11 | ChartSetTimeframeCommitted11 | ChartSetStyleCommitted11 | ChartAddAnnotationCommitted11 | ChartRemoveLayerCommitted11 | IndicatorCreateDraftCommitted11 | IndicatorRunPreviewCommitted11 | IndicatorAcceptVersionCommitted11 | IndicatorRemoveCommitted11 | WorkspaceUndoCommitted11 | NeedsHumanDecision11 | ScopedFailure11;
+export type WorkspacePreviewLayoutSuccess11 = {
+  state: "previewed";
+  operation: "workspace.previewLayout";
+  result: WorkspacePreviewLayoutOutput11;
+};
+export type WorkspaceApplyLayoutSuccess11 = {
+  state: "committed";
+  operation: "workspace.applyLayout";
+  receipt: OperationReceipt11;
+  result: NamedWorkspaceLayout11;
+};
+export type MutationOutcome11 = WorkspaceOpenInstrumentCommitted11 | ChartSetTimeframeCommitted11 | ChartSetStyleCommitted11 | ChartAddAnnotationCommitted11 | ChartRemoveLayerCommitted11 | IndicatorCreateDraftCommitted11 | IndicatorRunPreviewCommitted11 | IndicatorAcceptVersionCommitted11 | IndicatorRemoveCommitted11 | WorkspaceUndoCommitted11 | NeedsHumanDecision11 | ScopedFailure11 | WorkspacePreviewLayoutSuccess11 | WorkspaceApplyLayoutSuccess11;
 export type InlineIndicatorArtifact11 = {
   storage: "inline";
   result_hash: Hash;
@@ -2889,3 +2908,83 @@ export type ListLocalFolderRevisionsReply11 = ListLocalFolderRevisionsResponse |
 export type ReadLocalFolderRevisionReply11 = ReadLocalFolderRevisionResponse | ReadLocalFolderRevisionError;
 export type RevokeLocalFolderRevisionReply11 = RevokeLocalFolderRevisionResponse | RevokeLocalFolderRevisionError;
 export type AcceptedFolderRefreshBar = PublishedLocalImportBar | FolderRefreshAlternative;
+export type LayoutPanel11 = {
+  panel: "watchlist" | "inspection";
+  dock: "left" | "right" | "bottom";
+  size: number;
+};
+export type WorkspaceLayout11 = {
+  version: number;
+  panels: Array<LayoutPanel11>;
+  theme: "dark" | "light";
+  gain_color: string;
+  loss_color: string;
+  link_selection: boolean;
+  pinned_instrument: (OpaqueId | null);
+};
+export type NamedWorkspaceLayout11 = {
+  name: (string | null);
+  definition: WorkspaceLayout11;
+};
+export type SaveWorkspaceLayout11 = {
+  action: "save";
+  name: string;
+  definition: WorkspaceLayout11;
+};
+export type OpenWorkspaceLayout11 = {
+  action: "open";
+  name: string;
+};
+export type ResetWorkspaceLayout11 = {
+  action: "reset";
+};
+export type WorkspaceLayoutEdit11 = SaveWorkspaceLayout11 | OpenWorkspaceLayout11 | ResetWorkspaceLayout11;
+export type WorkspacePreviewLayoutInput11 = {
+  edit: WorkspaceLayoutEdit11;
+};
+export type WorkspacePreviewLayoutOutput11 = {
+  layout: NamedWorkspaceLayout11;
+  preview_token: string;
+};
+export type WorkspaceApplyLayoutInput11 = {
+  edit: WorkspaceLayoutEdit11;
+  preview_token: string;
+};
+export type WorkspacePreviewLayoutCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  scope: MutationScope11;
+  intent: WorkspacePreviewLayoutIntent11;
+};
+export type WorkspacePreviewLayoutOutcome11 = WorkspacePreviewLayoutSuccess11 | ScopedFailure11;
+export type WorkspacePreviewLayoutReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  outcome: WorkspacePreviewLayoutOutcome11;
+};
+export type WorkspaceApplyLayoutCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  scope: MutationScope11;
+  intent: WorkspaceApplyLayoutIntent11;
+};
+export type WorkspaceApplyLayoutOutcome11 = WorkspaceApplyLayoutSuccess11 | ScopedFailure11;
+export type WorkspaceApplyLayoutReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  outcome: WorkspaceApplyLayoutOutcome11;
+};

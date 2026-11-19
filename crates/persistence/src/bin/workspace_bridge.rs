@@ -49,6 +49,8 @@ fn snapshot(
         "workspace": state.workspace,
         "selection_revision": state.selection_revision,
         "chart_evidence": state.chart_evidence,
+        "layouts": state.layouts_json(),
+        "source": state.source_json(),
         "undo": state.undo.map(|target| json!({
             "operation_id": target.operation_id,
             "committed_workspace_revision": target.committed_workspace_revision,
@@ -128,6 +130,12 @@ fn serve(
                     result_frame(Err(failure(ErrorCode::INVALIDARGUMENT))),
                 )?;
             }
+        } else if let Ok(request) = &request
+            && request["type"] == "workspace_source"
+        {
+            let mut frame = result_frame(registry.select_workspace_source(access, request));
+            frame["request_id"] = request["request_id"].clone();
+            write_frame(&mut output, frame)?;
         } else if let Ok(request) = &request
             && matches!(
                 request["type"].as_str(),

@@ -43,17 +43,19 @@ pub use reviewed_mapping::{
     reviewed_preview_header, save_mapping_input,
 };
 pub use workspace::{
-    ChartEvidenceRef, ChartEvidenceStatus, DECISION_NOTE_APPEND_OUTCOME,
+    APPLY_LAYOUT, ChartEvidenceRef, ChartEvidenceStatus, DECISION_NOTE_APPEND_OUTCOME,
     DECISION_NOTE_BACKUP_MAX_BYTES, DECISION_NOTE_BACKUP_MAX_DELETIONS,
     DECISION_NOTE_BACKUP_MAX_NOTES, DECISION_NOTE_BACKUP_MAX_OUTCOMES, DECISION_NOTE_DELETE,
     DECISION_NOTE_EXPORT_BACKUP, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE,
     DECISION_NOTE_READ, DECISION_NOTE_RESTORE_BACKUP, DECISION_NOTE_SAVE, DecisionNoteBackupData,
     DecisionNoteChange, DecisionNoteMutation, DecisionNoteOutcomeAddition, DecisionNoteReceipt,
-    DecisionNoteReplay, DecisionNoteRestorePlan, LOCAL_WORKSPACE_OPERATIONS,
-    LocalChartAnalysisGrant, MAIN_CHART_ID, PRIVATE_RECORD_CHANGE, PRIVATE_RECORD_EXPORT,
-    PRIVATE_RECORD_OPERATIONS, PRIVATE_RECORD_READ, PrivateRecordPlan, READ_CHART_PROJECTION,
-    SELECT_EVIDENCE, SET_TIMEFRAME, Timeframe, UNDO, WorkspaceAccess, WorkspaceBinding,
-    WorkspaceChange, WorkspaceReceipt, WorkspaceReplay, WorkspaceReplayKey, WorkspaceSnapshot,
+    DecisionNoteReplay, DecisionNoteRestorePlan, FrozenWorkspaceSourceStatus, LAYOUT_ID,
+    LOCAL_WORKSPACE_OPERATIONS, LocalChartAnalysisGrant, MAIN_CHART_ID, PREVIEW_LAYOUT,
+    PRIVATE_RECORD_CHANGE, PRIVATE_RECORD_EXPORT, PRIVATE_RECORD_OPERATIONS, PRIVATE_RECORD_READ,
+    PrivateRecordPlan, READ_CHART_PROJECTION, SELECT_EVIDENCE, SET_TIMEFRAME, Timeframe, UNDO,
+    WorkspaceAccess, WorkspaceBinding, WorkspaceChange, WorkspaceLayoutChange,
+    WorkspaceLayoutSnapshot, WorkspaceLayoutState, WorkspaceReceipt, WorkspaceReplay,
+    WorkspaceReplayKey, WorkspaceSnapshot, WorkspaceSourcePreference, WorkspaceSourceView,
     WorkspaceState, WorkspaceStore, WorkspaceTransaction, WorkspaceUndoAccess, WorkspaceUndoTarget,
     evidence_operation_name,
 };
@@ -272,6 +274,7 @@ fn authorized_operation(actor: Actor, name: &str) -> Result<&'static Operation, 
 /// ```
 pub struct OperationRegistry<P> {
     port: P,
+    layout_preview_secret: uuid::Uuid,
     note_confirmation: Option<workspace::PendingDecisionNoteConfirmation>,
     note_restore: workspace::DecisionNoteRestoreStaging,
     private_record_stage: workspace::PrivateRecordStaging,
@@ -308,6 +311,7 @@ impl<P> OperationRegistry<P> {
     pub fn new(port: P) -> Self {
         Self {
             port,
+            layout_preview_secret: uuid::Uuid::new_v4(),
             note_confirmation: None,
             note_restore: workspace::DecisionNoteRestoreStaging::default(),
             private_record_stage: workspace::PrivateRecordStaging::default(),

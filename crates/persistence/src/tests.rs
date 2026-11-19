@@ -521,7 +521,7 @@ fn decision_note_migration_rolls_back_and_preserves_v1_timeframe_and_replay() {
         SCHEMA_VERSION
     );
     assert_eq!(integer_pragma(&migrated.connection, "secure_delete"), 1);
-    let (chart, undo, _) = migrated
+    let (chart, undo, _, _, _) = migrated
         .snapshot(
             Some(WorkspaceUndoAccess {
                 actor: Actor::User,

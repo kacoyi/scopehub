@@ -7,6 +7,7 @@ mod notes;
 mod private_records;
 mod reviewed_import;
 mod storage;
+mod workspace_layout;
 
 use std::{fmt, path::Path, time::Duration};
 
@@ -14,15 +15,17 @@ use rusqlite::{
     Connection, OpenFlags, OptionalExtension, Row, TransactionBehavior, config::DbConfig, params,
 };
 use scopehub_application::{
-    Actor, ChartEvidenceRef, ChartEvidenceStatus, DecisionNoteBackupData, DecisionNoteChange,
-    DecisionNoteMutation, DecisionNoteReplay, DecisionNoteRestorePlan, PrivateRecordPlan,
-    SET_TIMEFRAME, StoredLocalDataset, Timeframe, UNDO, WorkspaceBinding, WorkspaceChange,
-    WorkspaceReceipt, WorkspaceReplay, WorkspaceReplayKey, WorkspaceState, WorkspaceStore,
-    WorkspaceTransaction, WorkspaceUndoAccess, WorkspaceUndoTarget, failure,
+    APPLY_LAYOUT, Actor, ChartEvidenceRef, ChartEvidenceStatus, DecisionNoteBackupData,
+    DecisionNoteChange, DecisionNoteMutation, DecisionNoteReplay, DecisionNoteRestorePlan,
+    PrivateRecordPlan, SET_TIMEFRAME, StoredLocalDataset, Timeframe, UNDO, WorkspaceBinding,
+    WorkspaceChange, WorkspaceLayoutChange, WorkspaceLayoutSnapshot, WorkspaceLayoutState,
+    WorkspaceReceipt, WorkspaceReplay, WorkspaceReplayKey, WorkspaceSourcePreference,
+    WorkspaceSourceView, WorkspaceState, WorkspaceStore, WorkspaceTransaction, WorkspaceUndoAccess,
+    WorkspaceUndoTarget, failure,
 };
 use scopehub_domain::protocol::{
     DecisionNoteDate, DecisionNoteReadOutput, Error, ErrorCode, PrivateRecordArchiveEntry,
-    PrivateRecordEntry, PrivateRecordSummary, Revision, VisibleRange,
+    PrivateRecordEntry, PrivateRecordSummary, Revision, VisibleRange, WorkspaceLayout11,
 };
 
 const DATABASE_NAME: &str = "workspace.sqlite3";
@@ -35,7 +38,8 @@ const LOCAL_DATASET_SCHEMA_VERSION: i64 = 5;
 const CHART_EVIDENCE_SCHEMA_VERSION: i64 = 6;
 const FOLDER_MANIFEST_SCHEMA_VERSION: i64 = 7;
 const PRIVATE_RECORD_SCHEMA_VERSION: i64 = 8;
-const SCHEMA_VERSION: i64 = PRIVATE_RECORD_SCHEMA_VERSION;
+const WORKSPACE_LAYOUT_SCHEMA_VERSION: i64 = 9;
+const SCHEMA_VERSION: i64 = WORKSPACE_LAYOUT_SCHEMA_VERSION;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum OpenWorkspaceError {
@@ -258,6 +262,10 @@ fn migrate(connection: &Connection, binding: &WorkspaceBinding) -> Result<(), Op
         connection.execute_batch(include_str!("private_records.sql"))?;
         record_migration(connection, PRIVATE_RECORD_SCHEMA_VERSION)?;
     }
+    if version < WORKSPACE_LAYOUT_SCHEMA_VERSION {
+        connection.execute_batch(include_str!("workspace_layout.sql"))?;
+        record_migration(connection, WORKSPACE_LAYOUT_SCHEMA_VERSION)?;
+    }
     Ok(())
 }
 
@@ -415,6 +423,8 @@ impl WorkspaceStore for SqliteWorkspace {
             WorkspaceState,
             Option<WorkspaceUndoTarget>,
             Option<ChartEvidenceStatus>,
+            WorkspaceLayoutSnapshot,
+            Option<WorkspaceSourceView>,
         ),
         Error,
     > {
@@ -424,6 +434,11 @@ impl WorkspaceStore for SqliteWorkspace {
             .map_err(store_error)?;
         let workspace_id = &self.binding.workspace_id;
         let state = state(&snapshot, workspace_id)?;
+        let layouts = workspace_layout::read(&snapshot, workspace_id)?;
+        let layout_undo = undo
+            .map(|undo| workspace_layout::eligible_undo(&snapshot, workspace_id, undo))
+            .transpose()?
+            .flatten();
         let target = undo
             .map(|undo| eligible_undo(&snapshot, workspace_id, state, undo))
             .transpose()?
@@ -439,8 +454,23 @@ impl WorkspaceStore for SqliteWorkspace {
         } else {
             None
         };
+        let source = if disclose_chart_evidence {
+            workspace_layout::source_view(&snapshot, workspace_id)?
+        } else {
+            None
+        };
         snapshot.commit().map_err(store_error)?;
-        Ok((state, target, evidence))
+        Ok((
+            state,
+            target,
+            evidence,
+            WorkspaceLayoutSnapshot {
+                active: layouts.active,
+                saved: layouts.saved.into_keys().collect(),
+                undo: layout_undo,
+            },
+            source,
+        ))
     }
 
     fn inspect<T>(
@@ -529,6 +559,71 @@ struct SqliteTransaction<'a> {
 impl WorkspaceTransaction for SqliteTransaction<'_> {
     fn state(&self) -> Result<WorkspaceState, Error> {
         state(self.connection, &self.binding.workspace_id)
+    }
+
+    fn set_source_preference(&mut self, source: &WorkspaceSourcePreference) -> Result<(), Error> {
+        workspace_layout::write_source(self.connection, &self.binding.workspace_id, source)
+    }
+
+    fn layouts(&self) -> Result<WorkspaceLayoutState, Error> {
+        workspace_layout::read(self.connection, &self.binding.workspace_id)
+    }
+
+    fn layout_change(
+        &self,
+        operation_id: &str,
+        actor: Actor,
+    ) -> Result<Option<WorkspaceLayoutChange>, Error> {
+        workspace_layout::change(
+            self.connection,
+            &self.binding.workspace_id,
+            operation_id,
+            actor,
+        )
+    }
+
+    fn layout_undo_candidate(
+        &self,
+        operation_id: &str,
+        access: WorkspaceUndoAccess<'_>,
+    ) -> Result<Option<WorkspaceReceipt>, Error> {
+        self.connection
+            .query_row(
+                "SELECT id, revision, undoable, before_timeframe, after_timeframe
+                 FROM operation_log
+                 WHERE id = ?1 AND workspace_id = ?2 AND principal_id = ?3
+                   AND paired_client_id = ?4 AND actor = ?5 AND operation = ?6 AND undoable = 1
+                   AND revision = (SELECT max(revision) FROM operation_log AS candidate
+                     JOIN workspace_layout_changes AS edit ON edit.operation_id = candidate.id
+                     WHERE candidate.workspace_id = ?2)",
+                params![
+                    operation_id,
+                    self.binding.workspace_id,
+                    access.principal_id,
+                    access.paired_client_id.unwrap_or(""),
+                    access.actor.as_str(),
+                    APPLY_LAYOUT
+                ],
+                receipt,
+            )
+            .optional()
+            .map_err(store_error)
+    }
+
+    fn record_layout(
+        &mut self,
+        change: &WorkspaceChange<'_>,
+        edit: &WorkspaceLayoutChange,
+        saved_after: Option<&WorkspaceLayout11>,
+    ) -> Result<(), Error> {
+        self.record_change(change, None)?;
+        workspace_layout::write(
+            self.connection,
+            &self.binding.workspace_id,
+            &change.receipt.operation_id,
+            edit,
+            saved_after,
+        )
     }
 
     fn private_record(&self, id: &str) -> Result<Option<PrivateRecordEntry>, Error> {

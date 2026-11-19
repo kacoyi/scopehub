@@ -21,8 +21,11 @@ use crate::{
 
 mod backup;
 mod evidence;
+mod layout;
 mod notes;
 mod private_records;
+mod source;
+pub use source::{FrozenWorkspaceSourceStatus, WorkspaceSourcePreference, WorkspaceSourceView};
 
 pub(crate) use private_records::PrivateRecordStaging;
 pub use private_records::{
@@ -41,6 +44,10 @@ pub use evidence::{
     ChartEvidenceRef, ChartEvidenceStatus, LocalChartAnalysisGrant, READ_CHART_PROJECTION,
     SELECT_EVIDENCE, evidence_operation_name,
 };
+pub use layout::{
+    APPLY_LAYOUT, LAYOUT_ID, PREVIEW_LAYOUT, WorkspaceLayoutChange, WorkspaceLayoutSnapshot,
+    WorkspaceLayoutState,
+};
 pub(crate) use notes::PendingDecisionNoteConfirmation;
 pub use notes::{
     DECISION_NOTE_APPEND_OUTCOME, DECISION_NOTE_DELETE, DECISION_NOTE_OPERATIONS,
@@ -53,6 +60,8 @@ pub const UNDO: &str = "workspace.undo";
 pub const LOCAL_WORKSPACE_OPERATIONS: &[&str] = &[
     SET_TIMEFRAME,
     UNDO,
+    PREVIEW_LAYOUT,
+    APPLY_LAYOUT,
     SELECT_EVIDENCE,
     READ_CHART_PROJECTION,
     DECISION_NOTE_SAVE,
@@ -130,6 +139,29 @@ pub struct WorkspaceSnapshot {
     pub selection_revision: Revision,
     pub undo: Option<WorkspaceUndoTarget>,
     pub chart_evidence: Option<Value>,
+    pub layouts: Option<WorkspaceLayoutSnapshot>,
+    source: Option<WorkspaceSourceView>,
+}
+
+impl WorkspaceSnapshot {
+    pub fn source_json(&self) -> Value {
+        self.source
+            .as_ref()
+            .map_or(Value::Null, WorkspaceSourceView::to_json)
+    }
+
+    pub fn layouts_json(&self) -> Value {
+        self.layouts.as_ref().map_or(Value::Null, |layouts| {
+            json!({
+                "active": layouts.active,
+                "saved": layouts.saved,
+                "undo": layouts.undo.as_ref().map(|target| json!({
+                    "operation_id": target.operation_id,
+                    "committed_workspace_revision": target.committed_workspace_revision,
+                })),
+            })
+        })
+    }
 }
 
 pub struct WorkspaceUndoTarget {
@@ -137,6 +169,7 @@ pub struct WorkspaceUndoTarget {
     pub committed_workspace_revision: Revision,
 }
 
+#[derive(Clone, Copy)]
 pub struct WorkspaceUndoAccess<'a> {
     pub actor: Actor,
     pub principal_id: &'a str,
@@ -176,6 +209,24 @@ pub struct WorkspaceChange<'a> {
 /// A transaction over the single workspace owned by this store.
 pub trait WorkspaceTransaction {
     fn state(&self) -> Result<WorkspaceState, Error>;
+    fn set_source_preference(&mut self, source: &WorkspaceSourcePreference) -> Result<(), Error>;
+    fn layouts(&self) -> Result<WorkspaceLayoutState, Error>;
+    fn layout_change(
+        &self,
+        operation_id: &str,
+        actor: Actor,
+    ) -> Result<Option<WorkspaceLayoutChange>, Error>;
+    fn layout_undo_candidate(
+        &self,
+        operation_id: &str,
+        access: WorkspaceUndoAccess<'_>,
+    ) -> Result<Option<WorkspaceReceipt>, Error>;
+    fn record_layout(
+        &mut self,
+        change: &WorkspaceChange<'_>,
+        edit: &WorkspaceLayoutChange,
+        saved_after: Option<&scopehub_domain::protocol::WorkspaceLayout11>,
+    ) -> Result<(), Error>;
     fn private_record(&self, id: &str) -> Result<Option<PrivateRecordEntry>, Error>;
     fn private_record_index(&self) -> Result<Vec<PrivateRecordSummary>, Error>;
     fn private_record_deletions(&self) -> Result<Vec<String>, Error>;
@@ -241,6 +292,8 @@ pub trait WorkspaceStore: Send {
             WorkspaceState,
             Option<WorkspaceUndoTarget>,
             Option<ChartEvidenceStatus>,
+            WorkspaceLayoutSnapshot,
+            Option<WorkspaceSourceView>,
         ),
         Error,
     >;
@@ -318,7 +371,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             principal_id: access.principal_id,
             paired_client_id: access.paired_client_id,
         });
-        let (state, undo, chart_evidence) = self.port.snapshot(
+        let (state, undo, chart_evidence, layouts, source) = self.port.snapshot(
             undo,
             evidence::local_display(access) && access.operations.contains(&READ_CHART_PROJECTION),
         )?;
@@ -328,6 +381,11 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             workspace: workspace_projection(access.workspace_id, state.revision, state.timeframe),
             selection_revision: state.selection_revision,
             undo,
+            source: source.filter(|_| evidence::local_display(access)),
+            layouts: access
+                .operations
+                .contains(&PREVIEW_LAYOUT)
+                .then_some(layouts),
             chart_evidence: chart_evidence.map(|status| match status {
                 ChartEvidenceStatus::Available(target) => json!({
                     "revision_id": target.revision_id, "range": target.range,
@@ -364,7 +422,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         }
         if !matches!(
             intent["intent"]["operation"].as_str(),
-            Some(SET_TIMEFRAME | UNDO)
+            Some(SET_TIMEFRAME | UNDO | PREVIEW_LAYOUT | APPLY_LAYOUT)
         ) {
             return Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY));
         }
@@ -401,7 +459,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         if PRIVATE_RECORD_OPERATIONS.contains(&name) {
             return self.execute_private_record(access, operation(name)?, request);
         }
-        if !matches!(name, SET_TIMEFRAME | UNDO) {
+        if !matches!(name, SET_TIMEFRAME | UNDO | PREVIEW_LAYOUT | APPLY_LAYOUT) {
             return Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY));
         }
         let op = operation(name)?;
@@ -422,6 +480,8 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             .as_str()
             .expect("validated request id");
         let reply = WorkspaceReply::new(op, request_id)?;
+        let is_layout = matches!(op.name.as_str(), PREVIEW_LAYOUT | APPLY_LAYOUT)
+            || (op.name == UNDO && scope.target == layout::layout_target());
         let result = op.authorize(access.actor).and_then(|()| {
             if !permits_scope(access, self.port.binding())
                 || scope.workspace_id != access.workspace_id
@@ -429,6 +489,30 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
                 return Err(failure(ErrorCode::PERMISSIONDENIED));
             }
             let arguments = &request["intent"]["arguments"];
+            if is_layout {
+                if op.name == PREVIEW_LAYOUT {
+                    return self.port.inspect(|tx| {
+                        layout::preview(
+                            tx,
+                            access,
+                            &scope,
+                            arguments,
+                            &reply,
+                            self.layout_preview_secret,
+                        )
+                    });
+                }
+                return self.port.transact(|tx| {
+                    layout::commit(
+                        tx,
+                        access,
+                        &scope,
+                        arguments,
+                        &reply,
+                        self.layout_preview_secret,
+                    )
+                });
+            }
             self.port.transact(|tx| {
                 execute_mutation(
                     tx,
@@ -451,6 +535,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
                 }
                 Ok(value)
             }
+            Err(error) if is_layout => reply.failed(&error),
             Err(error) => reply.failed(&workspace_failure(error.code)),
         }
     }

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-008",
+  "focus_task_id": "M2-002",
   "tasks": [
     {
       "id": "M0-001",
@@ -4217,11 +4217,12 @@
       "id": "M2-002",
       "title": "Customize and restore a single-chart workspace",
       "milestone": "M2",
-      "status": "planned",
+      "status": "active",
       "depends_on": [
         "M2-001"
       ],
       "scope": [
+        "contracts",
         "apps/desktop",
         "crates/application",
         "crates/persistence",
@@ -4240,12 +4241,109 @@
       "checks": [
         "workspace-layout",
         "operations-workflow",
-        "state-migrations"
+        "state-migrations",
+        "market-workflow",
+        "ui-build"
       ],
       "evidence": [],
-      "next_action": "Start with chart, watchlist and inspection panels. Define the narrow layout operations and versioned storage, then validate actor permissions, restoration and a user-authored binding.",
+      "next_action": "Validate the additive v8-to-v9 layout store, then exercise manual and declarative layout preview, apply, undo and same-profile reopen with the real chart and source controls.",
       "blocker": null,
-      "closure_reason": null
+      "closure_reason": null,
+      "plan": {
+        "outcome": "With the existing desktop chart, arrange the watchlist and inspection, preview and save a named layout, reopen it in the same profile, and reset or undo. Restore the last explicit simulated sample or retain an unavailable source identity and reason with the saved arrangement.",
+        "change_types": [
+          "persistence",
+          "permissions",
+          "ui"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/contract.json",
+          "project/delivery.json",
+          "project/development.json"
+        ],
+        "hypotheses": [
+          "The same versioned built-in panel definition can drive manual controls, declarative edits and scoped registry calls.",
+          "The workspace already owns source evidence and a separate selection revision. Reusing it preserves current grants and prevents a layout restore from becoming a source grant.",
+          "A registry preview bound to the current revisions and actor can protect the exact edit, with replay and undo recorded in the existing SQLite transaction."
+        ],
+        "risks": [
+          {
+            "failure": "A stale or substituted preview overwrites a later layout, a lost reply repeats a write, or an unsupported panel binding reaches the renderer.",
+            "checks": [
+              "workspace-layout",
+              "operations-workflow"
+            ]
+          },
+          {
+            "failure": "An interrupted upgrade or write loses workspace selection, saved records, notes, source lineage or the previously accepted layout.",
+            "checks": [
+              "state-migrations",
+              "workspace-layout"
+            ]
+          },
+          {
+            "failure": "A reopened unavailable source restores private data, silently substitutes the sample, or removes access to source and confirmation controls.",
+            "checks": [
+              "workspace-layout",
+              "operations-workflow"
+            ]
+          }
+        ],
+        "rollback": "Keep migration DDL inside the existing SQLite transaction. Simulate an interrupted migration and an aborted write on disposable populated profiles. Preserve the last committed layout and reread the current revision before generating a new preview.",
+        "implementation": {
+          "modules": [
+            "application",
+            "domain",
+            "persistence",
+            "desktop",
+            "ui"
+          ],
+          "entrypoints": [
+            "crates/application/src/workspace.rs",
+            "crates/persistence/src/lib.rs",
+            "contracts/schemas/protocol.schema.json",
+            "apps/desktop/src-tauri/src/workspace.rs",
+            "apps/desktop/ui/src/use-local-workspace.ts",
+            "apps/desktop/ui/src/chart-workspace.tsx"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/customization"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/workspace_entry"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/shared_evidence"
+            },
+            {
+              "path": "contracts/decisions/0008-inspectable-data-and-workspace-actions.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Executable custom panels, external providers, changes to record backups or grant rules, and indicator artifact ownership."
+          ],
+          "open_questions": [
+            "Confirm native Windows accessibility and the remaining evidence navigation scenarios after the local browser slice."
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing local chart adapter, profile and evidence binding, workspace undo and source authorization. Existing record archives retain their content and authority boundaries."
+          ],
+          "change": [
+            "Add a typed version 1 layout definition, a built-in panel editor and guarded layout registry operations. Advance profile schema from v8 to v9 additively."
+          ],
+          "data_plan": "Store only panel arrangement and allowlisted binding settings in the layout records. Keep source evidence and grants independently owned by their existing modules.",
+          "cleanup": "Exercise migration and rollback with populated profiles, then remove temporary inputs from the repository and retain scoped run evidence."
+        }
+      }
     },
     {
       "id": "M1-015",
