@@ -1,7 +1,12 @@
-use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
+use rusqlite::{Connection, OptionalExtension, Row, TransactionBehavior, params, types::Type};
 use scopehub_application::{
-    FolderManifestBar, FolderManifestLocator, FolderManifestPublication, FolderManifestRequest,
-    FolderManifestSourceRef, FolderManifestStore, MappingCommitGuard, StoredFolderManifest,
+    FolderManifestAnchor, FolderManifestBar, FolderManifestLocator, FolderManifestPublication,
+    FolderManifestRequest, FolderManifestSourceRef, FolderManifestStore, MappingCommitGuard,
+    StoredFolderManifest,
+};
+use scopehub_domain::protocol::{
+    LocalImportRevisionBarSummary, PreviewSeries, PublishedLocalFolderRevision,
+    PublishedLocalImportRevision,
 };
 use uuid::Uuid;
 
@@ -111,6 +116,92 @@ impl FolderManifestStore for SqliteWorkspace {
         }))
     }
 
+    fn read_folder_manifest_anchor(
+        &self,
+        revision_id: &str,
+    ) -> Result<Option<FolderManifestAnchor>, Error> {
+        check_revision_id(revision_id)?;
+        let anchor = self.connection.query_row(
+            "SELECT base.source_key, base.revision_id, base.relative_path, base.source_sha256,
+                    base.mapping_sha256, base.review_revision,
+                    json_extract(base.content_json, '$.symbol'),
+                    json_extract(base.content_json, '$.series'),
+                    json_array_length(base.content_json, '$.bars'),
+                    json_extract(base.content_json, '$.source_record_count'),
+                    revoked.revision_id IS NOT NULL
+             FROM local_folder_manifest_revisions AS folder
+             JOIN local_dataset_revisions AS base ON base.revision_id = folder.base_revision_id
+             LEFT JOIN local_folder_manifest_revocations AS revoked ON revoked.revision_id = folder.revision_id
+             WHERE folder.revision_id = ?1",
+            [revision_id],
+            |row| Ok((FolderManifestAnchor {
+                source_key: row.get(0)?,
+                revision: PublishedLocalImportRevision {
+                    revision_id: row.get(1)?, relative_path: row.get(2)?, source_sha256: row.get(3)?,
+                    mapping_sha256: row.get(4)?, review_revision: super::revision(row, 5)?,
+                    symbol: row.get(6)?, series: series(row, 7)?,
+                    bar_count: u64::from(row.get::<_, u32>(8)?),
+                    source_record_count: u64::from(row.get::<_, u32>(9)?),
+                },
+            }, row.get::<_, bool>(10)?)),
+        ).optional().map_err(store_error)?;
+        anchor
+            .map(|(anchor, revoked)| {
+                require_display(revoked)?;
+                Ok(anchor)
+            })
+            .transpose()
+    }
+
+    fn folder_manifest_summary(
+        &self,
+        revision_id: &str,
+    ) -> Result<Option<PublishedLocalFolderRevision>, Error> {
+        check_revision_id(revision_id)?;
+        let result = self
+            .connection
+            .query_row(
+                &format!("{SUMMARY_QUERY} WHERE folder.revision_id = ?1"),
+                [revision_id],
+                |row| Ok((summary(row)?, row.get::<_, bool>(8)?)),
+            )
+            .optional()
+            .map_err(store_error)?;
+        result
+            .map(|(revision, revoked)| {
+                require_display(revoked)?;
+                Ok(revision)
+            })
+            .transpose()
+    }
+
+    fn list_folder_manifest_summaries(
+        &self,
+        after_revision_id: Option<&str>,
+        limit: usize,
+    ) -> Result<Vec<PublishedLocalFolderRevision>, Error> {
+        if let Some(after) = after_revision_id {
+            check_revision_id(after)?;
+        }
+        let limit = i64::try_from(limit).map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
+        let mut statement = self
+            .connection
+            .prepare(&format!(
+                "{SUMMARY_QUERY}
+            WHERE folder.revision_id > ?1 AND revoked.revision_id IS NULL
+            ORDER BY folder.revision_id LIMIT ?2"
+            ))
+            .map_err(store_error)?;
+        statement
+            .query_map(
+                params![after_revision_id.unwrap_or_default(), limit],
+                summary,
+            )
+            .map_err(store_error)?
+            .collect::<Result<_, _>>()
+            .map_err(store_error)
+    }
+
     fn read_folder_manifest_source(
         &self,
         revision_id: &str,
@@ -159,6 +250,55 @@ impl FolderManifestStore for SqliteWorkspace {
         transaction.commit().map_err(store_error)?;
         Ok(true)
     }
+}
+
+const SUMMARY_QUERY: &str = "SELECT folder.revision_id, folder.base_revision_id, folder.parent_revision_id,
+        base.relative_path, json_extract(base.content_json, '$.symbol'),
+        json_extract(base.content_json, '$.series'),
+        (SELECT count(*) FROM local_folder_manifest_sources AS source WHERE source.revision_id = folder.revision_id),
+        (SELECT count(*) FROM local_folder_manifest_bars AS bar WHERE bar.revision_id = folder.revision_id),
+        revoked.revision_id IS NOT NULL,
+        (SELECT json_extract(bar.bar_json, '$.trading_day') FROM local_folder_manifest_bars AS bar
+            WHERE bar.revision_id = folder.revision_id ORDER BY bar.time_ms LIMIT 1),
+        (SELECT json_extract(bar.bar_json, '$.trading_day') FROM local_folder_manifest_bars AS bar
+            WHERE bar.revision_id = folder.revision_id ORDER BY bar.time_ms DESC LIMIT 1),
+        (SELECT json_extract(bar.bar_json, '$.close') FROM local_folder_manifest_bars AS bar
+            WHERE bar.revision_id = folder.revision_id ORDER BY bar.time_ms DESC LIMIT 1)
+    FROM local_folder_manifest_revisions AS folder
+    JOIN local_dataset_revisions AS base ON base.revision_id = folder.base_revision_id
+    LEFT JOIN local_folder_manifest_revocations AS revoked ON revoked.revision_id = folder.revision_id";
+
+fn summary(row: &Row<'_>) -> rusqlite::Result<PublishedLocalFolderRevision> {
+    let series = series(row, 5)?;
+    let bar_count = u64::from(row.get::<_, u32>(7)?);
+    let bar_summary = if bar_count == 0 {
+        None
+    } else {
+        Some(LocalImportRevisionBarSummary {
+            venue: series.venue.clone(),
+            first_trading_day: row.get(9)?,
+            final_trading_day: row.get(10)?,
+            final_close: row.get(11)?,
+        })
+    };
+    Ok(PublishedLocalFolderRevision {
+        revision_id: row.get(0)?,
+        base_revision_id: row.get(1)?,
+        parent_revision_id: row.get(2)?,
+        origin_path: row.get(3)?,
+        symbol: row.get(4)?,
+        series,
+        source_count: u64::from(row.get::<_, u32>(6)?),
+        bar_count,
+        bar_summary,
+    })
+}
+
+fn series(row: &Row<'_>, column: usize) -> rusqlite::Result<PreviewSeries> {
+    let json: String = row.get(column)?;
+    serde_json::from_str(&json).map_err(|error| {
+        rusqlite::Error::FromSqlConversionFailure(column, Type::Text, Box::new(error))
+    })
 }
 
 struct ManifestRevision {

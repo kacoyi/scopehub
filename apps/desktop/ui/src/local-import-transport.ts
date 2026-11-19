@@ -2,7 +2,12 @@ import { invoke, isTauri } from '@tauri-apps/api/core';
 import type {
   ListLocalImportRevisionsInput, ListLocalImportRevisionsOutput,
   LoadLocalImportMappingInput, LoadLocalImportMappingOutput, LocalImportPreviewInput, LocalImportPreviewOutput,
+  ListLocalFolderRevisionsInput, ListLocalFolderRevisionsOutput,
+  PrepareLocalFolderPublicationInput, PrepareLocalFolderPublicationOutput,
   PreviewLocalFolderRefreshInput, PreviewLocalFolderRefreshOutput,
+  PublishLocalFolderRefreshInput, PublishLocalFolderRefreshOutput,
+  ReadLocalFolderRevisionInput, ReadLocalFolderRevisionOutput,
+  RevokeLocalFolderRevisionInput, RevokeLocalFolderRevisionOutput,
   PublishLocalImportInput, PublishLocalImportOutput, ReadLocalImportRevisionInput, ReadLocalImportRevisionOutput,
   RevokeLocalImportRevisionInput, RevokeLocalImportRevisionOutput,
   SaveLocalImportMappingInput, SaveLocalImportMappingOutput,
@@ -75,6 +80,41 @@ export async function previewLocalFolderRefresh(payload: PreviewLocalFolderRefre
   requireNative();
   return invoke<PreviewLocalFolderRefreshOutput>('execute_operation', {
     operation: 'market.previewLocalFolderRefresh', payload, requestId,
+  });
+}
+
+export async function prepareLocalFolderPublication(payload: PrepareLocalFolderPublicationInput, requestId: string) {
+  requireNative();
+  return invoke<PrepareLocalFolderPublicationOutput>('execute_operation', {
+    operation: 'market.prepareLocalFolderPublication', payload, requestId,
+  });
+}
+
+export async function publishLocalFolderRefresh(payload: PublishLocalFolderRefreshInput, requestId: string) {
+  requireNative();
+  return invoke<PublishLocalFolderRefreshOutput>('execute_operation', {
+    operation: 'market.publishLocalFolderRefresh', payload, requestId,
+  });
+}
+
+export async function listLocalFolderRevisions(payload: ListLocalFolderRevisionsInput, requestId: string) {
+  requireNative();
+  return invoke<ListLocalFolderRevisionsOutput>('execute_operation', {
+    operation: 'market.listLocalFolderRevisions', payload, requestId,
+  });
+}
+
+export async function readLocalFolderRevision(payload: ReadLocalFolderRevisionInput, requestId: string) {
+  requireNative();
+  return invoke<ReadLocalFolderRevisionOutput>('execute_operation', {
+    operation: 'market.readLocalFolderRevision', payload, requestId,
+  });
+}
+
+export async function revokeLocalFolderRevision(payload: RevokeLocalFolderRevisionInput, requestId: string) {
+  requireNative();
+  return invoke<RevokeLocalFolderRevisionOutput>('execute_operation', {
+    operation: 'market.revokeLocalFolderRevision', payload, requestId,
   });
 }
 

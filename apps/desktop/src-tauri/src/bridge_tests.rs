@@ -682,6 +682,362 @@ raise SystemExit(local_import.run(sys.stdin.buffer, sys.stdout.buffer))
 
 #[cfg(any(target_os = "linux", windows))]
 #[tokio::test]
+async fn reviewed_folder_publication_requires_current_choices_and_reopens_frozen_receipts() {
+    use std::fs;
+
+    let fixture = ImportFixture::new();
+    let profile = fixture.0.join("profile");
+    let folder = fixture.0.join("source");
+    let other = fixture.0.join("other");
+    fs::create_dir(&folder).unwrap();
+    fs::create_dir(&other).unwrap();
+    let header = "Ticker,Date,Open,High,Low,Close,Shares,quantity_unit,price_adjustment,venue\n";
+    let first = "000418,2026-11-19,4,8,3,5,20,shares,raw,TEST\n";
+    let last = "000418,2026-11-20,4,8,3,8,21,shares,raw,TEST\n";
+    let correction = format!(
+        "{header}{}{}",
+        first.replace(",5,20", ",6,20"),
+        first.replace(",5,20", ",7,20")
+    );
+    let csv = folder.join("original.csv");
+    let supplement = folder.join("supplement");
+    let correction_path = supplement.join("changed.csv");
+    let alias = folder.join("alias.csv");
+    fs::write(&csv, format!("{header}{first}{last}")).unwrap();
+    let state = state_with_local_profile(Some(&profile));
+    let ids = select_csv(&state, &folder).await;
+    let save = reviewed_save_input(&state, &ids, equity_mapping()).await;
+    let saved = execute_import(&state, SAVE_LOCAL_IMPORT_MAPPING, save.clone())
+        .await
+        .unwrap();
+    let published = execute_import(
+        &state,
+        PUBLISH_LOCAL_IMPORT,
+        publication_input(&save, &saved),
+    )
+    .await
+    .unwrap();
+    let legacy_read = json!({"version": 1, "revision_id": published["revision"]["revision_id"]});
+    let legacy = execute_import(&state, READ_LOCAL_IMPORT_REVISION, legacy_read.clone())
+        .await
+        .unwrap();
+    let preview = json!({"version": 1, "folder_id": ids["folder_id"], "revision_id": legacy_read["revision_id"]});
+    let list = json!({"version": 1, "after_revision_id": null, "limit": 8});
+    fs::remove_file(&csv).unwrap();
+    fs::create_dir(&supplement).unwrap();
+    fs::write(&correction_path, &correction).unwrap();
+    fs::write(&alias, &correction).unwrap();
+    let incompatible_path = folder.join("contradiction.csv");
+    for (actual, declaration) in [
+        ("shares,raw,TEST", "lots,raw,TEST"),
+        ("shares,raw,TEST", "shares,split_adjusted,TEST"),
+        ("shares,raw,TEST", "shares,raw,OTHER"),
+    ] {
+        fs::write(
+            &incompatible_path,
+            format!("{header}{}", first.replace(actual, declaration)),
+        )
+        .unwrap();
+        let held = execute_import(&state, PREVIEW_LOCAL_FOLDER_REFRESH, preview.clone())
+            .await
+            .unwrap();
+        assert_eq!(held["publication_allowed"], false);
+        let contradiction = held["files"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|file| file["relative_path"] == "contradiction.csv")
+            .unwrap();
+        assert_eq!(contradiction["review"], "invalid_rows");
+        assert_eq!(
+            execute_import(
+                &state,
+                PREPARE_LOCAL_FOLDER_PUBLICATION,
+                json!({
+                    "version": 1, "folder_id": ids["folder_id"], "review_id": held["review_id"],
+                    "conflicts": [], "withdraw_bars": [], "withdraw_sources": []
+                })
+            )
+            .await
+            .unwrap_err()
+            .code,
+            ErrorCode::DATAUNAVAILABLE
+        );
+    }
+    fs::remove_file(&incompatible_path).unwrap();
+
+    let staged = execute_import(&state, PREVIEW_LOCAL_FOLDER_REFRESH, preview.clone())
+        .await
+        .unwrap();
+    assert_eq!(staged["publication_allowed"], true);
+    assert_eq!(staged["bars"][0]["status"], "conflict");
+    assert_eq!(staged["bars"][0]["accepted"]["bar"]["close"], 5.0);
+    assert_eq!(staged["bars"][1]["status"], "withdrawal");
+    let alternatives = staged["bars"][0]["alternatives"].as_array().unwrap();
+    assert_eq!(
+        alternatives
+            .iter()
+            .map(|entry| entry["bar"]["close"].as_f64().unwrap())
+            .collect::<Vec<_>>(),
+        [6.0, 7.0]
+    );
+    let mut choices = json!({
+        "version": 1, "folder_id": ids["folder_id"], "review_id": staged["review_id"],
+        "conflicts": [{"time_ms": staged["bars"][0]["time_ms"], "alternative_index": 1}],
+        "withdraw_bars": [staged["bars"][1]["time_ms"]], "withdraw_sources": ["original.csv"]
+    });
+    for field in ["conflicts", "withdraw_bars", "withdraw_sources"] {
+        let mut incomplete = choices.clone();
+        incomplete[field] = json!([]);
+        assert_eq!(
+            execute_import(&state, PREPARE_LOCAL_FOLDER_PUBLICATION, incomplete)
+                .await
+                .unwrap_err()
+                .code,
+            ErrorCode::CONFIRMATIONREQUIRED
+        );
+    }
+    let prepared = execute_import(&state, PREPARE_LOCAL_FOLDER_PUBLICATION, choices.clone())
+        .await
+        .unwrap();
+    assert_eq!(prepared["source_count"], 2);
+    assert_eq!(prepared["bar_count"], 1);
+    let mut publish = json!({
+        "version": 1, "folder_id": choices["folder_id"], "review_id": choices["review_id"],
+        "candidate_sha256": prepared["candidate_sha256"],
+        "idempotency_key": "acdb5c12-9c36-472a-8abb-6c42d1ac3bc6"
+    });
+
+    fs::write(&correction_path, correction.replace(",7,20", ",8,20")).unwrap();
+    let changed = execute_import(&state, PUBLISH_LOCAL_FOLDER_REFRESH, publish.clone())
+        .await
+        .unwrap_err();
+    assert_eq!(changed.code, ErrorCode::SNAPSHOTUNAVAILABLE);
+    assert_eq!(changed.details["reason"], "folder_changed_during_review");
+    fs::write(&correction_path, &correction).unwrap();
+    let restaged = execute_import(&state, PREVIEW_LOCAL_FOLDER_REFRESH, preview)
+        .await
+        .unwrap();
+    choices["review_id"] = restaged["review_id"].clone();
+    assert_eq!(
+        execute_import(&state, PREPARE_LOCAL_FOLDER_PUBLICATION, choices)
+            .await
+            .unwrap(),
+        prepared
+    );
+    state.cancel_local_import("cancel-folder-publication");
+    assert_eq!(
+        state
+            .execute_local_operation(
+                PUBLISH_LOCAL_FOLDER_REFRESH,
+                publish.clone(),
+                Some("cancel-folder-publication")
+            )
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::CANCELLED
+    );
+    assert_eq!(
+        execute_import(&state, LIST_LOCAL_FOLDER_REVISIONS, list.clone())
+            .await
+            .unwrap()["revisions"],
+        json!([])
+    );
+    assert_eq!(
+        execute_import(&state, READ_LOCAL_IMPORT_REVISION, legacy_read.clone())
+            .await
+            .unwrap(),
+        legacy
+    );
+
+    let accepted = state
+        .execute_local_operation(
+            PUBLISH_LOCAL_FOLDER_REFRESH,
+            publish.clone(),
+            Some("publish-folder"),
+        )
+        .await
+        .unwrap();
+    let folder_read = json!({"version": 1, "revision_id": accepted["revision"]["revision_id"]});
+    let frozen = execute_import(&state, READ_LOCAL_FOLDER_REVISION, folder_read.clone())
+        .await
+        .unwrap();
+    assert_eq!(frozen["revision"], accepted["revision"]);
+    assert_eq!(frozen["revision"]["series"]["quantity_unit"], "shares");
+    assert_eq!(frozen["revision"]["series"]["price_adjustment"], "raw");
+    assert_eq!(frozen["revision"]["series"]["venue"], "TEST");
+    assert_eq!(frozen["bars"][0]["bar"]["close"], 7.0);
+    assert_eq!(
+        frozen["bars"][0]["sources"],
+        json!([
+            {"relative_path": "alias.csv", "source_sha256": frozen["files"][0]["source_sha256"], "record_number": 2, "line_start": 3, "line_end": 3},
+            {"relative_path": "supplement/changed.csv", "source_sha256": frozen["files"][0]["source_sha256"], "record_number": 2, "line_start": 3, "line_end": 3}
+        ])
+    );
+    fs::remove_file(&alias).unwrap();
+    fs::remove_file(&correction_path).unwrap();
+    fs::remove_dir(&supplement).unwrap();
+    state.cancel_local_import("publish-folder");
+    assert_eq!(
+        state
+            .execute_local_operation(
+                PUBLISH_LOCAL_FOLDER_REFRESH,
+                publish.clone(),
+                Some("publish-folder")
+            )
+            .await
+            .unwrap(),
+        accepted
+    );
+    assert_eq!(
+        execute_import(&state, PUBLISH_LOCAL_FOLDER_REFRESH, publish.clone())
+            .await
+            .unwrap(),
+        accepted
+    );
+    let mut different_digest = publish.clone();
+    different_digest["candidate_sha256"] = json!("0".repeat(64));
+    assert_eq!(
+        execute_import(&state, PUBLISH_LOCAL_FOLDER_REFRESH, different_digest)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALIDARGUMENT
+    );
+    state.shutdown().await;
+
+    let reopened = state_with_local_profile(Some(&profile));
+    assert_eq!(
+        execute_import(&reopened, LIST_LOCAL_FOLDER_REVISIONS, list.clone())
+            .await
+            .unwrap()["revisions"],
+        json!([accepted["revision"]])
+    );
+    assert_eq!(
+        execute_import(&reopened, READ_LOCAL_FOLDER_REVISION, folder_read.clone())
+            .await
+            .unwrap(),
+        frozen
+    );
+    assert_eq!(
+        execute_import(&reopened, PUBLISH_LOCAL_FOLDER_REFRESH, publish.clone())
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::STALECONTEXT
+    );
+    let wrong = reopened
+        .choose_local_csv_folder(|| async { Some(other) })
+        .await
+        .unwrap()
+        .unwrap();
+    publish["folder_id"] = wrong["folder_id"].clone();
+    assert_eq!(
+        execute_import(&reopened, PUBLISH_LOCAL_FOLDER_REFRESH, publish.clone())
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::PERMISSIONDENIED
+    );
+    let grant = reopened
+        .choose_local_csv_folder(|| async { Some(folder) })
+        .await
+        .unwrap()
+        .unwrap();
+    publish["folder_id"] = grant["folder_id"].clone();
+    assert_eq!(
+        execute_import(&reopened, PUBLISH_LOCAL_FOLDER_REFRESH, publish.clone())
+            .await
+            .unwrap(),
+        accepted
+    );
+
+    let subsequent_preview = json!({
+        "version": 1, "folder_id": grant["folder_id"], "revision_id": folder_read["revision_id"]
+    });
+    fs::write(
+        &supplement,
+        "A regular file blocks the previous directory path",
+    )
+    .unwrap();
+    let opaque = execute_import(
+        &reopened,
+        PREVIEW_LOCAL_FOLDER_REFRESH,
+        subsequent_preview.clone(),
+    )
+    .await
+    .unwrap();
+    assert_eq!(opaque["publication_allowed"], false);
+    assert_eq!(opaque["bars"][0]["status"], "unverified");
+    let hidden = opaque["files"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|file| file["relative_path"] == "supplement/changed.csv")
+        .unwrap();
+    assert_eq!(hidden["change"], "unverified");
+    fs::remove_file(&supplement).unwrap();
+    let staged = execute_import(&reopened, PREVIEW_LOCAL_FOLDER_REFRESH, subsequent_preview)
+        .await
+        .unwrap();
+    assert_eq!(staged["folder_base"], accepted["revision"]);
+    assert!(staged.get("base").is_none());
+    assert_eq!(staged["bars"][0]["status"], "withdrawal");
+    let prepared = execute_import(&reopened, PREPARE_LOCAL_FOLDER_PUBLICATION, json!({
+        "version": 1, "folder_id": grant["folder_id"], "review_id": staged["review_id"], "conflicts": [],
+        "withdraw_bars": [staged["bars"][0]["time_ms"]], "withdraw_sources": ["supplement/changed.csv", "alias.csv"]
+    })).await.unwrap();
+    let withdrawn = execute_import(&reopened, PUBLISH_LOCAL_FOLDER_REFRESH, json!({
+        "version": 1, "folder_id": grant["folder_id"], "review_id": prepared["review_id"],
+        "candidate_sha256": prepared["candidate_sha256"], "idempotency_key": "d85d6996-b98b-40d8-88a6-a0fa90ceaa9f"
+    })).await.unwrap();
+    assert_eq!(
+        withdrawn["revision"]["parent_revision_id"],
+        folder_read["revision_id"]
+    );
+    assert_eq!(withdrawn["revision"]["bar_count"], 0);
+    assert_eq!(withdrawn["revision"]["source_count"], 0);
+    assert_eq!(
+        execute_import(&reopened, READ_LOCAL_FOLDER_REVISION, folder_read.clone())
+            .await
+            .unwrap(),
+        frozen
+    );
+    execute_import(&reopened, REVOKE_LOCAL_FOLDER_REVISION, folder_read.clone())
+        .await
+        .unwrap();
+    assert_eq!(
+        execute_import(&reopened, READ_LOCAL_FOLDER_REVISION, folder_read)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::PERMISSIONDENIED
+    );
+    assert_eq!(
+        execute_import(&reopened, PUBLISH_LOCAL_FOLDER_REFRESH, publish)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::PERMISSIONDENIED
+    );
+    assert_eq!(
+        execute_import(&reopened, LIST_LOCAL_FOLDER_REVISIONS, list)
+            .await
+            .unwrap()["revisions"],
+        json!([withdrawn["revision"]])
+    );
+    assert_eq!(
+        execute_import(&reopened, READ_LOCAL_IMPORT_REVISION, legacy_read)
+            .await
+            .unwrap(),
+        legacy
+    );
+    reopened.shutdown().await;
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[tokio::test]
 async fn local_publication_replays_the_minimal_save_publish_chain() {
     use scopehub_application::REVOKE_LOCAL_IMPORT_REVISION;
     use std::fs;
