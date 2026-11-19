@@ -135,21 +135,24 @@ fn windows_source_association_rejects_a_directory_junction() {
     let junction = root.join("Redirected Source");
     let powershell = PathBuf::from(std::env::var_os("SystemRoot").unwrap())
         .join("System32/WindowsPowerShell/v1.0/powershell.exe");
-    let status = Command::new(powershell)
-        .args([
-            "-NoProfile",
-            "-NonInteractive",
-            "-Command",
-            "$ErrorActionPreference = 'Stop'; New-Item -ItemType Junction -Path $env:SCOPEHUB_TEST_JUNCTION -Target $env:SCOPEHUB_TEST_JUNCTION_TARGET | Out-Null",
-        ])
-        .env("SCOPEHUB_TEST_JUNCTION", &junction)
-        .env("SCOPEHUB_TEST_JUNCTION_TARGET", &source)
-        .status()
-        .unwrap();
-    assert!(
-        status.success(),
-        "creating the synthetic NTFS junction failed"
-    );
+    let create_junction = |link: &Path, target: &Path| {
+        let status = Command::new(&powershell)
+            .args([
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                "$ErrorActionPreference = 'Stop'; New-Item -ItemType Junction -Path $env:SCOPEHUB_TEST_JUNCTION -Target $env:SCOPEHUB_TEST_JUNCTION_TARGET | Out-Null",
+            ])
+            .env("SCOPEHUB_TEST_JUNCTION", link)
+            .env("SCOPEHUB_TEST_JUNCTION_TARGET", target)
+            .status()
+            .unwrap();
+        assert!(
+            status.success(),
+            "creating the synthetic NTFS junction failed"
+        );
+    };
+    create_junction(&junction, &source);
     assert_eq!(
         junction.canonicalize().unwrap(),
         source.canonicalize().unwrap()
@@ -170,6 +173,22 @@ fn windows_source_association_rejects_a_directory_junction() {
         EQUITY_SHA256
     );
     fs::remove_dir(junction).unwrap();
+
+    let moved = root.join("Moved Source");
+    fs::rename(&source, &moved).unwrap();
+    create_junction(&source, &moved);
+    // Following the junction would reach the original object and pass an
+    // identity-only comparison.
+    assert!(matches!(
+        host.read(
+            selected.folder_id,
+            csv.file_id,
+            Some(EQUITY_SHA256),
+            &cancel
+        ),
+        Err(FolderError::SelectionUnavailable)
+    ));
+    fs::remove_dir(source).unwrap();
 }
 
 #[test]
@@ -302,6 +321,168 @@ fn final_source_verification_skips_commit_on_edit_cancel_or_revocation() {
         verify(&cancellation),
         Err(FolderError::SelectionUnavailable)
     );
+}
+
+#[test]
+fn old_grant_rejects_a_substituted_root_with_identical_bytes() {
+    let temp = TempDir::new();
+    let source = temp.directory("selected");
+    write(&source, "equity.csv", EQUITY);
+    let host = LocalFolderHost::default();
+    let cancel = Cancellation::default();
+    let catalog = host.adopt_selected(&source, &cancel).unwrap();
+    let id = file(&catalog, "equity.csv").file_id;
+
+    fs::rename(&source, temp.0.join("original")).unwrap();
+    assert!(matches!(
+        host.read(catalog.folder_id, id, None, &cancel),
+        Err(FolderError::SelectionUnavailable)
+    ));
+    write(&source, "equity.csv", EQUITY);
+    assert!(matches!(
+        host.read(catalog.folder_id, id, Some(EQUITY_SHA256), &cancel),
+        Err(FolderError::SelectionUnavailable)
+    ));
+    assert_eq!(
+        host.with_verified_current(catalog.folder_id, id, EQUITY_SHA256, &cancel, || {
+            panic!("a replacement root cannot commit with the old grant")
+        }),
+        Err(FolderError::SelectionUnavailable)
+    );
+
+    let selected_again = host.adopt_selected(&source, &cancel).unwrap();
+    assert_ne!(selected_again.folder_id, catalog.folder_id);
+    assert_eq!(
+        host.read(
+            selected_again.folder_id,
+            file(&selected_again, "equity.csv").file_id,
+            None,
+            &cancel,
+        )
+        .unwrap()
+        .sha256,
+        EQUITY_SHA256
+    );
+}
+
+#[test]
+fn old_file_id_rejects_a_substituted_ancestor_with_identical_bytes() {
+    let temp = TempDir::new();
+    let source = temp.directory("selected");
+    write(&source, "branch/leaf/equity.csv", EQUITY);
+    write(&source, "sibling/equity.csv", EQUITY);
+    let host = LocalFolderHost::default();
+    let cancel = Cancellation::default();
+    let catalog = host.adopt_selected(&source, &cancel).unwrap();
+    let id = file(&catalog, "branch/leaf/equity.csv").file_id;
+
+    // Restore the very same immediate parent under a substituted outer branch.
+    let branch = source.join("branch");
+    let original = temp.0.join("original-branch");
+    fs::rename(&branch, &original).unwrap();
+    fs::create_dir(&branch).unwrap();
+    fs::rename(original.join("leaf"), branch.join("leaf")).unwrap();
+
+    assert!(matches!(
+        host.read(catalog.folder_id, id, Some(EQUITY_SHA256), &cancel),
+        Err(FolderError::ContentChanged)
+    ));
+    assert_eq!(
+        host.with_verified_current(catalog.folder_id, id, EQUITY_SHA256, &cancel, || {
+            panic!("a substituted ancestor cannot commit with the previous file ID")
+        }),
+        Err(FolderError::ContentChanged)
+    );
+    let sibling = file(&catalog, "sibling/equity.csv");
+    assert_eq!(
+        host.read(catalog.folder_id, sibling.file_id, None, &cancel)
+            .unwrap()
+            .sha256,
+        EQUITY_SHA256
+    );
+}
+
+#[test]
+fn idle_selection_allows_direct_and_nested_external_file_changes() {
+    let temp = TempDir::new();
+    let selected = temp.directory("selected");
+    let sibling = write(&selected, "sibling.csv", EQUITY);
+    let host = LocalFolderHost::default();
+    let cancel = Cancellation::default();
+    let direct = write(&selected, "direct/equity.csv", EQUITY);
+    let nested = write(&selected, "nested/deeper/equity.csv", EQUITY);
+    let top = write(&selected, "top.csv", EQUITY);
+    let catalog = host.adopt_selected(&selected, &cancel).unwrap();
+
+    for (source, relative) in [
+        (&top, "top.csv"),
+        (&direct, "direct/equity.csv"),
+        (&nested, "nested/deeper/equity.csv"),
+    ] {
+        let id = file(&catalog, relative).file_id;
+        let original = host.read(catalog.folder_id, id, None, &cancel).unwrap();
+        let moved = source.with_file_name("moved.csv");
+        fs::rename(source, &moved).unwrap();
+        assert!(matches!(
+            host.read(catalog.folder_id, id, None, &cancel),
+            Err(FolderError::ContentChanged)
+        ));
+        fs::rename(&moved, source).unwrap();
+        fs::write(source, CORRECTED_EQUITY).unwrap();
+        let incoming = source.with_file_name("incoming.csv");
+        fs::write(&incoming, EQUITY).unwrap();
+        fs::rename(&incoming, source).unwrap();
+        assert_eq!(
+            host.with_verified_current(catalog.folder_id, id, EQUITY_SHA256, &cancel, || 1),
+            Ok(1)
+        );
+        fs::write(&incoming, CORRECTED_EQUITY).unwrap();
+        fs::rename(&incoming, source).unwrap();
+        assert!(matches!(
+            host.read(catalog.folder_id, id, Some(&original.sha256), &cancel),
+            Err(FolderError::ContentChanged)
+        ));
+        assert_eq!(
+            host.read(catalog.folder_id, id, None, &cancel)
+                .unwrap()
+                .sha256,
+            CORRECTED_SHA256
+        );
+        fs::write(&incoming, EQUITY).unwrap();
+        fs::remove_file(&incoming).unwrap();
+        assert_eq!(original.content.as_deref(), Some(EQUITY));
+    }
+    assert_eq!(fs::read(sibling).unwrap(), EQUITY);
+}
+
+#[cfg(windows)]
+#[test]
+fn final_commit_keeps_directory_and_file_pins_until_it_returns() {
+    let temp = TempDir::new();
+    let selected = temp.directory("selected");
+    let source = write(&selected, "equity.csv", EQUITY);
+    let moved_root = temp.0.join("moved-root");
+    let moved_file = selected.join("moved.csv");
+    let host = LocalFolderHost::default();
+    let cancel = Cancellation::default();
+    let catalog = host.adopt_selected(&selected, &cancel).unwrap();
+    let id = file(&catalog, "equity.csv").file_id;
+    host.with_verified_current(catalog.folder_id, id, EQUITY_SHA256, &cancel, || {
+        assert_eq!(
+            fs::write(&source, CORRECTED_EQUITY)
+                .unwrap_err()
+                .raw_os_error(),
+            Some(32)
+        );
+        assert_eq!(
+            fs::rename(&source, &moved_file).unwrap_err().raw_os_error(),
+            Some(32)
+        );
+        assert!(fs::rename(&selected, &moved_root).is_err());
+    })
+    .unwrap();
+    fs::rename(&source, &moved_file).unwrap();
+    fs::rename(&selected, &moved_root).unwrap();
 }
 
 #[test]
