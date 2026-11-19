@@ -1,4 +1,4 @@
-use std::{fs, path::Path, sync::Arc};
+use std::{path::Path, sync::Arc};
 
 use scopehub_application::{
     Actor, OperationRegistry, SET_TIMEFRAME, UNDO, WorkspaceAccess, WorkspaceBinding, failure,
@@ -107,7 +107,7 @@ impl BoundWorkspace {
             return None;
         }
         let directory = app_local_data.join("workspace-dev");
-        fs::create_dir_all(&directory).ok()?;
+        SqliteWorkspace::prepare_profile_root(&directory).ok()?;
         let canonical = directory.canonicalize().ok()?;
         // Separate development profiles bound to different native data
         // directories. Keep the filesystem path out of storage and replies.

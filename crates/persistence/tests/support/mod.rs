@@ -17,8 +17,11 @@ pub struct Profile(pub PathBuf);
 
 impl Profile {
     pub fn new() -> Self {
-        let path = std::env::temp_dir().join(format!("scopehub-workspace-{}", Uuid::new_v4()));
-        fs::create_dir(&path).unwrap();
+        let temporary = std::env::temp_dir();
+        #[cfg(unix)]
+        let temporary = temporary.canonicalize().unwrap();
+        let path = temporary.join(format!("scopehub-workspace-{}", Uuid::new_v4()));
+        SqliteWorkspace::prepare_profile_root(&path).unwrap();
         Self(path)
     }
 

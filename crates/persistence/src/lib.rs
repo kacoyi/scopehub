@@ -1,5 +1,7 @@
 //! Profile-bound SQLite workspace storage for the Rust application registry.
 
+mod storage;
+
 use std::{fmt, path::Path, time::Duration};
 
 use rusqlite::{
@@ -60,6 +62,12 @@ pub struct SqliteWorkspace {
 }
 
 impl SqliteWorkspace {
+    /// Provision a directory for a host-owned profile. Existing directories
+    /// must already be private. New storage files must use private creation.
+    pub fn prepare_profile_root(profile_root: &Path) -> Result<(), OpenWorkspaceError> {
+        storage::prepare_profile_root(profile_root).map_err(|_| OpenWorkspaceError::Database)
+    }
+
     /// Open the database in the pre-provisioned profile directory. Both
     /// arguments come from the host at composition time.
     pub fn open(
@@ -73,11 +81,9 @@ impl SqliteWorkspace {
         {
             return Err(OpenWorkspaceError::InvalidBinding);
         }
-        let path = profile_root.join(DATABASE_NAME);
-        if path
-            .try_exists()
-            .map_err(|_| OpenWorkspaceError::Database)?
-        {
+        let (path, exists) =
+            storage::open_path(profile_root).map_err(|_| OpenWorkspaceError::Database)?;
+        if exists {
             // A read-only preflight cannot recover a rollback journal into an
             // unsupported database or checkpoint an unsupported WAL.
             let mut reader = Connection::open_with_flags(

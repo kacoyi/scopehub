@@ -155,7 +155,6 @@ struct AppLocalData(PathBuf);
 impl AppLocalData {
     fn new() -> Self {
         use std::{
-            fs,
             sync::atomic::{AtomicU64, Ordering},
             time::{SystemTime, UNIX_EPOCH},
         };
@@ -166,11 +165,14 @@ impl AppLocalData {
             .unwrap()
             .as_nanos();
         let sequence = SEQUENCE.fetch_add(1, Ordering::Relaxed);
-        let path = std::env::temp_dir().join(format!(
+        let temporary = std::env::temp_dir();
+        #[cfg(unix)]
+        let temporary = temporary.canonicalize().unwrap();
+        let path = temporary.join(format!(
             "scopehub-desktop-test-{}-{stamp}-{sequence}",
             std::process::id(),
         ));
-        fs::create_dir(&path).unwrap();
+        scopehub_persistence::SqliteWorkspace::prepare_profile_root(&path).unwrap();
         Self(path)
     }
 
@@ -395,10 +397,19 @@ async fn copied_workspace_bytes_cannot_enable_a_grant_or_cross_native_profiles()
         ErrorCode::PERMISSIONDENIED,
     );
     assert!(first.database().is_file());
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let database = first.database();
+        let mode =
+            |path: &std::path::Path| std::fs::metadata(path).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode(database.parent().unwrap()), 0o700);
+        assert_eq!(mode(&database), 0o600);
+    }
 
     let other = AppLocalData::new();
     let copy = other.database();
-    std::fs::create_dir_all(copy.parent().unwrap()).unwrap();
+    scopehub_persistence::SqliteWorkspace::prepare_profile_root(copy.parent().unwrap()).unwrap();
     std::fs::copy(first.database(), &copy).unwrap();
     let before = std::fs::read(&copy).unwrap();
     let foreign = state_with_development_workspace(Some(&other.0));
