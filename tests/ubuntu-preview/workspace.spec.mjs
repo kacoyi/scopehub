@@ -13,6 +13,8 @@ import { expect, test } from '@playwright/test';
 import { control, leaveSample } from '../ui/workspace-controls.mjs';
 import { painted } from '../ui/chart-pixels.mjs';
 import { startLocalImportBridge } from '../ui/local-import-bridge.mjs';
+import { busy, future, sampleCatalogCall, sampleHistoryCall } from '../ui/sample-startup.mjs';
+import { observeSelectedHistory, operationPath, readMarketAttemptStages, traceHeader, waitForSelectedHistoryTerminal } from '../ui/selected-history.mjs';
 import { assertUnsuitableWindowsHandoffsRejected, assertWindowsPrivateHandoff } from './workspace_test_handoff_acl.mjs';
 
 const exec = promisify(execFile);
@@ -29,14 +31,42 @@ const snapshot = { type: 'snapshot' };
 // SQLite read when the actual producer is deliberately suspended.
 const admissionProbe = { type: 'snapshot', request_id: 1 };
 const service = `
-  const [entry, mode, port] = process.argv.slice(1);
+  const [entry, mode, port, faultEnabled] = process.argv.slice(1);
   const { createServer } = await import(entry);
+  let interrupted;
+  const plugins = faultEnabled ? [{
+    name: 'scopehub-test-history-response-interruption',
+    enforce: 'pre',
+    configureServer(server) {
+      server.middlewares.use((request, response, next) => {
+        const fault = request.headers['x-scopehub-test-interrupt'];
+        if (request.url !== '${operationPath}' || !request.headers['${traceHeader}'] || !fault) return next();
+        const end = response.end;
+        response.end = function (...args) {
+          if (fault === 'before-headers' && response.statusCode === 200) return response.destroy();
+          if (fault === 'during-body-' + response.statusCode) {
+            interrupted = response;
+            response.write('{');
+            return response;
+          }
+          return end.apply(this, args);
+        };
+        next();
+      });
+    },
+  }] : [];
   // These journeys restart the service explicitly. Leave file watching to interactive Vite.
-  const server = await createServer({ mode, server: { host: '127.0.0.1', port: Number(port), strictPort: true, watch: null } });
-  process.once('message', async () => {
+  const server = await createServer({ mode, plugins, server: { host: '127.0.0.1', port: Number(port), strictPort: true, watch: null } });
+  async function receive(message) {
+    if (message !== 'close' && message !== 'cut-history') return;
+    interrupted?.destroy();
+    interrupted = undefined;
+    if (message !== 'close') return;
+    process.off('message', receive);
     await server.close();
     process.disconnect();
-  });
+  }
+  process.on('message', receive);
   await server.listen();
 `;
 
@@ -819,6 +849,81 @@ test('decision-note list removes peer deletions after focus and a rejected detai
   }
 });
 
+const futureHistory = { '1m': 40, '5m': 8, '1d': 2 };
+const sampleButton = page => control(page, 'Open offline sample');
+const retryHistory = page => control(page, 'Retry history');
+
+async function sampleStep(page, server, testInfo, label, trigger, {
+  timeframe = '1m', catalog = true, error, retryable = false,
+} = {}) {
+  const requests = [];
+  const calls = [];
+  const issued = request => {
+    if (request.method() !== 'POST' || new URL(request.url()).pathname !== operationPath) return;
+    requests.push(request);
+    calls.push(request.postDataJSON());
+  };
+  const selection = { id: future, timeframe };
+  const history = page.locator(`.history[data-instrument="${future}"][data-timeframe="${timeframe}"]`);
+  let terminal;
+  page.on('request', issued);
+  try {
+    await trigger();
+    await expect(page.locator('.connection')).toHaveText('Offline sampleSimulated');
+    await expect(control(page, timeframe)).toHaveAttribute('aria-pressed', 'true');
+    terminal = await waitForSelectedHistoryTerminal(page, history.locator('canvas').first(), selection);
+    expect(terminal, label).toEqual(error ? { state: 'error', message: error } : { state: 'chart' });
+    await expect(retryHistory(page)).toHaveCount(retryable ? 1 : 0);
+    if (error) await expect(page.locator('.history')).toHaveCount(0);
+    else await expect(history).toHaveAttribute('data-bars', String(futureHistory[timeframe]));
+
+    const expected = [...(catalog ? [sampleCatalogCall] : []), sampleHistoryCall(timeframe)];
+    let phase = 0;
+    for (const [index, request] of requests.entries()) {
+      const call = expected[phase];
+      expect(calls[index], label).toEqual(call);
+      const response = request.existingResponse();
+      if (response?.status() === 429) {
+        expect(await response.json()).toEqual(busy);
+        continue;
+      }
+      phase++;
+      if (call.operation === 'market.readHistoryPage' && error) continue;
+      expect(request.failure()).toBeNull();
+      expect(response?.status()).toBe(200);
+      expect(await response.finished()).toBeNull();
+      const reply = await response.json();
+      expect(reply.ok).toBe(true);
+      if (call.operation === 'instrument.search') {
+        expect(reply.result.instruments.map(instrument => instrument.id)).toEqual([
+          future, 'SIM.CN.STOCK.001', 'SIM.US.STOCK.001',
+        ]);
+      } else {
+        expect(reply.result).toMatchObject({
+          snapshot: { series: call.payload.series, dataset_revision: call.payload.expected_revision },
+          dataset: { provider_id: 'scopehub.synthetic', mode: 'simulated' },
+          quality_state: { connection: 'offline' }, total_bars: futureHistory[timeframe], next_cursor: null,
+        });
+        expect(reply.result.bars).toHaveLength(futureHistory[timeframe]);
+        expect(reply.result.snapshot.content_hash).toMatch(/^[a-f0-9]{64}$/);
+      }
+    }
+    expect(phase, label).toBe(expected.length);
+    const terminalRequest = requests.at(-1);
+    // The service's stdout and the browser events arrive independently.
+    await expect.poll(() => server.historyStages.get(terminalRequest.headers()[traceHeader])?.at(-1)?.stage)
+      .toMatch(/^(finished|closed)$/);
+    return terminalRequest;
+  } finally {
+    page.off('request', issued);
+    const stages = await readMarketAttemptStages(page, requests);
+    const attempts = stages.map((stage, index) => ({
+      call: calls[index], ...stage, host: server.historyStages.get(stage.trace),
+    }));
+    await testInfo.attach(label, { contentType: 'application/json', body: JSON.stringify({ selection, terminal, attempts }) });
+  }
+}
+
 test('the offline sample keeps its own timeframe without replacing the private undo', async ({ browser }, testInfo) => {
   const profile = await makeProfile();
   const port = await freePort();
@@ -826,6 +931,7 @@ test('the offline sample keeps its own timeframe without replacing the private u
   try {
     await inService(port, profile, 'ubuntu-workspace', async server => {
       const page = await context.newPage();
+      await observeSelectedHistory(page, { includeCatalog: true });
       const launchPath = '/synthetic-private-launch';
       await page.addInitScript(({ launchPath, capability }) => {
         // Simulate the real handoff without exposing its fragment in navigation
@@ -841,11 +947,6 @@ test('the offline sample keeps its own timeframe without replacing the private u
       const launch = () => page.goto(server.url + launchPath);
       const shellUrl = url => url.origin === server.url && url.pathname === '/' && url.hash === '';
       const readPrivate = async () => state(await (await post(server, snapshot)).json());
-      const assertSample = async (tab, timeframe) => {
-        await expect(tab.locator('.connection')).toHaveText('Offline sampleSimulated');
-        await expect(control(tab, timeframe)).toHaveAttribute('aria-pressed', 'true');
-        await expect(tab.locator('.history')).toHaveAttribute('data-timeframe', timeframe);
-      };
       const undo = control(page, 'Undo timeframe change');
 
       await launch();
@@ -866,16 +967,14 @@ test('the offline sample keeps its own timeframe without replacing the private u
       await expect(undo).toBeEnabled();
 
       const beforeSample = workspaceRequests.length;
-      await control(page, 'Open offline sample').click();
-      await assertSample(page, '1m');
-      await control(page, '5m').click();
-      await assertSample(page, '5m');
+      await sampleStep(page, server, testInfo, 'first explicit sample open', () => sampleButton(page).click());
+      await sampleStep(page, server, testInfo, 'sample five-minute selection', () => control(page, '5m').click(),
+        { timeframe: '5m', catalog: false });
       const after = await readPrivate();
       const refreshed = await context.newPage();
-      await refreshed.goto(server.url);
-      await expect(refreshed.locator('.history')).toBeVisible();
-      await refreshed.reload();
-      await expect(refreshed.locator('.history')).toBeVisible();
+      await observeSelectedHistory(refreshed, { includeCatalog: true });
+      await sampleStep(refreshed, server, testInfo, 'shared sample preference open', () => refreshed.goto(server.url), { timeframe: '5m' });
+      await sampleStep(refreshed, server, testInfo, 'shared sample preference refresh', () => refreshed.reload(), { timeframe: '5m' });
       const refreshedTimeframe = await refreshed.locator('.history').getAttribute('data-timeframe');
       await testInfo.attach('workspace-sample-timeframe', {
         body: JSON.stringify({ before, after, refreshedTimeframe, sampleWorkspaceRequests: workspaceRequests.slice(beforeSample) }),
@@ -884,7 +983,6 @@ test('the offline sample keeps its own timeframe without replacing the private u
       expect(after).toEqual(before);
       expect(workspaceRequests.slice(beforeSample)).toEqual([]);
       await expect(undo).toHaveCount(0);
-      await assertSample(refreshed, '5m');
       await expect(control(refreshed, 'Undo timeframe change')).toHaveCount(0);
       await assertSampleStorage(refreshed, '5m');
       await refreshed.close();
@@ -919,13 +1017,11 @@ test('the offline sample keeps its own timeframe without replacing the private u
       expect(workspaceRequests.slice(beforeReload)).toEqual(['snapshot']);
 
       const beforeSampleReload = workspaceRequests.length;
-      await control(page, 'Open offline sample').click();
-      await assertSample(page, '1m');
-      await control(page, '1d').click();
-      await assertSample(page, '1d');
+      await sampleStep(page, server, testInfo, 'second explicit sample open', () => sampleButton(page).click());
+      await sampleStep(page, server, testInfo, 'sample daily selection', () => control(page, '1d').click(),
+        { timeframe: '1d', catalog: false });
       await assertSampleStorage(page, '1d');
-      await page.reload();
-      await assertSample(page, '1d');
+      await sampleStep(page, server, testInfo, 'sample daily refresh', () => page.reload(), { timeframe: '1d' });
       await expect(undo).toHaveCount(0);
       await assertSampleStorage(page, '1d');
       await leaveSample(page);
@@ -935,9 +1031,146 @@ test('the offline sample keeps its own timeframe without replacing the private u
       expect(workspaceRequests.slice(beforeSampleReload)).toEqual([]);
       expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
       expect(await readPrivate()).toEqual(afterUndo);
-    });
+    }, { historyTrace: true });
   } finally {
     await context.close();
+    await profile.close();
+  }
+});
+
+test('the reopened sample recovers its history without consuming the private undo', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  const port = await freePort();
+  const disconnected = 'Disconnected from the local preview. Retry when the connection is restored.';
+  const selectedCall = sampleHistoryCall();
+  const isSelected = request => request.method() === 'POST' && new URL(request.url()).pathname === operationPath
+    && request.postDataJSON()?.operation === selectedCall.operation;
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        const writer = await writerPid(server);
+        const privateState = async () => state(await (await post(server, snapshot)).json());
+        const committed = (await act(page, '5m', 'chart.setTimeframe')).result.outcome;
+        expect(committed).toMatchObject({ state: 'committed', result: { timeframe: '5m', revision: 1 }, receipt: { undoable: true } });
+        const undo = control(page, 'Undo timeframe change');
+        const before = {
+          revision: 1, timeframe: '5m',
+          undo: { operation_id: committed.receipt.operation_id, committed_workspace_revision: 1 },
+        };
+        const operationRequests = observeOperations(page);
+        const open = () => sampleButton(page).click();
+        const retry = () => retryHistory(page).click();
+        const step = (label, trigger, options) => sampleStep(page, server, testInfo, label, trigger, options);
+        const cutBody = (trigger, status) => async () => {
+          const [response] = await Promise.all([
+            page.waitForResponse(response => isSelected(response.request())), trigger(),
+          ]);
+          expect(response.status()).toBe(status);
+          await server.cutHistoryResponse();
+        };
+        const inject = async (fault, change, run) => {
+          const handler = async route => {
+            const request = route.request();
+            if (!isSelected(request)) return route.continue();
+            const call = request.postDataJSON();
+            const headers = await request.allHeaders();
+            if (fault) headers['x-scopehub-test-interrupt'] = fault;
+            change?.(call.payload);
+            return route.continue({ headers, ...(change && { postData: JSON.stringify(call) }) });
+          };
+          await page.route(`**${operationPath}`, handler);
+          try { return await run(); }
+          finally { await page.unroute(`**${operationPath}`, handler); }
+        };
+
+        const initial = await step('healthy open before interruption', open);
+        const initialHistory = (await initial.existingResponse().json()).result.snapshot;
+        await leaveSample(page);
+        await expect(undo).toBeEnabled();
+        await inject('before-headers', undefined, async () => {
+          const failed = await step('reopen with lost history response', open, { error: disconnected, retryable: true });
+          const stillLost = await step('retry while still disconnected', retry, { catalog: false, error: disconnected, retryable: true });
+          for (const request of [failed, stillLost]) {
+            const [attempt] = await readMarketAttemptStages(page, [request]);
+            expect(attempt).toMatchObject({
+              failure: expect.stringMatching(/^net::ERR_(EMPTY_RESPONSE|CONNECTION_(ABORTED|CLOSED|RESET))$/),
+              client: { stage: 'fetch-rejected', error: 'TypeError', selectionAborted: false },
+            });
+            expect(request.existingResponse()).toBeNull();
+            const host = server.historyStages.get(attempt.trace);
+            expect(host.length).toBeGreaterThanOrEqual(3);
+            // Chromium can resend the same HTTP request when a reused socket closes before headers.
+            for (let i = 0; i < host.length; i += 3) {
+              expect(host.slice(i, i + 3)).toEqual([
+                { stage: 'received' }, { stage: 'admitted' }, { stage: 'closed', status: 200 },
+              ]);
+            }
+          }
+          expect(failed.headers()[traceHeader]).not.toBe(stillLost.headers()[traceHeader]);
+          expect(await privateState()).toEqual(before);
+        });
+        await inject('during-body-200', undefined, async () => {
+          const request = await step('retry with interrupted successful response body', cutBody(retry, 200), {
+            catalog: false, error: disconnected, retryable: true,
+          });
+          const [attempt] = await readMarketAttemptStages(page, [request]);
+          expect(attempt).toMatchObject({
+            status: 200, client: { stage: 'body-rejected', status: 200, error: 'TypeError', selectionAborted: false },
+          });
+        });
+        const restored = await step('explicit history retry after transport is restored', retry, { catalog: false });
+        expect(restored.postDataJSON()).toEqual(selectedCall);
+        expect((await restored.existingResponse().json()).result.snapshot).toEqual(initialHistory);
+        await expect(undo).toHaveCount(0);
+        await assertSampleStorage(page, '1m');
+        await leaveSample(page);
+
+        // A response rejected by the preview still has its real HTTP status even when its body is lost.
+        const deniedProvider = payload => { payload.series.provider_id = 'synthetic.denied'; };
+        await inject(null, deniedProvider, async () => {
+          const request = await step('completed preview denial', open, { error: 'Access to this source is denied.' });
+          expect(request.postDataJSON().payload.series.provider_id).toBe('synthetic.denied');
+          const response = request.existingResponse();
+          expect(response.status()).toBe(403);
+          expect(await response.json()).toEqual({ ok: false, error: { code: 'PERMISSION_DENIED', retryable: false } });
+        });
+        await leaveSample(page);
+        await inject('during-body-403', deniedProvider, async () => {
+          const request = await step('preview denial with interrupted body', cutBody(open, 403),
+            { error: 'The local preview returned HTTP 403.' });
+          const [attempt] = await readMarketAttemptStages(page, [request]);
+          expect(attempt).toMatchObject({
+            status: 403, client: { stage: 'body-rejected', status: 403, error: 'TypeError', selectionAborted: false },
+          });
+          expect(server.historyStages.get(attempt.trace)).toEqual([
+            { stage: 'received' }, { stage: 'failed', code: 'PERMISSION_DENIED' }, { stage: 'closed', status: 403 },
+          ]);
+        });
+        await leaveSample(page);
+        await inject(null, payload => { payload.expected_revision = 'scopehub-synthetic-v1:20241013:missing'; }, async () => {
+          const request = await step('provider revision rejection', open, { error: 'The selected historical revision is unavailable.' });
+          expect(request.postDataJSON().payload.expected_revision).toBe('scopehub-synthetic-v1:20241013:missing');
+          const response = request.existingResponse();
+          expect(response.status()).toBe(200);
+          expect(await response.json()).toMatchObject({ ok: false, error: { code: 'SNAPSHOT_UNAVAILABLE', retryable: false } });
+        });
+        await leaveSample(page);
+
+        expect(operationRequests).not.toContain(endpoint);
+        expect(await postStatus(server, snapshot, { Authorization: '' })).toBe(403);
+        expect(await privateState()).toEqual(before);
+        expect(await writerPid(server)).toBe(writer);
+        await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
+        await expect(undo).toBeEnabled();
+        expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
+        const inverted = await duringResponse(page, 'workspace.undo', () => undo.click());
+        expect(inverted.request().postDataJSON().intent.arguments).toEqual({ operation_id: committed.receipt.operation_id });
+        expect((await inverted.json()).result.outcome).toMatchObject({ state: 'committed', result: { timeframe: '1m', revision: 2 } });
+        await expect(undo).toBeDisabled();
+        expect(await privateState()).toEqual({ revision: 2, timeframe: '1m', undo: null });
+      }, { includeSample: true });
+    }, { historyTrace: true, historyFault: true });
+  } finally {
     await profile.close();
   }
 });
@@ -1241,11 +1474,11 @@ async function freePort() {
   return port;
 }
 
-async function inService(port, profile, mode, use, { expectHandoff = true, terminalSignal } = {}) {
+async function inService(port, profile, mode, use, { expectHandoff = true, terminalSignal, historyTrace = false, historyFault = false } = {}) {
   const url = 'http://127.0.0.1:' + port;
   const args = terminalSignal
     ? [viteCli, '--mode', mode, '--host', '127.0.0.1', '--port', String(port), '--strictPort']
-    : ['--input-type=module', '--eval', service, vite, mode, String(port)];
+    : ['--input-type=module', '--eval', service, vite, mode, String(port), historyFault ? '1' : ''];
   const child = spawn(process.execPath, args, {
     cwd: ui,
     env: {
@@ -1253,12 +1486,14 @@ async function inService(port, profile, mode, use, { expectHandoff = true, termi
       SCOPEHUB_WORKSPACE_PROFILE_ROOT: profile.root,
       SCOPEHUB_WORKSPACE_PROFILE_ID: profile.id,
       SCOPEHUB_WORKSPACE_ID: profile.workspaceId ?? workspaceId,
+      ...(historyTrace && { SCOPEHUB_TEST_PREVIEW: '1' }),
     },
     stdio: terminalSignal ? ['pipe', 'pipe', 'pipe'] : ['ignore', 'pipe', 'pipe', 'ipc'],
   });
   const closed = once(child, 'close');
   let output = '';
   let handoffRejected = false;
+  const historyStages = new Map();
   for (const stream of [child.stdout, child.stderr]) {
     stream.setEncoding('utf8');
     stream.on('data', chunk => {
@@ -1267,10 +1502,27 @@ async function inService(port, profile, mode, use, { expectHandoff = true, termi
       output = recent.slice(-6000);
     });
   }
+  if (historyTrace) {
+    let pending = '';
+    child.stdout.on('data', chunk => {
+      const lines = (pending + chunk).split('\n');
+      pending = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('Preview history ')) continue;
+        const { id, ...stage } = JSON.parse(line.slice('Preview history '.length));
+        if (!historyStages.has(id)) historyStages.set(id, []);
+        historyStages.get(id).push(stage);
+      }
+    });
+  }
   const server = {
     url, pid: child.pid,
     handoff: join(profile.root, 'workspace-access-' + port + '.html'),
     handoffRejected: () => handoffRejected,
+    historyStages,
+    cutHistoryResponse: () => new Promise((resolve, reject) => {
+      child.send('cut-history', error => error ? reject(error) : resolve());
+    }),
   };
   try {
     const deadline = Date.now() + 10_000;
@@ -1400,18 +1652,18 @@ async function assertSampleStorage(page, timeframe) {
     return {
       onlySamplePreference: localStorage.length === 1 && preference !== null,
       emptySessionStorage: sessionStorage.length === 0,
-      matchesSample: preference?.source === 'scopehub.synthetic' && preference.timeframe === expected
-        && typeof preference.symbol === 'string' && /^SIM\.[.A-Z0-9]+$/.test(preference.symbol)
+      matchesSample: preference?.source === 'scopehub.synthetic' && preference.timeframe === expected.timeframe
+        && preference.symbol === expected.instrument
         && preference.style === 'candlestick' && preference.cursor === 'crosshair'
         && preference.panel === 'watchlist' && preference.chartOnly === false && preference.narrow === false
         && preference.sampleRevision === 'normal' && preference.sampleDate === ''
         && Object.keys(preference).length === 10,
     };
-  }, timeframe);
+  }, { timeframe, instrument: future });
   expect(stored).toEqual({ onlySamplePreference: true, emptySessionStorage: true, matchesSample: true });
 }
 
-async function inFreshBrowser(browser, server, use) {
+async function inFreshBrowser(browser, server, use, { includeSample = false } = {}) {
   const context = await browser.newContext();
   try {
     // Read the real launcher handoff but set its fragment locally before page
@@ -1420,11 +1672,12 @@ async function inFreshBrowser(browser, server, use) {
       window.history.replaceState(null, '', '#workspace=' + capability);
     }, server.capability);
     const page = await context.newPage();
+    if (includeSample) await observeSelectedHistory(page, { includeCatalog: true });
     const requests = observeOperations(page);
     let capabilityInRequestUrl = false;
     page.on('request', request => { capabilityInRequestUrl ||= request.url().includes(server.capability); });
     await use(page, await openWorkspaceSnapshot(page, server.url));
-    expect(requests.every(path => path === endpoint)).toBe(true);
+    expect(requests.every(path => path === endpoint || (includeSample && path === operationPath))).toBe(true);
     expect(capabilityInRequestUrl).toBe(false);
   } finally {
     await context.close();

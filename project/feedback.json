@@ -1852,7 +1852,7 @@
     {
       "id": "workspace-sample-reopen-transport-terminal",
       "source": "Ubuntu PR run 44601667278 at head 4aeddf2, merged test checkout 611de0d, workspace-timeframe screenshot and failure.",
-      "observation": "On the second explicit 1m sample open, the catalog displayed three instruments and the chart showed a disconnected local preview with Retry history. The assertion reported only a missing history element after five seconds. The other 23 workspace scenarios passed.",
+      "observation": "On the second explicit 1m sample open, the catalog displayed three instruments and the chart showed a disconnected local preview with Retry history. The assertion reported only a missing history element after five seconds. The other 23 workspace scenarios passed. The archived report lacks the network error, HTTP status and host response stage, so the original transport or OS cause remains unknown.",
       "severity": "major",
       "status": "open",
       "task_ids": [
@@ -1860,6 +1860,22 @@
       ],
       "regression_checks": [
         "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "preview-history-denial-body-transport-misclassification",
+      "source": "Local Chromium controlled socket interruption in .reports/ubuntu-workspace/1795119478701-2b19c416-64aa-4151-887b-518f4c68ff98/results.json, preview denial with interrupted body attachment.",
+      "observation": "The actual Vite preview rejected a synthetic test request with HTTP 403 and PERMISSION_DENIED. Chromium received the 403 headers before losing the chunked body. The client recorded a body TypeError without a selection abort and showed the retryable local disconnect instead of retaining the denied HTTP status. This controlled case is independent of the unidentified initiating failure in run 44601667278.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-010"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "market-quality-states"
       ],
       "resolution": null,
       "deferral_reason": null

@@ -7363,33 +7363,39 @@
         "project-state",
         "python-contracts-workers",
         "workspace-timeframe",
-        "market-workflow"
+        "market-workflow",
+        "ui-build",
+        "market-quality-states"
       ],
       "evidence": [],
-      "next_action": "Reproduce the terminal seen in run 44601667278, instrument the real startup and restoration stages, and verify the user-visible recovery and independent undo.",
+      "next_action": "Verify the integrated execution inputs on hosted Ubuntu and Windows, inspect both stage reports and archive matching evidence before closing M2-010.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
         "outcome": "A user can identify a disconnected history read and recover the explicitly selected offline sample while retaining the private workspace timeframe and undo.",
         "change_types": [
-          "tooling"
+          "tooling",
+          "ui"
         ],
         "context": [
           "tests/ubuntu-preview/workspace.spec.mjs",
           "tests/ui/sample-startup.mjs",
           "tests/ui/selected-history.mjs",
           "apps/desktop/ui/src/market.ts",
+          "apps/desktop/ui/ubuntu-preview.mjs",
           "project/delivery.json"
         ],
         "hypotheses": [
-          "The hosted chart already had a catalog and displayed a local transport disconnection. The current test waits for rendered history and omits the request outcome and the offered retry. The hosted capture has no transport code."
+          "The original Ubuntu run reached the selected-history transport terminal after the catalog populated. The archived report supplies neither a browser network error nor a host response stage, so the initiating OS or transport cause remains unknown.",
+          "A separately controlled loopback failure established that a real HTTP 403 could be presented as a retryable disconnect when its response body was interrupted after the browser received headers. The known HTTP status must still govern that terminal."
         ],
         "risks": [
           {
             "failure": "An invalid, denied or failed current history can look like a successful sample open.",
             "checks": [
               "workspace-timeframe",
-              "market-workflow"
+              "market-workflow",
+              "market-quality-states"
             ]
           },
           {
@@ -7419,16 +7425,17 @@
             "Changing workspace authority, private persistence or the product timing contract."
           ],
           "open_questions": [
-            "Identify the earliest observed failure and whether normal user retry recovers its exact selection. Revise the plan if a product transport defect is demonstrated."
+            "If the original symptom recurs on the integrated Ubuntu or Windows source, use the correlated host, browser and client stages to locate the earliest observed failure."
           ]
         },
         "evolution": {
           "kind": "refactor",
           "preserve": [
-            "Synthetic opt-in, current source identity, defined typed errors, workspace revision and undo across sample reads."
+            "Synthetic opt-in, selected request identity, preview service lifetime, typed provider failures, and private workspace authorization, revision and undo."
           ],
           "change": [
-            "Record the relevant read terminal and exercise the existing recovery action across ordinary and deliberately disconnected browser flows."
+            "Record the catalog and selected history terminal independently. Exercise explicit recovery through real loopback socket interruption while the normal open, reopen and refresh path requires a healthy chart.",
+            "Use an already received non-success HTTP status when its body cannot be read. Keep successful-status transfer failures eligible for explicit recovery and leave selection cancellation intact."
           ],
           "data_plan": "Use a disposable synthetic local profile and fixture.",
           "cleanup": "Release test interception and response listeners on every path; retain bounded diagnostics without profile credentials."
