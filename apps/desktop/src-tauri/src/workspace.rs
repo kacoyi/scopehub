@@ -22,7 +22,7 @@ pub(super) struct WorkspaceBridge {
 enum Lane {
     Disabled,
     Unavailable,
-    Open(BoundWorkspace),
+    Open(Box<BoundWorkspace>),
     Closed,
 }
 
@@ -52,7 +52,7 @@ impl WorkspaceBridge {
         // provides workspace state and receipts, never a grant.
         let lane = app_local_data
             .and_then(BoundWorkspace::open)
-            .map_or(Lane::Unavailable, Lane::Open);
+            .map_or(Lane::Unavailable, |bound| Lane::Open(Box::new(bound)));
         Self::new(lane)
     }
 
