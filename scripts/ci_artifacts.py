@@ -13,7 +13,7 @@ if __package__:
     from .verification_evidence import (
         FIELD_ACTIONS, SESSION_CHECKS, LocalFieldObservation, collect_session, field_observation,
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
-        hosted_record_bytes, integration_validation, release_artifacts, validate_notice,
+        evidence_json, integration_validation, release_artifacts, validate_notice,
     )
 else:
     from check import PRIVATE_CHECK_LOGS, ci_provenance, redacted_check_log
@@ -21,7 +21,7 @@ else:
     from verification_evidence import (
         FIELD_ACTIONS, SESSION_CHECKS, LocalFieldObservation, collect_session, field_observation,
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
-        hosted_record_bytes, integration_validation, release_artifacts, validate_notice,
+        evidence_json, integration_validation, release_artifacts, validate_notice,
     )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -108,7 +108,7 @@ def stage_session(reports, destination, run, result, source):
     relative = f'{run}/{check}.observation.json'
     expected = result['observation']
     contents = bound_bytes(checked_path(reports, relative), expected['evidence_sha256'])
-    hosted_record_bytes(contents)
+    evidence_json(contents)
     write_artifact(destination / relative, contents)
     if expected != collect_session(destination / run, check, source):
         raise PublicationError('Redacted session evidence differs from the reported observation.')
@@ -120,7 +120,7 @@ def stage_field_observation(root, reports, destination, result):
     manifest = directory + '/observation.json'
     expected = result['field_observation']
     contents = bound_bytes(checked_path(reports, manifest), expected['observation_sha256'])
-    for reference in hosted_field_record(hosted_record_bytes(contents)):
+    for reference in hosted_field_record(evidence_json(contents)):
         relative = directory + '/' + reference['path']
         copy_file(checked_path(reports, relative), destination / relative, sha256=reference['sha256'])
     (destination / manifest).write_bytes(contents)
@@ -134,7 +134,7 @@ def stage_candidate(reports, destination, run, report, policy, *, expected):
     source = report['source']
     try:
         contents = bound_bytes(checked_path(reports, manifest_path), expected['manifest_sha256'] if expected else None)
-        manifest = hosted_record_bytes(contents)
+        manifest = evidence_json(contents)
         refs = hosted_candidate_manifest(manifest, source)
         installer = manifest['installer']
         if expected is not None and installer['sha256'] != expected['installer_sha256']:
@@ -155,7 +155,7 @@ def stage_candidate(reports, destination, run, report, policy, *, expected):
             if kind == 'notice':
                 validate_notice(data)
             else:
-                hosted_candidate_observation(hosted_record_bytes(data), kind, source, installer['sha256'])
+                hosted_candidate_observation(evidence_json(data), kind, source, installer['sha256'])
         except (OSError, ValueError, TypeError, KeyError):
             if expected is not None:
                 raise
@@ -177,7 +177,7 @@ def stage_artifacts(root, destination, env):
     if latest is None:
         return False
     contents = latest.read_bytes()
-    report = hosted_record_bytes(contents)
+    report = evidence_json(contents)
     validate_model(root, 'HostedHarnessReport', report)
     expected = ci_provenance(report['source'], env, root)
     if not expected or report.get('ci') != expected or expected['checkout_sha'] != env['GITHUB_SHA']:

@@ -85,11 +85,11 @@ def redacted_fields(record, fields):
         raise ProjectError('Observation contains fields outside the redacted evidence format.')
 
 
-def hosted_record_bytes(contents):
+def evidence_json(contents):
     def unique_fields(pairs):
         record = dict(pairs)
         if len(record) != len(pairs):
-            raise ProjectError('Duplicate fields in hosted evidence.')
+            raise ProjectError('Duplicate fields in verification evidence.')
         return record
 
     return json.loads(contents, object_pairs_hook=unique_fields)
@@ -193,7 +193,7 @@ def field_observation(root, key, reports_root=None, *, hosted=False):
     else:
         directory = local_path(reports_root, relative)
         record_path = local_path(directory, 'observation.json')
-    obs = hosted_record_bytes(record_path.read_bytes()) if hosted else read_json(record_path)
+    obs = evidence_json(record_path.read_bytes()) if hosted else read_json(record_path)
     if not isinstance(obs, dict) or obs.get('kind') != key:
         raise ProjectError('Expected a typed interactive field observation')
     images = hosted_field_record(obs) if hosted else obs.get('screenshots')
@@ -259,7 +259,7 @@ def field_observation(root, key, reports_root=None, *, hosted=False):
 def collect_session(run_dir, key, source):
     """A real-session check writes a redacted, result-specific observation in its own run."""
     record_path = local_path(run_dir, key + '.observation.json')
-    obs = read_json(record_path)
+    obs = evidence_json(record_path.read_bytes())
     if not isinstance(obs, dict) or obs.get('check') != key or obs.get('modality') != SESSION_CHECKS[key][1]:
         raise ProjectError(f'Missing valid {key} observation')
     bound_source(obs, source)
@@ -459,7 +459,7 @@ def release_artifacts(run_dir, source, policy, *, expected=None, hosted=False):
     else:
         directory = local_path(run_dir, 'candidate')
         manifest_path = local_path(directory, 'build-manifest.json')
-    manifest = hosted_record_bytes(manifest_path.read_bytes()) if hosted else read_json(manifest_path)
+    manifest = evidence_json(manifest_path.read_bytes()) if hosted else read_json(manifest_path)
     if not isinstance(manifest, dict):
         raise ProjectError('Missing candidate build manifest')
     if hosted:
@@ -476,7 +476,7 @@ def release_artifacts(run_dir, source, policy, *, expected=None, hosted=False):
     families = set()
     for ref in observations:
         path = verified_file(directory, ref)
-        obs = hosted_record_bytes(path.read_bytes()) if hosted else read_json(path)
+        obs = evidence_json(path.read_bytes()) if hosted else read_json(path)
         if not isinstance(obs, dict):
             raise ProjectError('Invalid Windows observation')
         if hosted:
@@ -494,7 +494,7 @@ def release_artifacts(run_dir, source, policy, *, expected=None, hosted=False):
     if families != {'Windows 10', 'Windows 11'}:
         raise ProjectError('Missing a supported Windows client family')
     metrics_path = verified_file(directory, manifest.get('performance'))
-    metrics = hosted_record_bytes(metrics_path.read_bytes()) if hosted else read_json(metrics_path)
+    metrics = evidence_json(metrics_path.read_bytes()) if hosted else read_json(metrics_path)
     if not isinstance(metrics, dict):
         raise ProjectError('Invalid performance observation')
     if hosted:

@@ -3,6 +3,7 @@
 from contextlib import redirect_stdout
 import base64
 from io import StringIO
+import json
 import os
 from pathlib import Path
 import shutil
@@ -236,6 +237,30 @@ class PublicationTests(ProjectFixture):
         path = self.write(f'runs/fixture/{check}.observation.json', json_bytes(record))
         result['observation'] = collect_session(path.parent, check, report['source'])
         return path
+
+    def test_observed_session_rejects_a_shadowed_private_value(self):
+        self.add_catalog_checks('configured-model-session')
+        report = self.hosted_report()
+        check = 'configured-model-session'
+        path = self.record_session(report)
+        original = path.read_bytes()
+        result = next(item for item in report['checks'] if item['id'] == check)
+        for prefix, contents in (
+            (b'{', b'{"provider":"synthetic private body",'),
+            (b'"billing":{', b'"billing":{"currency":"synthetic private body",'),
+        ):
+            with self.subTest(prefix=prefix):
+                compact = json.dumps(json.loads(original), separators=(',', ':')).encode()
+                raw = compact.replace(prefix, contents, 1)
+                path.write_bytes(raw)
+                result['observation']['evidence_sha256'] = digest(raw)
+                self.save_report(report)
+                with self.assertRaisesRegex(ProjectError, 'Duplicate fields'):
+                    collect_session(path.parent, check, report['source'])
+                with self.assertRaisesRegex(ProjectError, 'Duplicate fields'):
+                    stage_artifacts(self.root, self.destination, self.env)
+                self.assertFalse((self.destination / 'test-report.json').exists())
+                shutil.rmtree(self.destination, ignore_errors=True)
 
     def test_rejects_raw_content_embedded_in_otherwise_valid_session_observation(self):
         self.add_catalog_checks('configured-model-session')
