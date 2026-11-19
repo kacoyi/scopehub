@@ -232,7 +232,8 @@
     {
       "id": "workspace-recovery",
       "task_ids": [
-        "M2-001"
+        "M2-001",
+        "M2-007"
       ],
       "user_goal": "Make an authorized change, undo it and recover accepted work after restarting.",
       "given": "A persisted workspace with a known revision and operation history.",

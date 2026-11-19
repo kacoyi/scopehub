@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-001",
+  "focus_task_id": "M2-007",
   "tasks": [
     {
       "id": "M0-001",
@@ -5294,6 +5294,137 @@
           ],
           "data_plan": "The regression uses synthetic fixtures on loopback.",
           "cleanup": "Keep a single live path for restoration and use ordinary UI assertions after its bounded reads."
+        }
+      }
+    },
+    {
+      "id": "M2-007",
+      "title": "Verify the persisted timeframe and eligible undo across local workspace sessions",
+      "milestone": "M2",
+      "status": "active",
+      "depends_on": [
+        "M1-001",
+        "M2-006"
+      ],
+      "scope": [
+        "crates/persistence",
+        "apps/desktop",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ui/desktop-workspace.spec.mjs",
+        "project/checks.json",
+        "project/tasks.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0010",
+        "0011"
+      ],
+      "acceptance": [
+        "A fresh browser and restarted Rust writer restore the committed timeframe, discover the eligible local undo, and restore the original timeframe exactly once. Independent profiles and rejected callers cannot read or mutate another workspace.",
+        "An ordinary unconfigured launch stays inert. The opted-in local host binds the trusted profile, actor, workspace and database. Actual Rust process and desktop bridge tests cover durable effects. Built UI tests verify native IPC arguments and error handling using a substituted transport.",
+        "The harness exercises the two named checks, records their distinct evidence, validates dependency inventory and retains synthetic verification artifacts."
+      ],
+      "checks": [
+        "project-state",
+        "architecture",
+        "python-contracts-workers",
+        "ui-build",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "dependency-review",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "evidence": [],
+      "next_action": "Run the focused harness and address concrete independent-review findings before archiving this delivery.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A repeatable, bounded acceptance of the first local workspace write and undo across process and browser restarts.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/checks.json",
+          "apps/desktop/ui/ubuntu-workspace.mjs",
+          "apps/desktop/src-tauri/src/workspace.rs",
+          "crates/persistence/src/lib.rs",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ui/desktop-workspace.spec.mjs"
+        ],
+        "hypotheses": [
+          "A new browser can use the core operation log to discover an eligible undo after a writer restart. The scoped result is independent of browser storage and the synthetic market source."
+        ],
+        "risks": [
+          {
+            "failure": "A restarted client repeats a write, trusts another profile, loses the undo or receives permission from an earlier invocation.",
+            "checks": [
+              "rust-contracts-workers",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A native transport substitute accidentally counts as an actual native runtime or an unconfigured host gains a new grant.",
+            "checks": [
+              "desktop-workspace-transport",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Only one host can execute the regression or its artifacts include the working data directory.",
+            "checks": [
+              "python-contracts-workers",
+              "workspace-timeframe",
+              "dependency-review"
+            ]
+          }
+        ],
+        "rollback": "Keep each fixture in an isolated temporary local profile. Preserve failed run evidence and correct the failing boundary before recording completion.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "ui",
+            "desktop",
+            "persistence",
+            "application"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ui/desktop-workspace.spec.mjs",
+            "apps/desktop/src-tauri/src/workspace.rs",
+            "crates/persistence/src/lib.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization/durable_operations"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence"
+            }
+          ],
+          "non_goals": [
+            "Decision-note retention, backup restoration, full production profile selection and packaged Windows experience remain assigned to their owning tasks."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "One Rust authorization path, local data ownership and synthetic source opt-in."
+          ],
+          "change": [
+            "Verify the eligible undo from fresh local sessions and independently exercise both application transports."
+          ],
+          "data_plan": "Only temporary synthetic profiles are used for the browser checks. They are removed after their owned processes exit.",
+          "cleanup": "Keep the process probe test-only. Stage named browser results and retain private working databases locally."
         }
       }
     }
