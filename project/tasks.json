@@ -5531,7 +5531,7 @@
       "id": "M1-019",
       "title": "Verify recovery boundaries and owned worker interruption on Windows",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-003"
       ],
@@ -5587,9 +5587,25 @@
         {
           "path": "project/evidence/M1-019-da1cca2453fa7f86.json",
           "sha256": "77d244a24ecb44fef4d4f406d0b3dc633880ff7f3a06b4a0a6abbc3bd73d8f91"
+        },
+        {
+          "path": "project/evidence/M1-019-1139dbf6ff2e06ed.json",
+          "sha256": "164c58576a2e1725828a2c9e28f762a4d74d4fa8cbc4a825ac73f3f961e1ffbb"
+        },
+        {
+          "path": "project/evidence/M1-019-a5c00379c62d812b.json",
+          "sha256": "ade7745a3b59b2b08631312c9316857151498898f102c8aaa2480ccf8f7d24b3"
+        },
+        {
+          "path": "project/evidence/M1-019-875d2aa0a12efd3c.json",
+          "sha256": "c9ce07a16bba084da526c3ca6b293fab69a27f9d35eb73ce3b6ddcba4cad6756"
+        },
+        {
+          "path": "project/evidence/M1-019-e036185761cf4c65.json",
+          "sha256": "7e6b31c53e8c67539b63a4a95aa207f6edac4062dc7bc17c563d82b3fe63aca6"
         }
       ],
-      "next_action": "Compare real Windows interruption and resume across the original and minimal locked environments, then verify the scoped checks with complete Windows and Ubuntu evidence.",
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -5884,6 +5900,118 @@
           "change": ["Use the shared default startup verifier and cover two independently held real replies and a typed worker failure."],
           "data_plan": "Use only committed synthetic fixtures through the local bridge.",
           "cleanup": "Keep timeout allowances in browser verification and leave product deadlines intact."
+        }
+      }
+    },
+    {
+      "id": "M0-027",
+      "title": "Isolate the live publisher advisory request in GitHub verification",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-017"
+      ],
+      "scope": [
+        ".github/workflows/verify.yml",
+        "scripts/dependencies.py",
+        "scripts/publisher_advisory.py",
+        "tests/project/test_dependencies.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Hosted verification uses the existing job read token only for the exact approved public publisher advisory GET. No redirect or other dependency client receives it.",
+        "The live published advisory is bound to the current job attempt and checkout. Missing, unavailable, stale, malformed, or changed metadata fails review. Inventory, notices, immutable Actions, OSV, npm, and target-scope requirements still apply."
+      ],
+      "checks": [
+        "dependency-review",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-027-25105a7b3a4f376a.json",
+          "sha256": "86751b14e19cb2f9b2dfce9baf02de232e84eec447ee98c1f51245acc6c901f4"
+        },
+        {
+          "path": "project/evidence/M0-027-875d2aa0a12efd3c.json",
+          "sha256": "6bb2d38b8253a08a5309e784bb195c2a163e8ea58f35aaa772abae61f8d0558b"
+        },
+        {
+          "path": "project/evidence/M0-027-e036185761cf4c65.json",
+          "sha256": "4b5a6dfb545c543ea9298bac984771f657cc36e6a662180a129f46246425189c"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Recheck the public publisher advisory under the existing CI identity without transmitting it elsewhere.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/dependencies.json",
+          "scripts/dependencies.py",
+          ".github/workflows/verify.yml"
+        ],
+        "hypotheses": [
+          "The Linux runner exhausted its anonymous GitHub REST request quota. A job-scoped authenticated read can avoid that quota when the publisher endpoint accepts the identity."
+        ],
+        "risks": [
+          {
+            "failure": "A redirect, later check, subprocess, or diagnostic receives the token.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An unavailable, stale, or changed publisher reply authorizes a disposition.",
+            "checks": [
+              "dependency-review",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain the run 44536924867 failure. If the approved live endpoint remains unavailable, keep the gate failed and retain its bounded diagnostics.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            ".github/workflows/verify.yml",
+            "scripts/dependencies.py",
+            "scripts/publisher_advisory.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/dependencies.json",
+              "pointer": "/advisory_dispositions"
+            }
+          ],
+          "non_goals": [
+            "Permission expansion, user credentials, product changes, and static advisory waivers."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing online advisory, target coverage, license, and notice acceptance."
+          ],
+          "change": [
+            "Isolate an exact-origin publisher fetch and bind its public result to the current CI invocation."
+          ],
+          "data_plan": "Store only reviewed public advisory fields in the runner temporary directory.",
+          "cleanup": "The fetch has no child checks. The runner owns temporary public evidence and the built-in job credential lifetime."
         }
       }
     }

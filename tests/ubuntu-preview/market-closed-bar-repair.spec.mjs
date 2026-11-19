@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { painted } from '../ui/chart-pixels.mjs';
 import { replayStage, waitForReplayRequest } from '../ui/replay-stages.mjs';
+import { openDefaultSample } from '../ui/sample-startup.mjs';
 import { control, openPanel } from '../ui/workspace-controls.mjs';
 
 const stream = '/__scopehub/market-stream';
@@ -41,11 +42,11 @@ function observeReplay(path) {
 
 async function openRepairSample(page, selected) {
   await page.addInitScript(observeReplay, stream);
-  await page.goto('/#demo');
+  await openDefaultSample(page);
   await openPanel(page, 'Data sources');
   await expect(revision(page)).toHaveValue('normal');
   await revision(page).selectOption(selected);
-  await expect(chart(page)).toHaveAttribute('data-bars', '39');
+  await expect(chart(page)).toHaveAttribute('data-bars', '39', replayStage);
   await expect(legend(page)).toContainText(/C 3500\.8Volume 110.*Partial bar/);
   await expect(fact(page, 'Coverage')).toHaveText('Gapped');
   await expect(fact(page, 'Connection')).toHaveText('Offline');
@@ -155,17 +156,49 @@ test('the real unrepaired sample keeps the missing interval visible and the char
   await readFrozenRows(page);
 });
 
-async function holdRepair(page, terminal) {
+async function routeCompletedRepair(page, rewrite, headers) {
+  const observed = Promise.withResolvers();
   await page.route(`**${stream}`, async route => {
-    const response = await route.fetch();
-    const lines = (await response.text()).trimEnd().split('\n');
-    if (terminal) lines[lines.length - 1] = JSON.stringify(terminal);
-    await route.fulfill({ contentType: 'application/x-ndjson', headers: { 'X-Hold-Closed-Bar-Repair': '1' }, body: lines.join('\n') + '\n' });
+    const response = await route.fetch(replayStage);
+    const status = response.status();
+    const contentType = response.headers()['content-type'];
+    const text = await response.text();
+    let frames = [];
+    let parseError;
+    try { frames = text.trimEnd().split('\n').map(line => JSON.parse(line)); }
+    catch (error) { parseError = error.message; }
+    const terminal = frames.at(-1);
+    const repair = frames[3]?.repair;
+    const complete = status === 200 && contentType === 'application/x-ndjson' && frames.length === 5
+      && Boolean(repair?.position && repair.snapshot && Array.isArray(repair.bars))
+      && terminal?.ok === true && terminal.result?.status === 'complete';
+    const outcome = { status, contentType, terminal: structuredClone(terminal), frameCount: frames.length, complete, parseError };
+    if (!complete) {
+      await route.fulfill({ response });
+      // A genuine bridge admission rejection may be retried by the application.
+      if (status === 429 && terminal?.ok === false && terminal.error?.code === 'BUSY' && terminal.error.retryable === true) return;
+    } else {
+      rewrite(frames);
+      await route.fulfill({ status, contentType, headers, body: frames.map(frame => JSON.stringify(frame) + '\n').join('') });
+    }
+    observed.resolve(outcome);
   });
+  return async () => {
+    expect(await observed.promise, 'Real bridge reply must contain a complete repair before alteration').toMatchObject({
+      status: 200, contentType: 'application/x-ndjson', frameCount: 5,
+      terminal: { ok: true, result: { status: 'complete' } }, complete: true,
+    });
+  };
+}
+
+function holdRepair(page, terminal) {
+  return routeCompletedRepair(page, frames => {
+    if (terminal) frames[frames.length - 1] = terminal;
+  }, { 'X-Hold-Closed-Bar-Repair': '1' });
 }
 
 test('a held bridge reply keeps the gap until the valid repair and complete are both received', async ({ page }) => {
-  await holdRepair(page);
+  const verifyUpstream = await holdRepair(page);
   await openRepairSample(page, 'repairable');
   // Keep the real snapshot and worker. Delay just the preparation reply so
   // the wait for a gap cannot use a single five-second budget from the click.
@@ -173,7 +206,7 @@ test('a held bridge reply keeps the gap until the valid repair and complete are 
   await page.route('**/__scopehub/operation', async route => {
     const { operation, payload } = route.request().postDataJSON();
     if (operation !== 'market.readHistoryPage' || payload.include_stream_position !== true) return route.continue();
-    const response = await route.fetch();
+    const response = await route.fetch(replayStage);
     if (response.ok()) {
       preparations++;
       await new Promise(resolve => setTimeout(resolve, 5_200));
@@ -181,6 +214,7 @@ test('a held bridge reply keeps the gap until the valid repair and complete are 
     await route.fulfill({ response });
   });
   await play(page);
+  await verifyUpstream();
   await expectGap(page);
   expect(preparations).toBe(1);
   await page.evaluate(() => window.sendClosedBarRepair());
@@ -241,9 +275,10 @@ for (const action of ['stop', 'reselect']) {
 }
 
 test('a worker-exited terminal leaves an already visible gap and discards a staged repair', async ({ page }) => {
-  await holdRepair(page, { ok: false, error: { code: 'WORKER_EXITED', retryable: true } });
+  const verifyUpstream = await holdRepair(page, { ok: false, error: { code: 'WORKER_EXITED', retryable: true } });
   await openRepairSample(page, 'repairable');
   await play(page);
+  await verifyUpstream();
   await expectGap(page);
   await page.evaluate(() => window.sendClosedBarRepair());
   await expectGap(page);
@@ -267,15 +302,11 @@ for (const [name, alter, failure = 'The data response failed validation.'] of [
   }, 'The closed-bar repair could not be verified.'],
 ]) {
   test(`a bridge reply altered to carry ${name} leaves the gap visible`, async ({ page }) => {
-    await page.route(`**${stream}`, async route => {
-      const response = await route.fetch();
-      const frames = (await response.text()).trimEnd().split('\n').map(line => JSON.parse(line));
-      alter(frames);
-      await route.fulfill({ status: 200, contentType: 'application/x-ndjson', body: frames.map(frame => JSON.stringify(frame) + '\n').join('') });
-    });
+    const verifyUpstream = await routeCompletedRepair(page, alter);
     await openRepairSample(page, 'repairable');
     await trackProjection(page);
     await play(page);
+    await verifyUpstream();
     await expect(page.getByRole('alert')).toHaveText(`Replay failed. ${failure}`, replayStage);
     await expectGap(page);
     expect(await page.evaluate(() => window.closedBarProjectionCounts)).not.toContain('40');

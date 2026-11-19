@@ -14,6 +14,11 @@ import urllib.request
 
 import yaml
 
+if __package__:
+    from .publisher_advisory import read_publisher
+else:
+    from publisher_advisory import read_publisher
+
 ROOT = Path(__file__).resolve().parents[1]
 LOCKS = ['Cargo.lock', 'uv.lock', 'pnpm-lock.yaml']
 OSV = 'https://api.osv.dev/v1/querybatch'
@@ -144,7 +149,7 @@ def dispositions(findings, policy, today=None):
     return reviewed, unresolved
 
 
-def validate_upstream_range(item, request=fetch_json):
+def validate_upstream_range(item, request=read_publisher):
     """Verify a reviewed aggregator discrepancy against the publisher's live range.
 
     Only stable three-component Rust ranges are supported. A changed primary
@@ -198,7 +203,7 @@ def validate_picomatch_patch(root, item, request=fetch_json):
         raise ValueError('Reassess the local picomatch patch against the latest npm release')
 
 
-def validate_advisory_scope(root, policy, request=fetch_json):
+def validate_advisory_scope(root, policy, request=fetch_json, publisher_request=read_publisher):
     if not policy['advisory_dispositions']:
         return
     desktop = tomllib.loads((root / 'apps/desktop/src-tauri/Cargo.toml').read_text(encoding='utf-8'))
@@ -216,7 +221,7 @@ def validate_advisory_scope(root, policy, request=fetch_json):
             validate_picomatch_patch(root, item, request)
             continue
         if item.get('scope_guard') == 'upstream-excludes-locked-version':
-            validate_upstream_range(item, request)
+            validate_upstream_range(item, publisher_request)
             continue
         if item.get('scope_guard') != 'absent-from-supported-builds' or item['ecosystem'] != 'crates.io':
             raise ValueError('Unsupported advisory scope guard; explicit implementation and review are needed')
