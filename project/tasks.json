@@ -6073,8 +6073,13 @@
         "market-quality-states",
         "market-live-stream"
       ],
-      "evidence": [],
-      "next_action": "Use the retained Windows report, screenshot and selection timeline to distinguish an interrupted current request, deliberate cancellation of obsolete requests, or a client decoding/transport error; fix the demonstrated cause and verify explicit recovery.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-025-482421467bcd112c.json",
+          "sha256": "e4743052a91a21dd653e1e355c4580e9848f7707b91083af2103cbf35fb87e9b"
+        }
+      ],
+      "next_action": "Review the local checkpoint and obtain source-matched hosted Windows verification before closing this task. The local run records the obsolete stock 1m cancellation, the current 5m admission and the explicit retry control. If the original symptom recurs, correlate the selected browser terminal with the host trace before deciding on further work.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
