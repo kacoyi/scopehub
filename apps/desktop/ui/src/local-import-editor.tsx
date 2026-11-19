@@ -678,7 +678,13 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
               <option value=",">Comma</option><option value=";">Semicolon</option><option value={'\t'}>Tab</option><option value="|">Pipe</option>
             </select></label>
             <label>Record kind <select value={draft.record_kind} onChange={event => updateDraft('record_kind', event.currentTarget.value)}>
-              <option value="unclassified">Show raw records</option><option value="native_ohlcv">Closed OHLCV bars</option><option value="quote_snapshot">Quote snapshots</option>
+              <option value="unclassified">Show raw records</option>
+              <option value="native_ohlcv">Closed OHLCV bars</option>
+              <option value="trade">Executed trades</option>
+              <option value="quote_snapshot">Quote snapshots</option>
+              <option value="depth_snapshot">Order book snapshots</option>
+              <option value="reference_data">Reference data</option>
+              <option value="corporate_action">Corporate actions</option>
             </select></label>
             <label>Rows per preview <select value={rowLimit} onChange={event => {
               setRowLimit(Number(event.currentTarget.value)); setFailure(undefined); setProgress(undefined);
