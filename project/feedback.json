@@ -1754,6 +1754,39 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "workspace-layout-undo-suppresses-chart-undo",
+      "source": "Independent t3b review and clean b11df1a replay. Retained red browser observations are under .reports/m2-002-interaction-red-b11df1a. Matching Linux regression evidence for d57be7d is archived in project/evidence/M2-002-58c13d0f723275d2.json.",
+      "observation": "After a chart timeframe edit and a named layout save, undoing only the layout removed the still-current chart undo. The reopened profile retained 5m and rejected the original chart inverse as STALE_CONTEXT. Linux green coverage exercises both inverse orders, durable replay, and predecessor chart undo history.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-002"
+      ],
+      "regression_checks": [
+        "workspace-layout",
+        "operations-workflow",
+        "state-migrations"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "workspace-layout-retry-loses-idempotency",
+      "source": "Independent t3b review and clean b11df1a replay. Retained red browser observations are under .reports/m2-002-interaction-red-b11df1a. Matching Linux regression evidence for d57be7d is archived in project/evidence/M2-002-58c13d0f723275d2.json.",
+      "observation": "After the Rust writer committed a layout and its reply was dropped, clicking Apply layout again allocated a new idempotency key and returned STALE_CONTEXT. Linux green coverage uses the ordinary Apply button to recover the original receipt and separately exercises a changed draft, a real conflict and a denied grant.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-002"
+      ],
+      "regression_checks": [
+        "workspace-layout",
+        "operations-workflow"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
