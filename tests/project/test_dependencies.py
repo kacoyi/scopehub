@@ -12,6 +12,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from jsonschema import Draft202012Validator, FormatChecker
+from referencing.jsonschema import DRAFT202012
 import yaml
 
 from scripts import dependencies as review
@@ -208,15 +209,19 @@ class DependencyTests(unittest.TestCase):
                     'date': ('2026-10-14', '2026-02-30'),
                     'date-time': ('2026-10-14T12:30:00Z', '2026-13-40T30:90:00Z'),
                     'uri': ('https://example.invalid/result', 'has spaces and no scheme')}
-        def formats(value):
-            if isinstance(value, dict):
-                return ({value['format']} if isinstance(value.get('format'), str) else set()).union(
-                    *(formats(x) for x in value.values()))
-            if isinstance(value, list):
-                return set().union(*(formats(x) for x in value))
-            return set()
-        declared = set().union(*(formats(review.read(ROOT / path)) for path in
-                                ['contracts/schemas/protocol.schema.json', 'contracts/schemas/project.schema.json']))
+
+        def formats(resource):
+            schema = resource.contents
+            declared = {schema['format']} if isinstance(schema, dict) and 'format' in schema else set()
+            for child in resource.subresources():
+                declared.update(formats(child))
+            return declared
+
+        declared = set()
+        for filename in ['protocol.schema.json', 'project.schema.json']:
+            schema = review.read(ROOT / 'contracts' / 'schemas' / filename)
+            Draft202012Validator.check_schema(schema)
+            declared.update(formats(DRAFT202012.create_resource(schema)))
         for name in declared:
             with self.subTest(format=name):
                 self.assertIn(name, checker.checkers)
