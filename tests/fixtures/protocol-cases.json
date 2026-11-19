@@ -1018,6 +1018,46 @@
     "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.publishLocalImport\",\"ok\":true,\"result\":{\"version\":1,\"revision\":{\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"relative_path\":\"equities/fixture.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"review_revision\":2,\"symbol\":\"000418\",\"series\":{\"instrument_kind\":\"equity\",\"venue\":\"TEST\",\"timeframe\":\"1d\",\"calendar_id\":\"reviewed-calendar\",\"session_scope\":\"regular\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"roll_method\":null},\"bar_count\":1,\"source_record_count\":2}},\"error\":null}\n"
   },
   {
+    "name": "1.1 local CSV source row read takes the revision and logical locator",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportSourceRow\",\"task_id\":null,\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"locator\":{\"record_number\":501,\"line_start\":503,\"line_end\":504}}}\n"
+  },
+  {
+    "name": "1.1 local CSV source row read rejects a supplied source path",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportSourceRow\",\"task_id\":null,\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"locator\":{\"record_number\":501,\"line_start\":503,\"line_end\":504},\"relative_path\":\"subdirectory/alternate.csv\"}}\n"
+  },
+  {
+    "name": "1.1 local CSV source row read rejects a record beyond the publication limit",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportSourceRow\",\"task_id\":null,\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"locator\":{\"record_number\":10001,\"line_start\":503,\"line_end\":504}}}\n"
+  },
+  {
+    "name": "1.1 local CSV source row read requires protocol 1.1",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportSourceRow\",\"task_id\":null,\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"locator\":{\"record_number\":501,\"line_start\":503,\"line_end\":504}}}\n"
+  },
+  {
+    "name": "1.1 local CSV source row result preserves strings, multiline text and an empty field",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportSourceRow\",\"ok\":true,\"result\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"locator\":{\"record_number\":501,\"line_start\":503,\"line_end\":504},\"header\":[\"Close\",\"Settlement\",\"Previous Settlement\",\"Open Interest\",\"Units\",\"Note\",\"Comment\"],\"raw_fields\":[\"004.250\",\"05.750\",\"03.500\",\"000093\",\"lots\",\"quoted \\\"text\\\"\\r\\nsecond line\",\"\"]},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local CSV source row result rejects a converted numeric field",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportSourceRow\",\"ok\":true,\"result\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"locator\":{\"record_number\":501,\"line_start\":503,\"line_end\":504},\"header\":[\"Close\",\"Settlement\",\"Previous Settlement\",\"Open Interest\",\"Units\",\"Note\",\"Comment\"],\"raw_fields\":[4.25,\"05.750\",\"03.500\",\"000093\",\"lots\",\"quoted \\\"text\\\"\\r\\nsecond line\",\"\"]},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local CSV source row result rejects original file bytes",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportSourceRow\",\"ok\":true,\"result\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"locator\":{\"record_number\":501,\"line_start\":503,\"line_end\":504},\"header\":[\"Close\",\"Settlement\",\"Previous Settlement\",\"Open Interest\",\"Units\",\"Note\",\"Comment\"],\"raw_fields\":[\"004.250\",\"05.750\",\"03.500\",\"000093\",\"lots\",\"quoted \\\"text\\\"\\r\\nsecond line\",\"\"],\"original_bytes\":\"csv\"},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local CSV source row revocation returns an error without field values",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportSourceRow\",\"ok\":false,\"result\":null,\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"This caller cannot perform the operation.\",\"retryable\":false,\"details\":{}}}\n"
+  },
+  {
     "name": "1.1 local CSV frozen read takes only the revision identity",
     "valid": true,
     "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportRevision\",\"task_id\":null,\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\"}}\n"

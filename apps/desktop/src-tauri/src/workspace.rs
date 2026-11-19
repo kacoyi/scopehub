@@ -7,14 +7,15 @@ use std::{
 
 use scopehub_application::{
     Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, FolderRefreshBase,
-    LIST_LOCAL_IMPORT_REVISIONS, LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS,
-    LocalDatasetPublication, MappingCommitGuard, OperationRegistry, PREVIEW_LOCAL_FOLDER_REFRESH,
-    PUBLISH_LOCAL_IMPORT, READ_LOCAL_IMPORT_REVISION, REVOKE_LOCAL_IMPORT_REVISION,
-    ReviewedImportMapping, SAVE_LOCAL_IMPORT_MAPPING, WorkspaceAccess, WorkspaceBinding,
-    evidence_operation_name, failure, list_local_import_revisions_input, local_mapping_fingerprint,
-    read_local_import_revision_input, revoke_local_import_revision_input,
+    FrozenLocalSourceRow, LIST_LOCAL_IMPORT_REVISIONS, LOAD_LOCAL_IMPORT_MAPPING,
+    LOCAL_WORKSPACE_OPERATIONS, LocalDatasetPublication, MappingCommitGuard, OperationRegistry,
+    PREVIEW_LOCAL_FOLDER_REFRESH, PUBLISH_LOCAL_IMPORT, READ_LOCAL_IMPORT_REVISION,
+    READ_LOCAL_IMPORT_SOURCE_ROW, REVOKE_LOCAL_IMPORT_REVISION, ReviewedImportMapping,
+    SAVE_LOCAL_IMPORT_MAPPING, WorkspaceAccess, WorkspaceBinding, evidence_operation_name, failure,
+    list_local_import_revisions_input, local_mapping_fingerprint, read_local_import_revision_input,
+    revoke_local_import_revision_input,
 };
-use scopehub_domain::protocol::{CsvMappingV1, Error, ErrorCode};
+use scopehub_domain::protocol::{CsvMappingV1, Error, ErrorCode, ReadLocalImportSourceRowInput};
 use scopehub_persistence::SqliteWorkspace;
 use scopehub_platform::local_folder::FrozenFile;
 use serde_json::{Value, json};
@@ -32,6 +33,7 @@ const LOCAL_IMPORT_OPERATIONS: &[&str] = &[
     PUBLISH_LOCAL_IMPORT,
     LIST_LOCAL_IMPORT_REVISIONS,
     READ_LOCAL_IMPORT_REVISION,
+    READ_LOCAL_IMPORT_SOURCE_ROW,
     REVOKE_LOCAL_IMPORT_REVISION,
 ];
 const MAX_REQUEST_BYTES: usize = 16 * 1024;
@@ -336,6 +338,35 @@ impl WorkspaceBridge {
             bound
                 .registry
                 .read_frozen_local_dataset(&local_import_access(&bound.profile_id), &input)
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
+    }
+
+    pub(super) async fn load_local_source_row(
+        &self,
+        input: ReadLocalImportSourceRowInput,
+    ) -> Result<FrozenLocalSourceRow, Error> {
+        Self::with_bound(self.admit()?, false, move |bound| {
+            bound
+                .registry
+                .prepare_frozen_local_source_row(&local_import_access(&bound.profile_id), input)
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
+    }
+
+    pub(super) async fn finish_local_source_row(
+        &self,
+        source: FrozenLocalSourceRow,
+        row: Value,
+    ) -> Result<Value, Error> {
+        Self::with_bound(self.admit()?, false, move |bound| {
+            bound.registry.finish_frozen_local_source_row(
+                &local_import_access(&bound.profile_id),
+                source,
+                row,
+            )
         })
         .await?
         .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))

@@ -84,6 +84,7 @@
         "market.loadLocalImportMapping",
         "market.listLocalImportRevisions",
         "market.readLocalImportRevision",
+        "market.readLocalImportSourceRow",
         "market.previewLocalFolderRefresh",
         "market.revokeLocalImportRevision",
         "market.publishLocalImport",
@@ -3761,6 +3762,15 @@
         },
         {
           "$ref": "#/$defs/ReadLocalImportRevisionError"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalImportSourceRowRequest"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalImportSourceRowResponse"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalImportSourceRowError"
         },
         {
           "$ref": "#/$defs/PreviewLocalFolderRefreshRequest"
@@ -12277,6 +12287,232 @@
         },
         {
           "$ref": "#/$defs/ReadLocalImportRevisionError"
+        }
+      ]
+    },
+    "ReadLocalImportSourceRowInput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "revision_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "locator": {
+          "$ref": "#/$defs/LocalImportRowLocator"
+        }
+      },
+      "required": [
+        "version",
+        "revision_id",
+        "locator"
+      ],
+      "additionalProperties": false
+    },
+    "ReadLocalImportSourceRowOutput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "revision_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "source_sha256": {
+          "$ref": "#/$defs/Hash"
+        },
+        "locator": {
+          "$ref": "#/$defs/LocalImportRowLocator"
+        },
+        "header": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 65536
+          },
+          "minItems": 1,
+          "maxItems": 512
+        },
+        "raw_fields": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 65536
+          },
+          "minItems": 1,
+          "maxItems": 512
+        }
+      },
+      "required": [
+        "version",
+        "revision_id",
+        "source_sha256",
+        "locator",
+        "header",
+        "raw_fields"
+      ],
+      "additionalProperties": false
+    },
+    "ReadLocalImportSourceRowRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.readLocalImportSourceRow"
+        },
+        "payload": {
+          "$ref": "#/$defs/ReadLocalImportSourceRowInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "ReadLocalImportSourceRowResponse": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.readLocalImportSourceRow"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": true
+        },
+        "result": {
+          "$ref": "#/$defs/ReadLocalImportSourceRowOutput"
+        },
+        "error": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "ReadLocalImportSourceRowError": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.readLocalImportSourceRow"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": false
+        },
+        "result": {
+          "type": "null"
+        },
+        "error": {
+          "$ref": "#/$defs/MarketPageFault"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "ReadLocalImportSourceRowReply11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ReadLocalImportSourceRowResponse"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalImportSourceRowError"
         }
       ]
     },

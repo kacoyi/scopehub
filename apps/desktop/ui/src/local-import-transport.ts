@@ -4,6 +4,7 @@ import type {
   LoadLocalImportMappingInput, LoadLocalImportMappingOutput, LocalImportPreviewInput, LocalImportPreviewOutput,
   PreviewLocalFolderRefreshInput, PreviewLocalFolderRefreshOutput,
   PublishLocalImportInput, PublishLocalImportOutput, ReadLocalImportRevisionInput, ReadLocalImportRevisionOutput,
+  ReadLocalImportSourceRowInput, ReadLocalImportSourceRowOutput,
   RevokeLocalImportRevisionInput, RevokeLocalImportRevisionOutput,
   SaveLocalImportMappingInput, SaveLocalImportMappingOutput,
 } from '../../../../contracts/generated/protocol';
@@ -54,6 +55,13 @@ export async function readLocalImportRevision(payload: ReadLocalImportRevisionIn
   requireNative();
   return invoke<ReadLocalImportRevisionOutput>('execute_operation', {
     operation: 'market.readLocalImportRevision', payload, requestId,
+  });
+}
+
+export async function readLocalImportSourceRow(payload: ReadLocalImportSourceRowInput, requestId: string) {
+  requireNative();
+  return invoke<ReadLocalImportSourceRowOutput>('execute_operation', {
+    operation: 'market.readLocalImportSourceRow', payload, requestId,
   });
 }
 

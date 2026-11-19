@@ -17,7 +17,7 @@ use std::{
 use scopehub_application::{
     Actor, DEFAULT_PREVIEW_ROWS, LocalImportPort, MappingCommitGuard, MarketFuture, failure,
     load_mapping_input, load_mapping_output, preview_local_import, publish_local_import_input,
-    reviewed_preview_header, save_mapping_input,
+    read_local_import_source_row_input, reviewed_preview_header, save_mapping_input,
 };
 use scopehub_domain::protocol::{CsvMappingV1, Error, ErrorCode, LocalImportPreviewInput};
 use scopehub_platform::local_folder::{
@@ -477,6 +477,39 @@ impl LocalImport {
 
     pub(super) fn reject_reused_request(&self, id: Option<&str>) -> Result<(), Error> {
         self.requests.reject_reused(id)
+    }
+
+    pub(super) async fn read_frozen_source_row(
+        &self,
+        workspace: &WorkspaceBridge,
+        payload: Value,
+        request_id: Option<&str>,
+    ) -> Result<Value, Error> {
+        let input = read_local_import_source_row_input(Actor::LocalUser, payload)?;
+        let record_number = input.locator.record_number;
+        let (_slot, port) = self.reserve(request_id)?;
+        self.reject_reused_request(request_id)?;
+        let source = workspace.load_local_source_row(input).await?;
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| failure(ErrorCode::PROVIDERNOTCONFIGURED))?;
+        let mapping =
+            serde_json::to_value(&source.mapping).map_err(|_| failure(ErrorCode::INTERNALERROR))?;
+        let row = local_import::read_source_row(
+            config,
+            &source.original,
+            &source.source_sha256,
+            &mapping,
+            record_number,
+            port.cancel.cancelled(),
+        )
+        .await?;
+        let output = workspace.finish_local_source_row(source, row).await?;
+        if port.cancel.is_cancelled() {
+            return Err(failure(ErrorCode::CANCELLED));
+        }
+        Ok(output)
     }
 
     pub(super) fn cancel(&self, request_id: &str) {

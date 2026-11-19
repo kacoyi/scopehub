@@ -61,6 +61,7 @@ function sourceIdentity(file, invalidPart) {
 }
 
 const files = [equity, future];
+const readSourceRow = 'market.readLocalImportSourceRow';
 const catalog = {
   folder_id: folderId, display_name: 'Synthetic CSV fixture folder',
   files: files.map(file => {
@@ -455,19 +456,27 @@ base('built UI publishes all 502 native bars through Rust and discovers, reopens
   const folder = join(temporary, 'synthetic-csv');
   let bridge;
   let peer;
+  const lateSelection = Promise.withResolvers();
+  let holdPrevious = false;
   try {
     await mkdir(profile, { mode: 0o700 });
     await mkdir(folder, { mode: 0o700 });
     const file = join(folder, 'daily.csv');
     const heldFile = join(folder, 'held.csv');
-    const header = [...equity.header, 'VendorMemo', 'is_closed'];
-    const rows = Array.from({ length: 502 }, (_, index) => {
+    const header = [...equity.header, 'SettlementPrice', 'PrevSettlementPrice', 'OpenInterest', 'QuantityUnit', 'VendorMemo', 'is_closed'];
+    const tailMemo = '尾盘 "official", checked\nSecond line from the source';
+    const tailRecord = ['000731', '2025-05-16', '300', '306', '299', '305.00', '', '307.125', '299.25', '001234', ' Shares ', tailMemo, 'true'];
+    const tailLocator = { record_number: 502, line_start: 504, line_end: 505 };
+    const specialMemos = new Map([[2, 'Earlier memo\nContinued'], [499, 'x'.repeat(70_000)]]);
+    const rows = Array.from({ length: 501 }, (_, index) => {
       const day = new Date(Date.UTC(2024, 0, index + 1)).toISOString().slice(0, 10);
-      return index === 501
-        ? ['000731', day, '300', '306', '299', '305', '', 'Tail was not sampled', 'true']
-        : ['000731', day, '36', '39', '34', '38', '120', 'Original extra field', 'true'];
+      return ['000731', day, '36', '39', '34', '38', '120', '39', '37', '100', 'shares',
+        specialMemos.get(index) ?? 'Original extra field', 'true'];
     });
-    const csv = (records) => [header, ...records].map(row => row.join(',')).join('\n') + '\n';
+    rows.push(tailRecord);
+    const csv = records => '\uFEFF' + [header, ...records].map(row => row.map(field =>
+      /[",\r\n]/.test(field) ? `"${field.replaceAll('"', '""')}"` : field,
+    ).join(',')).join('\n') + '\n';
     const original = csv(rows);
     const hash = createHash('sha256').update(original).digest('hex');
     await writeFile(file, original);
@@ -479,18 +488,23 @@ base('built UI publishes all 502 native bars through Rust and discovers, reopens
     await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
       const reply = await bridge.request(command, args);
       calls.push({ command, args, reply });
+      if (holdPrevious && args?.operation === readSourceRow && args.payload.locator.record_number === 501) {
+        await lateSelection.promise;
+      }
       return reply;
     });
-    await page.addInitScript(() => {
+    await page.addInitScript(operation => {
       window.isTauri = true;
+      window.deliveredSourceRecords = [];
       window.__TAURI_INTERNALS__ = {
         async invoke(command, args) {
           const reply = await window.testNativeInvoke(command, args);
           if (reply.error) throw reply.error;
+          if (args?.operation === operation) window.deliveredSourceRecords.push(args.payload.locator.record_number);
           return reply.result;
         },
       };
-    });
+    }, readSourceRow);
     const operations = (name) => calls.filter(call => call.args?.operation === name);
     const publish = control(page, 'Publish complete file');
     const open = control(page, 'Open frozen chart');
@@ -498,8 +512,17 @@ base('built UI publishes all 502 native bars through Rust and discovers, reopens
     const frozen = page.getByRole('region', { name: 'Frozen local CSV chart' });
     const provenance = page.getByRole('region', { name: 'Published source provenance' });
     const sample = page.getByRole('region', { name: 'Preview source' });
+    const originalFields = page.getByRole('region', { name: 'Original CSV fields', exact: true });
+    const inspectTail = control(provenance, 'Inspect record 502');
+
+    async function readLastSourceRecord() {
+      await provenance.getByText('Source rows (502)', { exact: true }).click();
+      await provenance.getByRole('spinbutton', { name: 'Source record' }).fill('502');
+      await control(provenance, 'Inspect source record').click();
+    }
 
     async function previewAndSave() {
+      await select(page, 'Encoding').selectOption('utf-8-sig');
       await select(page, 'Rows per preview').selectOption('1');
       await control(page, 'Inspect raw rows').click();
       await expect(sample).toContainText('Preview omits later records');
@@ -515,6 +538,7 @@ base('built UI publishes all 502 native bars through Rust and discovers, reopens
     await control(page, 'Choose local CSV folder').last().click();
     await previewAndSave();
     await expect(page.getByText('Original extra field', { exact: true })).toBeVisible();
+    await expect(page.getByText('Second line from the source', { exact: false })).toHaveCount(0);
     await publish.click();
     await expect(published).toContainText('000731 · 502 bars · daily.csv');
     const [first] = operations('market.publishLocalImport');
@@ -539,9 +563,10 @@ base('built UI publishes all 502 native bars through Rust and discovers, reopens
     await provenance.getByText('Source rows (502)', { exact: true }).click();
     const sourceRow = provenance.getByRole('table', { name: 'Published source rows' }).locator('tbody tr').first();
     await expect(sourceRow.getByRole('rowheader')).toHaveText('1');
-    await expect(sourceRow.getByRole('cell')).toHaveText(['2', '2024-01-01T01:30:00.000Z', '2024-01-01', '38']);
+    expect((await sourceRow.getByRole('cell').allTextContents()).slice(0, 4))
+      .toEqual(['2', '2024-01-01T01:30:00.000Z', '2024-01-01', '38']);
 
-    await writeFile(file, original.replace(',305,', ',304,'));
+    await writeFile(file, original.replace(',305.00,', ',304.00,').replace('307.125', '308.875'));
     await publish.click();
     await expect(page.getByRole('alert')).toContainText('The file changed since it was inspected.');
     expect(await bridge.request('execute_operation', first.args)).toEqual(first.reply);
@@ -550,7 +575,7 @@ base('built UI publishes all 502 native bars through Rust and discovers, reopens
     await previewAndSave();
     await publish.click();
     await expect(page.getByRole('alert')).toContainText('Review CSV record 502.');
-    await expect(page.getByRole('alert')).toContainText('Source lines 503.');
+    await expect(page.getByRole('alert')).toContainText('Source lines 504–505.');
     await expect(frozen.getByLabel('Selected bar')).toContainText('C 305');
 
     await select(page, 'CSV file').selectOption({ label: 'daily.csv' });
@@ -680,8 +705,58 @@ base('built UI publishes all 502 native bars through Rust and discovers, reopens
     const replyDigest = reply => createHash('sha256').update(JSON.stringify(reply)).digest('hex');
     expect(replyDigest(reads[2].reply)).toBe(replyDigest(reads[0].reply));
     expect(reads[2].reply.result.bars.at(-1)).toMatchObject({
-      bar: { close: 305, volume: null }, locators: [{ record_number: 502, line_start: 503, line_end: 503 }],
+      bar: { close: 305, volume: null }, locators: [tailLocator],
     });
+    expect(JSON.stringify(reads[2].reply)).not.toContain('307.125');
+
+    await readLastSourceRecord();
+    await expect(originalFields).toBeVisible();
+    await expect(originalFields).toContainText('Record 502 · Source lines 504–505');
+    const rawSelection = operations(readSourceRow).at(-1);
+    expect(rawSelection.args.payload).toEqual({ version: 1, revision_id: revision.revision_id, locator: tailLocator });
+    expect(rawSelection.reply.result).toEqual({
+      version: 1, revision_id: revision.revision_id, source_sha256: hash, locator: tailLocator, header, raw_fields: tailRecord,
+    });
+    for (const value of ['SettlementPrice', 'PrevSettlementPrice', 'OpenInterest', 'QuantityUnit', '305.00', '307.125', '299.25', '001234']) {
+      await expect(originalFields.getByText(value, { exact: true })).toBeVisible();
+    }
+    expect(await originalFields.getByText('Shares', { exact: true }).allTextContents()).toContain(' Shares ');
+    const memo = originalFields.getByText('Second line from the source', { exact: false });
+    await expect(memo).toBeVisible();
+    expect(await memo.textContent()).toBe(tailMemo);
+    await expect(frozen.getByLabel('Selected bar')).toContainText('C 305');
+    expect(calls.filter(call => call.command === 'choose_local_csv_folder')).toHaveLength(folderSelections);
+
+    // Rust authorizes record 501 before the browser switches back to record 502.
+    holdPrevious = true;
+    await control(provenance, 'Inspect record 501').click();
+    await expect.poll(() => operations(readSourceRow).at(-1).reply.result?.locator.record_number).toBe(501);
+    await expect(memo).toHaveCount(0);
+    await inspectTail.click();
+    await expect(memo).toBeVisible();
+    lateSelection.resolve();
+    await page.waitForFunction(() => window.deliveredSourceRecords.includes(501));
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    await expect(memo).toBeVisible();
+    await expect(originalFields.getByText('Original extra field', { exact: true })).toHaveCount(0);
+
+    const readPayload = { revision_id: revision.revision_id, locator: tailLocator };
+    const stale = await run(bridge, readSourceRow, {
+      ...readPayload, locator: { ...tailLocator, line_end: tailLocator.line_start },
+    });
+    expect(stale.error?.code).toBe('STALE_CONTEXT');
+    expect(stale.result).toBeUndefined();
+    const oversized = await run(bridge, readSourceRow, {
+      ...readPayload, locator: { record_number: 500, line_start: 502, line_end: 502 },
+    });
+    expect(oversized.error?.code).toBe('RESOURCE_LIMIT');
+    expect(oversized.result).toBeUndefined();
+    peer = startLocalImportBridge(binary, join(temporary, 'other-profile'), otherFolder);
+    const outOfScope = await run(peer, readSourceRow, readPayload);
+    expect(outOfScope.error?.code).toBe('SNAPSHOT_UNAVAILABLE');
+    expect(outOfScope.result).toBeUndefined();
+    await peer.close();
+    peer = undefined;
 
     await control(page, 'Remove frozen chart access').click();
     await expect(dialog).toContainText('The original CSV copy stays in this profile.');
@@ -691,8 +766,13 @@ base('built UI publishes all 502 native bars through Rust and discovers, reopens
     await control(page, 'Remove access').click();
     await expect(page.getByText('Access removed for this published revision.', { exact: true })).toBeVisible();
     await expect(frozen).toHaveCount(0);
+    await expect(originalFields).toHaveCount(0);
+    await expect(memo).toHaveCount(0);
     const afterRevocation = await run(bridge, read, { revision_id: revision.revision_id });
     expect(afterRevocation.error?.code).toBe('PERMISSION_DENIED');
+    const revokedRow = await run(bridge, readSourceRow, readPayload);
+    expect(revokedRow.error?.code).toBe('PERMISSION_DENIED');
+    expect(revokedRow.result).toBeUndefined();
     await refresh.click();
     await expect(rowsForFile).toHaveCount(1);
     await expect(firstEntry).toHaveCount(0);
@@ -709,6 +789,11 @@ base('built UI publishes all 502 native bars through Rust and discovers, reopens
     await nextEntry.press('Enter');
     await expect(frozen.getByLabel('Selected bar')).toContainText('C 304');
     await expect(provenance).toContainText(replacement.revision_id);
+    await expect(originalFields).toHaveCount(0);
+    await readLastSourceRecord();
+    await expect(originalFields.getByText('304.00', { exact: true })).toBeVisible();
+    await expect(originalFields.getByText('308.875', { exact: true })).toBeVisible();
+    await expect(originalFields.getByText('307.125', { exact: true })).toHaveCount(0);
     await idInput.fill(replacement.revision_id);
     await open.click();
     await expect(frozen.getByLabel('Selected bar')).toContainText('C 304');
@@ -745,6 +830,7 @@ base('built UI publishes all 502 native bars through Rust and discovers, reopens
     expect(calls.filter(call => call.command === 'choose_local_csv_folder')).toHaveLength(folderSelections);
     expect(requestUrls.every(url => new URL(url).origin === baseURL && !new URL(url).pathname.startsWith('/__scopehub/'))).toBe(true);
   } finally {
+    lateSelection.resolve();
     await peer?.close();
     await bridge?.close();
     await rm(temporary, { recursive: true, force: true });
@@ -761,11 +847,15 @@ base('peer revocation removes frozen editor content and an in-flight library rev
   let peer;
   const libraryPage = await context.newPage();
   const lateBody = Promise.withResolvers();
+  const lateRow = Promise.withResolvers();
   let heldReply;
+  let heldRow;
   try {
     await mkdir(profile, { mode: 0o700 });
     await mkdir(folder, { mode: 0o700 });
-    const csv = [equity.header, ...equity.rows].map(row => row.join(',')).join('\n') + '\n';
+    const rawMemos = ['Revoked late CSV field', 'Previously visible CSV field'];
+    const csv = [[...equity.header, 'Memo'], ...equity.rows.map((row, index) => [...row, rawMemos[index]])]
+      .map(row => row.join(',')).join('\n') + '\n';
     const hash = createHash('sha256').update(csv).digest('hex');
     await writeFile(join(folder, 'daily.csv'), csv);
     bridge = startLocalImportBridge(binary, profile, folder);
@@ -774,6 +864,10 @@ base('peer revocation removes frozen editor content and an in-flight library rev
     await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
       const reply = await bridge.request(command, args);
       if (args?.operation === 'market.publishLocalImport') revision = reply.result?.revision;
+      if (args?.operation === readSourceRow && args.payload.locator.record_number === 1) {
+        heldRow = reply;
+        await lateRow.promise;
+      }
       return reply;
     });
     await libraryPage.exposeBinding('testNativeInvoke', async (_, command, args) => {
@@ -784,16 +878,17 @@ base('peer revocation removes frozen editor content and an in-flight library rev
       }
       return reply;
     });
-    await context.addInitScript(() => {
+    await context.addInitScript(operation => {
       window.isTauri = true;
       window.__TAURI_INTERNALS__ = {
         async invoke(command, args) {
           const reply = await window.testNativeInvoke(command, args);
           if (reply.error) throw reply.error;
+          if (args?.operation === operation && args.payload.locator.record_number === 1) window.lateRowDelivered = true;
           return reply.result;
         },
       };
-    });
+    }, readSourceRow);
 
     await page.goto('/');
     await control(page, 'Choose local CSV folder').last().click();
@@ -810,6 +905,12 @@ base('peer revocation removes frozen editor content and an in-flight library rev
     await expect(chart.locator('.history')).toHaveAttribute('data-bars', '2');
     await page.getByText('Source rows (2)', { exact: true }).click();
     await expect(page.getByRole('table', { name: 'Published source rows' })).toBeVisible();
+    const rawFields = page.getByRole('region', { name: 'Original CSV fields', exact: true });
+    await control(page, 'Inspect record 2').click();
+    await expect(rawFields.getByText(rawMemos[1], { exact: true })).toBeVisible();
+    await control(page, 'Inspect record 1').click();
+    await expect.poll(() => heldRow?.result?.raw_fields.at(-1)).toBe(rawMemos[0]);
+    await expect(rawFields.getByText(rawMemos[1], { exact: true })).toHaveCount(0);
 
     await libraryPage.goto('/');
     await control(libraryPage, 'Open published CSV').last().click();
@@ -833,6 +934,9 @@ base('peer revocation removes frozen editor content and an in-flight library rev
     await page.bringToFront();
     await page.evaluate(() => window.dispatchEvent(new Event('focus')));
     await expect(chart).toHaveCount(0, { timeout: 3500 });
+    lateRow.resolve();
+    await page.waitForFunction(() => window.lateRowDelivered === true);
+    await expect(rawFields).toHaveCount(0);
     await expect(page.getByRole('table', { name: 'Published source rows' })).toHaveCount(0);
     await expect(page.getByRole('table', { name: 'Normalized bars' })).toHaveCount(0);
     await expect(page.getByText(hash, { exact: true })).toHaveCount(0);
@@ -843,6 +947,7 @@ base('peer revocation removes frozen editor content and an in-flight library rev
     await expect(chart).toHaveCount(0);
   } finally {
     lateBody.resolve();
+    lateRow.resolve();
     await libraryPage.close();
     await peer?.close();
     await bridge?.close();
