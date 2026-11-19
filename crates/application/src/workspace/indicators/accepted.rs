@@ -35,6 +35,7 @@ pub struct IndicatorLayerRef {
     pub layer_id: String,
     pub version_id: String,
     pub dataset_id: String,
+    pub sample_instrument: Option<String>,
     pub active: bool,
 }
 
@@ -96,7 +97,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             let document = self.acceptable_preview(&scope, args)?;
             self.port.inspect(|tx| {
                 check_context(tx, &scope)?;
-                check_retention(tx, dataset_id(&document)?)?;
+                check_retention(tx, dataset_id(&document)?, sample_instrument(&document)?)?;
                 Ok(())
             })?;
             if let Some(approved) = &self.indicator_stage.approval
@@ -160,7 +161,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
                     let Some((layer, receipt)) = tx.indicator_confirmation_receipt(challenge_id, access.principal_id)? else {
                         return Ok(None);
                     };
-                    check_retention(tx, &layer.dataset_id)?;
+                    check_retention(tx, &layer.dataset_id, layer.sample_instrument.as_deref())?;
                     let document = tx.indicator_document(&layer.layer_id)?
                         .ok_or_else(|| failure(ErrorCode::INTERNALERROR))?;
                     let target = serde_json::from_value(json!({
@@ -202,6 +203,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
                     layer_id: new_id(),
                     version_id: new_id(),
                     dataset_id: id,
+                    sample_instrument: sample_instrument(&document)?.map(str::to_owned),
                     active: true,
                 },
                 preview_id,
@@ -213,7 +215,11 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
                     return reply.validated(outcome);
                 }
                 check_context(tx, scope)?;
-                check_retention(tx, &version.layer.dataset_id)?;
+                check_retention(
+                    tx,
+                    &version.layer.dataset_id,
+                    version.layer.sample_instrument.as_deref(),
+                )?;
                 if tx.active_indicator_count()? >= MAX_ACTIVE_INDICATOR_LAYERS {
                     return Err(failure(ErrorCode::RESOURCELIMIT));
                 }
@@ -273,7 +279,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
                 "task_id": job.id, "draft_id": job.draft_id, "preview_id": preview.id,
                 "source_snapshot": job.source, "snapshot": preview.snapshot,
                 "resolved_parameters": preview.resolved_parameters, "warmup_from_ms": preview.warmup_from_ms,
-                "artifact": preview.artifact,
+                "artifact": preview.artifact, "calendar_hash": preview.calendar_hash,
             });
             return Ok(document);
         }
@@ -353,10 +359,11 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
     ) -> Result<Value, Error> {
         self.authorize_indicator(access, ACCEPT_INDICATOR_VERSION)?;
         self.port.inspect(|tx| {
-            let available = tx.indicator_retention_allowed(revision_id)?;
-            let layers: Vec<Value> = tx.indicator_layers(revision_id)?.iter().map(|layer| {
-                json!({"layer_id": layer.layer_id, "version_id": layer.version_id, "available": available})
-            }).collect();
+            let mut layers = Vec::new();
+            for layer in tx.indicator_layers(revision_id)? {
+                let available = retention_allowed(tx, &layer.dataset_id, layer.sample_instrument.as_deref())?;
+                layers.push(json!({"layer_id": layer.layer_id, "version_id": layer.version_id, "available": available}));
+            }
             Ok(json!({"dataset_id": revision_id, "layers": layers}))
         })
     }
@@ -371,7 +378,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         self.port.inspect(|tx| {
             let layer = tx.indicator_layer(layer_id)?.filter(|layer| layer.active)
                 .ok_or_else(|| failure(ErrorCode::STALECONTEXT))?;
-            check_retention(tx, &layer.dataset_id)?;
+            check_retention(tx, &layer.dataset_id, layer.sample_instrument.as_deref())?;
             let document = tx.indicator_document(&layer.layer_id)?
                 .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))?;
             validate_document(&document, &layer.dataset_id)?;
@@ -397,6 +404,10 @@ fn validate_document(document: &Value, dataset: &str) -> Result<(), Error> {
         || dataset_id(document)? != dataset
         || provenance["dataset_id"] != dataset
         || provenance["dataset_revision"] != snapshot["dataset_revision"]
+        || sample_instrument(document)?.is_some()
+            && !document["calendar_hash"].as_str().is_some_and(|hash| {
+                hash.len() == 64 && hash.bytes().all(|byte| byte.is_ascii_hexdigit())
+            })
         || ["dataset_id", "dataset_revision", "series", "as_of_ms"]
             .into_iter()
             .any(|field| source[field] != snapshot[field])
@@ -423,8 +434,39 @@ fn validate_document(document: &Value, dataset: &str) -> Result<(), Error> {
     Ok(())
 }
 
-fn check_retention(tx: &dyn WorkspaceTransaction, dataset_id: &str) -> Result<(), Error> {
-    if !tx.indicator_retention_allowed(dataset_id)? {
+fn sample_instrument(document: &Value) -> Result<Option<&str>, Error> {
+    let series = &document["source_snapshot"]["series"];
+    if series["provider_id"] != crate::DEMO_PROVIDER {
+        return Ok(None);
+    }
+    if document["artifact"]["result"]["provenance"]["engine_version"]
+        != super::trusted::TRUSTED_PYTHON_ENGINE
+    {
+        return Err(failure(ErrorCode::PERMISSIONDENIED));
+    }
+    series["instrument_id"]
+        .as_str()
+        .map(Some)
+        .ok_or_else(|| failure(ErrorCode::OUTPUTINVALID))
+}
+
+fn retention_allowed(
+    tx: &dyn WorkspaceTransaction,
+    dataset_id: &str,
+    sample_instrument: Option<&str>,
+) -> Result<bool, Error> {
+    match sample_instrument {
+        Some(instrument) => tx.indicator_sample_allowed(instrument),
+        None => tx.indicator_retention_allowed(dataset_id),
+    }
+}
+
+fn check_retention(
+    tx: &dyn WorkspaceTransaction,
+    dataset_id: &str,
+    sample_instrument: Option<&str>,
+) -> Result<(), Error> {
+    if !retention_allowed(tx, dataset_id, sample_instrument)? {
         return Err(failure(ErrorCode::PERMISSIONDENIED));
     }
     Ok(())
@@ -478,7 +520,7 @@ fn prior(
         .indicator_operation_layer(&saved.receipt.operation_id)?
         .ok_or_else(|| failure(ErrorCode::INTERNALERROR))?;
     if key.operation == ACCEPT_INDICATOR_VERSION {
-        check_retention(tx, &layer.dataset_id)?;
+        check_retention(tx, &layer.dataset_id, layer.sample_instrument.as_deref())?;
     }
     Ok(Some(committed(
         key.operation,
@@ -599,7 +641,7 @@ pub(crate) fn undo_indicator_layer(
         .filter(|layer| layer.active == undo.after)
         .ok_or_else(|| failure(ErrorCode::STALECONTEXT))?;
     if undo.before {
-        check_retention(tx, &layer.dataset_id)?;
+        check_retention(tx, &layer.dataset_id, layer.sample_instrument.as_deref())?;
         if tx.active_indicator_count()? >= MAX_ACTIVE_INDICATOR_LAYERS {
             return Err(failure(ErrorCode::RESOURCELIMIT));
         }

@@ -139,7 +139,7 @@
       "input": "IndicatorCreateDraftInput",
       "output": "IndicatorCreateDraftOutput",
       "implementation": "implemented",
-      "implementation_scope": "Protocol 1.1 profile-local human dispatch stages a typed declarative draft. Trusted Python is pending.",
+      "implementation_scope": "Protocol 1.1 profile-local human dispatch stages a typed declarative draft or the exact bytes of explicitly selected trusted Python.",
       "wire_bindings": {
         "1.1": {
           "input": "IndicatorCreateDraftCommand11",
@@ -159,7 +159,7 @@
       "input": "IndicatorRunPreviewInput",
       "output": "IndicatorRunPreviewOutput",
       "implementation": "implemented",
-      "implementation_scope": "Protocol 1.1 profile-local human dispatch freezes an authorized published CSV or bound offline sample interval. The sample uses its exact verified adapter schedule. The registry validates declarative output and exposes correlated bounded preview status.",
+      "implementation_scope": "Protocol 1.1 profile-local human dispatch freezes an authorized published CSV or bound offline sample interval. The sample uses its exact verified adapter schedule. The registry validates declarative output and exposes correlated bounded preview status. An explicitly selected trusted Python draft on the bound synthetic source requires a separate local human decision for each exact code, parameter and frozen input tuple. The interpreter runs with the local user’s permissions and its result is independently validated.",
       "wire_bindings": {
         "1.1": {
           "input": "IndicatorRunPreviewCommand11",
@@ -179,7 +179,7 @@
       "input": "IndicatorAcceptVersionInput",
       "output": "IndicatorAcceptVersionOutput",
       "implementation": "implemented",
-      "implementation_scope": "Protocol 1.1 profile-local human confirmation commits one exact published preview, immutable validated output, and a replayable undo receipt under current source rights.",
+      "implementation_scope": "Protocol 1.1 profile-local human confirmation commits one exact entitled CSV preview or approved synthetic Python preview, immutable validated output, and a replayable undo receipt under current source rights.",
       "wire_bindings": {
         "1.1": {
           "input": "IndicatorAcceptVersionCommand11",

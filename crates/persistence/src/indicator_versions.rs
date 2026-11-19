@@ -15,6 +15,7 @@ fn layer(row: &Row<'_>) -> rusqlite::Result<IndicatorLayerRef> {
         version_id: row.get(1)?,
         dataset_id: row.get(2)?,
         active: row.get(3)?,
+        sample_instrument: row.get(4)?,
     })
 }
 
@@ -24,7 +25,9 @@ pub(super) fn read_layer(
     layer_id: &str,
 ) -> Result<Option<IndicatorLayerRef>, Error> {
     conn.query_row(
-        "SELECT version.layer_id, version.version_id, version.dataset_id, state.active
+        "SELECT version.layer_id, version.version_id, version.dataset_id, state.active,
+            CASE WHEN json_extract(version.document, '$.source_snapshot.series.provider_id') = 'scopehub.synthetic'
+             THEN json_extract(version.document, '$.source_snapshot.series.instrument_id') END
          FROM indicator_versions AS version JOIN indicator_layer_state AS state USING (workspace_id, layer_id)
          WHERE version.workspace_id = ?1 AND version.layer_id = ?2", params![workspace, layer_id], layer,
     ).optional().map_err(store_error)
@@ -36,7 +39,9 @@ pub(super) fn list_layers(
     dataset_id: &str,
 ) -> Result<Vec<IndicatorLayerRef>, Error> {
     conn.prepare(
-        "SELECT version.layer_id, version.version_id, version.dataset_id, state.active
+        "SELECT version.layer_id, version.version_id, version.dataset_id, state.active,
+            CASE WHEN json_extract(version.document, '$.source_snapshot.series.provider_id') = 'scopehub.synthetic'
+             THEN json_extract(version.document, '$.source_snapshot.series.instrument_id') END
          FROM indicator_versions AS version JOIN indicator_layer_state AS state USING (workspace_id, layer_id)
          WHERE version.workspace_id = ?1 AND version.dataset_id = ?2 AND state.active = 1
          ORDER BY version.layer_id",
@@ -50,7 +55,9 @@ pub(super) fn operation_layer(
     operation: &str,
 ) -> Result<Option<IndicatorLayerRef>, Error> {
     conn.query_row(
-        "SELECT version.layer_id, version.version_id, version.dataset_id, tracked.after_active
+        "SELECT version.layer_id, version.version_id, version.dataset_id, tracked.after_active,
+            CASE WHEN json_extract(version.document, '$.source_snapshot.series.provider_id') = 'scopehub.synthetic'
+             THEN json_extract(version.document, '$.source_snapshot.series.instrument_id') END
          FROM indicator_layer_operations AS tracked JOIN indicator_versions AS version USING (workspace_id, layer_id)
          WHERE tracked.workspace_id = ?1 AND tracked.operation_id = ?2", params![workspace, operation], layer,
     ).optional().map_err(store_error)
@@ -182,12 +189,14 @@ pub(super) fn confirmation_receipt(
 ) -> Result<Option<(IndicatorLayerRef, WorkspaceReceipt)>, Error> {
     conn.query_row(
         "SELECT log.id, log.revision, log.undoable, log.before_timeframe, log.after_timeframe,
-                version.layer_id, version.version_id, version.dataset_id
+                version.layer_id, version.version_id, version.dataset_id,
+                CASE WHEN json_extract(version.document, '$.source_snapshot.series.provider_id') = 'scopehub.synthetic'
+             THEN json_extract(version.document, '$.source_snapshot.series.instrument_id') END
          FROM indicator_versions AS version JOIN operation_log AS log ON log.id = version.acceptance_id
          WHERE version.workspace_id = ?1 AND version.challenge_id = ?2 AND log.principal_id = ?3
            AND log.actor = 'user' AND log.paired_client_id = ''",
         params![workspace, challenge_id, principal_id],
         |row| Ok((IndicatorLayerRef { layer_id: row.get(5)?, version_id: row.get(6)?,
-            dataset_id: row.get(7)?, active: true }, crate::receipt(row)?)),
+            dataset_id: row.get(7)?, sample_instrument: row.get(8)?, active: true }, crate::receipt(row)?)),
     ).optional().map_err(store_error)
 }

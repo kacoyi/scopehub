@@ -712,6 +712,18 @@ impl WorkspaceTransaction for SqliteTransaction<'_> {
         local_dataset::display_allowed(self.connection, revision_id)
     }
 
+    fn indicator_trusted_python_allowed(&self, instrument_id: &str) -> Result<bool, Error> {
+        // The bundled synthetic fixtures affirm this local use. Unknown and
+        // display-only CSV/provider adapters never inherit this policy.
+        if !matches!(
+            instrument_id,
+            "SIM.CN.FUTURE.001" | "SIM.CN.STOCK.001" | "SIM.US.STOCK.001"
+        ) {
+            return Ok(false);
+        }
+        self.indicator_sample_allowed(instrument_id)
+    }
+
     fn indicator_sample_allowed(&self, instrument_id: &str) -> Result<bool, Error> {
         let source = workspace_layout::source_view(self.connection, &self.binding.workspace_id)?;
         Ok(matches!(

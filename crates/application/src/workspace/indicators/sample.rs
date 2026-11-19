@@ -22,11 +22,7 @@ impl<P: MarketPort> MarketRegistry<P> {
     /// The composition root calls this only for a validated local preview intent.
     /// This one fixed adapter reads reproducible demo data, including earlier warm-up.
     pub async fn read_sample_indicator_history(&mut self, command: Value) -> Result<Value, Error> {
-        if !is_sample_indicator_preview(&command)
-            || command["intent"]["arguments"]
-                .get("python_params")
-                .is_some()
-        {
+        if !is_sample_indicator_preview(&command) {
             return Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY));
         }
         let op = operation(RUN_INDICATOR_PREVIEW)?;

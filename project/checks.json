@@ -197,18 +197,30 @@
         "--config",
         "tests/ubuntu-preview/workspace.config.mjs",
         "--grep",
-        "indicator-preview"
+        "indicator-preview",
+        "--grep-invert",
+        "runs trusted Python once"
       ],
       "timeout_seconds": 900,
       "cadence": "task"
     },
     {
       "id": "indicator-workflow",
-      "status": "planned",
-      "purpose": "Verify deterministic indicators, output validation and failure isolation",
+      "status": "implemented",
+      "purpose": "Verify explicit local approval for each trusted Python run, frozen synthetic input, exact output, cancellation and validation, CSV purpose denial and immutable restoration without recomputation.",
       "platforms": "all",
-      "command": null,
-      "timeout_seconds": 1800
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs",
+        "--grep",
+        "indicator-preview runs trusted Python once"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
     },
     {
       "id": "ai-workflow",

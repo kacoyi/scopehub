@@ -100,6 +100,31 @@ fn request(source: &str) -> IndicatorCompute11 {
     .unwrap()
 }
 
+#[tokio::test]
+async fn approved_two_bar_example_has_independent_expected_values() {
+    let code = include_str!("../../../tests/fixtures/indicators/two-bar-mean.py");
+    let mut frame = serde_json::to_value(request(code)).unwrap();
+    frame["resolved_params"] = json!({"divisor": 2});
+    frame["params_hash"] = json!(sha(b"{\"divisor\":2}"));
+    frame["snapshot"]["warmup_bars"] = json!(0);
+    let bars = frame["input"]["bars"].as_array_mut().unwrap();
+    bars.remove(0);
+    for (bar, close) in bars.iter_mut().zip([10.0, 14.0]) {
+        for field in ["open", "high", "low", "close"] {
+            bar[field] = json!(close);
+        }
+    }
+    let request = serde_json::from_value(frame).unwrap();
+    let result = compute(&config(), &request, future::pending())
+        .await
+        .unwrap();
+    let output = serde_json::to_value(result).unwrap();
+    assert_eq!(
+        output["artifact"]["result"]["series"][0]["points"],
+        json!([{"time_ms": 200, "value": null}, {"time_ms": 300, "value": 12.0}]),
+    );
+}
+
 fn assert_result(reply: &Value, request: &IndicatorCompute11) {
     assert_eq!(reply["request_id"], request.request_id);
     assert_eq!(reply["task_id"], request.task_id);

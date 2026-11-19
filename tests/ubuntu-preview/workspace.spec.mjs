@@ -44,7 +44,7 @@ test.beforeAll(async ({}, testInfo) => {
   testInfo.setTimeout(300_000);
   await exec('cargo', [
     'build', '--locked', '-p', 'scopehub-persistence', '--bin', 'workspace_bridge',
-    '-p', 'scopehub-worker-host', '--example', 'history_bridge', '--target-dir', 'target',
+    '-p', 'scopehub-worker-host', '--example', 'history_bridge', '--bin', 'scopehub-indicator-child', '--target-dir', 'target',
   ], { cwd: root, timeout: 295_000 });
 });
 
@@ -939,6 +939,208 @@ test('indicator-preview rejects obsolete inputs and open confirmations without r
   } finally {
     await profile.close();
   }
+});
+
+test('indicator-preview runs trusted Python once after exact local approval and restores the accepted output', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  const port = await freePort();
+  const id = randomUUID();
+  const before = 1704200940000;
+  const after = 1704243600000;
+  const mean = await readFile(join(root, 'tests/fixtures/indicators/two-bar-mean.py'), 'utf8');
+  const invalid = mean.replace("bar['time_ms'], 'value'", "bar['time_ms'] + 1, 'value'");
+  const slow = "def compute(bars, params):\n    while True:\n        1 + 1\n";
+  const frame = () => ({ protocol_version: '1.1', type: 'request', request_id: randomUUID(),
+    message_id: randomUUID(), timestamp_ms: Date.now() });
+  const call = async (server, body) => {
+    let frame;
+    await expect.poll(async () => {
+      frame = await (await post(server, body)).json();
+      return frame.error?.code;
+    }).not.toBe('BUSY');
+    return frame;
+  };
+  const status = task_id => ({ type: 'indicator_preview_status', request_id: randomUUID(), task_id });
+  const respond = (challenge_id, decision = 'approve') =>
+    ({ ...frame(), operation: 'confirmation.respond', challenge_id, decision });
+  const sampleEditor = async page => {
+    const chart = page.getByRole('region', { name: 'Price chart' });
+    const plot = chart.getByRole('img', { name: /Candlestick and volume chart/ });
+    await expect(plot).toBeVisible();
+    await chart.getByText('Indicators', { exact: true }).click();
+    return { editor: chart.getByRole('region', { name: 'Indicator preview' }), plot };
+  };
+  const rows = [
+    { time_ms: before, trading_day: '2024-01-02', open: 10, high: 10, low: 10, close: 10, volume: null, is_closed: true },
+    { time_ms: after, trading_day: '2024-01-03', open: 14, high: 14, low: 14, close: 14, volume: null, is_closed: true },
+  ];
+  const observations = {};
+  let layer;
+  let saved;
+  const output = () => ({ type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: layer.layer_id });
+  try {
+    await seedFrozenEvidence(profile, id, before, after, rows);
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        await control(page, 'Open offline sample').click();
+        const { editor, plot } = await sampleEditor(page);
+        const canvases = await plot.locator('canvas').count();
+        await editor.getByLabel('Indicator type').selectOption('python');
+        await editor.getByLabel('Python parameters').fill('{"divisor":2}');
+        await editor.getByLabel('First visible bar').selectOption(String(before));
+        await editor.getByLabel('Last visible bar').selectOption(String(after));
+
+        const review = async source => {
+          await editor.getByLabel('Select Python file').setInputFiles({
+            name: 'fixture.py', mimeType: 'text/x-python', buffer: Buffer.from(source),
+          });
+          const result = await duringResponse(page, 'indicator.runPreview', () =>
+            editor.getByRole('button', { name: 'Review Python run' }).click());
+          const outcome = (await result.json()).result.outcome;
+          expect(outcome.state).toBe('awaiting_confirmation');
+          const prompt = editor.getByRole('group', { name: 'Confirm trusted Python run' });
+          await expect(prompt).toBeVisible();
+          expect(await prompt.getByLabel('Exact Python code').textContent()).toBe(source);
+          expect(outcome.challenge.python.code_hash).toBe(createHash('sha256').update(source).digest('hex'));
+          const beforeApproval = await call(server, status(outcome.challenge.task_id));
+          expect(beforeApproval).toMatchObject({ ok: false, error: { code: 'STALE_CONTEXT' } });
+          return { prompt, challenge: outcome.challenge };
+        };
+        const clickApproval = async (prompt, approve) => {
+          const response = page.waitForResponse(response => response.request().postDataJSON()?.operation === 'confirmation.respond');
+          await prompt.getByRole('button', { name: approve ? 'Run selected Python' : 'Decline Python run' }).click();
+          const wire = await (await response).json();
+          expect(wire.indicator_compute).toBeUndefined();
+          return wire.result.outcome;
+        };
+        const terminal = async task_id => {
+          let outcome;
+          await expect.poll(async () => {
+            outcome = (await call(server, status(task_id))).result;
+            return outcome?.status;
+          }).toMatch(/^(ready|terminal)$/);
+          return outcome;
+        };
+
+        const declined = await review(mean);
+        expect(await clickApproval(declined.prompt, false)).toMatchObject({ state: 'failed', error: { code: 'CANCELLED' } });
+        expect((await call(server, respond(declined.challenge.challenge_id))).result.outcome)
+          .toMatchObject({ state: 'failed', error: { code: 'STALE_CONTEXT' } });
+        await expect(editor.getByRole('button', { name: 'Review Python run' })).toBeDisabled();
+
+        const obsolete = await review(mean);
+        const cancelledReview = page.waitForResponse(response => {
+          const body = response.request().postDataJSON();
+          return body?.operation === 'task.cancel' && body.task_id === obsolete.challenge.task_id && response.ok();
+        });
+        await editor.getByLabel('Python parameters').fill('{"divisor":3}');
+        await expect(obsolete.prompt).toHaveCount(0);
+        await cancelledReview;
+        expect((await call(server, respond(obsolete.challenge.challenge_id))).result?.outcome)
+          .toMatchObject({ state: 'failed', error: { code: 'STALE_CONTEXT' } });
+        await editor.getByLabel('Python parameters').fill('{"divisor":2}');
+
+        const approved = await review(mean);
+        expect(approved.challenge).toMatchObject({
+          target: { snapshot: { from_ms: before, to_ms: after + 1, warmup_bars: 0 } },
+          python: { input_use: 'trusted_code_permitted',
+            parameters_hash: createHash('sha256').update('{"divisor":2}').digest('hex') },
+        });
+        await expect(approved.prompt).toContainText('Resolved parameters {"divisor":2}');
+        await expect(approved.prompt).toContainText('2 bars · 0 warm-up bars');
+        await approved.prompt.getByText('Exact frozen input bars').click();
+        const shownBars = JSON.parse(await approved.prompt.locator('details pre').textContent());
+        expect(shownBars.map(bar => [bar.time_ms, bar.close])).toEqual([[before, 3500.2], [after, 3500.8]]);
+        expect(await clickApproval(approved.prompt, true)).toMatchObject({
+          state: 'committed', result: { task_id: approved.challenge.task_id },
+        });
+        const ready = await terminal(approved.challenge.task_id);
+        expect(ready.event.snapshot.content_hash).toBe(approved.challenge.python.snapshot_hash);
+        expect(ready.event.artifact.result.series[0].points).toEqual([
+          { time_ms: before, value: null }, { time_ms: after, value: 3500.5 },
+        ]);
+        await expect(editor.getByText('Preview layers · trusted Python')).toBeVisible();
+        await expect.poll(() => plot.locator('canvas').count()).toBeGreaterThan(canvases);
+
+        await editor.getByRole('button', { name: 'Accept preview' }).click();
+        const accepted = page.waitForResponse(response => response.request().postDataJSON()?.operation === 'confirmation.respond');
+        await editor.getByRole('button', { name: 'Confirm indicator acceptance' }).click();
+        const acceptedOutcome = (await (await accepted).json()).result.outcome;
+        expect(acceptedOutcome.state).toBe('committed');
+        layer = acceptedOutcome.result;
+        saved = (await call(server, output())).result;
+        expect(saved.document.artifact).toEqual(ready.event.artifact);
+        const layers = editor.getByRole('region', { name: 'Accepted indicators' });
+        await expect(layers.getByText(layer.version_id)).toBeVisible();
+
+        const malformed = await review(invalid);
+        expect(await clickApproval(malformed.prompt, true)).toMatchObject({ state: 'committed' });
+        expect(await terminal(malformed.challenge.task_id)).toMatchObject({
+          event: { outcome: { status: 'failed', error: { code: 'OUTPUT_INVALID' } } },
+        });
+        await expect(layers.getByText(layer.version_id)).toBeVisible();
+
+        const cancellable = await review(slow);
+        expect(await clickApproval(cancellable.prompt, true)).toMatchObject({ state: 'committed' });
+        expect((await call(server, status(cancellable.challenge.task_id))).result).toMatchObject({ status: 'running' });
+        await editor.getByRole('button', { name: 'Cancel preview' }).click();
+        expect(await terminal(cancellable.challenge.task_id)).toMatchObject({ event: { outcome: { status: 'cancelled' } } });
+        await expect(layers.getByText(layer.version_id)).toBeVisible();
+        expect((await call(server, output())).result).toEqual(saved);
+        const database = new DatabaseSync(join(profile.root, 'workspace.sqlite3'), { readOnly: true });
+        try {
+          expect(database.prepare('SELECT count(*) AS count FROM indicator_versions').get().count).toBe(1);
+        } finally { database.close(); }
+
+        await control(page, 'Open published CSV').click();
+        const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+        await dialog.getByLabel('Revision ID').fill(id);
+        const opened = page.waitForResponse(response => response.request().postDataJSON()?.type === 'frozen_chart');
+        await dialog.getByRole('button', { name: 'Open frozen chart' }).click();
+        const csv = (await (await opened).json()).result.snapshot;
+        const current = (await call(server, snapshot)).result;
+        const scope = { workspace_id: workspaceId, target: { kind: 'chart', object_id: 'main-chart' },
+          expected_workspace_revision: current.workspace.revision, expected_selection_revision: current.selection_revision,
+          idempotency_key: randomUUID() };
+        const draft = (await call(server, { ...frame(), scope, task_id: null, intent: {
+          operation: 'indicator.createDraft', arguments: { language: 'python', source: mean, params: {} },
+        } })).result.outcome.result;
+        expect((await call(server, { ...frame(), task_id: null, scope: {
+          ...scope, target: { kind: 'chart_interval', snapshot: csv, range: { from_ms: before, to_ms: after + 1 } },
+          idempotency_key: randomUUID(),
+        }, intent: { operation: 'indicator.runPreview',
+          arguments: { draft_id: draft.draft_id, snapshot: csv, python_params: { divisor: 2 } },
+        } })).result.outcome).toMatchObject({ state: 'failed', error: { code: 'PERMISSION_DENIED' } });
+        observations.first = { accepted: layer, output: ready.event.artifact, declined: true, obsolete: true,
+          rejectedOutput: true, cancelled: true, csvPurposeDenied: true };
+      }, [endpoint, '/__scopehub/operation']);
+    });
+
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        let runs = 0;
+        page.on('request', request => { if (request.postDataJSON()?.intent?.operation === 'indicator.runPreview') runs += 1; });
+        const { editor } = await sampleEditor(page);
+        const accepted = editor.getByRole('region', { name: 'Accepted indicators' });
+        await expect(accepted.getByText(layer.version_id)).toBeVisible();
+        await accepted.getByText('Accepted provenance and values').click();
+        await expect(accepted.getByText('python-mean · Unknown, 3500.5')).toBeVisible();
+        expect((await call(server, output())).result).toEqual(saved);
+        expect(runs).toBe(0);
+        await leaveSample(page);
+        const withheld = await call(server, output());
+        expect(withheld).toMatchObject({ ok: false, error: { code: 'PERMISSION_DENIED' } });
+        expect(withheld.result).toBeUndefined();
+        const references = await call(server, { type: 'indicator_accepted_layers', request_id: randomUUID(),
+          revision_id: saved.document.snapshot.dataset_id });
+        expect(references.result.layers).toEqual([{
+          layer_id: layer.layer_id, version_id: layer.version_id, available: false,
+        }]);
+        observations.reopened = { runs, references: references.result.layers, error: withheld.error.code };
+      }, [endpoint, '/__scopehub/operation'], { restoredSample: true });
+    });
+    await testInfo.attach('trusted-indicator', { body: JSON.stringify(observations), contentType: 'application/json' });
+  } finally { await profile.close(); }
 });
 
 test('private decision notes require consent and retain the dated original separately from outcomes', async ({ browser }) => {
@@ -1947,7 +2149,7 @@ async function assertSampleStorage(page, timeframe) {
   expect(stored).toEqual({ onlySamplePreference: true, emptySessionStorage: true, matchesSample: true });
 }
 
-async function inFreshBrowser(browser, server, use, permittedOperations = [endpoint]) {
+async function inFreshBrowser(browser, server, use, permittedOperations = [endpoint], { restoredSample = false } = {}) {
   const context = await browser.newContext();
   try {
     // Read the real launcher handoff but set its fragment locally before page
@@ -1959,7 +2161,7 @@ async function inFreshBrowser(browser, server, use, permittedOperations = [endpo
     const requests = observeOperations(page);
     let capabilityInRequestUrl = false;
     page.on('request', request => { capabilityInRequestUrl ||= request.url().includes(server.capability); });
-    await use(page, await openWorkspaceSnapshot(page, server.url));
+    await use(page, await openWorkspaceSnapshot(page, server.url, restoredSample));
     expect(requests.every(path => permittedOperations.includes(path))).toBe(true);
     expect(capabilityInRequestUrl).toBe(false);
   } finally {
@@ -1967,14 +2169,18 @@ async function inFreshBrowser(browser, server, use, permittedOperations = [endpo
   }
 }
 
-async function openWorkspaceSnapshot(page, url) {
+async function openWorkspaceSnapshot(page, url, restoredSample = false) {
   const response = await duringPageEvent(page, 'response', response =>
     new URL(response.url()).pathname === endpoint && response.request().postDataJSON()?.type === 'snapshot', async () => {
     await page.goto(url);
-    await expect(control(page, 'Open offline sample')).toBeVisible();
-    await expect(page.getByText('No data source')).toBeVisible();
+    if (restoredSample) {
+      await expect(page.getByText('Offline sample', { exact: true })).toBeVisible();
+    } else {
+      await expect(control(page, 'Open offline sample')).toBeVisible();
+      await expect(page.getByText('No data source')).toBeVisible();
+      expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
+    }
     expect(await page.evaluate(() => window.location.hash === '')).toBe(true);
-    expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
   });
   return response.json();
 }

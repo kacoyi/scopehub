@@ -7,8 +7,8 @@ use std::{
 };
 
 use scopehub_application::{
-    Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, FolderManifestAnchor,
-    FolderRefreshBase, FrozenLocalSourceRow, LIST_LOCAL_FOLDER_REVISIONS,
+    Actor, ApprovedPython, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE,
+    FolderManifestAnchor, FolderRefreshBase, FrozenLocalSourceRow, LIST_LOCAL_FOLDER_REVISIONS,
     LIST_LOCAL_IMPORT_REVISIONS, LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS,
     LocalDatasetPublication, MappingCommitGuard, OperationRegistry,
     PREPARE_LOCAL_FOLDER_PUBLICATION, PREVIEW_LOCAL_FOLDER_REFRESH, PRIVATE_RECORD_CHANGE,
@@ -53,6 +53,7 @@ const MAX_REQUEST_BYTES: usize = 16 * 1024;
 const MAX_NOTE_REQUEST_BYTES: usize = 32 * 1024;
 const MAX_BACKUP_REQUEST_BYTES: usize = 1024 * 1024;
 
+#[derive(Clone)]
 pub(super) struct WorkspaceBridge {
     lane: Arc<Mutex<Lane>>,
     workspace_enabled: bool,
@@ -227,6 +228,51 @@ impl WorkspaceBridge {
             None if chart_status => Ok(json!({"available": false})),
             None => Err(failure(ErrorCode::INTERNALERROR)),
         }
+    }
+
+    pub(super) async fn dispatch_indicator_decision(
+        &self,
+        command: Value,
+    ) -> Result<(Value, Option<ApprovedPython>), Error> {
+        if !self.workspace_enabled {
+            return Err(failure(ErrorCode::PERMISSIONDENIED));
+        }
+        if command.to_string().len() >= MAX_REQUEST_BYTES {
+            return Err(failure(ErrorCode::RESOURCELIMIT));
+        }
+        Self::with_bound(self.admit()?, true, move |bound| {
+            let reply = bound.dispatch(Request::Operation(command))?;
+            let work = if let Some(task) = reply["outcome"]["result"]["task_id"].as_str() {
+                bound
+                    .registry
+                    .take_approved_python(&workspace_access(&bound.profile_id), task)?
+            } else {
+                None
+            };
+            Ok((reply, work))
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::INTERNALERROR))
+    }
+
+    pub(super) async fn finish_trusted_python(
+        &self,
+        task: String,
+        response: Result<Value, Error>,
+    ) -> Result<(), Error> {
+        let lane = Arc::clone(&self.lane).lock_owned().await;
+        if !matches!(&*lane, Lane::Open(_)) {
+            return Ok(());
+        }
+        Self::with_bound(lane, false, move |bound| {
+            bound.registry.finish_trusted_python(
+                &workspace_access(&bound.profile_id),
+                &task,
+                response,
+            )
+        })
+        .await?;
+        Ok(())
     }
 
     pub(super) async fn dispatch_sample_preview(
@@ -613,15 +659,7 @@ impl BoundWorkspace {
     }
 
     fn dispatch(&mut self, request: Request) -> Result<Value, Error> {
-        let access = WorkspaceAccess {
-            actor: Actor::User,
-            profile_id: &self.profile_id,
-            principal_id: &self.profile_id,
-            paired_client_id: None,
-            workspace_id: WORKSPACE_ID,
-            operations: LOCAL_WORKSPACE_OPERATIONS,
-            disclose_workspace_state: true,
-        };
+        let access = workspace_access(&self.profile_id);
         match request {
             Request::Snapshot => {
                 let snapshot = self.registry.workspace_snapshot(&access)?;
@@ -661,6 +699,18 @@ impl BoundWorkspace {
                 .execute_sample_indicator_preview(&access, command, page),
             Request::Operation(payload) => self.registry.execute_workspace(&access, payload),
         }
+    }
+}
+
+fn workspace_access(profile_id: &str) -> WorkspaceAccess<'_> {
+    WorkspaceAccess {
+        actor: Actor::User,
+        profile_id,
+        principal_id: profile_id,
+        paired_client_id: None,
+        workspace_id: WORKSPACE_ID,
+        operations: LOCAL_WORKSPACE_OPERATIONS,
+        disclose_workspace_state: true,
     }
 }
 

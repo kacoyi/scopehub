@@ -2,12 +2,14 @@
 
 mod accepted;
 mod sample;
+mod trusted;
 pub(super) use accepted::undo_indicator_layer;
 pub use accepted::{
     ACCEPT_INDICATOR_VERSION, INDICATOR_CONFIRMATION, IndicatorLayerRef, IndicatorLayerUndo,
     IndicatorVersionRecord, MAX_ACTIVE_INDICATOR_LAYERS, REMOVE_INDICATOR_LAYER,
 };
 pub use sample::{READ_INDICATOR_SAMPLE_HISTORY, is_sample_indicator_preview};
+pub use trusted::ApprovedPython;
 
 use std::{
     collections::VecDeque,
@@ -21,8 +23,9 @@ use std::{
 use scopehub_domain::{
     indicator::{BucketCalendar, IndicatorError, MAX_BARS, Program},
     protocol::{
-        Bar, DeclarativeSource11, Error, ErrorCode, EvidenceTarget11, FrozenSnapshot,
-        IndicatorProvenance, MutationScope11, OperationReceipt11, SnapshotPreview11,
+        Bar, DeclarativeSource11, DraftSource11, Error, ErrorCode, EvidenceTarget11,
+        FrozenSnapshot, IndicatorProvenance, MutationScope11, OperationReceipt11, PythonDraft11,
+        SnapshotPreview11,
     },
     wire::{max_message_bytes, normalize_integers},
 };
@@ -55,9 +58,23 @@ struct Draft {
     key: String,
     identity: String,
     code_hash: String,
-    source: DeclarativeSource11,
+    source: DraftCode,
     receipt: Value,
     expires: Instant,
+}
+
+enum DraftCode {
+    Declarative(DeclarativeSource11),
+    Python(PythonDraft11),
+}
+
+impl DraftCode {
+    fn as_python(&self) -> Option<&PythonDraft11> {
+        match self {
+            Self::Python(source) => Some(source),
+            Self::Declarative(_) => None,
+        }
+    }
 }
 
 struct Job {
@@ -73,6 +90,7 @@ struct Job {
     expires: Instant,
     state: Arc<Mutex<JobResult>>,
     cancel: Arc<AtomicBool>,
+    python: Option<trusted::RunningPython>,
 }
 
 enum JobResult {
@@ -99,6 +117,20 @@ impl Job {
         self.cancel.load(Ordering::Acquire)
     }
 
+    fn expire_python(&self, now: Instant) {
+        if self
+            .python
+            .as_ref()
+            .is_some_and(|running| running.expired(now))
+        {
+            let mut state = self.state.lock().expect("indicator job state");
+            if matches!(*state, JobResult::Running) {
+                self.cancel.store(true, Ordering::Release);
+                *state = JobResult::Failed(ErrorCode::TIMEOUT);
+            }
+        }
+    }
+
     fn cancel(&self) {
         self.cancel.store(true, Ordering::Release);
         let mut result = self.state.lock().expect("indicator job state");
@@ -118,6 +150,7 @@ pub(crate) struct IndicatorStage {
     jobs: VecDeque<Job>,
     workers: Arc<AtomicUsize>,
     approval: Option<accepted::Approval>,
+    python_approval: Option<trusted::PendingPython>,
     session_id: OnceLock<String>,
 }
 
@@ -130,8 +163,30 @@ impl Drop for IndicatorStage {
 }
 
 impl IndicatorStage {
+    pub(super) fn cancel_trusted_source(&mut self) {
+        if let Some(approval) = self.python_approval.take() {
+            self.drafts.retain(|draft| draft.id != approval.draft_id());
+        }
+        for job in &self.jobs {
+            if job.python.is_some() {
+                job.cancel();
+            }
+        }
+    }
+
     fn prune(&mut self, now: Instant) {
         self.drafts.retain(|draft| draft.expires > now);
+        if self
+            .python_approval
+            .as_ref()
+            .is_some_and(|pending| pending.expired(now))
+            && let Some(approval) = self.python_approval.take()
+        {
+            self.drafts.retain(|draft| draft.id != approval.draft_id());
+        }
+        for job in &self.jobs {
+            job.expire_python(now);
+        }
         self.jobs.retain(|job| {
             if job.expires > now {
                 true
@@ -140,6 +195,15 @@ impl IndicatorStage {
                 false
             }
         });
+    }
+
+    fn push_job(&mut self, job: Job) {
+        if self.jobs.len() == MAX_JOBS
+            && let Some(oldest) = self.jobs.pop_front()
+        {
+            oldest.cancel();
+        }
+        self.jobs.push_back(job);
     }
 
     fn start(
@@ -189,6 +253,13 @@ impl Drop for WorkerSlot {
 }
 
 impl<S: WorkspaceStore> OperationRegistry<S> {
+    pub(super) fn has_pending_python_confirmation(&self, request: &Value) -> bool {
+        self.indicator_stage
+            .python_approval
+            .as_ref()
+            .is_some_and(|approval| approval.matches(request))
+    }
+
     pub(super) fn execute_indicator(
         &mut self,
         access: &WorkspaceAccess<'_>,
@@ -223,6 +294,8 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             let identity = hash(&json!([scope, args]))?;
             if name == CREATE_INDICATOR_DRAFT {
                 self.create_indicator_draft(&reply, &scope, args, identity, now)
+            } else if args.get("python_params").is_some() {
+                self.stage_python_preview(access, &reply, scope, args, identity, sample_history)
             } else {
                 self.run_indicator_preview(&reply, scope, args, identity, now, sample_history)
             }
@@ -276,17 +349,22 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         {
             return replay(reply, &draft.identity, &identity, &draft.receipt);
         }
-        if args["language"] != "declarative" {
-            return Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY));
-        }
         if scope.target != chart_target() {
             return Err(failure(ErrorCode::INVALIDARGUMENT));
         }
         self.port.inspect(|tx| check_context(tx, scope))?;
-        let source: DeclarativeSource11 = serde_json::from_value(args["source"].clone())
+        let source: DraftSource11 = serde_json::from_value(args.clone())
             .map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
-        Program::prepare(source.clone(), &[]).map_err(evaluator_error)?;
-        let code_hash = hash(args)?;
+        let (source, code_hash) = match source {
+            DraftSource11::DeclarativeDraft11(input) => {
+                Program::prepare(input.source.clone(), &[]).map_err(evaluator_error)?;
+                (DraftCode::Declarative(input.source), hash(args)?)
+            }
+            DraftSource11::PythonDraft11(input) => {
+                let code_hash = hex::encode(Sha256::digest(input.source.as_bytes()));
+                (DraftCode::Python(*input), code_hash)
+            }
+        };
         let id = new_id();
         let outcome = outcome(
             CREATE_INDICATOR_DRAFT,
@@ -326,9 +404,6 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         {
             return replay(reply, &job.identity, &identity, &job.receipt);
         }
-        if args.get("python_params").is_some() {
-            return Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY));
-        }
         let args: SnapshotPreview11 = serde_json::from_value(args.clone())
             .map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
         let draft = self
@@ -337,8 +412,11 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             .iter()
             .find(|draft| draft.id == args.draft_id)
             .ok_or_else(|| failure(ErrorCode::STALECONTEXT))?;
+        let DraftCode::Declarative(source) = &draft.source else {
+            return Err(failure(ErrorCode::INVALIDARGUMENT));
+        };
         let resolved =
-            Program::prepare(draft.source.clone(), &args.parameters).map_err(evaluator_error)?;
+            Program::prepare(source.clone(), &args.parameters).map_err(evaluator_error)?;
         let input = self.port.inspect(|tx| {
             freeze(
                 tx,
@@ -364,15 +442,11 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             expires: now + JOB_TTL,
             state: Arc::new(Mutex::new(JobResult::Running)),
             cancel: Arc::new(AtomicBool::new(false)),
+            python: None,
         };
         self.indicator_stage
             .start(&job, input, resolved, draft.code_hash.clone())?;
-        if self.indicator_stage.jobs.len() == MAX_JOBS
-            && let Some(oldest) = self.indicator_stage.jobs.pop_front()
-        {
-            oldest.cancel();
-        }
-        self.indicator_stage.jobs.push_back(job);
+        self.indicator_stage.push_job(job);
         Ok(response)
     }
 
@@ -399,6 +473,9 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
                     return Err(failure(ErrorCode::STALECONTEXT));
                 }
                 self.port.inspect(|tx| {
+                    if job.python.is_some() {
+                        return trusted::python_source_allowed(tx, &job.scope, &job.source);
+                    }
                     check_context(tx, &job.scope)?;
                     require_compute_right(tx, &job.source)
                 })?;
@@ -408,7 +485,8 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
                 event["snapshot"] = json!(preview.snapshot);
                 event["code_hash"] = json!(preview.code_hash);
                 event["params_hash"] = json!(preview.params_hash);
-                event["engine_version"] = json!(ENGINE_VERSION);
+                event["engine_version"] =
+                    preview.artifact["result"]["provenance"]["engine_version"].clone();
                 event["artifact"] = preview.artifact.clone();
                 if !READY.is_valid(&event) {
                     return Err(failure(ErrorCode::OUTPUTINVALID));
@@ -450,6 +528,18 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             op.authorize(access.actor)?;
             self.authorize_indicator(access, CANCEL_INDICATOR_TASK)?;
             self.indicator_stage.prune(Instant::now());
+            if self
+                .indicator_stage
+                .python_approval
+                .as_ref()
+                .is_some_and(|approval| request["task_id"] == approval.task_id())
+                && let Some(approval) = self.indicator_stage.python_approval.take()
+            {
+                self.indicator_stage
+                    .drafts
+                    .retain(|draft| draft.id != approval.draft_id());
+                return Ok(json!({"status": "cancelled"}));
+            }
             let job = self
                 .indicator_stage
                 .jobs

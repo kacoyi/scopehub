@@ -30,7 +30,7 @@ pub use source::{FrozenWorkspaceSourceStatus, WorkspaceSourcePreference, Workspa
 
 pub(crate) use indicators::IndicatorStage;
 pub use indicators::{
-    ACCEPT_INDICATOR_VERSION, CANCEL_INDICATOR_TASK, CREATE_INDICATOR_DRAFT,
+    ACCEPT_INDICATOR_VERSION, ApprovedPython, CANCEL_INDICATOR_TASK, CREATE_INDICATOR_DRAFT,
     INDICATOR_CONFIRMATION, IndicatorLayerRef, IndicatorLayerUndo, IndicatorVersionRecord,
     MAX_ACTIVE_INDICATOR_LAYERS, READ_INDICATOR_SAMPLE_HISTORY, REMOVE_INDICATOR_LAYER,
     RUN_INDICATOR_PREVIEW, is_sample_indicator_preview,
@@ -262,6 +262,9 @@ pub trait WorkspaceTransaction {
         revision_id: &str,
     ) -> Result<Option<crate::StoredLocalDataset>, Error>;
     fn local_evidence_display_allowed(&self, revision_id: &str) -> Result<bool, Error>;
+    fn indicator_trusted_python_allowed(&self, _instrument_id: &str) -> Result<bool, Error> {
+        Ok(false)
+    }
     fn indicator_sample_allowed(&self, _instrument_id: &str) -> Result<bool, Error> {
         Ok(false)
     }
@@ -502,6 +505,9 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             return self.execute_evidence_request(access, request);
         }
         if request["operation"] == INDICATOR_CONFIRMATION {
+            if self.has_pending_python_confirmation(&request) {
+                return self.resolve_python_preview(access, &request);
+            }
             return self.resolve_indicator_confirmation(access, &request);
         }
         if request["operation"] == CANCEL_INDICATOR_TASK {

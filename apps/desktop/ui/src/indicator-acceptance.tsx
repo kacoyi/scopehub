@@ -63,7 +63,7 @@ function bodyOf<T extends IndicatorAcceptVersionReply11 | IndicatorRemoveReply11
 
 export function IndicatorAcceptance({ preview, snapshot, workspace, access, clearPreview, showAccepted }: {
   preview: PreviewReady11 | undefined; snapshot: FrozenSnapshot; workspace: LocalWorkspace;
-  access: PublishedRevisionAccess; clearPreview: () => void; showAccepted: (results: readonly IndicatorResult[]) => void;
+  access?: PublishedRevisionAccess | undefined; clearPreview: () => void; showAccepted: (results: readonly IndicatorResult[]) => void;
 }) {
   const [layers, setLayers] = useState<Accepted[]>([]);
   const [challenge, setChallenge] = useState<ConfirmationChallenge11>();
@@ -71,13 +71,14 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<{ text: string; failed?: boolean }>();
   const state = workspace.snapshot;
-  const { canDisplay, verify } = access;
+  const canDisplay = access?.canDisplay;
+  const verify = access?.verify;
 
   useEffect(() => {
     const abort = new AbortController();
     const signal = AbortSignal.any([abort.signal, AbortSignal.timeout(15_000)]);
     void readLayers(snapshot, signal).then(restored => {
-      if (!canDisplay(snapshot.dataset_id)) return;
+      if (canDisplay && !canDisplay(snapshot.dataset_id)) return;
       setLayers(restored);
       showAccepted(restored.flatMap(layer => layer.document ? [layer.document.artifact.result] : []));
     }).catch(error => {
@@ -85,7 +86,7 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
       if (displayAccessDenied(error)) {
         setLayers([]);
         showAccepted([]);
-        void verify(snapshot.dataset_id);
+        void verify?.(snapshot.dataset_id);
       }
       setMessage(previous => previous ?? { text: 'Accepted indicator output could not be restored.', failed: true });
     });
@@ -106,7 +107,7 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
     setMessage(undefined);
     try { await action(AbortSignal.timeout(15_000)); }
     catch (error) {
-      if (displayAccessDenied(error)) void verify(snapshot.dataset_id);
+      if (displayAccessDenied(error)) void verify?.(snapshot.dataset_id);
       setMessage({ text: 'The indicator change could not be completed. Refresh the workspace and try again.', failed: true });
     } finally { setPending(false); }
   }

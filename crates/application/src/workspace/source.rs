@@ -89,6 +89,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             tx.set_chart_evidence(next, None)?;
             Ok(next)
         })?;
+        self.indicator_stage.cancel_trusted_source();
         Ok(json!({"selection_revision": selection_revision}))
     }
 }

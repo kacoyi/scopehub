@@ -193,14 +193,16 @@ function validIndicatorStatus(result, taskId) {
 }
 
 function validIndicatorOutcome(outcome, job, workspaceId) {
-  if (job.operation === acceptIndicator && outcome?.state === 'awaiting_confirmation') {
+  if ((job.operation === 'indicator.runPreview' || job.operation === acceptIndicator)
+      && outcome?.state === 'awaiting_confirmation') {
     const { challenge } = outcome;
-    return challenge?.operation === acceptIndicator && challenge.workspace_id === workspaceId
+    return challenge?.operation === job.operation && challenge.workspace_id === workspaceId
       && uuid(challenge.challenge_id) && uuid(challenge.task_id) && revision(challenge.expires_at_ms)
       && challenge.target?.kind === 'chart_interval' && challenge.workspace_revision === job.workspaceRevision;
   }
   const { receipt, result } = outcome ?? {};
-  const name = job.operation === indicatorConfirmation ? acceptIndicator : job.operation;
+  const name = job.operation === indicatorConfirmation ? outcome?.operation : job.operation;
+  if (job.operation === indicatorConfirmation && ![acceptIndicator, 'indicator.runPreview'].includes(name)) return false;
   if (outcome?.state !== 'committed' || outcome.operation !== name
     || !uuid(receipt?.operation_id) || receipt.workspace_id !== workspaceId) return false;
   if (name === acceptIndicator || name === removeIndicator) {
@@ -210,8 +212,9 @@ function validIndicatorOutcome(outcome, job, workspaceId) {
         ? receipt.target?.kind === 'chart_interval' && uuid(result?.version_id) && uuid(result?.layer_id)
         : receipt.target?.kind === 'layer' && receipt.target.object_id === job.layerId && result?.operation_id === receipt.operation_id);
   }
-  return receipt.committed_workspace_revision === job.workspaceRevision && receipt.undoable === false
-    && (name === 'indicator.createDraft' ? uuid(result?.draft_id) && /^[a-f0-9]{64}$/.test(result.code_hash) : uuid(result?.task_id));
+  return (job.operation === indicatorConfirmation
+    ? revision(receipt.committed_workspace_revision) : receipt.committed_workspace_revision === job.workspaceRevision)
+    && receipt.undoable === false && (name === 'indicator.createDraft' ? uuid(result?.draft_id) && /^[a-f0-9]{64}$/.test(result.code_hash) : uuid(result?.task_id));
 }
 
 function validAcceptedIndicatorReply(result, job) {
@@ -289,6 +292,49 @@ function validPrivateRecordOutcome(outcome, job, workspaceId) {
     && receipt.committed_workspace_revision === job.workspaceRevision + 1;
 }
 
+function launchTrustedIndicator(root, wireRequest) {
+  const executable = process.platform === 'win32' ? 'scopehub-indicator-child.exe' : 'scopehub-indicator-child';
+  const child = spawn(resolve(root, 'target/debug', executable), ['--root', root], {
+    cwd: root, stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true,
+  });
+  const frameBytes = 4 * 1024 * 1024;
+  const workerFault = code => JSON.stringify({ error: { code, retryable: false, message: 'Trusted indicator execution failed.', details: {} } });
+  const finished = Promise.withResolvers();
+  const chunks = [];
+  let length = 0;
+  let outputLimit = false;
+  let workerError = false;
+  let cancelled = false;
+  const cancel = () => {
+    cancelled = true;
+    child.stdin.end();
+  };
+  child.once('error', () => { workerError = true; });
+  child.stdin.on('error', () => { workerError = true; });
+  child.stdout.on('data', chunk => {
+    length += chunk.length;
+    if (length > frameBytes) {
+      outputLimit = true;
+      child.stdin.end();
+    } else if (!outputLimit) chunks.push(chunk);
+  });
+  child.once('close', exit => {
+    if (cancelled) return finished.resolve(workerFault('CANCELLED'));
+    if (outputLimit) return finished.resolve(workerFault('RESOURCE_LIMIT'));
+    if (workerError || exit !== 0 && length === 0) return finished.resolve(workerFault('WORKER_EXITED'));
+    try {
+      const bytes = Buffer.concat(chunks);
+      if (bytes.indexOf(10) !== bytes.length - 1) return finished.resolve(workerFault('OUTPUT_INVALID'));
+      const raw = new TextDecoder('utf-8', { fatal: true }).decode(bytes.subarray(0, -1));
+      JSON.parse(raw);
+      // Preserve the worker's numeric representation for Rust's hash check.
+      finished.resolve(raw);
+    } catch { finished.resolve(workerFault('OUTPUT_INVALID')); }
+  });
+  child.stdin.write(wireRequest + '\n');
+  return { cancel, result: finished.promise };
+}
+
 function startWriter(root, { path, profileId, workspaceId }) {
   const executable = process.platform === 'win32' ? 'workspace_bridge.exe' : 'workspace_bridge';
   const child = spawn(resolve(root, 'target/debug', executable), [path, profileId, workspaceId], {
@@ -305,6 +351,17 @@ function startWriter(root, { path, profileId, workspaceId }) {
   let ready = false;
   let snapshotRequestId = 0;
   let pending;
+  const python = new Map();
+  const stoppingPython = new Set();
+
+  function stopPython(task) {
+    const run = python.get(task);
+    if (!run) return;
+    run.cancel();
+    stoppingPython.add(run.result);
+    void run.result.then(() => stoppingPython.delete(run.result));
+    python.delete(task);
+  }
   let remainder = Buffer.alloc(0);
 
   function fail(reason) {
@@ -321,6 +378,7 @@ function startWriter(root, { path, profileId, workspaceId }) {
 
   function stop(reason) {
     fail(reason);
+    for (const task of python.keys()) stopPython(task);
     if (killTimer || child.exitCode !== null || child.signalCode !== null) return;
     child.stdin.end();
     killTimer = setTimeout(kill, 2_000);
@@ -404,6 +462,30 @@ function startWriter(root, { path, profileId, workspaceId }) {
             || typeof receipt.undoable !== 'boolean') throw invalidReply();
       } else throw invalidReply();
     } else if (!validFailure) throw invalidReply();
+    const wireRequest = frame.indicator_compute;
+    delete frame.indicator_compute;
+    if (wireRequest) {
+      if (typeof wireRequest !== 'string') throw invalidReply();
+      const request = JSON.parse(wireRequest);
+      const task = frame?.result?.outcome?.result?.task_id;
+      if (job.operation !== indicatorConfirmation || frame?.result?.outcome?.operation !== 'indicator.runPreview'
+        || !uuid(task) || request.task_id !== task || request.operation !== 'indicator.compute'
+        || request.source?.language !== 'python' || python.has(task)) throw invalidReply();
+      for (const [id, run] of python) {
+        if (run.completed) python.delete(id);
+        else stopPython(id);
+      }
+      const run = launchTrustedIndicator(root, wireRequest);
+      python.set(task, run);
+      void run.result.then(result => { run.completed = result; });
+    }
+    if (job.operation === cancelIndicator && frame.result?.outcome?.status === 'cancelled') {
+      stopPython(job.taskId);
+    }
+    if (job.operation === sourceMutation && frame.ok === true) {
+      for (const task of python.keys()) stopPython(task);
+    }
+    if (job.deliveredPython) python.delete(job.taskId);
     clearTimeout(job.timer);
     pending = undefined;
     job.resolve(frame);
@@ -420,18 +502,22 @@ function startWriter(root, { path, profileId, workspaceId }) {
     process.removeListener('exit', kill);
     stopped.resolve();
   });
+  // The private approval reply can carry a JSON-encoded compute frame with
+  // frozen bars. The public HTTP response never includes that frame.
+  const writerLimit = () => pending?.operation === indicatorConfirmation
+    ? 8 * 1024 * 1024 + maxRequestBytes : responseLimit(pending?.operation);
   child.stdout.on('data', chunk => {
     if (failure) return;
     let bytes = Buffer.concat([remainder, chunk]);
     let end;
     try {
       while ((end = bytes.indexOf(10)) !== -1) {
-        const limit = responseLimit(pending?.operation);
+        const limit = writerLimit();
         if (end >= limit) throw invalidReply();
         receive(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes.subarray(0, end))));
         bytes = bytes.subarray(end + 1);
       }
-      const limit = responseLimit(pending?.operation);
+      const limit = writerLimit();
       if (bytes.length >= limit) throw invalidReply();
       remainder = bytes;
     } catch {
@@ -462,13 +548,20 @@ function startWriter(root, { path, profileId, workspaceId }) {
         line = JSON.stringify({ type: 'indicator_sample_preview', command: body, history: history.result }) + '\n';
         if (Buffer.byteLength(line) > 256 * 1024) throw new PreviewFailure(413, 'RESOURCE_LIMIT');
       }
+      const finishedPython = body.type === previewStatus && python.get(body.task_id)?.completed;
+      if (finishedPython) {
+        const header = JSON.stringify({ ...body, type: 'indicator_python_result' });
+        const worker = Buffer.byteLength(finishedPython) < 4 * 1024 * 1024 - maxRequestBytes ? finishedPython
+          : '{"error":{"code":"RESOURCE_LIMIT","retryable":false,"message":"Trusted indicator output exceeded its limit.","details":{}}}';
+        line = header.slice(0, -1) + ',"worker":' + worker + '}\n';
+      }
       const reply = Promise.withResolvers();
       const noteId = body?.scope?.target?.object_id ?? body?.intent?.arguments?.note_id;
       const operation = snapshot || body.type === sourceMutation || frozenChartControls.includes(body.type) || indicatorReads.includes(body.type)
         ? body.type : body.operation ?? body.intent?.operation;
       pending = {
         ...reply, requestId, messageId: body.message_id, operation,
-        revisionId: body.revision_id, taskId: body.task_id,
+        revisionId: body.revision_id, taskId: body.task_id, deliveredPython: Boolean(finishedPython),
         layerId: body.layer_id ?? (body.scope?.target?.kind === 'layer' ? body.scope.target.object_id : undefined),
         selectionRevision: body.expected_selection_revision,
         recordId: typeof body.intent?.arguments?.record_id === 'string'
@@ -485,7 +578,7 @@ function startWriter(root, { path, profileId, workspaceId }) {
     },
     async close() {
       stop(unavailable());
-      await stopped.promise;
+      await Promise.all([stopped.promise, ...stoppingPython]);
     },
   };
 }

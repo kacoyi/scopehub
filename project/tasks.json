@@ -653,7 +653,7 @@
         "ui-build"
       ],
       "evidence": [],
-      "next_action": "Implement and verify exact local human approval, source-purpose checks and result restoration for selected trusted Python on synthetic input. Compose the separately owned one-shot runner through the established protocol 1.1 compute and result frames.",
+      "next_action": "Verify the trusted Python and declarative journeys on the composed layout, worker, and numerical source. Retain results through restart and source withdrawal, and preserve opaque unavailable references.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -750,7 +750,7 @@
           "open_questions": [
             "The verified v9 layout checkpoint b11df1a is composed with v10. Retain populated migration rollback and restore verification.",
             "The bound synthetic chart uses verified sessions through the normal workspace. CSV continues to explain unverified calendar continuity.",
-            "Use selected UTF-8 Python and explicit local per-run approval. The sibling runner owns only process execution, cancellation and cleanup. This slice uses synthetic snapshots and the existing inline transport."
+            "Use selected UTF-8 Python and explicit local per-run approval. The sibling runner owns only process execution, cancellation and cleanup. This slice uses explicitly bound synthetic snapshots, bounded UTF-8 files, the selected visible bars with no added warm-up, and the existing inline transport."
           ]
         },
         "evolution": {

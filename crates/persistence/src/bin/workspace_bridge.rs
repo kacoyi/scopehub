@@ -12,7 +12,10 @@ use scopehub_application::{
     OperationRegistry, PRIVATE_RECORD_CHANGE, READ_LOCAL_IMPORT_REVISION, WorkspaceAccess,
     WorkspaceBinding, evidence_operation_name, failure,
 };
-use scopehub_domain::protocol::{Error, ErrorCode};
+use scopehub_domain::{
+    protocol::{Error, ErrorCode},
+    wire::max_message_bytes,
+};
 use scopehub_persistence::SqliteWorkspace;
 use serde_json::{Value, json};
 
@@ -89,12 +92,12 @@ fn serve(
         line.clear();
         let count = input
             .by_ref()
-            .take(MAX_BACKUP_REQUEST_BYTES + 1)
+            .take(max_message_bytes() as u64 + 1)
             .read_until(b'\n', &mut line)?;
         if count == 0 {
             return Ok(());
         }
-        if count as u64 > MAX_BACKUP_REQUEST_BYTES {
+        if count > max_message_bytes() {
             return write_frame(
                 &mut output,
                 result_frame(Err(failure(ErrorCode::RESOURCELIMIT))),
@@ -133,6 +136,38 @@ fn serve(
                 Err(failure(ErrorCode::INVALIDARGUMENT))
             };
             write_frame(&mut output, result_frame(result))?;
+            continue;
+        }
+        if request
+            .as_ref()
+            .is_ok_and(|frame| frame["type"] == "indicator_python_result")
+        {
+            let request = request.expect("private frame");
+            let result = (|| {
+                let task_id = request["task_id"]
+                    .as_str()
+                    .filter(|id| uuid::Uuid::parse_str(id).is_ok())
+                    .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
+                if !request.as_object().is_some_and(|frame| frame.len() == 4)
+                    || !request["request_id"]
+                        .as_str()
+                        .is_some_and(|id| uuid::Uuid::parse_str(id).is_ok())
+                {
+                    return Err(failure(ErrorCode::INVALIDARGUMENT));
+                }
+                let worker = &request["worker"];
+                let finished = if worker.get("error").is_some() {
+                    Err(serde_json::from_value(worker["error"].clone())
+                        .unwrap_or_else(|_| failure(ErrorCode::OUTPUTINVALID)))
+                } else {
+                    Ok(worker.clone())
+                };
+                registry.finish_trusted_python(access, task_id, finished)?;
+                registry.indicator_preview_status(access, task_id)
+            })();
+            let mut frame = result_frame(result);
+            frame["request_id"] = request["request_id"].clone();
+            write_frame(&mut output, frame)?;
             continue;
         }
         let operation = request.as_ref().ok().and_then(|request| {
@@ -220,7 +255,17 @@ fn serve(
             write_frame(&mut output, frame)?;
         } else {
             let result = request.and_then(|request| registry.execute_workspace(access, request));
-            write_frame(&mut output, result_frame(result))?;
+            let work = match &result {
+                Ok(reply) => reply["outcome"]["result"]["task_id"].as_str(),
+                Err(_) => None,
+            }
+            .and_then(|task| registry.take_approved_python(access, task).ok().flatten());
+            let mut frame = result_frame(result);
+            if let Some(work) = work {
+                frame["indicator_compute"] =
+                    Value::String(serde_json::to_string(&work.request).map_err(io::Error::other)?);
+            }
+            write_frame(&mut output, frame)?;
         }
     }
 }
