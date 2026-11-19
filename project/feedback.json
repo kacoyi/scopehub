@@ -1881,6 +1881,24 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "layout-scoped-semantic-vector-coverage",
+      "source": "Affected protocol regression on the layout and indicator integration at 45bf7ad.",
+      "observation": "The Rust wire coverage assertion omitted scoped layout request variants and the shared vector set lacked accepted AI layout preview and application examples. The earlier layout receipt omitted the wire change checks.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-002"
+      ],
+      "regression_checks": [
+        "generated-contracts",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

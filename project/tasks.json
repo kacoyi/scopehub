@@ -4279,7 +4279,11 @@
         "state-migrations",
         "market-workflow",
         "ui-build",
-        "desktop-workspace-transport"
+        "desktop-workspace-transport",
+        "generated-contracts",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers"
       ],
       "evidence": [
         {
@@ -4303,7 +4307,8 @@
         "change_types": [
           "persistence",
           "permissions",
-          "ui"
+          "ui",
+          "protocol"
         ],
         "context": [
           "engineering-contract-v1.json",
@@ -4379,7 +4384,8 @@
             "Executable custom panels, external providers, changes to record backups or grant rules, and indicator artifact ownership."
           ],
           "open_questions": [
-            "Confirm native Windows accessibility and the remaining evidence navigation scenarios after the local browser slice."
+            "Confirm native Windows accessibility and the remaining evidence navigation scenarios after the local browser slice.",
+            "The shared Rust wire coverage check did not count scoped layout mutations, and the AI vectors lacked a bound preview and apply example. Verify both typed callers and their round trips in the layout task."
           ]
         },
         "evolution": {
