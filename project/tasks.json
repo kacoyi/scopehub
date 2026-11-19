@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-001",
+  "focus_task_id": "M1-008",
   "tasks": [
     {
       "id": "M0-001",
@@ -327,7 +327,7 @@
       "id": "M2-001",
       "title": "Deliver shared operations and durable workspace state",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-001",
         "M2-005"
@@ -388,8 +388,13 @@
         "desktop-workspace-transport",
         "local-import-publication"
       ],
-      "evidence": [],
-      "next_action": "Integrate the body-free delete receipt recovery and its lost-reply, checkpoint and peer-rename evidence with the coordinator's independent and source-matched checks.",
+      "evidence": [
+        {
+          "path": "project/evidence/M2-001-8776db8aa3a00bea.json",
+          "sha256": "3698fb116b2a771c9a00ead35cb829b19b5080fdcfe769caec300dfb36a0d389"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
