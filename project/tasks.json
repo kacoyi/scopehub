@@ -2727,7 +2727,7 @@
         "local-import-ui"
       ],
       "evidence": [],
-      "next_action": "Verify the one-row save and publication retry regression on native Windows and the joined source on hosted Windows and Ubuntu. The standard-user Windows desktop already reopened both immutable revisions after the source directory was disconnected. The mapping association tests pass under long and short NTFS paths. Continue bounded local preview recovery, then implement revision discovery and the reviewed multi-file refresh for additions, aliases, corrections and withdrawals.",
+      "next_action": "Implement and verify a read-only folder refresh preview against an accepted v5 publication using a current native directory selection, the saved mapping and complete checked CSV files. Present added, aliased, replaced, incompatible and missing sources with bar overlaps and conflicts. Confirm v7 ownership after chart evidence v6 before any durable multi-file change. Keep frozen discovery separate.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -2761,7 +2761,8 @@
           "The first logical CSV record can establish the decoded header even when a later row cannot be decoded, provided the header boundary is verified with the existing CSV parser.",
           "The current native grant, selected catalog file, full file fingerprint and persisted mapping identity can jointly authorize publication without accepting normalized bars from the UI.",
           "Immutable storage and a transactional idempotency key can return the same revision on retry and preserve the previous publication on interruption.",
-          "The pre-decode not_saved result after the same-profile restart is consistent with a mapping key derived from different spellings of one directory. Resolve the Windows association path while the admitted non-reparse directory chain is pinned, and retain the existing v4 path-key format."
+          "The pre-decode not_saved result after the same-profile restart is consistent with a mapping key derived from different spellings of one directory. Resolve the Windows association path while the admitted non-reparse directory chain is pinned, and retain the existing v4 path-key format.",
+          "The source identity stored by v5 and its accepted relative path can prove the selected folder even when the original file is absent. A fresh read-only scan can use that live grant and the exact retained mapping without persisting a grant or changing the accepted chart."
         ],
         "risks": [
           {
@@ -2852,6 +2853,13 @@
               "rust-contracts-workers",
               "local-folder-import"
             ]
+          },
+          {
+            "failure": "Traversal order chooses an economic correction, aliases lose source row locators, a different directory is accepted as the original, or staged failures or cancellation change the frozen revision.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-import-publication"
+            ]
           }
         ],
         "rollback": "Keep the accepted mapping, immutable source identities and last published revision while staging changes. Rejected rows and unsupported files remain inspectable in the selected local session. Stage a mapping version in the current SQLite transaction and roll it back if cancellation or source revocation wins before commit. Keep the previous reviewed version available after failures.",
@@ -2899,18 +2907,24 @@
             {
               "path": "engineering-contract-v1.json",
               "pointer": "/authorization/replay"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/product/data_onboarding/refresh_conflicts"
             }
           ],
           "non_goals": [
             "Remote data channels, cloud transmissions, inferred settlement/trade conversions and the separate real-provider connection workflow.",
             "First publication and explicit compatible replacement cover one selected file and one fully resolved native bar series. No persistent folder grant is issued.",
-            "Repair replay on the current schema v5. Coordinate separately before any schema migration. Defer folder-manifest work until this repair has passed its regressions."
+            "Repair replay on the current schema v5. Coordinate separately before any schema migration. Defer folder-manifest work until this repair has passed its regressions.",
+            "This preview slice has no durable multi-file manifest, batch publication, inferred corrections or discovery UI. Coordinate any v7 migration atop the landed chart-evidence v6 separately."
           ],
           "open_questions": [
             "Stage added files and detect byte-identical aliases within a folder without treating an alias as new economic events. Preserve all contributing source locators and prove results are independent of folder enumeration order.",
             "Hold changed headers, mixed series and competing corrections for review. Support explicit multi-file replacement and missing-file withdrawal with a complete reviewed manifest, atomic publication and restart/retry evidence.",
             "Provide history discovery by series and source row inspection outside the 500-row sample. The initial frozen chart is reopenable by revision ID and provides original file and individual source row identities.",
-            "Verify the picker, publication, migration and frozen chart path in the native Windows application."
+            "Verify the picker, publication, migration and frozen chart path in the native Windows application.",
+            "Establish a bounded complete scan and normalized output size. A failed or over-limit scan must make partial coverage explicit or return no preview."
           ]
         },
         "evolution": {
@@ -2927,10 +2941,11 @@
             "Support explicit and separately reviewable republishing of compatible changed bytes as a new single-file revision. Reopen an earlier revision by ID with no directory grant. A separate local human action removes that revision's display permission while preserving its stored original.",
             "Distinguish the same admitted save request from an independent review. Reuse the exact equivalent latest saved mapping in the writer while allowing a new explicit A-to-B-to-A review. Test changed request purpose or inputs, native grants, source bytes, cancellation and concurrent attempts.",
             "Recover an exact committed publication receipt within the original live native selection before requiring a current reviewed mapping, completed preview or another file read. Check the current display right on every reply. Keep current grant, preview and source validation on the new-publication path. A restart requires a fresh native selection for new source work and still allows entitled frozen reads by revision ID.",
-            "Normalize the Windows association path only after trusted selection admission. Retain canonical v4 keys, opaque live grants and source and profile separation."
+            "Normalize the Windows association path only after trusted selection admission. Retain canonical v4 keys, opaque live grants and source and profile separation.",
+            "Stage a deterministic folder comparison against the immutable accepted v5 single-file revision. Apply the versioned saved mapping only when the ordered header and resolved series agree. Coalesce identical economic bars with every locator and preserve divergent alternatives and the prior bar for review. Show source replacement and withdrawal candidates without committing any."
           ],
           "data_plan": "Keep source bytes, mapping, evidence locators and dataset revisions on the active profile. Migrate long-lived state through its owning Rust writer when publication is introduced. Integrate the profile writer and migration history from af89eff. Preserve workspace schema v1, decision notes v2 and backup and restore v3. Apply reviewed mapping schema v4 transactionally and verify both populated v3 databases and fresh initialization. Persist an opaque per-source association, ordered header digest and reviewed mapping. Derive folder access only from the current trusted selection. Add a transactional v4 to v5 migration owned by the existing profile writer. Test upgrade with populated workspace, decision-note and reviewed mapping data, plus new and reopened profiles. A failed or cancelled publication leaves previous revisions readable without rereading the folder. Recover a failed migration from the preserved pre-upgrade profile.",
-          "cleanup": "Cancel uncommitted staging on failure and close file handles when the selected folder or profile changes. Close the profile writer and cancel uncommitted mapping operations when the host shuts down. Release any uncommitted complete-file data after cancellation, changed bytes or write failure."
+          "cleanup": "Cancel uncommitted staging on failure and close file handles when the selected folder or profile changes. Close the profile writer and cancel uncommitted mapping operations when the host shuts down. Release any uncommitted complete-file data after cancellation, changed bytes or write failure. Release the private staged files and cancel the current scan or parser on directory grant change or cancellation. The frozen source and its original remain available under existing display rights."
         }
       }
     },
