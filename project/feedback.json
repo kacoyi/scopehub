@@ -1675,7 +1675,7 @@
       "source": "Windows main verification run 44581311289 at dcafca35796318669c721c53f1a7bff55ef5e46a.",
       "observation": "The CN futures replay step passed. The workflow then selected SIM.CN.STOCK.001, 5m and the close-price line. The screenshot shows Disconnected from the local preview and Retry history for the current selection. The assertion at market-workflow.spec.mjs:315 waited five seconds for a missing chart canvas. The retained Playwright report has no trace or test stdout/stderr and the check log contains no request or host event. The original HTTP status, socket code and bridge admission remain indeterminate.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-025"
       ],
@@ -1683,7 +1683,11 @@
         "market-workflow",
         "market-quality-states"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The healthy browser workflow waited for a canvas after the selected history had already reached a visible transport terminal. Its earlier artifacts cannot distinguish the original network or worker phase.",
+        "correction": "Track the selected request and client outcome separately from obsolete selections, preserve completed HTTP status, and exercise explicit recovery on the same symbol, timeframe and chart style.",
+        "prevention": "Hosted run 44589094507 passed the three-instrument journey, eight replay tests and twenty quality cases on Windows and Ubuntu. The controlled lost response recovers the same eight 5-minute bars and original final close 12.15 and volume 510. The healthy assertion fails immediately on an unexpected current terminal."
+      },
       "deferral_reason": null
     },
     {
