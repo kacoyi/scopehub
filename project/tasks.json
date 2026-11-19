@@ -5475,7 +5475,7 @@
       "id": "M1-020",
       "title": "Verify serial catalog and history startup in chart previews",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": ["M1-001"],
       "scope": [
         "tests/ubuntu-preview/market-workflow.spec.mjs",
@@ -5494,9 +5494,17 @@
         {
           "path": "project/evidence/M1-020-d05ddb38f6fbe253.json",
           "sha256": "2c3bfc81be3f5e290bacfa225d559024c41b0de1fb06ba944c2d71a30a44ba67"
+        },
+        {
+          "path": "project/evidence/M1-020-262ff58ae7d6230d.json",
+          "sha256": "32348045029b73c35d9eb6cd09b4a785e502b4b65703a817007d066f2edf01e2"
+        },
+        {
+          "path": "project/evidence/M1-020-839a408a8b3f3cd1.json",
+          "sha256": "d1971b1a3fbf4483e55dc8b8339f718142b620ce3cd31e3e5687d5a62efe6426"
         }
       ],
-      "next_action": "Both affected checks passed on Linux. Run market-workflow and ubuntu-preview on the integrated hosted Windows head, then attach Windows evidence and close the startup feedback.",
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
