@@ -162,7 +162,8 @@ test('starts only by choice, streams the interim and final bar onto the canvas, 
   expect(await originalCanvas.evaluate(el => el.isConnected)).toBe(true);
   await expect(chart(page)).toHaveAttribute('data-bars', '40');
 
-  const { payload, frames } = await expectCompletedSubscription(page, [...subscriptions], 'SIM.CN.FUTURE.001', '1m');
+  const verifiedAttempts = [...subscriptions];
+  const { payload, frames } = await expectCompletedSubscription(page, verifiedAttempts, 'SIM.CN.FUTURE.001', '1m');
   const preparation = calls.filter(call => call.payload.include_stream_position);
   expect(preparation).toHaveLength(1);
   expect(preparation[0].payload.snapshot).toEqual(payload.snapshot);
@@ -185,11 +186,10 @@ test('starts only by choice, streams the interim and final bar onto the canvas, 
   await expect(page.getByRole('table', { name: 'Historical bars' }).locator('tbody tr').last().getByRole('cell')).toHaveText(
     ['2024-01-04T01:09:00.000Z', '2024-01-04', '3501.6', '3502', '3500.8', '3500.8', '110', 'Partial'],
   );
-  const replayAttempts = subscriptions.length;
   await page.reload();
   await priceText(page, '3500\\.8', 110, 'Partial');
   await expect(status(page)).toHaveCount(0);
-  expect(subscriptions.length).toBe(replayAttempts);
+  expect(subscriptions).toHaveLength(verifiedAttempts.length);
 });
 
 test('changing symbol and timeframe during preparation loads the new chart before the old reply is released', async ({ page }) => {
