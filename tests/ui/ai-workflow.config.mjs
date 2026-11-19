@@ -14,7 +14,7 @@ export default defineConfig({
   testMatch: 'ai-workflow.spec.mjs',
   workers: 1,
   timeout: 60_000,
-  metadata: { scope: 'Ordinary workspace text turns through the Rust registry and an owned synthetic HTTP peer.' },
+  metadata: { scope: 'Ordinary text and bounded selected-chart turns through the Rust registry and an owned synthetic HTTP peer.' },
   outputDir: resolve(report, 'browser'),
   reporter: [['list'], ['json', { outputFile: resolve(report, 'results.json') }]],
   use: { viewport: { width: 1366, height: 900 }, screenshot: 'only-on-failure' },

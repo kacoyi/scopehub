@@ -12,6 +12,7 @@ import type {
   NamedWorkspaceLayout11, WorkspaceApplyLayoutCommand11, WorkspaceApplyLayoutReply11, WorkspaceLayoutEdit11,
   WorkspacePreviewLayoutCommand11, WorkspacePreviewLayoutReply11, WorkspaceUndoCommand11, WorkspaceUndoReply11,
 } from '../../../../contracts/generated/protocol';
+import { demoProvider } from './market';
 
 type Intent = ChartSetTimeframeCommand11['intent'] | WorkspaceUndoCommand11['intent'];
 type LayoutIntent = WorkspacePreviewLayoutCommand11['intent'] | WorkspaceApplyLayoutCommand11['intent'];
@@ -40,7 +41,7 @@ type LocalRequest = SourceRequest | { type: 'snapshot' } | Command | DecisionNot
   | { type: 'indicator_preview_status'; request_id: string; task_id: string }
   | { type: 'frozen_chart' | 'frozen_chart_status'; request_id: string; revision_id: string };
 type UndoTarget = Pick<OperationReceipt11, 'operation_id' | 'committed_workspace_revision'>;
-type ChartEvidence = { revision_id: string; range: VisibleRange } | { unavailable: true };
+type ChartEvidence = { revision_id: string; range: VisibleRange; snapshot_hash?: string } | { unavailable: true };
 type Snapshot = {
   workspace: Workspace; selection_revision: number; undo: UndoTarget | null;
   chart_evidence?: ChartEvidence | null;
@@ -116,7 +117,8 @@ export async function readWorkspaceSnapshot(signal: AbortSignal): Promise<Snapsh
   const evidence = snapshot.chart_evidence;
   const validEvidence = evidence == null || ('unavailable' in evidence ? evidence.unavailable === true
     : typeof evidence.revision_id === 'string' && Number.isSafeInteger(evidence.range?.from_ms)
-      && Number.isSafeInteger(evidence.range?.to_ms) && evidence.range.from_ms < evidence.range.to_ms);
+      && Number.isSafeInteger(evidence.range?.to_ms) && evidence.range.from_ms < evidence.range.to_ms
+      && (evidence.snapshot_hash === undefined || /^[a-f0-9]{64}$/.test(evidence.snapshot_hash)));
   if (!validWorkspace(snapshot.workspace) || !Number.isSafeInteger(snapshot.selection_revision)
     || snapshot.selection_revision < 0 || !validEvidence || snapshot.undo !== null && (
       typeof snapshot.undo?.operation_id !== 'string'
@@ -142,12 +144,16 @@ async function selectEvidence(snapshot: Snapshot, target: ChartInterval11 | null
     || (target === null ? selection.target !== null : selection.target?.kind !== 'chart_interval'
       || selection.target.snapshot.content_hash !== target.snapshot.content_hash
       || selection.target.snapshot.dataset_id !== target.snapshot.dataset_id
+      || selection.target.snapshot.dataset_revision !== target.snapshot.dataset_revision
       || selection.target.range.from_ms !== target.range.from_ms || selection.target.range.to_ms !== target.range.to_ms)) {
     throw { code: 'OUTPUT_INVALID' };
   }
   return {
     ...snapshot, selection_revision: selection.selection_revision,
-    chart_evidence: target && { revision_id: target.snapshot.dataset_id, range: target.range },
+    chart_evidence: target && {
+      revision_id: target.snapshot.dataset_id, range: target.range,
+      ...(target.snapshot.series.provider_id === demoProvider && { snapshot_hash: target.snapshot.content_hash }),
+    },
   };
 }
 
@@ -210,17 +216,20 @@ export function useLocalWorkspace() {
     const controller = new AbortController();
     active.current = controller;
     setView(previous => ({ ...previous, pending, error: undefined }));
-    void work(controller.signal).then(snapshot => {
-      if (!controller.signal.aborted) setView({ snapshot, pending: undefined, error: undefined });
+    return work(controller.signal).then(snapshot => {
+      if (controller.signal.aborted) return false;
+      setView({ snapshot, pending: undefined, error: undefined });
+      return true;
     }, error => {
       if (!controller.signal.aborted) {
         setView(previous => ({ ...previous, pending: undefined, error: describeFailure(error) }));
       }
+      return false;
     }).finally(() => {
       if (active.current === controller) active.current = null;
     });
   }, []);
-  const reload = useCallback(() => run(readWorkspaceSnapshot, 'open'), [run]);
+  const reload = useCallback(() => { void run(readWorkspaceSnapshot, 'open'); }, [run]);
   useEffect(() => {
     if (!enabled) return;
     reload();
@@ -320,8 +329,8 @@ export function useLocalWorkspace() {
         operation: 'workspace.undo', arguments: { operation_id: target.operation_id },
       }, layoutTarget, snapshot.workspace.revision));
     },
-    chooseEvidence(target: ChartInterval11 | null) {
-      if (snapshot && !view.error) run(signal => selectEvidence(snapshot, target, signal), 'evidence');
+    async chooseEvidence(target: ChartInterval11 | null) {
+      return Boolean(snapshot && !view.error && await run(signal => selectEvidence(snapshot, target, signal), 'evidence'));
     },
     chooseTimeframe(timeframe: string) {
       if (snapshot?.workspace.timeframe !== timeframe) {

@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=dede32ffd96bd8fa2ca6997ac75ce43587fed23996789f5e81500da2e2c842ed. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=165474d03e9c67983014341715fa9f74707123ee613aab05cc5603c42ca35c5c. Do not edit.
 // Structural types and literal discriminators: validate schema refinements before deserializing.
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -5070,6 +5070,8 @@ pub struct AiTextOllamaChoice {
     pub kind: AiTextOllamaChoiceKind,
     pub origin: String,
     pub model: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub chart_tools: Option<ConstBool<true>>,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -5123,6 +5125,8 @@ pub struct AiTextCompletedTurn {
     pub state: AiTextCompletedTurnState,
     pub model: String,
     pub text: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub chart_evidence: Option<AiTextChartEvidence>,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -5166,6 +5170,8 @@ pub struct AiTextSendInput {
     pub action: AiTextSendInputAction,
     pub connection_id: Uuid,
     pub question: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selection_revision: Option<Revision>,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -5266,6 +5272,20 @@ pub struct AiTextConnectionReply11 {
     pub r#type: AiTextConnectionReply11Type,
     pub request_id: Uuid,
     pub outcome: AiTextConnectionOutcome11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextChartClose {
+    pub time_ms: Timestamp,
+    pub close: f64,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextChartEvidence {
+    pub source_reference: OpaqueId,
+    pub revision: OpaqueId,
+    pub range: VisibleRange,
+    pub rows: Vec<AiTextChartClose>,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -11075,12 +11095,15 @@ impl AiTextOllamaRouteKind {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum AiTextOllamaRouteScope {
     #[serde(rename = "conversation_text")]
-    Value,
+    ConversationText,
+    #[serde(rename = "conversation_text_and_sample_closes")]
+    ConversationTextAndSampleCloses,
 }
 impl AiTextOllamaRouteScope {
     pub fn as_str(&self) -> &'static str {
         match self {
-            Self::Value => "conversation_text",
+            Self::ConversationText => "conversation_text",
+            Self::ConversationTextAndSampleCloses => "conversation_text_and_sample_closes",
         }
     }
 }

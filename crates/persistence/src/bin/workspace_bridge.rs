@@ -69,6 +69,16 @@ fn snapshot_request_id(request: &Value) -> Option<u64> {
     (object.len() == 2 && (1..=9_007_199_254_740_991).contains(&id)).then_some(id)
 }
 
+fn report_cancelled_model(frame: &mut Value, model_work: &mut Option<(uuid::Uuid, TextModelWork)>) {
+    if model_work
+        .as_ref()
+        .is_some_and(|(_, work)| work.is_cancelled())
+    {
+        *model_work = None;
+        frame["text_model_cancelled"] = json!(true);
+    }
+}
+
 fn serve(
     registry: &mut OperationRegistry<SqliteWorkspace>,
     access: &WorkspaceAccess<'_>,
@@ -113,13 +123,16 @@ fn serve(
         }
         let request =
             serde_json::from_slice::<Value>(&line).map_err(|_| failure(ErrorCode::INVALIDARGUMENT));
-        if request
-            .as_ref()
-            .is_ok_and(|frame| frame["type"] == "indicator_sample_preview")
-        {
+        if request.as_ref().is_ok_and(|frame| {
+            matches!(
+                frame["type"].as_str(),
+                Some("indicator_sample_preview" | "sample_evidence_selection")
+            )
+        }) {
             // The authenticated local preview host assembles this private frame.
             // Browser requests never supply the history or the wrapper.
             let mut request = request.expect("private frame");
+            let select_sample = request["type"] == "sample_evidence_selection";
             let result = if count as u64 > MAX_SAMPLE_REQUEST_BYTES {
                 Err(failure(ErrorCode::RESOURCELIMIT))
             } else if let Some(frame) = request.as_object_mut()
@@ -132,12 +145,18 @@ fn serve(
                 if command.to_string().len() as u64 >= MAX_REQUEST_BYTES {
                     Err(failure(ErrorCode::RESOURCELIMIT))
                 } else {
-                    registry.execute_sample_indicator_preview(access, command, history)
+                    if select_sample {
+                        registry.execute_sample_evidence_selection(access, command, history)
+                    } else {
+                        registry.execute_sample_indicator_preview(access, command, history)
+                    }
                 }
             } else {
                 Err(failure(ErrorCode::INVALIDARGUMENT))
             };
-            write_frame(&mut output, result_frame(result))?;
+            let mut frame = result_frame(result);
+            report_cancelled_model(&mut frame, &mut model_work);
+            write_frame(&mut output, frame)?;
             continue;
         }
         if request
@@ -224,6 +243,7 @@ fn serve(
             && request["type"] == "workspace_source"
         {
             let mut frame = result_frame(registry.select_workspace_source(access, request));
+            report_cancelled_model(&mut frame, &mut model_work);
             frame["request_id"] = request["request_id"].clone();
             write_frame(&mut output, frame)?;
         } else if let Ok(request) = &request
@@ -295,17 +315,13 @@ fn serve(
                 Ok(command)
             });
             let result = request.and_then(|request| registry.execute_workspace(access, request));
-            if model_work
-                .as_ref()
-                .is_some_and(|(_, work)| work.is_cancelled())
-            {
-                model_work = None;
-            }
             let next_model_work = if let Ok(reply) = &result
                 && reply["outcome"]["operation"] == AI_TEXT_CONNECTION
-                && reply["outcome"]["result"]["action"] == "send"
+                && let result = &reply["outcome"]["result"]
+                && (result["action"] == "send"
+                    || result["action"] == "poll" && result["turn"]["state"] == "running")
             {
-                let turn_id = reply["outcome"]["result"]["turn_id"]
+                let turn_id = result["turn_id"]
                     .as_str()
                     .and_then(|id| uuid::Uuid::parse_str(id).ok())
                     .ok_or_else(|| io::Error::other("Invalid text turn identity."))?;
@@ -322,6 +338,7 @@ fn serve(
             }
             .and_then(|task| registry.take_approved_python(access, task).ok().flatten());
             let mut frame = result_frame(result);
+            report_cancelled_model(&mut frame, &mut model_work);
             if let Some(work) = work {
                 frame["indicator_compute"] =
                     Value::String(serde_json::to_string(&work.request).map_err(io::Error::other)?);

@@ -1,5 +1,5 @@
 import type {
-  AiTextConnectionCommand11, AiTextConnectionInput, AiTextConnectionOutput, AiTextConnectionReply11,
+  AiTextChartEvidence, AiTextConnectionCommand11, AiTextConnectionInput, AiTextConnectionOutput, AiTextConnectionReply11, VisibleRange,
 } from '../../../../contracts/generated/protocol';
 import { exchangeWorkspace } from './use-local-workspace';
 
@@ -7,6 +7,12 @@ export type ModelResult<Action extends AiTextConnectionInput['action']> =
   Extract<AiTextConnectionOutput, { action: Action }>;
 export type ModelConnection = NonNullable<ModelResult<'status'>['connection']>;
 export type ModelRoute = ModelConnection['route'];
+export type ModelChartSelection = {
+  selectionRevision: number;
+  sourceReference: string;
+  datasetRevision: string;
+  range: VisibleRange;
+};
 
 export function modelErrorCode(error: unknown) {
   return error && typeof error === 'object' && 'code' in error ? error.code : undefined;
@@ -14,13 +20,24 @@ export function modelErrorCode(error: unknown) {
 
 function validRoute(route: ModelRoute | null | undefined) {
   return route && typeof route.destination === 'string' && typeof route.model === 'string'
-    && route.scope === 'conversation_text'
     && (route.kind === 'ollama' && route.charge_basis === 'endpoint_operator'
-      || route.kind === 'offline_mock' && route.charge_basis === 'none');
+      && (route.scope === 'conversation_text' || route.scope === 'conversation_text_and_sample_closes')
+      || route.kind === 'offline_mock' && route.charge_basis === 'none' && route.scope === 'conversation_text');
 }
 
 function validConnection(connection: ModelConnection | null | undefined) {
   return connection && typeof connection.connection_id === 'string' && validRoute(connection.route);
+}
+
+function validChartEvidence(evidence: AiTextChartEvidence) {
+  const { range, rows } = evidence;
+  return typeof evidence.source_reference === 'string' && typeof evidence.revision === 'string'
+    && Number.isSafeInteger(range?.from_ms) && Number.isSafeInteger(range?.to_ms)
+    && Math.abs(range.from_ms) <= 8.64e15 && Math.abs(range.to_ms) <= 8.64e15 && range.from_ms < range.to_ms
+    && Array.isArray(rows) && rows.length >= 1 && rows.length <= 200
+    && rows.every((row, index) => row && Number.isSafeInteger(row.time_ms)
+      && row.time_ms >= range.from_ms && row.time_ms < range.to_ms && Number.isFinite(row.close)
+      && (!index || row.time_ms > rows[index - 1]!.time_ms));
 }
 
 function validResult(result: AiTextConnectionOutput | undefined) {
@@ -34,6 +51,7 @@ function validResult(result: AiTextConnectionOutput | undefined) {
       const turn = result.turn;
       return typeof result.turn_id === 'string' && (turn?.state === 'running'
         || turn?.state === 'completed' && typeof turn.model === 'string' && typeof turn.text === 'string'
+          && (turn.chart_evidence === undefined || turn.chart_evidence && validChartEvidence(turn.chart_evidence))
         || turn?.state === 'failed' && typeof turn.error?.code === 'string');
     }
     case 'disconnect':

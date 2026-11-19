@@ -661,7 +661,7 @@
     {
       "id": "model-connection-workflow",
       "status": "implemented",
-      "purpose": "Exercise local human model settings, explicit offline mock and configured text turns through the Rust registry and the real Ollama adapter against an owned synthetic HTTP peer.",
+      "purpose": "Exercise local text settings and explicit offline mock, ordinary turns, bounded selected-chart tool calls, corrected and denied intervals, and pending-reply invalidation through the Rust registry and real Ollama adapter against an owned synthetic HTTP peer.",
       "platforms": "all",
       "command": [
         "pnpm",

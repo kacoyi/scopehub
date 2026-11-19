@@ -805,7 +805,8 @@
         "0008",
         "0009",
         "0011",
-        "0019"
+        "0019",
+        "0021"
       ],
       "acceptance": [
         "Mock AI uses actual chart context and core tools to create, inspect and revise an indicator draft.",
@@ -856,7 +857,8 @@
           "contracts/decisions/0019-profile-text-model-route.json",
           "crates/application/src/workspace/evidence.rs",
           "crates/application/src/workspace/text_connection.rs",
-          "apps/desktop/ui/src/model-chat.tsx"
+          "apps/desktop/ui/src/model-chat.tsx",
+          "contracts/decisions/0021-selected-sample-text-tool.json"
         ],
         "hypotheses": [
           "A provider tool call can use the existing Rust selection and projected-read registry. Its result must be correlated to the selected revision, range, fields, conversation and effective recipient.",

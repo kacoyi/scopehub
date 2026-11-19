@@ -643,7 +643,7 @@ fn require_compute_right(
     source: &FrozenSnapshot,
 ) -> Result<(), Error> {
     let allowed = if source.series.provider_id == crate::DEMO_PROVIDER {
-        tx.indicator_sample_allowed(&source.series.instrument_id)?
+        tx.sample_source_selected(&source.series.instrument_id)?
     } else {
         tx.indicator_compute_allowed(&source.dataset_id)?
     };

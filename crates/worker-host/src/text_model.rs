@@ -37,7 +37,8 @@ struct RequestFrame<'a> {
 #[serde(deny_unknown_fields)]
 struct TextReply {
     model: String,
-    text: String,
+    text: Option<String>,
+    tool: Option<String>,
 }
 
 /// The application supplies the destination and final projection. The child
@@ -122,12 +123,18 @@ async fn exchange(child: &mut Child, frame: &[u8]) -> Result<Value, Error> {
             .model
             .chars()
             .any(|char| char.is_whitespace() || char.is_control())
-        || reply.text.trim().is_empty()
-        || reply.text.len() > MAX_TEXT_BYTES
     {
         return Err(error(ErrorCode::OUTPUTINVALID));
     }
-    Ok(json!({"model": reply.model, "text": reply.text}))
+    match (reply.text, reply.tool) {
+        (Some(text), None) if !text.trim().is_empty() && text.len() <= MAX_TEXT_BYTES => {
+            Ok(json!({"model": reply.model, "text": text}))
+        }
+        (None, Some(tool)) if tool == "read_selected_chart" => {
+            Ok(json!({"model": reply.model, "tool": tool}))
+        }
+        _ => Err(error(ErrorCode::OUTPUTINVALID)),
+    }
 }
 
 #[derive(Default)]

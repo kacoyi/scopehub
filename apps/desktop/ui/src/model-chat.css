@@ -11,14 +11,20 @@
 .model-transcript { max-height: min(44dvh, 24rem); overflow: auto; }
 .model-transcript:empty { display: none; }
 .model-turn { gap: 6px; }
-.model-turn :is(.model-question, .model-answer) { border-radius: 6px; padding: 8px 10px; }
+.model-turn :is(.model-question, .model-answer, .model-evidence) { border-radius: 6px; padding: 8px 10px; }
 .model-question { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
 .model-answer { border: 1px solid var(--line); }
+.model-evidence { display: grid; gap: 6px; border: 1px solid var(--line); }
+.model-evidence dd { overflow-wrap: anywhere; }
+.model-evidence table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.model-evidence :is(th, td) { padding: 4px 0; border-top: 1px solid var(--line); text-align: left; overflow-wrap: anywhere; }
+.model-evidence :is(th, td):last-child { text-align: right; }
 .model-turn p { overflow-wrap: anywhere; white-space: pre-wrap; margin-top: 4px; }
 .model-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .model-actions [role="status"] { color: var(--muted); font-size: 13px; }
 .model-form label { display: grid; gap: 4px; min-width: 0; }
-.model-form :is(input, textarea) {
+.model-form label.model-checkbox { display: flex; align-items: center; gap: 8px; }
+.model-form :is(input:not([type="checkbox"]), textarea) {
   width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 5px;
   background: var(--layout-background, #131722); color: inherit; font: inherit;
 }

@@ -107,7 +107,7 @@
       ],
       "owns": [
         "Operation authorization and cross-field market invariants",
-        "Local human text connection grants and final conversation-only projection"
+        "Local human text connection grants, current chart-purpose authorization and final recipient projection"
       ],
       "invariants": [
         "Reject unsupported operations; actor identity comes from trusted transports",
@@ -713,7 +713,7 @@
       "owner": "application",
       "writer": "persistence",
       "status": "implemented",
-      "rule": "The SQLite writer persists the explicitly selected published CSV revision UUID, interval and independent selection token. The Rust registry revalidates current permissions and source rights for each selection or projection. Other target kinds and general bound durable mutations are pending."
+      "rule": "The SQLite writer persists the explicitly selected published CSV revision UUID, interval and independent selection token. The application holds the selected verified synthetic snapshot and range in memory against the same token. The Rust registry revalidates current permissions and source rights for each selection or projection. Other target kinds and general bound durable mutations are pending."
     },
     {
       "id": "local-private-content",
@@ -727,7 +727,7 @@
       "owner": "application",
       "writer": "application",
       "status": "implemented",
-      "rule": "Profile-bound in-memory route disclosure, grant and bounded successful text pairs. Restart, disconnection, cancellation or a new valid proposal revokes the grant. No storage reads or outbound workspace operations."
+      "rule": "Profile-bound in-memory route disclosure, grant and bounded successful ordinary text pairs. Chart turns recheck the current selection and opt-in sample purpose, and dispatch at most one registered read using the embedded AI principal. Chart turns do not enter outbound conversation history. Restart, disconnection, cancellation or a new valid proposal revokes the grant."
     }
   ],
   "herdr": {

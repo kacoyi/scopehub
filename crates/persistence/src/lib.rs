@@ -726,10 +726,10 @@ impl WorkspaceTransaction for SqliteTransaction<'_> {
         ) {
             return Ok(false);
         }
-        self.indicator_sample_allowed(instrument_id)
+        self.sample_source_selected(instrument_id)
     }
 
-    fn indicator_sample_allowed(&self, instrument_id: &str) -> Result<bool, Error> {
+    fn sample_source_selected(&self, instrument_id: &str) -> Result<bool, Error> {
         let source = workspace_layout::source_view(self.connection, &self.binding.workspace_id)?;
         Ok(matches!(
             source.map(|view| view.preference),

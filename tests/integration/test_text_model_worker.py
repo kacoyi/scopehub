@@ -17,6 +17,16 @@ REPLY = {
     'done': True,
     'message': {'role': 'assistant', 'content': 'Synthetic observation: 模型 replied.'},
 }
+CHART_TOOL = 'read_selected_chart'
+CHART_SCHEMA = [{
+    'type': 'function',
+    'function': {
+        'name': CHART_TOOL,
+        'description': 'Read closing prices and timestamps from the currently selected chart interval.',
+        'parameters': {'type': 'object', 'properties': {}, 'required': [], 'additionalProperties': False},
+    },
+}]
+CHART_CALL = {'function': {'name': CHART_TOOL, 'arguments': {}}}
 
 
 class TextModelWorkerTests(unittest.TestCase):
@@ -109,6 +119,81 @@ class TextModelWorkerTests(unittest.TestCase):
                 self.assertEqual(self.received.get_nowait()[:2], ('POST', '/api/chat'))
                 self.assertTrue(self.received.empty())
                 self.assertEqual((response.returncode, response.stdout, response.stderr), (error, b'', b''))
+
+    def test_single_native_chart_call_and_terminal_tool_result(self):
+        request = {'model': MODEL, 'messages': [QUESTION], 'stream': False}
+        initial = {**request, 'tools': CHART_SCHEMA}
+        self.reply = (200, {}, json.dumps({**REPLY, 'message': {
+            'role': 'assistant', 'content': '', 'tool_calls': [{
+                'id': 'call_a8bc123d', 'type': 'function', 'function': {'index': 0, **CHART_CALL['function']},
+            }],
+        }}).encode())
+        response = self.request(request=initial)
+        self.assertEqual((response.returncode, response.stderr), (0, b''))
+        self.assertEqual(json.loads(response.stdout), {'model': REPLY['model'], 'tool': CHART_TOOL})
+        self.assertEqual(json.loads(self.received.get_nowait()[3]), initial)
+
+        continuation = {**request, 'messages': [
+            QUESTION,
+            {'role': 'assistant', 'content': '', 'tool_calls': [{**CHART_CALL, 'id': 'call_scopehub'}]},
+            {
+                'role': 'tool', 'tool_name': CHART_TOOL, 'tool_call_id': 'call_scopehub',
+                'content': '{"bars":[{"close":128.25}]}',
+            },
+        ]}
+        response = self.request(request=continuation)
+        self.assertEqual((response.returncode, response.stdout, response.stderr), (22, b'', b''))
+        self.assertEqual(json.loads(self.received.get_nowait()[3]), continuation)
+
+        self.reply = (200, {}, json.dumps(REPLY).encode())
+        documented_continuation = {**request, 'messages': [
+            QUESTION, {'role': 'assistant', 'content': '', 'tool_calls': [CHART_CALL]},
+            {'role': 'tool', 'tool_name': CHART_TOOL, 'content': '{"bars":[{"close":128.25}]}'},
+        ]}
+        for final_request in (continuation, documented_continuation):
+            response = self.request(request=final_request)
+            self.assertEqual((response.returncode, response.stderr), (0, b''))
+            self.assertEqual(json.loads(response.stdout), {'model': REPLY['model'], 'text': REPLY['message']['content']})
+            self.assertEqual(json.loads(self.received.get_nowait()[3]), final_request)
+        self.assertTrue(self.received.empty())
+
+    def test_off_schema_provider_calls_and_worker_projections_are_rejected(self):
+        request = {'model': MODEL, 'messages': [QUESTION], 'stream': False, 'tools': CHART_SCHEMA}
+        for calls in (
+            [CHART_CALL, CHART_CALL],
+            [{'function': {'name': 'workspace.deletePrivateRecord', 'arguments': {}}}],
+            [{'function': {'name': CHART_TOOL, 'arguments': {'range': 'different-range'}}}],
+            [{'function': {'name': CHART_TOOL, 'arguments': {}, 'index': True}}],
+            [{'function': {'name': CHART_TOOL, 'arguments': '{}'}}],
+            [{**CHART_CALL, 'id': 'sensitive-example'}],
+        ):
+            with self.subTest(calls=calls):
+                self.reply = (200, {}, json.dumps({**REPLY, 'message': {
+                    'role': 'assistant', 'content': '', 'tool_calls': calls,
+                }}).encode())
+                response = self.request(request=request)
+                self.assertEqual((response.returncode, response.stdout, response.stderr), (22, b'', b''))
+                self.assertEqual(json.loads(self.received.get_nowait()[3]), request)
+
+        for invalid in (
+            {**request, 'tools': [*CHART_SCHEMA, *CHART_SCHEMA]},
+            {**request, 'messages': [
+                QUESTION, {'role': 'assistant', 'content': '', 'tool_calls': [CHART_CALL]},
+                {'role': 'tool', 'tool_name': CHART_TOOL, 'content': '{}'},
+            ]},
+            {'model': MODEL, 'stream': False, 'messages': [
+                QUESTION, {'role': 'assistant', 'content': '', 'tool_calls': [CHART_CALL]},
+                {'role': 'tool', 'tool_name': 'different_tool', 'content': '{}'},
+            ]},
+            {'model': MODEL, 'stream': False, 'messages': [
+                QUESTION, {'role': 'assistant', 'content': '', 'tool_calls': [CHART_CALL]},
+                {'role': 'tool', 'tool_name': CHART_TOOL, 'tool_call_id': 'call_scopehub', 'content': '{}'},
+            ]},
+        ):
+            with self.subTest(request=invalid):
+                response = self.request(request=invalid)
+                self.assertEqual((response.returncode, response.stdout, response.stderr), (20, b'', b''))
+        self.assertTrue(self.received.empty())
 
     def test_invalid_worker_requests_send_zero_http_requests(self):
         for destination in (

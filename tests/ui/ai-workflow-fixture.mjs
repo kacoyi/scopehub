@@ -5,6 +5,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { expect } from '@playwright/test';
@@ -44,6 +45,55 @@ export async function withProfile(use) {
     await use({ directory, id: `synthetic-ai-${randomUUID()}` });
   } finally {
     await rm(temp, { recursive: true, force: true });
+  }
+}
+
+export async function seedDisplayOnlyChart(profile, revision, bar) {
+  const create = exec(workspaceBridge, [profile.directory, profile.id, 'main'], { timeout: 12_000 });
+  create.child.stdin.end();
+  await create;
+
+  // Independent published CSV fixture. The real registry resolves its display
+  // entitlement and verifies its frozen chart. The fixture has no model grant.
+  const bars = [{ bar, locators: [{ record_number: 1, line_start: 2, line_end: 2 }] }];
+  const series = {
+    instrument_kind: 'equity', venue: 'FIXTURE', timeframe: '1d', calendar_id: 'fixture-calendar',
+    session_scope: 'regular', timezone: 'UTC', quantity_unit: 'shares', price_adjustment: 'raw', roll_method: null,
+  };
+  const csv = Buffer.from([
+    'Date,Symbol,Open,High,Low,Close,Volume',
+    [bar.trading_day, 'FIX', bar.open, bar.high, bar.low, bar.close, bar.volume].join(','),
+    '',
+  ].join('\n'));
+  const source = `display-only-${revision}`;
+  const digest = createHash('sha256').update(csv).digest('hex');
+  const db = new DatabaseSync(join(profile.directory, 'workspace.sqlite3'));
+  try {
+    db.exec('PRAGMA foreign_keys = ON; BEGIN');
+    db.prepare('INSERT INTO reviewed_import_mappings VALUES (?, ?, ?, ?)').run(source, 1, 'a'.repeat(64), '{}');
+    db.prepare('INSERT INTO local_dataset_source_blobs VALUES (?, ?)').run(digest, csv);
+    db.prepare('INSERT INTO local_dataset_revisions VALUES (?, ?, ?, ?, ?, ?, ?)').run(
+      revision, source, 'display-only.csv', digest, 1, 'b'.repeat(64),
+      JSON.stringify({ symbol: 'FIX', series, source_record_count: 1, bars }),
+    );
+    db.exec('COMMIT');
+  } finally {
+    db.close();
+  }
+}
+
+export function persistedRows(profile) {
+  const db = new DatabaseSync(join(profile.directory, 'workspace.sqlite3'), { readOnly: true });
+  try {
+    db.exec('BEGIN');
+    const tables = db.prepare("SELECT name FROM sqlite_schema WHERE type = 'table' ORDER BY name").all();
+    return Object.fromEntries(tables.map(({ name }) => {
+      const identifier = '"' + name.replaceAll('"', '""') + '"';
+      const rows = db.prepare(`SELECT * FROM ${identifier}`).all().map(row => JSON.stringify(row)).sort();
+      return [name, createHash('sha256').update(JSON.stringify(rows)).digest('hex')];
+    }));
+  } finally {
+    db.close();
   }
 }
 
@@ -139,11 +189,20 @@ export async function withPeer(use) {
         authorizationPresent: request.headers.authorization !== undefined,
         body,
         sha256: createHash('sha256').update(bytes).digest('hex'),
-        responseMode,
+        responseMode: typeof responseMode === 'function' ? 'scripted' : responseMode,
       };
       traffic.push(observed);
       if (responseMode === 'hold') {
         response.once('close', () => { observed.closedWithoutReply = !response.writableEnded; });
+        return;
+      }
+      if (typeof responseMode === 'function') {
+        response.once('close', () => { observed.closedWithoutReply = !response.writableEnded; });
+        Promise.resolve(responseMode(body)).then(message => {
+          if (response.destroyed) return;
+          response.writeHead(200, { 'Content-Type': 'application/json' });
+          response.end(JSON.stringify({ model: 'synthetic-peer:served', message, done: true }));
+        });
         return;
       }
       const json = responseMode === 'unavailable'

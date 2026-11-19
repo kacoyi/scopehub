@@ -6,6 +6,7 @@ import { cancelLocalPreview, chooseLocalCsvFolder, hasLocalCsvPicker, previewLoc
 import { LocalPreviewChart } from './local-preview-chart';
 import { OpenLocalRevisionDialog } from './local-revision-dialog';
 import { ModelChat, type ModelChatView } from './model-chat';
+import type { ModelChartSelection } from './model-chat-transport';
 import { usePublishedRevisionAccess } from './published-revision-access';
 import { readSampleView, saveSampleView } from './sample-view';
 import { nativeTextWorkspaceId, useLocalWorkspace } from './use-local-workspace';
@@ -25,6 +26,7 @@ function App() {
   const [pickerError, setPickerError] = useState<string>();
   const [openingRevision, setOpeningRevision] = useState(false);
   const [modelChatView, setModelChatView] = useState<ModelChatView>();
+  const [modelSelection, setModelSelection] = useState<ModelChartSelection>();
   const localWorkspace = useLocalWorkspace();
   const revisionAccess = usePublishedRevisionAccess(localWorkspace);
   const snapshot = localWorkspace?.snapshot;
@@ -38,6 +40,8 @@ function App() {
   const displaySnapshot = useMemo(() => snapshot && targetRevoked
     ? { ...snapshot, chart_evidence: { unavailable: true as const } } : snapshot, [snapshot, targetRevoked]);
   const workspace = localWorkspace && { ...localWorkspace, snapshot: displaySnapshot };
+  const currentModelSelection = !local && !targetRevoked && modelSelection?.selectionRevision === snapshot?.selection_revision
+    ? modelSelection : undefined;
   useEffect(() => {
     const navigate = () => {
       const chosen = window.location.hash === '#demo';
@@ -109,8 +113,14 @@ function App() {
   return <>
     {!local && <ChartWorkspace key={sample ? 'sample' : 'unconfigured'} sample={sample}
       leaveSample={leaveSample} localActions={localActions} workspace={workspace} revisionAccess={revisionAccess}
-      modelDialogOpen={Boolean(modelChatView)} openModelChat={() => setModelChatView('question')}
-      openModelSettings={() => setModelChatView('settings')}
+      modelDialogOpen={Boolean(modelChatView)} openModelChat={selection => {
+        setModelSelection(selection);
+        setModelChatView('question');
+      }}
+      openModelSettings={() => {
+        setModelSelection(undefined);
+        setModelChatView('settings');
+      }}
       openPublished={workspace ? () => setOpeningRevision(true) : undefined}
       restoredSource={restored} restoredSampleInstrument={source?.kind === 'sample' ? source.instrument_id ?? undefined : undefined}
       retryRestoredSource={retry} onOpenSample={openSample}
@@ -136,7 +146,7 @@ function App() {
       </main>
     </div>}
     <ModelChat key={modelWorkspaceId} workspaceId={modelWorkspaceId} theme={snapshot?.layouts?.active.definition.theme}
-      view={modelChatView} show={setModelChatView} />
+      view={modelChatView} show={setModelChatView} chartSelection={currentModelSelection} />
     {openingRevision && <OpenLocalRevisionDialog onClose={() => setOpeningRevision(false)} revisionAccess={revisionAccess}
       workspace={workspace} nativeLocalImport={hasLocalCsvPicker()}
       useWorkspaceSource={workspace && supportsSourcePreference ? async revision_id => {

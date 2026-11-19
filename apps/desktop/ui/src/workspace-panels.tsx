@@ -114,7 +114,7 @@ function DataWindow({ history, instrument, selectedBarTime, selectBar, clearBar,
 }
 
 type SampleFilters = {
-  revision: SampleRevision; timeframe: string; date: string;
+  revision: SampleRevision; timeframe: string; date: string; blocked: boolean;
   setRevision: (value: SampleRevision) => void; setDate: (value: string) => void;
 };
 
@@ -137,7 +137,7 @@ function DataSources({ sample, selected, history, failureKind, workerRecovery, r
       <div className="sample-filters">
         {selected?.id === sampleRevisionInstrument && <>
           <label htmlFor="sample-revision">Sample revision</label>
-          <select id="sample-revision" value={filters.revision} onChange={event => {
+          <select id="sample-revision" value={filters.revision} disabled={filters.blocked} onChange={event => {
             const value = event.currentTarget.value;
             if (isSampleRevision(value)) filters.setRevision(value);
           }}>
@@ -146,7 +146,8 @@ function DataSources({ sample, selected, history, failureKind, workerRecovery, r
           </select>
         </>}
         <label htmlFor="sample-date">Sample date (UTC)</label>
-        <input id="sample-date" type="date" max="9999-12-31" value={filters.date} aria-describedby="sample-date-help" onChange={event => {
+        <input id="sample-date" type="date" max="9999-12-31" value={filters.date} disabled={filters.blocked}
+          aria-describedby="sample-date-help" onChange={event => {
           const value = event.currentTarget.value;
           if (value === '' || sampleDateStart(value) !== undefined) filters.setDate(value);
         }} />

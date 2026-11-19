@@ -21,6 +21,11 @@ use crate::{
     operation, validator,
 };
 
+mod sample;
+pub(super) use sample::ModelChartBinding;
+pub(crate) use sample::SampleChartSelection;
+pub use sample::{READ_SAMPLE_EVIDENCE_HISTORY, is_sample_evidence_selection};
+
 pub const SELECT_EVIDENCE: &str = "workspace.selectEvidence";
 pub const READ_CHART_PROJECTION: &str = "workspace.readChartProjection";
 const LOCAL_CSV_PROVIDER: &str = "scopehub.local-csv";
@@ -47,6 +52,13 @@ pub struct LocalChartAnalysisGrant<'a> {
     pub revision_id: &'a str,
     pub range: &'a VisibleRange,
     pub fields: &'a [ExportField11],
+}
+
+enum EvidenceAdmission<'a> {
+    Workspace,
+    LocalAnalysis(Option<&'a LocalChartAnalysisGrant<'a>>),
+    Model(&'a ModelChartBinding),
+    SampleSelection(&'a FrozenChart),
 }
 
 pub fn evidence_operation_name(request: &Value) -> Option<&'static str> {
@@ -107,7 +119,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         access: &WorkspaceAccess<'_>,
         request: Value,
     ) -> Result<Value, Error> {
-        self.dispatch_evidence(access, None, request)
+        self.dispatch_evidence(access, EvidenceAdmission::Workspace, request)
     }
 
     /// Intent admission is for a trusted, local AI integration only. It accepts
@@ -117,31 +129,22 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         &mut self,
         access: &WorkspaceAccess<'_>,
         grant: Option<&LocalChartAnalysisGrant<'_>>,
-        mut intent: Value,
+        intent: Value,
     ) -> Result<Value, Error> {
         if !matches!(access.actor, Actor::Ai) {
             return Err(failure(ErrorCode::PERMISSIONDENIED));
         }
-        let shape = match evidence_operation_name(&intent) {
-            Some(SELECT_EVIDENCE) => &*SELECT_INTENT,
-            Some(READ_CHART_PROJECTION) => &*PROJECT_INTENT,
-            _ => return Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY)),
-        };
-        if !shape.is_valid(&intent) {
-            return Err(failure(ErrorCode::INVALIDARGUMENT));
-        }
-        intent["type"] = json!("request");
-        intent["protocol_version"] = json!("1.1");
-        intent["message_id"] = json!(Uuid::new_v4().to_string());
-        intent["request_id"] = json!(Uuid::new_v4().to_string());
-        intent["timestamp_ms"] = json!(super::timestamp_ms()?);
-        self.dispatch_evidence(access, grant, intent)
+        self.dispatch_evidence(
+            access,
+            EvidenceAdmission::LocalAnalysis(grant),
+            evidence_intent_request(intent)?,
+        )
     }
 
     fn dispatch_evidence(
         &mut self,
         access: &WorkspaceAccess<'_>,
-        grant: Option<&LocalChartAnalysisGrant<'_>>,
+        admission: EvidenceAdmission<'_>,
         mut request: Value,
     ) -> Result<Value, Error> {
         let name = evidence_operation_name(&request)
@@ -174,13 +177,27 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             {
                 return Err(failure(ErrorCode::PERMISSIONDENIED));
             }
-            let grant = match access.actor {
-                Actor::User if local_display(access) => None,
-                Actor::Ai if access.paired_client_id.is_none() => Some(
-                    grant
-                        .filter(|grant| grant.principal_id == access.principal_id)
-                        .ok_or_else(|| failure(ErrorCode::PERMISSIONDENIED))?,
-                ),
+            let grant = match (&admission, access.actor) {
+                (
+                    EvidenceAdmission::Workspace | EvidenceAdmission::SampleSelection(_),
+                    Actor::User,
+                ) if local_display(access) => None,
+                (EvidenceAdmission::LocalAnalysis(grant), Actor::Ai)
+                    if access.paired_client_id.is_none() =>
+                {
+                    Some(
+                        grant
+                            .filter(|grant| grant.principal_id == access.principal_id)
+                            .ok_or_else(|| failure(ErrorCode::PERMISSIONDENIED))?,
+                    )
+                }
+                (EvidenceAdmission::Model(binding), Actor::Ai)
+                    if name == READ_CHART_PROJECTION
+                        && access.paired_client_id.is_none()
+                        && access.principal_id == binding.principal =>
+                {
+                    None
+                }
                 _ => return Err(failure(ErrorCode::PERMISSIONDENIED)),
             };
             let mut arguments = request.as_object().unwrap().clone();
@@ -196,15 +213,43 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             }
             let arguments = Value::Object(arguments);
             if name == SELECT_EVIDENCE {
-                let args = serde_json::from_value(arguments)
+                let args: SelectEvidenceArguments11 = serde_json::from_value(arguments)
                     .map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
-                self.port
-                    .transact(|tx| reply("selection", json!(select(tx, args, grant)?)))
+                let sample = match admission {
+                    EvidenceAdmission::SampleSelection(chart) => Some(chart),
+                    _ => None,
+                };
+                let (frame, selected) = self.port.transact(|tx| {
+                    if grant.is_some()
+                        && args.target.is_none()
+                        && let Some(current) = &self.sample_evidence
+                        && tx.state()?.selection_revision == current.selection_revision
+                    {
+                        return Err(failure(ErrorCode::PERMISSIONDENIED));
+                    }
+                    let (selection, sample) = select(tx, args, grant, sample)?;
+                    Ok((reply("selection", json!(selection))?, sample))
+                })?;
+                self.sample_evidence = selected;
+                self.invalidate_text_chart();
+                Ok(frame)
             } else {
-                let args = serde_json::from_value(arguments)
+                let args: ProjectedChartArguments11 = serde_json::from_value(arguments)
                     .map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
-                self.port
-                    .inspect(|tx| reply("result", project(tx, args, grant)?))
+                self.port.inspect(|tx| {
+                    let sample = match admission {
+                        EvidenceAdmission::Model(binding) => {
+                            if args.requested_fields != sample::MODEL_FIELDS {
+                                return Err(failure(ErrorCode::PERMISSIONDENIED));
+                            }
+                            let sample = binding.current(tx, self.sample_evidence.as_ref())?;
+                            Some(sample)
+                        }
+                        EvidenceAdmission::Workspace => self.sample_evidence.as_ref(),
+                        _ => None,
+                    };
+                    reply("result", project(tx, args, grant, sample)?)
+                })
             }
         })();
         match result {
@@ -220,6 +265,23 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             }
         }
     }
+}
+
+fn evidence_intent_request(mut intent: Value) -> Result<Value, Error> {
+    let shape = match evidence_operation_name(&intent) {
+        Some(SELECT_EVIDENCE) => &*SELECT_INTENT,
+        Some(READ_CHART_PROJECTION) => &*PROJECT_INTENT,
+        _ => return Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY)),
+    };
+    if !shape.is_valid(&intent) {
+        return Err(failure(ErrorCode::INVALIDARGUMENT));
+    }
+    intent["type"] = json!("request");
+    intent["protocol_version"] = json!("1.1");
+    intent["message_id"] = json!(Uuid::new_v4().to_string());
+    intent["request_id"] = json!(Uuid::new_v4().to_string());
+    intent["timestamp_ms"] = json!(super::timestamp_ms()?);
+    Ok(intent)
 }
 
 fn entitled_dataset(
@@ -258,11 +320,17 @@ fn select(
     tx: &mut dyn WorkspaceTransaction,
     args: SelectEvidenceArguments11,
     grant: Option<&LocalChartAnalysisGrant<'_>>,
-) -> Result<SharedSelection11, Error> {
+    sample: Option<&FrozenChart>,
+) -> Result<(SharedSelection11, Option<SampleChartSelection>), Error> {
     let current = tx.state()?.selection_revision;
     if current != args.expected_selection_revision {
         return Err(failure(ErrorCode::STALECONTEXT));
     }
+    let selection_revision = current
+        .checked_add(1)
+        .filter(|revision| *revision <= MAX_REVISION)
+        .ok_or_else(|| failure(ErrorCode::RESOURCELIMIT))?;
+    let mut selected_sample = None;
     let target = match &args.target {
         Some(EvidenceTarget11::ChartInterval11(interval)) => {
             let reference = ChartEvidenceRef {
@@ -270,12 +338,26 @@ fn select(
                 range: interval.range.clone(),
             };
             check_target_grant(&reference, grant)?;
-            let chart = FrozenChart::new(&entitled_dataset(tx, &reference.revision_id)?)?;
-            if interval.snapshot != chart.snapshot {
-                return Err(failure(ErrorCode::SNAPSHOTUNAVAILABLE));
+            if let Some(chart) = sample {
+                if interval.snapshot != chart.snapshot
+                    || !tx.sample_source_selected(&chart.snapshot.series.instrument_id)?
+                {
+                    return Err(failure(ErrorCode::STALECONTEXT));
+                }
+                selected_sample = Some(SampleChartSelection::new(
+                    selection_revision,
+                    chart,
+                    reference.range,
+                )?);
+                None
+            } else {
+                let chart = FrozenChart::new(&entitled_dataset(tx, &reference.revision_id)?)?;
+                if interval.snapshot != chart.snapshot {
+                    return Err(failure(ErrorCode::SNAPSHOTUNAVAILABLE));
+                }
+                chart.interval(&reference.range)?;
+                Some(reference)
             }
-            chart.interval(&reference.range)?;
-            Some(reference)
         }
         Some(_) => return Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY)),
         None => {
@@ -289,22 +371,22 @@ fn select(
             None
         }
     };
-    let selection_revision = current
-        .checked_add(1)
-        .filter(|r| *r <= MAX_REVISION)
-        .ok_or_else(|| failure(ErrorCode::RESOURCELIMIT))?;
     tx.set_chart_evidence(selection_revision, target.as_ref())?;
-    Ok(SharedSelection11 {
-        workspace_id: args.workspace_id,
-        selection_revision,
-        target: args.target,
-    })
+    Ok((
+        SharedSelection11 {
+            workspace_id: args.workspace_id,
+            selection_revision,
+            target: args.target,
+        },
+        selected_sample,
+    ))
 }
 
 fn project(
     tx: &dyn WorkspaceTransaction,
     args: ProjectedChartArguments11,
     grant: Option<&LocalChartAnalysisGrant<'_>>,
+    sample: Option<&SampleChartSelection>,
 ) -> Result<Value, Error> {
     if grant.is_some_and(|grant| {
         args.requested_fields
@@ -316,12 +398,28 @@ fn project(
     if tx.state()?.selection_revision != args.selection_revision {
         return Err(failure(ErrorCode::STALECONTEXT));
     }
+    if let Some(sample) =
+        sample.filter(|sample| sample.selection_revision == args.selection_revision)
+    {
+        return project_rows(&sample.snapshot, &sample.bars, args.requested_fields);
+    }
     let target = tx
         .chart_evidence()?
         .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))?;
     check_target_grant(&target, grant)?;
     let chart = FrozenChart::new(&entitled_dataset(tx, &target.revision_id)?)?;
-    let bars = chart.interval(&target.range)?;
+    project_rows(
+        &chart.snapshot,
+        chart.interval(&target.range)?,
+        args.requested_fields,
+    )
+}
+
+fn project_rows(
+    snapshot: &FrozenSnapshot,
+    bars: &[Bar],
+    fields: Vec<ExportField11>,
+) -> Result<Value, Error> {
     if bars.len() > 1_000 {
         return Err(failure(ErrorCode::RESOURCELIMIT));
     }
@@ -329,16 +427,15 @@ fn project(
     let mut rows = Vec::with_capacity(bars.len());
     for bar in bars {
         let bar = json!(bar);
-        let row: serde_json::Map<_, _> = args
-            .requested_fields
+        let row: serde_json::Map<_, _> = fields
             .iter()
             .map(|field| (field.as_str().into(), bar[field.as_str()].clone()))
             .collect();
         rows.push(row);
     }
     Ok(json!({
-        "source_reference": chart.snapshot.dataset_id, "revision": chart.snapshot.dataset_revision,
-        "fields": args.requested_fields, "rows": rows,
+        "source_reference": snapshot.dataset_id, "revision": snapshot.dataset_revision,
+        "fields": fields, "rows": rows,
     }))
 }
 

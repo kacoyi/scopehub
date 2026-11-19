@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=dede32ffd96bd8fa2ca6997ac75ce43587fed23996789f5e81500da2e2c842ed. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=165474d03e9c67983014341715fa9f74707123ee613aab05cc5603c42ca35c5c. Do not edit.
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type OpaqueId = string;
 export type Uuid = string;
@@ -3083,6 +3083,7 @@ export type AiTextOllamaChoice = {
   kind: "ollama";
   origin: string;
   model: string;
+  chart_tools?: true;
 };
 export type AiTextOfflineMockChoice = {
   kind: "offline_mock";
@@ -3092,7 +3093,7 @@ export type AiTextOllamaRoute = {
   kind: "ollama";
   destination: string;
   model: string;
-  scope: "conversation_text";
+  scope: "conversation_text" | "conversation_text_and_sample_closes";
   charge_basis: "endpoint_operator";
 };
 export type AiTextOfflineMockRoute = {
@@ -3114,6 +3115,7 @@ export type AiTextCompletedTurn = {
   state: "completed";
   model: string;
   text: string;
+  chart_evidence?: AiTextChartEvidence;
 };
 export type AiTextFailedTurn = {
   state: "failed";
@@ -3139,6 +3141,7 @@ export type AiTextSendInput = {
   action: "send";
   connection_id: Uuid;
   question: string;
+  selection_revision?: Revision;
 };
 export type AiTextPollInput = {
   action: "poll";
@@ -3197,6 +3200,16 @@ export type AiTextConnectionReply11 = {
   type: "response";
   request_id: Uuid;
   outcome: AiTextConnectionOutcome11;
+};
+export type AiTextChartClose = {
+  time_ms: Timestamp;
+  close: number;
+};
+export type AiTextChartEvidence = {
+  source_reference: OpaqueId;
+  revision: OpaqueId;
+  range: VisibleRange;
+  rows: Array<AiTextChartClose>;
 };
 export type AiTextConnectionScope11 = {
   workspace_id: OpaqueId;

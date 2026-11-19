@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { realpathSync, statSync } from 'node:fs';
 import { basename, isAbsolute, relative, resolve, sep } from 'node:path';
-import { PreviewFailure, assertLocalJsonRequest, failureResponse, maxRequestBytes, readIndicatorSampleHistory, readLocalJson } from './ubuntu-preview.mjs';
+import { PreviewFailure, assertLocalJsonRequest, failureResponse, maxRequestBytes, readIndicatorSampleHistory, readLocalJson, readSampleEvidenceHistory } from './ubuntu-preview.mjs';
 import { issueWorkspaceAccess } from './ubuntu-workspace-access.mjs';
 
 const route = '/__scopehub/workspace';
@@ -126,7 +126,8 @@ function validSnapshot(state, workspaceId) {
   const evidence = state?.chart_evidence;
   const validEvidence = evidence === null || evidence?.unavailable === true || uuid(evidence?.revision_id)
     && Number.isSafeInteger(evidence.range?.from_ms) && Number.isSafeInteger(evidence.range?.to_ms)
-    && evidence.range.from_ms < evidence.range.to_ms;
+    && evidence.range.from_ms < evidence.range.to_ms
+    && (evidence.snapshot_hash === undefined || /^[a-f0-9]{64}$/.test(evidence.snapshot_hash));
   return validWorkspace(state?.workspace, workspaceId) && revision(state.selection_revision)
     && validUndo(state.undo, state.workspace) && validEvidence && validSource && (state.layouts == null
       || validNamedLayout(state.layouts.active) && Array.isArray(state.layouts.saved)
@@ -237,7 +238,9 @@ function validEvidenceReply(reply, job, workspaceId) {
       && (selection.target === null || selection.target?.kind === 'chart_interval');
   }
   const result = reply.result;
-  return uuid(result?.source_reference) && uuid(result.revision) && Array.isArray(result.fields)
+  return uuid(result?.source_reference) && typeof result.revision === 'string'
+    && (uuid(result.revision) || /^scopehub-synthetic-v1:[a-z0-9:_-]+$/.test(result.revision))
+    && Array.isArray(result.fields)
     && Array.isArray(result.rows) && result.rows.length <= 1000;
 }
 
@@ -498,17 +501,23 @@ function startWriter(root, { path, profileId, workspaceId }) {
     }
     const modelRequest = frame.text_model_work;
     delete frame.text_model_work;
+    if (frame.text_model_cancelled === true) stopModel();
+    delete frame.text_model_cancelled;
     if (job.operation === textConnection && frame.result?.outcome?.state === 'completed') {
       if (['propose', 'disconnect', 'cancel'].includes(job.modelAction)) stopModel();
       if (job.deliveredModel) model = undefined;
     }
     if (modelRequest !== undefined) {
-      const turn = frame.result?.outcome?.result?.turn_id;
-      if (job.operation !== textConnection || job.modelAction !== 'send' || turn !== job.requestId
+      const textResult = frame.result?.outcome?.result;
+      const turn = textResult?.turn_id;
+      const currentTurn = job.modelAction === 'send' && turn === job.requestId
+        || job.modelAction === 'poll' && job.deliveredModel && turn === job.modelTurn
+          && textResult.turn?.state === 'running';
+      if (job.operation !== textConnection || !currentTurn
         || typeof modelRequest !== 'string' || model) throw invalidReply();
       const run = launchTrustedWorker(root, 'scopehub-text-model-child', modelRequest,
         512 * 1024, 'Trusted text model execution failed.');
-      const current = { turn, run, result: undefined };
+      const current = { turn, connection: job.modelConnection, run, result: undefined };
       model = current;
       void run.result.then(result => { current.result = result; });
     }
@@ -572,14 +581,19 @@ function startWriter(root, { path, profileId, workspaceId }) {
       const requestId = snapshot ? ++snapshotRequestId : body?.request_id;
       let line = snapshot ? JSON.stringify({ type: 'snapshot', request_id: requestId }) + '\n'
         : requestFrame(body, workspaceId);
-      if (body?.intent?.operation === 'indicator.runPreview'
-          && body.intent.arguments?.snapshot?.series?.provider_id === 'scopehub.synthetic') {
-        const history = await readIndicatorSampleHistory(root, body, signal);
+      const sampleIndicator = body?.intent?.operation === 'indicator.runPreview'
+        && body.intent.arguments?.snapshot?.series?.provider_id === 'scopehub.synthetic';
+      const sampleSelection = body?.operation === selectEvidence
+        && body.target?.snapshot?.series?.provider_id === 'scopehub.synthetic';
+      if (sampleIndicator || sampleSelection) {
+        const history = sampleSelection ? await readSampleEvidenceHistory(root, body, signal)
+          : await readIndicatorSampleHistory(root, body, signal);
         if (history.ok === false) return history;
         signal.throwIfAborted();
         if (failure) throw failure;
         if (pending) throw new PreviewFailure(429, 'BUSY');
-        line = JSON.stringify({ type: 'indicator_sample_preview', command: body, history: history.result }) + '\n';
+        const type = sampleSelection ? 'sample_evidence_selection' : 'indicator_sample_preview';
+        line = JSON.stringify({ type, command: body, history: history.result }) + '\n';
         if (Buffer.byteLength(line) > 256 * 1024) throw new PreviewFailure(413, 'RESOURCE_LIMIT');
       }
       const finishedPython = body.type === previewStatus && python.get(body.task_id)?.completed;
@@ -591,7 +605,8 @@ function startWriter(root, { path, profileId, workspaceId }) {
       }
       const textArgs = body.type === 'request' && body.intent?.operation === textConnection
         ? body.intent.arguments : undefined;
-      const finishedModel = textArgs?.action === 'poll' && model?.turn === textArgs.turn_id && model.result;
+      const finishedModel = textArgs?.action === 'poll' && model?.turn === textArgs.turn_id
+        && model.connection === textArgs.connection_id && model.result;
       if (finishedModel) {
         line = JSON.stringify({
           type: 'ai_text_result', command: body, worker: JSON.parse(finishedModel),
@@ -609,7 +624,8 @@ function startWriter(root, { path, profileId, workspaceId }) {
         recordId: typeof body.intent?.arguments?.record_id === 'string'
           ? body.intent.arguments.record_id.toLowerCase() : body.intent?.arguments?.record_id,
         recordAction: body.intent?.arguments?.action, workspaceRevision: body.scope?.expected_workspace_revision,
-        modelAction: textArgs?.action, deliveredModel: Boolean(finishedModel),
+        modelAction: textArgs?.action, modelTurn: textArgs?.turn_id, modelConnection: textArgs?.connection_id,
+        deliveredModel: Boolean(finishedModel),
         layoutTarget: body.scope?.target?.kind === 'layout' && body.scope.target.object_id === layoutId,
         noteId: typeof noteId === 'string' ? noteId.toLowerCase() : noteId,
         timer: setTimeout(() => stop(timeout()), commandDeadlineMs),

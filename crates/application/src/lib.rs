@@ -58,13 +58,13 @@ pub use workspace::{
     LOCAL_WORKSPACE_OPERATIONS, LocalChartAnalysisGrant, MAIN_CHART_ID,
     MAX_ACTIVE_INDICATOR_LAYERS, PREVIEW_LAYOUT, PRIVATE_RECORD_CHANGE, PRIVATE_RECORD_EXPORT,
     PRIVATE_RECORD_OPERATIONS, PRIVATE_RECORD_READ, PrivateRecordPlan, READ_CHART_PROJECTION,
-    READ_INDICATOR_SAMPLE_HISTORY, REMOVE_INDICATOR_LAYER, RUN_INDICATOR_PREVIEW, SELECT_EVIDENCE,
-    SET_TIMEFRAME, StoredWorkspaceView, TextModelWork, Timeframe, UNDO, WorkspaceAccess,
-    WorkspaceBinding, WorkspaceChange, WorkspaceLayoutChange, WorkspaceLayoutSnapshot,
-    WorkspaceLayoutState, WorkspaceReceipt, WorkspaceReplay, WorkspaceReplayKey, WorkspaceSnapshot,
-    WorkspaceSourcePreference, WorkspaceSourceView, WorkspaceState, WorkspaceStore,
-    WorkspaceTransaction, WorkspaceUndoAccess, WorkspaceUndoTarget, evidence_operation_name,
-    is_sample_indicator_preview,
+    READ_INDICATOR_SAMPLE_HISTORY, READ_SAMPLE_EVIDENCE_HISTORY, REMOVE_INDICATOR_LAYER,
+    RUN_INDICATOR_PREVIEW, SELECT_EVIDENCE, SET_TIMEFRAME, StoredWorkspaceView, TextModelWork,
+    Timeframe, UNDO, WorkspaceAccess, WorkspaceBinding, WorkspaceChange, WorkspaceLayoutChange,
+    WorkspaceLayoutSnapshot, WorkspaceLayoutState, WorkspaceReceipt, WorkspaceReplay,
+    WorkspaceReplayKey, WorkspaceSnapshot, WorkspaceSourcePreference, WorkspaceSourceView,
+    WorkspaceState, WorkspaceStore, WorkspaceTransaction, WorkspaceUndoAccess, WorkspaceUndoTarget,
+    evidence_operation_name, is_sample_evidence_selection, is_sample_indicator_preview,
 };
 
 use std::{
@@ -289,6 +289,7 @@ pub struct OperationRegistry<P> {
     private_record_stage: workspace::PrivateRecordStaging,
     indicator_stage: workspace::IndicatorStage,
     text_connection: workspace::TextConnection,
+    sample_evidence: Option<workspace::SampleChartSelection>,
 }
 
 pub type MarketRegistry<P> = OperationRegistry<P>;
@@ -328,6 +329,7 @@ impl<P> OperationRegistry<P> {
             private_record_stage: workspace::PrivateRecordStaging::default(),
             indicator_stage: workspace::IndicatorStage::default(),
             text_connection: workspace::TextConnection::default(),
+            sample_evidence: None,
         }
     }
 }

@@ -9,12 +9,14 @@ use std::{
     time::{Duration, Instant},
 };
 
-use scopehub_domain::protocol::{Error, ErrorCode};
+use scopehub_domain::protocol::{Error, ErrorCode, Revision};
 use serde_json::{Value, json};
 use url::{Host, Url};
 use uuid::Uuid;
 
-use super::{WorkspaceAccess, WorkspaceReply, WorkspaceStore, permits_scope};
+use super::{
+    WorkspaceAccess, WorkspaceReply, WorkspaceStore, evidence::ModelChartBinding, permits_scope,
+};
 use crate::{Actor, Operation, OperationRegistry, failure};
 
 pub const AI_TEXT_CONNECTION: &str = "ai.textConnection";
@@ -24,6 +26,7 @@ const MAX_HISTORY_PAIRS: usize = 4;
 const MAX_HISTORY_WIRE_BYTES: usize = 64 * 1024;
 const MAX_TURN_IDS: usize = 512;
 const MAX_TEXT_BYTES: usize = 64 * 1024;
+const CHART_TOOL: &str = "read_selected_chart";
 const MOCK_MODEL: &str = "ScopeHub offline mock";
 
 #[derive(Default)]
@@ -39,7 +42,11 @@ struct Proposal {
 }
 
 enum Route {
-    Ollama { destination: String, model: String },
+    Ollama {
+        destination: String,
+        model: String,
+        chart_tools: bool,
+    },
     OfflineMock,
 }
 
@@ -54,6 +61,9 @@ struct Grant {
 struct Turn {
     id: Uuid,
     question: String,
+    selection_revision: Option<Revision>,
+    chart: Option<ModelChartBinding>,
+    chart_evidence: Option<Value>,
     cancelled: Arc<AtomicBool>,
     work: Option<TextModelWork>,
     completion: mpsc::Receiver<Result<Value, Error>>,
@@ -127,10 +137,16 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
                 if request["scope"]["workspace_id"] != access.workspace_id {
                     return Err(failure(ErrorCode::PERMISSIONDENIED));
                 }
-                self.text_connection.execute(
+                // The synchronous session may call the same registry to dispatch
+                // a scoped chart read. Keep session ownership here across that call.
+                let mut connection = std::mem::take(&mut self.text_connection);
+                let result = connection.execute(
+                    self,
                     &request["intent"]["arguments"],
                     parse_id(&request["request_id"]),
-                )
+                );
+                self.text_connection = connection;
+                result
             });
         match result {
             Ok(result) => reply.validated(json!({
@@ -140,14 +156,23 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         }
     }
 
-    /// Trusted host handoff for a current pending turn. Retrieval consumes
-    /// the work item and never opens a workspace storage transaction.
+    pub(super) fn invalidate_text_chart(&mut self) {
+        let mut connection = std::mem::take(&mut self.text_connection);
+        if let Some(grant) = &mut connection.active {
+            grant.recheck_chart(self);
+        }
+        self.text_connection = connection;
+    }
+
+    /// Trusted host handoff for a pending turn. Consume the work item after
+    /// read-only revalidation of any bound chart selection.
     pub fn take_text_model_work(
         &mut self,
         access: &WorkspaceAccess<'_>,
         turn_id: Uuid,
     ) -> Result<Option<TextModelWork>, Error> {
         self.authorize_text_connection(access)?;
+        self.invalidate_text_chart();
         let turn = self
             .text_connection
             .active
@@ -159,7 +184,12 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
 }
 
 impl TextConnection {
-    fn execute(&mut self, args: &Value, request_id: Uuid) -> Result<Value, Error> {
+    fn execute<S: WorkspaceStore>(
+        &mut self,
+        registry: &mut OperationRegistry<S>,
+        args: &Value,
+        request_id: Uuid,
+    ) -> Result<Value, Error> {
         match args["action"].as_str().expect("validated action") {
             "status" => {
                 let turn_id = self
@@ -219,13 +249,18 @@ impl TextConnection {
                     }
                     "send" => {
                         let question = args["question"].as_str().expect("validated question");
-                        let turn_id = grant.send(question, request_id)?;
+                        let turn_id = grant.send(
+                            registry,
+                            question,
+                            request_id,
+                            args["selection_revision"].as_u64(),
+                        )?;
                         return Ok(json!({"action": action, "turn_id": turn_id.to_string()}));
                     }
                     "poll" => {
                         let id = parse_id(&args["turn_id"]);
                         grant.turn_mut(id)?;
-                        grant.settle();
+                        grant.settle(registry);
                         let turn = grant.turn_mut(id)?;
                         return Ok(json!({
                             "action": action, "turn_id": id.to_string(),
@@ -280,14 +315,20 @@ impl Route {
         Ok(Self::Ollama {
             destination: url.into(),
             model: model.to_string(),
+            chart_tools: route["chart_tools"] == true,
         })
     }
 
     fn disclosure(&self) -> Value {
         match self {
-            Self::Ollama { destination, model } => json!({
+            Self::Ollama {
+                destination,
+                model,
+                chart_tools,
+            } => json!({
                 "kind": "ollama", "destination": destination, "model": model,
-                "scope": "conversation_text", "charge_basis": "endpoint_operator",
+                "scope": if *chart_tools { "conversation_text_and_sample_closes" } else { "conversation_text" },
+                "charge_basis": "endpoint_operator",
             }),
             Self::OfflineMock => json!({
                 "kind": "offline_mock", "destination": "This app (offline)", "model": MOCK_MODEL,
@@ -309,7 +350,13 @@ impl Grant {
             .ok_or_else(|| connection_failure(ErrorCode::STALECONTEXT))
     }
 
-    fn send(&mut self, question: &str, request_id: Uuid) -> Result<Uuid, Error> {
+    fn send<S: WorkspaceStore>(
+        &mut self,
+        registry: &mut OperationRegistry<S>,
+        question: &str,
+        request_id: Uuid,
+        selection_revision: Option<Revision>,
+    ) -> Result<Uuid, Error> {
         if question.trim().is_empty() {
             return Err(connection_failure(ErrorCode::INVALIDARGUMENT));
         }
@@ -317,17 +364,37 @@ impl Grant {
             return self
                 .turn
                 .as_ref()
-                .filter(|turn| turn.id == request_id && turn.question == question)
+                .filter(|turn| {
+                    turn.id == request_id
+                        && turn.question == question
+                        && turn.selection_revision == selection_revision
+                })
                 .map(|turn| turn.id)
                 .ok_or_else(|| connection_failure(ErrorCode::STALECONTEXT));
         }
-        self.settle();
+        self.settle(registry);
         if self.turn.as_ref().is_some_and(|turn| turn.state.is_none()) {
             return Err(connection_failure(ErrorCode::BUSY));
         }
         if self.used_requests.len() >= MAX_TURN_IDS {
             return Err(connection_failure(ErrorCode::RESOURCELIMIT));
         }
+        let chart = match (&self.route, selection_revision) {
+            (
+                Route::Ollama {
+                    destination,
+                    chart_tools: true,
+                    ..
+                },
+                Some(revision),
+            ) => Some(registry.bind_model_chart(
+                revision,
+                format!("embedded-text:{}", self.id),
+                destination,
+            )?),
+            (_, Some(_)) => return Err(connection_failure(ErrorCode::PERMISSIONDENIED)),
+            (_, None) => None,
+        };
         let (sender, completion) = mpsc::sync_channel(1);
         let cancelled = Arc::new(AtomicBool::new(false));
         let (work, state) = match &self.route {
@@ -338,20 +405,37 @@ impl Grant {
                     "text": "Offline mock response. A connected text model would answer your question here.",
                 })),
             ),
-            Route::Ollama { destination, model } => (
-                Some(TextModelWork {
-                    destination: destination.clone(),
-                    request: outbound(model, &self.history, question),
-                    cancelled: Arc::clone(&cancelled),
-                    completion: sender,
-                }),
-                None,
-            ),
+            Route::Ollama {
+                destination, model, ..
+            } => {
+                let mut request = outbound(model, &self.history, question);
+                if chart.is_some() {
+                    request["tools"] = json!([{
+                        "type": "function", "function": {
+                            "name": CHART_TOOL,
+                            "description": "Read closing prices and timestamps from the currently selected chart interval.",
+                            "parameters": {"type": "object", "properties": {}, "required": [], "additionalProperties": false},
+                        },
+                    }]);
+                }
+                (
+                    Some(TextModelWork {
+                        destination: destination.clone(),
+                        request,
+                        cancelled: Arc::clone(&cancelled),
+                        completion: sender,
+                    }),
+                    None,
+                )
+            }
         };
         self.used_requests.insert(request_id);
         self.turn = Some(Turn {
             id: request_id,
             question: question.to_string(),
+            selection_revision,
+            chart,
+            chart_evidence: None,
             cancelled,
             work,
             completion,
@@ -360,34 +444,110 @@ impl Grant {
         Ok(request_id)
     }
 
-    fn settle(&mut self) {
+    fn recheck_chart<S: WorkspaceStore>(&mut self, registry: &OperationRegistry<S>) {
         let Some(turn) = self.turn.as_mut().filter(|turn| turn.state.is_none()) else {
             return;
         };
-        let result = match turn.completion.try_recv() {
+        if let (Some(binding), Route::Ollama { destination, .. }) = (&turn.chart, &self.route)
+            && let Err(error) = registry.check_model_chart(binding, destination)
+        {
+            turn.fail(error.code);
+        }
+    }
+
+    fn settle<S: WorkspaceStore>(&mut self, registry: &mut OperationRegistry<S>) {
+        self.recheck_chart(registry);
+        let Some(turn) = self.turn.as_mut().filter(|turn| turn.state.is_none()) else {
+            return;
+        };
+        let response = match turn.completion.try_recv() {
             Ok(result) => result.and_then(validate_response),
             Err(mpsc::TryRecvError::Empty) => return,
             Err(mpsc::TryRecvError::Disconnected) => {
                 Err(connection_failure(ErrorCode::WORKEREXITED))
             }
         };
-        turn.state = Some(match result {
-            Ok((model, text)) => {
-                self.history
-                    .push_back((turn.question.clone(), text.clone()));
-                if self.history.len() > MAX_HISTORY_PAIRS {
-                    self.history.pop_front();
+        match response {
+            Ok(ModelResponse::Text { model, text }) => {
+                let mut state = json!({"state": "completed", "model": model, "text": text});
+                if let Some(evidence) = turn.chart_evidence.take() {
+                    state["chart_evidence"] = evidence;
                 }
-                json!({"state": "completed", "model": model, "text": text})
+                // Chart answers can quote authorized rows from a now-obsolete
+                // selection. Keep them in the visible conversation only.
+                if turn.chart.is_none() {
+                    self.history.push_back((turn.question.clone(), text));
+                    if self.history.len() > MAX_HISTORY_PAIRS {
+                        self.history.pop_front();
+                    }
+                }
+                turn.state = Some(state);
             }
-            Err(error) => {
-                let fault = connection_failure(error.code);
-                json!({
-                    "state": "failed",
-                    "error": {"code": fault.code, "message": fault.message, "retryable": fault.retryable},
-                })
+            Ok(ModelResponse::ChartTool) => {
+                if let (
+                    Some(binding),
+                    Route::Ollama {
+                        destination, model, ..
+                    },
+                ) = (&turn.chart, &self.route)
+                    && turn.chart_evidence.is_none()
+                {
+                    match registry.project_model_chart(binding, destination) {
+                        Ok(evidence) => {
+                            turn.continue_chart(destination, model, &self.history, evidence);
+                        }
+                        Err(error) => turn.fail(error.code),
+                    }
+                } else {
+                    turn.fail(ErrorCode::OUTPUTINVALID);
+                }
             }
+            Err(error) => turn.fail(error.code),
+        }
+    }
+}
+
+impl Turn {
+    fn fail(&mut self, code: ErrorCode) {
+        self.cancelled.store(true, Ordering::Release);
+        self.work = None;
+        self.chart_evidence = None;
+        let fault = connection_failure(code);
+        self.state = Some(json!({
+            "state": "failed",
+            "error": {"code": fault.code, "message": fault.message, "retryable": fault.retryable},
+        }));
+    }
+
+    fn continue_chart(
+        &mut self,
+        destination: &str,
+        model: &str,
+        history: &VecDeque<(String, String)>,
+        evidence: Value,
+    ) {
+        let mut request = outbound(model, history, &self.question);
+        let messages = request["messages"]
+            .as_array_mut()
+            .expect("projected messages");
+        messages.push(json!({
+            "role": "assistant", "content": "", "tool_calls": [{
+                "id": "call_scopehub", "function": {"name": CHART_TOOL, "arguments": {}},
+            }],
+        }));
+        messages.push(json!({
+            "role": "tool", "tool_name": CHART_TOOL, "tool_call_id": "call_scopehub",
+            "content": evidence.to_string(),
+        }));
+        let (sender, completion) = mpsc::sync_channel(1);
+        self.completion = completion;
+        self.work = Some(TextModelWork {
+            destination: destination.into(),
+            request,
+            cancelled: Arc::clone(&self.cancelled),
+            completion: sender,
         });
+        self.chart_evidence = Some(evidence);
     }
 }
 
@@ -408,7 +568,12 @@ fn outbound(model: &str, history: &VecDeque<(String, String)>, question: &str) -
     json!({"model": model, "messages": messages, "stream": false})
 }
 
-fn validate_response(value: Value) -> Result<(String, String), Error> {
+enum ModelResponse {
+    Text { model: String, text: String },
+    ChartTool,
+}
+
+fn validate_response(value: Value) -> Result<ModelResponse, Error> {
     let invalid = || connection_failure(ErrorCode::OUTPUTINVALID);
     if !value.as_object().is_some_and(|object| object.len() == 2) {
         return Err(invalid());
@@ -419,11 +584,17 @@ fn validate_response(value: Value) -> Result<(String, String), Error> {
             !model.trim().is_empty() && model.len() <= 256 && !model.chars().any(char::is_control)
         })
         .ok_or_else(invalid)?;
+    if value["tool"] == CHART_TOOL {
+        return Ok(ModelResponse::ChartTool);
+    }
     let text = value["text"]
         .as_str()
         .filter(|text| !text.trim().is_empty() && text.len() <= MAX_TEXT_BYTES)
         .ok_or_else(invalid)?;
-    Ok((model.to_owned(), text.to_owned()))
+    Ok(ModelResponse::Text {
+        model: model.to_owned(),
+        text: text.to_owned(),
+    })
 }
 
 fn parse_id(value: &Value) -> Uuid {
@@ -435,6 +606,9 @@ fn connection_failure(code: ErrorCode) -> Error {
     error.message = match error.code {
         ErrorCode::INVALIDARGUMENT => "The model connection inputs are invalid.",
         ErrorCode::STALECONTEXT => "The model connection or turn is no longer current.",
+        ErrorCode::PERMISSIONDENIED => {
+            "The selected chart is not entitled for this model connection."
+        }
         ErrorCode::CONFIRMATIONREQUIRED => "Review the model connection again before enabling it.",
         ErrorCode::PROVIDERNOTCONFIGURED | ErrorCode::DATAUNAVAILABLE | ErrorCode::WORKEREXITED => {
             "The selected text model is unavailable."

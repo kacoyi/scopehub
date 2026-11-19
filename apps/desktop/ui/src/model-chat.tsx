@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import type { AiTextRouteChoice } from '../../../../contracts/generated/protocol';
-import { exchangeModel, modelErrorCode, type ModelConnection, type ModelResult, type ModelRoute } from './model-chat-transport';
+import type { AiTextChartEvidence, AiTextRouteChoice, VisibleRange } from '../../../../contracts/generated/protocol';
+import { exchangeModel, modelErrorCode, type ModelChartSelection, type ModelConnection, type ModelResult, type ModelRoute } from './model-chat-transport';
 import './model-chat.css';
 
 export type ModelChatView = 'question' | 'settings';
@@ -9,16 +9,21 @@ type PendingTurn = {
   id: string;
   connection: ModelConnection;
   question: string | undefined;
+  selection: ModelChartSelection | undefined;
 };
 type CompletedTurn = {
   id: string;
   question: string | undefined;
   model: string;
   text: string;
+  evidence: AiTextChartEvidence | undefined;
+  chartRequested: boolean;
 };
 
 const unavailableModel = 'The model could not answer. Check the configured server and try again.';
 const unknownTurn = 'The workspace could not confirm this turn. Check its status before sending again.';
+const deniedChart = 'Selected chart data is unavailable to this model connection.';
+const staleChart = 'The chart selection changed. Send the question again for the current selection.';
 const pollIntervalMs = 200;
 const busyPollLimit = 10;
 
@@ -46,19 +51,47 @@ function RouteDisclosure({ route }: { route: ModelRoute }) {
       <dt>Provider</dt><dd>{route.kind === 'ollama' ? 'Ollama' : 'Offline mock'}</dd>
       <dt>Destination</dt><dd><bdi>{route.destination}</bdi></dd>
       <dt>Model</dt><dd><bdi>{route.model}</bdi></dd>
-      <dt>Scope</dt><dd>Typed questions and up to four earlier question and answer pairs in this session. Chart data and saved private records stay local.</dd>
+      <dt>Scope</dt><dd>Typed questions and up to four earlier question and answer pairs in this session.{' '}
+        {route.scope === 'conversation_text_and_sample_closes'
+          ? 'The model can request close prices and times from the selected interval of the offline sample. CSV data and saved private records stay local.'
+          : 'Chart data and saved private records stay local.'}</dd>
       <dt>Charges</dt><dd>{route.charge_basis === 'none' ? 'None' : 'Set by the server operator. Check its fees before enabling.'}</dd>
     </dl>
     <p className="model-muted">This connection lasts for this app session. Enable it again after restarting ScopeHub.</p>
-    {route.kind === 'ollama' && <p className="model-muted">The server operator may process or forward the conversation. Disconnect in AI settings to stop future sends.</p>}
+    {route.kind === 'ollama' && <p className="model-muted">The server operator may process or forward requests, even at a loopback address. Disconnect in AI settings to stop future sends.</p>}
   </>;
 }
 
-export function ModelChat({ workspaceId, theme, view, show }: {
+function intervalLabel(range: VisibleRange) {
+  const start = new Date(range.from_ms).toISOString();
+  return range.to_ms === range.from_ms + 1 ? `Bar starting ${start}`
+    : `${start} to ${new Date(range.to_ms).toISOString()} (end excluded)`;
+}
+
+function ChartEvidence({ evidence }: { evidence: AiTextChartEvidence }) {
+  return <section className="model-evidence" aria-label="Chart evidence used">
+    <h3>Chart evidence used</h3>
+    <dl className="model-route">
+      <dt>Interval (UTC)</dt><dd>{intervalLabel(evidence.range)}</dd>
+      <dt>Offline sample</dt><dd><bdi>{evidence.source_reference}</bdi></dd>
+      <dt>Revision</dt><dd><bdi>{evidence.revision}</bdi></dd>
+    </dl>
+    <table aria-label="Selected chart closes">
+      <thead><tr><th scope="col">Bar start (UTC)</th><th scope="col">Close</th></tr></thead>
+      <tbody>{evidence.rows.map(row => {
+        const time = new Date(row.time_ms).toISOString();
+        return <tr key={row.time_ms}><td><time dateTime={time}>{time}</time></td><td>{row.close}</td></tr>;
+      })}</tbody>
+    </table>
+  </section>;
+}
+
+export function ModelChat({ workspaceId, theme, view, show, chartSelection }: {
   workspaceId: string | undefined;
   theme: 'light' | 'dark' | undefined;
   view: ModelChatView | undefined;
   show: (view: ModelChatView | undefined) => void;
+  chartSelection: ModelChartSelection | undefined;
 }) {
   const heading = useId();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -76,11 +109,13 @@ export function ModelChat({ workspaceId, theme, view, show }: {
   const [changing, setChanging] = useState(false);
   const [origin, setOrigin] = useState('');
   const [model, setModel] = useState('');
+  const [chartTools, setChartTools] = useState(false);
   const [question, setQuestion] = useState('');
   const [turns, setTurns] = useState<CompletedTurn[]>([]);
   const [pending, setPending] = useState<PendingTurn>();
   const [unconfirmed, setUnconfirmed] = useState<PendingTurn>();
   const visible = view !== undefined;
+  const selection = connection?.route.scope === 'conversation_text_and_sample_closes' ? chartSelection : undefined;
 
   useEffect(() => () => {
     action.current?.abort();
@@ -132,7 +167,10 @@ export function ModelChat({ workspaceId, theme, view, show }: {
     const recovered = Boolean(attempted && status.turn_id === attempted.id
       && active?.connection_id === attempted.connection.connection_id);
     if (active && status.turn_id && status.turn_id !== pending?.id && status.turn_id !== lastTurn.current) {
-      setPending({ id: status.turn_id, connection: active, question: recovered ? attempted?.question : undefined });
+      setPending({
+        id: status.turn_id, connection: active, question: recovered ? attempted?.question : undefined,
+        selection: recovered ? attempted?.selection : undefined,
+      });
     }
     return recovered;
   }
@@ -169,7 +207,7 @@ export function ModelChat({ workspaceId, theme, view, show }: {
     if (!workspaceId || !pending || working) return;
     const controller = new AbortController();
     pollController.current = controller;
-    const { id, connection: active, question: submitted } = pending;
+    const { id, connection: active, question: submitted, selection: selected } = pending;
     let superseded = false;
     let timer: number | undefined;
     let busyPolls = 0;
@@ -191,10 +229,18 @@ export function ModelChat({ workspaceId, theme, view, show }: {
         lastTurn.current = id;
         setPending(undefined);
         if (turn.state === 'failed') {
-          setError(turn.error.code === 'PROVIDER_NOT_CONFIGURED' ? unavailableModel : modelFailure(turn.error));
+          setError(selected && turn.error.code === 'STALE_CONTEXT' ? staleChart
+            : selected && turn.error.code === 'PERMISSION_DENIED' ? deniedChart
+            : turn.error.code === 'PROVIDER_NOT_CONFIGURED' ? unavailableModel : modelFailure(turn.error));
           return;
         }
-        setTurns(previous => [...previous, { id, question: submitted, model: turn.model, text: turn.text }]);
+        const evidence = turn.chart_evidence;
+        if (evidence && selected && (evidence.source_reference !== selected.sourceReference
+          || evidence.revision !== selected.datasetRevision || evidence.range.from_ms !== selected.range.from_ms
+          || evidence.range.to_ms !== selected.range.to_ms)) throw { code: 'OUTPUT_INVALID' };
+        setTurns(previous => [...previous, {
+          id, question: submitted, model: turn.model, text: turn.text, evidence, chartRequested: Boolean(selected),
+        }]);
         if (submitted !== undefined) setQuestion('');
       } catch (failure) {
         if (superseded || action.current) return;
@@ -241,7 +287,7 @@ export function ModelChat({ workspaceId, theme, view, show }: {
       setError('Enter a server origin, such as http://127.0.0.1:11434, without a path or sign-in details.');
       return;
     }
-    review({ kind: 'ollama', origin: candidate, model: model.trim() });
+    review({ kind: 'ollama', origin: candidate, model: model.trim(), ...(chartTools && { chart_tools: true }) });
   }
 
   function activate(candidate: Proposal) {
@@ -281,12 +327,19 @@ export function ModelChat({ workspaceId, theme, view, show }: {
     }
     const active = connection;
     void perform(async (id, signal) => {
-      const turn = { id: crypto.randomUUID(), connection: active, question: submitted };
+      const turn = { id: crypto.randomUUID(), connection: active, question: submitted, selection };
       try {
-        await exchangeModel(id, { action: 'send', connection_id: active.connection_id, question: submitted }, signal, turn.id);
+        await exchangeModel(id, {
+          action: 'send', connection_id: active.connection_id, question: submitted,
+          ...(selection && { selection_revision: selection.selectionRevision }),
+        }, signal, turn.id);
         setPending(turn);
       } catch (failure) {
         const code = String(modelErrorCode(failure));
+        if (selection && (code === 'PERMISSION_DENIED' || code === 'STALE_CONTEXT')) {
+          setError(code === 'PERMISSION_DENIED' ? deniedChart : staleChart);
+          return;
+        }
         if (signal.aborted || ['INVALID_ARGUMENT', 'PERMISSION_DENIED', 'STALE_CONTEXT', 'RESOURCE_LIMIT'].includes(code)) throw failure;
         try {
           const status = await exchangeModel(id, { action: 'status' }, signal);
@@ -329,9 +382,14 @@ export function ModelChat({ workspaceId, theme, view, show }: {
           {turns.map(turn => <article key={turn.id} className="model-turn">
             {turn.question && <div className="model-question"><h3>You</h3><p dir="auto">{turn.question}</p></div>}
             <div className="model-answer"><h3>Model <bdi>{turn.model}</bdi></h3><p dir="auto">{turn.text}</p></div>
+            {turn.evidence ? <ChartEvidence evidence={turn.evidence} />
+              : turn.chartRequested && <p className="model-muted">No chart evidence used.</p>}
           </article>)}
         </div>
         <form className="model-form" onSubmit={submit}>
+          {connection?.route.scope === 'conversation_text_and_sample_closes' && <p className="model-muted">
+            {selection ? `Selected chart · ${intervalLabel(selection.range)}` : 'No chart selection for this turn.'}
+          </p>}
           <label>Question<textarea ref={questionField} rows={3} maxLength={2000} required value={question}
             disabled={Boolean(pending || unconfirmed) || working} onChange={event => setQuestion(event.currentTarget.value)} /></label>
           <div className="model-actions">
@@ -365,6 +423,8 @@ export function ModelChat({ workspaceId, theme, view, show }: {
             <label>Model<input required autoComplete="off" spellCheck={false} maxLength={128}
               placeholder="Model name on the server" value={model} disabled={!workspaceId || working}
               onChange={event => setModel(event.currentTarget.value)} /></label>
+            <label className="model-checkbox"><input type="checkbox" checked={chartTools} disabled={!workspaceId || working}
+              onChange={event => setChartTools(event.currentTarget.checked)} />Allow the selected offline sample’s close prices and times</label>
             <div className="model-actions">
               <button type="submit" className="primary" disabled={!workspaceId || working || !origin.trim() || !model.trim()}>Review connection</button>
             </div>

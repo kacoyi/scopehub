@@ -1,4 +1,4 @@
-# Generated from contracts/schemas/protocol.schema.json; sha256=dede32ffd96bd8fa2ca6997ac75ce43587fed23996789f5e81500da2e2c842ed. Do not edit.
+# Generated from contracts/schemas/protocol.schema.json; sha256=165474d03e9c67983014341715fa9f74707123ee613aab05cc5603c42ca35c5c. Do not edit.
 from __future__ import annotations
 from typing import Literal, NotRequired, TypedDict
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
@@ -2657,6 +2657,7 @@ class AiTextOllamaChoice(TypedDict):
     kind: Literal['ollama']
     origin: str
     model: str
+    chart_tools: NotRequired[Literal[True]]
 class AiTextOfflineMockChoice(TypedDict):
     kind: Literal['offline_mock']
 AiTextRouteChoice = AiTextOllamaChoice | AiTextOfflineMockChoice
@@ -2664,7 +2665,7 @@ class AiTextOllamaRoute(TypedDict):
     kind: Literal['ollama']
     destination: str
     model: str
-    scope: Literal['conversation_text']
+    scope: Literal['conversation_text', 'conversation_text_and_sample_closes']
     charge_basis: Literal['endpoint_operator']
 class AiTextOfflineMockRoute(TypedDict):
     kind: Literal['offline_mock']
@@ -2682,6 +2683,7 @@ class AiTextCompletedTurn(TypedDict):
     state: Literal['completed']
     model: str
     text: str
+    chart_evidence: NotRequired[AiTextChartEvidence]
 class AiTextFailedTurn(TypedDict):
     state: Literal['failed']
     error: WorkspaceFault11
@@ -2701,6 +2703,7 @@ class AiTextSendInput(TypedDict):
     action: Literal['send']
     connection_id: Uuid
     question: str
+    selection_revision: NotRequired[Revision]
 class AiTextPollInput(TypedDict):
     action: Literal['poll']
     connection_id: Uuid
@@ -2748,6 +2751,14 @@ class AiTextConnectionReply11(TypedDict):
     type: Literal['response']
     request_id: Uuid
     outcome: AiTextConnectionOutcome11
+class AiTextChartClose(TypedDict):
+    time_ms: Timestamp
+    close: float
+class AiTextChartEvidence(TypedDict):
+    source_reference: OpaqueId
+    revision: OpaqueId
+    range: VisibleRange
+    rows: list[AiTextChartClose]
 class AiTextConnectionScope11(TypedDict):
     workspace_id: OpaqueId
 class AiTextConnectionIntent11(TypedDict):

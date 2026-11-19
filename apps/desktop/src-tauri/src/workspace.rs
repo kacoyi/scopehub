@@ -76,6 +76,7 @@ enum Request {
     IndicatorPreviewStatus(String),
     IndicatorAcceptedRead(Value),
     SampleIndicatorPreview(Value, Value),
+    SampleEvidenceSelection(Value, Value),
     Operation(Value),
 }
 
@@ -276,7 +277,9 @@ impl WorkspaceBridge {
             };
             let reply = bound.registry.execute_workspace(&access, command)?;
             let result = &reply["outcome"]["result"];
-            let work = if result["action"] == "send" {
+            let work = if result["action"] == "send"
+                || result["action"] == "poll" && result["turn"]["state"] == "running"
+            {
                 let id = result["turn_id"]
                     .as_str()
                     .and_then(|id| uuid::Uuid::parse_str(id).ok())
@@ -325,6 +328,25 @@ impl WorkspaceBridge {
         let history = load_history.await?;
         Self::with_bound(self.admit()?, true, move |bound| {
             bound.dispatch(Request::SampleIndicatorPreview(command, history))
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::INTERNALERROR))
+    }
+
+    pub(super) async fn dispatch_sample_selection(
+        &self,
+        command: Value,
+        load_history: impl Future<Output = Result<Value, Error>>,
+    ) -> Result<Value, Error> {
+        if !self.workspace_enabled {
+            return Err(failure(ErrorCode::PERMISSIONDENIED));
+        }
+        if command.to_string().len() >= MAX_REQUEST_BYTES {
+            return Err(failure(ErrorCode::RESOURCELIMIT));
+        }
+        let history = load_history.await?;
+        Self::with_bound(self.admit()?, true, move |bound| {
+            bound.dispatch(Request::SampleEvidenceSelection(command, history))
         })
         .await?
         .ok_or_else(|| failure(ErrorCode::INTERNALERROR))
@@ -733,6 +755,9 @@ impl BoundWorkspace {
             Request::SampleIndicatorPreview(command, page) => self
                 .registry
                 .execute_sample_indicator_preview(&access, command, page),
+            Request::SampleEvidenceSelection(command, page) => self
+                .registry
+                .execute_sample_evidence_selection(&access, command, page),
             Request::Operation(payload) => self.registry.execute_workspace(&access, payload),
         }
     }

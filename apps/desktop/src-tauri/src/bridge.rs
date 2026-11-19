@@ -12,8 +12,8 @@ use scopehub_application::{
     PREVIEW_LOCAL_FOLDER_REFRESH, PREVIEW_LOCAL_IMPORT, PUBLISH_LOCAL_FOLDER_REFRESH,
     PUBLISH_LOCAL_IMPORT, READ_LOCAL_FOLDER_REVISION, READ_LOCAL_FOLDER_SOURCE_ROW,
     READ_LOCAL_IMPORT_REVISION, READ_LOCAL_IMPORT_SOURCE_ROW, REVOKE_LOCAL_FOLDER_REVISION,
-    REVOKE_LOCAL_IMPORT_REVISION, RUN_INDICATOR_PREVIEW, SAVE_LOCAL_IMPORT_MAPPING, failure,
-    is_sample_indicator_preview,
+    REVOKE_LOCAL_IMPORT_REVISION, RUN_INDICATOR_PREVIEW, SAVE_LOCAL_IMPORT_MAPPING,
+    SELECT_EVIDENCE, failure, is_sample_evidence_selection, is_sample_indicator_preview,
 };
 use scopehub_domain::protocol::{Error, ErrorCode};
 use scopehub_platform::local_folder::LocalFolderHost;
@@ -179,6 +179,18 @@ impl State {
                     });
                 }
                 Ok(reply)
+            }
+            Some(SELECT_EVIDENCE) if is_sample_evidence_selection(&payload) => {
+                let request = payload.clone();
+                self.workspace
+                    .dispatch_sample_selection(payload, async {
+                        let mut market = self
+                            .reads
+                            .try_lock()
+                            .map_err(|_| failure(ErrorCode::BUSY))?;
+                        market.read_sample_evidence_history(&request).await
+                    })
+                    .await
             }
             Some(RUN_INDICATOR_PREVIEW) if is_sample_indicator_preview(&payload) => {
                 let request = payload.clone();

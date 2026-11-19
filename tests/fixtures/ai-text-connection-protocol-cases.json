@@ -180,5 +180,83 @@
         }
       }
     }
+  },
+  {
+    "name": "review a recipient for selected sample closes",
+    "operation": "ai.textConnection",
+    "direction": "input",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-0000-0000-000000000001",
+      "request_id": "00000000-0000-0000-0000-000000000002",
+      "timestamp_ms": 100,
+      "type": "request",
+      "scope": {
+        "workspace_id": "main"
+      },
+      "intent": {
+        "operation": "ai.textConnection",
+        "arguments": {
+          "action": "propose",
+          "route": {
+            "kind": "ollama",
+            "origin": "http://127.0.0.1:11434",
+            "model": "synthetic",
+            "chart_tools": true
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "bind a chart turn to the selection revision",
+    "operation": "ai.textConnection",
+    "direction": "input",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-0000-0000-000000000001",
+      "request_id": "00000000-0000-0000-0000-000000000002",
+      "timestamp_ms": 100,
+      "type": "request",
+      "scope": {
+        "workspace_id": "main"
+      },
+      "intent": {
+        "operation": "ai.textConnection",
+        "arguments": {
+          "action": "send",
+          "connection_id": "00000000-0000-0000-0000-000000000003",
+          "question": "How does a synthetic example work?",
+          "selection_revision": 8
+        }
+      }
+    }
+  },
+  {
+    "name": "a chart turn cannot supply a selection snapshot",
+    "operation": "ai.textConnection",
+    "direction": "input",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-0000-0000-000000000001",
+      "request_id": "00000000-0000-0000-0000-000000000002",
+      "timestamp_ms": 100,
+      "type": "request",
+      "scope": {
+        "workspace_id": "main"
+      },
+      "intent": {
+        "operation": "ai.textConnection",
+        "arguments": {
+          "action": "send",
+          "connection_id": "00000000-0000-0000-0000-000000000003",
+          "question": "How does a synthetic example work?",
+          "snapshot": {}
+        }
+      }
+    }
   }
 ]
