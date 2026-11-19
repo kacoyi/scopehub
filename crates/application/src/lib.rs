@@ -1,6 +1,9 @@
-//! Shared operation entry for trusted transports. Historical reads only.
+//! Shared operation entry for trusted transports.
 
 mod history;
+mod replay;
+
+pub use replay::{SUBSCRIBE, SubscriptionFuture, SubscriptionPort};
 
 use std::{collections::HashSet, future::Future, pin::Pin, sync::LazyLock};
 
@@ -66,8 +69,9 @@ pub fn failure(code: ErrorCode) -> Error {
     }
 }
 
-pub type MarketFuture<'a> = Pin<Box<dyn Future<Output = Result<Value, Error>> + Send + 'a>>;
-pub type ShutdownFuture<'a> = Pin<Box<dyn Future<Output = ()> + Send + 'a>>;
+type PortFuture<'a, T> = Pin<Box<dyn Future<Output = Result<T, Error>> + Send + 'a>>;
+pub type MarketFuture<'a> = PortFuture<'a, Value>;
+pub type ShutdownFuture<'a> = PortFuture<'a, ()>;
 
 pub trait MarketPort: Send {
     fn request<'a>(&'a mut self, operation: &'a str, payload: &'a Value) -> MarketFuture<'a>;
@@ -120,6 +124,17 @@ static OPERATIONS: LazyLock<Vec<Operation>> = LazyLock::new(|| {
         .collect()
 });
 
+fn authorized_operation(actor: Actor, name: &str) -> Result<&'static Operation, Error> {
+    let op = OPERATIONS
+        .iter()
+        .find(|op| op.name == name)
+        .ok_or_else(|| failure(ErrorCode::UNSUPPORTEDCAPABILITY))?;
+    if !op.actors.iter().any(|allowed| allowed == actor.as_str()) {
+        return Err(failure(ErrorCode::PERMISSIONDENIED));
+    }
+    Ok(op)
+}
+
 /// Authorized operations and explicit lifecycle, without mutable adapter access.
 ///
 /// ```compile_fail
@@ -143,13 +158,7 @@ impl<P: MarketPort> MarketRegistry<P> {
         name: &str,
         mut payload: Value,
     ) -> Result<Value, Error> {
-        let op = OPERATIONS
-            .iter()
-            .find(|op| op.name == name)
-            .ok_or_else(|| failure(ErrorCode::UNSUPPORTEDCAPABILITY))?;
-        if !op.actors.iter().any(|allowed| allowed == actor.as_str()) {
-            return Err(failure(ErrorCode::PERMISSIONDENIED));
-        }
+        let op = authorized_operation(actor, name)?;
         if !READ_OPERATIONS.contains(&name) {
             return Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY));
         }
@@ -291,8 +300,8 @@ impl<P: MarketPort + MarketLifecycle> MarketRegistry<P> {
         self.port.status()
     }
 
-    pub async fn shutdown(&mut self) {
-        self.port.shutdown().await;
+    pub async fn shutdown(&mut self) -> Result<(), Error> {
+        self.port.shutdown().await
     }
 }
 

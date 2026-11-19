@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=acb92ba543b60bb8b84d16396f18bf9abf94bcfedcfe825fc227536791b5c8a2. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=00d5588197a5635a218a3f20f558086ee5336b4d0663fe40557e3abe3a6b950a. Do not edit.
 // Structural types and literal discriminators: validate schema refinements before deserializing.
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -151,6 +151,8 @@ pub enum OperationName {
     WorkspaceGetContext,
     #[serde(rename = "market.readHistoryPage")]
     MarketReadHistoryPage,
+    #[serde(rename = "market.subscribe")]
+    MarketSubscribe,
     #[serde(rename = "workspace.readChartProjection")]
     WorkspaceReadChartProjection,
     #[serde(rename = "workspace.selectEvidence")]
@@ -174,6 +176,7 @@ impl OperationName {
             Self::TaskCancel => "task.cancel",
             Self::WorkspaceGetContext => "workspace.getContext",
             Self::MarketReadHistoryPage => "market.readHistoryPage",
+            Self::MarketSubscribe => "market.subscribe",
             Self::WorkspaceReadChartProjection => "workspace.readChartProjection",
             Self::WorkspaceSelectEvidence => "workspace.selectEvidence",
         }
@@ -1158,6 +1161,8 @@ pub struct MarketHistoryPageInput {
     pub cursor: Option<HistoryCursor>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub page_size: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub include_stream_position: Option<bool>,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -1280,6 +1285,12 @@ pub struct MarketSubscriptionError {
     pub ok: ConstBool<false>,
     pub result: (),
     pub error: MarketPageFault,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum MarketSubscriptionReply11 {
+    MarketSubscriptionResponse(Box<MarketSubscriptionResponse>),
+    MarketSubscriptionError(Box<MarketSubscriptionError>),
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]

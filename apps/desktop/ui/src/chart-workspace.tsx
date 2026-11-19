@@ -6,6 +6,7 @@ import { PriceChart } from './price-chart';
 import { narrowScreen, readSampleView, saveSampleView } from './sample-view';
 import { SymbolSearch } from './symbol-search';
 import { useHistory, useSampleCatalog } from './use-market-data';
+import { useSampleReplay } from './use-sample-replay';
 import { WorkspaceIcon, type WorkspaceIconName } from './workspace-icons';
 import { WorkspacePanel, panelLabels, type Panel } from './workspace-panels';
 
@@ -53,6 +54,8 @@ export function ChartWorkspace({ sample, leaveSample }: { sample: boolean; leave
   const selected = instruments.find(item => item.id === chosenId) ?? instruments[0];
   const { result, retryHistory } = useHistory(selected, timeframe);
   const history = result.state === 'ready' ? result.value : undefined;
+  const { replay, start, stop } = useSampleReplay(history);
+  const playing = replay?.state === 'starting' || replay?.state === 'playing';
   const visiblePanel = focusChart ? null : panel;
   const canInspect = Boolean(history?.bars.length);
 
@@ -113,7 +116,8 @@ export function ChartWorkspace({ sample, leaveSample }: { sample: boolean; leave
     plot = <div className="history" data-instrument={selected.id} data-timeframe={timeframe} data-bars={0}>
       <PlotMessage title="No bars in this sample range." /></div>;
   } else {
-    plot = <PriceChart key={selected.id + ':' + timeframe} instrument={selected} history={history} style={style} cursor={cursor} handle={chart} />;
+    plot = <PriceChart key={selected.id + ':' + timeframe} instrument={selected} history={history} style={style} cursor={cursor}
+      handle={chart} replayBar={replay?.bar} />;
   }
 
   return <main className={'workstation' + (focusChart ? ' chart-only' : '')}>
@@ -144,6 +148,15 @@ export function ChartWorkspace({ sample, leaveSample }: { sample: boolean; leave
         {plot}
         <footer className="chart-footer"><span>{sample ? 'Jan 2024' : 'ScopeHub'}</span>
           {selected && <span>{selected.timezone}</span>}
+          {canInspect && <button type="button" className="secondary-button replay-button" onClick={playing ? stop : start}>
+            {playing ? 'Stop replay' : 'Play sample updates'}
+          </button>}
+          {replay && <span role="status" className={'replay-status ' + replay.state}>
+            {replay.state === 'starting' ? 'Preparing synthetic replay…'
+              : replay.state === 'playing' ? 'Synthetic replay in progress'
+              : replay.state === 'complete' ? 'Synthetic replay complete'
+              : `Replay gap. ${replay.detail}`}
+          </span>}
           <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">Charts by TradingView Lightweight Charts™</a></footer>
       </section>
       {visiblePanel && <>

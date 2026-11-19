@@ -167,7 +167,11 @@ pub(super) fn validate_page(
             .is_some_and(|bar| bar.time_ms > snapshot.as_of_ms)
         || quality.source_kind.as_str() != "synthetic"
         || quality.connection.as_str() != "offline"
-        || result.stream_position.is_some()
+        || result.stream_position.as_ref().is_some_and(|position| {
+            !input.include_stream_position.unwrap_or(false)
+                || position.stream_id != snapshot.dataset_id
+                || quality.last_observed_ms != Some(snapshot.as_of_ms)
+        })
     {
         return Err(invalid());
     }

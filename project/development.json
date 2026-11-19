@@ -255,7 +255,8 @@
       "public_entries": [
         "python/providers/history.py",
         "python/providers/simulated.py",
-        "python/providers/history_pages.py"
+        "python/providers/history_pages.py",
+        "python/providers/replay.py"
       ],
       "dependencies": [
         "domain"
@@ -404,7 +405,7 @@
         "M1-014"
       ],
       "delivery": "current-contract",
-      "boundary": "Synthetic history is implemented. M1-010 covers local browser access for development. Streaming and recovery remain pending."
+      "boundary": "The synthetic chart supports historical reads and explicit, bounded playback of partial and final bars through the shared registry. M1-007 covers quality states and M1-003 covers recovery after disruption. User-configured feeds and physical Windows experience have separate evidence."
     },
     {
       "id": "durable-workspace",

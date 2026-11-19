@@ -1,24 +1,37 @@
-//! One lazy, reusable history worker. No implicit retry or external provider.
+//! Lazy synthetic worker with correlated reads and a dedicated replay lifecycle.
 
 use std::{
     path::{Path, PathBuf},
     process::Stdio,
+    sync::{Arc, LazyLock},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use scopehub_application::{
-    MarketFuture, MarketLifecycle, MarketPort, MarketStatus, READ_OPERATIONS, ShutdownFuture,
-    failure,
+    Actor, MarketFuture, MarketLifecycle, MarketPort, MarketRegistry, MarketStatus,
+    READ_OPERATIONS, SUBSCRIBE, ShutdownFuture, SubscriptionFuture, SubscriptionPort, failure,
 };
-use scopehub_domain::protocol::{Error, ErrorCode, Message, Response};
+use scopehub_domain::protocol::{
+    Error, ErrorCode, MarketSubscriptionInput, MarketSubscriptionOutput, Message, Response,
+};
 use serde_json::{Value, json};
 use tokio::{
     io::{AsyncWriteExt, BufReader},
     process::{Child, ChildStdin, ChildStdout, Command},
+    sync::{OwnedSemaphorePermit, Semaphore},
 };
 use uuid::Uuid;
 
-use crate::{ProtocolError, decode_line, max_message_bytes, read_frame};
+use crate::{ProtocolError, cleanup, decode_line, max_message_bytes, read_frame};
+
+// Retained workers count against the same bound as live workers until reaped.
+static WORKER_SLOTS: LazyLock<Arc<Semaphore>> = LazyLock::new(|| {
+    Arc::new(Semaphore::new(
+        crate::POLICY["max_pending_requests"]
+            .as_u64()
+            .expect("worker limit") as usize,
+    ))
+});
 
 pub struct WorkerConfig {
     pub python: PathBuf,
@@ -67,11 +80,13 @@ struct Session {
     child: Child,
     input: ChildStdin,
     output: BufReader<ChildStdout>,
+    permit: OwnedSemaphorePermit,
 }
 
 pub struct MarketWorker {
     config: Option<WorkerConfig>,
     session: Option<Session>,
+    subscription: Option<(String, String)>,
 }
 
 fn protocol_failure(error: ProtocolError) -> Error {
@@ -89,6 +104,7 @@ impl MarketWorker {
         Self {
             config,
             session: None,
+            subscription: None,
         }
     }
 
@@ -96,13 +112,23 @@ impl MarketWorker {
         self.session.as_ref().and_then(|session| session.child.id())
     }
 
-    pub async fn shutdown(&mut self) {
-        if let Some(mut session) = self.session.take() {
-            // This fixed worker does not spawn descendants. Packaged process-tree
-            // containment is separate Windows acceptance, not established here.
-            let _ = session.child.kill().await;
-            let _ = session.child.wait().await;
-        }
+    pub async fn shutdown(&mut self) -> Result<(), Error> {
+        let Some(session) = self.session.take() else {
+            return Ok(());
+        };
+        let pending = self.subscription.take();
+        let grace = Duration::from_millis(
+            crate::POLICY["cancel_grace_ms"]
+                .as_u64()
+                .expect("cancel grace"),
+        );
+        let deadline = if pending.is_some() { grace * 2 } else { grace };
+        cleanup::wait_for_cleanup(session.close(pending, grace), deadline)
+            .await
+            .map_err(|error| {
+                eprintln!(r#"{{"level":"warning","code":"MARKET_WORKER_CLEANUP_PENDING"}}"#);
+                protocol_failure(error)
+            })
     }
 
     async fn start(&mut self) -> Result<(), Error> {
@@ -111,6 +137,9 @@ impl MarketWorker {
             .as_ref()
             .ok_or_else(|| failure(ErrorCode::PROVIDERNOTCONFIGURED))?;
         let deadline = config.deadline;
+        let permit = Arc::clone(&WORKER_SLOTS)
+            .try_acquire_owned()
+            .map_err(|_| failure(ErrorCode::BUSY))?;
         let mut child = config
             .command()
             .stdin(Stdio::piped())
@@ -127,6 +156,7 @@ impl MarketWorker {
             output,
             version: String::new(),
             capabilities: Vec::new(),
+            permit,
         });
         let session = self.session.as_mut().expect("started session");
         let result = tokio::time::timeout(deadline, async {
@@ -143,7 +173,7 @@ impl MarketWorker {
         .await
         .unwrap_or(Err(ProtocolError::Timeout));
         if let Err(error) = result {
-            self.shutdown().await;
+            let _ = self.shutdown().await;
             return Err(protocol_failure(error));
         }
         Ok(())
@@ -158,34 +188,20 @@ impl MarketWorker {
         }
         let paged = operation == "market.readHistoryPage";
         let session = self.session.as_ref().expect("started session");
-        if !session.capabilities.iter().any(|name| name == operation)
-            || paged && session.version != "1.1"
+        if !session.supports(operation, paged)
+            || paged
+                && payload["include_stream_position"] == true
+                && !session.supports(SUBSCRIBE, true)
         {
             return Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY));
         }
         let deadline = self.config.as_ref().expect("configured session").deadline;
         let id = Uuid::new_v4().to_string();
-        let request = json!({
-            "protocol_version": if paged { "1.1" } else { "1.0" }, "type": "request", "message_id": Uuid::new_v4().to_string(),
-            "request_id": id, "task_id": null, "timestamp_ms": SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64,
-            "operation": operation, "payload": payload,
-        });
-        let mut frame =
-            serde_json::to_vec(&request).map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
-        frame.push(b'\n');
-        if frame.len() > max_message_bytes() {
-            return Err(failure(ErrorCode::RESOURCELIMIT));
-        }
-        decode_line(&frame).map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
+        let frame = request_frame(operation, payload, &id, None, paged)?;
         let session = self.session.as_mut().expect("started session");
         let result = tokio::time::timeout(deadline, async {
-            session
-                .input
-                .write_all(&frame)
-                .await
-                .map_err(|_| ProtocolError::Io)?;
-            session.input.flush().await.map_err(|_| ProtocolError::Io)?;
-            let response = decode_line(&read_frame(&mut session.output).await?)?;
+            session.send(&frame).await?;
+            let response = session.receive().await?;
             match response {
                 Message::MarketHistoryPageResponse(response)
                     if paged && response.request_id == id =>
@@ -217,16 +233,162 @@ impl MarketWorker {
         match result {
             Ok(output) => output,
             Err(error) => {
-                self.shutdown().await;
+                let _ = self.shutdown().await;
                 Err(protocol_failure(error))
             }
         }
     }
+
+    async fn subscribe(
+        &mut self,
+        input: &MarketSubscriptionInput,
+    ) -> Result<MarketSubscriptionOutput, Error> {
+        let session = self
+            .session
+            .as_mut()
+            .ok_or_else(|| failure(ErrorCode::WORKEREXITED))?;
+        if !session.supports(SUBSCRIBE, true) || self.subscription.is_some() {
+            return Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY));
+        }
+        let request_id = Uuid::new_v4().to_string();
+        let task_id = Uuid::new_v4().to_string();
+        let frame = request_frame(SUBSCRIBE, &json!(input), &request_id, Some(&task_id), true)?;
+        self.subscription = Some((request_id.clone(), task_id));
+        session.send(&frame).await.map_err(protocol_failure)?;
+        match session.receive().await.map_err(protocol_failure)? {
+            Message::MarketSubscriptionResponse(reply) if reply.request_id == request_id => {
+                if matches!(
+                    reply.result,
+                    MarketSubscriptionOutput::StreamBackfillRequired(_)
+                ) {
+                    self.subscription = None;
+                }
+                Ok(reply.result)
+            }
+            Message::MarketSubscriptionError(reply) if reply.request_id == request_id => {
+                self.subscription = None;
+                Err(failure(reply.error.code))
+            }
+            _ => Err(failure(ErrorCode::OUTPUTINVALID)),
+        }
+    }
+}
+
+impl Session {
+    async fn close(mut self, pending: Option<(String, String)>, grace: Duration) {
+        if let Some((request_id, task_id)) = pending {
+            let _ = tokio::time::timeout(grace, self.cancel(request_id, task_id)).await;
+        }
+        let Self {
+            child,
+            input,
+            output,
+            permit,
+            ..
+        } = self;
+        drop(input);
+        drop(output);
+        cleanup::reclaim(child, grace).await;
+        drop(permit);
+    }
+
+    async fn cancel(&mut self, request_id: String, task_id: String) -> Result<(), ProtocolError> {
+        let cancel = json!({
+            "protocol_version": "1.1", "type": "cancel", "message_id": Uuid::new_v4().to_string(),
+            "timestamp_ms": now_ms(), "request_id": request_id, "task_id": task_id,
+        });
+        self.send(&encode(&cancel).map_err(|_| ProtocolError::InvalidMessage)?)
+            .await?;
+        loop {
+            let frame = read_frame(&mut self.output).await?;
+            if let Ok(Message::MarketSubscriptionError(reply)) = decode_line(&frame)
+                && reply.request_id == request_id
+                && reply.error.code == ErrorCode::CANCELLED
+            {
+                return Ok(());
+            }
+        }
+    }
+
+    fn supports(&self, name: &str, current: bool) -> bool {
+        (!current || self.version == "1.1") && self.capabilities.iter().any(|op| op == name)
+    }
+
+    async fn send(&mut self, frame: &[u8]) -> Result<(), ProtocolError> {
+        self.input
+            .write_all(frame)
+            .await
+            .map_err(|_| ProtocolError::Io)?;
+        self.input.flush().await.map_err(|_| ProtocolError::Io)
+    }
+
+    async fn receive(&mut self) -> Result<Message, ProtocolError> {
+        decode_line(&read_frame(&mut self.output).await?)
+    }
+}
+
+fn now_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64
+}
+
+fn encode(message: &Value) -> Result<Vec<u8>, Error> {
+    let mut frame = serde_json::to_vec(message).map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
+    frame.push(b'\n');
+    if frame.len() > max_message_bytes() {
+        return Err(failure(ErrorCode::RESOURCELIMIT));
+    }
+    decode_line(&frame).map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
+    Ok(frame)
+}
+
+fn request_frame(
+    operation: &str,
+    payload: &Value,
+    id: &str,
+    task_id: Option<&str>,
+    current: bool,
+) -> Result<Vec<u8>, Error> {
+    encode(&json!({
+        "protocol_version": if current { "1.1" } else { "1.0" },
+        "type": "request", "message_id": Uuid::new_v4().to_string(),
+        "request_id": id, "task_id": task_id, "timestamp_ms": now_ms(),
+        "operation": operation, "payload": payload,
+    }))
 }
 
 impl MarketPort for MarketWorker {
     fn request<'a>(&'a mut self, operation: &'a str, payload: &'a Value) -> MarketFuture<'a> {
         Box::pin(self.exchange(operation, payload))
+    }
+}
+
+impl SubscriptionPort for MarketWorker {
+    fn open_subscription<'a>(
+        &'a mut self,
+        input: &'a MarketSubscriptionInput,
+    ) -> SubscriptionFuture<'a, MarketSubscriptionOutput> {
+        Box::pin(self.subscribe(input))
+    }
+
+    fn next_event(&mut self) -> SubscriptionFuture<'_, Message> {
+        Box::pin(async {
+            if self.subscription.is_none() {
+                return Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY));
+            }
+            self.session
+                .as_mut()
+                .expect("active subscription")
+                .receive()
+                .await
+                .map_err(protocol_failure)
+        })
+    }
+
+    fn complete_subscription(&mut self) {
+        self.subscription = None;
     }
 }
 
@@ -240,4 +402,29 @@ impl MarketLifecycle for MarketWorker {
     fn shutdown(&mut self) -> ShutdownFuture<'_> {
         Box::pin(MarketWorker::shutdown(self))
     }
+}
+
+/// A replay owns one worker and one deadline. The caller supplies only its
+/// bridge lifetime and progress sink; both native and browser use this path.
+pub async fn run_subscription(
+    config: Option<WorkerConfig>,
+    actor: Actor,
+    payload: Value,
+    cancelled: impl std::future::Future<Output = ()>,
+    publish: impl FnMut(Value) -> Result<(), Error> + Send,
+) -> Result<Value, Error> {
+    let deadline = config
+        .as_ref()
+        .map_or(Duration::from_secs(5), |config| config.deadline);
+    let mut registry = MarketRegistry::new(MarketWorker::new(config));
+    let result = tokio::select! {
+        biased;
+        () = cancelled => Err(failure(ErrorCode::CANCELLED)),
+        result = tokio::time::timeout(deadline, registry.subscribe(actor, payload, publish)) =>
+            result.unwrap_or_else(|_| Err(failure(ErrorCode::TIMEOUT))),
+    };
+    // The dedicated worker is reclaimed on completion as well as on rejection,
+    // disconnect, timeout and explicit cancellation.
+    let cleanup = registry.shutdown().await;
+    result.and_then(|value| cleanup.map(|()| value))
 }

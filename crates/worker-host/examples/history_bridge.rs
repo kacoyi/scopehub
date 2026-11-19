@@ -2,10 +2,10 @@
 //! Requests use the desktop registry and development market worker.
 use std::io::{BufRead, Read, Write};
 
-use scopehub_application::{Actor, MarketRegistry, failure};
+use scopehub_application::{Actor, MarketRegistry, SUBSCRIBE, failure};
 use scopehub_domain::protocol::ErrorCode;
 use scopehub_worker_host::{
-    market::{MarketWorker, WorkerConfig},
+    market::{MarketWorker, WorkerConfig, run_subscription},
     max_message_bytes,
 };
 use serde::Deserialize;
@@ -18,15 +18,28 @@ struct Input {
     payload: Value,
 }
 
+fn write_frame(value: Value) -> std::io::Result<()> {
+    let mut output = std::io::stdout().lock();
+    writeln!(output, "{value}")?;
+    output.flush()
+}
+
+fn reply(result: Result<Value, scopehub_domain::protocol::Error>) -> Value {
+    match result {
+        Ok(result) => json!({"ok":true, "result":result}),
+        Err(error) => json!({"ok":false, "error":error}),
+    }
+}
+
 #[tokio::main]
 async fn main() {
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let mut registry =
         MarketRegistry::new(MarketWorker::new(Some(WorkerConfig::development(&root))));
-    let mut input = std::io::stdin().lock();
     loop {
         let mut line = String::new();
-        let read = (&mut input)
+        let read = std::io::stdin()
+            .lock()
             .take(max_message_bytes() as u64 + 1)
             .read_line(&mut line);
         if matches!(read, Ok(0)) {
@@ -36,6 +49,27 @@ async fn main() {
             break;
         }
         let result = match serde_json::from_str::<Input>(&line) {
+            Ok(request) if request.operation == SUBSCRIBE => {
+                // A streaming request owns this bridge until completion. The
+                // parent closes stdin on disconnect to cancel the owned worker.
+                let (signal, cancelled) = tokio::sync::oneshot::channel();
+                std::thread::spawn(move || {
+                    let _ = std::io::stdin().read(&mut [0u8; 1]);
+                    let _ = signal.send(());
+                });
+                let result = run_subscription(
+                    Some(WorkerConfig::development(&root)),
+                    Actor::User,
+                    request.payload,
+                    async {
+                        let _ = cancelled.await;
+                    },
+                    |frame| write_frame(frame).map_err(|_| failure(ErrorCode::CANCELLED)),
+                )
+                .await;
+                let _ = write_frame(reply(result));
+                break;
+            }
             Ok(request) => {
                 registry
                     .execute(Actor::User, &request.operation, request.payload)
@@ -43,14 +77,9 @@ async fn main() {
             }
             Err(_) => Err(failure(ErrorCode::INVALIDARGUMENT)),
         };
-        let output = match result {
-            Ok(result) => json!({"ok":true, "result":result}),
-            Err(error) => json!({"ok":false, "error":error}),
-        };
-        println!("{output}");
-        if std::io::stdout().flush().is_err() {
+        if write_frame(reply(result)).is_err() {
             break;
         }
     }
-    registry.shutdown().await;
+    let _ = registry.shutdown().await;
 }

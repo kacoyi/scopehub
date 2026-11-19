@@ -78,6 +78,7 @@
         "task.cancel",
         "workspace.getContext",
         "market.readHistoryPage",
+        "market.subscribe",
         "workspace.readChartProjection",
         "workspace.selectEvidence"
       ]
@@ -2957,6 +2958,9 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 100000
+        },
+        "include_stream_position": {
+          "type": "boolean"
         }
       },
       "required": [
@@ -3420,6 +3424,16 @@
         "error"
       ],
       "additionalProperties": false
+    },
+    "MarketSubscriptionReply11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/MarketSubscriptionResponse"
+        },
+        {
+          "$ref": "#/$defs/MarketSubscriptionError"
+        }
+      ]
     },
     "MarketStreamBarUpdate": {
       "type": "object",

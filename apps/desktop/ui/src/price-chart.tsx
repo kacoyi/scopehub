@@ -6,9 +6,10 @@ import type { Bar, Instrument, MarketGetBarsOutput } from './market';
 type Props = {
   instrument: Instrument; history: MarketGetBarsOutput; style: ChartStyle; cursor: ChartCursorMode;
   handle: RefObject<HistoryChartHandle | null>;
+  replayBar: Bar | undefined;
 };
 
-export function PriceChart({ instrument, history, style, cursor, handle }: Props) {
+export function PriceChart({ instrument, history, style, cursor, handle, replayBar }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const firstStyle = useRef(style);
   const [selected, setSelected] = useState<Bar | undefined>(history.bars.at(-1));
@@ -25,6 +26,11 @@ export function PriceChart({ instrument, history, style, cursor, handle }: Props
   }, [history, instrument, handle]);
   useEffect(() => { handle.current?.setStyle(style); }, [style, history, handle]);
   useEffect(() => { handle.current?.setCursor(cursor); }, [cursor, history, handle]);
+  useEffect(() => {
+    const last = replayBar ?? history.bars.at(-1);
+    if (!last) return;
+    try { handle.current?.updateLast(last); } catch { setFailed(true); }
+  }, [replayBar, history, handle]);
   return <div className="history" data-instrument={history.dataset.instrument_id} data-timeframe={history.dataset.timeframe} data-bars={history.bars.length}>
     <div className="chart-legend">
       <div className="legend-title"><span className={'asset-mark ' + instrument.asset_class} aria-hidden="true">

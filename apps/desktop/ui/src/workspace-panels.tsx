@@ -14,7 +14,7 @@ function InstrumentDetails({ instrument, history }: { instrument: Instrument; hi
   return <section className="instrument-details" aria-label="Selected instrument details">
     <div className="detail-symbol"><span className={'asset-mark ' + instrument.asset_class} aria-hidden="true">{instrument.asset_class === 'future' ? 'F' : 'S'}</span>
       <div><strong>{symbol(instrument)}</strong><small>{instrumentName(instrument)} · {assetLabel(instrument)}</small></div></div>
-    <div className="quote-label">Sample close · {history.dataset.timeframe}</div>
+    <div className="quote-label">Snapshot close · {history.dataset.timeframe}</div>
     <div className="quote">{price(last.close, instrument)} <span>{instrument.currency}</span></div>
     {previous && difference !== undefined && previous.close !== 0 && <div className="quote-difference">
       <b className={difference > 0 ? 'up' : difference < 0 ? 'down' : ''}>

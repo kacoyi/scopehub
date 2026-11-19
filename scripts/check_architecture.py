@@ -147,6 +147,9 @@ def declared_source_boundaries(root):
 
 def desktop_capability_errors(root):
     errors = []
+    commands = ['execute_operation', 'execute_market_subscription', 'cancel_market_subscription',
+                'prepare_market_subscription', 'cancel_market_preparation']
+    permissions = ['allow-' + command.replace('_', '-') for command in commands]
     directory = root / 'apps/desktop/src-tauri'
     capabilities = list((directory / 'capabilities').glob('*'))
     if {path.name for path in capabilities} != {'main.json'}:
@@ -159,13 +162,14 @@ def desktop_capability_errors(root):
         if (capability.get('remote') is not None or capability.get('windows') != ['main']
                 or capability.get('webviews') or capability.get('local', True) is not True
                 or capability.get('identifier') != 'main'
-                or capability.get('permissions') != ['allow-execute-operation']):
+                or capability.get('permissions') != permissions):
             errors.append(f'Desktop capability exceeds the local operation registry: {path.name}')
     config = json.loads((directory / 'tauri.conf.json').read_text())
     if config['app']['security'].get('capabilities') != ['main']:
         errors.append('Desktop capability configuration must select only main')
     build = (directory / 'build.rs').read_text()
-    if 'AppManifest::new().commands(&["execute_operation"])' not in build:
+    manifest = re.search(r'AppManifest::new\(\)\.commands\(&\[([^\]]*)\]\)', build)
+    if manifest is None or re.findall(r'"([^"]+)"', manifest[1]) != commands:
         errors.append('Desktop commands must use the reviewed application ACL')
     return errors
 
