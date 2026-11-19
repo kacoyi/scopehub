@@ -1930,6 +1930,38 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "text-model-terminal-frame-ends-writer",
+      "source": "Independent review of b6e21fa and 88909e9 with the real adapter and ordinary chat component.",
+      "observation": "A legitimate 20,480-byte answer fit the connector limit but produced a 20,943-byte internal result above the workspace bridge limit of 16,384 bytes. The reader returned before its handler and the local workspace writer exited.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M4-007"
+      ],
+      "regression_checks": [
+        "model-connection-workflow",
+        "model-connection-replay"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "text-model-poll-loss-clears-transcript",
+      "source": "Independent review of b6e21fa and 88909e9 with the real adapter and ordinary chat component.",
+      "observation": "Losing one local poll reply or receiving a mismatched reply on turn two cleared the displayed first turn and presented the active connection as disconnected. Reopening retained only the second answer and left its question ready for resubmission.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M4-007"
+      ],
+      "regression_checks": [
+        "model-connection-workflow",
+        "model-connection-replay"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
