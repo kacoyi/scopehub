@@ -102,6 +102,7 @@ function failureMessage(error: unknown) {
     case 'CONFIRMATION_REQUIRED': return 'The review expired. Review the action again.';
     case 'INVALID_ARGUMENT': return 'Check the record fields or select a valid private records backup.';
     case 'DATA_UNAVAILABLE': return 'This private record is no longer available.';
+    case 'BUSY': return 'The local workspace is busy. Try again.';
     case 'WORKER_EXITED': return 'The local workspace is unavailable. Private records are hidden.';
     case 'PERMISSION_DENIED': return 'This action or backup is unavailable in this local profile.';
     case 'RESOURCE_LIMIT': return 'This action exceeds a local record or backup limit.';

@@ -13,6 +13,8 @@ import { expect, test } from '@playwright/test';
 import { control, leaveSample } from '../ui/workspace-controls.mjs';
 import { painted } from '../ui/chart-pixels.mjs';
 import { startLocalImportBridge } from '../ui/local-import-bridge.mjs';
+import { busy, future, sampleCatalogCall, sampleHistoryCall } from '../ui/sample-startup.mjs';
+import { observeSelectedHistory, operationPath, readMarketAttemptStages, traceHeader, waitForSelectedHistoryTerminal } from '../ui/selected-history.mjs';
 import { assertUnsuitableWindowsHandoffsRejected, assertWindowsPrivateHandoff } from './workspace_test_handoff_acl.mjs';
 
 const exec = promisify(execFile);
@@ -29,14 +31,42 @@ const snapshot = { type: 'snapshot' };
 // SQLite read when the actual producer is deliberately suspended.
 const admissionProbe = { type: 'snapshot', request_id: 1 };
 const service = `
-  const [entry, mode, port] = process.argv.slice(1);
+  const [entry, mode, port, faultEnabled] = process.argv.slice(1);
   const { createServer } = await import(entry);
+  let interrupted;
+  const plugins = faultEnabled ? [{
+    name: 'scopehub-test-history-response-interruption',
+    enforce: 'pre',
+    configureServer(server) {
+      server.middlewares.use((request, response, next) => {
+        const fault = request.headers['x-scopehub-test-interrupt'];
+        if (request.url !== '${operationPath}' || !request.headers['${traceHeader}'] || !fault) return next();
+        const end = response.end;
+        response.end = function (...args) {
+          if (fault === 'before-headers' && response.statusCode === 200) return response.destroy();
+          if (fault === 'during-body-' + response.statusCode) {
+            interrupted = response;
+            response.write('{');
+            return response;
+          }
+          return end.apply(this, args);
+        };
+        next();
+      });
+    },
+  }] : [];
   // These journeys restart the service explicitly. Leave file watching to interactive Vite.
-  const server = await createServer({ mode, server: { host: '127.0.0.1', port: Number(port), strictPort: true, watch: null } });
-  process.once('message', async () => {
+  const server = await createServer({ mode, plugins, server: { host: '127.0.0.1', port: Number(port), strictPort: true, watch: null } });
+  async function receive(message) {
+    if (message !== 'close' && message !== 'cut-history') return;
+    interrupted?.destroy();
+    interrupted = undefined;
+    if (message !== 'close') return;
+    process.off('message', receive);
     await server.close();
     process.disconnect();
-  });
+  }
+  process.on('message', receive);
   await server.listen();
 `;
 
@@ -1559,6 +1589,81 @@ test('decision-note list removes peer deletions after focus and a rejected detai
   }
 });
 
+const futureHistory = { '1m': 40, '5m': 8, '1d': 2 };
+const sampleButton = page => control(page, 'Open offline sample');
+const retryHistory = page => control(page, 'Retry history');
+
+async function sampleStep(page, server, testInfo, label, trigger, {
+  timeframe = '1m', catalog = true, error, retryable = false,
+} = {}) {
+  const requests = [];
+  const calls = [];
+  const issued = request => {
+    if (request.method() !== 'POST' || new URL(request.url()).pathname !== operationPath) return;
+    requests.push(request);
+    calls.push(request.postDataJSON());
+  };
+  const selection = { id: future, timeframe };
+  const history = page.locator(`.history[data-instrument="${future}"][data-timeframe="${timeframe}"]`);
+  let terminal;
+  page.on('request', issued);
+  try {
+    await trigger();
+    await expect(page.locator('.connection')).toHaveText('Offline sampleSimulated');
+    await expect(control(page, timeframe)).toHaveAttribute('aria-pressed', 'true');
+    terminal = await waitForSelectedHistoryTerminal(page, history.locator('canvas').first(), selection);
+    expect(terminal, label).toEqual(error ? { state: 'error', message: error } : { state: 'chart' });
+    await expect(retryHistory(page)).toHaveCount(retryable ? 1 : 0);
+    if (error) await expect(page.locator('.history')).toHaveCount(0);
+    else await expect(history).toHaveAttribute('data-bars', String(futureHistory[timeframe]));
+
+    const expected = [...(catalog ? [sampleCatalogCall] : []), sampleHistoryCall(timeframe)];
+    let phase = 0;
+    for (const [index, request] of requests.entries()) {
+      const call = expected[phase];
+      expect(calls[index], label).toEqual(call);
+      const response = request.existingResponse();
+      if (response?.status() === 429) {
+        expect(await response.json()).toEqual(busy);
+        continue;
+      }
+      phase++;
+      if (call.operation === 'market.readHistoryPage' && error) continue;
+      expect(request.failure()).toBeNull();
+      expect(response?.status()).toBe(200);
+      expect(await response.finished()).toBeNull();
+      const reply = await response.json();
+      expect(reply.ok).toBe(true);
+      if (call.operation === 'instrument.search') {
+        expect(reply.result.instruments.map(instrument => instrument.id)).toEqual([
+          future, 'SIM.CN.STOCK.001', 'SIM.US.STOCK.001',
+        ]);
+      } else {
+        expect(reply.result).toMatchObject({
+          snapshot: { series: call.payload.series, dataset_revision: call.payload.expected_revision },
+          dataset: { provider_id: 'scopehub.synthetic', mode: 'simulated' },
+          quality_state: { connection: 'offline' }, total_bars: futureHistory[timeframe], next_cursor: null,
+        });
+        expect(reply.result.bars).toHaveLength(futureHistory[timeframe]);
+        expect(reply.result.snapshot.content_hash).toMatch(/^[a-f0-9]{64}$/);
+      }
+    }
+    expect(phase, label).toBe(expected.length);
+    const terminalRequest = requests.at(-1);
+    // The service's stdout and the browser events arrive independently.
+    await expect.poll(() => server.historyStages.get(terminalRequest.headers()[traceHeader])?.at(-1)?.stage)
+      .toMatch(/^(finished|closed)$/);
+    return terminalRequest;
+  } finally {
+    page.off('request', issued);
+    const stages = await readMarketAttemptStages(page, requests);
+    const attempts = stages.map((stage, index) => ({
+      call: calls[index], ...stage, host: server.historyStages.get(stage.trace),
+    }));
+    await testInfo.attach(label, { contentType: 'application/json', body: JSON.stringify({ selection, terminal, attempts }) });
+  }
+}
+
 test('the offline sample keeps its own timeframe without replacing the private undo', async ({ browser }, testInfo) => {
   const profile = await makeProfile();
   const port = await freePort();
@@ -1566,6 +1671,7 @@ test('the offline sample keeps its own timeframe without replacing the private u
   try {
     await inService(port, profile, 'ubuntu-workspace', async server => {
       const page = await context.newPage();
+      await observeSelectedHistory(page, { includeCatalog: true });
       const launchPath = '/synthetic-private-launch';
       await page.addInitScript(({ launchPath, capability }) => {
         // Simulate the real handoff without exposing its fragment in navigation
@@ -1593,11 +1699,6 @@ test('the offline sample keeps its own timeframe without replacing the private u
           request_id: expect.stringMatching(/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/),
         }, snapshot]);
       };
-      const assertSample = async (tab, timeframe) => {
-        await expect(tab.locator('.connection')).toHaveText('Offline sampleSimulated');
-        await expect(control(tab, timeframe)).toHaveAttribute('aria-pressed', 'true');
-        await expect(tab.locator('.history')).toHaveAttribute('data-timeframe', timeframe);
-      };
       const undo = control(page, 'Undo timeframe change');
 
       await launch();
@@ -1618,25 +1719,22 @@ test('the offline sample keeps its own timeframe without replacing the private u
       await expect(undo).toBeEnabled();
 
       const beforeSample = workspaceRequests.length;
-      await control(page, 'Open offline sample').click();
-      await assertSample(page, '1m');
+      await sampleStep(page, server, testInfo, 'first explicit sample open', () => sampleButton(page).click());
       await expect(page).toHaveURL(shellUrl);
       await expect(control(page, 'Edit layout')).toBeEnabled();
       assertSourceWrite(beforeSample, 0, sampleSource);
       const duringSample = workspaceRequests.length;
-      await control(page, '5m').click();
-      await assertSample(page, '5m');
+      await sampleStep(page, server, testInfo, 'sample five-minute selection', () => control(page, '5m').click(),
+        { timeframe: '5m', catalog: false });
       const after = await readPrivate(1, sampleSource);
       const refreshed = await context.newPage();
-      await refreshed.goto(server.url);
-      await expect(refreshed.locator('.history')).toBeVisible();
-      await refreshed.reload();
-      await expect(refreshed.locator('.history')).toBeVisible();
+      await observeSelectedHistory(refreshed, { includeCatalog: true });
+      await sampleStep(refreshed, server, testInfo, 'shared sample preference open', () => refreshed.goto(server.url), { timeframe: '5m' });
+      await sampleStep(refreshed, server, testInfo, 'shared sample preference refresh', () => refreshed.reload(), { timeframe: '5m' });
       const refreshedTimeframe = await refreshed.locator('.history').getAttribute('data-timeframe');
       expect(after).toEqual(before);
       expect(workspaceRequests.slice(duringSample)).toEqual([]);
       await expect(undo).toHaveCount(0);
-      await assertSample(refreshed, '5m');
       await expect(control(refreshed, 'Undo timeframe change')).toHaveCount(0);
       await assertSampleStorage(refreshed, '5m');
       await refreshed.close();
@@ -1675,16 +1773,14 @@ test('the offline sample keeps its own timeframe without replacing the private u
       expect(workspaceRequests.slice(beforeReload)).toEqual([snapshot]);
 
       const beforeSampleReload = workspaceRequests.length;
-      await control(page, 'Open offline sample').click();
-      await assertSample(page, '1m');
+      await sampleStep(page, server, testInfo, 'second explicit sample open', () => sampleButton(page).click());
       assertSourceWrite(beforeSampleReload, 2, sampleSource);
       const duringSampleReload = workspaceRequests.length;
-      await control(page, '1d').click();
-      await assertSample(page, '1d');
+      await sampleStep(page, server, testInfo, 'sample daily selection', () => control(page, '1d').click(),
+        { timeframe: '1d', catalog: false });
       expect(await readPrivate(3, sampleSource)).toEqual(afterUndo);
       await assertSampleStorage(page, '1d');
-      await page.reload();
-      await assertSample(page, '1d');
+      await sampleStep(page, server, testInfo, 'sample daily refresh', () => page.reload(), { timeframe: '1d' });
       await expect(undo).toHaveCount(0);
       await assertSampleStorage(page, '1d');
       await leaveSample(page);
@@ -1698,9 +1794,8 @@ test('the offline sample keeps its own timeframe without replacing the private u
       // The browser-only leave discarded its presentation preference without a local grant.
       // Relaunching the profile restores its explicit sample at the browser's default period.
       const beforeProfileRestore = workspaceRequests.length;
-      await launch();
+      await sampleStep(page, server, testInfo, 'restore the profile sample', launch);
       await expect(page).toHaveURL(shellUrl);
-      await assertSample(page, '1m');
       await expect(undo).toHaveCount(0);
       expect(workspaceRequests.slice(beforeProfileRestore)).toEqual([snapshot]);
       expect(await readPrivate(3, sampleSource)).toEqual(afterUndo);
@@ -1718,9 +1813,159 @@ test('the offline sample keeps its own timeframe without replacing the private u
           sampleWorkspaceRequests: workspaceRequests.slice(beforeSample), finalSelectionRevision: 4 }),
         contentType: 'application/json',
       });
-    });
+    }, { historyTrace: true });
   } finally {
     await context.close();
+    await profile.close();
+  }
+});
+
+test('the reopened sample recovers its history without consuming the private undo', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  const port = await freePort();
+  const disconnected = 'Disconnected from the local preview. Retry when the connection is restored.';
+  const selectedCall = sampleHistoryCall();
+  const isSelected = request => request.method() === 'POST' && new URL(request.url()).pathname === operationPath
+    && request.postDataJSON()?.operation === selectedCall.operation;
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        const writer = await writerPid(server);
+        const privateState = async (selectionRevision, kind) => {
+          const frame = await (await post(server, snapshot)).json();
+          expect(frame.result.source).toEqual(kind === 'sample' ? { kind, instrument_id: null } : { kind });
+          return state(frame, selectionRevision);
+        };
+        const committed = (await act(page, '5m', 'chart.setTimeframe')).result.outcome;
+        expect(committed).toMatchObject({ state: 'committed', result: { timeframe: '5m', revision: 1 }, receipt: { undoable: true } });
+        const undo = control(page, 'Undo timeframe change');
+        const before = {
+          revision: 1, timeframe: '5m',
+          undo: { operation_id: committed.receipt.operation_id, committed_workspace_revision: 1 },
+        };
+        const sourceCalls = [];
+        page.on('request', request => {
+          if (new URL(request.url()).pathname === endpoint) sourceCalls.push(request.postDataJSON());
+        });
+        const open = () => sampleButton(page).click();
+        const retry = () => retryHistory(page).click();
+        const step = (label, trigger, options) => sampleStep(page, server, testInfo, label, trigger, options);
+        const cutBody = (trigger, status) => async () => {
+          const [response] = await Promise.all([
+            page.waitForResponse(response => isSelected(response.request())), trigger(),
+          ]);
+          expect(response.status()).toBe(status);
+          await server.cutHistoryResponse();
+        };
+        const inject = async (fault, change, run) => {
+          const handler = async route => {
+            const request = route.request();
+            if (!isSelected(request)) return route.continue();
+            const call = request.postDataJSON();
+            const headers = await request.allHeaders();
+            if (fault) headers['x-scopehub-test-interrupt'] = fault;
+            change?.(call.payload);
+            return route.continue({ headers, ...(change && { postData: JSON.stringify(call) }) });
+          };
+          await page.route(`**${operationPath}`, handler);
+          try { return await run(); }
+          finally { await page.unroute(`**${operationPath}`, handler); }
+        };
+
+        const initial = await step('healthy open before interruption', open);
+        const initialHistory = (await initial.existingResponse().json()).result.snapshot;
+        await leaveSample(page);
+        await expect(undo).toBeEnabled();
+        await inject('before-headers', undefined, async () => {
+          const failed = await step('reopen with lost history response', open, { error: disconnected, retryable: true });
+          const stillLost = await step('retry while still disconnected', retry, { catalog: false, error: disconnected, retryable: true });
+          for (const request of [failed, stillLost]) {
+            const [attempt] = await readMarketAttemptStages(page, [request]);
+            expect(attempt).toMatchObject({
+              failure: expect.stringMatching(/^net::ERR_(EMPTY_RESPONSE|CONNECTION_(ABORTED|CLOSED|RESET))$/),
+              client: { stage: 'fetch-rejected', error: 'TypeError', selectionAborted: false },
+            });
+            expect(request.existingResponse()).toBeNull();
+            const host = server.historyStages.get(attempt.trace);
+            expect(host.length).toBeGreaterThanOrEqual(3);
+            // Chromium can resend the same HTTP request when a reused socket closes before headers.
+            for (let i = 0; i < host.length; i += 3) {
+              expect(host.slice(i, i + 3)).toEqual([
+                { stage: 'received' }, { stage: 'admitted' }, { stage: 'closed', status: 200 },
+              ]);
+            }
+          }
+          expect(failed.headers()[traceHeader]).not.toBe(stillLost.headers()[traceHeader]);
+          expect(await privateState(3, 'sample')).toEqual(before);
+        });
+        await inject('during-body-200', undefined, async () => {
+          const request = await step('retry with interrupted successful response body', cutBody(retry, 200), {
+            catalog: false, error: disconnected, retryable: true,
+          });
+          const [attempt] = await readMarketAttemptStages(page, [request]);
+          expect(attempt).toMatchObject({
+            status: 200, client: { stage: 'body-rejected', status: 200, error: 'TypeError', selectionAborted: false },
+          });
+        });
+        const restored = await step('explicit history retry after transport is restored', retry, { catalog: false });
+        expect(restored.postDataJSON()).toEqual(selectedCall);
+        expect((await restored.existingResponse().json()).result.snapshot).toEqual(initialHistory);
+        await expect(undo).toHaveCount(0);
+        await assertSampleStorage(page, '1m');
+        await leaveSample(page);
+
+        // A response rejected by the preview still has its real HTTP status even when its body is lost.
+        const deniedProvider = payload => { payload.series.provider_id = 'synthetic.denied'; };
+        await inject(null, deniedProvider, async () => {
+          const request = await step('completed preview denial', open, { error: 'Access to this source is denied.' });
+          expect(request.postDataJSON().payload.series.provider_id).toBe('synthetic.denied');
+          const response = request.existingResponse();
+          expect(response.status()).toBe(403);
+          expect(await response.json()).toEqual({ ok: false, error: { code: 'PERMISSION_DENIED', retryable: false } });
+        });
+        await leaveSample(page);
+        await inject('during-body-403', deniedProvider, async () => {
+          const request = await step('preview denial with interrupted body', cutBody(open, 403),
+            { error: 'The local preview returned HTTP 403.' });
+          const [attempt] = await readMarketAttemptStages(page, [request]);
+          expect(attempt).toMatchObject({
+            status: 403, client: { stage: 'body-rejected', status: 403, error: 'TypeError', selectionAborted: false },
+          });
+          expect(server.historyStages.get(attempt.trace)).toEqual([
+            { stage: 'received' }, { stage: 'failed', code: 'PERMISSION_DENIED' }, { stage: 'closed', status: 403 },
+          ]);
+        });
+        await leaveSample(page);
+        await inject(null, payload => { payload.expected_revision = 'scopehub-synthetic-v1:20241013:missing'; }, async () => {
+          const request = await step('provider revision rejection', open, { error: 'The selected historical revision is unavailable.' });
+          expect(request.postDataJSON().payload.expected_revision).toBe('scopehub-synthetic-v1:20241013:missing');
+          const response = request.existingResponse();
+          expect(response.status()).toBe(200);
+          expect(await response.json()).toMatchObject({ ok: false, error: { code: 'SNAPSHOT_UNAVAILABLE', retryable: false } });
+        });
+        await leaveSample(page);
+
+        const expectedScopeChanges = Array.from({ length: 10 }, (_, revision) => [{
+          type: 'workspace_source',
+          source: revision % 2 === 0 ? { kind: 'sample', instrument_id: null } : { kind: 'none' },
+          expected_selection_revision: revision,
+          request_id: expect.stringMatching(/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/),
+        }, snapshot]).flat();
+        expect(sourceCalls).toEqual(expectedScopeChanges);
+        expect(await postStatus(server, snapshot, { Authorization: '' })).toBe(403);
+        expect(await privateState(10, 'none')).toEqual(before);
+        expect(await writerPid(server)).toBe(writer);
+        await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
+        await expect(undo).toBeEnabled();
+        expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
+        const inverted = await duringResponse(page, 'workspace.undo', () => undo.click());
+        expect(inverted.request().postDataJSON().intent.arguments).toEqual({ operation_id: committed.receipt.operation_id });
+        expect((await inverted.json()).result.outcome).toMatchObject({ state: 'committed', result: { timeframe: '1m', revision: 2 } });
+        await expect(undo).toBeDisabled();
+        expect(await privateState(10, 'none')).toEqual({ revision: 2, timeframe: '1m', undo: null });
+      }, [endpoint, operationPath], { traceSample: true });
+    }, { historyTrace: true, historyFault: true });
+  } finally {
     await profile.close();
   }
 });
@@ -2024,11 +2269,11 @@ async function freePort() {
   return port;
 }
 
-async function inService(port, profile, mode, use, { expectHandoff = true, terminalSignal } = {}) {
+async function inService(port, profile, mode, use, { expectHandoff = true, terminalSignal, historyTrace = false, historyFault = false } = {}) {
   const url = 'http://127.0.0.1:' + port;
   const args = terminalSignal
     ? [viteCli, '--mode', mode, '--host', '127.0.0.1', '--port', String(port), '--strictPort']
-    : ['--input-type=module', '--eval', service, vite, mode, String(port)];
+    : ['--input-type=module', '--eval', service, vite, mode, String(port), historyFault ? '1' : ''];
   const child = spawn(process.execPath, args, {
     cwd: ui,
     env: {
@@ -2036,12 +2281,14 @@ async function inService(port, profile, mode, use, { expectHandoff = true, termi
       SCOPEHUB_WORKSPACE_PROFILE_ROOT: profile.root,
       SCOPEHUB_WORKSPACE_PROFILE_ID: profile.id,
       SCOPEHUB_WORKSPACE_ID: profile.workspaceId ?? workspaceId,
+      ...(historyTrace && { SCOPEHUB_TEST_PREVIEW: '1' }),
     },
     stdio: terminalSignal ? ['pipe', 'pipe', 'pipe'] : ['ignore', 'pipe', 'pipe', 'ipc'],
   });
   const closed = once(child, 'close');
   let output = '';
   let handoffRejected = false;
+  const historyStages = new Map();
   for (const stream of [child.stdout, child.stderr]) {
     stream.setEncoding('utf8');
     stream.on('data', chunk => {
@@ -2050,10 +2297,27 @@ async function inService(port, profile, mode, use, { expectHandoff = true, termi
       output = recent.slice(-6000);
     });
   }
+  if (historyTrace) {
+    let pending = '';
+    child.stdout.on('data', chunk => {
+      const lines = (pending + chunk).split('\n');
+      pending = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('Preview history ')) continue;
+        const { id, ...stage } = JSON.parse(line.slice('Preview history '.length));
+        if (!historyStages.has(id)) historyStages.set(id, []);
+        historyStages.get(id).push(stage);
+      }
+    });
+  }
   const server = {
     url, pid: child.pid,
     handoff: join(profile.root, 'workspace-access-' + port + '.html'),
     handoffRejected: () => handoffRejected,
+    historyStages,
+    cutHistoryResponse: () => new Promise((resolve, reject) => {
+      child.send('cut-history', error => error ? reject(error) : resolve());
+    }),
   };
   try {
     const deadline = Date.now() + 10_000;
@@ -2183,18 +2447,18 @@ async function assertSampleStorage(page, timeframe) {
     return {
       onlySamplePreference: localStorage.length === 1 && preference !== null,
       emptySessionStorage: sessionStorage.length === 0,
-      matchesSample: preference?.source === 'scopehub.synthetic' && preference.timeframe === expected
-        && typeof preference.symbol === 'string' && /^SIM\.[.A-Z0-9]+$/.test(preference.symbol)
+      matchesSample: preference?.source === 'scopehub.synthetic' && preference.timeframe === expected.timeframe
+        && preference.symbol === expected.instrument
         && preference.style === 'candlestick' && preference.cursor === 'crosshair'
         && preference.panel === 'watchlist' && preference.chartOnly === false && preference.narrow === false
         && preference.sampleRevision === 'normal' && preference.sampleDate === ''
         && Object.keys(preference).length === 10,
     };
-  }, timeframe);
+  }, { timeframe, instrument: future });
   expect(stored).toEqual({ onlySamplePreference: true, emptySessionStorage: true, matchesSample: true });
 }
 
-async function inFreshBrowser(browser, server, use, permittedOperations = [endpoint], { restoredSample = false } = {}) {
+async function inFreshBrowser(browser, server, use, permittedOperations = [endpoint], { restoredSample = false, traceSample = false } = {}) {
   const context = await browser.newContext();
   try {
     // Read the real launcher handoff but set its fragment locally before page
@@ -2203,6 +2467,7 @@ async function inFreshBrowser(browser, server, use, permittedOperations = [endpo
       window.history.replaceState(null, '', '#workspace=' + capability);
     }, server.capability);
     const page = await context.newPage();
+    if (traceSample) await observeSelectedHistory(page, { includeCatalog: true });
     const requests = observeOperations(page);
     let capabilityInRequestUrl = false;
     page.on('request', request => { capabilityInRequestUrl ||= request.url().includes(server.capability); });
@@ -2235,7 +2500,7 @@ function duringResponse(page, operation, action, timeout) {
     && response.request().postDataJSON()?.intent?.operation === operation, action, timeout);
 }
 
-async function duringPageEvent(page, event, matches, action, timeout) {
+async function duringPageEvent(page, event, matches, action, timeout, failedRequestMatches) {
   // A navigation or action can fail before the expected event is possible.
   // Record event errors without rejecting a detached promise, and preserve the action error.
   const { promise, resolve } = Promise.withResolvers();
@@ -2248,9 +2513,21 @@ async function duringPageEvent(page, event, matches, action, timeout) {
   };
   const onClose = () => resolve({ error: new Error(`Page closed before the expected ${event}.`) });
   const onCrash = () => resolve({ error: new Error(`Page crashed before the expected ${event}.`) });
+  const onRequestFailed = request => {
+    try {
+      if (failedRequestMatches(request)) {
+        const response = request.existingResponse();
+        const status = response ? ` after HTTP ${response.status()}` : '';
+        resolve({ error: new Error(`Workspace request failed${status}: ${request.failure()?.errorText}`) });
+      }
+    } catch (error) {
+      resolve({ error });
+    }
+  };
   page.on(event, onEvent);
   page.on('close', onClose);
   page.on('crash', onCrash);
+  if (failedRequestMatches) page.on('requestfailed', onRequestFailed);
   const timer = timeout && setTimeout(() => resolve({ error: new Error(`Timed out waiting for ${event}.`) }), timeout);
   try {
     await action();
@@ -2262,6 +2539,7 @@ async function duringPageEvent(page, event, matches, action, timeout) {
     page.off(event, onEvent);
     page.off('close', onClose);
     page.off('crash', onCrash);
+    if (failedRequestMatches) page.off('requestfailed', onRequestFailed);
   }
 }
 
@@ -2703,7 +2981,7 @@ test('private record review counts current survivors absent from an empty backup
   } finally { await profile.close(); }
 });
 
-function deleteResolution(payload) {
+function isPrivateApproval(payload) {
   return payload?.intent?.operation === 'privateRecord.change'
     && payload.intent.arguments.action === 'resolve' && payload.intent.arguments.decision === 'approve';
 }
@@ -2723,6 +3001,83 @@ function assertSameDeleteResolution(before, retry) {
   expect(Object.keys(retry.intent.arguments).sort()).toEqual(['action', 'challenge_id', 'decision']);
 }
 
+function privateRequestMatches(operation, argumentsMatch = () => true) {
+  return payload => payload?.intent?.operation === operation && argumentsMatch(payload.intent.arguments, payload);
+}
+
+async function privateReplyDuring(page, stages, step, matches, action) {
+  return test.step(step, async () => {
+    const matchesRequest = request => new URL(request.url()).pathname === endpoint && matches(request.postDataJSON());
+    const observed = { step };
+    stages.push(observed);
+    try {
+      const request = await duringPageEvent(page, 'requestfinished', matchesRequest, action, 8_000, matchesRequest);
+      const response = await request.response();
+      observed.http = response.status();
+      const frame = await response.json();
+      const payload = request.postDataJSON();
+      const outcome = frame.result?.outcome;
+      observed.state = outcome?.state;
+      observed.code = outcome?.error?.code ?? frame.error?.code;
+      if (frame.ok) expect(frame.result.request_id).toBe(payload.request_id);
+      return { payload, outcome, observed };
+    } catch (error) {
+      observed.error = error.message.split('\n')[0];
+      throw error;
+    }
+  });
+}
+
+function clickPrivate(panel, name) {
+  return panel.getByRole('button', { name, exact: true }).click({ timeout: 5_000 });
+}
+
+async function assertPrivateHidden(panel, ...values) {
+  for (const value of values) {
+    await expect(panel.getByText(value, { exact: true })).toHaveCount(0);
+  }
+}
+
+test('an authorized peer sees shared producer BUSY and its failed step detaches the observer', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  const stages = [];
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async origin => {
+        await inFreshBrowser(browser, server, async (peer, initial) => {
+          expect(initial.ok).toBe(true);
+          await openPrivateRecords(origin);
+          const writer = await writerPid(server);
+          const listenerEvents = ['requestfinished', 'requestfailed', 'close', 'crash'];
+          const listenerCounts = () => listenerEvents.map(event => origin.listenerCount(event));
+          const before = listenerCounts();
+          const read = privateRequestMatches('privateRecord.read');
+          const observedPeerFailure = privateReplyDuring(origin, stages, 'abandoned origin observer', read, async () => {
+            await writerPid(server, 'suspend', writer);
+            try {
+              await focusPrivateRecords(origin);
+              await expect.poll(() => postStatus(server, admissionProbe), { timeout: 3_000 }).toBe(429);
+              const reply = await privateReplyDuring(peer, stages, 'peer opens private records during origin poll', read,
+                () => control(peer, 'Private records').click({ timeout: 5_000 }));
+              expect(reply.observed).toMatchObject({ http: 429, code: 'BUSY' });
+              throw new Error(`Peer private record read returned HTTP ${reply.observed.http} ${reply.observed.code}`);
+            } finally {
+              await writerPid(server, 'resume', writer);
+            }
+          });
+          await expect(observedPeerFailure).rejects.toThrow('Peer private record read returned HTTP 429 BUSY');
+          expect(listenerCounts()).toEqual(before);
+          stages.push({ step: 'observer cleanup', listenersRestored: true, sharedWriter: writer });
+          await expect(peer.getByRole('alert')).toContainText('The local workspace is busy.');
+        });
+      });
+    });
+  } finally {
+    await testInfo.attach('shared-private-writer', { body: JSON.stringify(stages), contentType: 'application/json' });
+    await profile.close();
+  }
+});
+
 for (const fault of ['lost reply', 'blocked checkpoint']) {
   test(`private record delete recovers after detail disappears with ${fault}`, async ({ browser }) => {
     const profile = await makeProfile();
@@ -2738,19 +3093,19 @@ for (const fault of ['lost reply', 'blocked checkpoint']) {
           const snapshot = fault === 'blocked checkpoint' ? new DatabaseSync(databasePath, { readOnly: true }) : null;
           try {
             const id = inspector.prepare('SELECT record_id FROM private_records').get().record_id;
-            const resolution = page.waitForRequest(request => deleteResolution(request.postDataJSON()));
+            const resolution = page.waitForRequest(request => isPrivateApproval(request.postDataJSON()));
             const gone = privateDetailReply(page, id, outcome => outcome?.error?.code === 'DATA_UNAVAILABLE');
             await panel.getByRole('button', { name: 'Review deletion' }).click();
             let initialReceipt;
             if (snapshot) {
               snapshot.exec('BEGIN');
               expect(snapshot.prepare('SELECT revision FROM private_records').get().revision).toBe(1);
-              const approval = page.waitForResponse(response => deleteResolution(response.request().postDataJSON()));
+              const approval = page.waitForResponse(response => isPrivateApproval(response.request().postDataJSON()));
               await panel.getByRole('button', { name: 'Delete private record', exact: true }).click();
               expect((await (await approval).json()).result.outcome.error.code).toBe('BUSY');
               expect(inspector.prepare('SELECT revision FROM private_record_cleanup').get().revision).toBe(2);
             } else {
-              const dropped = await dropApprovalReply(page, server, 'privateRecord.change', deleteResolution);
+              const dropped = await dropApprovalReply(page, server, 'privateRecord.change', isPrivateApproval);
               await panel.getByRole('button', { name: 'Delete private record', exact: true }).click();
               await expect.poll(dropped.outcome).toMatchObject({ state: 'committed' });
               initialReceipt = dropped.outcome().receipt;
@@ -2771,7 +3126,7 @@ for (const fault of ['lost reply', 'blocked checkpoint']) {
 
             const retry = panel.getByRole('button', { name: 'Retry confirmation' });
             await expect(retry).toBeEnabled();
-            const replay = page.waitForResponse(response => deleteResolution(response.request().postDataJSON()));
+            const replay = page.waitForResponse(response => isPrivateApproval(response.request().postDataJSON()));
             await retry.click();
             const response = await replay;
             assertSameDeleteResolution(first, response.request().postDataJSON());
@@ -2800,56 +3155,165 @@ for (const fault of ['lost reply', 'blocked checkpoint']) {
   });
 }
 
-test('private record delete recovery hides its old title after pre-commit busy and peer rename', async ({ browser }) => {
+test('private record delete recovery hides its old title after pre-commit busy and peer rename', async ({ browser }, testInfo) => {
   const profile = await makeProfile();
+  const stages = [];
   try {
-    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
-      await inFreshBrowser(browser, server, async pageA => {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async origin => {
+      await inFreshBrowser(browser, origin, async pageA => {
         const first = await openPrivateRecords(pageA);
         const title = 'Synthetic old title';
         const renamed = 'Synthetic peer title';
         const text = 'Synthetic original body';
+        const corrected = 'Synthetic corrected body';
         await saveMemory(first, title, text);
-        await first.getByRole('button', { name: 'Review deletion' }).click();
+        await clickPrivate(first, 'Review deletion');
         const writerLock = new DatabaseSync(join(profile.root, 'workspace.sqlite3'));
         try {
           const id = writerLock.prepare('SELECT record_id FROM private_records').get().record_id;
+          const readDetail = privateRequestMatches('privateRecord.read', args => args.record_id === id);
+          const retry = first.getByRole('button', { name: 'Retry confirmation' });
+          const state = () => {
+            const row = writerLock.prepare('SELECT revision, content FROM private_records WHERE record_id = ?').get(id);
+            return {
+              revision: writerLock.prepare('SELECT revision FROM workspaces').get().revision,
+              record: row && { revision: row.revision, content: JSON.parse(row.content) },
+              deletions: writerLock.prepare('SELECT count(*) AS count FROM private_record_deletions').get().count,
+              pendingCleanup: writerLock.prepare('SELECT count(*) AS count FROM private_record_cleanup').get().count,
+              receipts: writerLock.prepare('SELECT count(*) AS count FROM private_record_receipts').get().count,
+            };
+          };
+          const originalContent = { kind: 'memory', title, text };
+          const correctedContent = { kind: 'memory', title: renamed, text: corrected };
+          const originalState = { revision: 1, record: { revision: 1, content: originalContent },
+            deletions: 0, pendingCleanup: 0, receipts: 1 };
+          const correctedState = { revision: 2, record: { revision: 2, content: correctedContent },
+            deletions: 0, pendingCleanup: 0, receipts: 2 };
+          const expectCorrectedRead = reply => {
+            expect(reply.observed.http).toBe(200);
+            expect(reply.outcome, JSON.stringify(reply.observed)).toEqual({
+              state: 'completed', operation: 'privateRecord.read', result: {
+                workspace_revision: 2, records: [], record: { record_id: id, revision: 2, content: correctedContent },
+              },
+            });
+          };
           writerLock.exec('BEGIN IMMEDIATE');
-          const response = pageA.waitForResponse(reply => deleteResolution(reply.request().postDataJSON()));
-          await first.getByRole('button', { name: 'Delete private record', exact: true }).click();
-          const rejected = await response;
-          expect((await rejected.json()).result.outcome.error.code).toBe('BUSY');
-          expect(writerLock.prepare('SELECT revision FROM workspaces').get().revision).toBe(1);
-          writerLock.exec('COMMIT');
-          await expect(first.getByRole('button', { name: 'Retry confirmation' })).toBeEnabled();
+          const rejected = await privateReplyDuring(pageA, stages, 'origin deletion under SQLite writer reservation',
+            isPrivateApproval, () => clickPrivate(first, 'Delete private record'));
+          expect(rejected.observed).toMatchObject({ http: 200, state: 'failed', code: 'BUSY' });
+          expect(state()).toEqual(originalState);
+          writerLock.exec('ROLLBACK');
+          await expect(retry).toBeEnabled();
+          await assertPrivateHidden(first, title, text);
 
-          const observedRename = privateDetailReply(pageA, id, outcome => outcome?.result?.record?.content?.title === renamed);
-          await inFreshBrowser(browser, server, async pageB => {
-            const peer = await openPrivateRecords(pageB);
-            await peer.getByRole('button', { name: new RegExp(title) }).click();
-            await peer.getByRole('button', { name: 'Correct record' }).click();
-            await peer.getByRole('textbox', { name: 'Title', exact: true }).fill(renamed);
-            await peer.getByRole('button', { name: 'Review save' }).click();
-            await peer.getByRole('button', { name: 'Save private record', exact: true }).click();
-            await expect(peer.getByRole('heading', { name: renamed })).toBeVisible();
+          await inService(await freePort(), profile, 'ubuntu-workspace', async peerService => {
+            const originWriter = await writerPid(origin);
+            const peerWriter = await writerPid(peerService);
+            expect(peerWriter).not.toBe(originWriter);
+            expect(peerService.capability === origin.capability).toBe(false);
+            stages.push({ step: 'independent authorized services', originWriter, peerWriter });
+            await inFreshBrowser(browser, peerService, async (pageB, initial) => {
+              expect(initial.result?.workspace.revision, initial.error?.code).toBe(1);
+              const index = await privateReplyDuring(pageB, stages, 'authorized peer opens the private record index',
+                privateRequestMatches('privateRecord.read', args => args.record_id === null),
+                () => control(pageB, 'Private records').click({ timeout: 5_000 }));
+              expect(index.outcome, JSON.stringify(index.observed)).toMatchObject({
+                state: 'completed', result: { workspace_revision: 1, record: null, records: [{ record_id: id, title, revision: 1 }] },
+              });
+              const peer = pageB.getByRole('dialog', { name: 'Private records' });
+              const detail = await privateReplyDuring(pageB, stages, 'authorized peer reads original record', readDetail,
+                () => peer.getByRole('button', { name: new RegExp(title) }).click({ timeout: 5_000 }));
+              expect(detail.outcome, JSON.stringify(detail.observed)).toMatchObject({
+                state: 'completed', result: { workspace_revision: 1, record: { record_id: id, revision: 1, content: originalContent } },
+              });
+              await clickPrivate(peer, 'Correct record');
+              await peer.getByRole('textbox', { name: 'Title', exact: true }).fill(renamed);
+              await peer.getByRole('textbox', { name: 'Memory', exact: true }).fill(corrected);
+              const prepared = await privateReplyDuring(pageB, stages, 'peer prepares correction',
+                privateRequestMatches('privateRecord.change', args => args.action === 'save' && args.record_id === id),
+                () => clickPrivate(peer, 'Review save'));
+              expect(prepared.observed).toMatchObject({ http: 200, state: 'confirmation_required' });
+              expect(prepared.outcome.summary.corrected).toBe(1);
+
+              let committed;
+              try {
+                committed = await privateReplyDuring(pageB, stages, 'peer approves correction', isPrivateApproval,
+                  () => clickPrivate(peer, 'Save private record'));
+              } finally {
+                const { record, ...stored } = state();
+                stages.push({ step: 'stored after peer approval', ...stored, recordRevision: record?.revision });
+              }
+              expect(committed.observed).toMatchObject({ http: 200, state: 'committed' });
+              expect(committed.payload.scope).toEqual(prepared.payload.scope);
+              expect(committed.payload.intent.arguments.challenge_id).toBe(prepared.outcome.challenge_id);
+              expect(committed.outcome.receipt).toMatchObject({
+                workspace_id: workspaceId, record_id: id, committed_workspace_revision: 2, undoable: false,
+              });
+              expect(state()).toEqual(correctedState);
+              await expect(peer.getByRole('heading', { name: renamed })).toBeVisible();
+              await expect(peer.getByText(corrected, { exact: true })).toBeVisible();
+
+              const denied = await post(peerService, { ...detail.payload, request_id: randomUUID(), message_id: randomUUID() },
+                { Authorization: '' });
+              expect(denied.status).toBe(403);
+              expect(await denied.json()).toEqual({ ok: false, error: { code: 'PERMISSION_DENIED', retryable: false } });
+              stages.push({ step: 'ungranted current read', http: 403, code: 'PERMISSION_DENIED' });
+            });
           });
 
-          await focusPrivateRecords(pageA);
-          await observedRename;
-          await expect(first.getByText(title, { exact: true })).toHaveCount(0);
-          await expect(first.getByText(text, { exact: true })).toHaveCount(0);
+          const focused = await privateReplyDuring(pageA, stages, 'origin reads the corrected revision around focus', readDetail,
+            async () => {
+              await focusPrivateRecords(pageA);
+              stages.push({ step: 'origin focus dispatched' });
+            });
+          expectCorrectedRead(focused);
+          await assertPrivateHidden(first, title, text, renamed, corrected);
           await expect(first.getByRole('button', { name: 'Delete private record', exact: true })).toHaveCount(0);
-          const replay = pageA.waitForResponse(reply => deleteResolution(reply.request().postDataJSON()));
-          await first.getByRole('button', { name: 'Retry confirmation' }).click();
-          const retried = await replay;
-          assertSameDeleteResolution(rejected.request().postDataJSON(), retried.request().postDataJSON());
-          expect((await retried.json()).result.outcome.error.code).toBe('STALE_CONTEXT');
+
+          let retrySent = false;
+          let gatedRead;
+          const releaseRead = Promise.withResolvers();
+          const endpointUrl = origin.url + endpoint;
+          const gateCurrentRead = async route => {
+            const payload = route.request().postDataJSON();
+            if (isPrivateApproval(payload)) retrySent = true;
+            if (retrySent && !gatedRead && readDetail(payload)) {
+              gatedRead = payload.request_id;
+              await releaseRead.promise;
+            }
+            await route.continue();
+          };
+          await pageA.route(endpointUrl, gateCurrentRead);
+          try {
+            const current = await privateReplyDuring(pageA, stages, 'authorized reread after stale deletion retry',
+              payload => readDetail(payload) && payload.request_id === gatedRead, async () => {
+                const retried = await privateReplyDuring(pageA, stages, 'origin retries the original deletion resolution',
+                  isPrivateApproval, () => clickPrivate(first, 'Retry confirmation'));
+                assertSameDeleteResolution(rejected.payload, retried.payload);
+                expect(retried.observed).toMatchObject({ http: 200, state: 'failed', code: 'STALE_CONTEXT' });
+                await expect.poll(() => Boolean(gatedRead)).toBe(true);
+                await assertPrivateHidden(first, title, text, renamed, corrected);
+                await expect(first.getByRole('button', { name: 'Delete private record', exact: true })).toHaveCount(0);
+                stages.push({ step: 'before corrected detail response', contentHidden: true, sameResolution: true });
+                releaseRead.resolve();
+              });
+            expectCorrectedRead(current);
+          } finally {
+            releaseRead.resolve();
+            await pageA.unrouteAll({ behavior: 'wait' });
+          }
           await expect(first.getByRole('alert')).toContainText('changed');
           await expect(first.getByRole('heading', { name: renamed })).toBeVisible();
-          expect(writerLock.prepare('SELECT revision FROM workspaces').get().revision).toBe(2);
-          expect(writerLock.prepare('SELECT count(*) AS count FROM private_record_deletions').get().count).toBe(0);
+          await expect(first.getByText(corrected, { exact: true })).toBeVisible();
+          await assertPrivateHidden(first, title, text);
+          await expect(retry).toHaveCount(0);
+          expect(state()).toEqual(correctedState);
+          stages.push({ step: 'corrected detail displayed', revision: 2, deletions: 0 });
         } finally { writerLock.close(); }
       });
     });
-  } finally { await profile.close(); }
+  } finally {
+    await testInfo.attach('private-deletion-peer-recovery', { body: JSON.stringify(stages), contentType: 'application/json' });
+    await profile.close();
+  }
 });

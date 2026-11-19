@@ -7,22 +7,23 @@ const chart = page => page.locator('.history');
 export const busy = { ok: false, error: { code: 'BUSY', retryable: true } };
 export const future = 'SIM.CN.FUTURE.001';
 const normalRevision = 'scopehub-synthetic-v1:20241013:normal';
-const catalogCall = { operation: 'instrument.search', payload: { query: '', limit: 50 } };
-const historyCall = {
+export const sampleCatalogCall = { operation: 'instrument.search', payload: { query: '', limit: 50 } };
+export const sampleHistoryCall = (timeframe = '1m') => ({
   operation: 'market.readHistoryPage',
   payload: {
     series: {
-      instrument_id: future, provider_id: 'scopehub.synthetic', timeframe: '1m', price_adjustment: 'raw',
+      instrument_id: future, provider_id: 'scopehub.synthetic', timeframe, price_adjustment: 'raw',
       session_scope: 'sample-sessions', calendar_id: `${future}.sample-calendar.v1`, quantity_unit: 'contracts',
     },
     from_ms: Date.UTC(2024, 0, 1), to_ms: Date.UTC(2024, 0, 6), warmup_bars: 0, expected_revision: normalRevision,
   },
-};
+});
 
 export async function openDefaultSample(page, {
   trigger = () => page.goto('/#demo', { waitUntil: 'domcontentloaded', timeout: 10_000 }),
   verifyChart,
 } = {}) {
+  const historyCall = sampleHistoryCall();
   const attempts = new Map();
   let order = 0;
   let navigationFailure;
@@ -89,7 +90,7 @@ export async function openDefaultSample(page, {
       throw new Error(`Sample document GET failed (${navigationFailure})`, { cause });
     });
     if (navigation?.status() >= 400) throw new Error(`Sample document GET returned HTTP ${navigation.status()}`);
-    const catalog = await read(catalogCall.operation);
+    const catalog = await read(sampleCatalogCall.operation);
     expect(catalog.instruments.map(item => item.id)).toContain(future);
     const history = await read(historyCall.operation);
     expect(history.snapshot.series).toEqual(historyCall.payload.series);
@@ -103,7 +104,7 @@ export async function openDefaultSample(page, {
     await expect(chart(page)).toHaveAttribute('data-bars', '40');
     if (verifyChart) await verifyChart(history.snapshot);
 
-    const expected = [catalogCall, historyCall];
+    const expected = [sampleCatalogCall, historyCall];
     let phase = 0;
     let previousFinish = 0;
     for (const attempt of attempts.values()) {
