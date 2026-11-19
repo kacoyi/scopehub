@@ -1746,6 +1746,7 @@ test('the offline sample keeps its own timeframe without replacing the private u
       const duringSample = workspaceRequests.length;
       const fiveMinuteHistory = await sampleStep(page, server, testInfo, 'sample five-minute selection', () => control(page, '5m').click(),
         { timeframe: '5m', catalog: false });
+      const fiveMinuteRead = await expectedLayerRead(fiveMinuteHistory);
       const after = await readPrivate(1, sampleSource);
       const refreshed = await context.newPage();
       await observeSelectedHistory(refreshed, { includeCatalog: true });
@@ -1753,7 +1754,7 @@ test('the offline sample keeps its own timeframe without replacing the private u
       await sampleStep(refreshed, server, testInfo, 'shared sample preference refresh', () => refreshed.reload(), { timeframe: '5m' });
       const refreshedTimeframe = await refreshed.locator('.history').getAttribute('data-timeframe');
       expect(after).toEqual(before);
-      expect(workspaceRequests.slice(duringSample)).toEqual([await expectedLayerRead(fiveMinuteHistory)]);
+      expect(workspaceRequests.slice(duringSample)).toEqual([fiveMinuteRead]);
       await expect(undo).toHaveCount(0);
       await expect(control(refreshed, 'Undo timeframe change')).toHaveCount(0);
       await assertSampleStorage(refreshed, '5m');
@@ -1798,6 +1799,7 @@ test('the offline sample keeps its own timeframe without replacing the private u
       const duringSampleReload = workspaceRequests.length;
       const dailyHistory = await sampleStep(page, server, testInfo, 'sample daily selection', () => control(page, '1d').click(),
         { timeframe: '1d', catalog: false });
+      const dailyRead = await expectedLayerRead(dailyHistory);
       expect(await readPrivate(3, sampleSource)).toEqual(afterUndo);
       await assertSampleStorage(page, '1d');
       await sampleStep(page, server, testInfo, 'sample daily refresh', () => page.reload(), { timeframe: '1d' });
@@ -1807,7 +1809,7 @@ test('the offline sample keeps its own timeframe without replacing the private u
       await expect(page.locator('.connection')).toHaveText('No data source');
       await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
       await expect(undo).toHaveCount(0);
-      expect(workspaceRequests.slice(duringSampleReload)).toEqual([await expectedLayerRead(dailyHistory)]);
+      expect(workspaceRequests.slice(duringSampleReload)).toEqual([dailyRead]);
       expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
       expect(await readPrivate(3, sampleSource)).toEqual(afterUndo);
 
