@@ -11,7 +11,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
-use crate::{Actor, Operation, OperationRegistry, failure, operation};
+use crate::{Actor, Operation, OperationRegistry, authorized_operation, failure, operation};
 
 pub const SET_TIMEFRAME: &str = "chart.setTimeframe";
 pub const UNDO: &str = "workspace.undo";
@@ -75,6 +75,18 @@ pub struct WorkspaceState {
 pub struct WorkspaceSnapshot {
     pub workspace: Workspace,
     pub selection_revision: Revision,
+    pub undo: Option<WorkspaceUndoTarget>,
+}
+
+pub struct WorkspaceUndoTarget {
+    pub operation_id: String,
+    pub committed_workspace_revision: Revision,
+}
+
+pub struct WorkspaceUndoAccess<'a> {
+    pub actor: Actor,
+    pub principal_id: &'a str,
+    pub paired_client_id: Option<&'a str>,
 }
 
 pub struct WorkspaceReplayKey<'a> {
@@ -122,7 +134,11 @@ pub trait WorkspaceTransaction {
 
 pub trait WorkspaceStore: Send {
     fn binding(&self) -> &WorkspaceBinding;
-    fn state(&self) -> Result<WorkspaceState, Error>;
+    /// Restore the state and its currently eligible undo in one read snapshot.
+    fn snapshot(
+        &self,
+        undo: Option<WorkspaceUndoAccess<'_>>,
+    ) -> Result<(WorkspaceState, Option<WorkspaceUndoTarget>), Error>;
     /// Commit only if the application successfully produces an authorized result.
     fn transact<T>(
         &mut self,
@@ -170,10 +186,18 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         {
             return Err(failure(ErrorCode::PERMISSIONDENIED));
         }
-        let state = self.port.state()?;
+        let undo = (access.operations.contains(&UNDO)
+            && authorized_operation(access.actor, UNDO).is_ok())
+        .then_some(WorkspaceUndoAccess {
+            actor: access.actor,
+            principal_id: access.principal_id,
+            paired_client_id: access.paired_client_id,
+        });
+        let (state, undo) = self.port.snapshot(undo)?;
         Ok(WorkspaceSnapshot {
             workspace: workspace_projection(access.workspace_id, state.revision, state.timeframe),
             selection_revision: state.selection_revision,
+            undo,
         })
     }
 

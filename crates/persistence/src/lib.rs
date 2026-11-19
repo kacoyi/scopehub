@@ -7,7 +7,8 @@ use rusqlite::{
 };
 use scopehub_application::{
     SET_TIMEFRAME, Timeframe, WorkspaceBinding, WorkspaceChange, WorkspaceReceipt, WorkspaceReplay,
-    WorkspaceReplayKey, WorkspaceState, WorkspaceStore, WorkspaceTransaction, failure,
+    WorkspaceReplayKey, WorkspaceState, WorkspaceStore, WorkspaceTransaction, WorkspaceUndoAccess,
+    WorkspaceUndoTarget, failure,
 };
 use scopehub_domain::protocol::{Error, ErrorCode, Revision};
 
@@ -258,13 +259,49 @@ fn receipt(row: &Row<'_>) -> rusqlite::Result<WorkspaceReceipt> {
     })
 }
 
+fn eligible_undo(
+    connection: &Connection,
+    workspace_id: &str,
+    state: WorkspaceState,
+    access: WorkspaceUndoAccess<'_>,
+) -> Result<Option<WorkspaceUndoTarget>, Error> {
+    let revision = i64::try_from(state.revision).map_err(|_| failure(ErrorCode::INTERNALERROR))?;
+    connection.query_row(
+        "SELECT candidate.id FROM operation_log AS candidate
+         WHERE candidate.workspace_id = ?1 AND candidate.revision = ?2
+           AND candidate.after_timeframe = ?3 AND candidate.operation = ?4 AND candidate.undoable = 1
+           AND candidate.actor = ?5 AND candidate.principal_id = ?6 AND candidate.paired_client_id = ?7
+           AND NOT EXISTS (SELECT 1 FROM operation_log AS inverse WHERE inverse.undoes = candidate.id)",
+        params![workspace_id, revision, state.timeframe.as_str(), SET_TIMEFRAME, access.actor.as_str(),
+                access.principal_id, access.paired_client_id.unwrap_or("")],
+        |row| Ok(WorkspaceUndoTarget {
+            operation_id: row.get(0)?,
+            committed_workspace_revision: state.revision,
+        }),
+    ).optional().map_err(store_error)
+}
+
 impl WorkspaceStore for SqliteWorkspace {
     fn binding(&self) -> &WorkspaceBinding {
         &self.binding
     }
 
-    fn state(&self) -> Result<WorkspaceState, Error> {
-        state(&self.connection, &self.binding.workspace_id)
+    fn snapshot(
+        &self,
+        undo: Option<WorkspaceUndoAccess<'_>>,
+    ) -> Result<(WorkspaceState, Option<WorkspaceUndoTarget>), Error> {
+        let snapshot = self
+            .connection
+            .unchecked_transaction()
+            .map_err(store_error)?;
+        let workspace_id = &self.binding.workspace_id;
+        let state = state(&snapshot, workspace_id)?;
+        let target = undo
+            .map(|undo| eligible_undo(&snapshot, workspace_id, state, undo))
+            .transpose()?
+            .flatten();
+        snapshot.commit().map_err(store_error)?;
+        Ok((state, target))
     }
 
     fn transact<T>(

@@ -6,6 +6,7 @@ import { ReplayGapDetails, replayGapReason } from './market-quality';
 import { PriceChart } from './price-chart';
 import { narrowScreen, readSampleView, saveSampleView } from './sample-view';
 import { SymbolSearch } from './symbol-search';
+import type { LocalWorkspace } from './use-local-workspace';
 import { useHistory, useSampleCatalog } from './use-market-data';
 import { useSampleReplay } from './use-sample-replay';
 import { WorkspaceIcon, type WorkspaceIconName } from './workspace-icons';
@@ -41,10 +42,15 @@ function HistoryStatus({ history }: { history: ChartHistory }) {
   return history.bars.length ? <span className="history-status" role="status">History ready</span> : null;
 }
 
-export function ChartWorkspace({ sample, leaveSample }: { sample: boolean; leaveSample: () => void }) {
+export function ChartWorkspace({ sample, leaveSample, workspace }: {
+  sample: boolean; leaveSample: () => void; workspace: LocalWorkspace | undefined;
+}) {
   const [saved] = useState(() => sample ? readSampleView() : undefined);
   const [chosenId, setChosenId] = useState(saved?.symbol ?? '');
-  const [timeframe, setTimeframe] = useState(saved?.timeframe ?? '1m');
+  const [sampleTimeframe, setSampleTimeframe] = useState(saved?.timeframe ?? '1m');
+  const timeframe = workspace ? workspace.snapshot?.workspace.timeframe ?? '' : sampleTimeframe;
+  const workspaceBusy = Boolean(workspace?.pending);
+  const timeframeBlocked = Boolean(workspace && (!workspace.snapshot || workspaceBusy || workspace.error));
   const [revision, setRevision] = useState<SampleRevision>(saved?.sampleRevision ?? 'normal');
   const [date, setDate] = useState(saved?.sampleDate ?? '');
   const [style, setStyle] = useState<ChartStyle>(saved?.style ?? 'candlestick');
@@ -62,7 +68,7 @@ export function ChartWorkspace({ sample, leaveSample }: { sample: boolean; leave
   const instruments = catalog.state === 'ready' ? catalog.value : noInstruments;
   const selected = instruments.find(item => item.id === chosenId) ?? instruments[0];
   const sampleRevision = selected?.id === sampleRevisionInstrument ? revision : 'normal';
-  const { result, retryHistory } = useHistory(selected, timeframe, sampleRevision, date);
+  const { result, retryHistory } = useHistory(timeframe ? selected : undefined, timeframe, sampleRevision, date);
   const history = result.state === 'ready' ? result.value : undefined;
   const failure = catalog.state === 'error' ? catalog.failure : result.state === 'error' ? result.failure : undefined;
   const { replay, start, stop } = useSampleReplay(history);
@@ -78,10 +84,10 @@ export function ChartWorkspace({ sample, leaveSample }: { sample: boolean; leave
   const savedRevision = selected ? sampleRevision : revision;
   useEffect(() => {
     if (sample) saveSampleView({
-      symbol: savedSymbol, timeframe, style, cursor, panel, chartOnly: focusChart,
+      symbol: savedSymbol, timeframe: sampleTimeframe, style, cursor, panel, chartOnly: focusChart,
       sampleRevision: savedRevision, sampleDate: date, narrow: window.matchMedia(narrowScreen).matches,
     });
-  }, [sample, savedSymbol, timeframe, style, cursor, panel, focusChart, savedRevision, date]);
+  }, [sample, savedSymbol, sampleTimeframe, style, cursor, panel, focusChart, savedRevision, date]);
 
   const searchWasOpen = useRef(false);
   useEffect(() => {
@@ -151,8 +157,13 @@ export function ChartWorkspace({ sample, leaveSample }: { sample: boolean; leave
       <div className="toolbar-group symbol-group"><button type="button" ref={trigger} className="symbol-trigger" aria-label="Search symbols"
         aria-haspopup="dialog" title="Search symbols (/)" onClick={() => setSearchQuery('')}>
         <WorkspaceIcon name="search" /><strong>{selected ? symbol(selected) : 'Symbol search'}</strong><WorkspaceIcon name="chevron" /></button></div>
-      <div className="toolbar-group periods" role="group" aria-label="Timeframe">{['1m', '5m', '1d'].map(value =>
-        <button type="button" key={value} className="period" aria-pressed={timeframe === value} onClick={() => setTimeframe(value)}>{value}</button>)}</div>
+      <div className="toolbar-group periods" role="group" aria-label="Timeframe" aria-busy={workspaceBusy || undefined}>
+        {['1m', '5m', '1d'].map(value => <button type="button" key={value} className="period"
+          aria-pressed={timeframe === value} disabled={timeframeBlocked}
+          onClick={() => workspace ? workspace.chooseTimeframe(value) : setSampleTimeframe(value)}>{value}</button>)}
+        {workspace && <button type="button" className="period" aria-label="Undo timeframe change"
+          disabled={timeframeBlocked || !workspace.snapshot?.undo} onClick={workspace.undoTimeframe}>Undo</button>}
+      </div>
       <div className="toolbar-group chart-styles" role="group" aria-label="Chart style">
         <Tool name="Candles" icon="candles" active={style === 'candlestick'} onClick={() => setStyle('candlestick')} />
         <Tool name="Close-price line" icon="line" active={style === 'line'} onClick={() => setStyle('line')} />
@@ -172,6 +183,9 @@ export function ChartWorkspace({ sample, leaveSample }: { sample: boolean; leave
       <section className="plot-workspace" aria-label="Price chart">
         {plot}
         <footer className="chart-footer"><span>{sample ? (date ? date + ' UTC' : 'Jan 2024') : 'ScopeHub'}</span>
+          {workspace?.pending && <span role="status">{workspace.pending === 'open' ? 'Loading local workspace…' : 'Saving timeframe…'}</span>}
+          {workspace?.error && <><span role="alert" className="workspace-error">{workspace.error}</span>
+            <button type="button" className="secondary-button" onClick={workspace.reload}>Reload workspace state</button></>}
           {selected && <span>{selected.timezone}</span>}
           {history && <HistoryStatus history={history} />}
           {canReplay && <button type="button" className="secondary-button replay-button" onClick={playing ? stop : start}>

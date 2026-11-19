@@ -8,7 +8,7 @@ pub use replay::{SUBSCRIBE, SubscriptionFuture, SubscriptionPort};
 pub use workspace::{
     MAIN_CHART_ID, SET_TIMEFRAME, Timeframe, UNDO, WorkspaceAccess, WorkspaceBinding,
     WorkspaceChange, WorkspaceReceipt, WorkspaceReplay, WorkspaceReplayKey, WorkspaceSnapshot,
-    WorkspaceState, WorkspaceStore, WorkspaceTransaction,
+    WorkspaceState, WorkspaceStore, WorkspaceTransaction, WorkspaceUndoAccess, WorkspaceUndoTarget,
 };
 
 use std::{

@@ -39,6 +39,10 @@ fn serve(
             json!({
                 "workspace": snapshot.workspace,
                 "selection_revision": snapshot.selection_revision,
+                "undo": snapshot.undo.map(|target| json!({
+                    "operation_id": target.operation_id,
+                    "committed_workspace_revision": target.committed_workspace_revision,
+                })),
             })
         }),
     )?;

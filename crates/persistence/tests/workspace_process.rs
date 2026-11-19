@@ -10,7 +10,8 @@ use std::{
 };
 
 use scopehub_application::{
-    OperationRegistry, WorkspaceState, WorkspaceStore, WorkspaceTransaction,
+    OperationRegistry, WorkspaceState, WorkspaceStore, WorkspaceTransaction, WorkspaceUndoAccess,
+    WorkspaceUndoTarget,
 };
 use scopehub_domain::protocol::Error;
 use serde_json::{Value, json};
@@ -46,6 +47,12 @@ fn process_round_trip_restores_replays_undoes_and_isolates() {
         .query_row("SELECT id FROM operation_log", [], |row| row.get(0))
         .unwrap();
     assert_eq!(id, persisted_id);
+    assert_eq!(
+        frames(bridge(&first, PROFILE_ID, &[]))[0]["undo"],
+        json!({
+            "operation_id": id, "committed_workspace_revision": 1,
+        })
+    );
 
     let other_profile = frames(bridge(&second, "second-profile", &[undo(0, id, key)]));
     assert_snapshot(&other_profile[0], 0, "1m");
@@ -66,6 +73,7 @@ fn process_round_trip_restores_replays_undoes_and_isolates() {
     assert_eq!(assert_committed(&completed[2], 1, "5m"), id);
     let final_start = frames(bridge(&first, PROFILE_ID, &[]));
     assert_snapshot(&final_start[0], 2, "1m");
+    assert_eq!(final_start[0]["undo"], Value::Null);
     assert_snapshot(&frames(bridge(&second, "second-profile", &[]))[0], 0, "1m");
 }
 
@@ -156,8 +164,11 @@ impl WorkspaceStore for InterruptingStore {
         self.store.binding()
     }
 
-    fn state(&self) -> Result<WorkspaceState, Error> {
-        self.store.state()
+    fn snapshot(
+        &self,
+        undo: Option<WorkspaceUndoAccess<'_>>,
+    ) -> Result<(WorkspaceState, Option<WorkspaceUndoTarget>), Error> {
+        self.store.snapshot(undo)
     }
 
     fn transact<T>(

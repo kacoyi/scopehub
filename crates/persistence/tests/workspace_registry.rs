@@ -254,6 +254,78 @@ fn concurrent_retries_from_two_connections_commit_once() {
 }
 
 #[test]
+fn restored_undo_is_limited_to_the_current_eligible_actor_principal_client_and_grant() {
+    let profile = Profile::new();
+    let mut registry = OperationRegistry::new(store(&profile.0));
+    let owner = WorkspaceAccess {
+        paired_client_id: Some("paired"),
+        ..access()
+    };
+    assert!(registry.workspace_snapshot(&owner).unwrap().undo.is_none());
+    let first = registry
+        .execute_workspace(&owner, set(0, "5m", Uuid::new_v4()))
+        .unwrap();
+    let first_id = assert_committed(&first, 1, "5m");
+    drop(registry);
+
+    let mut registry = OperationRegistry::new(store(&profile.0));
+    let candidate = registry.workspace_snapshot(&owner).unwrap().undo.unwrap();
+    assert_eq!(candidate.operation_id, first_id);
+    assert_eq!(candidate.committed_workspace_revision, 1);
+    for other in [
+        WorkspaceAccess {
+            actor: Actor::Ai,
+            paired_client_id: Some("paired"),
+            ..access()
+        },
+        WorkspaceAccess {
+            principal_id: "other",
+            paired_client_id: Some("paired"),
+            ..access()
+        },
+        WorkspaceAccess {
+            paired_client_id: Some("other"),
+            ..access()
+        },
+        WorkspaceAccess {
+            operations: &READ_OPERATIONS,
+            paired_client_id: Some("paired"),
+            ..access()
+        },
+    ] {
+        assert!(registry.workspace_snapshot(&other).unwrap().undo.is_none());
+    }
+
+    let ai = WorkspaceAccess {
+        actor: Actor::Ai,
+        paired_client_id: Some("paired"),
+        ..access()
+    };
+    let recent = registry
+        .execute_workspace(&ai, set(1, "1d", Uuid::new_v4()))
+        .unwrap();
+    let recent_id = assert_committed(&recent, 2, "1d");
+    assert!(registry.workspace_snapshot(&owner).unwrap().undo.is_none());
+    assert_eq!(
+        registry
+            .workspace_snapshot(&ai)
+            .unwrap()
+            .undo
+            .unwrap()
+            .operation_id,
+        recent_id
+    );
+    let inverse = registry
+        .execute_workspace(&ai, undo(2, recent_id, Uuid::new_v4()))
+        .unwrap();
+    assert_committed(&inverse, 3, "5m");
+    drop(registry);
+    let restored = OperationRegistry::new(store(&profile.0));
+    assert!(restored.workspace_snapshot(&ai).unwrap().undo.is_none());
+    assert!(restored.workspace_snapshot(&owner).unwrap().undo.is_none());
+}
+
+#[test]
 fn log_and_timeframe_rollback_if_the_replay_record_cannot_be_written() {
     let profile = Profile::new();
     let mut registry = OperationRegistry::new(store(&profile.0));
