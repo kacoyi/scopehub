@@ -1,0 +1,95 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M1-021",
+  "task_definition_sha256": "59ab36ccc9f20da6352ec20dc0510e204037acf95e205e049435130ca6d33cfc",
+  "run_id": "20261119T152022.756329Z-0a9d4ba8",
+  "recorded_at": "2026-11-19T15:21:59.643434+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "3010c0094cf1e063009a1be73df59fb8833e677b75081d5d3723ea5a507b5380",
+    "file_count": 236,
+    "git_head": "e4c48689721b0e96bc1052f3222a937932289ce4",
+    "working_tree_dirty": true,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "3189ca69441449557cd9eb768e218833efd753623c52b35e41af842cc77a376f",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/projects/scopehub-m1-quality/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "market-quality-states",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-quality.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "3a0857cfafa5bbc0c21caf921b5734aca040d86e522865c412a9355cf070557b"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "528feefe96e31013e47fd2b5661c77955e1b88d0fb0939404634d9e51ec8408a"
+    },
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-m1-quality/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "6d6b9347693124dcc40402fee7bbca934fc804b3453aa2e353f2d2178daa6a1e"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-m1-quality/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "4386838795d6368c902924d2caf184096326e11d1706f534c7ed76ecf9efcef6"
+    }
+  ],
+  "project_definition_sha256": "5a7767c2309cafd5b1a5eeed6cff2d7aa869522f3cf64a9649465aba50a4d751",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

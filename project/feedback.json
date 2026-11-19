@@ -1568,6 +1568,192 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "offline-sample-timeframe-crosses-private-workspace",
+      "source": "Reviewer t2k reproduced on #10 at 096e09b in the opted-in private workspace. Linux task run 20261119T164305.026124Z-004e21c0 reproduced both browser regressions at 31d13c6 with the pending test changes.",
+      "observation": "Selecting 5m in the offline sample dispatched chart.setTimeframe through the preview and substituted Tauri IPC. The Rust writer advanced the private workspace from 1m at revision 2 to 5m at revision 3 and replaced its eligible undo receipt. The public simulated sample reloaded at 1m.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-009"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "resolution": {
+        "cause": "The active sample chart received the private workspace controls. Its timeframe selection wrote through the private operation path while its public sample preference kept the earlier timeframe.",
+        "correction": "Bind the chart to the private workspace controls only in the ordinary shell. Keep the private session in the parent across sample entry and exit. The sample reads and saves its own timeframe in the existing synthetic preference.",
+        "prevention": "Linux task run 20261119T164809.402758Z-f797923a observed the labeled sample restoring 5m on refresh, with the private 1m revision and undo receipt intact. The linked page executed the original undo after leaving. A same-tab sample reload sent no private requests and browser storage held only the sample preference until exit. The built UI with substituted Tauri IPC sent no workspace mutation during sample selection and used the original undo on return. Native Windows verification remains a separate handoff."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "herdr-delegated-interactive-approvals",
+      "source": "Coordinator inspection of the active implementation and review terminals on 2026-11-19, including a linked worktree awaiting an assigned local Git merge.",
+      "observation": "The launcher left the writer approval policy implicit. Routine project checks and previously assigned local Git operations waited at interactive approval prompts in multiple terminals.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-028"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The writer launch command omitted the approval reviewer, and read-only reviews inherited the interactive approval setting.",
+        "correction": "Writers and coordinators request the standard workspace-write automatic reviewer. Read-only review returns a denial directly. The selected checkout and model travel with each assignment.",
+        "prevention": "The 11 focused launcher tests cover the role arguments and worktree selection. A real Herdr implementation session completed its scoped commit without a human prompt. See contracts/reviews/2026-11-19-herdr-delegated-approvals.json."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "native-offline-sample-first-open-timeout",
+      "source": "Standard-user Windows 11 KVM desktop at commit 493238bc489f3c4614850850a0cb67a1913f4c88, after the private 5m and 1m writes.",
+      "observation": "The private workspace read back revision 2 and 1m with its original undo. Opening the offline sample displayed a market worker timeout, an empty watchlist and the Retry demo control. The native driver did not reach sample 5m or restart. Linux and hosted Chromium had passed the private/sample separation tests.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-024"
+      ],
+      "regression_checks": [
+        "market-workflow",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "resolution": {
+        "cause": "The original guest reported a worker timeout before the catalog appeared. Its first failing stage is unknown. The old worker environment had a separately measured avoidable startup cost.",
+        "correction": "Integrate the reviewed worker dependency reduction and verify the default desktop catalog and history, saved simulated timeframe and original private undo through two actual process launches.",
+        "prevention": "The retained original failure, paired environment trial, integrated run and post-reboot run record scope, immutable inputs, direct worker results and native GUI observations. Existing format checks and production deadlines stay in force."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "hosted-preview-app-mount-missing",
+      "source": "Hosted Windows run 44546526143 for PR 9 at e4c4868, market-quality-states first case, compared with the Linux job.",
+      "observation": "The test exhausted its 60-second budget waiting for Data sources after navigation. The screenshot shows a dark page without workspace controls. Windows passed the following twelve cases and the other checks. Linux passed all thirteen quality cases. The published artifacts do not identify the startup terminal reason. An independent Linux HTTP 500 injection on the first application module reproduced the old locator timeout and an identical screenshot. The test now reports actual module and mount failures. The original Windows cause remains unconfirmed, pending an instrumented Windows run.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-021",
+        "M1-023"
+      ],
+      "regression_checks": [
+        "market-quality-states"
+      ],
+      "resolution": {
+        "cause": "The delivered HTML provided an empty application root until JavaScript mounted. Controlled entry failures reproduced the blank screen and the previous wait for an absent chart control. The historical Windows artifacts do not identify the original failing resource.",
+        "correction": "Render a visible startup panel from the document with an explicit reload control. Replace it when the workspace mounts and retain the observed stage in the startup checks.",
+        "prevention": "Hosted Ubuntu and Windows run 44573777675 passed the healthy chart, failed HTTP entry, failed connection, held entry and manual recovery cases. Neither navigation nor market operations started automatically during an entry failure."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "hosted-sample-catalog-terminal-unobserved",
+      "source": "Hosted Windows run 44554402170 for PR 9 at 69c793b, market-recovery-ui; Linux comparison and owner follow-up.",
+      "observation": "The resumed-before-reconnecting case did not reach injected frames. The screenshot shows the mounted workspace reporting a disconnected local preview before any catalog data appeared, while the helper exhausted 18 seconds waiting for instrument.search. The published log shows neither a socket error code nor a Vite server fault. Later cases completed on the same test server.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-022"
+      ],
+      "regression_checks": [
+        "market-recovery-ui",
+        "market-recovery",
+        "market-worker-interruption"
+      ],
+      "resolution": {
+        "cause": "The helper polled for completed POST responses and gave an observed requestfailed event no terminal path before its deadline. A Linux catalog connection-reset injection reproduced the 18-second diagnostic timeout with the mounted workspace and Retry demo. The transport fault in the original Windows run remains unconfirmed.",
+        "correction": "Report document GET failures separately from catalog and history POST terminals. Capture one unmodified futures baseline per Playwright worker and reuse its exact synthetic responses in the injected cases.",
+        "prevention": "The retained Linux task run passed four staged startup fault cases, all eighteen injected protocol controls, real stock replacement and both real recovery gates. A Windows rerun is pending."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "hosted-selected-stock-history-disconnected",
+      "source": "Windows main verification run 44581311289 at dcafca35796318669c721c53f1a7bff55ef5e46a.",
+      "observation": "The CN futures replay step passed. The workflow then selected SIM.CN.STOCK.001, 5m and the close-price line. The screenshot shows Disconnected from the local preview and Retry history for the current selection. The assertion at market-workflow.spec.mjs:315 waited five seconds for a missing chart canvas. The retained Playwright report has no trace or test stdout/stderr and the check log contains no request or host event. The original HTTP status, socket code and bridge admission remain indeterminate.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-025"
+      ],
+      "regression_checks": [
+        "market-workflow",
+        "market-quality-states"
+      ],
+      "resolution": {
+        "cause": "The healthy browser workflow waited for a canvas after the selected history had already reached a visible transport terminal. Its earlier artifacts cannot distinguish the original network or worker phase.",
+        "correction": "Track the selected request and client outcome separately from obsolete selections, preserve completed HTTP status, and exercise explicit recovery on the same symbol, timeframe and chart style.",
+        "prevention": "Hosted run 44589094507 passed the three-instrument journey, eight replay tests and twenty quality cases on Windows and Ubuntu. The controlled lost response recovers the same eight 5-minute bars and original final close 12.15 and volume 510. The healthy assertion fails immediately on an unexpected current terminal."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-revision-library-during-native-workspace-startup",
+      "source": "Standard-user Windows 11 WebView2 on commit 3bad802 after publishing and reopening the same synthetic profile.",
+      "observation": "Opening the revision browser during profile startup returned retryable BUSY for both the single-file and folder lists. The dialog showed a generic read failure. A direct folder list still returned BUSY at 3329 ms and returned the two retained revisions at 4204 ms. An explicit refresh then restored the priced parent and the fully withdrawn child. Reopening the priced revision recovered both line 3 locators and close 104. Revoking its display access left the empty child usable.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "local-import-ui",
+        "local-folder-refresh-preview"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "folder-refresh-current-alias-points-to-replaced-source",
+      "source": "Independent review of the ordinary folder registry at 3b39f81. Synthetic operation trace /var/tmp/scopehub-015a70a-rows-nknu705w/ops.jsonl line 23. Retained registry and real Chromium reproduction under .reports/folder-alias-identity/red.",
+      "observation": "After daily.csv and z.csv were published with identical bytes, replacing only daily.csv left z.csv labeled as its current alias. The replacement had a different current SHA-256. The economic comparison still reported close 8 and close 9 as competing values.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "local-folder-refresh-preview",
+        "local-folder-import"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "csv-declared-trades-reported-as-unclassified",
+      "source": "Review of the ordinary CSV editor and Python provider at 3a423ec against product.data_onboarding.financial_content and M1-008.",
+      "observation": "An explicitly classified synthetic trade file with two fills at the same reported time returned the same unsupported_record_kind diagnostic as unknown input. The editor offered closed bars, quotes and unclassified rows only. Declared depth, reference and corporate-action inputs also appeared unclassified. Original rows remained available.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "local-folder-import",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "revision-library-during-profile-reload",
+      "source": "Joined native inspection on Windows 11 and the effect that submits revision list requests in local-revision-dialog.tsx.",
+      "observation": "After removing access to a folder revision and immediately switching to its independently entitled single-file source, an initial Windows journey timed out. The retained profile could open that source on a fresh launch, and an instrumented same-window repeat passed. The original timeout did not capture a terminal operation code. The revision browser waits for an initial snapshot but submits a list immediately during a subsequent reload of a known workspace on the same single-flight host.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "local-folder-refresh-preview",
+        "local-folder-import"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

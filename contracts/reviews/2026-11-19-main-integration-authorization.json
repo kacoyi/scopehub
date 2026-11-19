@@ -1,0 +1,14 @@
+{
+  "recorded_at": "2026-11-19",
+  "source": "Project owner decision during development",
+  "repository": "kacoyi/scopehub",
+  "destination": "main",
+  "scope": "The development AI may merge reviewed pull requests into main under this standing authorization.",
+  "conditions": [
+    "Review the actual changes and resolve blocking review findings.",
+    "Complete the acceptance criteria for the work included in the pull request and verify all required checks on the candidate.",
+    "Immediately before merging, check the base, expected head, review status and branch protection. Bind the merge to the verified head.",
+    "Verify the resulting main commit and its push workflow. Treat failure as an integration incident and retain the evidence."
+  ],
+  "release": "A formal product release requires separate owner acceptance and authorization."
+}

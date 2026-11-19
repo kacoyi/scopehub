@@ -153,6 +153,24 @@ impl LocalDatasetStore for SqliteWorkspace {
         read_local_dataset(&self.connection, revision_id)
     }
 
+    fn read_local_dataset_original(&self, revision_id: &str) -> Result<Option<Vec<u8>>, Error> {
+        check_revision_id(revision_id)?;
+        self.connection
+            .query_row(
+                "SELECT source.original_bytes FROM local_dataset_revisions AS revision
+                 JOIN local_dataset_source_blobs AS source USING (source_sha256)
+                 WHERE revision.revision_id = ?1
+                   AND NOT EXISTS (
+                       SELECT 1 FROM local_dataset_display_revocations AS revocation
+                       WHERE revocation.revision_id = revision.revision_id
+                   )",
+                [revision_id],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(store_error)
+    }
+
     fn revoke_local_dataset(&mut self, revision_id: &str) -> Result<bool, Error> {
         check_revision_id(revision_id)?;
         let transaction = self

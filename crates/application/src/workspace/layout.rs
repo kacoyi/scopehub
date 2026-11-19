@@ -6,8 +6,18 @@ use scopehub_domain::protocol::{
     WorkspaceObject11, WorkspaceObject11Kind,
 };
 
-use super::WorkspaceUndoTarget;
+use scopehub_domain::protocol::{MutationScope11, OperationReceipt11};
+use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
+use uuid::Uuid;
+
 use crate::failure;
+
+use super::{
+    MAX_REVISION, UNDO, WorkspaceAccess, WorkspaceChange, WorkspaceReceipt, WorkspaceReplayKey,
+    WorkspaceReply, WorkspaceState, WorkspaceTransaction, WorkspaceUndoAccess, WorkspaceUndoTarget,
+    workspace_projection,
+};
 
 pub const PREVIEW_LAYOUT: &str = "workspace.previewLayout";
 pub const APPLY_LAYOUT: &str = "workspace.applyLayout";
@@ -136,17 +146,6 @@ pub(super) fn resolve_edit(
         saved_before,
     })
 }
-
-use scopehub_domain::protocol::{MutationScope11, OperationReceipt11};
-use serde_json::{Value, json};
-use sha2::{Digest, Sha256};
-use uuid::Uuid;
-
-use super::{
-    MAX_REVISION, UNDO, WorkspaceAccess, WorkspaceChange, WorkspaceReceipt, WorkspaceReplayKey,
-    WorkspaceReply, WorkspaceState, WorkspaceTransaction, WorkspaceUndoAccess,
-    workspace_projection,
-};
 
 fn check_access(access: &WorkspaceAccess<'_>, operation: &str) -> Result<(), Error> {
     if !access.disclose_workspace_state || !access.operations.contains(&operation) {

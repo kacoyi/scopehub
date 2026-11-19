@@ -95,8 +95,12 @@ function FolderComparison({ result, page, setPage, changedOnly, setChangedOnly, 
   const sourceWithdrawals = result.files.filter(file => file.change === 'removed');
   const reviewed = choices.size === conflicts.length
     && withdrawBars.size === barWithdrawals.length && withdrawSources.size === sourceWithdrawals.length;
-  const acceptedSourcePresent = base && result.files.some(file =>
-    file.relative_path === base.relative_path && file.source_sha256 === base.source_sha256);
+  const acceptedPaths = new Map<string, string>();
+  for (const file of result.files) {
+    if (file.prior_sha256 && !acceptedPaths.has(file.prior_sha256)) {
+      acceptedPaths.set(file.prior_sha256, file.relative_path);
+    }
+  }
 
   return <>
     <p role="status">Read-only preview against {currentBase.symbol} · {'origin_path' in currentBase ? currentBase.origin_path : currentBase.relative_path} · {currentBase.bar_count.toLocaleString()} accepted bars.</p>
@@ -107,22 +111,27 @@ function FolderComparison({ result, page, setPage, changedOnly, setChangedOnly, 
     <div className="local-import-table table-scroll" tabIndex={0} role="region" aria-label="Scroll folder source changes">
       <table aria-label="Folder source changes">
         <thead><tr><th scope="col">Source</th><th scope="col">Change</th><th scope="col">Review</th></tr></thead>
-        <tbody>{result.files.map(file => <tr key={file.relative_path}>
-          <th scope="row">{file.relative_path}</th>
-          <td>{fileChange[file.change]}{file.alias_of && <> · Alias of {file.alias_of}
-            {base && !acceptedSourcePresent && file.source_sha256 === base.source_sha256 && ' (accepted source)'}</>}
-            {(file.prior_sha256 || file.source_sha256) && <details><summary>Source fingerprints</summary>
-              {file.prior_sha256 && <p>Accepted <code>{file.prior_sha256}</code></p>}
-              {file.source_sha256 && <p>Current <code>{file.source_sha256}</code></p>}
-            </details>}</td>
-          <td>{fileReview[file.review]}{file.detail && <p>{file.detail}</p>}
-            {changeable && file.change === 'removed' && <label className="local-folder-choice">
-              <input type="checkbox" disabled={choicesDisabled} checked={withdrawSources.has(file.relative_path)}
-                onChange={event => setWithdrawSources(toggle(withdrawSources, file.relative_path, event.currentTarget.checked))} />
-              Withdraw source {file.relative_path}
-            </label>}
-          </td>
-        </tr>)}</tbody>
+        <tbody>{result.files.map(file => {
+          const acceptedPath = file.source_sha256 ? acceptedPaths.get(file.source_sha256) : undefined;
+          const historicalMatch = acceptedPath && acceptedPath !== file.relative_path && acceptedPath !== file.alias_of;
+          return <tr key={file.relative_path}>
+            <th scope="row">{file.relative_path}</th>
+            <td>{fileChange[file.change]}
+              {file.alias_of && <> · Alias of {file.alias_of} (current source)</>}
+              {historicalMatch && <> · Alias of {acceptedPath} (accepted source)</>}
+              {(file.prior_sha256 || file.source_sha256) && <details><summary>Source fingerprints</summary>
+                {file.prior_sha256 && <p>Accepted <code>{file.prior_sha256}</code></p>}
+                {file.source_sha256 && <p>Current <code>{file.source_sha256}</code></p>}
+              </details>}</td>
+            <td>{fileReview[file.review]}{file.detail && <p>{file.detail}</p>}
+              {changeable && file.change === 'removed' && <label className="local-folder-choice">
+                <input type="checkbox" disabled={choicesDisabled} checked={withdrawSources.has(file.relative_path)}
+                  onChange={event => setWithdrawSources(toggle(withdrawSources, file.relative_path, event.currentTarget.checked))} />
+                Withdraw source {file.relative_path}
+              </label>}
+            </td>
+          </tr>;
+        })}</tbody>
       </table>
     </div>
     <h3>Bar comparison</h3>

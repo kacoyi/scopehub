@@ -631,3 +631,126 @@ fn indicator_preview_binds_local_source_grants_and_frozen_input() {
         1
     );
 }
+
+#[test]
+fn layout_preview_is_actor_bound_and_a_failed_commit_keeps_the_previous_layout() {
+    use scopehub_application::{
+        APPLY_LAYOUT, LAYOUT_ID, LOCAL_WORKSPACE_OPERATIONS, PREVIEW_LAYOUT,
+    };
+    use support::command;
+
+    let profile = Profile::new();
+    let mut registry = OperationRegistry::new(store(&profile.0));
+    let owner = WorkspaceAccess {
+        operations: LOCAL_WORKSPACE_OPERATIONS,
+        ..access()
+    };
+    let ai = WorkspaceAccess {
+        actor: Actor::Ai,
+        principal_id: "layout-agent",
+        ..owner
+    };
+    let mut definition = serde_json::to_value(
+        registry
+            .workspace_snapshot(&owner)
+            .unwrap()
+            .layouts
+            .unwrap()
+            .active
+            .definition,
+    )
+    .unwrap();
+    definition["theme"] = json!("light");
+    definition["panels"][0]["dock"] = json!("left");
+    let edit = json!({"action":"save", "name":"Review", "definition": definition});
+    let target = json!({"kind":"layout", "object_id":LAYOUT_ID});
+
+    let mut preview = command(PREVIEW_LAYOUT, 0, Uuid::new_v4(), json!({"edit": edit}));
+    preview["scope"]["target"] = target.clone();
+    let bound = json!({"scope": preview["scope"], "intent": preview["intent"]});
+    let scoped = WorkspaceAccess {
+        operations: &[PREVIEW_LAYOUT],
+        ..ai
+    };
+    let proposed = registry
+        .execute_chart_mutation_intent(&scoped, None, bound)
+        .unwrap();
+    assert_eq!(proposed["outcome"]["state"], "previewed");
+    let candidate = &proposed["outcome"]["result"];
+    assert_eq!(candidate["layout"]["definition"], definition);
+    assert_eq!(counts(&profile), (0, 0));
+
+    let mut apply = command(
+        APPLY_LAYOUT,
+        0,
+        Uuid::new_v4(),
+        json!({
+            "edit": edit, "preview_token": candidate["preview_token"]
+        }),
+    );
+    apply["scope"]["target"] = target.clone();
+    let other = registry.execute_workspace(&owner, apply.clone()).unwrap();
+    assert_failed(&other, "STALE_CONTEXT");
+    let mut substituted = apply.clone();
+    substituted["intent"]["arguments"]["edit"]["name"] = json!("Substitute");
+    assert_failed(
+        &registry.execute_workspace(&ai, substituted).unwrap(),
+        "STALE_CONTEXT",
+    );
+    assert_failed(
+        &registry.execute_workspace(&scoped, apply.clone()).unwrap(),
+        "PERMISSION_DENIED",
+    );
+
+    let probe = profile.sqlite();
+    probe
+        .execute_batch(
+            "CREATE TRIGGER stop_layout BEFORE INSERT ON workspace_layout_changes
+         BEGIN SELECT RAISE(ABORT, 'synthetic layout fault'); END;",
+        )
+        .unwrap();
+    assert_failed(
+        &registry.execute_workspace(&ai, apply.clone()).unwrap(),
+        "INTERNAL_ERROR",
+    );
+    assert_eq!(counts(&profile), (0, 0));
+    let previous = registry.workspace_snapshot(&owner).unwrap();
+    assert_eq!(previous.workspace.revision, 0);
+    let previous = previous.layouts.unwrap();
+    assert!(previous.active.name.is_none() && previous.saved.is_empty());
+
+    probe.execute_batch("DROP TRIGGER stop_layout").unwrap();
+    let applied = registry.execute_workspace(&ai, apply.clone()).unwrap();
+    let receipt = &applied["outcome"]["receipt"];
+    assert_eq!(applied["outcome"]["state"], "committed");
+    assert_eq!(applied["outcome"]["result"], candidate["layout"]);
+    assert_eq!(receipt["committed_workspace_revision"], 1);
+    drop(registry);
+
+    let mut reopened = OperationRegistry::new(store(&profile.0));
+    let retried = reopened.execute_workspace(&ai, apply).unwrap();
+    assert_eq!(&retried["outcome"]["receipt"], receipt);
+    let restored = reopened.workspace_snapshot(&ai).unwrap().layouts.unwrap();
+    assert_eq!(restored.active.name.as_deref(), Some("Review"));
+    let undo_id = restored.undo.unwrap().operation_id;
+    assert!(
+        reopened
+            .workspace_snapshot(&owner)
+            .unwrap()
+            .layouts
+            .unwrap()
+            .undo
+            .is_none()
+    );
+    let mut inverse = undo(1, &undo_id, Uuid::new_v4());
+    inverse["scope"]["target"] = target;
+    let undone = reopened.execute_workspace(&ai, inverse).unwrap();
+    assert_eq!(undone["outcome"]["state"], "committed");
+    let restored = reopened.workspace_snapshot(&owner).unwrap();
+    assert_eq!(
+        (restored.workspace.revision, restored.selection_revision),
+        (2, 0)
+    );
+    let restored = restored.layouts.unwrap();
+    assert!(restored.active.name.is_none() && restored.saved.is_empty() && restored.undo.is_none());
+}

@@ -258,6 +258,30 @@ class LocalFolderPreviewTests(unittest.TestCase):
         self.assertEqual(row['raw_fields'][-2:], ['90.5', '764'])
         self.assertEqual({column['column'] for column in preview['raw_only_columns']}, {'Settlement', 'OpenInterest'})
 
+    def test_declared_raw_kinds_preserve_each_record_and_refuse_bar_publication(self):
+        fixtures = {
+            'trade': (b'Contract,Time,TradePrice,TradeQuantity', b'CU2605,21:00:01,85.60,02', b'CU2605,21:00:01,85.65,03'),
+            'depth_snapshot': (b'Contract,Time,BidSize,AskSize', b'CU2605,21:00:01,02,03', b'CU2605,21:00:01,03,04'),
+            'reference_data': (b'Contract,Unit,Multiplier', b'CU2605,tonnes,05', b'CU2606,tonnes,05'),
+            'corporate_action': (b'Symbol,ExDate,Cash', b'000731,2026-04-15,0.12', b'000731,2026-05-15,0.13'),
+        }
+        for kind, (header, first, second) in fixtures.items():
+            with self.subTest(kind=kind):
+                content = b'\n'.join((header, first, second)) + b'\n'
+                mapping = {'version': 1, 'revision': 'declared', 'encoding': 'utf-8', 'delimiter': ',', 'record_kind': kind}
+                preview = preview_csv(content, mapping)
+                self.assertEqual([issue['code'] for issue in preview['issues']], [kind])
+                self.assertIsNone(preview['series'])
+                self.assertEqual(preview['file_sha256'], sha256(content).hexdigest())
+                self.assertEqual(
+                    [(row['record_number'], row['line_start'], row['line_end'], row['raw_fields'], row['normalized'])
+                     for row in preview['rows']],
+                    [(1, 2, 2, first.decode().split(','), None), (2, 3, 3, second.decode().split(','), None)],
+                )
+                with self.assertRaises(CsvReviewRequired) as rejected:
+                    check_complete_csv(content, mapping)
+                self.assertEqual(rejected.exception.issue['code'], kind)
+
     def test_quote_snapshots_stay_inspectable_in_same_time_source_order(self):
         content = (
             b'Contract,TradingDay,UpdateTime,LastPrice,VolumeTotal,BidPrice\n'

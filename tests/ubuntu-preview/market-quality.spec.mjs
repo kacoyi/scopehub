@@ -1,6 +1,7 @@
 import { expect, test as base } from '@playwright/test';
 import { future, openDefaultSample } from '../ui/sample-startup.mjs';
 import { painted } from '../ui/chart-pixels.mjs';
+import { openUnconfiguredPreview } from '../ui/preview-startup.mjs';
 import { replayStage, waitForReplayRequest } from '../ui/replay-stages.mjs';
 import { control, openPanel } from '../ui/workspace-controls.mjs';
 
@@ -108,8 +109,8 @@ async function selectStock(page) {
   await expect(control(page, 'Search symbols')).toContainText('CN.STOCK.001');
 }
 
-test('real history keeps provenance and painted bars across normal, stale, missing and empty samples', async ({ page, calls }, testInfo) => {
-  await page.goto('/');
+test('real history keeps provenance and painted bars across normal, stale, missing and empty samples', async ({ page, baseURL, calls }, testInfo) => {
+  await openUnconfiguredPreview(page, baseURL);
   await openPanel(page, 'Data sources');
   const revision = sources(page).getByLabel('Sample revision', { exact: true });
   const date = sources(page).getByLabel('Sample date (UTC)', { exact: true });
@@ -190,6 +191,67 @@ test('real history keeps provenance and painted bars across normal, stale, missi
       },
     })),
   );
+});
+
+for (const [name, reject, reason] of [
+  ['HTTP failure', route => route.fulfill({ status: 500, contentType: 'text/javascript', body: '' }), /\/src\/main\.tsx returned HTTP 500/],
+  ['failed connection', route => route.abort('connectionfailed'), /\/src\/main\.tsx failed \(net::ERR_CONNECTION_FAILED\)/],
+]) {
+  test(`preview startup reports an entry-module ${name} without retrying`, async ({ page, baseURL, calls }) => {
+    let moduleRequests = 0;
+    let navigations = 0;
+    page.on('request', request => {
+      if (request.isNavigationRequest() && request.frame() === page.mainFrame()) navigations++;
+    });
+    const rejectEntry = async route => {
+      moduleRequests++;
+      await reject(route);
+    };
+    await page.route('**/src/main.tsx', rejectEntry);
+    await expect(openUnconfiguredPreview(page, baseURL)).rejects.toThrow(reason);
+    await expect(control(page, 'Data sources')).toHaveCount(0);
+    const startup = page.getByRole('main', { name: 'Workspace startup' });
+    await expect(startup).toBeVisible();
+    await expect(startup.getByRole('button', { name: 'Reload window' })).toBeEnabled();
+    expect(moduleRequests).toBe(1);
+    expect(navigations).toBe(1);
+    expect(calls).toEqual([]);
+
+    const location = page.url();
+    await page.unroute('**/src/main.tsx', rejectEntry);
+    await startup.getByRole('button', { name: 'Reload window' }).click();
+    await expect(control(page, 'Open offline sample')).toBeVisible({ timeout: 10_000 });
+    await expect(startup).toHaveCount(0);
+    expect(page.url()).toBe(location);
+    expect(navigations).toBe(2);
+    expect(calls).toEqual([]);
+  });
+}
+
+test('preview startup reports the bounded wait for a stalled entry module', async ({ page, baseURL, calls }) => {
+  await page.clock.install();
+  const release = Promise.withResolvers();
+  let moduleRequests = 0;
+  await page.route('**/src/main.tsx', async route => {
+    moduleRequests++;
+    await release.promise;
+    await route.abort();
+  });
+  try {
+    await expect(openUnconfiguredPreview(page, baseURL, { timeout: 2_500 })).rejects.toThrow(
+      /application mount\. Startup exceeded 2500 ms\. Document HTTP 200, entry no response/,
+    );
+    await expect(control(page, 'Data sources')).toHaveCount(0);
+    const startup = page.getByRole('main', { name: 'Workspace startup' });
+    await expect(startup.getByRole('button', { name: 'Reload window' })).toBeVisible();
+    await page.clock.fastForward(10_000);
+    await expect(startup.getByRole('heading')).toHaveText('The workspace hasn’t opened yet');
+    expect(moduleRequests).toBe(1);
+    expect(calls).toEqual([]);
+  } finally {
+    release.resolve();
+    await page.unrouteAll({ behavior: 'wait' });
+  }
 });
 
 test('a real closed sample remains current when its final observation arrived', async ({ page }) => {
@@ -297,6 +359,130 @@ async function expectNoConnectionFailure(page) {
   await expect(fact(page, 'Local transport')).toHaveCount(0);
 }
 
+test('Retry history restores the interrupted CN stock five-minute close-price line', async ({ page, baseURL, calls }, testInfo) => {
+  await openDefaultSample(page);
+  await control(page, '5m').click();
+  await expectReady(page, future, '5m', 8);
+  await control(page, 'Close-price line').click();
+  await openPanel(page, 'Data sources');
+
+  const series = {
+    instrument_id: stock, timeframe: '5m', quantity_unit: 'shares', provider_id: 'scopehub.synthetic',
+    price_adjustment: 'raw', session_scope: 'sample-sessions', calendar_id: `${stock}.sample-calendar.v1`,
+  };
+  const selection = { operation: 'market.readHistoryPage', payload: { ...fullRange, series } };
+  const selectedHistory = call => call?.operation === selection.operation
+    && call.payload.series.instrument_id === stock && call.payload.series.timeframe === '5m';
+  const browser = await page.context().newCDPSession(page);
+  const interrupted = Promise.withResolvers();
+  let hostStatus;
+  const interrupt = async ({ request, requestId, responseStatusCode, responseErrorReason }) => {
+    try {
+      if (hostStatus !== undefined || !selectedHistory(JSON.parse(request.postData ?? 'null'))) {
+        await browser.send('Fetch.continueRequest', { requestId });
+        return;
+      }
+      // Let the real preview and worker answer before interrupting delivery to fetch.
+      hostStatus = responseStatusCode;
+      if (hostStatus !== 200) {
+        await browser.send('Fetch.continueRequest', { requestId });
+        throw new Error(`Expected the host's HTTP 200 before injection, received ${hostStatus ?? responseErrorReason}`);
+      }
+      await browser.send('Fetch.failRequest', { requestId, errorReason: 'ConnectionFailed' });
+      interrupted.resolve();
+    } catch (error) { interrupted.reject(error); }
+  };
+  browser.on('Fetch.requestPaused', interrupt);
+  let failed;
+  try {
+    await browser.send('Fetch.enable', { patterns: [{ urlPattern: `${baseURL}${operationPath}`, requestStage: 'Response' }] });
+    [failed] = await Promise.all([
+      page.waitForEvent('requestfailed', { ...replayStage, predicate: request => selectedHistory(historyRequest(request)) }),
+      selectStock(page),
+      interrupted.promise,
+    ]);
+  } finally {
+    browser.off('Fetch.requestPaused', interrupt);
+    await browser.detach();
+  }
+
+  expect(failed.failure()?.errorText).toBe('net::ERR_CONNECTION_FAILED');
+  expect(await failed.response()).toBeNull();
+  const alert = plot(page).getByRole('alert');
+  await expect(alert).toHaveText('Disconnected from the local preview. Retry when the connection is restored.');
+  await expect(canvases(page)).toHaveCount(0);
+  await expectFacts(page, {
+    Connection: 'Unknown', Coverage: 'Unknown', 'Local transport': 'Unavailable',
+  });
+  await expect(fact(page, 'Worker connection')).toHaveCount(0);
+  await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
+  await expect(control(page, 'Close-price line')).toHaveAttribute('aria-pressed', 'true');
+  expect(calls.filter(selectedHistory), 'stock history remains at the first terminal until explicit retry').toEqual([selection]);
+  await testInfo.attach('selected-history-interruption', {
+    contentType: 'application/json',
+    body: JSON.stringify({
+      selection, injection: 'Chromium response delivery', hostStatus,
+      browserStatus: null, browserError: failed.failure().errorText, alert: await alert.textContent(),
+    }),
+  });
+
+  const [response] = await Promise.all([
+    page.waitForResponse(response => selectedHistory(historyRequest(response.request())), replayStage),
+    control(page, 'Retry history').click(),
+  ]);
+  expect(response.status()).toBe(200);
+  expect(await response.finished()).toBeNull();
+  expect(response.request().failure()).toBeNull();
+  const reply = await response.json();
+
+  // The committed normal CN stock fixture records this unfinished five-minute bar.
+  const start = '2024-01-04T05:05:00.000Z';
+  const tradingDay = '2024-01-04';
+  const lastBar = {
+    time_ms: Date.parse(start), trading_day: tradingDay, open: 12.1, high: 12.19, low: 12.1,
+    close: 12.15, volume: 510, is_closed: false,
+  };
+  expect(reply).toMatchObject({ ok: true, result: {
+    snapshot: { series, ...fullRange, dataset_revision: 'scopehub-synthetic-v1:20241014:normal' },
+    quality_state: { coverage: 'observed', gaps: [] }, total_bars: 8, next_cursor: null,
+  } });
+  expect(reply.result.bars).toHaveLength(8);
+  expect(reply.result.bars.at(-1)).toEqual(lastBar);
+
+  await expect(control(page, 'Search symbols')).toContainText('CN.STOCK.001');
+  await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
+  await expect(control(page, 'Close-price line')).toHaveAttribute('aria-pressed', 'true');
+  await expect(chart(page)).toHaveAttribute('data-instrument', stock);
+  await expect(chart(page)).toHaveAttribute('data-timeframe', '5m');
+  await expect(chart(page)).toHaveAttribute('data-bars', '8');
+  await expect(plot(page).getByRole('img', { name: `Close-price line and volume chart for ${stock}`, exact: true })
+    .locator('canvas').first()).toBeVisible();
+  await expect.poll(() => painted(page, 'line')).toBeGreaterThan(20);
+  await expect(alert).toHaveCount(0);
+  await expectFacts(page, { Connection: 'Offline', Freshness: 'Current', Coverage: 'Observed', 'Known gaps': 'None reported' });
+  await expectNoConnectionFailure(page);
+  await page.mouse.move(1, 1);
+  await expect(page.getByLabel('Selected bar').locator('span')).toHaveText([
+    'O 12.1', 'H 12.19', 'L 12.1', 'C 12.15', 'Volume 510', `Trading day ${tradingDay}`, 'Partial bar',
+  ]);
+  await openPanel(page, 'Data window');
+  const dataWindow = page.getByRole('complementary', { name: 'Data window' });
+  await expect(dataWindow.getByText('8 bars · Volume in shares', { exact: true })).toBeVisible();
+  const rows = dataWindow.getByRole('table', { name: 'Historical bars' }).locator('tbody tr');
+  await expect(rows).toHaveCount(8);
+  await expect(rows.last().getByRole('cell')).toHaveText([
+    start, tradingDay, '12.1', '12.19', '12.1', '12.15', '510', 'Partial',
+  ]);
+  expect(calls.filter(selectedHistory)).toEqual([selection, selection]);
+  await testInfo.attach('selected-history-retry', {
+    contentType: 'application/json',
+    body: JSON.stringify({
+      selection, status: response.status(), coverage: reply.result.quality_state.coverage, bars: reply.result.total_bars,
+      lastBar: reply.result.bars.at(-1),
+    }),
+  });
+});
+
 for (const failure of connectionFailures) {
   test(`${failure.name} leaves source connection unknown when selected history is unavailable`, async ({ page, calls }) => {
     await openDefaultSample(page);
@@ -399,6 +585,55 @@ for (const [code, instrument, label] of readFailures) {
     await expectFacts(page, { Connection: 'Unknown', Session: 'Unknown', Freshness: 'Unknown', Coverage: 'Unknown', 'Input digest': 'Unknown' });
     await expectNoConnectionFailure(page);
     await expect(control(page, 'Retry history')).toHaveCount(0);
+  });
+}
+
+const untypedHistoryReplies = [
+  {
+    status: 502, contentType: 'text/html', body: '<p>Internal diagnostic</p>',
+    alert: 'The local preview returned HTTP 502.', retryable: true,
+  },
+  {
+    status: 403, contentType: 'application/json', body: '{"message":"Internal diagnostic"}',
+    alert: 'The local preview returned HTTP 403.', retryable: false,
+  },
+  {
+    status: 200, contentType: 'application/json', body: '{Internal diagnostic',
+    alert: 'The data response failed validation.', retryable: false,
+  },
+];
+
+for (const { status, contentType, body, alert, retryable } of untypedHistoryReplies) {
+  test(`a completed untyped HTTP ${status} selected-history reply has its own terminal`, async ({ page, calls }) => {
+    await openDefaultSample(page);
+    await openPanel(page, 'Data sources');
+    const initialCalls = calls.length;
+    const matches = request => {
+      const series = historyRequest(request)?.payload.series;
+      return series?.instrument_id === future && series.timeframe === '5m';
+    };
+    const handler = route => matches(route.request())
+      ? route.fulfill({ status, contentType, body }) : route.continue();
+    await page.route(`**${operationPath}`, handler);
+    const completed = page.waitForResponse(response => matches(response.request()), { timeout: 5_000 });
+
+    await control(page, '5m').click();
+    const response = await completed;
+    expect(response.status()).toBe(status);
+    expect(await response.finished()).toBeNull();
+    expect(response.request().failure()).toBeNull();
+    await expect(plot(page).getByRole('alert')).toHaveText(alert);
+    await expectNoConnectionFailure(page);
+    await expect(canvases(page)).toHaveCount(0);
+    const retry = control(page, 'Retry history');
+    await expect(retry).toHaveCount(retryable ? 1 : 0);
+    expect(calls).toHaveLength(initialCalls + 1);
+    if (retryable) {
+      await page.unroute(`**${operationPath}`, handler);
+      await retry.click();
+      await expectReady(page, future, '5m', 8);
+      expect(calls.slice(initialCalls)).toEqual([calls[initialCalls], calls[initialCalls]]);
+    }
   });
 }
 

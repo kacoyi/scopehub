@@ -10,8 +10,8 @@ use scopehub_application::{
     LOCAL_WORKSPACE_OPERATIONS, MarketLifecycle, MarketPort, MarketRegistry,
     PREPARE_LOCAL_FOLDER_PUBLICATION, PREVIEW_LOCAL_FOLDER_REFRESH, PREVIEW_LOCAL_IMPORT,
     PUBLISH_LOCAL_FOLDER_REFRESH, PUBLISH_LOCAL_IMPORT, READ_LOCAL_FOLDER_REVISION,
-    READ_LOCAL_IMPORT_REVISION, REVOKE_LOCAL_FOLDER_REVISION, REVOKE_LOCAL_IMPORT_REVISION,
-    SAVE_LOCAL_IMPORT_MAPPING, failure,
+    READ_LOCAL_FOLDER_SOURCE_ROW, READ_LOCAL_IMPORT_REVISION, READ_LOCAL_IMPORT_SOURCE_ROW,
+    REVOKE_LOCAL_FOLDER_REVISION, REVOKE_LOCAL_IMPORT_REVISION, SAVE_LOCAL_IMPORT_MAPPING, failure,
 };
 use scopehub_domain::protocol::{Error, ErrorCode};
 use scopehub_platform::local_folder::LocalFolderHost;
@@ -199,6 +199,12 @@ impl State {
                 self.local_import.reject_reused_request(request_id)?;
                 return self.workspace.read_local_folder_revision(payload).await;
             }
+            READ_LOCAL_FOLDER_SOURCE_ROW => {
+                return self
+                    .local_import
+                    .read_frozen_folder_source_row(&self.workspace, payload, request_id)
+                    .await;
+            }
             REVOKE_LOCAL_FOLDER_REVISION => {
                 self.local_import.reject_reused_request(request_id)?;
                 return self.workspace.revoke_local_folder_revision(payload).await;
@@ -210,6 +216,12 @@ impl State {
             READ_LOCAL_IMPORT_REVISION => {
                 self.local_import.reject_reused_request(request_id)?;
                 return self.workspace.read_local_revision(payload).await;
+            }
+            READ_LOCAL_IMPORT_SOURCE_ROW => {
+                return self
+                    .local_import
+                    .read_frozen_source_row(&self.workspace, payload, request_id)
+                    .await;
             }
             REVOKE_LOCAL_IMPORT_REVISION => {
                 self.local_import.reject_reused_request(request_id)?;

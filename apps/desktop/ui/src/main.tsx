@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ChartWorkspace } from './chart-workspace';
 import { LocalImportEditor, type LocalFolderCatalog } from './local-import-editor';
@@ -8,7 +8,7 @@ import { OpenLocalRevisionDialog } from './local-revision-dialog';
 import { usePublishedRevisionAccess } from './published-revision-access';
 import { readSampleView, saveSampleView } from './sample-view';
 import { useLocalWorkspace } from './use-local-workspace';
-import './style.css';
+import { useRestoredWorkspaceSource } from './workspace-source';
 
 function initialSource(): boolean {
   if (window.location.hash) return window.location.hash === '#demo';
@@ -16,7 +16,8 @@ function initialSource(): boolean {
 }
 
 function App() {
-  const [sample, setSample] = useState(initialSource);
+  const [legacySample, setLegacySample] = useState(initialSource);
+  const demoLinkHandled = useRef(false);
   const [local, setLocal] = useState(false);
   const [folder, setFolder] = useState<LocalFolderCatalog | null>(null);
   const [choosing, setChoosing] = useState(false);
@@ -25,6 +26,10 @@ function App() {
   const localWorkspace = useLocalWorkspace();
   const revisionAccess = usePublishedRevisionAccess(localWorkspace);
   const snapshot = localWorkspace?.snapshot;
+  const source = snapshot?.source;
+  const supportsSourcePreference = source !== undefined;
+  const sample = localWorkspace ? Boolean(snapshot && (source?.kind === 'sample' || source == null && legacySample)) : legacySample;
+  const { restored, retry } = useRestoredWorkspaceSource(localWorkspace, revisionAccess);
   const target = snapshot?.chart_evidence;
   const targetRevoked = Boolean(target && 'revision_id' in target && revisionAccess.revoked.has(target.revision_id));
   const displaySnapshot = useMemo(() => snapshot && targetRevoked
@@ -33,17 +38,33 @@ function App() {
   useEffect(() => {
     const navigate = () => {
       const chosen = window.location.hash === '#demo';
-      if (!chosen) saveSampleView(null);
-      setSample(chosen);
+      demoLinkHandled.current = false;
       if (chosen) setLocal(false);
+      else if (!supportsSourcePreference) {
+        saveSampleView(null);
+      }
+      setLegacySample(chosen);
     };
     window.addEventListener('hashchange', navigate);
     return () => window.removeEventListener('hashchange', navigate);
-  }, []);
+  }, [supportsSourcePreference]);
+  useEffect(() => {
+    if (!legacySample || window.location.hash !== '#demo' || demoLinkHandled.current
+      || !supportsSourcePreference || !localWorkspace || localWorkspace.pending || source?.kind === 'sample') return;
+    demoLinkHandled.current = true;
+    void localWorkspace.chooseSource({ kind: 'sample', instrument_id: readSampleView()?.symbol ?? null }).catch(() => {});
+  }, [legacySample, localWorkspace, source, supportsSourcePreference]);
+
   const leaveSample = () => {
-    saveSampleView(null);
-    if (window.location.hash) window.location.hash = '';
-    setSample(false);
+    const leave = () => {
+      saveSampleView(null);
+      if (window.location.hash === '#demo') {
+        window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
+      }
+      setLegacySample(false);
+    };
+    if (localWorkspace && supportsSourcePreference) void localWorkspace.chooseSource({ kind: 'none' }).then(leave, () => {});
+    else leave();
   };
   const chooseFolder = useCallback(async () => {
     const picked = await chooseLocalCsvFolder();
@@ -65,8 +86,14 @@ function App() {
   };
   const openSample = () => {
     setLocal(false);
-    setSample(true);
-    window.location.hash = 'demo';
+    if (localWorkspace && supportsSourcePreference) {
+      if (source?.kind !== 'sample') {
+        void localWorkspace.chooseSource({ kind: 'sample', instrument_id: readSampleView()?.symbol ?? null }).catch(() => {});
+      }
+    } else {
+      setLegacySample(true);
+      window.location.hash = 'demo';
+    }
   };
   const localActions = hasLocalCsvPicker() ? {
     choose: () => { void chooseFromWorkspace(); },
@@ -79,7 +106,14 @@ function App() {
   return <>
     {!local && <ChartWorkspace key={sample ? 'sample' : 'unconfigured'} sample={sample}
       leaveSample={leaveSample} localActions={localActions} workspace={workspace}
-      openPublished={workspace ? () => setOpeningRevision(true) : undefined} />}
+      openPublished={workspace ? () => setOpeningRevision(true) : undefined}
+      restoredSource={restored} restoredSampleInstrument={source?.kind === 'sample' ? source.instrument_id ?? undefined : undefined}
+      retryRestoredSource={retry} onOpenSample={openSample}
+      chooseSampleInstrument={workspace && supportsSourcePreference ? async id => {
+        if (source?.kind !== 'sample' || source.instrument_id !== id) {
+          await workspace.chooseSource({ kind: 'sample', instrument_id: id });
+        }
+      } : undefined} />}
     {folder && <div hidden={!local}>
       <main className="workstation local-workstation">
         <header className="topbar local-source-bar">
@@ -96,7 +130,15 @@ function App() {
       </main>
     </div>}
     {openingRevision && <OpenLocalRevisionDialog onClose={() => setOpeningRevision(false)} revisionAccess={revisionAccess}
-      workspace={workspace} nativeLocalImport={hasLocalCsvPicker()} />}
+      workspace={workspace} nativeLocalImport={hasLocalCsvPicker()}
+      useWorkspaceSource={workspace && supportsSourcePreference ? async revision_id => {
+        await workspace.chooseSource({ kind: 'frozen', revision_id });
+        if (window.location.hash === '#demo') {
+          window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
+        }
+        setLocal(false);
+        setOpeningRevision(false);
+      } : undefined} />}
   </>;
 }
 

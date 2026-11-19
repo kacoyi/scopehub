@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
-import { control } from './workspace-controls.mjs';
+import { control, leaveSample } from './workspace-controls.mjs';
 
 const workspaceId = 'main';
 const operationId = 'ce7fd52d-7a62-441f-897f-098098e6fe82';
@@ -140,6 +140,53 @@ test('opted-in desktop uses a distinct bootstrap and commits and undoes through 
   await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
   await expect(undoButton).toBeDisabled();
   expect(calls.map(call => call.args.operation)).toEqual([null, 'chart.setTimeframe', null, 'workspace.undo']);
+  expect(network).toEqual([]);
+});
+
+test('opted-in desktop keeps sample timeframe controls separate from durable IPC', async ({ page, baseURL }) => {
+  let current = ready('1m', 1, undo);
+  const calls = await nativeTransport(page, { optedIn: true }, args => {
+    if (args.operation === null) {
+      expect(args.payload).toEqual({ type: 'snapshot' });
+      return { result: current };
+    }
+    if (args.operation === 'instrument.search') {
+      expect(args.payload).toEqual({ query: '', limit: 50 });
+      return { result: { instruments: [] } };
+    }
+    // Model a valid reply so accidental dispatch fails at the IPC assertion.
+    const sampleWrite = args.operation === 'chart.setTimeframe';
+    if (!sampleWrite) expectMutation(args, 'workspace.undo', 1, { operation_id: operationId });
+    const id = randomUUID();
+    current = ready('5m', 2, sampleWrite ? { operation_id: id, committed_workspace_revision: 2 } : null);
+    return { result: response(args.payload, committed(args.operation, current.workspace, id, sampleWrite)) };
+  });
+  const network = observeWorkspaceNetwork(page, baseURL);
+  const undoButton = control(page, 'Undo timeframe change');
+  const workspaceCalls = () => calls.map(call => call.args.operation).filter(name => name !== 'instrument.search');
+  await page.goto('/');
+  await expect(undoButton).toBeEnabled();
+  await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
+  await control(page, 'Open offline sample').click();
+  await expect(page.locator('.connection')).toHaveText('Offline sampleSimulated');
+  await control(page, '5m').click();
+  await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
+  expect(workspaceCalls()).toEqual([null]);
+  await expect(undoButton).toHaveCount(0);
+
+  await page.reload();
+  await expect(page.locator('.connection')).toHaveText('Offline sampleSimulated');
+  await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
+  await expect(undoButton).toHaveCount(0);
+  await leaveSample(page);
+  await expect(page.locator('.connection')).toHaveText('No data source');
+  await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
+  await expect(undoButton).toBeEnabled();
+  await undoButton.click();
+  await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
+  await expect(undoButton).toBeDisabled();
+  expect(workspaceCalls()).toEqual([null, null, 'workspace.undo']);
+  expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
   expect(network).toEqual([]);
 });
 

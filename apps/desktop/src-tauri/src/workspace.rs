@@ -7,18 +7,21 @@ use std::{
 
 use scopehub_application::{
     Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, FolderManifestAnchor,
-    FolderRefreshBase, LIST_LOCAL_FOLDER_REVISIONS, LIST_LOCAL_IMPORT_REVISIONS,
-    LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS, LocalDatasetPublication,
-    MappingCommitGuard, OperationRegistry, PREPARE_LOCAL_FOLDER_PUBLICATION,
-    PREVIEW_LOCAL_FOLDER_REFRESH, PRIVATE_RECORD_CHANGE, PUBLISH_LOCAL_FOLDER_REFRESH,
-    PUBLISH_LOCAL_IMPORT, READ_LOCAL_FOLDER_REVISION, READ_LOCAL_IMPORT_REVISION,
+    FolderRefreshBase, FrozenLocalSourceRow, LIST_LOCAL_FOLDER_REVISIONS,
+    LIST_LOCAL_IMPORT_REVISIONS, LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS,
+    LocalDatasetPublication, MappingCommitGuard, OperationRegistry,
+    PREPARE_LOCAL_FOLDER_PUBLICATION, PREVIEW_LOCAL_FOLDER_REFRESH, PRIVATE_RECORD_CHANGE,
+    PUBLISH_LOCAL_FOLDER_REFRESH, PUBLISH_LOCAL_IMPORT, READ_LOCAL_FOLDER_REVISION,
+    READ_LOCAL_FOLDER_SOURCE_ROW, READ_LOCAL_IMPORT_REVISION, READ_LOCAL_IMPORT_SOURCE_ROW,
     REVOKE_LOCAL_FOLDER_REVISION, REVOKE_LOCAL_IMPORT_REVISION, ReviewedImportMapping,
     SAVE_LOCAL_IMPORT_MAPPING, WorkspaceAccess, WorkspaceBinding, evidence_operation_name, failure,
     list_local_folder_revisions_input, list_local_import_revisions_input,
     local_mapping_fingerprint, read_local_folder_revision_input, read_local_import_revision_input,
     revoke_local_folder_revision_input, revoke_local_import_revision_input,
 };
-use scopehub_domain::protocol::{CsvMappingV1, Error, ErrorCode};
+use scopehub_domain::protocol::{
+    CsvMappingV1, Error, ErrorCode, ReadLocalFolderSourceRowInput, ReadLocalImportSourceRowInput,
+};
 use scopehub_persistence::SqliteWorkspace;
 use scopehub_platform::local_folder::FrozenFile;
 use serde_json::{Value, json};
@@ -36,11 +39,13 @@ const LOCAL_IMPORT_OPERATIONS: &[&str] = &[
     PUBLISH_LOCAL_IMPORT,
     LIST_LOCAL_IMPORT_REVISIONS,
     READ_LOCAL_IMPORT_REVISION,
+    READ_LOCAL_IMPORT_SOURCE_ROW,
     REVOKE_LOCAL_IMPORT_REVISION,
     PREPARE_LOCAL_FOLDER_PUBLICATION,
     PUBLISH_LOCAL_FOLDER_REFRESH,
     LIST_LOCAL_FOLDER_REVISIONS,
     READ_LOCAL_FOLDER_REVISION,
+    READ_LOCAL_FOLDER_SOURCE_ROW,
     REVOKE_LOCAL_FOLDER_REVISION,
 ];
 const MAX_REQUEST_BYTES: usize = 16 * 1024;
@@ -62,6 +67,7 @@ enum Lane {
 
 enum Request {
     Snapshot,
+    WorkspaceSource(Value),
     FrozenChart(String),
     FrozenChartStatus(String),
     IndicatorPreviewStatus(String),
@@ -143,6 +149,11 @@ impl WorkspaceBridge {
         let lane = self.admit()?;
         let request = match operation {
             None if payload == json!({"type": "snapshot"}) => Request::Snapshot,
+            None if payload["type"] == "workspace_source"
+                && payload.to_string().len() <= MAX_REQUEST_BYTES =>
+            {
+                Request::WorkspaceSource(payload)
+            }
             None if payload["type"] == "frozen_chart" || chart_status => {
                 let revision_id = payload["revision_id"]
                     .as_str()
@@ -427,6 +438,35 @@ impl WorkspaceBridge {
         .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
     }
 
+    pub(super) async fn load_local_folder_source_row(
+        &self,
+        input: ReadLocalFolderSourceRowInput,
+    ) -> Result<FrozenLocalSourceRow<ReadLocalFolderSourceRowInput>, Error> {
+        Self::with_bound(self.admit()?, false, move |bound| {
+            bound
+                .registry
+                .prepare_frozen_folder_source_row(&local_import_access(&bound.profile_id), input)
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
+    }
+
+    pub(super) async fn finish_local_folder_source_row(
+        &self,
+        source: FrozenLocalSourceRow<ReadLocalFolderSourceRowInput>,
+        row: Value,
+    ) -> Result<Value, Error> {
+        Self::with_bound(self.admit()?, false, move |bound| {
+            bound.registry.finish_frozen_folder_source_row(
+                &local_import_access(&bound.profile_id),
+                source,
+                row,
+            )
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
+    }
+
     pub(super) async fn revoke_local_folder_revision(
         &self,
         payload: Value,
@@ -467,6 +507,35 @@ impl WorkspaceBridge {
             bound
                 .registry
                 .read_frozen_local_dataset(&local_import_access(&bound.profile_id), &input)
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
+    }
+
+    pub(super) async fn load_local_source_row(
+        &self,
+        input: ReadLocalImportSourceRowInput,
+    ) -> Result<FrozenLocalSourceRow, Error> {
+        Self::with_bound(self.admit()?, false, move |bound| {
+            bound
+                .registry
+                .prepare_frozen_local_source_row(&local_import_access(&bound.profile_id), input)
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
+    }
+
+    pub(super) async fn finish_local_source_row(
+        &self,
+        source: FrozenLocalSourceRow,
+        row: Value,
+    ) -> Result<Value, Error> {
+        Self::with_bound(self.admit()?, false, move |bound| {
+            bound.registry.finish_frozen_local_source_row(
+                &local_import_access(&bound.profile_id),
+                source,
+                row,
+            )
         })
         .await?
         .ok_or_else(|| failure(ErrorCode::SNAPSHOTUNAVAILABLE))
@@ -539,11 +608,16 @@ impl BoundWorkspace {
                     "workspace": snapshot.workspace,
                     "selection_revision": snapshot.selection_revision,
                     "chart_evidence": snapshot.chart_evidence,
+                    "layouts": snapshot.layouts_json(),
+                    "source": snapshot.source_json(),
                     "undo": snapshot.undo.map(|target| json!({
                         "operation_id": target.operation_id,
                         "committed_workspace_revision": target.committed_workspace_revision,
                     })),
                 }))
+            }
+            Request::WorkspaceSource(request) => {
+                self.registry.select_workspace_source(&access, &request)
             }
             Request::FrozenChart(revision_id) => self
                 .registry
