@@ -1281,8 +1281,8 @@
     },
     {
       "id": "windows-reviewed-mapping-selector-spelling",
-      "source": "Hosted Windows run 44548543796 at e960fd1, rust-contracts-workers log and the reviewed mapping restart test at line 608.",
-      "observation": "The test saved a mapping after selecting a canonicalized synthetic directory, reopened the same SQLite profile, and reselected the same source using the supplied path. The source body changed beyond the sample with the decoded header unchanged. Loading returned not_saved instead of saved, before header comparison could run. The ordinary Win11 GUI observation with its selection spelling remains separately recorded.",
+      "source": "Hosted Windows run 44548543796 at e960fd1, rust-contracts-workers log, and the native Win11 MSVC comparison at 2f4a0c0 retained in .reports/guest/2f4a0c0-mapping-path-reopen.",
+      "observation": "The hosted restart test saved through a canonicalized synthetic directory and reselected the same source through the supplied spelling. Loading returned not_saved instead of saved before header comparison. On the Win11 guest, the same unmodified test and NTFS temporary directory passed with the long TEMP name and failed with its real 8.3 alias. The ordinary Win11 GUI observation with its selection spelling remains separately recorded.",
       "severity": "major",
       "status": "open",
       "task_ids": [

@@ -702,6 +702,90 @@ async fn reviewed_mapping_reuses_live_source_after_restart_and_requires_review_f
     restarted.shutdown().await;
 }
 
+#[cfg(windows)]
+#[tokio::test]
+async fn reviewed_mapping_reopens_a_legacy_v4_windows_key() {
+    use scopehub_application::{MappingCommitGuard, mapping_header_digest};
+    use sha2::{Digest, Sha256};
+    use std::{fs, os::windows::ffi::OsStrExt};
+
+    struct FixtureSeed;
+
+    impl MappingCommitGuard for FixtureSeed {
+        fn commit<T>(&self, write: impl FnOnce() -> Result<T, Error>) -> Result<T, Error> {
+            write()
+        }
+    }
+
+    // Reproduce the original v4 key framing for a canonical selector whose
+    // admitted spelling was already the long on-disk path.
+    fn legacy_fingerprint(domain: &[u8], path: &Path) -> [u8; 32] {
+        let mut hash = Sha256::new();
+        hash.update(domain);
+        hash.update([0]);
+        for part in path.components() {
+            let units: Vec<_> = part.as_os_str().encode_wide().collect();
+            hash.update((2 * units.len() as u64).to_be_bytes());
+            for unit in units {
+                hash.update(unit.to_be_bytes());
+            }
+        }
+        hash.finalize().into()
+    }
+
+    let fixture = ImportFixture::new();
+    let source = fixture.0.join("Legacy Mapping Source");
+    let profile = fixture.0.join("profile");
+    fs::create_dir(&source).unwrap();
+    fs::write(
+        source.join("source.csv"),
+        b"Ticker,Date,Open,High,Low,Close,Shares\n000418,2026-11-19,4,6,3,5,20\n",
+    )
+    .unwrap();
+    let canonical = source.canonicalize().unwrap();
+    let mut legacy_key = Sha256::new();
+    legacy_key.update(b"scopehub-local-mapping-source-v1\0");
+    legacy_key.update(legacy_fingerprint(b"scopehub-local-folder-v1", &canonical));
+    legacy_key.update(legacy_fingerprint(
+        b"scopehub-local-relative-file-v1",
+        Path::new("source.csv"),
+    ));
+
+    let first = state_with_local_profile(Some(&profile));
+    let mut payload = select_csv(&first, &canonical).await;
+    payload["mapping"] = equity_mapping();
+    let shown = execute_import(&first, PREVIEW_LOCAL_IMPORT, payload)
+        .await
+        .unwrap();
+    let mapping = serde_json::from_value(equity_mapping()).unwrap();
+    let header = mapping_header_digest(&shown, &mapping).unwrap();
+    // Seed a real SQLite v4 record with the old key, independently of the
+    // corrected host association code.
+    let seeded = first
+        .workspace
+        .save(
+            format!("{:x}", legacy_key.finalize()),
+            header,
+            mapping,
+            FixtureSeed,
+        )
+        .await
+        .unwrap();
+    first.shutdown().await;
+
+    let reopened = state_with_local_profile(Some(&profile));
+    let alternate = source.with_file_name("lEGACY mAPPING sOURCE");
+    assert_eq!(alternate.canonicalize().unwrap(), canonical);
+    let ids = select_csv(&reopened, &alternate).await;
+    let loaded = execute_import(&reopened, LOAD_LOCAL_IMPORT_MAPPING, ids)
+        .await
+        .unwrap();
+    assert_eq!(loaded["status"], "saved");
+    assert_eq!(loaded["record"], seeded["record"]);
+    assert_eq!(loaded["source_sha256"], shown["sha256"]);
+    reopened.shutdown().await;
+}
+
 #[cfg(any(target_os = "linux", windows))]
 #[tokio::test]
 async fn pending_local_import_stops_on_cancellation_selection_change_or_shutdown() {

@@ -39,8 +39,8 @@ mod native {
     pub(crate) struct Directory(File);
 
     impl Directory {
-        pub(crate) fn association_path<'a>(&'a self, selected: &'a Path) -> &'a Path {
-            selected
+        pub(crate) fn association_path(&self, selected: &Path) -> io::Result<PathBuf> {
+            Ok(selected.to_owned())
         }
 
         pub(crate) fn open_root(path: &Path) -> io::Result<Self> {
@@ -138,8 +138,12 @@ mod native {
     }
 
     impl Directory {
-        pub(crate) fn association_path<'a>(&'a self, _: &Path) -> &'a Path {
-            &self.path
+        pub(crate) fn association_path(&self, _: &Path) -> io::Result<PathBuf> {
+            // All components have passed the reparse-point checks and remain
+            // pinned against modification and rename. Resolve the on-disk
+            // spelling here so short names and caller casing cannot split
+            // the mapping key for the same admitted directory.
+            self.path.canonicalize()
         }
 
         pub(crate) fn open_root(path: &Path) -> io::Result<Self> {
@@ -232,14 +236,14 @@ mod native {
         ffi::OsStr,
         fs::{File, Metadata, ReadDir},
         io,
-        path::Path,
+        path::{Path, PathBuf},
     };
 
     pub(crate) struct Directory;
 
     impl Directory {
-        pub(crate) fn association_path<'a>(&'a self, selected: &'a Path) -> &'a Path {
-            selected
+        pub(crate) fn association_path(&self, _: &Path) -> io::Result<PathBuf> {
+            Err(io::ErrorKind::Unsupported.into())
         }
 
         pub(crate) fn open_root(_: &Path) -> io::Result<Self> {
