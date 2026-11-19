@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-024",
+  "focus_task_id": "M1-006",
   "tasks": [
     {
       "id": "M0-001",
@@ -4026,7 +4026,7 @@
       "id": "M0-024",
       "title": "Keep staged replacements verifiable across multiple revisions",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-023"
       ],
@@ -4054,8 +4054,21 @@
         "python-contracts-workers",
         "architecture"
       ],
-      "evidence": [],
-      "next_action": "Exercise original and intermediate Git bases, retired work classifications and mixed cancelled and later tasks in isolated repositories, then repair the failing validations.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-024-3be92e5bf734bb0c.json",
+          "sha256": "5c21516e19c07ea0335993f7abf5f40e3bbbe67bc3b68300b07d00e90508de41"
+        },
+        {
+          "path": "project/evidence/M0-024-cd04283ce59261c0.json",
+          "sha256": "8197759409d1b4990b32820c35ebf85c7b99a8347a233381ed9659b35e8b39f2"
+        },
+        {
+          "path": "project/evidence/M0-024-58c86d4348d9a5aa.json",
+          "sha256": "2d4d9b0da4516c30eab57130c56a87a269eba33ea1d0e45ce383d21255e6f85a"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {

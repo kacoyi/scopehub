@@ -651,7 +651,7 @@
       "source": "Owner question on sustained maintenance, engineering ownership and multi-step rewrites, followed by inspection of repository controls.",
       "observation": "History checks inspect only immediate successors of an established check. Historical task classifications are resolved against live policy, and cancelled current work can mask a capability assigned only to later delivery.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-024"
       ],
@@ -659,7 +659,11 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The history comparison stopped after one replacement. Historical plans looked up retired work classifications in live policy. Cancellation and delivery scope were evaluated separately.",
+        "correction": "The validator follows every replacement branch to an implemented required check and rejects cycles. It preserves closed plans and requires a non-cancelled current task for each current capability. Existing development policies assign repair ownership and describe staged cutover and recovery.",
+        "prevention": "Four regressions reproduced the original failures and now pass, including a Git fixture with a completed intermediate task and checks from both review bases. M0-024 archives the clean local result and the matching Linux and Windows hosted results. Product work resumes at M1-006."
+      },
       "deferral_reason": null
     }
   ]
