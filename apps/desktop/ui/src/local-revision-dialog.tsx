@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { ListLocalFolderRevisionsOutput, ListLocalImportRevisionsOutput, ReadLocalFolderRevisionOutput } from '../../../../contracts/generated/protocol';
 import {
   listLocalFolderRevisions, listLocalImportRevisions, readLocalFolderRevision, readLocalImportRevision,
@@ -36,13 +36,14 @@ function failureMessage(error: unknown, fallback: string) {
 const unavailable = 'This frozen chart is unavailable in the current profile.';
 
 type LibraryPage =
-  | { status: 'loading' | 'unconfigured' | 'error' }
+  | { status: 'unconfigured' | 'error' }
   | { status: 'ready'; result: {
     revisions: Array<ListLocalImportRevisionsOutput['revisions'][number] | ListLocalFolderRevisionsOutput['revisions'][number]>;
     next_after_revision_id: string | null;
   } };
 
 type RevisionKind = 'csv' | 'folder';
+type LibrarySelection = { kind: RevisionKind; cursors: Array<string | null> };
 type OpenedRevision =
   | { kind: 'csv'; result: FrozenChartResult }
   | { kind: 'folder'; result: ReadLocalFolderRevisionOutput };
@@ -56,12 +57,14 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
   const libraryTitle = useRef<HTMLHeadingElement>(null);
   const chart = useRef<HTMLElement>(null);
   const active = useRef(false);
+  const pendingList = useRef(Promise.resolve());
   const heading = useId();
   const libraryHeading = useId();
   const chartHeading = useId();
-  const [library, setLibrary] = useState<LibraryPage>({ status: 'loading' });
-  const [kind, setKind] = useState<RevisionKind>('csv');
-  const [cursors, setCursors] = useState<Array<string | null>>([null]);
+  const [selection, selectLibrary] = useState<LibrarySelection>({ kind: 'csv', cursors: [null] });
+  const [listing, setListing] = useState<{ selection: LibrarySelection; page: LibraryPage }>();
+  const { kind, cursors } = selection;
+  const library = listing?.selection === selection ? listing.page : { status: 'loading' } as const;
   const [draft, setDraft] = useState('');
   const [frozen, setFrozen] = useState<OpenedRevision>();
   const [opening, setOpening] = useState<{ id: string; kind: RevisionKind }>();
@@ -87,31 +90,35 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
   const listLoading = nativeLocalImport && library.status === 'loading';
   const working = busy || listLoading;
 
-  const loadPage = useCallback(async (pageCursors: Array<string | null>, revisionKind: RevisionKind) => {
-    if (active.current) return;
-    active.current = true;
-    setLibrary({ status: 'loading' });
-    setKind(revisionKind);
-    setCursors(pageCursors);
-    try {
-      const input = { version: 1 as const, after_revision_id: pageCursors.at(-1) ?? null, limit: PAGE_SIZE };
-      const result = revisionKind === 'folder'
-        ? await listLocalFolderRevisions(input, crypto.randomUUID())
-        : await listLocalImportRevisions({ ...input, include_bar_summary: true }, crypto.randomUUID());
-      setLibrary({ status: 'ready', result });
-    } catch (error) {
-      setLibrary({ status: errorCode(error) === 'PROVIDER_NOT_CONFIGURED' ? 'unconfigured' : 'error' });
-    } finally {
-      active.current = false;
-    }
-  }, []);
+  const workspaceOpening = workspace?.pending === 'open' && workspace.snapshot === undefined;
+  useEffect(() => {
+    // Opening the profile snapshot also holds the native workspace lane.
+    if (!listLoading || workspaceOpening) return;
+    let superseded = false;
+    // The desktop admits one workspace operation at a time. Let the user
+    // pick a library while the preceding reply is still pending.
+    pendingList.current = pendingList.current.then(async () => {
+      if (superseded) return;
+      const input = { version: 1 as const, after_revision_id: selection.cursors.at(-1) ?? null, limit: PAGE_SIZE };
+      let page: LibraryPage;
+      try {
+        const result = selection.kind === 'folder'
+          ? await listLocalFolderRevisions(input, crypto.randomUUID())
+          : await listLocalImportRevisions({ ...input, include_bar_summary: true }, crypto.randomUUID());
+        page = { status: 'ready', result };
+      } catch (error) {
+        page = { status: errorCode(error) === 'PROVIDER_NOT_CONFIGURED' ? 'unconfigured' : 'error' };
+      }
+      if (!superseded) setListing({ selection, page });
+    });
+    return () => { superseded = true; };
+  }, [listLoading, selection, workspaceOpening]);
 
   useEffect(() => {
     const node = dialog.current;
     node?.showModal();
-    if (nativeLocalImport) void loadPage([null], 'csv');
     return () => { node?.close(); };
-  }, [loadPage, nativeLocalImport]);
+  }, []);
 
   useEffect(() => {
     if (visibleFrozen) chart.current?.focus();
@@ -123,19 +130,19 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
     setFrozen(undefined);
     setFailure(undefined);
     setNotice(undefined);
-    void loadPage(pageCursors, revisionKind);
+    selectLibrary({ kind: revisionKind, cursors: pageCursors });
   }
 
   function removeFromLibrary(id: string) {
-    setLibrary(current => current.status === 'ready' ? {
-      status: 'ready', result: {
-        ...current.result, revisions: current.result.revisions.filter(entry => entry.revision_id !== id),
-      },
+    setListing(current => current?.selection === selection && current.page.status === 'ready' ? {
+      selection, page: { status: 'ready', result: {
+        ...current.page.result, revisions: current.page.result.revisions.filter(entry => entry.revision_id !== id),
+      } },
     } : current);
   }
 
   async function request(work: () => Promise<void>, fallback: string) {
-    if (active.current) return;
+    if (active.current || listLoading) return;
     active.current = true;
     setBusy(true);
     setFailure(undefined);
@@ -227,9 +234,9 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
           <button type="button" className="secondary-button" disabled={working} onClick={() => browse([null])}>Refresh revisions</button>
         </div>
         <div className="local-publication-actions" role="group" aria-label="Revision kind">
-          <button type="button" className="secondary-button" aria-pressed={kind === 'csv'} disabled={working}
+          <button type="button" className="secondary-button" aria-pressed={kind === 'csv'} disabled={busy || (listLoading && kind === 'csv')}
             onClick={() => browse([null], 'csv')}>Single-file revisions</button>
-          <button type="button" className="secondary-button" aria-pressed={kind === 'folder'} disabled={working}
+          <button type="button" className="secondary-button" aria-pressed={kind === 'folder'} disabled={busy || (listLoading && kind === 'folder')}
             onClick={() => browse([null], 'folder')}>Folder revisions</button>
         </div>
         {listLoading && <p role="status">Loading published revisions…</p>}

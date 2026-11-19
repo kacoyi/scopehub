@@ -1098,6 +1098,127 @@ base('reviews explicit CSV declarations and competing bars with source provenanc
   }
 });
 
+base('keeps the selected folder library independent of an admitted CSV listing', {
+  tag: '@profile-folder-refresh',
+}, async ({ page }) => {
+  const releaseCsv = Promise.withResolvers();
+  const calls = [];
+  const csvList = 'market.listLocalImportRevisions';
+  const folderList = 'market.listLocalFolderRevisions';
+  const emptyPage = { version: 1, revisions: [], next_after_revision_id: null };
+  const revision = {
+    revision_id: randomUUID(), base_revision_id: randomUUID(), parent_revision_id: null,
+    origin_path: 'daily.csv', symbol: '000731', source_count: 2, bar_count: 1,
+    series: { venue: 'TEST-SH', timeframe: '1d' },
+    bar_summary: { final_close: 39, final_trading_day: '2026-04-14', first_trading_day: '2026-04-14' },
+  };
+  let holdCsv = true;
+  let rejectFolder = false;
+  await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
+    if (command !== 'execute_operation' || ![csvList, folderList].includes(args?.operation)) {
+      return { error: { code: 'PROVIDER_NOT_CONFIGURED' } };
+    }
+    calls.push(args.operation);
+    if (args.operation === csvList && holdCsv) {
+      holdCsv = false;
+      await releaseCsv.promise;
+      return { error: { code: 'INTERNAL_ERROR' } };
+    }
+    if (args.operation === csvList) return { result: emptyPage };
+    if (rejectFolder) return { error: { code: 'PERMISSION_DENIED' } };
+    return { result: { ...emptyPage, revisions: [revision] } };
+  });
+  await page.addInitScript(() => {
+    window.isTauri = true;
+    window.__TAURI_INTERNALS__ = {
+      async invoke(command, args) {
+        const reply = await window.testNativeInvoke(command, args);
+        if (reply.error) throw reply.error;
+        return reply.result;
+      },
+    };
+  });
+
+  try {
+    await page.goto('/');
+    await control(page, 'Open published CSV').last().click();
+    const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+    const folder = dialog.getByRole('button', { name: 'Folder revisions' });
+    await expect.poll(() => calls).toEqual([csvList]);
+    await folder.click({ timeout: 2500 });
+    await expect(folder).toHaveAttribute('aria-pressed', 'true');
+    await expect(dialog.getByText('Loading published revisions…')).toBeVisible();
+    expect(calls).toEqual([csvList]);
+
+    releaseCsv.resolve();
+    const entry = dialog.getByRole('button', { name: /Open folder revision from daily.csv/ });
+    await expect(entry).toContainText('Final close 39');
+    await expect(dialog.getByRole('alert')).toHaveCount(0);
+    expect(calls).toEqual([csvList, folderList]);
+
+    rejectFolder = true;
+    await dialog.getByRole('button', { name: 'Refresh revisions' }).click();
+    await expect(dialog.getByRole('alert')).toHaveText('Unable to read published revisions. Try refreshing the list.');
+    await expect(entry).toHaveCount(0);
+    await expect(folder).toHaveAttribute('aria-pressed', 'true');
+    await dialog.getByRole('button', { name: 'Single-file revisions' }).click();
+    await expect(dialog.getByText('No published CSV revisions are available in this profile.')).toBeVisible();
+    await expect(dialog.getByRole('alert')).toHaveCount(0);
+    expect(calls).toEqual([csvList, folderList, folderList, csvList]);
+  } finally {
+    releaseCsv.resolve();
+  }
+});
+
+base('keeps the selected folder library available after a delayed workspace bootstrap', {
+  tag: '@profile-folder-refresh',
+}, async ({ page }) => {
+  const releaseSnapshot = Promise.withResolvers();
+  const calls = [];
+  let openingWorkspace = true;
+  await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
+    expect(command).toBe('execute_operation');
+    if (args?.payload?.type === 'snapshot') {
+      calls.push('snapshot');
+      await releaseSnapshot.promise;
+      openingWorkspace = false;
+      return { result: { workspace: { id: randomUUID(), revision: 0, timeframe: '1d' }, selection_revision: 0, undo: null } };
+    }
+    calls.push(args?.operation);
+    if (openingWorkspace) return { error: { code: 'BUSY', message: 'The market worker is busy.', retryable: true } };
+    return { result: { version: 1, revisions: [], next_after_revision_id: null } };
+  });
+  await page.addInitScript(() => {
+    window.isTauri = true;
+    window.__SCOPEHUB_DESKTOP_WORKSPACE__ = true;
+    window.__TAURI_INTERNALS__ = {
+      async invoke(command, args) {
+        const reply = await window.testNativeInvoke(command, args);
+        if (reply.error) throw reply.error;
+        return reply.result;
+      },
+    };
+  });
+
+  try {
+    await page.goto('/');
+    await expect.poll(() => calls).toEqual(['snapshot']);
+    await control(page, 'Open published CSV').last().click();
+    const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+    const folder = dialog.getByRole('button', { name: 'Folder revisions' });
+    await folder.click({ timeout: 2500 });
+    await expect(folder).toHaveAttribute('aria-pressed', 'true');
+    expect(calls).toEqual(['snapshot']);
+    await expect(dialog.getByText('Loading published revisions…')).toBeVisible();
+    releaseSnapshot.resolve();
+    await expect(dialog.getByText('No published folder revisions are available in this profile.')).toBeVisible();
+    await expect(dialog.getByRole('alert')).toHaveCount(0);
+    expect(calls).toEqual(['snapshot', 'market.listLocalFolderRevisions']);
+  } finally {
+    releaseSnapshot.resolve();
+  }
+});
+
 base('publishes a reviewed folder once and reopens its frozen provenance without a folder grant', {
   tag: '@profile-folder-refresh',
 }, async ({ page }) => {
