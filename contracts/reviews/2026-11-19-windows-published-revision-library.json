@@ -1,0 +1,85 @@
+{
+  "recorded_at": "2026-11-19",
+  "kind": "native_published_revision_library_observation",
+  "task_id": "M1-008",
+  "source_commit": "09e89d2f00ea28591d903a42943746670e648a91",
+  "platform": {
+    "system": "Windows 11 Enterprise Evaluation 26H2",
+    "build": "26300.9457",
+    "hardware": "x64 KVM guest",
+    "webview": "Edg/157.0.4341.60"
+  },
+  "native_executable": {
+    "build": "MSVC development build with the built frontend embedded, run by a standard local user.",
+    "sha256": "041735e79f1f8c42a4fd477f6184687042d4ffbda67ea2623424dfa0668606f1",
+    "archive_sha256": "9f560ddc3cdddfee33eea070553a9e2a1c47adf42d5fbe3427b8b7d229cf155d"
+  },
+  "input": {
+    "source": "Synthetic daily equity CSV",
+    "symbol": "000731",
+    "reviewed_records": 1,
+    "published_bars": 502,
+    "original_sha256": "b9708c0b7413abf03d970c7b62bc1f8eacca3a143e0be278d93589d62b8ea562",
+    "updated_sha256": "ab72f319cd137e785fc2239c97eaaea4347a0475ad612ae1afd7cc1a39436910"
+  },
+  "observed": {
+    "publication": "The native picker selected the source folder. Reviewing one row and publishing the complete CSV yielded 502 bars. Changing the final close triggered a changed-file error until the new source was explicitly reviewed and published.",
+    "lookup": "After the first process exited, the synthetic source directory was renamed. A fresh desktop process opened each frozen revision by keyboard from the published library. The fixture identified the two displayed rows by their source hash prefixes.",
+    "source_rows": [
+      {
+        "trading_day": "2025-05-16",
+        "source_record": 502,
+        "physical_line": 503,
+        "close": 305
+      },
+      {
+        "trading_day": "2025-05-16",
+        "source_record": 502,
+        "physical_line": 503,
+        "close": 304
+      }
+    ],
+    "entitlement": "After revocation the original disappeared from the refreshed list and a direct read by its UUID was denied. The corrected revision remained listed and reopened with a close of 304.",
+    "usability": "The visible entries share the filename, symbol, timeframe and row counts. Identifying the tested correction in the list required the hash prefix or version ID. The screenshot and the keyboard fixture record this limitation."
+  },
+  "artifacts": [
+    {
+      "file": ".reports/guest/09e89d2-published-library/BUILD.JSON",
+      "sha256": "1d24bbf9ffd13cf11b9cdf301870a9ff3d04a45233422cb2d09097e53e7e7935"
+    },
+    {
+      "file": ".reports/guest/09e89d2-published-library/MAPEXE.JSON",
+      "sha256": "44c34b565769db5b78d840a818f63022db1afeae11773bcb05b6564301c192bf"
+    },
+    {
+      "file": ".reports/guest/09e89d2-published-library/PUBGUI.JSON",
+      "sha256": "a3448444ae2e2411ec0708d5dbe010a5d650de68e204f5c0ff2e20c6055e359a"
+    },
+    {
+      "file": ".reports/guest/09e89d2-published-library/LIBRARY.PNG",
+      "sha256": "21654e990a9143c51fa88b5841d88373f05b502f194a0392bb4427651240ced6"
+    },
+    {
+      "file": ".reports/guest/09e89d2-published-library/PUBOPEN.PNG",
+      "sha256": "d6d876a394b717880487a8a8415aba338d826afc3db57060ef5cd25d9d2348d9"
+    },
+    {
+      "file": ".reports/guest/09e89d2-published-library/PUBBACK.PNG",
+      "sha256": "7355ccb86572c6500ea60cd3a856d7f95ef0cef90fcf5e79254d229cccf7405b"
+    },
+    {
+      "file": ".reports/guest/09e89d2-published-library/NATIVE.PY",
+      "sha256": "a17171a48c1d182e65b4518cc9e9384b772416cd242312456c3de56fbbdfa20d"
+    },
+    {
+      "file": ".reports/guest/09e89d2-published-library/DIALOG.PS1",
+      "sha256": "ee663e634f47156c9912f606282fde912a380f751d76edd2c6568bfef5b7b0db"
+    }
+  ],
+  "pending": [
+    "Recognizable version summaries for same-name corrections.",
+    "Replacement of a source file by an external producer while the directory is selected on Windows.",
+    "Multi-file refresh, conflict review and withdrawals.",
+    "Packaged and physical Windows acceptance, and owner experience review."
+  ]
+}

@@ -1,17 +1,18 @@
 import { expect } from '@playwright/test';
 
-const operationPath = '/__scopehub/operation';
-const traceHeader = 'x-scopehub-test-request-id';
+export const operationPath = '/__scopehub/operation';
+export const traceHeader = 'x-scopehub-test-request-id';
 
-export async function observeSelectedHistory(page) {
-  await page.addInitScript(({ operationPath, traceHeader }) => {
+export async function observeSelectedHistory(page, { includeCatalog = false } = {}) {
+  await page.addInitScript(({ operationPath, traceHeader, includeCatalog }) => {
     const fetch = window.fetch;
     const attempts = {};
     window.readHistoryAttempts = () => attempts;
     window.fetch = async (input, options) => {
       if (input !== operationPath || !options?.body) return fetch(input, options);
       const { operation, payload } = JSON.parse(options.body);
-      if (operation !== 'market.readHistoryPage' || payload.snapshot) return fetch(input, options);
+      const selected = operation === 'market.readHistoryPage' && !payload.snapshot;
+      if (!selected && !(includeCatalog && operation === 'instrument.search')) return fetch(input, options);
 
       const id = crypto.randomUUID();
       const headers = new Headers(options.headers);
@@ -43,7 +44,34 @@ export async function observeSelectedHistory(page) {
       };
       return response;
     };
-  }, { operationPath, traceHeader });
+  }, { operationPath, traceHeader, includeCatalog });
+}
+
+export async function readMarketAttemptStages(page, requests) {
+  const client = await page.evaluate(() => window.readHistoryAttempts()).catch(() => ({}));
+  return requests.map(request => {
+    const trace = request.headers()[traceHeader];
+    return { trace, status: request.existingResponse()?.status(), failure: request.failure()?.errorText, client: client[trace] };
+  });
+}
+
+export async function waitForSelectedHistoryTerminal(page, canvas, { id, timeframe }) {
+  const label = `${id} ${timeframe}`;
+  let terminal;
+  await expect.poll(async () => {
+    terminal = await page.locator('.plot-workspace').evaluate((plot, { id, timeframe }) => {
+      const alert = plot.querySelector('.plot-empty [role="alert"]');
+      if (alert) return { state: 'error', message: alert.textContent };
+      const history = plot.querySelector('.history');
+      if (history?.dataset.instrument === id && history.dataset.timeframe === timeframe && history.dataset.bars === '0') {
+        return { state: 'empty' };
+      }
+      return null;
+    }, { id, timeframe });
+    if (!terminal && await canvas.isVisible()) terminal = { state: 'chart' };
+    return terminal;
+  }, { message: `Waiting for the ${label} history result` }).not.toBeNull();
+  return terminal;
 }
 
 export async function expectSelectedHistory(page, canvas, calls, start, { id, timeframe }, testInfo) {
@@ -51,29 +79,15 @@ export async function expectSelectedHistory(page, canvas, calls, start, { id, ti
   let terminal;
   let attempts;
   try {
-    await expect.poll(async () => {
-      terminal = await page.locator('.plot-workspace').evaluate((plot, { id, timeframe }) => {
-        const alert = plot.querySelector('.plot-empty [role="alert"]');
-        if (alert) return { state: 'error', message: alert.textContent };
-        const history = plot.querySelector('.history');
-        if (history?.dataset.instrument === id && history.dataset.timeframe === timeframe && history.dataset.bars === '0') {
-          return { state: 'empty' };
-        }
-        return null;
-      }, { id, timeframe });
-      if (!terminal && await canvas.isVisible()) terminal = { state: 'chart' };
-      return terminal;
-    }, { message: `Waiting for the ${label} history result` }).not.toBeNull();
+    terminal = await waitForSelectedHistoryTerminal(page, canvas, { id, timeframe });
   } finally {
-    const client = await page.evaluate(() => window.readHistoryAttempts()).catch(() => ({}));
-    attempts = calls.slice(start).filter(({ request }) => request.headers()[traceHeader]).map(({ request, payload }) => {
-      const trace = request.headers()[traceHeader];
+    const observed = calls.slice(start).filter(({ request }) => request.headers()[traceHeader]);
+    const stages = await readMarketAttemptStages(page, observed.map(({ request }) => request));
+    attempts = observed.map(({ payload }, index) => {
       const series = payload.series;
       return {
-        trace, instrument: series.instrument_id, timeframe: series.timeframe,
+        ...stages[index], instrument: series.instrument_id, timeframe: series.timeframe,
         selected: series.instrument_id === id && series.timeframe === timeframe,
-        status: request.existingResponse()?.status(), failure: request.failure()?.errorText,
-        client: client[trace],
       };
     });
     const observation = { selection: { id, timeframe }, terminal, attempts };

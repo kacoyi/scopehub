@@ -1,9 +1,9 @@
 {
   "schema_version": "1.0",
-  "observed_at": "2026-11-19T17:42:53.510766+00:00",
+  "observed_at": "2026-11-19T16:48:42.767844+00:00",
   "lock_sha256": {
-    "Cargo.lock": "1584a54626aa9c2fda70b846ea55844d9d946668f255c26fb448b488483d0278",
-    "uv.lock": "155121b02d2f804905304ef0bb8a1a252a5e2b02231c5bcae180159f57a42055",
+    "Cargo.lock": "081b21e42957218b1bdf90c813fd15dcaf2b0cb3895db4e804186a84b1c82970",
+    "uv.lock": "628c3231c45d1c644d8909dcf009367266104f5978d3d87976af6760c78c2842",
     "pnpm-lock.yaml": "baa4c0c5c4776cdb58bb3e654f5cadd4e681c9b45f82312b3cfa7a88376ddcfc"
   },
   "packages": [
@@ -118,6 +118,13 @@
       "version": "4.16.0",
       "license": "PSF-2.0",
       "metadata_url": "https://pypi.org/pypi/typing-extensions/4.16.0/json"
+    },
+    {
+      "ecosystem": "PyPI",
+      "name": "tzdata",
+      "version": "2026.5",
+      "license": "Apache-2.0",
+      "metadata_url": "https://pypi.org/pypi/tzdata/2026.5/json"
     },
     {
       "ecosystem": "crates.io",
@@ -825,6 +832,13 @@
       "version": "0.17.0",
       "license": "MIT OR Apache-2.0",
       "metadata_url": "https://crates.io/crates/fraction/0.17.0"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "fs-id",
+      "version": "0.2.0",
+      "license": "Zlib",
+      "metadata_url": "https://crates.io/crates/fs-id/0.2.0"
     },
     {
       "ecosystem": "crates.io",
@@ -1994,6 +2008,13 @@
       "version": "0.13.5",
       "license": "MIT OR Apache-2.0",
       "metadata_url": "https://crates.io/crates/reqwest/0.13.5"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "rfd",
+      "version": "0.17.2",
+      "license": "MIT",
+      "metadata_url": "https://crates.io/crates/rfd/0.17.2"
     },
     {
       "ecosystem": "crates.io",

@@ -53,7 +53,7 @@ impl WorkerConfig {
         }
     }
 
-    fn command(&self) -> Command {
+    pub(super) fn python_command(&self) -> Command {
         let mut command = Command::new(&self.python);
         command.env_clear().current_dir(&self.root);
         for key in ["SYSTEMROOT", "WINDIR", "TEMP", "TMP"] {
@@ -67,11 +67,27 @@ impl WorkerConfig {
                 std::env::join_paths([self.root.clone(), self.root.join("python")])
                     .expect("trusted paths"),
             )
-            .env("PYTHONIOENCODING", "utf-8")
-            .env("SCOPEHUB_WORKER_WIRE_VERSION", "1.1")
-            .args(["-m", "worker_runtime", "--role", "market", "--demo"]);
+            .env("PYTHONIOENCODING", "utf-8");
         command
     }
+
+    fn command(&self) -> Command {
+        let mut command = self.python_command();
+        command.env("SCOPEHUB_WORKER_WIRE_VERSION", "1.1").args([
+            "-m",
+            "worker_runtime",
+            "--role",
+            "market",
+            "--demo",
+        ]);
+        command
+    }
+}
+
+pub(super) fn worker_slot() -> Result<OwnedSemaphorePermit, Error> {
+    Arc::clone(&WORKER_SLOTS)
+        .try_acquire_owned()
+        .map_err(|_| failure(ErrorCode::BUSY))
 }
 
 struct Session {
@@ -90,7 +106,7 @@ pub struct MarketWorker {
     cleanup: Option<cleanup::PendingCleanup>,
 }
 
-fn protocol_failure(error: ProtocolError) -> Error {
+pub(super) fn protocol_failure(error: ProtocolError) -> Error {
     failure(match error {
         ProtocolError::ResourceLimit => ErrorCode::RESOURCELIMIT,
         ProtocolError::IncompatibleWorker => ErrorCode::PROTOCOLMISMATCH,
@@ -148,9 +164,7 @@ impl MarketWorker {
             .as_ref()
             .ok_or_else(|| failure(ErrorCode::PROVIDERNOTCONFIGURED))?;
         let deadline = config.deadline;
-        let permit = Arc::clone(&WORKER_SLOTS)
-            .try_acquire_owned()
-            .map_err(|_| failure(ErrorCode::BUSY))?;
+        let permit = worker_slot()?;
         let mut child = config
             .command()
             .stdin(Stdio::piped())

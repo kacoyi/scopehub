@@ -43,7 +43,7 @@
     "verification_slices": "A stream implementation, a quality-state transition and the complete three-instrument market workflow require distinct checks. Protocol changes require generator and TypeScript, Python and Rust validation. A passing partial slice cannot establish the full acceptance requirement."
   },
   "product": {
-    "purpose": "A financial workbench for close human\u2013AI collaboration in understanding markets, analysis, decision-making, and authorized operations",
+    "purpose": "A financial workbench for close human–AI collaboration in understanding markets, analysis, decision-making, and authorized operations",
     "design_principles": [
       "AI is an active participant in financial workflows, with capabilities exposed through explicit application operations.",
       "Stocks and futures are the initial asset classes; additional asset classes can be introduced as needs emerge.",
@@ -136,7 +136,7 @@
       "ctp": "Configure the broker identifier, market-data front, environment and required authentication through settings. Establish contract metadata and session rules, then subscribe through the market-data channel. Keep history supplied by files or another API attributable alongside live quotes. Mark gaps and the handoff between sources. Account access and order routing remain outside v1.",
       "candidates": "Evaluate Alpaca for US market data, Tushare for a documented API and individual AKShare functions for their actual upstream sources. Study vn.py for CTP market-data callbacks and contract metadata. SnapTrade is a candidate for a future brokerage-account workflow. No service subscription is bundled.",
       "refresh_conflicts": "Group competing rows by selected series and source-defined economic event identity. For native bars, the normalized start time identifies a bar. Coalesce identical values while retaining each source locator. Different values at one key require a validated source correction order or explicit review. Never choose by directory traversal order. Same-time snapshots retain source order and cannot be deduplicated merely by timestamp. Replaced or removed files stage attributable corrections or withdrawals for review; publish one transactional revision only after review. Repeated runs and different enumeration orders produce the same accepted inputs. Store file digest and row identity, mapping version and calendar basis. First durable mapping and snapshot changes require tested migration, interruption and restore.",
-      "csv_v1_capabilities": "Publish native OHLCV only with identified instrument, adjustment, calendar, timezone, timestamp convention and units. Inspect raw rows, unsupported financial fields and rejected records with their file digest and stable row locator. Preserve leading-zero symbols, source-specific shares/lots, open interest, settlement, multiplier and units when supplied. Do not substitute settlement for a close. Snapshot-derived candles are separately labeled approximations only when session/date mapping, counter resets, trade evidence and ordering are resolved. Unallocated cumulative baselines and incomplete volume remain unknown; identical timestamps do not imply identical events. Require attributable adjustment factors, session rules and continuous-contract rolls before offering a derived series. Ambiguity prevents publication of the affected series and leaves other accepted series usable."
+      "csv_v1_capabilities": "Publish native OHLCV only with identified instrument, adjustment, calendar, timezone, timestamp convention and units. Inspect raw rows, unsupported financial fields and rejected records with their file digest and stable row locator. Preserve leading-zero symbols, source-specific shares/lots, open interest, settlement, multiplier and units when supplied. Keep identified current and prior settlement prices separate from all OHLC fields. Native historical mappings declare closed input. When a recognized source closure flag is present, preserve rows with incomplete or ambiguous closure as raw records with diagnostics. Snapshot-derived candles are separately labeled approximations only when session/date mapping, counter resets, trade evidence and ordering are resolved. Unallocated cumulative baselines and incomplete volume remain unknown; identical timestamps do not imply identical events. Require attributable adjustment factors, session rules and continuous-contract rolls before offering a derived series. Ambiguity prevents publication of the affected series and leaves other accepted series usable."
     }
   },
   "stack": {
@@ -388,6 +388,11 @@
       "Fail closed on unknown protocol major versions"
     ],
     "ai_channel": "The worker requests a proposed tool call with a task and a distinct call identity. The core authorizes against the calling session and returns a private correlated tool result. Only successful core receipts justify describing an action as executed. The private reply is never advertised as a public tool.",
+    "local_import_worker": {
+      "startup": "A dedicated one-shot worker advertises market.previewLocalImport and the private market.checkLocalImport and market.inspectLocalFolderSource capabilities in a validated 1.1 hello. The Rust host authorizes the local human and resolves the current selection before supplying any source bytes. The synthetic market worker has no local-file capability.",
+      "input": "Private UTF-8 NDJSON frame version 1 carries request_id, byte_count, sha256, mapping and one of row_limit, complete or inspect_refresh. Each following frame carries version, request_id, zero-based index and canonical base64 data. All chunks except the last contain 192 KiB of source bytes. Check complete byte count, ordered indices, EOF and SHA-256 before analysis. Do not include source paths, caller identity or grants.",
+      "output": "Return one correlated UTF-8 NDJSON terminal frame with the preview, complete normalization, read-only inspection or a sanitized failure. Every frame includes its envelope and newline in the 4 MiB limit. Preview samples up to 500 rows from complete input of at most 4 MiB. Publication and inspection check at most 10,000 source records under the same byte budgets. Check explicit source quantity unit, price adjustment and venue against the reviewed mapping. Inspection retains all competing values and locators at a bar start for review. Publication requires an unambiguous complete normalization. A result that cannot fit returns RESOURCE_LIMIT without partial rows. Cancel or discard the private worker on interrupted or superseded reads."
+    },
     "compatibility": {
       "legacy": "The 1.0 envelopes and projections remain available for legacy callers. They support the bounded historical read contract. Current operations requiring immutable market input, current grants, a selection or a durable receipt use the negotiated 1.1 profile.",
       "selection": "Validate the asserted worker role and the highest mutually supported profile, intersect advertised capabilities with the core role and implemented operation allowlists, and require the capabilities for the requested action. Ignore unknown optional capabilities. Reject an incompatible major or missing required capability with a sanitized reason. A lower profile never grants new operations.",
@@ -692,6 +697,186 @@
       "schema_requirement": "Internal protocol 1.1 subscription for an explicitly selected series and a validated frozen boundary."
     },
     {
+      "name": "market.previewLocalImport",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "LocalImportPreviewRequest",
+      "output_spec": "LocalImportPreviewReply11",
+      "schema_requirement": "Protocol 1.1 only. The trusted local transport identifies the human caller outside the payload. Resolve opaque folder and file identifiers within the current authorized native selection. Bind every preview to the complete file SHA-256 and keep source locators, raw fields and mapping diagnostics in the authorized local view. Worker traffic uses bounded UTF-8 NDJSON."
+    },
+    {
+      "name": "market.saveLocalImportMapping",
+      "effect": "workspace",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "SaveLocalImportMappingRequest",
+      "output_spec": "SaveLocalImportMappingReply11",
+      "schema_requirement": "Protocol 1.1 only. Available only when explicitly requested by a local human after preview. The Rust registry binds caller and profile to the live native folder selection, requires the reviewed complete-file SHA-256 and derives the source header association. The profile-bound Rust SQLite writer commits one versioned mapping. The payload carries no path, grant or profile."
+    },
+    {
+      "name": "market.loadLocalImportMapping",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "LoadLocalImportMappingRequest",
+      "output_spec": "LoadLocalImportMappingReply11",
+      "schema_requirement": "Protocol 1.1 only. Available only for a local human and authorized file in the current native selection. The Rust registry resolves the profile and source association. A matching header returns the reviewed mapping and current complete-file SHA-256. A changed header requires review and returns the current digest. An unsaved association returns null for both fields."
+    },
+    {
+      "name": "market.publishLocalImport",
+      "effect": "persist",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "PublishLocalImportRequest",
+      "output_spec": "PublishLocalImportReply11",
+      "schema_requirement": "Protocol 1.1 only. A local human explicitly publishes one complete reviewed native CSV series. The Rust registry binds the current selected file, complete source checksum and saved mapping; the authenticated profile writer retains the original bytes and immutable source row provenance."
+    },
+    {
+      "name": "market.listLocalImportRevisions",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "ListLocalImportRevisionsRequest",
+      "output_spec": "ListLocalImportRevisionsReply11",
+      "schema_requirement": "Protocol 1.1 only. Return a bounded summary page of displayable frozen CSV revisions for the active local human profile. Ascending revision IDs provide a stable exclusive cursor. A caller can opt in to the frozen venue, the first and final bars' trading days, and the final bar's close. The default reply retains its original fields. Listing needs no source directory, returns no source grant or raw content and does not replace read-time authorization."
+    },
+    {
+      "name": "market.readLocalImportRevision",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "ReadLocalImportRevisionRequest",
+      "output_spec": "ReadLocalImportRevisionReply11",
+      "schema_requirement": "Protocol 1.1 only. Return immutable bars and source row provenance by revision ID in the entitled local human profile. This read requires no directory access and neither refreshes the revision nor grants other data access."
+    },
+    {
+      "name": "market.readLocalImportSourceRow",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "ReadLocalImportSourceRowRequest",
+      "output_spec": "ReadLocalImportSourceRowReply11",
+      "schema_requirement": "Protocol 1.1 only. A local human reads one source record for a displayable single-file frozen CSV revision in the active profile. Resolve the exact published locator and parse the retained bytes using the revision's reviewed encoding and delimiter. Return the source digest, locator, and aligned headers and original field values in source order. The successful result is limited to 64 KiB of UTF-8 JSON. This read uses profile storage and remains available after source removal."
+    },
+    {
+      "name": "market.previewLocalFolderRefresh",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "PreviewLocalFolderRefreshRequest",
+      "output_spec": "PreviewLocalFolderRefreshReply11",
+      "schema_requirement": "A trusted local human previews the current authorized directory against an entitled frozen single-file or folder revision from that directory. Reuse its saved mapping for compatible complete native bars. Retain all attributable locators for equal bars and surface competing values, replaced files and withdrawal candidates for review. Staging has no publication effect."
+    },
+    {
+      "name": "market.prepareLocalFolderPublication",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "PrepareLocalFolderPublicationRequest",
+      "output_spec": "PrepareLocalFolderPublicationReply11",
+      "schema_requirement": "Build the canonical candidate for one live reviewed preview after the local human chooses every competing bar and acknowledges every withdrawn path and bar. Return the candidate fingerprint and counts."
+    },
+    {
+      "name": "market.publishLocalFolderRefresh",
+      "effect": "persist",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "PublishLocalFolderRefreshRequest",
+      "output_spec": "PublishLocalFolderRefreshReply11",
+      "schema_requirement": "An explicit local human action publishes the prepared candidate in one guarded profile transaction. Revalidate current complete files and the selected root. Within the same profile, workspace and root association, an entitled replay matches the idempotency key and canonical candidate digest and returns the committed revision without rereading source content. The renewed local folder grant and the transport request or preview identifiers do not define the durable receipt."
+    },
+    {
+      "name": "market.listLocalFolderRevisions",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "ListLocalFolderRevisionsRequest",
+      "output_spec": "ListLocalFolderRevisionsReply11",
+      "schema_requirement": "List entitled immutable folder revisions in stable revision ID order within the local human profile. Listing needs no directory grant."
+    },
+    {
+      "name": "market.readLocalFolderRevision",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "ReadLocalFolderRevisionRequest",
+      "output_spec": "ReadLocalFolderRevisionReply11",
+      "schema_requirement": "Open an entitled frozen folder revision, chosen bars and source-qualified row locators without reopening the directory. A summary-only request omits file and bar details."
+    },
+    {
+      "name": "market.readLocalFolderSourceRow",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "ReadLocalFolderSourceRowRequest",
+      "output_spec": "ReadLocalFolderSourceRowReply11",
+      "schema_requirement": "Protocol 1.1 only. Read one original CSV record through a displayable frozen folder revision in the active local human profile. Require the exact chosen source path, content digest and record locator in that manifest. Parse retained bytes with the historical reviewed mapping and return aligned headers and original field values. The result is limited to 64 KiB of UTF-8 JSON and remains available after source removal."
+    },
+    {
+      "name": "market.revokeLocalFolderRevision",
+      "effect": "persist",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "RevokeLocalFolderRevisionRequest",
+      "output_spec": "RevokeLocalFolderRevisionReply11",
+      "schema_requirement": "An explicit local human action removes display rights for a folder revision. Its stored data and separately entitled lineage remain in the profile."
+    },
+    {
+      "name": "market.revokeLocalImportRevision",
+      "effect": "persist",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input_spec": "RevokeLocalImportRevisionRequest",
+      "output_spec": "RevokeLocalImportRevisionReply11",
+      "schema_requirement": "Protocol 1.1 only. An explicit local human action withdraws the active profile's right to display this immutable revision. Repeat requests return the same revision ID. The original and provenance remain in the profile."
+    },
+    {
       "name": "workspace.readChartProjection",
       "effect": "read",
       "confirmation": false,
@@ -716,6 +901,136 @@
       "input_spec": "SharedSelectionRequest11",
       "output_spec": "SelectEvidenceReply11",
       "schema_requirement": "Use the registered 1.1 schema and session-bound permissions."
+    },
+    {
+      "name": "decisionNote.save",
+      "effect": "persist",
+      "confirmation": true,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "DecisionNoteSaveCommand11",
+      "output_spec": "DecisionNoteSaveReply11",
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. No worker or external client access."
+    },
+    {
+      "name": "decisionNote.read",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "DecisionNoteReadCommand11",
+      "output_spec": "DecisionNoteReadReply11",
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. No worker or external client access."
+    },
+    {
+      "name": "decisionNote.appendOutcome",
+      "effect": "persist",
+      "confirmation": true,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "DecisionNoteAppendOutcomeCommand11",
+      "output_spec": "DecisionNoteAppendOutcomeReply11",
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. No worker or external client access."
+    },
+    {
+      "name": "decisionNote.delete",
+      "effect": "persist",
+      "confirmation": true,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "DecisionNoteDeleteCommand11",
+      "output_spec": "DecisionNoteDeleteReply11",
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. No worker or external client access."
+    },
+    {
+      "name": "decisionNote.exportBackup",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "DecisionNoteExportBackupCommand11",
+      "output_spec": "DecisionNoteExportBackupReply11",
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. This operation is unavailable to workers and external clients."
+    },
+    {
+      "name": "decisionNote.previewRestore",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "DecisionNotePreviewRestoreCommand11",
+      "output_spec": "DecisionNotePreviewRestoreReply11",
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. This operation is unavailable to workers and external clients."
+    },
+    {
+      "name": "decisionNote.restoreBackup",
+      "effect": "persist",
+      "confirmation": true,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "DecisionNoteRestoreBackupCommand11",
+      "output_spec": "DecisionNoteRestoreBackupReply11",
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. This operation is unavailable to workers and external clients."
+    },
+    {
+      "name": "privateRecord.read",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "PrivateRecordReadCommand11",
+      "output_spec": "PrivateRecordReadReply11",
+      "schema_requirement": "Use the bound local human 1.1 envelope. Saving, correcting, deleting and restoring require a revision-bound approval. The private workspace host supplies identity and current access."
+    },
+    {
+      "name": "privateRecord.change",
+      "effect": "persist",
+      "confirmation": true,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "PrivateRecordChangeCommand11",
+      "output_spec": "PrivateRecordChangeReply11",
+      "schema_requirement": "Use the bound local human 1.1 envelope. Saving, correcting, deleting and restoring require a revision-bound approval. The private workspace host supplies identity and current access."
+    },
+    {
+      "name": "privateRecord.exportBackup",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "PrivateRecordExportCommand11",
+      "output_spec": "PrivateRecordExportReply11",
+      "schema_requirement": "Use the bound local human 1.1 envelope. Saving, correcting, deleting and restoring require a revision-bound approval. The private workspace host supplies identity and current access."
     }
   ],
   "authorization": {
@@ -849,7 +1164,10 @@
       "retention": "Default to ephemeral audio and transcript buffers. Clear the buffers after the active conversation, failure or cancellation. Saving a selected passage to a local note requires a separate user action. Do not put raw audio, transcript, prompts or note bodies in logs, diagnostics or evaluation receipts."
     },
     "model_connections": {
-      "primary_cloud_route": {"task": "M4-002", "check": "configured-model-session"},
+      "primary_cloud_route": {
+        "task": "M4-002",
+        "check": "configured-model-session"
+      },
       "setup": "In AI settings choose a provider and model, supply the credential it needs or select an entitled ScopeHub AI service. Identify the provider or router, destination, processing scope and charge basis before a connection test or first transmission. Resolve credentials in the trusted connector and exclude their values from prompts, tool replies and diagnostics.",
       "session_grant": {
         "activation": "Show the route, ordinary data categories, charge basis and how to disconnect at connection setup. The user’s Connect and enable action grants that scope for their profile. A routine chat turn, follow-up, or in-scope tool result proceeds under this grant without another permission prompt. Connecting a microphone route discloses voice use; the user controls capture and stopping capture stops further audio transmission.",
@@ -1013,6 +1331,7 @@
       "settings"
     ],
     "sqlite": "WAL; foreign keys enabled; transactional writes; versioned and tested migrations",
+    "local_import_publication": "Schema v5 stores immutable single-file revisions and originally selected file bytes once per SHA-256 in the active profile. Each revision references a reviewed mapping and the ordered source locators contributing to each native bar. A fresh authorized review with the same full mapping and ordered header reuses the current saved revision. During the trusted desktop session, an exact committed mutation request under its original live native selection recovers its original receipt before new-work checks. A publication receipt still requires current display rights. An explicit display-right revocation denies later reads and receipt replay for that revision. The application never keeps a durable native directory grant. Entitled profiles can still open frozen data by revision ID after restart.",
     "credentials": "Windows Credential Manager; the DB stores references only; mock implementations do not use credentials",
     "cache": "The cache can be cleared without deleting user indicator versions; do not mix different data sources or price adjustment methodologies",
     "log": "Record operations, actors, summaries, statuses, and correlation IDs; redact sensitive fields; do not implement full event sourcing",
@@ -1028,7 +1347,14 @@
       "live": "Persist a note body, attributed excerpts and saved context only on explicit save. Declining leaves no durable note or derived body. Deleting removes all body-bearing live copies, retrieval indexes, cached summaries, model context and local exports controlled by the app. Keep body-free deletion markers keyed to the original profile and note ID for restore.",
       "audit": "Retain redacted operation ID, principal, timestamp, target identifier, outcome and revision. Exclude note text, quotations, transcripts, prompts, raw input data and model answers from routine logs, diagnostics and receipts. Keep redacted history separate from user content.",
       "restore": "Preview restoration before modifying live state. Merge known deletion markers from the current profile and backup, applying them after restoring content in the same staged transaction and preserving the current state on failure. Warn before applying an independent older backup that previously deleted content may reappear if its marker is unavailable. Do not claim erasure of copies already exported or transmitted. Require a new grant for external sharing.",
-      "recovery": "Version the backup, schema, mappings, accepted outputs and logical deletion metadata. Exercise process interruption and migration rollback using an untouched backup; verify that the original visible note, permission and deletion state is recoverable."
+      "recovery": "Version the backup, schema, mappings, accepted outputs and logical deletion metadata. Exercise process interruption and migration rollback using an untouched backup; verify that the original visible note, permission and deletion state is recoverable.",
+      "decision_note_backup_v1": {
+        "scope": "The user explicitly exports a versioned, profile-bound decision-note archive to a selected local file. The archive contains original decisions, dated outcomes, deletion markers and snapshot metadata. Credentials, grants, other workspace state, operation or idempotency history, caches, and SQLite files or journals remain outside this archive.",
+        "preview": "Validate the archive and its profile and workspace binding and stage a merge in memory. Return body-free effect counts and warn before applying if an older independent copy may contain notes whose deletion markers are unavailable.",
+        "apply": "Require an explicit local human approval for the staged preview. Recheck current binding, grant and workspace revision, then merge missing originals and outcomes and enforce the union of known deletion markers in a single writer transaction. Retain surviving live records absent from the backup. A conflict in a surviving identity fails the merge. Keep the input backup untouched. The apply command and receipt carry no archive bodies.",
+        "capacity": "Validate the complete projected archive before admitting a save, appended outcome or restore preview. Retain existing records when the projected result exceeds the format's size or item limits. Reserve deletion marker space for admitted originals. Continue to permit deletion in profiles that already exceed a backup limit.",
+        "staging_and_view": "Retain only the new rows and deletion markers necessary for a pending restore. Release the stage when its revision is superseded, its approval expires or the session closes. Refresh both local note lists and details when observed revisions change. Revalidate a surviving note without resetting the text or date of its unsubmitted outcome draft. Discard superseded approvals and remove projections and drafts for deleted or unauthorized notes."
+      }
     }
   },
   "fixtures": {

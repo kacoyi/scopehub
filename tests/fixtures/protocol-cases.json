@@ -816,5 +816,475 @@
     "name": "1.1 client selection rejects a workspace revision in place of the selection revision",
     "valid": false,
     "wire": "{\"type\":\"request\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"operation\":\"workspace.selectEvidence\",\"request_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"workspace_id\":\"desk\",\"target\":{\"kind\":\"document_passage\",\"source_id\":\"doc1\",\"source_revision\":\"v1\",\"locator\":\"paragraph-2\"},\"expected_workspace_revision\":7}"
+  },
+  {
+    "name": "1.1 local CSV preview request with editable mapping",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.previewLocalImport\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-1\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"volume\":null}},\"row_limit\":30}}\n"
+  },
+  {
+    "name": "1.1 local CSV preview retains source locator and raw diagnostics",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.previewLocalImport\",\"ok\":true,\"result\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"relative_path\":\"equities/synthetic.csv\",\"display_name\":\"synthetic.csv\",\"byte_count\":25,\"sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"preview\":{\"file_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping_version\":1,\"mapping_revision\":\"synthetic-1\",\"header\":[\"Symbol\",\"Close\"],\"raw_header_text\":null,\"rows\":[{\"record_number\":1,\"line_start\":2,\"line_end\":2,\"raw_fields\":[\"000012\",\"6.50\"],\"raw_text\":null,\"symbol\":null,\"normalized\":null,\"issues\":[]}],\"issues\":[{\"code\":\"column_required\",\"field\":\"timestamp\",\"message\":\"Select the source header for this field.\"}],\"raw_only_columns\":[{\"column\":\"Close\",\"reason\":\"No supported bar field is mapped to this column.\"}],\"series\":null,\"truncated\":false}},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local CSV preview retains a normalized bar with unknown volume",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.previewLocalImport\",\"ok\":true,\"result\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"relative_path\":\"futures/synthetic.csv\",\"display_name\":\"synthetic.csv\",\"byte_count\":99,\"sha256\":\"928d4512a367173eaae364f13f91e9959beceb5c5fa3a4ba77cdd61e1491eb1b\",\"preview\":{\"file_sha256\":\"928d4512a367173eaae364f13f91e9959beceb5c5fa3a4ba77cdd61e1491eb1b\",\"mapping_version\":1,\"mapping_revision\":\"synthetic-1\",\"header\":[\"Symbol\",\"Timestamp\",\"TradingDay\",\"Open\",\"High\",\"Low\",\"Close\",\"Volume\"],\"raw_header_text\":null,\"rows\":[{\"record_number\":1,\"line_start\":2,\"line_end\":2,\"raw_fields\":[\"TEST-A\",\"2023-11-14 17:00\",\"2023-11-15\",\"6\",\"8\",\"5\",\"7\",\"\"],\"raw_text\":null,\"symbol\":\"TEST-A\",\"normalized\":{\"time_ms\":1699981200000,\"trading_day\":\"2023-11-15\",\"open\":6,\"high\":8,\"low\":5,\"close\":7,\"volume\":null,\"is_closed\":true},\"issues\":[]}],\"issues\":[],\"raw_only_columns\":[],\"series\":{\"instrument_kind\":\"dated_future\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-overnight\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"contracts\",\"price_adjustment\":\"raw\",\"roll_method\":null},\"truncated\":false}},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local CSV preview stale selection failure",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.previewLocalImport\",\"ok\":false,\"result\":null,\"error\":{\"code\":\"STALE_CONTEXT\",\"message\":\"The folder selection superseded this preview.\",\"retryable\":false,\"details\":{}}}\n"
+  },
+  {
+    "name": "local CSV preview is unavailable in 1.0",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.previewLocalImport\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-1\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"volume\":null}},\"row_limit\":30}}\n"
+  },
+  {
+    "name": "local CSV preview rejects request path",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.previewLocalImport\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-1\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"volume\":null}},\"row_limit\":30,\"path\":\"/tmp/unknown.csv\"}}\n"
+  },
+  {
+    "name": "local CSV preview rejects request actor",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.previewLocalImport\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-1\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"volume\":null}},\"row_limit\":30,\"actor\":\"user\"}}\n"
+  },
+  {
+    "name": "local CSV preview rejects request grant",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.previewLocalImport\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-1\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"volume\":null}},\"row_limit\":30,\"grant\":\"00000000-0000-4000-8000-000000000003\"}}\n"
+  },
+  {
+    "name": "local CSV preview rejects request principal",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.previewLocalImport\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-1\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"volume\":null}},\"row_limit\":30,\"principal\":\"00000000-0000-4000-8000-000000000003\"}}\n"
+  },
+  {
+    "name": "local CSV preview rejects request row_limit",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.previewLocalImport\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-1\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"volume\":null}},\"row_limit\":501}}\n"
+  },
+  {
+    "name": "local CSV preview rejects request expected_sha256",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.previewLocalImport\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"invalid\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-1\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"volume\":null}},\"row_limit\":30}}\n"
+  },
+  {
+    "name": "local CSV preview mapping cannot select a path",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.previewLocalImport\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-1\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"volume\":null},\"path\":\"/tmp/unknown.csv\"},\"row_limit\":30}}\n"
+  },
+  {
+    "name": "local CSV preview response requires physical row locator",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.previewLocalImport\",\"ok\":true,\"result\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"relative_path\":\"equities/synthetic.csv\",\"display_name\":\"synthetic.csv\",\"byte_count\":25,\"sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"preview\":{\"file_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping_version\":1,\"mapping_revision\":\"synthetic-1\",\"header\":[\"Symbol\",\"Close\"],\"raw_header_text\":null,\"rows\":[{\"record_number\":1,\"line_end\":2,\"raw_fields\":[\"000012\",\"6.50\"],\"raw_text\":null,\"symbol\":null,\"normalized\":null,\"issues\":[]}],\"issues\":[{\"code\":\"column_required\",\"field\":\"timestamp\",\"message\":\"Select the source header for this field.\"}],\"raw_only_columns\":[{\"column\":\"Close\",\"reason\":\"No supported bar field is mapped to this column.\"}],\"series\":null,\"truncated\":false}},\"error\":null}\n"
+  },
+  {
+    "name": "local CSV preview has no AI tool lane in 1.1",
+    "valid": false,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"ai.tool_request\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"stream_id\":\"st\",\"sequence\":2,\"payload\":{\"operation\":\"market.previewLocalImport\",\"arguments\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-1\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"volume\":null}},\"row_limit\":30}}}\n"
+  },
+  {
+    "name": "local CSV preview digest cannot have a trailing newline",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.previewLocalImport\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\\n\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-1\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"volume\":null}},\"row_limit\":30}}\n"
+  },
+  {
+    "name": "1.1 local CSV mapping save binds to the reviewed file digest",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.saveLocalImportMapping\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"560126dfde121bf49e27d6163183a6dcc629645d894ce7494a1f62b9e262b2e5\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-equity-reviewed\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"timestamp\":\"Time\",\"trading_day\":\"Day\",\"open\":\"Open\",\"high\":\"High\",\"low\":\"Low\",\"close\":\"Close\",\"volume\":null},\"instrument_kind\":\"equity\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-exchange\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"volume_semantics\":\"per_bar\",\"timestamp_convention\":\"bar_start\",\"timestamp_format\":\"%Y-%m-%d %H:%M\",\"trading_day_format\":\"%Y-%m-%d\"},\"row_limit\":30}}\n"
+  },
+  {
+    "name": "1.1 local CSV mapping save returns the reviewed mapping and header identity",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.saveLocalImportMapping\",\"ok\":true,\"result\":{\"version\":1,\"record\":{\"review_revision\":2,\"header_sha256\":\"6381b2c0ad85079009a9c4f09b87f182f791f3e60a5f2f0187d566737a4a6092\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-equity-reviewed\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"timestamp\":\"Time\",\"trading_day\":\"Day\",\"open\":\"Open\",\"high\":\"High\",\"low\":\"Low\",\"close\":\"Close\",\"volume\":null},\"instrument_kind\":\"equity\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-exchange\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"volume_semantics\":\"per_bar\",\"timestamp_convention\":\"bar_start\",\"timestamp_format\":\"%Y-%m-%d %H:%M\",\"trading_day_format\":\"%Y-%m-%d\"}}},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local CSV mapping load uses the live file selection",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.loadLocalImportMapping\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\"}}\n"
+  },
+  {
+    "name": "1.1 local CSV mapping load returns the matching review and current file digest",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.loadLocalImportMapping\",\"ok\":true,\"result\":{\"version\":1,\"status\":\"saved\",\"record\":{\"review_revision\":2,\"header_sha256\":\"6381b2c0ad85079009a9c4f09b87f182f791f3e60a5f2f0187d566737a4a6092\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-equity-reviewed\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"timestamp\":\"Time\",\"trading_day\":\"Day\",\"open\":\"Open\",\"high\":\"High\",\"low\":\"Low\",\"close\":\"Close\",\"volume\":null},\"instrument_kind\":\"equity\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-exchange\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"volume_semantics\":\"per_bar\",\"timestamp_convention\":\"bar_start\",\"timestamp_format\":\"%Y-%m-%d %H:%M\",\"trading_day_format\":\"%Y-%m-%d\"}},\"source_sha256\":\"560126dfde121bf49e27d6163183a6dcc629645d894ce7494a1f62b9e262b2e5\"},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 unsaved local CSV mapping has no record or digest",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.loadLocalImportMapping\",\"ok\":true,\"result\":{\"version\":1,\"status\":\"not_saved\",\"record\":null,\"source_sha256\":null},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 changed CSV header needs review and withholds the old mapping",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.loadLocalImportMapping\",\"ok\":true,\"result\":{\"version\":1,\"status\":\"review_required\",\"record\":null,\"source_sha256\":\"fdcb52aa885e33855102ec222a205a20dbe41068306eb9696378ca483b192b4c\"},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local CSV mapping cancelled fault",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.saveLocalImportMapping\",\"ok\":false,\"result\":null,\"error\":{\"code\":\"CANCELLED\",\"message\":\"The mapping save was cancelled.\",\"retryable\":false,\"details\":{}}}\n"
+  },
+  {
+    "name": "1.1 local CSV mapping stale_context fault",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.loadLocalImportMapping\",\"ok\":false,\"result\":null,\"error\":{\"code\":\"STALE_CONTEXT\",\"message\":\"The folder selection superseded this mapping request.\",\"retryable\":false,\"details\":{}}}\n"
+  },
+  {
+    "name": "local CSV mapping save requires a reviewed file digest",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.saveLocalImportMapping\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-equity-reviewed\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"timestamp\":\"Time\",\"trading_day\":\"Day\",\"open\":\"Open\",\"high\":\"High\",\"low\":\"Low\",\"close\":\"Close\",\"volume\":null},\"instrument_kind\":\"equity\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-exchange\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"volume_semantics\":\"per_bar\",\"timestamp_convention\":\"bar_start\",\"timestamp_format\":\"%Y-%m-%d %H:%M\",\"trading_day_format\":\"%Y-%m-%d\"},\"row_limit\":30}}\n"
+  },
+  {
+    "name": "local CSV mapping save rejects more than 500 preview rows",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.saveLocalImportMapping\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"560126dfde121bf49e27d6163183a6dcc629645d894ce7494a1f62b9e262b2e5\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-equity-reviewed\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"timestamp\":\"Time\",\"trading_day\":\"Day\",\"open\":\"Open\",\"high\":\"High\",\"low\":\"Low\",\"close\":\"Close\",\"volume\":null},\"instrument_kind\":\"equity\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-exchange\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"volume_semantics\":\"per_bar\",\"timestamp_convention\":\"bar_start\",\"timestamp_format\":\"%Y-%m-%d %H:%M\",\"trading_day_format\":\"%Y-%m-%d\"},\"row_limit\":501}}\n"
+  },
+  {
+    "name": "local CSV mapping save has no caller-controlled profile",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.saveLocalImportMapping\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"560126dfde121bf49e27d6163183a6dcc629645d894ce7494a1f62b9e262b2e5\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-equity-reviewed\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"timestamp\":\"Time\",\"trading_day\":\"Day\",\"open\":\"Open\",\"high\":\"High\",\"low\":\"Low\",\"close\":\"Close\",\"volume\":null},\"instrument_kind\":\"equity\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-exchange\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"volume_semantics\":\"per_bar\",\"timestamp_convention\":\"bar_start\",\"timestamp_format\":\"%Y-%m-%d %H:%M\",\"trading_day_format\":\"%Y-%m-%d\"},\"row_limit\":30,\"profile_id\":\"synthetic-test-profile\"}}\n"
+  },
+  {
+    "name": "local CSV mapping load has no caller-controlled folder path or grant",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.loadLocalImportMapping\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"folder_path\":\"/synthetic\",\"grant_id\":\"00000000-0000-4000-8000-000000000003\"}}\n"
+  },
+  {
+    "name": "local CSV mapping save is unavailable in 1.0",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.saveLocalImportMapping\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"560126dfde121bf49e27d6163183a6dcc629645d894ce7494a1f62b9e262b2e5\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-equity-reviewed\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"timestamp\":\"Time\",\"trading_day\":\"Day\",\"open\":\"Open\",\"high\":\"High\",\"low\":\"Low\",\"close\":\"Close\",\"volume\":null},\"instrument_kind\":\"equity\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-exchange\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"volume_semantics\":\"per_bar\",\"timestamp_convention\":\"bar_start\",\"timestamp_format\":\"%Y-%m-%d %H:%M\",\"trading_day_format\":\"%Y-%m-%d\"},\"row_limit\":30}}\n"
+  },
+  {
+    "name": "local CSV mapping save has no AI tool lane",
+    "valid": false,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"ai.tool_request\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"stream_id\":\"st\",\"sequence\":2,\"payload\":{\"operation\":\"market.saveLocalImportMapping\",\"arguments\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"560126dfde121bf49e27d6163183a6dcc629645d894ce7494a1f62b9e262b2e5\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-equity-reviewed\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"timestamp\":\"Time\",\"trading_day\":\"Day\",\"open\":\"Open\",\"high\":\"High\",\"low\":\"Low\",\"close\":\"Close\",\"volume\":null},\"instrument_kind\":\"equity\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-exchange\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"volume_semantics\":\"per_bar\",\"timestamp_convention\":\"bar_start\",\"timestamp_format\":\"%Y-%m-%d %H:%M\",\"trading_day_format\":\"%Y-%m-%d\"},\"row_limit\":30}}}\n"
+  },
+  {
+    "name": "local CSV mapping load is unavailable in 1.0",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.loadLocalImportMapping\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\"}}\n"
+  },
+  {
+    "name": "local CSV mapping load has no AI tool lane",
+    "valid": false,
+    "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"ai.tool_request\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"stream_id\":\"st\",\"sequence\":2,\"payload\":{\"operation\":\"market.loadLocalImportMapping\",\"arguments\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\"}}}\n"
+  },
+  {
+    "name": "local CSV mapping load matching review must contain the record",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.loadLocalImportMapping\",\"ok\":true,\"result\":{\"version\":1,\"status\":\"saved\",\"record\":null,\"source_sha256\":\"560126dfde121bf49e27d6163183a6dcc629645d894ce7494a1f62b9e262b2e5\"},\"error\":null}\n"
+  },
+  {
+    "name": "local CSV mapping load matching review must carry the current file digest",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.loadLocalImportMapping\",\"ok\":true,\"result\":{\"version\":1,\"status\":\"saved\",\"record\":{\"review_revision\":2,\"header_sha256\":\"6381b2c0ad85079009a9c4f09b87f182f791f3e60a5f2f0187d566737a4a6092\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-equity-reviewed\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"timestamp\":\"Time\",\"trading_day\":\"Day\",\"open\":\"Open\",\"high\":\"High\",\"low\":\"Low\",\"close\":\"Close\",\"volume\":null},\"instrument_kind\":\"equity\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-exchange\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"volume_semantics\":\"per_bar\",\"timestamp_convention\":\"bar_start\",\"timestamp_format\":\"%Y-%m-%d %H:%M\",\"trading_day_format\":\"%Y-%m-%d\"}},\"source_sha256\":null},\"error\":null}\n"
+  },
+  {
+    "name": "local CSV mapping load unsaved mapping cannot carry a file digest",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.loadLocalImportMapping\",\"ok\":true,\"result\":{\"version\":1,\"status\":\"not_saved\",\"record\":null,\"source_sha256\":\"560126dfde121bf49e27d6163183a6dcc629645d894ce7494a1f62b9e262b2e5\"},\"error\":null}\n"
+  },
+  {
+    "name": "local CSV mapping load changed header cannot return the earlier mapping",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.loadLocalImportMapping\",\"ok\":true,\"result\":{\"version\":1,\"status\":\"review_required\",\"record\":{\"review_revision\":2,\"header_sha256\":\"6381b2c0ad85079009a9c4f09b87f182f791f3e60a5f2f0187d566737a4a6092\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-equity-reviewed\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"timestamp\":\"Time\",\"trading_day\":\"Day\",\"open\":\"Open\",\"high\":\"High\",\"low\":\"Low\",\"close\":\"Close\",\"volume\":null},\"instrument_kind\":\"equity\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-exchange\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"volume_semantics\":\"per_bar\",\"timestamp_convention\":\"bar_start\",\"timestamp_format\":\"%Y-%m-%d %H:%M\",\"trading_day_format\":\"%Y-%m-%d\"}},\"source_sha256\":\"fdcb52aa885e33855102ec222a205a20dbe41068306eb9696378ca483b192b4c\"},\"error\":null}\n"
+  },
+  {
+    "name": "local CSV mapping load changed header requires the current file digest",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.loadLocalImportMapping\",\"ok\":true,\"result\":{\"version\":1,\"status\":\"review_required\",\"record\":null,\"source_sha256\":null},\"error\":null}\n"
+  },
+  {
+    "name": "local CSV mapping review revision is a positive safe integer",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000001,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.saveLocalImportMapping\",\"ok\":true,\"result\":{\"version\":1,\"record\":{\"review_revision\":9007199254740992,\"header_sha256\":\"6381b2c0ad85079009a9c4f09b87f182f791f3e60a5f2f0187d566737a4a6092\",\"mapping\":{\"version\":1,\"revision\":\"synthetic-equity-reviewed\",\"encoding\":\"utf-8\",\"delimiter\":\",\",\"record_kind\":\"native_ohlcv\",\"columns\":{\"symbol\":\"Symbol\",\"timestamp\":\"Time\",\"trading_day\":\"Day\",\"open\":\"Open\",\"high\":\"High\",\"low\":\"Low\",\"close\":\"Close\",\"volume\":null},\"instrument_kind\":\"equity\",\"venue\":\"ZZEX\",\"timeframe\":\"1h\",\"calendar_id\":\"synthetic-exchange\",\"session_scope\":\"all\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"volume_semantics\":\"per_bar\",\"timestamp_convention\":\"bar_start\",\"timestamp_format\":\"%Y-%m-%d %H:%M\",\"trading_day_format\":\"%Y-%m-%d\"}}},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local CSV publication binds the reviewed mapping",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.publishLocalImport\",\"task_id\":null,\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"review_revision\":2}}\n"
+  },
+  {
+    "name": "1.1 local CSV publication rejects a substituted mapping",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.publishLocalImport\",\"task_id\":null,\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"file_id\":\"00000000-0000-4000-8000-000000000004\",\"expected_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"review_revision\":2,\"mapping\":{}}}\n"
+  },
+  {
+    "name": "1.1 local CSV publication returns a revision receipt",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.publishLocalImport\",\"ok\":true,\"result\":{\"version\":1,\"revision\":{\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"relative_path\":\"equities/fixture.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"review_revision\":2,\"symbol\":\"000418\",\"series\":{\"instrument_kind\":\"equity\",\"venue\":\"TEST\",\"timeframe\":\"1d\",\"calendar_id\":\"reviewed-calendar\",\"session_scope\":\"regular\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"roll_method\":null},\"bar_count\":1,\"source_record_count\":2}},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local CSV source row read takes the revision and logical locator",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportSourceRow\",\"task_id\":null,\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"locator\":{\"record_number\":501,\"line_start\":503,\"line_end\":504}}}\n"
+  },
+  {
+    "name": "1.1 local CSV source row read rejects a supplied source path",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportSourceRow\",\"task_id\":null,\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"locator\":{\"record_number\":501,\"line_start\":503,\"line_end\":504},\"relative_path\":\"subdirectory/alternate.csv\"}}\n"
+  },
+  {
+    "name": "1.1 local CSV source row read rejects a record beyond the publication limit",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportSourceRow\",\"task_id\":null,\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"locator\":{\"record_number\":10001,\"line_start\":503,\"line_end\":504}}}\n"
+  },
+  {
+    "name": "1.1 local CSV source row read requires protocol 1.1",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.0\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportSourceRow\",\"task_id\":null,\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"locator\":{\"record_number\":501,\"line_start\":503,\"line_end\":504}}}\n"
+  },
+  {
+    "name": "1.1 local CSV source row result preserves strings, multiline text and an empty field",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportSourceRow\",\"ok\":true,\"result\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"locator\":{\"record_number\":501,\"line_start\":503,\"line_end\":504},\"header\":[\"Close\",\"Settlement\",\"Previous Settlement\",\"Open Interest\",\"Units\",\"Note\",\"Comment\"],\"raw_fields\":[\"004.250\",\"05.750\",\"03.500\",\"000093\",\"lots\",\"quoted \\\"text\\\"\\r\\nsecond line\",\"\"]},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local CSV source row result rejects a converted numeric field",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportSourceRow\",\"ok\":true,\"result\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"locator\":{\"record_number\":501,\"line_start\":503,\"line_end\":504},\"header\":[\"Close\",\"Settlement\",\"Previous Settlement\",\"Open Interest\",\"Units\",\"Note\",\"Comment\"],\"raw_fields\":[4.25,\"05.750\",\"03.500\",\"000093\",\"lots\",\"quoted \\\"text\\\"\\r\\nsecond line\",\"\"]},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local CSV source row result rejects original file bytes",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportSourceRow\",\"ok\":true,\"result\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"locator\":{\"record_number\":501,\"line_start\":503,\"line_end\":504},\"header\":[\"Close\",\"Settlement\",\"Previous Settlement\",\"Open Interest\",\"Units\",\"Note\",\"Comment\"],\"raw_fields\":[\"004.250\",\"05.750\",\"03.500\",\"000093\",\"lots\",\"quoted \\\"text\\\"\\r\\nsecond line\",\"\"],\"original_bytes\":\"csv\"},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local CSV source row revocation returns an error without field values",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportSourceRow\",\"ok\":false,\"result\":null,\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"This caller cannot perform the operation.\",\"retryable\":false,\"details\":{}}}\n"
+  },
+  {
+    "name": "1.1 local folder CSV source row read takes the revision and logical locator",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalFolderSourceRow\",\"task_id\":null,\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"source\":{\"relative_path\":\"data/alias.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"record_number\":501,\"line_start\":503,\"line_end\":504}}}\n"
+  },
+  {
+    "name": "1.1 local folder source row requires a source digest",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalFolderSourceRow\",\"task_id\":null,\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"source\":{\"relative_path\":\"data/alias.csv\",\"record_number\":501,\"line_start\":503,\"line_end\":504}}}\n"
+  },
+  {
+    "name": "1.1 local folder CSV source row result preserves strings, multiline text and an empty field",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalFolderSourceRow\",\"ok\":true,\"result\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"header\":[\"Close\",\"Settlement\",\"Previous Settlement\",\"Open Interest\",\"Units\",\"Note\",\"Comment\"],\"raw_fields\":[\"004.250\",\"05.750\",\"03.500\",\"000093\",\"lots\",\"quoted \\\"text\\\"\\r\\nsecond line\",\"\"],\"source\":{\"relative_path\":\"data/alias.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"record_number\":501,\"line_start\":503,\"line_end\":504}},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local folder CSV source row result rejects a converted numeric field",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalFolderSourceRow\",\"ok\":true,\"result\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"header\":[\"Close\",\"Settlement\",\"Previous Settlement\",\"Open Interest\",\"Units\",\"Note\",\"Comment\"],\"raw_fields\":[4.25,\"05.750\",\"03.500\",\"000093\",\"lots\",\"quoted \\\"text\\\"\\r\\nsecond line\",\"\"],\"source\":{\"relative_path\":\"data/alias.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"record_number\":501,\"line_start\":503,\"line_end\":504}},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local folder CSV source row revocation returns an error without field values",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalFolderSourceRow\",\"ok\":false,\"result\":null,\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"This caller cannot perform the operation.\",\"retryable\":false,\"details\":{}}}\n"
+  },
+  {
+    "name": "1.1 local CSV frozen read takes only the revision identity",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportRevision\",\"task_id\":null,\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\"}}\n"
+  },
+  {
+    "name": "1.1 local CSV frozen read rejects a folder grant",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportRevision\",\"task_id\":null,\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"folder_id\":\"00000000-0000-4000-8000-000000000003\"}}\n"
+  },
+  {
+    "name": "1.1 local CSV frozen bar retains both original row locators",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportRevision\",\"ok\":true,\"result\":{\"version\":1,\"revision\":{\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"relative_path\":\"equities/fixture.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"review_revision\":2,\"symbol\":\"000418\",\"series\":{\"instrument_kind\":\"equity\",\"venue\":\"TEST\",\"timeframe\":\"1d\",\"calendar_id\":\"reviewed-calendar\",\"session_scope\":\"regular\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"roll_method\":null},\"bar_count\":1,\"source_record_count\":2},\"bars\":[{\"bar\":{\"time_ms\":1763541000000,\"trading_day\":\"2025-11-19\",\"open\":4,\"high\":7,\"low\":3,\"close\":5,\"volume\":null,\"is_closed\":true},\"locators\":[{\"record_number\":1,\"line_start\":2,\"line_end\":2},{\"record_number\":2,\"line_start\":3,\"line_end\":4}]}]},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local CSV frozen bar requires source locators",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportRevision\",\"ok\":true,\"result\":{\"version\":1,\"revision\":{\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"relative_path\":\"equities/fixture.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"review_revision\":2,\"symbol\":\"000418\",\"series\":{\"instrument_kind\":\"equity\",\"venue\":\"TEST\",\"timeframe\":\"1d\",\"calendar_id\":\"reviewed-calendar\",\"session_scope\":\"regular\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"roll_method\":null},\"bar_count\":1,\"source_record_count\":2},\"bars\":[{\"bar\":{\"time_ms\":1763541000000,\"trading_day\":\"2025-11-19\",\"open\":4,\"high\":7,\"low\":3,\"close\":5,\"volume\":null,\"is_closed\":true},\"locators\":[]}]},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local CSV display-right revocation takes a revision identity",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.revokeLocalImportRevision\",\"task_id\":null,\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\"}}\n"
+  },
+  {
+    "name": "1.1 local CSV display-right revocation rejects an injected profile",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.revokeLocalImportRevision\",\"task_id\":null,\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"profile_id\":\"another\"}}\n"
+  },
+  {
+    "name": "1.1 local CSV display-right revocation returns the revision identity",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.revokeLocalImportRevision\",\"ok\":true,\"result\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\"},\"error\":null}\n"
+  },
+  {
+    "name": "list published CSV revisions from the first page",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"task_id\":null,\"payload\":{\"version\":1,\"after_revision_id\":null,\"limit\":20}}\n"
+  },
+  {
+    "name": "list published CSV revisions after an exclusive cursor",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"task_id\":null,\"payload\":{\"version\":1,\"after_revision_id\":\"00000000-0000-4000-8000-000000000006\",\"limit\":1}}\n"
+  },
+  {
+    "name": "list published CSV revisions rejects an oversized page",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"task_id\":null,\"payload\":{\"version\":1,\"after_revision_id\":null,\"limit\":21}}\n"
+  },
+  {
+    "name": "list published CSV revisions rejects a profile selector",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"task_id\":null,\"payload\":{\"version\":1,\"after_revision_id\":null,\"limit\":20,\"profile_id\":\"another-profile\"}}\n"
+  },
+  {
+    "name": "list published CSV revisions returns display summaries",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"ok\":true,\"result\":{\"version\":1,\"revisions\":[{\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"relative_path\":\"equities/fixture.csv\",\"symbol\":\"000418\",\"bar_count\":1,\"source_record_count\":2,\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"timeframe\":\"1d\"}],\"next_after_revision_id\":\"00000000-0000-4000-8000-000000000006\"},\"error\":null}\n"
+  },
+  {
+    "name": "list published CSV revisions opts in to bar summaries",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"task_id\":null,\"payload\":{\"version\":1,\"after_revision_id\":null,\"limit\":20,\"include_bar_summary\":true}}\n"
+  },
+  {
+    "name": "list published CSV revisions explicitly keeps the legacy shape",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"task_id\":null,\"payload\":{\"version\":1,\"after_revision_id\":null,\"limit\":20,\"include_bar_summary\":false}}\n"
+  },
+  {
+    "name": "list published CSV revisions rejects a numeric opt-in",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"task_id\":null,\"payload\":{\"version\":1,\"after_revision_id\":null,\"limit\":20,\"include_bar_summary\":1}}\n"
+  },
+  {
+    "name": "list published CSV revisions returns the frozen bar summary when requested",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"ok\":true,\"result\":{\"version\":1,\"revisions\":[{\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"relative_path\":\"equities/fixture.csv\",\"symbol\":\"000418\",\"bar_count\":1,\"source_record_count\":2,\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"timeframe\":\"1d\",\"bar_summary\":{\"venue\":\"TEST\",\"first_trading_day\":\"2025-11-18\",\"final_trading_day\":\"2025-11-19\",\"final_close\":304.125}}],\"next_after_revision_id\":\"00000000-0000-4000-8000-000000000006\"},\"error\":null}\n"
+  },
+  {
+    "name": "list published CSV revisions rejects a timestamp in place of a trading day",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"ok\":true,\"result\":{\"version\":1,\"revisions\":[{\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"relative_path\":\"equities/fixture.csv\",\"symbol\":\"000418\",\"bar_count\":1,\"source_record_count\":2,\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"timeframe\":\"1d\",\"bar_summary\":{\"venue\":\"TEST\",\"first_trading_day\":\"2025-11-18\",\"final_trading_day\":\"2025-11-19T01:30:00Z\",\"final_close\":304.125}}],\"next_after_revision_id\":\"00000000-0000-4000-8000-000000000006\"},\"error\":null}\n"
+  },
+  {
+    "name": "list published CSV revisions rejects a string price",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"ok\":true,\"result\":{\"version\":1,\"revisions\":[{\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"relative_path\":\"equities/fixture.csv\",\"symbol\":\"000418\",\"bar_count\":1,\"source_record_count\":2,\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"timeframe\":\"1d\",\"bar_summary\":{\"venue\":\"TEST\",\"first_trading_day\":\"2025-11-18\",\"final_trading_day\":\"2025-11-19\",\"final_close\":\"304.125\"}}],\"next_after_revision_id\":\"00000000-0000-4000-8000-000000000006\"},\"error\":null}\n"
+  },
+  {
+    "name": "list published CSV revisions rejects raw bars in the summary",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"ok\":true,\"result\":{\"version\":1,\"revisions\":[{\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"relative_path\":\"equities/fixture.csv\",\"symbol\":\"000418\",\"bar_count\":1,\"source_record_count\":2,\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"timeframe\":\"1d\",\"bar_summary\":{\"venue\":\"TEST\",\"first_trading_day\":\"2025-11-18\",\"final_trading_day\":\"2025-11-19\",\"final_close\":304.125,\"bars\":[]}}],\"next_after_revision_id\":\"00000000-0000-4000-8000-000000000006\"},\"error\":null}\n"
+  },
+  {
+    "name": "list published CSV revisions returns an empty page",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"ok\":true,\"result\":{\"version\":1,\"revisions\":[],\"next_after_revision_id\":null},\"error\":null}\n"
+  },
+  {
+    "name": "list published CSV revisions cannot return an absolute Windows path",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"ok\":true,\"result\":{\"version\":1,\"revisions\":[{\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"relative_path\":\"C:\\\\private\\\\fixture.csv\",\"symbol\":\"000418\",\"bar_count\":1,\"source_record_count\":2,\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"timeframe\":\"1d\"}],\"next_after_revision_id\":\"00000000-0000-4000-8000-000000000006\"},\"error\":null}\n"
+  },
+  {
+    "name": "list published CSV revisions cannot return an absolute POSIX path",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"ok\":true,\"result\":{\"version\":1,\"revisions\":[{\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"relative_path\":\"/private/fixture.csv\",\"symbol\":\"000418\",\"bar_count\":1,\"source_record_count\":2,\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"timeframe\":\"1d\"}],\"next_after_revision_id\":\"00000000-0000-4000-8000-000000000006\"},\"error\":null}\n"
+  },
+  {
+    "name": "list published CSV revisions cannot return an escaping path",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"ok\":true,\"result\":{\"version\":1,\"revisions\":[{\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"relative_path\":\"equities/../fixture.csv\",\"symbol\":\"000418\",\"bar_count\":1,\"source_record_count\":2,\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"timeframe\":\"1d\"}],\"next_after_revision_id\":\"00000000-0000-4000-8000-000000000006\"},\"error\":null}\n"
+  },
+  {
+    "name": "list published CSV revisions cannot return raw records or a source grant",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"ok\":true,\"result\":{\"version\":1,\"revisions\":[{\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"relative_path\":\"equities/fixture.csv\",\"symbol\":\"000418\",\"bar_count\":1,\"source_record_count\":2,\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"timeframe\":\"1d\",\"original_bytes\":\"CSV\",\"folder_id\":\"00000000-0000-4000-8000-000000000006\"}],\"next_after_revision_id\":\"00000000-0000-4000-8000-000000000006\"},\"error\":null}\n"
+  },
+  {
+    "name": "list published CSV revisions reports unconfigured local storage",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalImportRevisions\",\"ok\":false,\"result\":null,\"error\":{\"code\":\"PROVIDER_NOT_CONFIGURED\",\"message\":\"Local profile storage is unconfigured.\",\"retryable\":false,\"details\":{}}}\n"
+  },
+  {
+    "name": "1.1 local folder refresh with live folder and frozen revision identities",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.previewLocalFolderRefresh\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"revision_id\":\"00000000-0000-4000-8000-000000000004\"}}\n"
+  },
+  {
+    "name": "1.1 local folder refresh rejects a client-supplied source path",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.previewLocalFolderRefresh\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"revision_id\":\"00000000-0000-4000-8000-000000000004\",\"path\":\"other.csv\"}}\n"
+  },
+  {
+    "name": "1.1 local folder refresh preserves every current row locator",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.previewLocalFolderRefresh\",\"ok\":true,\"result\":{\"version\":1,\"base\":{\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"relative_path\":\"equities/fixture.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"review_revision\":2,\"symbol\":\"000418\",\"series\":{\"instrument_kind\":\"equity\",\"venue\":\"TEST\",\"timeframe\":\"1d\",\"calendar_id\":\"reviewed-calendar\",\"session_scope\":\"regular\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"roll_method\":null},\"bar_count\":1,\"source_record_count\":2},\"files\":[{\"relative_path\":\"equities/fixture.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"prior_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"change\":\"unchanged\",\"alias_of\":null,\"review\":\"compatible\",\"detail\":null}],\"bars\":[{\"time_ms\":1763541000000,\"status\":\"unchanged\",\"accepted\":{\"bar\":{\"time_ms\":1763541000000,\"trading_day\":\"2025-11-19\",\"open\":4,\"high\":7,\"low\":3,\"close\":5,\"volume\":null,\"is_closed\":true},\"locators\":[{\"record_number\":1,\"line_start\":2,\"line_end\":2},{\"record_number\":2,\"line_start\":3,\"line_end\":4}]},\"alternatives\":[{\"bar\":{\"time_ms\":1763541000000,\"trading_day\":\"2025-11-19\",\"open\":4,\"high\":7,\"low\":3,\"close\":5,\"volume\":null,\"is_closed\":true},\"sources\":[{\"relative_path\":\"equities/fixture.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"record_number\":1,\"line_start\":2,\"line_end\":2},{\"relative_path\":\"equities/fixture.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"record_number\":2,\"line_start\":3,\"line_end\":4}]}]}]},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 local folder refresh rejects a zero current record number",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.previewLocalFolderRefresh\",\"ok\":true,\"result\":{\"version\":1,\"base\":{\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"relative_path\":\"equities/fixture.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"mapping_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"review_revision\":2,\"symbol\":\"000418\",\"series\":{\"instrument_kind\":\"equity\",\"venue\":\"TEST\",\"timeframe\":\"1d\",\"calendar_id\":\"reviewed-calendar\",\"session_scope\":\"regular\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"roll_method\":null},\"bar_count\":1,\"source_record_count\":2},\"files\":[{\"relative_path\":\"equities/fixture.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"prior_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"change\":\"unchanged\",\"alias_of\":null,\"review\":\"compatible\",\"detail\":null}],\"bars\":[{\"time_ms\":1763541000000,\"status\":\"unchanged\",\"accepted\":{\"bar\":{\"time_ms\":1763541000000,\"trading_day\":\"2025-11-19\",\"open\":4,\"high\":7,\"low\":3,\"close\":5,\"volume\":null,\"is_closed\":true},\"locators\":[{\"record_number\":1,\"line_start\":2,\"line_end\":2},{\"record_number\":2,\"line_start\":3,\"line_end\":4}]},\"alternatives\":[{\"bar\":{\"time_ms\":1763541000000,\"trading_day\":\"2025-11-19\",\"open\":4,\"high\":7,\"low\":3,\"close\":5,\"volume\":null,\"is_closed\":true},\"sources\":[{\"relative_path\":\"equities/fixture.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"record_number\":1,\"line_start\":2,\"line_end\":2},{\"relative_path\":\"equities/fixture.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"record_number\":0,\"line_start\":3,\"line_end\":4}]}]}]},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 folder prepare records explicit alternative and withdrawals",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.prepareLocalFolderPublication\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"review_id\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"conflicts\":[{\"time_ms\":1763541000000,\"alternative_index\":1}],\"withdraw_bars\":[1763627400000],\"withdraw_sources\":[\"equities/old.csv\"]}}\n"
+  },
+  {
+    "name": "1.1 folder preparation identifies the reviewed candidate",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.prepareLocalFolderPublication\",\"ok\":true,\"result\":{\"version\":1,\"review_id\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"candidate_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"parent_revision_id\":\"00000000-0000-4000-8000-000000000006\",\"source_count\":1,\"bar_count\":1},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 folder publication binds the prepared candidate and retry key",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.publishLocalFolderRefresh\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"review_id\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"candidate_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"idempotency_key\":\"00000000-0000-4000-8000-000000000002\"}}\n"
+  },
+  {
+    "name": "1.1 folder publication rejects supplied bars",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.publishLocalFolderRefresh\",\"payload\":{\"version\":1,\"folder_id\":\"00000000-0000-4000-8000-000000000003\",\"review_id\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"candidate_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"idempotency_key\":\"00000000-0000-4000-8000-000000000002\",\"bars\":[]}}\n"
+  },
+  {
+    "name": "1.1 folder publication returns immutable lineage",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.publishLocalFolderRefresh\",\"ok\":true,\"result\":{\"version\":1,\"revision\":{\"revision_id\":\"00000000-0000-4000-8000-000000000004\",\"base_revision_id\":\"00000000-0000-4000-8000-000000000006\",\"parent_revision_id\":null,\"origin_path\":\"equities/fixture.csv\",\"symbol\":\"000418\",\"series\":{\"instrument_kind\":\"equity\",\"venue\":\"TEST\",\"timeframe\":\"1d\",\"calendar_id\":\"reviewed-calendar\",\"session_scope\":\"regular\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"roll_method\":null},\"source_count\":1,\"bar_count\":1}},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 list folder revisions uses a bounded page",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.listLocalFolderRevisions\",\"payload\":{\"version\":1,\"after_revision_id\":null,\"limit\":10}}\n"
+  },
+  {
+    "name": "1.1 list folder revisions omits raw source content",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.listLocalFolderRevisions\",\"ok\":true,\"result\":{\"version\":1,\"revisions\":[{\"revision_id\":\"00000000-0000-4000-8000-000000000004\",\"base_revision_id\":\"00000000-0000-4000-8000-000000000006\",\"parent_revision_id\":null,\"origin_path\":\"equities/fixture.csv\",\"symbol\":\"000418\",\"series\":{\"instrument_kind\":\"equity\",\"venue\":\"TEST\",\"timeframe\":\"1d\",\"calendar_id\":\"reviewed-calendar\",\"session_scope\":\"regular\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"roll_method\":null},\"source_count\":1,\"bar_count\":1}],\"next_after_revision_id\":null},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 read folder revision checks entitlement without a grant",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.readLocalFolderRevision\",\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000004\",\"include_details\":false}}\n"
+  },
+  {
+    "name": "1.1 folder read preserves source-qualified row identity",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalFolderRevision\",\"ok\":true,\"result\":{\"version\":1,\"revision\":{\"revision_id\":\"00000000-0000-4000-8000-000000000004\",\"base_revision_id\":\"00000000-0000-4000-8000-000000000006\",\"parent_revision_id\":null,\"origin_path\":\"equities/fixture.csv\",\"symbol\":\"000418\",\"series\":{\"instrument_kind\":\"equity\",\"venue\":\"TEST\",\"timeframe\":\"1d\",\"calendar_id\":\"reviewed-calendar\",\"session_scope\":\"regular\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"roll_method\":null},\"source_count\":1,\"bar_count\":1},\"files\":[{\"relative_path\":\"equities/fixture.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"record_count\":2}],\"bars\":[{\"bar\":{\"time_ms\":1763541000000,\"trading_day\":\"2025-11-19\",\"open\":4,\"high\":7,\"low\":3,\"close\":5,\"volume\":null,\"is_closed\":true},\"sources\":[{\"relative_path\":\"equities/fixture.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"record_number\":1,\"line_start\":2,\"line_end\":2},{\"relative_path\":\"equities/fixture.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"record_number\":2,\"line_start\":3,\"line_end\":4}]}]},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 revoke folder display by revision ID",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"task_id\":null,\"operation\":\"market.revokeLocalFolderRevision\",\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000004\"}}\n"
+  },
+  {
+    "name": "1.1 folder revocation returns the affected revision",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.revokeLocalFolderRevision\",\"ok\":true,\"result\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000004\"},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 folder refresh compares a frozen folder lineage",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.previewLocalFolderRefresh\",\"ok\":true,\"result\":{\"version\":1,\"files\":[{\"relative_path\":\"equities/fixture.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"prior_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"change\":\"unchanged\",\"alias_of\":null,\"review\":\"compatible\",\"detail\":null}],\"bars\":[{\"time_ms\":1763541000000,\"status\":\"unchanged\",\"accepted\":{\"bar\":{\"time_ms\":1763541000000,\"trading_day\":\"2025-11-19\",\"open\":4,\"high\":7,\"low\":3,\"close\":5,\"volume\":null,\"is_closed\":true},\"sources\":[{\"relative_path\":\"equities/fixture.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"record_number\":1,\"line_start\":2,\"line_end\":2},{\"relative_path\":\"equities/fixture.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"record_number\":2,\"line_start\":3,\"line_end\":4}]},\"alternatives\":[{\"bar\":{\"time_ms\":1763541000000,\"trading_day\":\"2025-11-19\",\"open\":4,\"high\":7,\"low\":3,\"close\":5,\"volume\":null,\"is_closed\":true},\"sources\":[{\"relative_path\":\"equities/fixture.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"record_number\":1,\"line_start\":2,\"line_end\":2},{\"relative_path\":\"equities/fixture.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"record_number\":2,\"line_start\":3,\"line_end\":4}]}]}],\"folder_base\":{\"revision_id\":\"00000000-0000-4000-8000-000000000004\",\"base_revision_id\":\"00000000-0000-4000-8000-000000000006\",\"parent_revision_id\":null,\"origin_path\":\"equities/fixture.csv\",\"symbol\":\"000418\",\"series\":{\"instrument_kind\":\"equity\",\"venue\":\"TEST\",\"timeframe\":\"1d\",\"calendar_id\":\"reviewed-calendar\",\"session_scope\":\"regular\",\"timezone\":\"UTC\",\"quantity_unit\":\"shares\",\"price_adjustment\":\"raw\",\"roll_method\":null},\"source_count\":1,\"bar_count\":1},\"review_id\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"publication_allowed\":true},\"error\":null}\n"
   }
 ]

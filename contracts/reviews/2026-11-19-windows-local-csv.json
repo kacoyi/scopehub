@@ -1,0 +1,67 @@
+{
+  "recorded_at": "2026-11-19",
+  "kind": "native_local_csv_development_observation",
+  "task_id": "M1-008",
+  "source_commit": "ca69b26eb5896d06e241e529114a9d27fdb60e49",
+  "platform": {
+    "system": "Windows 11 Enterprise Evaluation 26H2",
+    "build": "26300.9457",
+    "hardware": "x64 KVM guest",
+    "webview": "Edg/157.0.4341.60"
+  },
+  "binary": {
+    "build": "Windows MSVC debug desktop with embedded built frontend and guest-local development worker",
+    "sha256": "6745e9789f7ea242013df2715b057f18aa4e1fa3ac0dde7ecdcae6e0ef9d200a"
+  },
+  "observations": {
+    "chooser_actions": [
+      "cancel",
+      "select"
+    ],
+    "source": "User-selected synthetic CSV in a temporary local QA folder",
+    "source_sha256": "7203bb39eb34a55801d7a3418ccb250c5868907e6218ab2c49a0d79d72894ddb",
+    "raw_rows": 3,
+    "closed_bars": 2,
+    "incomplete_rows": 1,
+    "settlement_mapping": "The real worker rejected the previous settlement column for OHLC.",
+    "first_bar": {
+      "symbol": "CU2605",
+      "start_utc": "2026-04-14T13:05:00.000Z",
+      "trading_day": "2026-04-15",
+      "open": 100,
+      "high": 106,
+      "low": 96,
+      "close": 102,
+      "volume": 31
+    },
+    "chart": "The live candlestick and volume canvas rendered both closed bars."
+  },
+  "local_evidence": [
+    {
+      "path": ".reports/guest/ca69b26-native-ui/GUI.JSON",
+      "sha256": "30b8385ae69dcfacc189b94f924e6c08d59503c09dba395c44472adca97b44e1"
+    },
+    {
+      "path": ".reports/guest/ca69b26-native-ui/PICKER.PNG",
+      "sha256": "110624537438dd52760f9088e66fc50f73f914831203593aa4b4cde54ff106f3"
+    },
+    {
+      "path": ".reports/guest/ca69b26-native-ui/CHART.PNG",
+      "sha256": "637c2022250c20c4629a4583ac967812f8f6970f7c52f2b6f5cdee296b698b1e"
+    }
+  ],
+  "hosted_followup": {
+    "source_commit": "2aa4e706500d5b797dbe6cf818461e3af66d42d0",
+    "run": "https://github.com/kacoyi/scopehub/actions/runs/44535842966",
+    "checks": [
+      "windows-native-build",
+      "local-import-ui",
+      "dependency-review"
+    ]
+  },
+  "pending": [
+    "Native restart with a saved mapping",
+    "Publishing and refreshing an immutable local dataset",
+    "Packaged installation and physical owner experience"
+  ]
+}

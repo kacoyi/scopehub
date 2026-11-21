@@ -28,9 +28,10 @@ async function readOperation(
     if (response.ok) admitted();
     let reply;
     try { reply = await response.json(); } catch (error) {
-      // JSON syntax errors follow a completed transfer. Body transfer errors and
-      // cancellation retain their original rejection.
-      if (!(error instanceof SyntaxError)) throw error;
+      signal?.throwIfAborted();
+      // Preserve a known HTTP failure if its body is unreadable. A transfer
+      // failure on a successful status still indicates a lost connection.
+      if (response.ok && !(error instanceof SyntaxError)) throw error;
     }
     if (reply?.ok === false && operationCode(reply.error)) throw reply.error;
     if (!response.ok) throw new PreviewHttpFailure(response.status);

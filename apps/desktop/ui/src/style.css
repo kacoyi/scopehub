@@ -113,6 +113,20 @@ th { position: sticky; top: 0; background: var(--surface); color: var(--muted); 
 .quality-gaps { list-style: none; margin: 0; padding: 0; }
 .quality-gaps li + li { margin-top: 4px; }
 .secondary-button { border: 1px solid #49556a; margin-top: 12px; padding: 6px 11px; }
+.local-source-actions { display: grid; justify-items: start; gap: 8px; }
+.empty-content .local-source-actions { justify-items: center; }
+.local-source-actions .secondary-button { margin: 0; }
+.source-details .local-source-actions { margin-top: 8px; }
+.local-source-actions p[role="alert"] { color: #ffb0ac; }
+.local-source-bar .local-source-label { display: flex; gap: 7px; align-items: center; color: #9ee1c9; font-size: 13px; }
+.local-source-label i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.local-source-controls { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; margin-left: auto; }
+.local-source-controls .secondary-button { margin: 0; }
+.local-chart-preview { border: 1px solid var(--line); border-radius: 7px; min-width: 0; background: #131722; }
+.local-chart-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.local-chart-tools h2 { font-size: 14px; margin-right: auto; }
+.local-chart-tools button { padding: 4px 7px; }
+.local-chart-canvas { display: flex; height: clamp(245px, 42vh, 380px); }
 .symbol-dialog { padding: 0; width: min(460px, calc(100vw - 32px)); background: var(--surface); color: inherit; border: 1px solid #46536a; border-radius: 10px; box-shadow: 0 16px 60px #06080fad; }
 .symbol-dialog::backdrop { background: #0508109c; }
 .dialog-heading { padding: 10px 14px 4px; }
@@ -121,6 +135,41 @@ th { position: sticky; top: 0; background: var(--surface); color: var(--muted); 
 .search-option { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 9px 14px; text-align: left; }
 .search-option[aria-selected="true"] { background: #25334b; }
 .search-market { color: var(--muted); font-size: 12px; }
+.notes-trigger { padding-inline: 8px; white-space: nowrap; }
+.decision-dialog { width: min(615px, calc(100vw - 26px)); max-height: calc(100dvh - 26px); }
+.decision-dialog .dialog-heading { position: sticky; top: 0; z-index: 1; padding-block: 7px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.decision-body { display: grid; gap: 14px; justify-items: start; padding: 14px; }
+.decision-body form, .note-original, .note-outcomes, .note-approval, .note-list { width: 100%; }
+.note-fields, .note-evidence { display: grid; gap: 10px; min-width: 0; padding: 10px; margin: 0; border: 1px solid var(--line); border-radius: 6px; }
+.note-fields label { display: grid; gap: 3px; min-width: 0; }
+.note-fields input, .note-fields textarea {
+  width: 100%; padding: 6px 8px; border: 1px solid #49556a; border-radius: 5px;
+  background: #131722; color: inherit; font: inherit;
+}
+.note-fields textarea { display: block; resize: vertical; }
+.note-reference { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.note-evidence { justify-items: start; }
+.note-reference { width: 100%; }
+.note-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.decision-body .secondary-button { margin: 0; }
+.note-original, .note-outcomes, .note-approval { display: grid; gap: 5px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; }
+.note-approval { border-color: #596a83; }
+.note-backup { display: grid; gap: 7px; width: 100%; padding-block-start: 10px; border-top: 1px solid var(--line); }
+.note-backup label { display: grid; gap: 3px; min-width: 0; }
+.note-backup input { min-width: 0; max-width: 100%; font: inherit; }
+.note-restore-preview dl { display: grid; grid-template-columns: minmax(0, 1fr) max-content; gap: 4px 12px; }
+.note-original dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 12px; }
+.note-original dd, .note-outcomes p { text-align: left; overflow-wrap: anywhere; white-space: pre-wrap; }
+.note-original ul, .note-outcomes ul { margin: 0; padding: 0; list-style: none; }
+.note-outcomes li + li { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 8px; }
+.decision-body time, .decision-body small { color: var(--muted); }
+.note-list { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.note-list button { display: flex; width: 100%; justify-content: space-between; align-items: center; }
+.note-list button time, .note-status { color: #9de6c7; }
+.note-error, .note-evidence [role="alert"] { color: #ffb0ac; }
+@media (max-width: 480px) {
+  .note-reference, .note-original dl { grid-template-columns: minmax(0, 1fr); }
+}
 @media (max-width: 760px) {
   .topbar { flex-wrap: wrap; min-height: 0; padding: 4px; gap: 2px; }
   .brand { padding: 0 2px; }
@@ -138,3 +187,21 @@ th { position: sticky; top: 0; background: var(--surface); color: var(--muted); 
   .panel-scrim { display: block; position: absolute; inset: 0 33px 0 0; z-index: 2; border-radius: 0; background: #05081170; }
   .workspace-panel { position: absolute; z-index: 3; inset: 0 33px 0 auto; width: min(360px, calc(100% - 66px)); box-shadow: -6px 0 20px #080b133d; }
 }
+
+.private-record-body { overflow-wrap: anywhere; }
+.private-record-body p { margin: 0; }
+.private-record-editor fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 10px; }
+.private-record-editor label, .private-record-actions label { display: grid; gap: 4px; }
+.private-record-editor input, .private-record-editor select, .private-record-editor textarea {
+  width: 100%; border: 1px solid var(--line); border-radius: 5px; padding: 7px; color: inherit; background: #111621; font: inherit;
+}
+.private-record-editor textarea { resize: vertical; }
+.private-record-editor .private-turn { border: 1px solid var(--line); border-radius: 5px; padding: 8px; }
+.private-record-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.private-record-body section .private-record-actions { margin-top: 12px; }
+.private-record-detail ol { display: grid; gap: 10px; padding-left: 22px; }
+.private-record-detail p { white-space: pre-wrap; }
+
+.private-review-target { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 10px; }
+.private-review-target dd { margin: 0; font-weight: 620; }
+.private-record-editor > section { margin: 8px 0; }

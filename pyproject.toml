@@ -7,6 +7,8 @@ dependencies = [
     # The date and UUID checks are built in. Keep the backends for date-time and URI.
     "rfc3339-validator>=0.1.4,<0.2",
     "rfc3986-validator>=0.1.1,<0.2",
+    # Local CSV timestamps must use the same IANA rules on Windows and Linux.
+    "tzdata>=2026.5",
 ]
 
 [tool.uv]

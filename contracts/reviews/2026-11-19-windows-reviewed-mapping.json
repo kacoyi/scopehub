@@ -1,0 +1,70 @@
+{
+  "recorded_at": "2026-11-19",
+  "kind": "native_reviewed_csv_mapping_observation",
+  "task_id": "M1-008",
+  "source_commit": "2f4a0c02f746a35e10b23317ceb7f309b3f068da",
+  "platform": {
+    "system": "Windows 11 Enterprise Evaluation 26H2",
+    "build": "26300.9457",
+    "hardware": "x64 KVM guest",
+    "webview": "Edg/157.0.4341.60"
+  },
+  "native_executable": {
+    "build": "Windows MSVC development binary with embedded frontend and a local Python worker",
+    "sha256": "940473490f260c91a50c62024b6595d688949abb0cd451172a5ab56968acd7cd",
+    "archive_sha256": "c0737140125ba14b986b363c1733a4331c74612507fb65857806ac2b83fa3966"
+  },
+  "input": {
+    "kind": "Three independently generated native futures bars in a user-selected local CSV. Two records declare a closed bar.",
+    "bytes": 292,
+    "sha256": "fdfdc396add7e270ba79d313bd99f23900fce9793406d44c4e18b91bc517afc5"
+  },
+  "observed": {
+    "explicit_save": "Editing the close column removed the save action until another valid preview. An explicit save stored mapping revision 1.",
+    "restart": "The original desktop process closed. A second process required a new directory selection and an explicit load. The first preview returned the same two bars, with closes 102 and 105.",
+    "valid_body_edit": {
+      "last_close": 106,
+      "file_sha256": "a73ffb1a5d189cabad64fbaac66f6f43e7e1b48420bbdd6e41de65e14e9fe83f",
+      "mapping_revision": 1
+    },
+    "invalid_data_row": {
+      "byte_offset": 162,
+      "file_sha256": "12f5b0bef942a02929ede3687104b359aab5834b8ac16062b2b28644c60f884d",
+      "result": "The saved mapping loaded. Explicit preview displayed the UTF-8 decoding diagnostic and the current digest."
+    },
+    "changed_header": "Renaming the close column required a mapping review and displayed the changed source digest.",
+    "unreadable_header": "An undecodable first record reported an unverifiable header and the current digest. Restoring the original file restored the original reviewed mapping and chart.",
+    "prior_failure": "An earlier ordinary launch on the same native binary reported a worker timeout. Two direct Windows controls completed normalization in 219 ms. Thirteen exchanges on the separately identified instrumented executable completed in 183 to 295 ms. The transient timeout remains tracked in native-reviewed-csv-worker-timeout."
+  },
+  "artifacts": [
+    {
+      "file": ".reports/guest/2f4a0c0-reviewed-mapping/MAPGUI.JSON",
+      "sha256": "accf60229d7777c810613727ee4ff4ee440a85f95883d16d8ef57439ffe2e451"
+    },
+    {
+      "file": ".reports/guest/2f4a0c0-reviewed-mapping/MAPEXE.JSON",
+      "sha256": "9078223e498e82b668f5f4571f9e73100364376cb8df079d95d9e52d696f3329"
+    },
+    {
+      "file": ".reports/guest/2f4a0c0-reviewed-mapping/MAPSAVE.PNG",
+      "sha256": "30a0eef65680a29dcab56c5639fadbfb6671e37c1f8767ec356b61a15f2da328"
+    },
+    {
+      "file": ".reports/guest/2f4a0c0-reviewed-mapping/MAPOPEN.PNG",
+      "sha256": "7a6aca9a239df2043fca6fe47f00936cceb08d5270bbf95c84c85c198f4c5969"
+    },
+    {
+      "file": ".reports/guest/2f4a0c0-reviewed-mapping/MAPBODY.PNG",
+      "sha256": "0f7a2480f26a0f5259c541fd3fa45c623770efeba383acd4bdbb649647b3ac57"
+    }
+  ],
+  "independent_dispatcher_regression": {
+    "check_count": 17,
+    "events_sha256": "2cc9b6ffd3195f04ce96f188f381945132c9a64fe218f43f466718fe12ed637c"
+  },
+  "pending": [
+    "Robust recovery from a transient local preview timeout",
+    "Folder-wide refresh and publication acceptance",
+    "Packaged and physical Windows experience"
+  ]
+}
