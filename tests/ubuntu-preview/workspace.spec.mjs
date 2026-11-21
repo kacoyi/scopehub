@@ -1806,6 +1806,7 @@ async function sampleStep(page, server, testInfo, label, trigger, {
 }
 
 test('the offline sample keeps its own timeframe without replacing the private undo', async ({ browser }, testInfo) => {
+  test.setTimeout(90_000);
   const profile = await makeProfile();
   const port = await freePort();
   const context = await browser.newContext();

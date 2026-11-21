@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M4-001",
+  "focus_task_id": "M3-004",
   "tasks": [
     {
       "id": "M0-001",
@@ -8094,6 +8094,95 @@
           ],
           "data_plan": "Use the existing synthetic CSV and a disposable local profile.",
           "cleanup": "Resume the test-owned suspended writer on every path and detach response observers after the matching request or timeout."
+        }
+      }
+    },
+    {
+      "id": "M3-004",
+      "title": "Give the eight-stage sample and private undo journey its own test budget",
+      "milestone": "M3",
+      "status": "active",
+      "depends_on": [
+        "M3-002",
+        "M3-003"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0018"
+      ],
+      "acceptance": [
+        "Retain the original Windows cutoff evidence. Use the same pacing schedule between completed stages to show the 60-second whole-test cutoff failing and the 90-second journey completing.",
+        "Preserve all eight history, private undo, source, revision and accepted-layer assertions and the individual history response budgets. Verify the separate real disconnect and explicit recovery control.",
+        "Archive one matching hosted workspace run that passes this task's required checks."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "evidence": [],
+      "next_action": "Obtain one source-matched hosted workspace report with all named checks, inspect the final restore and recovery stages, and archive passing evidence before closing the feedback.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The eight-step browser journey can finish evaluating independently bounded history reads and private undo on the hosted runner.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ui/sample-startup.mjs",
+          "tests/ui/replay-stages.mjs",
+          "apps/desktop/ui/ubuntu-preview.mjs"
+        ],
+        "hypotheses": [
+          "The 60-second enclosing budget can expire during an otherwise valid sequence of eight independently bounded chart stages.",
+          "The hosted stage attachment ended with the eighth request admitted and fetching. The later disconnect screenshot cannot establish when that request settled."
+        ],
+        "risks": [
+          {
+            "failure": "An expanded whole-test deadline hides an individual history transport failure or weakens private undo and source assertions.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Keep the original hosted cutoff and controlled red and green observations. Restore the prior journey deadline if the controlled case or real disconnect assertions regress.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Product timeouts, market workers, individual request budgets, the global test timeout and market replay recovery."
+          ],
+          "open_questions": [
+            "Does the matching hosted workspace run finish the eighth requested history and the private undo assertions within the adjusted budget?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The 18-second individual test wait, 15-second preview watchdog, healthy response requirements, explicit disconnect recovery and all private undo and source assertions."
+          ],
+          "change": [
+            "Align only this whole journey with the adjacent 90-second recovery case."
+          ],
+          "data_plan": "Use the existing synthetic sample and disposable profile.",
+          "cleanup": "Retain the comparison diagnostic only in the ignored report directory. Keep sleeps out of the delivered test."
         }
       }
     }

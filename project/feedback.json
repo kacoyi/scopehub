@@ -2087,6 +2087,21 @@
         "prevention": "The integrated journey pauses the real writer with Undo admitted and verifies the accepted region stays hidden. After commit it holds an authorized snapshot while the region shows the restored version. The output read records HTTP 429 and then HTTP 200. The original failure isolation, cancellation, revocation and restart checks remain in the same journey."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "eight-stage-sample-journey-exhausts-case-deadline",
+      "source": "Authenticated PR 23 Windows workflow 44856554230 at head ad75744a1ef9351f7d04456276adee9d77dbf45c and checkout 84b4d9651a28b7e138be2a762fa78a1b746620a6.",
+      "observation": "The offline sample and private undo case drew seven charts. At 59567 ms its last restore step had completed the catalog request and admitted the 1m history request, with the browser still in fetch and no terminal recorded in the correlated attachment. The assertion reported the enclosing 60000 ms test timeout. The later screenshot shows the disconnected local preview and Retry history, with the last request's final outcome and relation to teardown unknown. The browser results SHA-256 is fa4753f3dba3917a5b515c92b77735df53a944682ce781cf2f3da80daf2e5cf1. The separate recovery control passed in the same Windows run. Two prior hosted Windows successes for the eight-stage journey took 55674 ms in run 44852372517 and 58949 ms in run 44618659846. A local comparison paced the same complete copy of the journey between successful chart stages, outside individual requests. With the 60000 ms budget, seven charts finished before the imposed cumulative deadline at 60062 ms. With 90000 ms, all eight charts and the source, accepted-layer and private undo assertions passed in 66262 ms. The last catalog and history received HTTP 200 and the rendered chart. The local red and green browser reports are under .reports/M3-004-deadline with SHA-256 c31750334aa6db5b02ac303dbed9efe72a439101f065087acf7d5d509c6d7432 and 065a738bdb848d3588327f18409f5e2e51e047913811ef374eb1a7ef31bafe18, respectively.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M3-004"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
