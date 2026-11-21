@@ -1995,7 +1995,7 @@
       "source": "Hosted Windows PR run 44601667278, head 4aeddf2, CI checkout 611de0d, workspace-timeframe final peer-rename case.",
       "observation": "The screenshot shows a body-free Recover deletion result view. A wait for the renamed detail at workspace.spec.mjs line 2039 ended with the 60-second test. The original evidence does not confirm the peer write or the subsequent read stage. Both adjacent lost-reply and committed-WAL cleanup cases passed. The Windows browser results in the original integration artifact have SHA-256 763a0fac3d83d1bb0583376fdbfe41e320ba15fa8600a946b8226a11d6e1bd58. The same original journey passed locally in .reports/M2-011-baseline/workspace-timeframe/results.json. The controlled Linux red in .reports/M2-011-red/workspace-timeframe/results.json (SHA-256 ad5610583c570fdd40ff9b572b7b232d0f66281754f5e1961dac6ba0e36e3d15) retained the peer's HTTP 429 BUSY during an origin read, the observer cleanup, and the old generic panel error. The focused green in .reports/M2-011-green/workspace-timeframe/results.json (SHA-256 0999bb4ce106813f885788390212414e7fa915691f4b34d1d42ba06a5caa4e2c) reported contention explicitly and passed the two-service path with a committed peer correction, unchanged retry returning STALE_CONTEXT, body-free recovery until the authorized reload, and zero deletions. Both committed deletion controls passed in that run. The uploaded Windows workspace-timeframe result from PR 21 run 44616706526 (SHA-256 d84217c31fbbaf4c417c1b14b929865e683c7513371b0e55a2269d9159031ff2) passed the two-service case. The origin deletion returned BUSY before commit, the authorized peer committed revision 2, an ungranted read returned HTTP 403, and the unchanged deletion retry returned STALE_CONTEXT. The recovery stayed body-free until the authorized reread displayed revision 2 with zero deletions. The shared-producer HTTP 429 BUSY and observer cleanup, lost-reply and blocked-checkpoint controls also passed. The Windows verification report passed before post-cache job cancellation. Its check selection omitted private-record-lifecycle, and the Windows M2-011 archive command reported Required check did not pass: private-record-lifecycle. The integrated local receipt remains attached and the Windows task gate remains open.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-011"
       ],
@@ -2003,7 +2003,11 @@
         "workspace-timeframe",
         "private-record-lifecycle"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The initiating failure in run 44601667278 remains undetermined. A controlled shared-producer read reproduced peer HTTP 429 BUSY and the generic panel failure, which obscured the peer write stage.",
+        "correction": "Show BUSY explicitly in the private records panel. Check the authorized peer read, committed correction, origin focus, unchanged deletion retry and authorized reread at separate stages. Exercise the shared-producer contention and observer cleanup independently.",
+        "prevention": "Hosted Linux and Windows in run 44853953507 passed workspace-timeframe and private-record-lifecycle. Both peer-rename journeys observed pre-commit BUSY, a correction committed by the separate authorized service, HTTP 403 for an ungranted read, and STALE_CONTEXT on the unchanged deletion retry. Recovery kept the prior content hidden until the authorized reread displayed revision 2 intact with zero deletions."
+      },
       "deferral_reason": null
     },
     {
@@ -2011,14 +2015,18 @@
       "source": "Authenticated Windows task artifact for run 44852116487, head b21073577d201875e0c0e00e308665cd748fbbdf, workspace-timeframe/results.json (SHA-256 b5ad55d0478b0a2926e64ce615585de3a0e6454244d941d257d91623164868f5).",
       "observation": "The published revocation case was the only unexpected result in workspace-timeframe. It timed out at 60004 ms with only error-context and no published-revisions attachment, placing the cutoff before fixture completion. The same case passed in 18.546 to 22.588 seconds in the three prior Windows runs. The peer-rename case and private-record-lifecycle passed in run 44852116487. A Linux PATH shim delayed only the real local_import_bridge build by 65 seconds. On b210735 the case timed out at 60003 ms with only error-context (.reports/M2-011-revocation.U1Kciz/red/results.json, SHA-256 bc28f53b1f182fbdbeb01157ab36aa2fd1d0f4416448c1fd6cc4c0c74fdf3f91). The same delay with the build in its own bounded fixture passed the original assertions in 5249 ms and retained the real Cargo output and both published revision IDs (.reports/M2-011-revocation.U1Kciz/green/results.json, SHA-256 c642efba8a3ab7574dc03b6a863f1d97a54d443024d3da1e36a5c8c64ffb211b). A source-matched Windows result is pending.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-011"
       ],
       "regression_checks": [
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The fixture allowed a 90-second Cargo build inside a 60-second behavior case. Run 44852116487 locates the cutoff before the publication attachment. The controlled build delay isolated the budget defect.",
+        "correction": "Compile the actual local import bridge in a scoped setup fixture with a 300-second deadline and a 295-second Cargo limit. Retain the build output and run the publication and browser assertions within their original 60-second budget.",
+        "prevention": "The matched 65-second delay timed out on b210735 and passed on the repaired source with the original assertions. In run 44853953507 both platforms retained build output and two published revision IDs. Windows recorded 40.83 seconds for the build and 7.868 seconds for behavior. The workspace suite passed 25 cases on Windows with the POSIX signal case skipped, and passed all 26 cases on Linux."
+      },
       "deferral_reason": null
     },
     {
