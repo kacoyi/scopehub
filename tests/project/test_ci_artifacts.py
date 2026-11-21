@@ -14,6 +14,7 @@ from unittest.mock import patch
 from scripts import check_chart_history, verification_evidence
 from scripts.check import PRIVATE_CHECK_LOGS, redacted_check_log
 from scripts.ci_artifacts import PublicationError, prepare_reports, stage_artifacts
+from scripts.diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic
 from scripts.project import ProjectError, archive_evidence, digest, json_bytes, load_project, read_json, verified_candidate_files
 from scripts.verification_evidence import FIELD_ACTIONS, collect_session, field_observation, integration_validation, release_artifacts
 from tests.contracts.test_qualification import observed_case
@@ -175,6 +176,19 @@ class PublicationTests(ProjectFixture):
         reference = archive_evidence(self.root, 'M0-001', imported / 'test-report.json', imported)
         self.assertEqual(digest(json_bytes(report)), read_json(self.root / reference['path'])['report_sha256'])
 
+    def test_downloaded_report_requires_its_isolated_checkout_artifacts(self):
+        report = self.hosted_report()
+        self.save_report(report)
+        self.assertIn('path', archive_evidence(self.root, 'M0-001', self.reports / 'test-report.json'))
+        self.assertTrue(stage_artifacts(self.root, self.destination, self.env))
+        with self.assertRaisesRegex(ProjectError, 'CI evidence requires a checkout-local report'):
+            archive_evidence(self.root, 'M0-001', self.destination / 'test-report.json')
+        imported = self.reports / 'ci/10/linux'
+        shutil.copytree(self.destination, imported)
+        with self.assertRaisesRegex(ProjectError, 'Specify the downloaded CI artifact root'):
+            archive_evidence(self.root, 'M0-001', imported / 'test-report.json')
+        self.assertIn('path', archive_evidence(self.root, 'M0-001', imported / 'test-report.json', imported))
+
     def test_failed_run_retains_finalized_report_log_and_synthetic_failure_screenshot(self):
         self.add_catalog_checks('ubuntu-preview')
         report = self.hosted_report()
@@ -323,6 +337,9 @@ class PublicationTests(ProjectFixture):
         result = next(item for item in report['checks'] if item['id'] == check)
         result['field_observation'] = field_observation(self.root, check)
         self.save_report(report)
+        manifest_relative = f'{directory}/observation.json'
+        local_locator = diagnostic_locator(self.reports / 'test-report.json')
+        self.assertEqual([manifest_relative], resolve_diagnostic(local_locator, self.reports)['verified_observations'])
 
         self.assertTrue(stage_artifacts(self.root, self.destination, self.env))
         self.assertEqual({'observation.json', 'fixture.png'}, {p.name for p in (self.destination / directory).iterdir()})
@@ -344,10 +361,14 @@ class PublicationTests(ProjectFixture):
         without_field = self.destination.with_name('unqualified')
         self.assertTrue(stage_artifacts(self.root, without_field, self.env))
         self.assertFalse((without_field / 'observations').exists())
+        missing_locator = diagnostic_locator(without_field / 'test-report.json')
+        with self.assertRaisesRegex(DiagnosticArchiveError, 'Missing field observation'):
+            resolve_diagnostic(missing_locator, without_field)
         self.assertEqual(redacted_check_log(0), (without_field / f'runs/fixture/{check}.log').read_bytes())
         self.assertTrue((without_field / 'runs/fixture/project-state.log').is_file())
         imported = self.reports / 'ci/10/linux'
         shutil.copytree(self.destination, imported)
+        self.assertEqual([manifest_relative], resolve_diagnostic(local_locator, imported)['verified_observations'])
         reference = archive_evidence(self.root, 'M0-001', imported / 'test-report.json', imported)
         self.assertEqual(expected, read_json(self.root / reference['path'])['field_observations'][check])
 

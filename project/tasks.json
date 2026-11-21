@@ -838,6 +838,13 @@
         "rust-contracts-workers"
       ],
       "evidence": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261121T015908.326119Z-721f69a6",
+          "source_commit": "dc9b28315e2943d02360520140e8473e5b3d5a81",
+          "report_sha256": "75be30f5055c501458d1709ef604dc3253a687e8e6c85da3f5876684cad80d8e"
+        }
+      ],
       "next_action": "Continue the remaining assisted actions, replay evaluations and private excerpt acceptance under M4-001. Retained diagnostic run 20261121T015908.326119Z-721f69a6 tested immutable source dc9b28315e2943d02360520140e8473e5b3d5a81 and reported 13 passed checks and 2 blocked checks (ai-workflow and ai-replay-evaluations, both planned). Find the report at archives/runs/20261121T015908.326119Z-721f69a6/test-report.json under the configured development storage root (SHA-256 75be30f5055c501458d1709ef604dc3253a687e8e6c85da3f5876684cad80d8e).",
       "blocker": null,
       "closure_reason": null,
@@ -9399,6 +9406,717 @@
           ],
           "data_plan": "Use disposable synthetic code, exact frozen inputs and test-only resource probes. Keep existing stored artifacts and checksums.",
           "cleanup": "Reap the existing owned interpreter and descendants on failure, cancellation and success. Release scratch storage and admission through the existing cleanup path."
+        }
+      }
+    },
+    {
+      "id": "M0-029",
+      "title": "Bound local Cargo cache growth across ScopeHub worktrees",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-025"
+      ],
+      "scope": [
+        "scripts",
+        "tests/project",
+        "package.json",
+        "project/tasks.json",
+        "project/feedback.json",
+        "AGENTS.md"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Report allocated development cache usage for this Git repository and identify retained items. A read-only invocation must never remove files.",
+        "Normal local verification or Herdr activity enforces a documented high and low watermark for eligible idle Cargo caches. Active or unidentifiable caches, retained evidence, release artifacts, profiles, source and other repositories stay protected.",
+        "On the affected Linux host, measure the actual space recovered and verify retained work and acceptance evidence after collection."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-029-a27496e2e1e1e79d.json",
+          "sha256": "a4131a7156604afcf7d892f19cbd18b8e88cd23dd49d7df9591c588ce7b8c960"
+        },
+        {
+          "path": "project/evidence/M0-029-83adaccadce8deae.json",
+          "sha256": "2efba4650406557b16050b9288a2e8aa0eb4b276607e56dd005c366d69b2fbae"
+        },
+        {
+          "path": "project/evidence/M0-029-388659dcf9244879.json",
+          "sha256": "484ff6cbe4dbb1cf21adf8f41fa4347cb124106ac2be26175e0d693a50a15efb"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Reclaim rebuildable build intermediates and keep a multi-worktree development loop within a bounded cache budget whenever idle candidates are available.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/development.json",
+          "project/delivery.json",
+          "scripts/storage.py",
+          "scripts/herdr.py",
+          "scripts/check.py",
+          "package.json"
+        ],
+        "hypotheses": [
+          "Repeated independent Cargo debug builds dominate the measured physical usage. Removing proven idle intermediates can recover substantial space while preserving sources and diagnostic artifacts."
+        ],
+        "risks": [
+          {
+            "failure": "A live build, unrelated checkout or irreplaceable observation is removed.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A dry run, repeated collection or a normal development entrypoint behaves differently than the budget policy.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Disable the maintenance entrypoint if safety or accounting is uncertain. Rebuild removed intermediates using the pinned toolchain. Keep any unclassified material and the original evidence.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/storage.py",
+            "scripts/herdr.py",
+            "scripts/check.py",
+            "package.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changes to product workflows, shared package or Docker stores, host-wide cleanup, and retention changes to user data, release artifacts or existing acceptance evidence."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Independent per-worktree outputs, established release and diagnostic retention, and uncommitted work."
+          ],
+          "change": [
+            "Inventory Git-registered worktrees and independently identified first-level Cargo cache directories with 64 GiB and 32 GiB watermarks.",
+            "With partial Linux process visibility, require Cargo and rustc session locks for completed incremental caches and exclusive kernel leases for cold single-link dependencies or positively identified idle ELF test harnesses.",
+            "Default local verification subprocesses to non-incremental compilation while honoring explicit overrides."
+          ],
+          "data_plan": "Inspect filesystem metadata and repository identity locally. Product data and credentials remain outside the collection scope.",
+          "cleanup": "Leave protected or active items in place and make any unmet budget visible. Repeated collection uses fresh eligibility checks."
+        }
+      }
+    },
+    {
+      "id": "M0-030",
+      "title": "Give long-lived ScopeHub development a stable worktree layout",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-029"
+      ],
+      "scope": [
+        "AGENTS.md",
+        "package.json",
+        "scripts",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "New parallel implementation checkouts are created under one repository-specific task root. Creating or reusing a checkout preserves branch identity, deliberate base selection and the primary checkout.",
+        "The storage policy recognizes legitimate registered worktrees in the managed root while retaining its identity, activity and filesystem protections. Older checkouts and normal product entrypoints remain usable.",
+        "Move eligible existing worktrees with verified source, working state and evidence. Preserve active sessions. Place heavy host archives separately on the optional storage volume while keeping normal source and build workflows available on the primary filesystem."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-030-706c38938b3c0d96.json",
+          "sha256": "b74790705faf120769525ab5b5ed6f16a692c991bb2edecb2a540a913f1b0ddb"
+        },
+        {
+          "path": "project/evidence/M0-030-c576b3cb32abdffd.json",
+          "sha256": "214f5a5ce9f498b60740d171a1adc2f535a0b79b682ca26ac09dd2050cb993ff"
+        },
+        {
+          "path": "project/evidence/M0-030-723da931949f2f97.json",
+          "sha256": "4ab4c804133dcc0d88fea00a57026afc3de2af81ef8cb73dc348a40121dabff0"
+        },
+        {
+          "path": "project/evidence/M0-030-e75909666f5809c7.json",
+          "sha256": "5d43279cb480dc128c449316170fc1849ffa276b3ba919e9f4c81539c331530e"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Keep one stable primary checkout, group task worktrees in a persistent location and separate large archived development files from working source.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/storage.py",
+          "scripts/herdr.py",
+          "AGENTS.md",
+          "project/development.json",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "Native Git worktree moves on the source filesystem preserve branch and working state. A repository-local worktree root and a separate optional archive volume can avoid future sibling sprawl without binding source availability to the volume."
+        ],
+        "risks": [
+          {
+            "failure": "An occupied or unrelated tree is moved, a configured collector loses coverage, or an unsafe path is accepted.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          },
+          {
+            "failure": "Absolute environment paths or retained evidence stop working after a move.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Record original paths and identities. Reverse individual Git moves when needed, keep evidence and source bytes, and use the unchanged primary checkout and local targets when optional storage is unavailable.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "package.json",
+            "scripts/worktree.py",
+            "scripts/storage.py",
+            "scripts/herdr.py"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/herdr"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Product features, merging feature branches, changes to shared host caches, and mandatory external storage for product use or development."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "The primary checkout, branch heads, dirty work, live Herdr sessions, local targets, and retained acceptance evidence."
+          ],
+          "change": [
+            "Give new worktrees a stable managed root and route large optional host archives independently."
+          ],
+          "data_plan": "Move on the same filesystem wherever possible; verify copied archives before cutover and keep source revisions and evidence addressable.",
+          "cleanup": "Keep the mapping for legacy paths and retain fallbacks for active checkouts. Validate the new entrypoints under the actual host layout."
+        }
+      }
+    },
+    {
+      "id": "M0-034",
+      "title": "Verify linked checkout identity and shared managed-root admission",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-030"
+      ],
+      "scope": [
+        "scripts/worktree.py",
+        "scripts/storage.py",
+        "tests/project/test_storage.py",
+        "tests/project/test_worktree.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Creating, locating or reusing a worktree verifies both directions of the Git registration and the actual branch at its path. Another linked worktree in the same repository cannot satisfy its identity.",
+        "The worktree manager and Cargo maintenance protect trees nested in foreign checkouts or under indeterminate ancestor Git markers through the same managed-root admission rule. Collection rechecks admission under the Cargo locks."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-034-b55505f4a1425012.json",
+          "sha256": "f73263e32d60dcc348c90d17ec66f04e9e852e55198ec64d0916206b3be83a75"
+        },
+        {
+          "path": "project/evidence/M0-034-886808f5528bc68f.json",
+          "sha256": "46559e3daa7999d4151074ae8239ca92fcfa51f9acba93efb038bac330633237"
+        },
+        {
+          "path": "project/evidence/M0-034-ec2bc88958a65715.json",
+          "sha256": "e2ebefe517304bb1285af1b48b00ca284347eb08a2011e9f4dcfcd4bc95236d9"
+        },
+        {
+          "path": "project/evidence/M0-034-a4ad2875f5ad7d6f.json",
+          "sha256": "c98923e888bcbceeca6bd81ee5866ac404d447913fc4e21a6a9d65fb5dbc4327"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Verify linked checkout identity and shared managed-root admission with independent regression fixtures.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/worktree.py",
+          "scripts/storage.py",
+          "tests/project/test_storage.py",
+          "tests/project/test_worktree.py",
+          "project/delivery.json",
+          "project/development.json"
+        ],
+        "hypotheses": [
+          "Independent identity checks and fail-closed admission can preserve supported maintenance without weakening existing checks."
+        ],
+        "risks": [
+          {
+            "failure": "Two related Git directories are confused and the wrong checkout is selected.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A cache in another enclosing repository is admitted for deletion, including when Git cannot resolve the enclosing marker.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the previous verified revision and host configuration. Use read-only inventory while uncertain, disable automatic maintenance during the transition, and preserve diagnostic material.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/worktree.py",
+            "scripts/storage.py",
+            "tests/project/test_storage.py",
+            "tests/project/test_worktree.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Product features, changing host repository locations or deleting real worktrees."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Current native worktree identities, source, user profiles, retained evidence, safe local builds and reports."
+          ],
+          "change": [
+            "Creating, locating or reusing a worktree verifies both directions of the Git registration and the actual branch at its path. Another linked worktree in the same repository cannot satisfy its identity.",
+            "The worktree manager and Cargo maintenance block foreign and indeterminate enclosing Git markers during root admission, including the recheck under Cargo locks."
+          ],
+          "data_plan": "Use temporary Git and filesystem fixtures. No persistent product data needs migration.",
+          "cleanup": "Keep worktree.py and storage.py independently runnable as pinned host helpers. Verify admission parity at the CLI boundary and recheck admissibility before collection."
+        }
+      }
+    },
+    {
+      "id": "M0-033",
+      "title": "Protect active and replaced Cargo caches during maintenance",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-029"
+      ],
+      "scope": [
+        "scripts/storage.py",
+        "tests/project/test_storage.py",
+        "tests/project/test_storage_cargo.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Treat unobservable processes, including other-user activity, as partial visibility and preserve active files. Prove directory identity and child Cargo provenance across inventory and destructive collection.",
+        "An unexpected ordinary file at target does not abort a repository inventory. Interrupted collection leaves rebuildable or correctly retained state and preserves unrelated files."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-033-bc41d6e26c4a223c.json",
+          "sha256": "b31cb7f09cab17429e2d0729cf112123d1e2e96e2b7ab762e320a7b76d760ff0"
+        },
+        {
+          "path": "project/evidence/M0-033-e0e58591da40cb5d.json",
+          "sha256": "b050f00b8a885294a6375f283dc287eba7e5156f1b619a50c69ce19ae59cdb55"
+        },
+        {
+          "path": "project/evidence/M0-033-13accb98c3ad9088.json",
+          "sha256": "dc0409598abea26fcad7406f4a10ecb09ef7d8a64ff304b689fab36e47c0ebd3"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Protect active and replaced Cargo caches during maintenance with independent regression fixtures.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/storage.py",
+          "tests/project/test_storage.py",
+          "tests/project/test_storage_cargo.py",
+          "project/delivery.json",
+          "project/development.json"
+        ],
+        "hypotheses": [
+          "Holding observed cache directories through admission and verifying reopened paths against those handles can preserve supported maintenance, including on filesystems that reuse inodes or expose coarse timestamps."
+        ],
+        "risks": [
+          {
+            "failure": "A changed cache or a file in active use is collected.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A single unusable target hides eligible or retained paths in other worktrees.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Inventory descriptors exhaust the slots required to revalidate and collect candidates, obscuring the reason for omitted work.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the previous verified revision and host configuration. Use read-only inventory while uncertain, disable automatic maintenance during the transition, and preserve diagnostic material.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/storage.py",
+            "tests/project/test_storage.py",
+            "tests/project/test_storage_cargo.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Product features, changing host repository locations or deleting real worktrees."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Current native worktree identities, source, user profiles, retained evidence, safe local builds and reports."
+          ],
+          "change": [
+            "Treat unobservable processes, including other-user activity, as partial visibility and preserve active files. Bind directories to live handles during guarded inventory and revalidate child Cargo provenance immediately before deletion.",
+            "An unexpected ordinary file at target does not abort a repository inventory. Interrupted collection leaves rebuildable or correctly retained state and preserves unrelated files."
+          ],
+          "data_plan": "Use temporary Git and filesystem fixtures. No persistent product data needs migration.",
+          "cleanup": "Retain fail-closed behavior on unidentifiable or unavailable storage and reuse shared admission logic where applicable."
+        }
+      }
+    },
+    {
+      "id": "M0-031",
+      "title": "Resolve archived diagnostic runs and qualify idle worktrees for retirement",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-030"
+      ],
+      "scope": [
+        "AGENTS.md",
+        "contracts/schemas",
+        "package.json",
+        "project",
+        "scripts",
+        "tests/project"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Active and newly edited report dependencies survive a change of checkout path. The archive locator binds the run ID, source commit and report SHA-256 and can resolve the preserved diagnostic without treating blocked checks as acceptance. Existing historical records and checkout-local reports remain readable.",
+        "A read-only command lists retirement candidates and explains why a registered worktree is held. Eligibility requires an integrated or explicitly disposed result, recoverable Git references, a clean and idle checkout, retained verified non-rebuildable evidence, and no dependent path consumers. Missing or uncertain evidence holds the worktree.",
+        "Exercise positive and negative fixtures and run the read-only report against the actual multi-worktree repository without removing any worktree, branch or retained file."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-031-d51e47fee17aab36.json",
+          "sha256": "f8ee6182855c8f39fb27140c6be500db9039fa403637bdabbb8798cfe6d4d2a0"
+        },
+        {
+          "path": "project/evidence/M0-031-8eb3cae8bcc11b37.json",
+          "sha256": "8292ca36f4681e27d18cfcfebcaf4beba23ab76f3dfe7617f520febd3eb94579"
+        },
+        {
+          "path": "project/evidence/M0-031-2fdbf9b203996243.json",
+          "sha256": "1819dc1b02f6b22bed786df4fd2eadec66341667602383b3583b226b7c4e355d"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Linux fixtures exercised eligible and held worktrees. The host observation held all 50 registered entries, found 10 tips reachable from the observed origin/main, and reported missing verified retention, active paths, downstream consumers and incomplete process visibility. The archived diagnostic run 20261121T015908.326119Z-721f69a6 retained its blocked outcome with 13 selected checks passed and two blocked. Its 13 logs and archive checksum manifest verified.",
+      "plan": {
+        "outcome": "Retain diagnostic runs across relocation and expose idle, recoverable task checkouts ready for a separately reviewed retirement.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "AGENTS.md",
+          "scripts/project.py",
+          "scripts/storage.py",
+          "scripts/worktree.py",
+          "project/delivery.json",
+          "project/development.json"
+        ],
+        "hypotheses": [
+          "The source commit, run ID and report digest can locate and authenticate a complete previously archived diagnostic without coupling tasks to their checkout names.",
+          "Observed Git, retained file and activity evidence can qualify completed checkouts while keeping uncertain work recoverable."
+        ],
+        "risks": [
+          {
+            "failure": "A path escape, hash mismatch, or blocked run is mistaken for authenticated passing evidence.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A dirty or active checkout, a local-only commit, or a diagnostic or path consumer is overlooked.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep source and archived files available; the report only observes eligibility. Investigate discrepancies using original immutable task records and Git metadata.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/worktree.py",
+            "scripts/storage.py",
+            "scripts/project.py",
+            "scripts/diagnostic_archive.py",
+            "scripts/worktree_retirement.py",
+            "project/tasks.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/herdr"
+            }
+          ],
+          "non_goals": [
+            "Automatic deletion, host relocation, product changes and retrospective modification of accepted tasks or ADRs."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Original diagnostic status, checkout-local evidence, immutable completed records, independently addressable Git worktrees, and protected worktree contents."
+          ],
+          "change": [
+            "Identify externally retained reports by run and content identity and report worktree retirement eligibility from observable facts."
+          ],
+          "data_plan": "Read local development artifacts and Git references. Keep archive configuration host-local and do not upload raw diagnostics.",
+          "cleanup": "Allow operators to re-run the read-only classification before native Git removal in a separate operation; leave active, unverified and unrecoverable checkouts in place."
+        }
+      }
+    },
+    {
+      "id": "M0-035",
+      "title": "Preserve unresolved worktree dependencies and diagnostic evidence during retirement review",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-031"
+      ],
+      "scope": [
+        "scripts",
+        "tests/project",
+        "AGENTS.md",
+        "project/feedback.json",
+        "project/tasks.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "A worktree with active harness or editable-runtime consumers, a live linked-file type change, unique local evidence in generated layouts, or an unrecoverable per-worktree reference is held. An inactive globally configured Git filter does not block a genuinely eligible checkout. Python library directory case aliases do not duplicate reported editable consumers.",
+        "A retained blocked diagnostic must verify the observation artifacts explicitly bound by its report. Checkout-local report selection from a subdirectory and independently supplied compatible reports preserve the established evidence semantics and reject a cross-worktree report dependency.",
+        "The read-only host inventory and the retained M4 diagnostic still resolve after integrating the upstream worktree and storage identity repairs. The command never removes a worktree or its files.",
+        "New operational source and workflow changes cannot introduce cross-checkout diagnostic paths. Windows linked consumers and independent retained files are identified using the host path and file identity semantics.",
+        "A checkout whose only outstanding hold is partial global process visibility enters human review intake while remaining held. Specific dependencies, activity, unverified evidence or Git state continue to disqualify intake.",
+        "Scoped pnpm projections are rebuildable when they are backed by the owning workspace’s locked dependency or a public root hoist and resolve into its verified local virtual store. Unknown or foreign projections remain holds.",
+        "Nested manifests and checkout-local linked runtime registries keep their downstream dependencies. Unique data buried in Cargo intermediate directories remains protected, and added executable HTML, SQL and harness commands are reviewed for nonlocal report paths."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-035-282a743acdb6179e.json",
+          "sha256": "48cf3d6a8499c158cf64835ba0c038063ba313ed20412c997cabb96bf9463ad9"
+        },
+        {
+          "path": "project/evidence/M0-035-8eb3cae8bcc11b37.json",
+          "sha256": "b500578df1c68d7fdc63398020f54d4968687ce61d4067c4675651c55be72cf2"
+        },
+        {
+          "path": "project/evidence/M0-035-2fdbf9b203996243.json",
+          "sha256": "9aac0588227f283352639d4fd765938608f0ea2abe4a1a58e2200812b803d70a"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Local and native Ubuntu and Windows task checks passed at 320946e, with source, task identity and log digests verified. The stable read-only host observation classified two of 50 registrations for human review and found zero retirement candidates.",
+      "plan": {
+        "outcome": "Keep worktrees with irreplaceable evidence or dependent consumers off the retirement list and preserve legitimate evidence lookup behavior.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/worktree_retirement.py",
+          "scripts/diagnostic_archive.py",
+          "scripts/project.py",
+          "scripts/storage.py",
+          "scripts/worktree.py",
+          "project/feedback.json",
+          "scripts/operational_paths.py"
+        ],
+        "hypotheses": [
+          "The preliminary candidate report treats a generated directory as proof that all contained files are rebuildable and checks the index type instead of the live path at some consumer boundaries.",
+          "The retainer can verify an incomplete field-observation archive, and normal report arguments were re-anchored away from the caller's working directory."
+        ],
+        "risks": [
+          {
+            "failure": "Incomplete process, private-reference, path dependency, or archive observation qualifies a worktree that cannot be retired safely.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A legitimate local or offline diagnostic is newly rejected, or an incomplete archived observation claims integrity.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep prior receipts immutable and preserve every checkout and source report. Report incomplete observations as holds while repairing the read-only logic.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/project.py",
+            "scripts/worktree.py",
+            "scripts/worktree_retirement.py",
+            "scripts/diagnostic_archive.py",
+            "scripts/operational_paths.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/herdr"
+            }
+          ],
+          "non_goals": [
+            "No real worktree removal, live host relocation, raw diagnostic uploads or broad changes to Git/user configuration."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Original accepted tasks and their receipts, diagnostic status, read-only operation, existing archive layout and in-checkout report callers."
+          ],
+          "change": [
+            "Check the real consumers, private Git state and bound observation files missed in the independent review. Restrict generated-data and filter exclusions to the observations that justify them.",
+            "Cover changed operational sources and workflows in history validation, preserve Windows path and file identity, and expose a separate human review intake for otherwise clear checkouts under partial process visibility.",
+            "Identify standard scoped pnpm links by the owning workspace lock importer or a recorded public root hoist, and verify the resolved local package target.",
+            "Parse and normalize Cargo dependency paths relative to the declaring manifest, retain lexical and physical targets, read linked registries within their checkout and distinguish Cargo intermediate artifacts by their generated layout."
+          ],
+          "data_plan": "Inspect repository metadata and retained development evidence locally. Opt in to archive access only for explicit verification.",
+          "cleanup": "Keep the existing locator and queue entrypoints and remove overly broad assumptions under deterministic regression fixtures."
         }
       }
     }

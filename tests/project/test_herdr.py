@@ -1,5 +1,7 @@
 """Exercise the Herdr launch boundary without a running core or model."""
 
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
 import json
 import os
 from pathlib import Path
@@ -8,6 +10,9 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import Mock, call, patch
+
+from scripts import herdr
 
 
 SCRIPT = Path(__file__).resolve().parents[2] / 'scripts/herdr.py'
@@ -63,6 +68,7 @@ class WorktreeFixture(unittest.TestCase):
         self.log = self.root / 'calls.jsonl'
         self.env = {
             **os.environ, 'PATH': str(self.bin), 'HERDR_TEST_LOG': str(self.log),
+            'SCOPEHUB_STORAGE': 'off',
             'HERDR_TEST_SPACES': json.dumps({
                 'spaces': [{'id': 's-local', 'machine': None}, {'id': 'remote/s-remote', 'machine': 'remote'}],
                 'recent': [{'id': 's-recent', 'machine': None}],
@@ -152,6 +158,35 @@ class DryRunTests(WorktreeFixture):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("profile 'supervise'", result.stderr)
         self.assertFalse(self.log.exists())
+
+
+class StorageMaintenanceTests(WorktreeFixture):
+    def launch(self, *options):
+        with (patch.object(sys, 'argv', [str(SCRIPT), 'M0-025', 'review', '--assignment', 'Inspect one file', *options]),
+              patch.object(herdr.Path, 'cwd', return_value=self.nested),
+              redirect_stdout(StringIO()), redirect_stderr(StringIO())):
+            return herdr.main()
+
+    def test_storage_maintenance_follows_successful_launch_in_resolved_worktree(self):
+        calls = Mock()
+        with (patch.object(herdr.subprocess, 'run', calls.launch),
+              patch.object(herdr, 'maintain_automatically', calls.maintain)):
+            self.assertEqual(0, self.launch())
+        command = calls.launch.call_args.args[0]
+        self.assertEqual('hc', command[0])
+        self.assertEqual([call.launch(command, cwd=self.worktree, check=True), call.maintain(self.worktree)],
+                         calls.mock_calls)
+
+    def test_dry_runs_and_failed_launches_skip_storage_maintenance(self):
+        with (patch.object(herdr.subprocess, 'run') as launch,
+              patch.object(herdr, 'maintain_automatically') as maintain):
+            self.assertEqual(0, self.launch('--dry-run'))
+            launch.assert_not_called()
+            maintain.assert_not_called()
+            launch.side_effect = subprocess.CalledProcessError(13, ['hc', 'run'])
+            self.assertEqual(13, self.launch())
+            launch.assert_called_once()
+            maintain.assert_not_called()
 
 
 @unittest.skipUnless(os.name == 'posix', 'Mock executables use POSIX shell launchers.')

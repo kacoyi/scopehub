@@ -9,6 +9,11 @@ import subprocess
 import sys
 from uuid import uuid4
 
+if __package__:
+    from .storage import maintain_automatically
+else:
+    from storage import maintain_automatically
+
 
 ROLE_PROFILES = {'implement': 'implement', 'review': 'supervise', 'coordinate': 'supervise'}
 
@@ -135,6 +140,7 @@ def main() -> int:
         if args.space is not None:
             require_local_space(root, args.space)
         subprocess.run(command, cwd=root, check=True)
+        maintain_automatically(root)
     except subprocess.CalledProcessError as error:
         tool = ' '.join(error.cmd[:2])
         print(f'{parser.prog}: {tool} failed with exit status {error.returncode}.', file=sys.stderr)

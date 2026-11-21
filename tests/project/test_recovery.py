@@ -221,7 +221,7 @@ class RecoveryTests(unittest.TestCase):
 
     def test_harness_import_failures_preserve_original_error_and_old_report(self):
         self.scripts('check.py', 'recovery.py', 'doctor.py', 'processes.py',
-                     'process_tree.py', 'verification_evidence.py')
+                     'process_tree.py', 'storage.py', 'verification_evidence.py')
         latest = (self.root / '.reports/test-report.json').read_bytes()
         for source, expected in [('import jsonschema\n', 'ModuleNotFoundError'),
                                  ('not valid Python !!!\n', 'SyntaxError')]:
@@ -240,7 +240,7 @@ class RecoveryTests(unittest.TestCase):
 
     def test_failure_before_run_creation_is_preserved(self):
         self.scripts('check.py', 'recovery.py', 'doctor.py', 'processes.py',
-                     'process_tree.py', 'verification_evidence.py')
+                     'process_tree.py', 'storage.py', 'verification_evidence.py')
         # A minimal project interface isolates the entry point from the live task ledger.
         (self.root / 'scripts/project.py').write_text(
             'class ProjectError(Exception): pass\n'
@@ -257,7 +257,7 @@ class RecoveryTests(unittest.TestCase):
 
     def test_bootstrap_failure_retains_explicit_task_instead_of_unrelated_focus(self):
         self.scripts('check.py', 'recovery.py', 'doctor.py', 'processes.py',
-                     'process_tree.py', 'verification_evidence.py')
+                     'process_tree.py', 'storage.py', 'verification_evidence.py')
         (self.root / 'scripts/project.py').write_text('import jsonschema\n', encoding='utf-8')
         for arguments in [('--task', 'TEST-002'), ('--task=TEST-002',)]:
             with self.subTest(arguments=arguments):
