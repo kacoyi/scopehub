@@ -2019,7 +2019,7 @@
       "source": "Independent review of b6e21fa and 88909e9 with the real adapter and ordinary chat component.",
       "observation": "A legitimate 20,480-byte answer fit the connector limit but produced a 20,943-byte internal result above the workspace bridge limit of 16,384 bytes. The reader returned before its handler and the local workspace writer exited.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M4-007"
       ],
@@ -2027,7 +2027,11 @@
         "model-connection-workflow",
         "model-connection-replay"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The writer classified an internal text result under the ordinary 16 KiB command limit and ended its read loop when that limit was exceeded.",
+        "correction": "Bound trusted result frames separately, validate the enclosed poll under its existing limit and keep the reader available after rejecting a frame.",
+        "prevention": "Linux task run 20261121T014054.709453Z-24f76bf2 delivered 20,480-byte ASCII and 65,536-byte escaped UTF-8 answers. It rejected a 65,537-byte response and an oversized public mutation while the same writer and grant remained usable. Process replay exercised frame rejection and continued writer operation."
+      },
       "deferral_reason": null
     },
     {
@@ -2035,7 +2039,7 @@
       "source": "Independent review of b6e21fa and 88909e9 with the real adapter and ordinary chat component.",
       "observation": "Losing one local poll reply or receiving a mismatched reply on turn two cleared the displayed first turn and presented the active connection as disconnected. Reopening retained only the second answer and left its question ready for resubmission.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M4-007"
       ],
@@ -2043,7 +2047,11 @@
         "model-connection-workflow",
         "model-connection-replay"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The UI treated an uncertain poll as a terminal connection failure and cleared the tracked turn and earlier transcript.",
+        "correction": "Retry the local poll by turn ID and reconcile through the connection status while preserving the earlier exchange and disabling a duplicate send.",
+        "prevention": "Linux task run 20261121T014054.709453Z-24f76bf2 recovered the original second turn after dropped and mismatched terminal poll replies. Both cases retained the connection and the first exchange, recorded one second-turn submission and observed two total peer requests."
+      },
       "deferral_reason": null
     },
     {
@@ -2051,13 +2059,28 @@
       "source": "Follow-up independent review and Chromium regressions against the real Ubuntu workspace at 0bb1c6b. The lost route review and disconnect replies are retained in .reports/ai-workflow/1795224895471-109c697d-bc93-46eb-988e-d321080e891a/results.json and .reports/ai-workflow/1795225142282-ad3ec39f-c2ac-49de-a20e-98c85913925b/results.json.",
       "observation": "The Rust writer completed both a proposal for another destination and an explicit disconnect. Losing the local proposal reply left the old Send control visible in chat. Losing the disconnect reply left the revoked recipient visible in AI settings.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M4-007"
       ],
       "regression_checks": [
         "model-connection-workflow"
       ],
+      "resolution": {
+        "cause": "The UI cleared the previous grant only when it received the route review or disconnect acknowledgement.",
+        "correction": "On an uncertain control reply, read the local grant and hold route controls and sending until the state is confirmed. Require a fresh review before activating a proposal whose acknowledgement was lost.",
+        "prevention": "Linux task run 20261121T014054.709453Z-24f76bf2 recovered the disconnected state after both faults, including an interrupted status check during route review. The two synthetic recipients received only approved traffic. A changed destination, a distinct profile and a fresh grant after cancellation each received only the new question."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "native-first-text-setup-writer-busy",
+      "source": "Native Windows QA at a3033ce. Captured IPC is retained in ../scopehub-model-native-qa/.reports/native-recovery/run/gui-observed-busy-a3033ce/WSDIAG.JSON. Cold and warm follow-up runs isolated contention with the initial workspace snapshot.",
+      "observation": "First status and route proposals were rejected before the registry with retryable transport BUSY and zero outbound requests. The UI reported an answer in progress before a question had been sent. The same executable completed three ordinary turns, including a 20,480-byte answer, when the initial workspace snapshot was ready.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M4-009"],
+      "regression_checks": ["desktop-workspace-transport", "rust-contracts-workers"],
       "resolution": null,
       "deferral_reason": null
     }

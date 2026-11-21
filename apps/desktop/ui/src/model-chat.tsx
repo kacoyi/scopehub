@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import type { AiTextChartEvidence, AiTextRouteChoice, VisibleRange } from '../../../../contracts/generated/protocol';
 import { CloudCredentialSettings, providerName, RouteDisclosure } from './model-chat-settings';
 import {
-  exchangeModel, modelErrorCode, openAiCredential, openAiDestination,
+  exchangeModel, isModelWorkspaceBusy, modelErrorCode, openAiCredential, openAiDestination,
   type ModelChartSelection, type ModelConnection, type ModelResult, type OpenAiCredential,
 } from './model-chat-transport';
 import './model-chat.css';
@@ -38,6 +38,7 @@ const busyPollLimit = 10;
 const failedPollLimit = 2;
 
 function modelFailure(error: unknown) {
+  if (isModelWorkspaceBusy(error)) return 'The local workspace is busy. Try again when it is ready.';
   switch (modelErrorCode(error)) {
     case 'INVALID_ARGUMENT': return 'Enter a valid server origin and model name.';
     case 'CONFIRMATION_REQUIRED': return 'Review the connection again before enabling it.';
@@ -254,9 +255,10 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
         if (view === 'settings' && (usingOpenAi || status.connection?.route.kind === 'openai_responses')) {
           await loadCredential(signal);
         }
-      } catch {
+      } catch (failure) {
         if (!signal.aborted) {
-          setError(trackedTurn ? unknownTurn : 'The workspace could not check the model connection.');
+          setError(isModelWorkspaceBusy(failure) ? modelFailure(failure)
+            : trackedTurn ? unknownTurn : 'The workspace could not check the model connection.');
         }
       }
     }, false);
@@ -353,7 +355,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
         candidate = await exchangeModel(id, { action: 'propose', route }, signal);
       } catch (failure) {
         const code = modelErrorCode(failure);
-        if (code === 'INVALID_ARGUMENT' || code === 'PROVIDER_NOT_CONFIGURED') throw failure;
+        if (code === 'INVALID_ARGUMENT' || code === 'PROVIDER_NOT_CONFIGURED' || isModelWorkspaceBusy(failure)) throw failure;
         const status = await checkConnectionAfterChange(id, signal);
         if (!status) return;
         if (status.connection) throw failure;
@@ -408,6 +410,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
         await exchangeModel(id, { action: 'disconnect', connection_id: active.connection_id }, signal);
         clearSession();
       } catch (failure) {
+        if (isModelWorkspaceBusy(failure)) throw failure;
         const status = await checkConnectionAfterChange(id, signal);
         if (!status) return;
         if (status.connection) throw failure;
@@ -456,6 +459,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
       try {
         await exchangeModel(id, { action: 'cancel', connection_id: turn.connection.connection_id, turn_id: turn.id }, signal);
       } catch (failure) {
+        if (isModelWorkspaceBusy(failure)) throw failure;
         signal.throwIfAborted();
         const status = await exchangeModel(id, { action: 'status' }, signal).catch(() => undefined);
         signal.throwIfAborted();
@@ -517,7 +521,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
           setError(staleChart);
           return;
         }
-        if (signal.aborted || ['INVALID_ARGUMENT', 'RESOURCE_LIMIT'].includes(code)) throw failure;
+        if (signal.aborted || isModelWorkspaceBusy(failure) || ['INVALID_ARGUMENT', 'RESOURCE_LIMIT'].includes(code)) throw failure;
         try {
           const status = await exchangeModel(id, { action: 'status' }, signal);
           applyStatus(status, turn);
