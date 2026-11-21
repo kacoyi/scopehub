@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-002",
+  "focus_task_id": "M0-036",
   "tasks": [
     {
       "id": "M0-001",
@@ -8084,6 +8084,101 @@
           ],
           "data_plan": "Use temporary Git and filesystem fixtures. No persistent product data needs migration.",
           "cleanup": "Retain fail-closed behavior on unidentifiable or unavailable storage and reuse shared admission logic where applicable."
+        }
+      }
+    },
+    {
+      "id": "M0-036",
+      "title": "Bound Windows desktop fixture ACL preparation",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M2-011"
+      ],
+      "scope": [
+        "apps/desktop/src-tauri/src/bridge_tests.rs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Real Windows desktop fixture root preparation, including copy setup, occupies one short-lived slot that is released on success, error, and unwind.",
+        "The desktop bridge still runs its native profile, identity, authorization, cleanup, and concurrency assertions with the existing ACL routine and timeout.",
+        "The failed Windows report, raw log digest and exact tested Git tree are retained. Focused fixture tests and the native full Rust task pass on the corrective source."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "rust-format",
+        "rust-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Validate short-lived fixture admission and directory cleanup locally, dispatch the native Rust task on PR 25, and compare the standard Windows job.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Bound Windows desktop test profile preparation and preserve native ACL and concurrent bridge coverage.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "apps/desktop/src-tauri/src/bridge_tests.rs",
+          "crates/persistence/src/storage.rs",
+          "crates/persistence/src/storage_acl.ps1",
+          "scripts/rust_workspace.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The simultaneous Windows fixture preparations may contend for PowerShell startup or ACL work on a hosted runner. Serializing only explicit fixture setup can reduce that contention. The retained report does not distinguish CPU scheduling, process startup and I/O."
+        ],
+        "risks": [
+          {
+            "failure": "A fixture error or panic prevents later profile preparation.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A test fixture change bypasses native ACL checks or suppresses concurrent bridge assertions.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the test-only scheduling change if native focused or standard checks reveal a regression. Preserve the original report, raw log and exact Git tree.",
+        "implementation": {
+          "modules": [
+            "desktop",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "apps/desktop/src-tauri/src/bridge_tests.rs",
+            "scripts/rust_workspace.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changes to application ACL checks, timeout policy, product scheduling or existing product assertions."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The native ACL path and refusal mapping, process timeout and cleanup, concurrent bridge behavior, isolated test directories and existing test assertions."
+          ],
+          "change": [
+            "Admit one explicit Windows desktop fixture profile-root preparation at a time."
+          ],
+          "data_plan": "Use synthetic temporary profiles and the retained hosted artifacts. No product data changes are required.",
+          "cleanup": "Test release of the fixture slot on success, error and unwind. Verify real profile construction and directory cleanup."
         }
       }
     }

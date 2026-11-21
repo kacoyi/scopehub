@@ -2046,6 +2046,22 @@
         "prevention": "Disposable fixtures reproduce held foreign dependencies, replacements with indistinguishable sampled metadata, changed child markers, ordinary files and resource pressure at RLIMIT_NOFILE=32. The offline Cargo fixture verifies a group interruption, retained files and rebuilding. The exact functional head passed local verification and the Linux and Windows jobs in run 44889925831."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-desktop-fixture-acl-preparation-timeout",
+      "source": "PR 25 Windows verification 44890879647 attempt 1 at 2531786a5bb7318efee63669b209ce7d292c9024. The failed report SHA-256 is db3c44c7ab15c340db7105b82fbe7a9e9f9b14237993d07d5da336738b3ff9ff. The raw Rust check log SHA-256 is 1458cdae990c8712d5a531726faa447137ee62a9598bb91fe24f261caf464933. The retained diagnostic receipt is .reports/m0-036/failure-receipt.json.",
+      "observation": "Three desktop bridge tests hit prepare powershell-timeout at AppLocalData::new and returned Database before their assertions. The binary finished in 36.24 seconds with 20 of 23 tests passing. The #21 postmerge run 44887276464 used identical storage and desktop test sources and passed 23 tests in 21.25 seconds. PR 23 run 44888619266 used identical storage and ACL sources and passed 24 desktop tests in 23.47 seconds, including the same three fixture users. PR 24 run 44890626095 used identical storage and desktop fixture sources and passed 23 tests in 29.76 seconds. The timeout identifies a running PowerShell process and provides no explicit ACL refusal exit or measurement of the contention mechanism.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-036"
+      ],
+      "regression_checks": [
+        "project-state",
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
