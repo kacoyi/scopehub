@@ -1501,11 +1501,15 @@ test('indicator-preview runs trusted Python once for a region-only result and re
   const port = await freePort();
   const previous = 1704200940000;
   const next = 1704243600000;
-  const last = next + 120_000;
+  const last = next + 240_000;
   const label = '<img src=x onerror=alert(1)>';
-  const region = { from_ms: previous, to_ms: last, label, color: '#ff00ff' };
+  const regions = [
+    { from_ms: previous, to_ms: next + 120_000, label, color: '#ff00ff' },
+    { from_ms: next + 190_000, to_ms: next + 200_000, label: 'Inside the fourth minute', color: '#ff8000' },
+    { from_ms: previous + 70_000, to_ms: next - 10_000, label: 'Between sessions', color: '#ffff00' },
+  ];
   const program = `def compute(bars, params):
-    return {"series": [], "markers": [], "regions": [${JSON.stringify(region)}], "diagnostics": []}
+    return {"series": [], "markers": [], "regions": ${JSON.stringify(regions)}, "diagnostics": []}
 `;
   try {
     await inService(port, profile, 'ubuntu-workspace', async server => {
@@ -1535,7 +1539,7 @@ test('indicator-preview runs trusted Python once for a region-only result and re
           && (await response.json()).result?.status === 'ready');
         await editor.getByRole('button', { name: 'Run selected Python' }).click();
         const preview = (await (await ready).json()).result.event.artifact;
-        expect(preview.result).toMatchObject({ series: [], markers: [], regions: [region] });
+        expect(preview.result).toMatchObject({ series: [], markers: [], regions });
         await expect(editor.getByText('Preview layers · trusted Python')).toBeVisible();
         await editor.getByText('Preview provenance and values').click();
         await expect(editor.getByRole('list', { name: 'Indicator regions' })).toContainText(label);
@@ -1543,6 +1547,9 @@ test('indicator-preview runs trusted Python once for a region-only result and re
         await fit.click();
         await expect.poll(async () => (await regionBand(plot))?.intensity ?? 0).toBeGreaterThan(25);
         const previewBand = await regionBand(plot);
+        await expect.poll(async () => (await regionBand(plot, 'orange'))?.intensity ?? 0).toBeGreaterThan(12);
+        const previewMinute = await regionBand(plot, 'orange');
+        expect(await regionBand(plot, 'yellow')).toBeNull();
 
         await editor.getByRole('button', { name: 'Accept preview' }).click();
         const commit = page.waitForResponse(response => response.request().postDataJSON()?.operation === 'confirmation.respond');
@@ -1563,6 +1570,8 @@ test('indicator-preview runs trusted Python once for a region-only result and re
         await expect(accepted.getByText(outcome.result.version_id)).toBeVisible();
         await expect(editor.getByText('Preview layers · trusted Python')).toHaveCount(0);
         await expect.poll(async () => (await regionBand(plot))?.intensity ?? 0).toBeGreaterThan(previewBand.intensity + 15);
+        await expect.poll(async () => (await regionBand(plot, 'orange'))?.intensity ?? 0).toBeGreaterThan(previewMinute.intensity + 10);
+        expect(await regionBand(plot, 'yellow')).toBeNull();
         let reruns = 0;
         page.on('request', request => {
           if (request.postDataJSON()?.intent?.operation === 'indicator.runPreview') reruns++;
@@ -1583,6 +1592,11 @@ test('indicator-preview runs trusted Python once for a region-only result and re
           const band = await regionBand(plot);
           return band && { first: Math.round(band.start * 20), span: Math.round((band.end - band.start) * 20) };
         }).toEqual({ first: 0, span: 2 });
+        await expect.poll(async () => {
+          const band = await regionBand(plot, 'orange');
+          return band && { first: Math.round(band.start * 20), span: Math.round((band.end - band.start) * 20) };
+        }).toEqual({ first: 3, span: 1 });
+        expect(await regionBand(plot, 'yellow')).toBeNull();
         await openIndicators();
         await expect(accepted.getByText(outcome.result.version_id)).toBeVisible();
         await accepted.getByText('Accepted provenance and values').click();
@@ -1613,6 +1627,7 @@ test('indicator-preview runs trusted Python once for a region-only result and re
         await openIndicators();
         await expect(accepted.getByText('Accepted version · different chart observation')).toBeVisible();
         await expect.poll(() => regionBand(plot)).toBeNull();
+        expect(await regionBand(plot, 'orange')).toBeNull();
         await accepted.getByText('Accepted provenance and values').click();
         await expect(accepted.getByRole('list', { name: 'Indicator regions' })).toContainText(label);
         expect((await saved()).result.document.artifact).toEqual(preview);
@@ -1633,16 +1648,19 @@ test('indicator-preview runs trusted Python once for a region-only result and re
   }
 });
 
-async function regionBand(plot) {
-  return plot.locator('canvas').evaluateAll(canvases => {
+async function regionBand(plot, color = 'magenta') {
+  return plot.locator('canvas').evaluateAll((canvases, color) => {
     for (const canvas of canvases) {
       if (!canvas.width || !canvas.height) continue;
       const values = canvas.getContext('2d').getImageData(0, Math.floor(canvas.height / 2), canvas.width, 1).data;
       const columns = [];
       for (let x = 0; x < canvas.width; x++) {
         const offset = x * 4;
-        if (values[offset + 3] > 0 && values[offset] > values[offset + 1] + 25
-          && values[offset + 2] > values[offset + 1] + 25) columns.push(x);
+        const [red, green, blue, alpha] = values.subarray(offset, offset + 4);
+        const matches = color === 'orange' ? red > green + 12 && green > blue + 4
+          : color === 'yellow' ? red > blue + 25 && green > blue + 25 && Math.abs(red - green) < 10
+            : red > green + 25 && blue > green + 25;
+        if (alpha > 0 && matches) columns.push(x);
       }
       if (columns.length < 3) continue;
       const middle = 4 * columns[Math.floor(columns.length / 2)];
@@ -1650,8 +1668,70 @@ async function regionBand(plot) {
         intensity: values[middle] - values[middle + 1] };
     }
     return null;
-  });
+  }, color);
 }
+
+test('indicator-preview clips region overlap to shortened, missing and irregular buckets', async ({ browser }) => {
+  const profile = await makeProfile();
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        const bands = await page.evaluate(async () => {
+          const { indicatorBarIntervals, clipIndicatorRegions } = await import('/src/chart-adapter/indicator-regions.ts');
+          const start = Date.UTC(2024, 0, 2, 13);
+          const reopen = Date.UTC(2024, 0, 3, 1);
+          const trading_day = '2024-01-03';
+          const minute = 60_000;
+          const bar = (time_ms, is_closed = true) => ({
+            time_ms, trading_day, open: 10, high: 12, low: 9, close: 11, volume: 3, is_closed,
+          });
+          const range = { from_ms: start, to_ms: reopen + 2 * minute };
+          const sessions = [
+            { start_ms: start, end_ms: start + 17 * minute, trading_day },
+            { start_ms: reopen, end_ms: reopen + 2 * minute, trading_day },
+          ];
+          const buckets = indicatorBarIntervals([bar(start), bar(start + 5 * minute), bar(start + 15 * minute),
+            bar(reopen, false)], '5m', reopen + 20_000, true, sessions);
+          const daily = indicatorBarIntervals([bar(start)], '1d', range.to_ms, true, sessions);
+          const irregular = indicatorBarIntervals([bar(start), bar(start + 30_000), bar(reopen)], '1m', undefined, false);
+          const atCutoff = indicatorBarIntervals([bar(start), bar(start + minute, false), bar(start + 2 * minute)],
+            '1m', start + minute, false);
+          const unverified = indicatorBarIntervals([bar(start)], '1m', range.to_ms, true, [sessions[1], sessions[0]]);
+          const match = (intervals, from_ms, to_ms, visible = range) => clipIndicatorRegions(intervals,
+            [{ from_ms, to_ms, label: 'Fixture interval', color: '#446688' }], visible, false)
+            .map(({ first, last }) => [first, last]);
+          return {
+            missingFiveMinuteBar: match(buckets, start + 10 * minute, start + 11 * minute),
+            shortenedFiveMinuteBar: match(buckets, start + 16 * minute, start + 17 * minute),
+            justAfterSession: match(buckets, start + 17 * minute, start + 18 * minute),
+            openFiveMinuteBar: match(buckets, reopen + 10_000, reopen + 20_000),
+            afterObservation: match(buckets, reopen + 20_000, reopen + 30_000),
+            outsideFrozenRange: match(buckets, reopen + 10_000, reopen + 20_000,
+              { ...range, to_ms: reopen + 10_000 }),
+            secondSessionOfDailyBar: match(daily, reopen + 15_000, reopen + 20_000),
+            dailyBreak: match(daily, start + 17 * minute, reopen),
+            clippedAtNextIrregularStart: match(irregular, start + 30_000, start + 45_000),
+            irregularGap: match(irregular, start + 90_000, reopen),
+            startsAtObservation: match(atCutoff, start + minute, start + minute + 1),
+            startsAfterObservation: match(atCutoff, start + 2 * minute, start + 2 * minute + 1),
+            unverifiedBucketInterior: match(unverified, start + 10_000, start + 20_000),
+            unverifiedBarStart: match(unverified, start, start + 1),
+          };
+        });
+        expect(bands).toEqual({
+          missingFiveMinuteBar: [], shortenedFiveMinuteBar: [[2, 2]], justAfterSession: [],
+          openFiveMinuteBar: [[3, 3]], afterObservation: [], outsideFrozenRange: [],
+          secondSessionOfDailyBar: [[0, 0]], dailyBreak: [],
+          clippedAtNextIrregularStart: [[1, 1]], irregularGap: [],
+          startsAtObservation: [[1, 1]], startsAfterObservation: [],
+          unverifiedBucketInterior: [], unverifiedBarStart: [[0, 0]],
+        });
+      });
+    });
+  } finally {
+    await profile.close();
+  }
+});
 
 test('indicator-preview excludes points and markers outside the displayed chart bars', async ({ browser }) => {
   const profile = await makeProfile();

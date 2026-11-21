@@ -2,8 +2,8 @@ import {
   CandlestickSeries, ColorType, CrosshairMode, HistogramSeries, LineSeries, createChart, createSeriesMarkers,
   type ISeriesApi, type LineWidth, type SeriesMarker, type Time, type UTCTimestamp,
 } from 'lightweight-charts';
-import type { Bar, DatasetDescriptor, IndicatorResult, Instrument, VisibleRange } from '../../../../../contracts/generated/protocol';
-import { clipIndicatorRegions, mountIndicatorRegions } from './indicator-regions';
+import type { Bar, DatasetDescriptor, FrozenSnapshot, IndicatorResult, Instrument, VisibleRange } from '../../../../../contracts/generated/protocol';
+import { clipIndicatorRegions, indicatorBarIntervals, mountIndicatorRegions } from './indicator-regions';
 
 export type ChartStyle = 'candlestick' | 'line';
 export type ChartCursorMode = 'crosshair' | 'pan';
@@ -18,7 +18,9 @@ const chartThemes = {
 
 export type HistoryChartData = {
   bars: readonly Bar[];
-  dataset: Pick<DatasetDescriptor, 'instrument_id' | 'timeframe' | 'timezone'>;
+  dataset: Pick<DatasetDescriptor, 'instrument_id' | 'timeframe' | 'timezone'> &
+    Partial<Pick<DatasetDescriptor, 'provider_id' | 'provenance'>>;
+  snapshot?: Pick<FrozenSnapshot, 'as_of_ms'>;
 };
 
 export type IndicatorChartLayer = { result: IndicatorResult; range: VisibleRange };
@@ -128,7 +130,10 @@ export function mountHistoryChart(
           time: (marker.time_ms / 1000) as UTCTimestamp, position: markerPositions[marker.position],
           shape: 'circle' as const, color: marker.color, text: marker.label,
         }));
-      const regions = layers.flatMap(({ result, range, preview }) => clipIndicatorRegions(bars, result.regions, range, preview));
+      const intervals = layers.some(({ result }) => result.regions.length)
+        ? indicatorBarIntervals(bars, history.dataset.timeframe, history.snapshot?.as_of_ms,
+          history.dataset.provider_id === 'scopehub.synthetic', history.dataset.provenance?.sessions) : [];
+      const regions = layers.flatMap(({ result, range, preview }) => clipIndicatorRegions(intervals, result.regions, range, preview));
       try {
         for (const layer of layers) {
           for (const spec of layer.result.series) {

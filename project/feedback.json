@@ -2292,6 +2292,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "indicator-region-inside-displayed-bar-invisible",
+      "source": "Independent PR 22 review of functional candidate 9558acea6bb09edb9df05bf0e848db55a36aa3ba.",
+      "observation": "The original region-only rendering defect persists for a valid region starting 10 seconds and ending 20 seconds inside one displayed one-minute bar. The candidate renderer selects bar start times inside the half-open region. Neither the containing bar's earlier start nor the following bar's later start qualifies, so it drops the band. A focused Chromium baseline ran the actual trusted Python worker, accepted three valid regions, painted the aligned band, and measured zero painted pixels in the intrabar band. The failed report is retained at .reports/M3-005/review/intrabar-region-red.json with SHA-256 f8265eafcf1ce1a530dbf5641af6c905b0a9c65cfcd30c13bbfbdeb75ed4eab9. This refines indicator-region-only-restore-invisible. Clean local task run 20261121T093744.960563Z-4ec20453 passed all 11 selected checks on the candidate, including its previously exercised region case. The exact report and untracked receipt are retained under .reports/M3-005/superseded/9558acea6bb09edb9df05bf0e848db55a36aa3ba. The receipt SHA-256 is 5b2208d12b9218b0fb31bb34586e09917edec5b821a35721eb9991de36a23fd9. The focused follow-up passed three Chromium cases, including painting the intrabar band in both the trusted preview and restored artifact while the gap remained blank. Its report is retained at .reports/M3-005/review/intrabar-region-green.json with SHA-256 03cb341bd9f1255e4baf45fb0e7a9262e11333f573ee0038b7bd28dedbdb4710. The corrected candidate requires fresh matching task evidence.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M3-005"
+      ],
+      "regression_checks": [
+        "indicator-workflow"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

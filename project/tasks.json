@@ -8382,7 +8382,7 @@
         "The admitted trusted Python path applies the generated 512 MiB memory policy before selected code executes on Linux and Windows, with accurate platform-specific scope and unchanged file and process authority.",
         "Ordinary synthetic indicator results retain their independent expected values. Bounded positive and negative resource probes observe actual OS enforcement, a typed failure and owned process cleanup.",
         "The native trusted indicator and private CLI use the configured indicator timeout rather than the market worker default. The application retains an approved trusted calculation for the prescribed runtime duration, and explicit test deadlines continue to apply.",
-        "Valid accepted-layer lists restore through the normal transport at the supported layer count. Output restored through a narrower sample window uses its visible intersection, and a valid region-only result has a visible rendering.",
+        "Valid accepted-layer lists restore through the normal transport at the supported layer count. Output restored through a narrower sample window uses its visible intersection. Region-only results render positive overlaps with displayed bars, including a region wholly inside a single bar. Regions over missing bars remain absent.",
         "A delivered newer preview permanently supersedes an older preview for the same dataset during the preview lifetime. Cancelling or clearing the newer one cannot revive an obsolete acceptance challenge.",
         "A matching retry of the original approved Python preview command recovers its existing task receipt without another approval or dispatch, subject to current grants. Indicator removal undo is verified after remount."
       ],
@@ -8398,7 +8398,7 @@
         "market-workflow"
       ],
       "evidence": [],
-      "next_action": "Verify the confirmation and bounded resource regressions and integrate the independently coordinated restoration changes once both lanes have finished.",
+      "next_action": "Verify the region overlap regression for aligned, missing and valid intrabar ranges. Review and commit the functional correction after coordination, then obtain exact-source task receipts for the corrected candidate.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -8426,6 +8426,7 @@
           "The existing Linux owned interpreter launch and Windows Job Object can apply the generated memory policy without new capabilities or dependencies.",
           "Native trusted execution inherits the five-second market default and application trusted jobs expire after eight seconds, while the private CLI uses the prescribed ten seconds.",
           "The accepted-layer transport cap, chart time-domain projection, and region rendering are three separate restoration boundaries observed in the full PR review.",
+          "The first region renderer selects by bar start time. A legal region wholly inside a displayed bar has an empty start-time match even though it intersects the bar interval.",
           "Acceptance skips cancelled and expired jobs before testing whether a delivered result superseded the old preview.",
           "Python preview staging checks the pending challenge and consumed draft but omits the committed job lookup that declarative preview uses before consulting a draft."
         ],
@@ -8455,7 +8456,7 @@
             ]
           },
           {
-            "failure": "A valid layer list exceeds its reply budget, a narrower chart exposes points outside its restored bars, or region-only results restore without visible output.",
+            "failure": "A valid layer list exceeds its reply budget, a narrower chart exposes points outside its restored bars, a valid intrabar region vanishes, or a range over missing bars is painted as observed.",
             "checks": [
               "indicator-declarative-preview",
               "ui-build",
@@ -8538,7 +8539,7 @@
             "Require the confirmation response grant before inspecting or consuming challenges and receipts.",
             "Apply the generated memory policy before forwarding selected code. Linux caps virtual address space per process, with ordinary descendants inheriting the limit. Windows caps committed memory across the existing owned Job Object.",
             "Use the canonical indicator timeout for trusted native, CLI and application paths.",
-            "Restore valid accepted-layer reference lists, clip their chart projection to the currently restored sample window, and render region-only results.",
+            "Restore valid accepted-layer reference lists and clip their projection to the current sample window. Render region-only results for overlapping displayed bar intervals and keep gaps unpainted.",
             "Retain preview supersession through cancellation or clearing and recover already approved Python jobs through the existing receipt identity."
           ],
           "data_plan": "Use disposable synthetic code, exact frozen inputs and test-only resource probes. Keep existing stored artifacts and checksums.",
