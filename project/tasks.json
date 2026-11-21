@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-001",
+  "focus_task_id": "M0-035",
   "tasks": [
     {
       "id": "M0-001",
@@ -6925,6 +6925,109 @@
           ],
           "data_plan": "Read local development artifacts and Git references. Keep archive configuration host-local and do not upload raw diagnostics.",
           "cleanup": "Allow operators to re-run the read-only classification before native Git removal in a separate operation; leave active, unverified and unrecoverable checkouts in place."
+        }
+      }
+    },
+    {
+      "id": "M0-035",
+      "title": "Preserve unresolved worktree dependencies and diagnostic evidence during retirement review",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-031"
+      ],
+      "scope": [
+        "scripts",
+        "tests/project",
+        "AGENTS.md",
+        "project/feedback.json",
+        "project/tasks.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "A worktree with active harness or editable-runtime consumers, a live linked-file type change, unique local evidence in generated layouts, or an unrecoverable per-worktree reference is held. An inactive globally configured Git filter does not block a genuinely eligible checkout.",
+        "A retained blocked diagnostic must verify the observation artifacts explicitly bound by its report. Checkout-local report selection from a subdirectory and independently supplied compatible reports preserve the established evidence semantics and reject a cross-worktree report dependency.",
+        "The read-only host inventory and the retained M4 diagnostic still resolve after integrating the upstream worktree and storage identity repairs. The command never removes a worktree or its files."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Reproduce the independent PR review findings, repair the affected observations and verify the public entrypoints against the combined upstream.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Keep worktrees with irreplaceable evidence or dependent consumers off the retirement list and preserve legitimate evidence lookup behavior.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/worktree_retirement.py",
+          "scripts/diagnostic_archive.py",
+          "scripts/project.py",
+          "scripts/storage.py",
+          "scripts/worktree.py",
+          "project/feedback.json"
+        ],
+        "hypotheses": [
+          "The preliminary candidate report treats a generated directory as proof that all contained files are rebuildable and checks the index type instead of the live path at some consumer boundaries.",
+          "The retainer can verify an incomplete field-observation archive, and normal report arguments were re-anchored away from the caller's working directory."
+        ],
+        "risks": [
+          {
+            "failure": "Incomplete process, private-reference, path dependency, or archive observation qualifies a worktree that cannot be retired safely.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A legitimate local or offline diagnostic is newly rejected, or an incomplete archived observation claims integrity.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep prior receipts immutable and preserve every checkout and source report. Report incomplete observations as holds while repairing the read-only logic.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/project.py",
+            "scripts/worktree.py",
+            "scripts/worktree_retirement.py",
+            "scripts/diagnostic_archive.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/herdr"
+            }
+          ],
+          "non_goals": [
+            "No real worktree removal, live host relocation, raw diagnostic uploads or broad changes to Git/user configuration."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Original accepted tasks and their receipts, diagnostic status, read-only operation, existing archive layout and in-checkout report callers."
+          ],
+          "change": [
+            "Check the real consumers, private Git state and bound observation files missed in the independent review. Restrict generated-data and filter exclusions to the observations that justify them."
+          ],
+          "data_plan": "Inspect repository metadata and retained development evidence locally. Opt in to archive access only for explicit verification.",
+          "cleanup": "Keep the existing locator and queue entrypoints and remove overly broad assumptions under deterministic regression fixtures."
         }
       }
     }
