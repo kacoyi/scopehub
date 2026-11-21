@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=00d5588197a5635a218a3f20f558086ee5336b4d0663fe40557e3abe3a6b950a. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=4d769c506985548abe56216be160277edf713d08c250c5ccbe9d061470e4b501. Do not edit.
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type OpaqueId = string;
 export type Uuid = string;
@@ -8,7 +8,7 @@ export type Metadata = Record<string, JsonValue>;
 export type WorkerRole = "market" | "ai" | "indicator";
 export type ProtocolVersion = "1.0";
 export type ErrorCode = "INVALID_ARGUMENT" | "UNSUPPORTED_CAPABILITY" | "PERMISSION_DENIED" | "CONFIRMATION_REQUIRED" | "CANCELLED" | "TIMEOUT" | "WORKER_EXITED" | "PROTOCOL_MISMATCH" | "DATA_UNAVAILABLE" | "STALE_CONTEXT" | "RESOURCE_LIMIT" | "OUTPUT_INVALID" | "PROVIDER_NOT_CONFIGURED" | "INTERNAL_ERROR" | "BUSY" | "SNAPSHOT_UNAVAILABLE";
-export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "workspace.readChartProjection" | "workspace.selectEvidence";
+export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "market.previewLocalImport" | "workspace.readChartProjection" | "workspace.selectEvidence";
 export type ChartStyle = "candlestick" | "line";
 export type TaskStatus = "queued" | "running" | "awaiting_confirmation" | "completed" | "failed" | "cancelled";
 export type Tradability = "non_tradable" | "unknown";
@@ -729,6 +729,38 @@ export type MarketStreamGapEvent = {
   event: "market.stream_gap";
   payload: MarketStreamGap;
 };
+export type LocalImportPreviewRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.previewLocalImport";
+  payload: LocalImportPreviewInput;
+};
+export type LocalImportPreviewResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.previewLocalImport";
+  ok: true;
+  result: LocalImportPreviewOutput;
+  error: null;
+};
+export type LocalImportPreviewError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.previewLocalImport";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
 export type WorkerHello11 = {
   protocol_version: ProtocolVersion11;
   message_id: Uuid;
@@ -1018,7 +1050,7 @@ export type CancelTaskError11 = {
   request_id: Uuid;
   error: WorkspaceFault11;
 };
-export type Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat | MarketHistoryPageRequest | MarketHistoryPageResponse | MarketHistoryPageError | MarketSubscriptionRequest | MarketSubscriptionResponse | MarketSubscriptionError | MarketBarUpdateEvent | MarketBarCorrectionEvent | MarketStreamGapEvent | WorkerHello11 | ScopedMutationRequest11 | ScopedMutationResponse11 | TrustedConfirmationDecision11 | PreviewReady11 | ArtifactChunk11 | TaskTerminalEvent11 | TaskCancelRequest11 | CancelMemberRequest11 | ReadProjectedChart11 | ProjectedChartResponse11 | SharedSelectionEvent11 | SharedSelectionRequest11 | AiToolRequest11 | AiToolResultDelivery11 | AiToolResultAck11 | ProjectedChartError11 | IndicatorCompute11 | IndicatorComputed11 | IndicatorInputSegment11 | SharedSelectionResponse11 | SharedSelectionError11 | SharedContextRequest11 | SharedContextResponse11 | SharedContextError11 | CancelTaskResponse11 | CancelTaskError11;
+export type Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat | MarketHistoryPageRequest | MarketHistoryPageResponse | MarketHistoryPageError | MarketSubscriptionRequest | MarketSubscriptionResponse | MarketSubscriptionError | LocalImportPreviewRequest | LocalImportPreviewResponse | LocalImportPreviewError | MarketBarUpdateEvent | MarketBarCorrectionEvent | MarketStreamGapEvent | WorkerHello11 | ScopedMutationRequest11 | ScopedMutationResponse11 | TrustedConfirmationDecision11 | PreviewReady11 | ArtifactChunk11 | TaskTerminalEvent11 | TaskCancelRequest11 | CancelMemberRequest11 | ReadProjectedChart11 | ProjectedChartResponse11 | SharedSelectionEvent11 | SharedSelectionRequest11 | AiToolRequest11 | AiToolResultDelivery11 | AiToolResultAck11 | ProjectedChartError11 | IndicatorCompute11 | IndicatorComputed11 | IndicatorInputSegment11 | SharedSelectionResponse11 | SharedSelectionError11 | SharedContextRequest11 | SharedContextResponse11 | SharedContextError11 | CancelTaskResponse11 | CancelTaskError11;
 export type ProtocolVersion11 = "1.1";
 export type WorkspaceObject11 = {
   kind: "chart" | "layer" | "layout" | "dataset" | "workspace";
@@ -1642,3 +1674,96 @@ export type WorkspaceUndoReply11 = {
   outcome: WorkspaceUndoOutcome11;
 };
 export type HistoryPageReply11 = MarketHistoryPageResponse | MarketHistoryPageError;
+export type CsvColumnMappingV1 = {
+  symbol?: string;
+  timestamp?: string;
+  trading_day?: string;
+  open?: string;
+  high?: string;
+  low?: string;
+  close?: string;
+  volume?: (string | null);
+};
+export type CsvMappingV1 = {
+  version: number;
+  revision: string;
+  encoding: string;
+  delimiter: string;
+  record_kind: string;
+  columns?: CsvColumnMappingV1;
+  instrument_kind?: string;
+  venue?: string;
+  timeframe?: string;
+  calendar_id?: string;
+  session_scope?: string;
+  timezone?: string;
+  quantity_unit?: string;
+  price_adjustment?: string;
+  roll_method?: string;
+  volume_semantics?: string;
+  timestamp_convention?: string;
+  timestamp_format?: string;
+  trading_day_format?: string;
+  daily_start_time?: string;
+};
+export type PreviewIssue = {
+  code: string;
+  field: (string | null);
+  message: string;
+};
+export type RawOnlyColumn = {
+  column: string;
+  reason: string;
+};
+export type PreviewSeries = {
+  instrument_kind: string;
+  venue: string;
+  timeframe: string;
+  calendar_id: string;
+  session_scope: string;
+  timezone: string;
+  quantity_unit: string;
+  price_adjustment: string;
+  roll_method: (string | null);
+};
+export type PreviewRow = {
+  record_number: number;
+  line_start: number;
+  line_end: number;
+  raw_fields: Array<string>;
+  raw_text: (string | null);
+  symbol: (string | null);
+  normalized: (Bar | null);
+  issues: Array<PreviewIssue>;
+};
+export type CsvPreview = {
+  file_sha256: Hash;
+  mapping_version: (number | null);
+  mapping_revision: (string | null);
+  header: Array<string>;
+  raw_header_text: (string | null);
+  rows: Array<PreviewRow>;
+  issues: Array<PreviewIssue>;
+  raw_only_columns: Array<RawOnlyColumn>;
+  series: (PreviewSeries | null);
+  truncated: boolean;
+};
+export type LocalImportPreviewInput = {
+  version: number;
+  folder_id: Uuid;
+  file_id: Uuid;
+  expected_sha256?: Hash;
+  mapping: CsvMappingV1;
+  row_limit?: number;
+};
+export type LocalImportPreviewOutput = {
+  version: number;
+  folder_id: Uuid;
+  file_id: Uuid;
+  relative_path: string;
+  display_name: string;
+  byte_count: number;
+  sha256: Hash;
+  preview: CsvPreview;
+};
+export type LocalImportPreviewReply11 = LocalImportPreviewResponse | LocalImportPreviewError;

@@ -12,11 +12,13 @@ portable_test_lib = true
 [dependencies]
 scopehub-application = { path = "../../../crates/application" }
 scopehub-domain = { path = "../../../crates/domain" }
+scopehub-platform = { path = "../../../crates/platform" }
 scopehub-worker-host = { path = "../../../crates/worker-host" }
 serde_json.workspace = true
 tokio.workspace = true
 
 [target.'cfg(windows)'.dependencies]
+rfd = { version = "=0.17.2", default-features = false }
 tauri = { version = "2.12.3", default-features = false, features = ["wry", "compression", "common-controls-v6"] }
 
 [target.'cfg(windows)'.build-dependencies]

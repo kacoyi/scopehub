@@ -1,7 +1,10 @@
-use std::{sync::Mutex as SyncMutex, time::Duration};
+use std::{future::Future, path::PathBuf, sync::Mutex as SyncMutex, time::Duration};
 
-use scopehub_application::{Actor, MarketLifecycle, MarketPort, MarketRegistry, failure};
+use scopehub_application::{
+    Actor, MarketLifecycle, MarketPort, MarketRegistry, PREVIEW_LOCAL_IMPORT, failure,
+};
 use scopehub_domain::protocol::{Error, ErrorCode};
+use scopehub_platform::local_folder::LocalFolderHost;
 use scopehub_worker_host::market::{MarketWorker, WorkerConfig};
 use serde_json::Value;
 #[cfg(windows)]
@@ -10,8 +13,11 @@ use tokio::sync::{Mutex, MutexGuard, oneshot};
 #[cfg(windows)]
 use {scopehub_worker_host::market::run_subscription, serde_json::json};
 
+use crate::local_import::LocalImport;
+
 pub struct State {
     reads: Mutex<MarketRegistry<MarketWorker>>,
+    local_import: LocalImport,
     replay: Mutex<()>,
     cancellation: SyncMutex<Cancellation>,
 }
@@ -54,19 +60,45 @@ fn development_config() -> Option<WorkerConfig> {
 pub fn state() -> State {
     State {
         reads: Mutex::new(MarketRegistry::new(MarketWorker::new(development_config()))),
+        local_import: LocalImport::new(development_config()),
         replay: Mutex::new(()),
         cancellation: SyncMutex::default(),
     }
 }
 
 impl State {
-    async fn read(&self, operation: &str, payload: Value) -> Result<Value, Error> {
+    /// Native launcher/picker entry. Webview operation payloads have no access
+    /// to directory adoption or this host instance.
+    pub fn local_folders(&self) -> &LocalFolderHost {
+        &self.local_import.folders
+    }
+
+    /// The Rust host supplies the picker. WebView callers receive catalog metadata.
+    async fn choose_local_csv_folder<F>(
+        &self,
+        pick: impl FnOnce() -> F,
+    ) -> Result<Option<Value>, Error>
+    where
+        F: Future<Output = Option<PathBuf>>,
+    {
+        self.local_import.choose_folder(pick).await
+    }
+
+    pub async fn execute_local_operation(
+        &self,
+        operation: &str,
+        payload: Value,
+        request_id: Option<&str>,
+    ) -> Result<Value, Error> {
+        if operation == PREVIEW_LOCAL_IMPORT {
+            return self.local_import.preview(payload, request_id).await;
+        }
         // Do not create an unbounded queue of requests in the native process.
         let mut registry = self
             .reads
             .try_lock()
             .map_err(|_| failure(ErrorCode::BUSY))?;
-        registry.execute(Actor::User, operation, payload).await
+        registry.execute(Actor::LocalUser, operation, payload).await
     }
 
     fn begin_replay(
@@ -133,6 +165,7 @@ impl State {
     }
 
     pub async fn shutdown(&self) {
+        self.local_import.shutdown().await;
         {
             let mut cancellation = self.cancellation.lock().expect("cancellation state");
             cancellation.closing = true;
@@ -161,9 +194,43 @@ pub async fn execute_operation(
     state: tauri::State<'_, State>,
     operation: String,
     payload: Value,
+    request_id: Option<String>,
 ) -> Result<Value, Error> {
     authorize_window(&window)?;
-    state.read(&operation, payload).await
+    state
+        .execute_local_operation(&operation, payload, request_id.as_deref())
+        .await
+}
+
+#[cfg(windows)]
+#[tauri::command]
+pub fn cancel_local_import_preview(
+    window: tauri::WebviewWindow,
+    state: tauri::State<'_, State>,
+    request_id: String,
+) -> Result<(), Error> {
+    authorize_window(&window)?;
+    state.local_import.cancel(&request_id);
+    Ok(())
+}
+
+#[cfg(windows)]
+#[tauri::command]
+pub async fn choose_local_csv_folder(
+    window: tauri::WebviewWindow,
+    state: tauri::State<'_, State>,
+) -> Result<Option<Value>, Error> {
+    authorize_window(&window)?;
+    state
+        .choose_local_csv_folder(|| async {
+            rfd::AsyncFileDialog::new()
+                .set_title("Choose local CSV folder")
+                .set_parent(&window)
+                .pick_folder()
+                .await
+                .map(|folder| folder.path().to_path_buf())
+        })
+        .await
 }
 
 #[cfg(windows)]

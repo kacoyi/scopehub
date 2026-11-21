@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { ChartCursorMode, ChartStyle, HistoryChartHandle } from './chart-adapter/history';
-import { symbol } from './instrument-display';
+import { instrumentName, symbol } from './instrument-display';
 import { isClosedBarGapRevision, sampleRevisionInstrument, type ChartHistory, type Instrument, type SampleRevision } from './market';
 import { ReplayGapDetails, replayGapReason } from './market-quality';
 import { PriceChart } from './price-chart';
@@ -9,7 +9,7 @@ import { SymbolSearch } from './symbol-search';
 import { useHistory, useSampleCatalog } from './use-market-data';
 import { useSampleReplay } from './use-sample-replay';
 import { WorkspaceIcon, type WorkspaceIconName } from './workspace-icons';
-import { WorkspacePanel, panelLabels, type Panel } from './workspace-panels';
+import { LocalSourceButtons, WorkspacePanel, panelLabels, type LocalSourceActions, type Panel } from './workspace-panels';
 
 const panelIcons: Record<Panel, WorkspaceIconName> = { watchlist: 'watchlist', data: 'table', sources: 'database' };
 const panelOrder: Panel[] = ['watchlist', 'data', 'sources'];
@@ -49,7 +49,9 @@ function HistoryStatus({ history, repaired }: { history: ChartHistory; repaired:
   return history.bars.length ? <span className="history-status" role="status">History ready</span> : null;
 }
 
-export function ChartWorkspace({ sample, leaveSample }: { sample: boolean; leaveSample: () => void }) {
+export function ChartWorkspace({ sample, leaveSample, localActions }: {
+  sample: boolean; leaveSample: () => void; localActions: LocalSourceActions | undefined;
+}) {
   const [saved] = useState(() => sample ? readSampleView() : undefined);
   const [chosenId, setChosenId] = useState(saved?.symbol ?? '');
   const [timeframe, setTimeframe] = useState(saved?.timeframe ?? '1m');
@@ -69,6 +71,9 @@ export function ChartWorkspace({ sample, leaveSample }: { sample: boolean; leave
   const { catalog, retryCatalog } = useSampleCatalog(sample);
   const instruments = catalog.state === 'ready' ? catalog.value : noInstruments;
   const selected = instruments.find(item => item.id === chosenId) ?? instruments[0];
+  const chartInstrument = useMemo(() => selected && ({
+    ...selected, name: instrumentName(selected), display_symbol: symbol(selected),
+  }), [selected]);
   const sampleRevision = selected?.id === sampleRevisionInstrument && (timeframe === '1m' || !isClosedBarGapRevision(revision))
     ? revision : 'normal';
   const { result, retryHistory } = useHistory(selected, timeframe, sampleRevision, date);
@@ -144,7 +149,9 @@ export function ChartWorkspace({ sample, leaveSample }: { sample: boolean; leave
 
   let plot: ReactNode;
   if (!sample) {
-    plot = <PlotMessage title="Open a chart"><p>Explore three instruments with offline sample data.</p>
+    plot = <PlotMessage title="Open a chart">
+      {localActions && <LocalSourceButtons actions={localActions} />}
+      <p>Explore three instruments with offline sample data.</p>
       <button type="button" className="primary" onClick={openSample}>Open offline sample <WorkspaceIcon name="arrow" /></button></PlotMessage>;
   } else if (failure) {
     const catalogFailed = catalog.state === 'error';
@@ -158,7 +165,7 @@ export function ChartWorkspace({ sample, leaveSample }: { sample: boolean; leave
     plot = <div className="history" data-instrument={selected.id} data-timeframe={timeframe} data-bars={0}>
       <PlotMessage title="No bars in this sample range." /></div>;
   } else {
-    plot = <PriceChart key={selected.id + ':' + timeframe} instrument={selected} history={history} style={style} cursor={cursor}
+    plot = <PriceChart key={selected.id + ':' + timeframe} instrument={chartInstrument ?? selected} history={history} style={style} cursor={cursor}
       handle={chart} replayBar={replay?.bar} repairedBars={repairedBars} />;
   }
 
@@ -207,7 +214,7 @@ export function ChartWorkspace({ sample, leaveSample }: { sample: boolean; leave
         <WorkspacePanel panel={visiblePanel} sample={sample} selected={selected} instruments={instruments} history={history}
           failureKind={(failure ?? replayFailure)?.kind} workerRecovery={workerRecovery} replayGap={replayGap}
           filters={{ revision: sampleRevision, timeframe, date, setRevision, setDate }}
-          choose={choose} close={closePanel} leave={leaveSample} />
+          choose={choose} close={closePanel} leave={leaveSample} localActions={sample ? localActions : undefined} />
       </>}
       {!focusChart && <nav className="side-tools" aria-label="Workspace panels" ref={dock}>{panelOrder.map(key =>
         <button type="button" className="icon-button" key={key} title={panelLabels[key]} aria-label={panelLabels[key]}

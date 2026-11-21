@@ -110,7 +110,7 @@
       ],
       "invariants": [
         "Reject unsupported operations; actor identity comes from trusted transports",
-        "Current history registry is synthetic-only; generalize source policy before real adapters"
+        "History reads use explicit synthetic sources. Local CSV preview requires the trusted desktop human transport and a live file selection"
       ],
       "checks": [
         "rust-contracts-workers"
@@ -125,6 +125,7 @@
       "responsibility": "Controlled worker lifecycle and correlated, bounded transport.",
       "public_entries": [
         "crates/worker-host/src/lib.rs",
+        "crates/worker-host/src/local_import.rs",
         "crates/worker-host/src/market.rs"
       ],
       "dependencies": [
@@ -164,7 +165,8 @@
         "Window identity and application assembly"
       ],
       "invariants": [
-        "Bind user actor at the transport; no general file/process/SQL command"
+        "Bind user actor at the transport; no general file/process/SQL command",
+        "Only a native directory picker supplies the root of a local CSV selection"
       ],
       "checks": [
         "architecture",
@@ -196,6 +198,7 @@
       "checks": [
         "chart-history",
         "ubuntu-preview",
+        "local-import-ui",
         "ui-build"
       ]
     },
@@ -231,6 +234,7 @@
       "responsibility": "Validated protocol dispatch for controlled worker roles.",
       "public_entries": [
         "python/worker_runtime/__main__.py",
+        "python/worker_runtime/local_import.py",
         "python/worker_runtime/protocol.py"
       ],
       "dependencies": [
@@ -253,9 +257,10 @@
       "paths": [
         "python/providers"
       ],
-      "responsibility": "Synthetic market acquisition and future replaceable data adapters.",
+      "responsibility": "Market-data adapters for synthetic acquisition and bounded local file preview.",
       "public_entries": [
         "python/providers/history.py",
+        "python/providers/local_folder.py",
         "python/providers/simulated.py",
         "python/providers/history_pages.py",
         "python/providers/replay.py"
@@ -299,12 +304,14 @@
     },
     {
       "id": "platform",
-      "status": "planned",
+      "status": "implemented",
       "paths": [
         "crates/platform"
       ],
-      "responsibility": "Windows credentials, paths and process limits.",
-      "public_entries": [],
+      "responsibility": "Native resources, including read-only access to a directory explicitly selected by the trusted host.",
+      "public_entries": [
+        "crates/platform/src/local_folder.rs"
+      ],
       "dependencies": [
         "domain",
         "application"
@@ -313,10 +320,12 @@
         "OS-specific resources"
       ],
       "invariants": [
-        "Credentials remain outside database and logs"
+        "Credentials remain outside database and logs",
+        "Local import reads resolve catalog-issued file IDs inside the current native selection"
       ],
       "checks": [
-        "credential-boundaries"
+        "credential-boundaries",
+        "rust-contracts-workers"
       ]
     },
     {
@@ -508,7 +517,7 @@
         "M1-008"
       ],
       "delivery": "current-contract",
-      "boundary": "CSV directory selection, mapping preview and repeatable refresh require their own integrated check."
+      "boundary": "The Windows development desktop offers a native folder picker and a session preview with editable mappings. Native picker observation, durable mapping reuse, publication and repeatable refresh require integrated acceptance."
     },
     {
       "id": "workspace-layout",

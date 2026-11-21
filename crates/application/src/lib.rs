@@ -1,8 +1,12 @@
 //! Shared operation entry for trusted transports.
 
 mod history;
+mod local_import;
 mod replay;
 
+pub use local_import::{
+    DEFAULT_PREVIEW_ROWS, LocalImportPort, PREVIEW_LOCAL_IMPORT, preview_local_import,
+};
 pub use replay::{SUBSCRIBE, SubscriptionFuture, SubscriptionPort};
 
 use std::{collections::HashSet, future::Future, pin::Pin, sync::LazyLock};
@@ -28,6 +32,7 @@ pub const READ_OPERATIONS: [&str; 3] = [
 #[derive(Clone, Copy)]
 pub enum Actor {
     User,
+    LocalUser,
     Ai,
     System,
 }
@@ -35,7 +40,7 @@ pub enum Actor {
 impl Actor {
     fn as_str(self) -> &'static str {
         match self {
-            Self::User => "user",
+            Self::User | Self::LocalUser => "user",
             Self::Ai => "ai",
             Self::System => "system",
         }
@@ -48,6 +53,8 @@ pub fn failure(code: ErrorCode) -> Error {
         ErrorCode::UNSUPPORTEDCAPABILITY => "This operation or timeframe is not implemented.",
         ErrorCode::INVALIDARGUMENT => "The request arguments are invalid.",
         ErrorCode::PERMISSIONDENIED => "This caller cannot perform the operation.",
+        ErrorCode::CANCELLED => "The operation was cancelled.",
+        ErrorCode::STALECONTEXT => "The selected source is no longer current.",
         ErrorCode::DATAUNAVAILABLE => "No data is available for this instrument.",
         ErrorCode::TIMEOUT => "The market worker did not respond before the deadline.",
         ErrorCode::WORKEREXITED => "The market worker is unavailable.",
@@ -129,7 +136,9 @@ fn authorized_operation(actor: Actor, name: &str) -> Result<&'static Operation, 
         .iter()
         .find(|op| op.name == name)
         .ok_or_else(|| failure(ErrorCode::UNSUPPORTEDCAPABILITY))?;
-    if !op.actors.iter().any(|allowed| allowed == actor.as_str()) {
+    if !op.actors.iter().any(|allowed| allowed == actor.as_str())
+        || (name == PREVIEW_LOCAL_IMPORT && !matches!(actor, Actor::LocalUser))
+    {
         return Err(failure(ErrorCode::PERMISSIONDENIED));
     }
     Ok(op)

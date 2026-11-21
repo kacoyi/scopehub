@@ -76,6 +76,9 @@ fn shared_vectors_and_generated_types_agree() {
                 Message::MarketSubscriptionRequest(_) => {
                     requests.insert("market.subscribe");
                 }
+                Message::LocalImportPreviewRequest(_) => {
+                    requests.insert("market.previewLocalImport");
+                }
                 Message::ReadProjectedChart11(_) => {
                     requests.insert("workspace.readChartProjection");
                 }
@@ -119,6 +122,12 @@ fn shared_vectors_and_generated_types_agree() {
                 // Missing fields are withheld. A granted field with explicit null is
                 // an unknown observation and must survive deserialization distinctly.
                 assert_eq!(serialized["result"], original["result"]);
+            }
+            if original["operation"] == "market.previewLocalImport" && original["type"] == "request"
+            {
+                // A null volume selector explicitly declares that the source has
+                // no volume column. An omitted selector is an unfinished mapping.
+                assert_eq!(serialized["payload"], original["payload"]);
             }
             if original.get("operation").is_some() {
                 assert_eq!(serialized["operation"], original["operation"]);

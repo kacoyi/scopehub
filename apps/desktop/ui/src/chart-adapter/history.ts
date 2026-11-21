@@ -2,10 +2,15 @@ import {
   CandlestickSeries, ColorType, CrosshairMode, HistogramSeries, LineSeries, createChart,
   type ISeriesApi, type Time, type UTCTimestamp,
 } from 'lightweight-charts';
-import type { Bar, Instrument, MarketGetBarsOutput } from '../../../../../contracts/generated/protocol';
+import type { Bar, DatasetDescriptor, Instrument } from '../../../../../contracts/generated/protocol';
 
 export type ChartStyle = 'candlestick' | 'line';
 export type ChartCursorMode = 'crosshair' | 'pan';
+
+export type HistoryChartData = {
+  bars: readonly Bar[];
+  dataset: Pick<DatasetDescriptor, 'instrument_id' | 'timeframe' | 'timezone'>;
+};
 
 export interface HistoryChartHandle {
   dispose(): void;
@@ -20,7 +25,7 @@ export interface HistoryChartHandle {
 
 // Chart-library units and lifecycle stay inside this replaceable adapter.
 export function mountHistoryChart(
-  element: HTMLElement, history: MarketGetBarsOutput, instrument: Instrument,
+  element: HTMLElement, history: HistoryChartData, instrument: Pick<Instrument, 'price_tick'>,
   style: ChartStyle, select: (bar: Bar) => void,
 ): HistoryChartHandle {
   let bars = [...history.bars];
@@ -50,8 +55,10 @@ export function mountHistoryChart(
     localization: { locale: 'en-GB', timeFormatter: formatTime },
   });
   try {
-    const tick = instrument.price_tick ?? '0.01';
-    const priceFormat = { type: 'price' as const, precision: tick.split('.')[1]?.length ?? 0, minMove: Number(tick) || 0.01 };
+    const tick = instrument.price_tick;
+    const priceFormat = tick
+      ? { type: 'price' as const, precision: tick.split('.')[1]?.length ?? 0, minMove: Number(tick) || 0.01 }
+      : { type: 'custom' as const, minMove: observedDisplayStep(bars), formatter: (value: number) => String(value) };
     const timestamp = (bar: Bar) => (bar.time_ms / 1000) as UTCTimestamp;
     const candle = (bar: Bar) => ({ time: timestamp(bar), open: bar.open, high: bar.high, low: bar.low, close: bar.close });
     const linePoint = (bar: Bar) => ({ time: timestamp(bar), value: bar.close });
@@ -166,4 +173,16 @@ export function mountHistoryChart(
       },
     };
   } catch (error) { chart.remove(); throw error; }
+}
+
+function observedDisplayStep(bars: readonly Bar[]) {
+  // Display precision from the supplied prices without declaring an exchange tick.
+  let precision = 0;
+  for (const bar of bars) {
+    for (const price of [bar.open, bar.high, bar.low, bar.close]) {
+      const [mantissa, exponent] = String(price).split('e');
+      precision = Math.max(precision, (mantissa?.split('.')[1]?.length ?? 0) - Number(exponent ?? 0));
+    }
+  }
+  return 10 ** -Math.min(precision, 12);
 }

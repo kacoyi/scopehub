@@ -6,6 +6,418 @@ use tokio::sync::oneshot::error::TryRecvError;
 
 use super::*;
 
+#[cfg(any(target_os = "linux", windows))]
+struct ImportFixture(PathBuf);
+
+#[cfg(any(target_os = "linux", windows))]
+impl ImportFixture {
+    fn new() -> Self {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let path = std::env::temp_dir().join(format!(
+            "scopehub-launcher-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir(&path).unwrap();
+        Self(path.canonicalize().unwrap())
+    }
+}
+
+#[cfg(any(target_os = "linux", windows))]
+impl Drop for ImportFixture {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+#[cfg(any(target_os = "linux", windows))]
+fn import_request(
+    catalog: &scopehub_platform::local_folder::FolderCatalog,
+    name: &str,
+    mapping: Value,
+) -> Value {
+    let file = catalog
+        .files
+        .iter()
+        .find(|file| file.relative_path == name)
+        .unwrap();
+    json!({"version": 1, "folder_id": catalog.folder_id.to_string(), "file_id": file.file_id.to_string(), "mapping": mapping})
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[tokio::test]
+async fn picker_cancel_and_catalog_limit_preserve_the_previous_selection() {
+    use scopehub_platform::local_folder::FileId;
+    use std::fs;
+
+    let fixture = ImportFixture::new();
+    let first = fixture.0.join("first");
+    let deep = fixture.0.join("deep");
+    let second = fixture.0.join("second");
+    fs::create_dir_all(first.join("subfolder")).unwrap();
+    fs::create_dir(&second).unwrap();
+    fs::write(first.join("subfolder").join("bars.CSV"), b"Date,Close\n").unwrap();
+    fs::write(first.join("notes.txt"), b"fixture note").unwrap();
+    let mut nested = deep.clone();
+    for index in 0..17 {
+        nested.push(format!("level-{index}"));
+    }
+    fs::create_dir_all(nested).unwrap();
+
+    let state = state();
+    let granted = state
+        .choose_local_csv_folder(|| async { Some(first) })
+        .await
+        .unwrap()
+        .unwrap();
+    let first_id = granted["folder_id"].as_str().unwrap().parse().unwrap();
+    assert_eq!(granted["display_name"], "first");
+    assert_eq!(granted.as_object().unwrap().len(), 3);
+    let files = granted["files"].as_array().unwrap();
+    assert_eq!(files.len(), 2);
+    assert_eq!(files[0]["relative_path"], "notes.txt");
+    assert_eq!(files[0]["kind"], "unsupported_extension");
+    assert_eq!(files[1]["relative_path"], "subfolder/bars.CSV");
+    assert_eq!(files[1]["display_name"], "bars.CSV");
+    assert_eq!(files[1]["kind"], "csv");
+    assert_eq!(files[1]["byte_count"], 11);
+    assert_eq!(files[1].as_object().unwrap().len(), 5);
+    let _: FileId = files[1]["file_id"].as_str().unwrap().parse().unwrap();
+
+    assert!(
+        state
+            .choose_local_csv_folder(|| async { None })
+            .await
+            .unwrap()
+            .is_none()
+    );
+    let error = state
+        .choose_local_csv_folder(|| async { Some(deep) })
+        .await
+        .unwrap_err();
+    assert_eq!(error.code, ErrorCode::RESOURCELIMIT);
+    state.local_folders().check_current(first_id).unwrap();
+
+    let replacement = state
+        .choose_local_csv_folder(|| async { Some(second) })
+        .await
+        .unwrap()
+        .unwrap();
+    assert_ne!(replacement["folder_id"], granted["folder_id"]);
+    assert!(state.local_folders().check_current(first_id).is_err());
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[tokio::test]
+async fn picker_admits_one_dialog_and_does_not_grant_after_shutdown() {
+    let fixture = ImportFixture::new();
+    let state = state();
+    let (opened, entered) = oneshot::channel();
+    let (confirm, result) = oneshot::channel();
+
+    let choose = state.choose_local_csv_folder(|| async {
+        opened.send(()).unwrap();
+        result.await.unwrap();
+        Some(fixture.0.clone())
+    });
+    let close = async {
+        entered.await.unwrap();
+        let error = state
+            .choose_local_csv_folder(|| async { panic!("second picker opened") })
+            .await
+            .unwrap_err();
+        assert_eq!(error.code, ErrorCode::BUSY);
+        state.shutdown().await;
+        confirm.send(()).unwrap();
+    };
+    let (chosen, ()) = tokio::join!(choose, close);
+    assert_eq!(chosen.unwrap_err().code, ErrorCode::CANCELLED);
+
+    let error = state
+        .choose_local_csv_folder(|| async { panic!("picker opened after shutdown") })
+        .await
+        .unwrap_err();
+    assert_eq!(error.code, ErrorCode::CANCELLED);
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[tokio::test]
+async fn shutdown_releases_the_selection_and_closes_native_folder_access() {
+    use scopehub_platform::local_folder::{Cancellation, FolderError};
+    use std::fs;
+
+    let fixture = ImportFixture::new();
+    let selected = fixture.0.join("selected");
+    let replacement = fixture.0.join("replacement");
+    fs::create_dir(&selected).unwrap();
+    fs::create_dir(&replacement).unwrap();
+    let source = b"contract,quote\nTEST,7\n";
+    fs::write(selected.join("source.csv"), source).unwrap();
+    let state = state();
+    let folders = state.local_folders();
+    let cancel = Cancellation::default();
+    let before = folders.adopt_selected(&selected, &cancel).unwrap();
+    let file = before.files[0].file_id;
+    let frozen = folders.read(before.folder_id, file, None, &cancel).unwrap();
+
+    state.shutdown().await;
+
+    assert_eq!(
+        folders.check_current(before.folder_id),
+        Err(FolderError::SelectionUnavailable)
+    );
+    assert!(matches!(
+        folders.read(before.folder_id, file, None, &cancel),
+        Err(FolderError::SelectionUnavailable)
+    ));
+    assert!(matches!(
+        folders.adopt_selected(&replacement, &cancel),
+        Err(FolderError::SelectionUnavailable)
+    ));
+    // On Windows this also checks that the old directory pin no longer blocks rename.
+    fs::rename(selected, fixture.0.join("released")).unwrap();
+    assert_eq!(frozen.content.as_deref(), Some(source.as_slice()));
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[tokio::test]
+async fn native_registry_returns_source_bound_raw_and_normalized_previews() {
+    use std::fs;
+
+    let fixture = ImportFixture::new();
+    let stock = b"Ticker,Date,Open,High,Low,Close,Shares\n000418,2026-11-19,4,6,3,5,20\n000418,2026-11-20,6,7,4,5,\n";
+    let future = b"Contract,LocalStart,TradingDay,Open,High,Low,Close,Contracts,PrevSettlementPrice,is_closed\nTEST2603,2024-07-19 21:05,2024-07-22,100,105,96,102,0,99,true\nTEST2603,2024-07-19 21:10,2024-07-22,83,85,82,settlement,6,84,true\nTEST2603,2024-07-19 21:15,2024-07-22,103,106,98,105,3,102,false\n";
+    let stock_path = fixture.0.join("equity.csv");
+    fs::write(&stock_path, stock).unwrap();
+    fs::write(fixture.0.join("future.csv"), future).unwrap();
+    fs::File::create(fixture.0.join("large.csv"))
+        .unwrap()
+        .set_len(4_194_305)
+        .unwrap();
+
+    let state = state();
+    let folders = state.local_folders();
+    let granted = state
+        .choose_local_csv_folder(|| async { Some(fixture.0.clone()) })
+        .await
+        .unwrap()
+        .unwrap();
+    let selected = folders
+        .catalog(granted["folder_id"].as_str().unwrap().parse().unwrap())
+        .unwrap();
+    let equity_mapping = json!({
+        "version":1,"revision":"equity-fixture-2","encoding":"utf-8","delimiter":",","record_kind":"native_ohlcv",
+        "columns":{"symbol":"Ticker","timestamp":"Date","trading_day":"Date","open":"Open","high":"High","low":"Low","close":"Close","volume":"Shares"},
+        "instrument_kind":"equity","venue":"TEST","timezone":"UTC","calendar_id":"fixture-calendar-1","session_scope":"regular",
+        "timeframe":"1d","quantity_unit":"shares","price_adjustment":"raw","volume_semantics":"per_bar",
+        "timestamp_convention":"bar_start","timestamp_format":"%Y-%m-%d","trading_day_format":"%Y-%m-%d","daily_start_time":"09:30:00"
+    });
+    let mut input = import_request(&selected, "equity.csv", equity_mapping);
+    input["expected_sha256"] =
+        json!("92eb8b04506ac61dd43097b78e5ff15d4aa89b4c525a014b8816e3fa7b21ee1e");
+    input["row_limit"] = json!(1);
+    let stock_preview = state
+        .execute_local_operation(PREVIEW_LOCAL_IMPORT, input.clone(), None)
+        .await
+        .unwrap();
+    assert_eq!(stock_preview["sha256"], input["expected_sha256"]);
+    assert_eq!(stock_preview["byte_count"], stock.len());
+    assert_eq!(stock_preview["relative_path"], "equity.csv");
+    assert_eq!(stock_preview["preview"]["truncated"], true);
+    let row = &stock_preview["preview"]["rows"][0];
+    assert_eq!(row["symbol"], "000418");
+    assert_eq!(row["raw_fields"][0], "000418");
+    assert_eq!(row["line_start"], 2);
+    assert_eq!(row["normalized"]["volume"], 20.0);
+
+    let mut generic = MarketRegistry::new(worker());
+    for actor in [Actor::User, Actor::Ai, Actor::System] {
+        let error = generic
+            .execute(actor, PREVIEW_LOCAL_IMPORT, input.clone())
+            .await
+            .unwrap_err();
+        assert_eq!(error.code, ErrorCode::PERMISSIONDENIED);
+    }
+    let mut spoof = input.clone();
+    spoof["path"] = json!("equity.csv");
+    assert_eq!(
+        state
+            .execute_local_operation(PREVIEW_LOCAL_IMPORT, spoof, None)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALIDARGUMENT
+    );
+
+    let import_future = import_request(
+        &selected,
+        "future.csv",
+        json!({
+            "version":1,"revision":"future-fixture-1","encoding":"utf-8","delimiter":",","record_kind":"native_ohlcv",
+            "columns":{"symbol":"Contract","timestamp":"LocalStart","trading_day":"TradingDay","open":"Open","high":"High","low":"Low","close":"Close","volume":"Contracts"},
+            "instrument_kind":"dated_future","venue":"TEST","timezone":"Asia/Shanghai","calendar_id":"fixture-calendar-2","session_scope":"night",
+            "timeframe":"5m","quantity_unit":"contracts","price_adjustment":"raw","volume_semantics":"per_bar",
+            "timestamp_convention":"bar_start","timestamp_format":"%Y-%m-%d %H:%M","trading_day_format":"%Y-%m-%d"
+        }),
+    );
+    let futures_preview = state
+        .execute_local_operation(PREVIEW_LOCAL_IMPORT, import_future.clone(), None)
+        .await
+        .unwrap();
+    assert_eq!(
+        futures_preview["preview"]["file_sha256"],
+        "19aebe2d5ed0d9fe68bf7414a6fd1a0a60a2154d5979291c37d7f7f546178074"
+    );
+    let rows = &futures_preview["preview"]["rows"];
+    assert_eq!(rows[0]["normalized"]["time_ms"], 1_721_394_300_000_i64);
+    assert_eq!(rows[0]["normalized"]["trading_day"], "2024-07-22");
+    assert_eq!(rows[0]["normalized"]["volume"], 0.0);
+    assert_eq!(rows[0]["normalized"]["close"], 102.0);
+    assert_eq!(rows[0]["normalized"]["is_closed"], true);
+    assert_eq!(rows[1]["raw_fields"][6], "settlement");
+    assert_eq!(rows[1]["issues"][0]["field"], "close");
+    assert!(rows[1]["normalized"].is_null());
+
+    let mut mislabelled = import_future;
+    mislabelled["mapping"]["columns"]["close"] = json!("PrevSettlementPrice");
+    let raw_preview = state
+        .execute_local_operation(PREVIEW_LOCAL_IMPORT, mislabelled, None)
+        .await
+        .unwrap();
+    let issue = &raw_preview["preview"]["issues"][0];
+    assert_eq!(issue["code"], "auxiliary_column");
+    assert_eq!(issue["field"], "close");
+    let raw = &raw_preview["preview"]["rows"][0];
+    assert!(raw["normalized"].is_null());
+    assert_eq!(raw["raw_fields"][6], "102");
+    assert_eq!(raw["raw_fields"][8], "99");
+    assert_eq!(rows[2]["raw_fields"][9], "false");
+    assert_eq!(rows[2]["issues"][0]["code"], "bar_incomplete");
+    assert!(rows[2]["normalized"].is_null());
+
+    let too_large = import_request(&selected, "large.csv", input["mapping"].clone());
+    let limit = state
+        .execute_local_operation(PREVIEW_LOCAL_IMPORT, too_large, None)
+        .await
+        .unwrap_err();
+    assert_eq!(limit.code, ErrorCode::RESOURCELIMIT);
+    assert_eq!(limit.details["byte_count"], 4_194_305);
+    fs::write(stock_path, b"changed source").unwrap();
+    assert_eq!(
+        state
+            .execute_local_operation(PREVIEW_LOCAL_IMPORT, input.clone(), None)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::SNAPSHOTUNAVAILABLE
+    );
+    folders.revoke(selected.folder_id).unwrap();
+    assert_eq!(
+        state
+            .execute_local_operation(PREVIEW_LOCAL_IMPORT, input, None)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::STALECONTEXT
+    );
+    assert_eq!(row["normalized"]["close"], 5.0);
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[tokio::test]
+async fn pending_local_preview_stops_on_cancellation_selection_change_or_shutdown() {
+    use scopehub_platform::local_folder::{Cancellation, FolderError};
+    use std::fs;
+
+    #[derive(Clone, Copy)]
+    enum Interruption {
+        Cancel,
+        Revoke,
+        Shutdown,
+    }
+
+    for interruption in [
+        Interruption::Cancel,
+        Interruption::Revoke,
+        Interruption::Shutdown,
+    ] {
+        let fixture = ImportFixture::new();
+        let selected = fixture.0.join("selected");
+        fs::create_dir(&selected).unwrap();
+        fs::write(selected.join("source.csv"), b"contract,quote\nTEST,7\n").unwrap();
+        let module = fixture.0.join("python").join("worker_runtime");
+        fs::create_dir_all(&module).unwrap();
+        fs::write(module.join("local_import.py"), r#"
+import json, pathlib, sys, time
+print(json.dumps({'protocol_version':'1.1','type':'hello','message_id':'74237caa-395f-4d71-a07f-bb15f86fda88',
+    'timestamp_ms':0,'role':'market','worker_version':'fixture','supported_protocols':['1.0','1.1'],
+    'capabilities':['market.previewLocalImport']}), flush=True)
+sys.stdin.buffer.read()
+pathlib.Path('received').touch()
+time.sleep(30)
+"#).unwrap();
+        let config = development_config().expect("development worker");
+        let state = State {
+            local_import: LocalImport::new(Some(WorkerConfig {
+                root: fixture.0.clone(),
+                ..config
+            })),
+            ..state()
+        };
+        let folders = state.local_folders();
+        let catalog = folders
+            .adopt_selected(&selected, &Cancellation::default())
+            .unwrap();
+        let request = import_request(
+            &catalog,
+            "source.csv",
+            json!({"version":1,"revision":"1","encoding":"utf-8","delimiter":",","record_kind":"quote_snapshot"}),
+        );
+        let preview =
+            state.execute_local_operation(PREVIEW_LOCAL_IMPORT, request, Some("preview-1"));
+        tokio::pin!(preview);
+        let ready = fixture.0.join("received");
+        tokio::select! {
+            result = &mut preview => panic!("preview ended before it could be interrupted: {result:?}"),
+            _ = tokio::time::timeout(Duration::from_secs(3), async {
+                while !ready.exists() { tokio::time::sleep(Duration::from_millis(10)).await; }
+            }) => assert!(ready.exists(), "controlled worker did not receive the bytes"),
+        }
+        let interrupt = async {
+            match interruption {
+                Interruption::Cancel => state.local_import.cancel("preview-1"),
+                Interruption::Revoke => folders.revoke(catalog.folder_id).unwrap(),
+                Interruption::Shutdown => state.shutdown().await,
+            }
+        };
+        let (result, ()) = tokio::time::timeout(Duration::from_secs(3), async {
+            tokio::join!(preview, interrupt)
+        })
+        .await
+        .unwrap();
+        let code = match interruption {
+            Interruption::Revoke => ErrorCode::STALECONTEXT,
+            Interruption::Cancel | Interruption::Shutdown => ErrorCode::CANCELLED,
+        };
+        assert_eq!(result.unwrap_err().code, code);
+        if matches!(interruption, Interruption::Shutdown) {
+            assert_eq!(
+                folders.check_current(catalog.folder_id),
+                Err(FolderError::SelectionUnavailable)
+            );
+            assert!(matches!(
+                folders.adopt_selected(&selected, &Cancellation::default()),
+                Err(FolderError::SelectionUnavailable)
+            ));
+            fs::rename(selected, fixture.0.join("released")).unwrap();
+        }
+        state.shutdown().await;
+    }
+}
+
 struct DelayedPage {
     worker: MarketWorker,
     reached_page: Option<oneshot::Sender<u32>>,
@@ -67,7 +479,7 @@ async fn new_history_loads_while_preparation_is_held_and_only_its_owner_can_canc
     };
     let mut input = history("SIM.CN.FUTURE.001", "1m", "contracts");
     let frozen = state
-        .read("market.readHistoryPage", input.clone())
+        .execute_local_operation("market.readHistoryPage", input.clone(), None)
         .await
         .unwrap();
     input["snapshot"] = frozen["snapshot"].clone();
@@ -101,9 +513,10 @@ async fn new_history_loads_while_preparation_is_held_and_only_its_owner_can_canc
 
     let replacement = tokio::time::timeout(
         Duration::from_secs(4),
-        state.read(
+        state.execute_local_operation(
             "market.readHistoryPage",
             history("SIM.CN.STOCK.001", "5m", "shares"),
+            None,
         ),
     )
     .await

@@ -2619,7 +2619,7 @@
       "id": "M1-008",
       "title": "Import and refresh a user-selected historical CSV folder",
       "milestone": "M1",
-      "status": "planned",
+      "status": "active",
       "depends_on": [
         "M1-001",
         "M1-003"
@@ -2628,7 +2628,11 @@
         "crates",
         "python",
         "apps/desktop",
-        "tests"
+        "tests",
+        "project/checks.json",
+        "project/development.json",
+        "contracts",
+        "engineering-contract-v1.json"
       ],
       "decision_refs": [
         "0007",
@@ -2645,12 +2649,137 @@
       "checks": [
         "market-fixtures",
         "chart-history",
-        "local-folder-import"
+        "local-folder-import",
+        "project-state",
+        "python-contracts-workers",
+        "architecture",
+        "python-types",
+        "ui-build",
+        "rust-contracts-workers",
+        "market-workflow",
+        "generated-contracts",
+        "typescript-contracts",
+        "operations-workflow",
+        "state-migrations"
       ],
       "evidence": [],
-      "next_action": "Use independent CSV fixtures with differing headers and an ambiguous unit. Exercise selection, correction, charting, refresh and failure recovery. Use the futures sample assessment for snapshot counterexamples.",
+      "next_action": "The Windows development desktop selected and previewed a synthetic local file in contracts/reviews/2026-11-19-windows-local-csv.json. Verify durable reviewed mapping reuse after restart, then implement and verify immutable publication and refresh.",
       "blocker": null,
-      "closure_reason": null
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A person chooses a local CSV directory, reviews the actual rows and explicit mapping offline, then publishes a traceable equity or futures series to the chart. Compatible refreshes preserve the accepted mapping and earlier snapshots.",
+        "change_types": [
+          "market-fixtures",
+          "ui",
+          "protocol",
+          "permissions",
+          "persistence"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "project/assessments/futures-tick-20260109.json",
+          "scripts/inspect_futures_ticks.py",
+          "python/providers/local_folder.py",
+          "crates/platform/src/local_folder.rs",
+          "crates/application/src/lib.rs",
+          "project/development.json"
+        ],
+        "hypotheses": [
+          "Explicit source mappings can normalize native OHLCV bars without inferring a price, volume unit or session from ambiguous financial fields. File identities and row locators can connect every accepted row to its original input."
+        ],
+        "risks": [
+          {
+            "failure": "An ambiguous date, encoding, adjustment, calendar, unit or quote snapshot silently creates an incorrect tradable bar.",
+            "checks": [
+              "market-fixtures",
+              "local-folder-import"
+            ]
+          },
+          {
+            "failure": "An alias, replaced input, interruption or changed mapping rewrites a published snapshot or double-counts an event.",
+            "checks": [
+              "local-folder-import",
+              "state-migrations"
+            ]
+          },
+          {
+            "failure": "The software reads beyond the folder selected by the active user or shares private paths, source rows or grants outside that scope.",
+            "checks": [
+              "local-folder-import",
+              "operations-workflow"
+            ]
+          },
+          {
+            "failure": "The plot shows an unrelated or synthetic series after import fails.",
+            "checks": [
+              "chart-history",
+              "local-folder-import"
+            ]
+          },
+          {
+            "failure": "An explicit open bar or prior settlement becomes a valid historical close, a stopped session can still read a path, or a long valid row or partial write loses a source record.",
+            "checks": [
+              "market-fixtures",
+              "rust-contracts-workers",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the accepted mapping, immutable source identities and last published revision while staging changes. Rejected rows and unsupported files remain inspectable in the selected local session.",
+        "implementation": {
+          "modules": [
+            "providers",
+            "worker-runtime",
+            "worker-host",
+            "platform",
+            "application",
+            "persistence",
+            "desktop",
+            "ui",
+            "chart-adapter"
+          ],
+          "entrypoints": [
+            "python/providers/local_folder.py",
+            "python/worker_runtime/local_import.py",
+            "crates/worker-host/src/local_import.rs",
+            "crates/platform/src/local_folder.rs",
+            "crates/application/src/lib.rs",
+            "apps/desktop/src-tauri/src/bridge.rs",
+            "apps/desktop/ui/src/chart-workspace.tsx",
+            "scripts/inspect_futures_ticks.py",
+            "contracts/schemas/protocol.schema.json"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/product/data_onboarding"
+            },
+            {
+              "path": "contracts/decisions/0008-inspectable-data-and-workspace-actions.json",
+              "pointer": "/decision"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence"
+            }
+          ],
+          "non_goals": [
+            "Remote data channels, cloud transmissions, inferred settlement/trade conversions and the separate real-provider connection workflow."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Explicit sample selection, source identity, original frozen historical reads and source rights."
+          ],
+          "change": [
+            "Add a separately authorized local-folder source with reviewable versioned mappings and snapshots."
+          ],
+          "data_plan": "Keep source bytes, mapping, evidence locators and dataset revisions on the active profile. Migrate long-lived state through its owning Rust writer when publication is introduced.",
+          "cleanup": "Cancel uncommitted staging on failure and close file handles when the selected folder or profile changes."
+        }
+      }
     },
     {
       "id": "M4-002",

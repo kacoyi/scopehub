@@ -17,7 +17,9 @@ fn main() {
             bridge::execute_market_subscription,
             bridge::cancel_market_subscription,
             bridge::prepare_market_subscription,
-            bridge::cancel_market_preparation
+            bridge::cancel_market_preparation,
+            bridge::cancel_local_import_preview,
+            bridge::choose_local_csv_folder
         ])
         .setup(|app| {
             tauri::WebviewWindowBuilder::from_config(app, &app.config().app.windows[0])?

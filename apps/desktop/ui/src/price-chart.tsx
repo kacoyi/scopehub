@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
-import { mountHistoryChart, type ChartCursorMode, type ChartStyle, type HistoryChartHandle } from './chart-adapter/history';
-import { instrumentName, symbol } from './instrument-display';
-import type { Bar, Instrument, MarketGetBarsOutput } from './market';
+import { mountHistoryChart, type ChartCursorMode, type ChartStyle, type HistoryChartData, type HistoryChartHandle } from './chart-adapter/history';
+import type { Bar, Instrument } from './market';
+
+type ChartInstrument = Pick<Instrument, 'id' | 'name' | 'display_symbol' | 'asset_class' | 'price_tick'> & Partial<Pick<Instrument, 'currency'>>;
 
 type Props = {
-  instrument: Instrument; history: MarketGetBarsOutput; style: ChartStyle; cursor: ChartCursorMode;
+  instrument: ChartInstrument; history: HistoryChartData; style: ChartStyle; cursor: ChartCursorMode;
   handle: RefObject<HistoryChartHandle | null>;
   replayBar: Bar | undefined;
   repairedBars: readonly Bar[] | undefined;
@@ -46,8 +47,9 @@ export function PriceChart({ instrument, history, style, cursor, handle, replayB
     <div className="chart-legend">
       <div className="legend-title"><span className={'asset-mark ' + instrument.asset_class} aria-hidden="true">
         {instrument.asset_class === 'future' ? 'F' : 'S'}</span>
-        <h1>{instrumentName(instrument)}</h1><span className="legend-period">· {history.dataset.timeframe}</span>
-        <span className="legend-ticker">{symbol(instrument)}</span><span className="currency-tag">{instrument.currency}</span>
+        <h1>{instrument.name}</h1><span className="legend-period">· {history.dataset.timeframe}</span>
+        {instrument.name !== instrument.display_symbol && <span className="legend-ticker">{instrument.display_symbol}</span>}
+        {instrument.currency && <span className="currency-tag">{instrument.currency}</span>}
       </div>
       {selected && <div className="bar-detail" aria-label="Selected bar">
         <span>O <b>{selected.open}</b></span><span>H <b>{selected.high}</b></span>
@@ -57,7 +59,7 @@ export function PriceChart({ instrument, history, style, cursor, handle, replayB
         <span className={selected.is_closed ? 'bar-phase' : 'bar-phase partial'}>{selected.is_closed ? 'Closed bar' : 'Partial bar'}</span>
       </div>}
     </div>
-    {failed && <p className="chart-notice" role="alert">The chart could not be displayed. The data remains available in the data window.</p>}
+    {failed && <p className="chart-notice" role="alert">The chart could not be displayed. Review the bars in the data table.</p>}
     <div className="chart" ref={container} role="img" aria-label={`${style === 'line' ? 'Close-price line' : 'Candlestick'} and volume chart for ${instrument.id}`} />
   </div>;
 }

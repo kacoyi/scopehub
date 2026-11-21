@@ -325,6 +325,21 @@
       "timeout_seconds": 900
     },
     {
+      "id": "local-import-ui",
+      "status": "implemented",
+      "purpose": "Exercise local CSV selection intent, cancellation, explicit mapping, and stock and futures previews in the built UI with a synthetic Tauri invoke substitute. Native dialog behavior and durable import require separate evidence.",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/local-import.playwright.config.mjs"
+      ],
+      "timeout_seconds": 180
+    },
+    {
       "id": "local-folder-import",
       "status": "planned",
       "purpose": "Exercise the folder picker, editable mapping, source lineage, idempotent refresh and schema drift through the actual local chart workflow.",
@@ -708,6 +723,7 @@
     "futures-tick-inspection",
     "chart-history",
     "ubuntu-preview",
+    "local-import-ui",
     "market-live-stream",
     "market-quality-states",
     "market-workflow",

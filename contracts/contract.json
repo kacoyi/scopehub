@@ -301,6 +301,26 @@
       }
     },
     {
+      "name": "market.previewLocalImport",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "LocalImportPreviewInput",
+      "output": "LocalImportPreviewOutput",
+      "implementation": "implemented",
+      "implementation_scope": "Local human preview of a CSV in the current trusted folder selection through the desktop development worker. Raw records, diagnostics and eligible normalized bars bind to the read file digest. Publication and refresh are separate work.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "LocalImportPreviewRequest",
+          "output": "LocalImportPreviewReply11"
+        }
+      }
+    },
+    {
       "name": "workspace.readChartProjection",
       "effect": "read",
       "confirmation": false,
@@ -346,7 +366,8 @@
     "heartbeat response",
     "unsupported request error",
     "cancel terminal response",
-    "The opt-in market worker supports instrument.search and market.getBars for compatible legacy callers. Negotiated 1.1 adds market.readHistoryPage and finite market.subscribe replay. Workers launched without the sample advertise no market operations."
+    "The opt-in market worker supports instrument.search and market.getBars for compatible legacy callers. Negotiated 1.1 adds market.readHistoryPage and finite market.subscribe replay. The generic market worker launched without the sample advertises no market operations.",
+    "The dedicated local import worker accepts bounded NDJSON frames containing Rust-read CSV bytes and the selected mapping. The shared local preview operation runs through the application registry."
   ],
   "clarifications": [
     "Workspace revisions are non-negative safe integers; dataset revisions are opaque provider-owned strings.",
@@ -378,7 +399,7 @@
     "information": false,
     "financial_services": false
   },
-  "development_data": "Explicit synthetic demo and owner-supplied test samples only; local/API adapters remain unimplemented.",
+  "development_data": "Explicit synthetic demo and development samples. The scoped local CSV preview can use a trusted user-selected directory. External API adapters remain unimplemented.",
   "service_capabilities": "Users can bring their own connections and independently select eligible ScopeHub software, AI or licensed data services. Internal model adapters and external AI clients have separate connection and authorization requirements. Production services and client access are unconfigured.",
   "product_requirements": [
     "engineering-contract-v1.json#/product/data_onboarding",

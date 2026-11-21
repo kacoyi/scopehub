@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=00d5588197a5635a218a3f20f558086ee5336b4d0663fe40557e3abe3a6b950a. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=4d769c506985548abe56216be160277edf713d08c250c5ccbe9d061470e4b501. Do not edit.
 // Structural types and literal discriminators: validate schema refinements before deserializing.
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -153,6 +153,8 @@ pub enum OperationName {
     MarketReadHistoryPage,
     #[serde(rename = "market.subscribe")]
     MarketSubscribe,
+    #[serde(rename = "market.previewLocalImport")]
+    MarketPreviewLocalImport,
     #[serde(rename = "workspace.readChartProjection")]
     WorkspaceReadChartProjection,
     #[serde(rename = "workspace.selectEvidence")]
@@ -177,6 +179,7 @@ impl OperationName {
             Self::WorkspaceGetContext => "workspace.getContext",
             Self::MarketReadHistoryPage => "market.readHistoryPage",
             Self::MarketSubscribe => "market.subscribe",
+            Self::MarketPreviewLocalImport => "market.previewLocalImport",
             Self::WorkspaceReadChartProjection => "workspace.readChartProjection",
             Self::WorkspaceSelectEvidence => "workspace.selectEvidence",
         }
@@ -1359,6 +1362,44 @@ pub struct MarketStreamGapEvent {
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct LocalImportPreviewRequest {
+    pub protocol_version: LocalImportPreviewRequestProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: LocalImportPreviewRequestType,
+    pub request_id: Uuid,
+    pub task_id: Option<Uuid>,
+    pub operation: LocalImportPreviewRequestOperation,
+    pub payload: LocalImportPreviewInput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LocalImportPreviewResponse {
+    pub protocol_version: LocalImportPreviewResponseProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: LocalImportPreviewResponseType,
+    pub request_id: Uuid,
+    pub operation: LocalImportPreviewResponseOperation,
+    pub ok: ConstBool<true>,
+    pub result: LocalImportPreviewOutput,
+    pub error: (),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LocalImportPreviewError {
+    pub protocol_version: LocalImportPreviewErrorProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: LocalImportPreviewErrorType,
+    pub request_id: Uuid,
+    pub operation: LocalImportPreviewErrorOperation,
+    pub ok: ConstBool<false>,
+    pub result: (),
+    pub error: MarketPageFault,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct WorkerHello11 {
     pub protocol_version: ProtocolVersion11,
     pub message_id: Uuid,
@@ -1715,6 +1756,9 @@ pub enum Message {
     MarketSubscriptionRequest(Box<MarketSubscriptionRequest>),
     MarketSubscriptionResponse(Box<MarketSubscriptionResponse>),
     MarketSubscriptionError(Box<MarketSubscriptionError>),
+    LocalImportPreviewRequest(Box<LocalImportPreviewRequest>),
+    LocalImportPreviewResponse(Box<LocalImportPreviewResponse>),
+    LocalImportPreviewError(Box<LocalImportPreviewError>),
     MarketBarUpdateEvent(Box<MarketBarUpdateEvent>),
     MarketBarCorrectionEvent(Box<MarketBarCorrectionEvent>),
     MarketStreamGapEvent(Box<MarketStreamGapEvent>),
@@ -2880,6 +2924,151 @@ pub struct WorkspaceUndoReply11 {
 pub enum HistoryPageReply11 {
     MarketHistoryPageResponse(Box<MarketHistoryPageResponse>),
     MarketHistoryPageError(Box<MarketHistoryPageError>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CsvColumnMappingV1 {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub symbol: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timestamp: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trading_day: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub open: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub high: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub low: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub close: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "present_nullable"
+    )]
+    pub volume: Option<Option<String>>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CsvMappingV1 {
+    pub version: u64,
+    pub revision: String,
+    pub encoding: String,
+    pub delimiter: String,
+    pub record_kind: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub columns: Option<CsvColumnMappingV1>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub instrument_kind: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub venue: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timeframe: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub calendar_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub session_scope: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timezone: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub quantity_unit: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub price_adjustment: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub roll_method: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub volume_semantics: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timestamp_convention: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timestamp_format: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trading_day_format: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub daily_start_time: Option<String>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PreviewIssue {
+    pub code: String,
+    pub field: Option<String>,
+    pub message: String,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RawOnlyColumn {
+    pub column: String,
+    pub reason: String,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PreviewSeries {
+    pub instrument_kind: String,
+    pub venue: String,
+    pub timeframe: String,
+    pub calendar_id: String,
+    pub session_scope: String,
+    pub timezone: String,
+    pub quantity_unit: String,
+    pub price_adjustment: String,
+    pub roll_method: Option<String>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PreviewRow {
+    pub record_number: u64,
+    pub line_start: u64,
+    pub line_end: u64,
+    pub raw_fields: Vec<String>,
+    pub raw_text: Option<String>,
+    pub symbol: Option<String>,
+    pub normalized: Option<Bar>,
+    pub issues: Vec<PreviewIssue>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CsvPreview {
+    pub file_sha256: Hash,
+    pub mapping_version: Option<u64>,
+    pub mapping_revision: Option<String>,
+    pub header: Vec<String>,
+    pub raw_header_text: Option<String>,
+    pub rows: Vec<PreviewRow>,
+    pub issues: Vec<PreviewIssue>,
+    pub raw_only_columns: Vec<RawOnlyColumn>,
+    pub series: Option<PreviewSeries>,
+    pub truncated: bool,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LocalImportPreviewInput {
+    pub version: u64,
+    pub folder_id: Uuid,
+    pub file_id: Uuid,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expected_sha256: Option<Hash>,
+    pub mapping: CsvMappingV1,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub row_limit: Option<u64>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LocalImportPreviewOutput {
+    pub version: u64,
+    pub folder_id: Uuid,
+    pub file_id: Uuid,
+    pub relative_path: String,
+    pub display_name: String,
+    pub byte_count: u64,
+    pub sha256: Hash,
+    pub preview: CsvPreview,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum LocalImportPreviewReply11 {
+    LocalImportPreviewResponse(Box<LocalImportPreviewResponse>),
+    LocalImportPreviewError(Box<LocalImportPreviewError>),
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum FieldExpressionOp {
@@ -4111,6 +4300,114 @@ impl MarketStreamGapEventEvent {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Value => "market.stream_gap",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalImportPreviewRequestProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl LocalImportPreviewRequestProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalImportPreviewRequestType {
+    #[serde(rename = "request")]
+    Value,
+}
+impl LocalImportPreviewRequestType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalImportPreviewRequestOperation {
+    #[serde(rename = "market.previewLocalImport")]
+    Value,
+}
+impl LocalImportPreviewRequestOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.previewLocalImport",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalImportPreviewResponseProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl LocalImportPreviewResponseProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalImportPreviewResponseType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl LocalImportPreviewResponseType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalImportPreviewResponseOperation {
+    #[serde(rename = "market.previewLocalImport")]
+    Value,
+}
+impl LocalImportPreviewResponseOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.previewLocalImport",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalImportPreviewErrorProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl LocalImportPreviewErrorProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalImportPreviewErrorType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl LocalImportPreviewErrorType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalImportPreviewErrorOperation {
+    #[serde(rename = "market.previewLocalImport")]
+    Value,
+}
+impl LocalImportPreviewErrorOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.previewLocalImport",
         }
     }
 }
