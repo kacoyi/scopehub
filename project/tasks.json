@@ -7762,7 +7762,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Verify the live-handle repair locally, retain matching hosted Linux and Windows task reports for PR 24, then close the review feedback and verify the closure head.",
+      "next_action": "Validate descriptor headroom and explicit omissions under a low limit, retain matching hosted Linux and Windows task reports for PR 24, then close the review feedback and verify the closure head.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -7790,6 +7790,13 @@
           },
           {
             "failure": "A single unusable target hides eligible or retained paths in other worktrees.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Inventory descriptors exhaust the slots required to revalidate and collect candidates, obscuring the reason for omitted work.",
             "checks": [
               "project-state",
               "python-contracts-workers"

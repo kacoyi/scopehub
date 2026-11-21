@@ -21,6 +21,9 @@ AUTO_SECONDS = 30
 COLD_DEPENDENCY_NS = 24 * 60 * 60 * 10**9
 CARGO_TAG = b'Signature: 8a477f597d28d172789f06886806bc55'
 CARGO_RUSTC_INFO_MAX = 1024 * 1024
+# Leave room for reopened directories, Cargo locks, procfs, and Git subprocess pipes.
+COLLECTION_FD_HEADROOM = 16
+DESCRIPTOR_LIMIT_ERRORS = {errno.EMFILE, errno.ENFILE}
 CARGO_LOCKS = {'.cargo-lock', '.cargo-build-lock', '.cargo-artifact-lock'}
 CARGO_DIRECTORY_VARS = ('CARGO_TARGET_DIR', 'CARGO_BUILD_TARGET_DIR', 'CARGO_BUILD_BUILD_DIR')
 LOCAL_FILESYSTEMS = {'ext4', 'xfs', 'btrfs', 'f2fs', 'ext3', 'tmpfs'}
@@ -50,6 +53,10 @@ class StorageError(RuntimeError):
 
 
 class TimeLimit(StorageError):
+    pass
+
+
+class DescriptorLimit(StorageError):
     pass
 
 
@@ -706,18 +713,31 @@ def observe_directory(stack, name, parent_fd=None, mount_id=None):
     return DirectoryHandle(fd, info.st_ctime_ns)
 
 
+def reserve_collection_descriptors(count):
+    import resource
+
+    limit, _ = resource.getrlimit(resource.RLIMIT_NOFILE)
+    if limit != resource.RLIM_INFINITY and len(os.listdir('/proc/self/fd')) + count + COLLECTION_FD_HEADROOM > limit:
+        raise DescriptorLimit('insufficient descriptors for cache revalidation')
+
+
 def observe_caches(stack, root, target, mounts, deadline):
     if filesystem(root, mounts) not in LOCAL_FILESYSTEMS or root in mounts:
-        return {}
+        return {}, False
     try:
+        reserve_collection_descriptors(2)
         worktree = observe_directory(stack, root)
         mount_id = mount_number(worktree.fd)
         outer = observe_directory(stack, 'target', worktree.fd, mount_id)
         with os.scandir(outer.fd) as entries:
             children = sorted(entry.name for entry in entries
                               if child_cache_name(entry.name) and entry.is_dir(follow_symlinks=False))
-    except (OSError, StorageError):
-        return {}
+    except DescriptorLimit:
+        return {}, True
+    except OSError as error:
+        return {}, error.errno in DESCRIPTOR_LIMIT_ERRORS
+    except StorageError:
+        return {}, False
 
     observed = {}
     for path in (target, *(target / name for name in children)):
@@ -726,6 +746,7 @@ def observe_caches(stack, root, target, mounts, deadline):
             continue
         with ExitStack() as handles:
             try:
+                reserve_collection_descriptors(1 if path == target else 3)
                 directory = outer
                 rustc_info = None
                 if path != target:
@@ -740,11 +761,17 @@ def observe_caches(stack, root, target, mounts, deadline):
                 if not valid_cache_tag(read_marker(directory.fd, 'CACHEDIR.TAG', 4096)):
                     continue
                 lock_names(debug.fd)
-            except (OSError, StorageError):
+            except DescriptorLimit:
+                return observed, True
+            except OSError as error:
+                if error.errno in DESCRIPTOR_LIMIT_ERRORS:
+                    return observed, True
+                continue
+            except StorageError:
                 continue
             observed[path] = CacheSnapshot(path, worktree, outer, directory, debug, mount_id, rustc_info)
             stack.enter_context(handles.pop_all())
-    return observed
+    return observed, False
 
 
 def cache_is_current(cache, root):
@@ -774,7 +801,11 @@ def cache_is_current(cache, root):
             return (os.path.samestat(os.fstat(marker), os.fstat(original)) and
                     mount_number(marker) == cache.mount_id and
                     marker_contents(marker, CARGO_RUSTC_INFO_MAX) == contents)
-    except (OSError, StorageError):
+    except OSError as error:
+        if error.errno in DESCRIPTOR_LIMIT_ERRORS:
+            raise
+        return False
+    except StorageError:
         return False
 
 
@@ -827,21 +858,26 @@ def inspect(root, primary, current, common, flags, mounts, deadline, seen, conte
     if (not root.is_absolute() or root.parent != primary.parent or root.resolve() != root or
             flags & {'bare', 'prunable'}):
         row['reason'] = 'outside_primary_worktree_directory_or_unavailable'
-        return row, []
+        return row, [], False
     try:
         if identity(root) != (root, common):
             row['reason'] = 'different_repository'
-            return row, []
+            return row, [], False
         target_info = target.lstat()
     except FileNotFoundError:
-        return None, []
-    except (OSError, StorageError, subprocess.SubprocessError):
+        return None, [], False
+    except OSError as error:
+        if error.errno in DESCRIPTOR_LIMIT_ERRORS:
+            raise
         row['reason'] = 'worktree_unavailable'
-        return row, []
+        return row, [], False
+    except (StorageError, subprocess.SubprocessError):
+        row['reason'] = 'worktree_unavailable'
+        return row, [], False
     try:
         if not hasattr(target_info, 'st_blocks'):
             row['reason'] = 'allocated_blocks_unavailable'
-            return row, []
+            return row, [], False
         protected = None
         if root == current:
             protected = 'current_worktree'
@@ -853,10 +889,11 @@ def inspect(root, primary, current, common, flags, mounts, deadline, seen, conte
         directory = stat.S_ISDIR(target_info.st_mode) and not reparse(target_info)
         tracked_target = None
         snapshots = {}
+        descriptor_limit = False
         if handles is not None and directory and not (protected or active):
             tracked_target = tracked(root)
             if not tracked_target:
-                snapshots = observe_caches(handles, root, target, mounts, deadline)
+                snapshots, descriptor_limit = observe_caches(handles, root, target, mounts, deadline)
         row['allocated_bytes'], newest, boundary, debug_found = inventory(
             target, mounts, deadline, seen, context.active_inodes if context else (),
         )
@@ -871,10 +908,10 @@ def inspect(root, primary, current, common, flags, mounts, deadline, seen, conte
         else:
             row['reason'] = 'unknown_cargo_layout'
             if not directory:
-                return row, []
+                return row, [], False
             caches = list(child_caches(target, snapshots, mounts, deadline))
             if not debug_found:
-                return row, caches
+                return row, caches, descriptor_limit
             try:
                 cargo_layout(target)
                 row['retained_paths'] = sorted(
@@ -882,15 +919,21 @@ def inspect(root, primary, current, common, flags, mounts, deadline, seen, conte
                     [f'debug/{entry.name}' for entry in (target / 'debug').iterdir()
                      if entry.name not in INTERMEDIATE_DIRS]
                 )
-            except (OSError, StorageError):
-                return row, caches
+            except OSError as error:
+                if error.errno in DESCRIPTOR_LIMIT_ERRORS:
+                    raise
+                return row, caches, descriptor_limit
+            except StorageError:
+                return row, caches, descriptor_limit
             row['reason'] = 'candidate'
             caches.append((row, newest, snapshots.get(target)))
-            return row, caches
-        return row, []
-    except (OSError, subprocess.SubprocessError):
+            return row, caches, descriptor_limit
+        return row, [], False
+    except (OSError, subprocess.SubprocessError) as error:
+        if isinstance(error, OSError) and error.errno in DESCRIPTOR_LIMIT_ERRORS:
+            raise
         row['reason'] = 'inspection_failed'
-        return row, []
+        return row, [], False
 
 
 def child_caches(target, snapshots, mounts, deadline):
@@ -898,7 +941,9 @@ def child_caches(target, snapshots, mounts, deadline):
     # Never search inside an unknown child or a cross-compiled target triple.
     try:
         children = sorted(target.iterdir())
-    except OSError:
+    except OSError as error:
+        if error.errno in DESCRIPTOR_LIMIT_ERRORS:
+            raise
         return
     for child in children:
         budget(deadline)
@@ -915,7 +960,11 @@ def child_caches(target, snapshots, mounts, deadline):
             size, newest, boundary, debug_found = inventory(child, mounts, deadline, set())
         except TimeLimit:
             raise
-        except (OSError, StorageError):
+        except OSError as error:
+            if error.errno in DESCRIPTOR_LIMIT_ERRORS:
+                raise
+            continue
+        except StorageError:
             continue
         if not boundary and debug_found:
             row = {'path': str(child), 'included_in': str(target), 'allocated_bytes': size, 'reason': 'candidate'}
@@ -962,6 +1011,7 @@ def inspect_repository(current, common, configured, context, mounts, blocked,
         raise StorageError('current checkout is missing from Git worktree registration')
     rows = []
     candidates = []
+    descriptor_limited = []
     seen = set()
     total = 0
     incomplete_mounts = sys.platform == 'linux' and not mounts
@@ -982,7 +1032,7 @@ def inspect_repository(current, common, configured, context, mounts, blocked,
         for path, flags in registered if report['inventory_complete'] else ():
             budget(deadline)
             with ExitStack() as handles:
-                row, caches = inspect(
+                row, caches, descriptor_limit = inspect(
                     path, registered[0][0], current, common, flags, mounts, deadline, seen, context, configured,
                     handles if pins is not None else None,
                 )
@@ -998,7 +1048,13 @@ def inspect_repository(current, common, configured, context, mounts, blocked,
                             preview = preview_partial_cache(Path(cache['path']), mounts, deadline)
                         except TimeLimit:
                             raise
-                        except (OSError, StorageError):
+                        except OSError as error:
+                            if error.errno in DESCRIPTOR_LIMIT_ERRORS:
+                                cache.update(reason='file_descriptor_limit', detail=str(error))
+                                descriptor_limited.append(cache['path'])
+                                continue
+                            preview = {}
+                        except StorageError:
                             preview = {}
                         cache.update(preview)
                         if not any(cache.get(key, 0) for key in (
@@ -1007,6 +1063,9 @@ def inspect_repository(current, common, configured, context, mounts, blocked,
                             continue
                     if snapshot is not None:
                         candidates.append((modified, cache['path'], path, cache, snapshot))
+                    elif descriptor_limit:
+                        cache['reason'] = 'file_descriptor_limit'
+                        descriptor_limited.append(cache['path'])
                     elif pins is not None:
                         cache['reason'] = 'cache_identity_unavailable'
                 if pins is not None and len(candidates) > before:
@@ -1014,6 +1073,10 @@ def inspect_repository(current, common, configured, context, mounts, blocked,
                     pins.enter_context(handles.pop_all())
     except TimeLimit as error:
         report.update(inventory_complete=False, collection_blocked=str(error))
+    except OSError as error:
+        if error.errno not in DESCRIPTOR_LIMIT_ERRORS:
+            raise
+        report.update(inventory_complete=False, collection_blocked=f'Inventory file descriptor limit: {error}')
     remaining = total
     if collect and context and total > high_bytes and report['inventory_complete'] and not blocked:
         for _, _, root, row, snapshot in sorted(candidates):
@@ -1027,7 +1090,13 @@ def inspect_repository(current, common, configured, context, mounts, blocked,
                 row['reason'] = 'cargo_locked'
             except TimeLimit as error:
                 report['collection_blocked'] = str(error)
-            except (OSError, StorageError, subprocess.SubprocessError) as error:
+            except OSError as error:
+                if error.errno in DESCRIPTOR_LIMIT_ERRORS:
+                    row.update(reason='file_descriptor_limit', detail=str(error))
+                    descriptor_limited.append(row['path'])
+                else:
+                    row.update(reason='collection_interrupted', detail=str(error))
+            except (StorageError, subprocess.SubprocessError) as error:
                 row.update(reason='collection_interrupted', detail=str(error))
             if 'lease_note' in progress:
                 row['lease_note'] = progress['lease_note']
@@ -1036,8 +1105,11 @@ def inspect_repository(current, common, configured, context, mounts, blocked,
                 remaining = max(0, remaining - progress['released_bytes'])
             if report['collection_blocked']:
                 break
+    incomplete = not report['inventory_complete'] or bool(descriptor_limited and total > high_bytes)
     report.update(allocated_bytes=total, estimated_remaining_bytes=remaining,
-                  low_watermark_met=remaining <= low_bytes if total > high_bytes else None)
+                  low_watermark_met=remaining <= low_bytes if total > high_bytes else None,
+                  descriptor_limited_candidates=descriptor_limited,
+                  collection_incomplete=collect and incomplete)
     if partial:
         report['estimated_candidate_bytes'] = sum(row.get('estimated_candidate_bytes', 0) for row in rows)
     return report
@@ -1048,10 +1120,11 @@ def maintain_automatically(root):
         return
     try:
         report = run(root, collect=True, deadline=time.monotonic() + AUTO_SECONDS)
-        if report['collected'] or report['collection_blocked'] or report['low_watermark_met'] is False:
+        if (report['collected'] or report['collection_blocked'] or report['collection_incomplete'] or
+                report['low_watermark_met'] is False):
             print('ScopeHub storage: ' + json.dumps({key: report[key] for key in (
                 'allocated_bytes', 'estimated_remaining_bytes', 'low_watermark_met', 'collected',
-                'collection_blocked',
+                'collection_blocked', 'collection_incomplete', 'descriptor_limited_candidates',
             )}), file=sys.stderr)
     except (OSError, ValueError, StorageError, subprocess.SubprocessError) as error:
         print(f'ScopeHub storage: {error}', file=sys.stderr)
