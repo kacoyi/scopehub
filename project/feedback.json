@@ -2155,9 +2155,9 @@
       "deferral_reason": null
     },
     {
-      "id": "relocated-managed-history-bridge-retains-old-source-root",
-      "source": "Coordinator's native synthetic history bridge survey and the indicator coordinator's isolated canonical rebuild probe.",
-      "observation": "All 25 surveyed prior managed worktrees had clean Git working states. A synthetic instrument.search failed in 23 with WORKER_EXITED before launch because the worker working directory was missing. In the other two, native child-process observation confirmed that Python still launched through an old checkout alias. An isolated rebuild from one exact canonical checkout revision used a private copy of its old build output and launched the child with the canonical Python interpreter. The survey and probe preserved all original installed artifacts.",
+      "id": "relocated-managed-worker-bridges-retain-old-source-roots",
+      "source": "Coordinator's native synthetic history and desktop CSV surveys and the indicator coordinator's isolated canonical history rebuild probe.",
+      "observation": "Native probes exercised 36 installed bridge entries in 26 previously relocated managed worktrees. Of 25 history searches, 23 reported WORKER_EXITED for a missing worker directory and two succeeded by launching Python through an old checkout alias. Of 11 desktop CSV previews, nine reported WORKER_EXITED for a missing legacy root. The two that launched Python through an old alias yielded one verified CSV preview and one PROTOCOL_MISMATCH before preview. Across both probes, 32 reported WORKER_EXITED, one reached the independent protocol failure, and three succeeded through legacy links. An isolated rebuild from one exact canonical checkout revision launched history search with canonical Python. The original installed artifacts and earlier reports were preserved.",
       "severity": "major",
       "status": "open",
       "task_ids": [

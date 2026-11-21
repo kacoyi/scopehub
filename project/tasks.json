@@ -8674,7 +8674,7 @@
     },
     {
       "id": "M0-037",
-      "title": "Recover history bridge runtimes in previously relocated managed worktrees",
+      "title": "Recover history and local CSV bridges in previously relocated managed worktrees",
       "milestone": "M0",
       "status": "planned",
       "depends_on": [
@@ -8691,10 +8691,10 @@
         "0007"
       ],
       "acceptance": [
-        "Bind the 25 observed managed worktrees to their native Git registrations and exact checkout revisions. Confirm Git identity and working state, protected owner and worker activity, and Cargo consumers before touching each approved runtime. Record explicit holds wherever availability or exact source cannot be established.",
-        "Build the history bridge against the approved checkout's exact canonical source and locked Python and Cargo inputs. Stage and verify replacement files before any promotion. Retain checksum-verified originals and replace only the approved installed artifacts while the checkout and relevant build consumers are idle.",
-        "From each repaired canonical path, repeat a synthetic instrument.search and observe the actual child working directory and Python interpreter. Run with any obsolete path unavailable where the owner can release it. Keep the checkout pending if another live consumer still requires an alias and an independent probe cannot establish canonical operation.",
-        "On an isolated native fixture, repeat the move and recovery with the old path unavailable, restore the previous installed bytes and relevant metadata, and verify canonical operation after a second recovery. Preserve all source, Git identities, ignored non-build files and original diagnostics and receipts.",
+        "Bind the 36 observed history and local CSV entries across 26 prior managed worktrees to their native Git registrations and exact checkout revisions. Confirm Git identity and working state, protected owner and worker activity, and Cargo consumers before touching each approved runtime. Record explicit holds wherever availability or exact source cannot be established.",
+        "Build the affected history and local CSV bridge targets against the approved checkout's exact canonical source and locked Python and Cargo inputs. Stage and verify replacement files before any promotion. Retain checksum-verified originals and replace only the approved installed artifacts while the checkout and relevant build consumers are idle.",
+        "From each repaired canonical path, repeat the relevant synthetic instrument.search or desktop-routed CSV preview and observe the actual child working directory and Python interpreter. Verify the normalized CSV close, volume and source digest. Track the earlier CSV protocol mismatch separately from obsolete path routing. Run with any obsolete path unavailable where the owner can release it. Keep the checkout pending if another live consumer still requires an alias and an independent probe cannot establish canonical operation.",
+        "On isolated native fixtures, repeat the move and recovery of both bridge kinds with the old path unavailable, restore the previous installed bytes and relevant metadata, and verify canonical operation after a second recovery. Preserve all source, Git identities, ignored non-build files and original diagnostics and receipts.",
         "Run the listed repository checks and keep the actual-host results separately in a private, source-bound receipt. Record exact artifact digests, canonical child launch observations and rollback verification there before counting any repaired runtime as accepted."
       ],
       "checks": [
@@ -8707,24 +8707,26 @@
       "blocker": null,
       "closure_reason": null,
       "plan": {
-        "outcome": "Previously relocated managed worktrees can run the synthetic history bridge through the Python interpreter at their registered canonical paths, with reversible recovery of the original installed artifacts.",
+        "outcome": "Previously relocated managed worktrees can run their installed synthetic history and desktop CSV flows through the Python interpreter at their registered canonical paths, with reversible recovery of the original installed artifacts.",
         "change_types": [
           "tooling"
         ],
         "context": [
           "crates/worker-host/examples/history_bridge.rs",
+          "apps/desktop/src-tauri/examples/local_import_bridge.rs",
+          "scripts/check_local_import_publication.py",
           "scripts/worktree.py",
           "scripts/storage.py",
           "project/development.json",
           "project/delivery.json"
         ],
         "hypotheses": [
-          "A cached bridge can retain the absolute source root embedded by CARGO_MANIFEST_DIR. Rebuilding from the exact canonical source with locked dependencies can restore launches without an old checkout entry.",
+          "Cached history and desktop bridges can retain the absolute source root embedded by CARGO_MANIFEST_DIR. Rebuilding from exact canonical source and locked dependencies can restore launches without an old checkout entry and align the desktop bridge and CSV worker protocol. Confirm protocol compatibility by running the actual preview.",
           "An isolated Cargo build can reuse safe inputs while the deployed runtime changes are limited to artifacts verified for the canonical checkout. Sequential staging can bound disk use."
         ],
         "risks": [
           {
-            "failure": "A bridge probe appears to pass by using an old alias, a different Python interpreter or source from another checkout.",
+            "failure": "A bridge probe appears to pass through an old alias, a different Python interpreter or source from another checkout, or routes correctly while CSV preview still fails at the worker protocol.",
             "checks": [
               "python-contracts-workers",
               "rust-contracts-workers"
@@ -8753,7 +8755,9 @@
           "entrypoints": [
             "scripts/worktree.py",
             "scripts/storage.py",
-            "crates/worker-host/examples/history_bridge.rs"
+            "crates/worker-host/examples/history_bridge.rs",
+            "apps/desktop/src-tauri/examples/local_import_bridge.rs",
+            "scripts/check_local_import_publication.py"
           ],
           "rules": [
             {
@@ -8769,7 +8773,7 @@
             "Moving any checkout, extending the seven-sibling M0-032 scope, updating branches, changing scheduled maintenance or product behavior, rewriting earlier evidence, and retaining a full duplicate Cargo target for each repaired worktree."
           ],
           "open_questions": [
-            "Which checkouts still need a bridge runtime, which owners can release an old path for the native probe, and which installed artifacts must be staged for each approved repair?"
+            "Which observed entries still need a bridge runtime, which owners can release an old path for the native probe, and what does an exact-source rebuild establish about the independent CSV protocol mismatch?"
           ]
         },
         "evolution": {
