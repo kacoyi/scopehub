@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-033",
+  "focus_task_id": "M0-032",
   "tasks": [
     {
       "id": "M0-001",
@@ -368,7 +368,7 @@
         "A user-selected local decision note retains the dated rationale and evidence references across restart. Append later outcomes separately. Exercise deletion and recovery, and verify that declining to save leaves no decision note.",
         "Exercise commit, lost reply, concurrent replay, fresh disclosure authorization, target selection conflict, undo and rollback. Verify note deletion across restart and restoration with and without known deletion markers.",
         "Provide an explicitly enabled Ubuntu development entry for versioned workspace operations. Exercise a local authorized change, undo and restart against the same Rust authorization and persistence core. Keep the existing synthetic history-only grant restricted and keep the Windows release target.",
-        "Keep saved conversation content, memory, strategy material and derived indexes in the active local user profile. Test two distinct user profiles, local backup and recovery, deletion and cache cleanup. Opening one profile or restoring an older copy never reveals the other user’s data or restores an outbound excerpt grant."
+        "Keep saved conversation content, memory, strategy material and derived indexes in the active local user profile. Test two distinct user profiles, local backup and recovery, deletion and cache cleanup. Opening one profile or restoring an older copy never reveals the other user\u2019s data or restores an outbound excerpt grant."
       ],
       "checks": [
         "operations-workflow",
@@ -435,7 +435,7 @@
           "Two real browser windows sharing a workspace must clear unavailable private bodies and invalid reviews. If a peer corrects a record that remains authorized, preserve the local draft and explicitly review it against the current record. Independent pending approvals on one writer are bounded and cancellation is scoped to the exact challenge. Restore reports all current surviving records, including those absent from the archive.",
           "A private records panel reachable from the native and enabled Ubuntu workspace serves all three types through one typed read and write contract. Manual capture keeps existing transient conversation and speech flows independent.",
           "A bounded logical private-record archive can merge missing records and the union of known tombstones without retaining prior bodies, outbound grants or a secondary search index.",
-          "Use the workspace revision and the selected record revision for correction and deletion. A revision-bound local approval stages only the pending changes. Committing and replaying use a random challenge with no private body or fingerprint in the approval request, log or receipt. The state-migrations gate runs the persistence suite without a name filter. It covers genuine v1–v7 fixtures, rollback and reopen, private archive recovery, deletion cleanup and refusal of restored approval or outbound access."
+          "Use the workspace revision and the selected record revision for correction and deletion. A revision-bound local approval stages only the pending changes. Committing and replaying use a random challenge with no private body or fingerprint in the approval request, log or receipt. The state-migrations gate runs the persistence suite without a name filter. It covers genuine v1\u2013v7 fixtures, rollback and reopen, private archive recovery, deletion cleanup and refusal of restored approval or outbound access."
         ],
         "risks": [
           {
@@ -2877,7 +2877,7 @@
           "A metadata-only Windows handle with full sharing can retain the selected directory identity while idle. A short operation can reopen and pin the non-reparse chain, compare identities, then verify source bytes through final commit.",
           "The source identity stored by v5 and its accepted relative path can prove the selected folder even when the original file is absent. A fresh read-only scan can use that live grant and the exact retained mapping without persisting a grant or changing the accepted chart.",
           "An additive v7 manifest anchored to a known v5 mapping can retain complete reviewed membership and source-qualified locators. One guarded transaction can write the revision, deduplicated original bytes and the scoped retry receipt without updating the accepted parent.",
-          "The retained original bytes and exact reviewed parser settings can independently recover unmapped fields for one validated frozen row. The portable Chromium baseline at 73fd6c0 reopened a synthetic revision after renaming the source folder and displayed record 502 at physical lines 504–505 without an inspection control.",
+          "The retained original bytes and exact reviewed parser settings can independently recover unmapped fields for one validated frozen row. The portable Chromium baseline at 73fd6c0 reopened a synthetic revision after renaming the source folder and displayed record 502 at physical lines 504\u2013505 without an inspection control.",
           "A private comparison can bind exact user choices to a canonical candidate digest without proving a write. The dedicated durable receipt then proves the chosen manifest and can replay under a matching live root without rereading files.",
           "The folder source qualified locator, retained file digest and historical anchor mapping can recover one selected raw record through the existing worker. The portable browser can exercise actual Rust picker admission with a supplied synthetic path while the native shell dialog is observed separately.",
           "Use a previous representative only if its current digest still matches. Select a deterministic current representative for each equal digest and use the accepted fingerprints to identify separate historical matches in the review."
@@ -3328,7 +3328,7 @@
       "acceptance": [
         "From Codex CLI and one compatible desktop AI application, independently connect to an explicitly selected running workspace with synthetic data. Read the current chart and compare its source, timeframe and selection to the desktop.",
         "In each client, first attempt a mutation under read-only access. After the user grants write access, add an attributed annotation, inspect it in the same chart and undo it. Record client, version, host, workspace revision and redacted results. Use the client's own model access.",
-        "For each observed client verify that only its user’s approved workspace data cross the bridge. Test the named client independently of any embedded model grant. Use synthetic records for retained verification."
+        "For each observed client verify that only its user\u2019s approved workspace data cross the bridge. Test the named client independently of any embedded model grant. Use synthetic records for retained verification."
       ],
       "checks": [
         "configured-external-ai-clients",
@@ -5111,7 +5111,7 @@
         ],
         "risks": [
           {
-            "failure": "A helper changes someone else’s work or a launcher silently substitutes the wrong model.",
+            "failure": "A helper changes someone else\u2019s work or a launcher silently substitutes the wrong model.",
             "checks": [
               "python-contracts-workers",
               "project-state"
@@ -8067,6 +8067,111 @@
           ],
           "data_plan": "Use temporary Git and filesystem fixtures. No persistent product data needs migration.",
           "cleanup": "Retain fail-closed behavior on unidentifiable or unavailable storage and reuse shared admission logic where applicable."
+        }
+      }
+    },
+    {
+      "id": "M0-032",
+      "title": "Relocate the primary ScopeHub checkout while preserving verified development workflows",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-030"
+      ],
+      "scope": [
+        "scripts",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Preserve and verify local Git references, linked checkout identity and working states, retained original diagnostics, and host configuration backups before a same-filesystem primary checkout move.",
+        "Update host worktree, maintenance and development launch entries to resolve the relocated primary checkout. Keep archive lookup independently configured. Scheduled cache maintenance must not trigger a worktree move.",
+        "On the affected host verify native Git links in both directions, the primary pinned Python worker, Rust and UI entrypoints, a real Herdr launch, and retained diagnostic checksums at the new location. Demonstrate a tested rollback path before marking this task done.",
+        "Retain verified private recovery copies of primary and enrolled legacy checkout inputs on independent storage. Move each enrolled sibling only after its owners and path consumers are accounted for, and verify its reverse path and any required compatibility link.",
+        "Pin the verified host tooling and prove that scheduled footprint maintenance refreshes the read-only retirement observation without scheduling worktree moves or removals. Re-enable recurring cache maintenance after canonical smoke verification."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Wait for the coordinator to confirm PRs 24 and 25 are merged and product verification is paused, with the exact primary and helper commits. Refresh the private checkpoint, execute the canonical move and smoke, resume cache scheduling after proving its read-only retirement edge, then hand off Herdr and move each of the seven enrolled siblings when its specific consumers are ready.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The primary checkout is durably addressable on the NVMe, existing linked worktrees keep their source and state, and ordinary development and evidence retrieval work from the new primary.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/primary_relocation.py",
+          "scripts/worktree.py",
+          "scripts/storage.py",
+          "scripts/herdr.py",
+          "project/development.json",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "A single same-filesystem primary rename with Git worktree repair can preserve the existing task worktrees. Host-local aliases and maintenance units need a replaceable primary reference."
+        ],
+        "risks": [
+          {
+            "failure": "A live process, local-only change, or retained receipt becomes unreachable after a path or configuration change.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A stale environment launcher or scheduled migration silently breaks the primary after cutover.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep a private checksum-verified copy of the primary and host settings. Rehearse the reverse rename, repair native Git worktree links and restore the named maintenance files and aliases. Preserve the disabled timer state and retain failed observations.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/primary_relocation.py",
+            "scripts/worktree.py",
+            "scripts/storage.py",
+            "scripts/herdr.py",
+            "scripts/check.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/herdr"
+            }
+          ],
+          "non_goals": [
+            "Product feature changes, forced worktree retirement, releases or relocation of private product profiles."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "All Git history and working states, exact archived reports, private profiles and the optional nature of the secondary volume."
+          ],
+          "change": [
+            "Give the primary checkout an independent stable home and remove scheduled migration from cache maintenance.",
+            "Refresh retirement observations through scheduled footprint maintenance and move seven named legacy siblings through individual reviewed native Git operations."
+          ],
+          "data_plan": "Keep host inventories and exact private backups outside the checkouts. Verify independent archive copies of irreplaceable local inputs and preserve source and rollback copies. Use only synthetic fixtures in versioned tests.",
+          "cleanup": "Use a temporary compatibility link for the original coordinating Herdr terminal. Switch the coordinator to a new canonical Herdr space, retire the old folder entry and link after checking live terminal paths, and verify the normal entrypoints again."
         }
       }
     }
