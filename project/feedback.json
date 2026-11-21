@@ -2576,17 +2576,21 @@
     },
     {
       "id": "preview-fixtures-survive-parent-disconnect",
-      "source": "Primary relocation host observation on 2026-11-21, preserved private evidence SHA-256 f07b858853bd4ce3cc31c85e0303bc5830b6d381ab69ee210be06cee1c1e1463.",
+      "source": "Primary relocation host observation on 2026-11-21, preserved private evidence SHA-256 f07b858853bd4ce3cc31c85e0303bc5830b6d381ab69ee210be06cee1c1e1463. The original observation and native comparisons are retained under archives/private/M0-038/preview-owner-loss-a70328b0/manifest.json (SHA-256 4b1e8b9dea92428d475dd002e2b1738bfb7f8074672d45337dc0afa1a439472f).",
       "observation": "Two Vite synthetic history fixtures and their workspace writers survived for hours after their original owner exited. They held two listening ports and a historical checkout, with no connected clients. Ordinary termination of the two verified fixture parents released both listeners and their writers.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-038"
       ],
       "regression_checks": [
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The synthetic workspace preview listened for an explicit IPC close message. Exiting its parent closed the IPC channel without requesting the Vite shutdown that reaps the real workspace writer.",
+        "correction": "The IPC fixture observes disconnect before Vite setup and serializes shutdown with startup. Explicit close and IPC loss release a held response, close the Vite server and its writer, and disconnect IPC only while connected.",
+        "prevention": "The workspace-timeframe check exercises an established writer, a held response, startup disconnect and duplicate close. The final native Linux and Windows task artifacts bind the exact source and regression observations. An independent process-level comparison on Linux confirmed a real parent exit leaked the listener and writer at the integrated baseline and released both at the corrected source."
+      },
       "deferral_reason": null
     }
   ]
