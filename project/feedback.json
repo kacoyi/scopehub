@@ -2171,7 +2171,7 @@
       "source": "PR 23 Ubuntu job, run 44853597299, local-import-ui.log at 9be6c8c. Reproduced on clean 44d7fed8fc4bba3f9bd08eb198ab4c4e33ff2e6e in .reports/M4-011-44d7fed-red/local-import-ui/browser-results.json (SHA-256 601cfc213bc4899b3af790428a486dfdb56e142405d70a4896a52ee5174e12ee).",
       "observation": "After persistent BUSY on Clear shared selection, the published CSV dialog displayed the busy notice and enabled Clear but omitted Refresh shared selection. The existing startup and refresh case timed out locating that button.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M4-011"
       ],
@@ -2179,7 +2179,11 @@
         "local-import-ui",
         "model-connection-workflow"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "After an exhausted BUSY retry became a recoverable selection notice in d701eba, the unavailable-selection view still offered its existing refresh action only for a blocking workspace error.",
+        "correction": "Offer the same snapshot refresh for the busy notice, alongside direct manual clear. Keep the bounded retry and request identity in the shared workspace hook.",
+        "prevention": "On ad75744a1ef9351f7d04456276adee9d77dbf45c, the held retry used the same clear request. After both BUSY responses the dialog permitted Clear and Refresh. One explicit refresh read the snapshot, preserved the selected library during the read, and a new clear used the refreshed revision. The ten AI workflow cases included successful transient retry with one revision advance. Run 20261121T023334.574343Z-f0bb7cc5 passed the M4-011 checks. The complete local-import suite with its Rust bridge passed all 13 cases in .reports/M4-011-ad75744-bridge/local-import-ui/browser-results.json (SHA-256 115280a83aa12c23cab236ef4c5e3fda6309823271922dd8aa31a5647f7b1e19)."
+      },
       "deferral_reason": null
     }
   ]
