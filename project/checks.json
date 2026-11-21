@@ -60,6 +60,21 @@
       "timeout_seconds": 900
     },
     {
+      "id": "python-types-win32",
+      "status": "implemented",
+      "purpose": "Check worker and generated Python types against Windows stubs from any development host",
+      "platforms": "all",
+      "command": [
+        "{python}",
+        "-m",
+        "mypy",
+        "--platform",
+        "win32"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
       "id": "python-contracts-workers",
       "status": "implemented",
       "purpose": "Exercise protocol, worker and repository-control failure behavior",
@@ -185,12 +200,42 @@
       "cadence": "change"
     },
     {
-      "id": "indicator-workflow",
-      "status": "planned",
-      "purpose": "Verify deterministic indicators, output validation and failure isolation",
+      "id": "indicator-declarative-preview",
+      "status": "implemented",
+      "purpose": "Exercise the shared registry and chart adapter with independent declarative preview values, trusted sample sessions and missing buckets, unverified CSV continuity, warm-up, cancellation, failure isolation, immutable CSV acceptance, removal, restart and source revocation.",
       "platforms": "all",
-      "command": null,
-      "timeout_seconds": 1800
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs",
+        "--grep",
+        "indicator-preview",
+        "--grep-invert",
+        "runs trusted Python once"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
+      "id": "indicator-workflow",
+      "status": "implemented",
+      "purpose": "Verify explicit local approval for each trusted Python run, frozen synthetic input, exact output, cancellation and validation, CSV purpose denial and immutable restoration without recomputation.",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs",
+        "--grep",
+        "indicator-preview runs trusted Python once"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
     },
     {
       "id": "ai-workflow",
@@ -260,7 +305,7 @@
     {
       "id": "state-migrations",
       "status": "implemented",
-      "purpose": "Run the full SQLite persistence suite against populated v1 through v7 predecessors, transaction interruption and recovery, preserved workspace, note and frozen folder lineage, isolated profiles, logical backups, deletion and WAL cleanup, and rejection of archive-supplied approval or outbound authority. Real model and Windows UI acceptance have separate checks.",
+      "purpose": "Run the full SQLite persistence suite against populated v1 through v8 predecessors, transaction interruption and recovery, preserved workspace, note and frozen folder lineage, additive layout storage, isolated profiles, logical backups, deletion and WAL cleanup, and rejection of archive-supplied approval or outbound authority. Real model and Windows UI acceptance have separate checks.",
       "platforms": "all",
       "command": [
         "cargo",
@@ -412,11 +457,19 @@
     },
     {
       "id": "workspace-layout",
-      "status": "planned",
-      "purpose": "Exercise manual and AI-compatible panel edits, linked and pinned selections, save, restore and undo through the workspace.",
+      "status": "implemented",
+      "purpose": "Exercise keyboard and declarative edits and the real chart and panels through the private workspace bridge and SQLite. Verify revision and preview guards, exactly-once retry, undo, reset, same-profile reopen, simulated sample restoration, and frozen CSV disconnection and revocation with separately enforced access. This browser check is not native WebView2 acceptance.",
       "platforms": "all",
-      "command": null,
-      "timeout_seconds": 1800
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/workspace-layout.config.mjs"
+      ],
+      "timeout_seconds": 1800,
+      "cadence": "task"
     },
     {
       "id": "configured-model-session",

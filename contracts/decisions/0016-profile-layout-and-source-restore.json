@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "id": "0016",
+  "title": "Restore versioned workspace layouts independently of source access",
+  "status": "accepted",
+  "recorded_at": "2026-11-19",
+  "context": "The v8 workspace retains private records, notes, chart evidence and frozen CSV history. A named arrangement must survive restart and a source interruption without changing what the profile is authorized to view. The owner confirmed restoration of the last explicit sample and retention of the source identity and layout when it is disconnected or revoked.",
+  "decision": "Use additive SQLite v9 tables for typed layout definitions and layout undo payloads in the existing writer transaction. Manual, declarative and scoped AI changes resolve the same built-in layout edit against the current workspace and selection revisions. Bind apply to an exact preview and insert the resulting layout, receipt and replay record atomically. Store the local human's explicit chart source choice separately. Restore a synthetic sample visibly as Simulated. Recheck current access before opening a referenced frozen CSV and retain its opaque identity when unavailable or revoked.",
+  "authority": "M2-002 and ADR 0008 require shared, versioned layout edits and restoration. ADR 0007 delegates the storage implementation. Existing profile and source grants retain their authority under ADR 0011.",
+  "alternatives": [
+    {
+      "option": "Store layouts in browser presentation preferences.",
+      "reason": "The shared Rust registry must validate, replay and undo the same named arrangement across clients and restarts."
+    },
+    {
+      "option": "Put chart evidence, provider grants or accepted indicator outputs into layout definitions.",
+      "reason": "A layout is presentation data. Source entitlement, shared selection and indicator artifacts have independent owners and lifecycles."
+    }
+  ],
+  "consequences": [
+    "Migrating a populated v8 database creates empty layout and source preference tables. Existing revisions, notes, private records, frozen data, folder lineage and revocations are preserved.",
+    "The workspace revision guards layout changes. Explicit source selection advances the independent selection revision. Hover and temporary navigation remain presentation actions.",
+    "Preview tokens belong to the current writer and authenticated scope. A committed retry can recover the original receipt after restart. An interrupted uncommitted change leaves the prior accepted layout intact.",
+    "The built-in comparison binding reads only the explicitly open simulated sample. A layout or restored reference cannot enable a provider, grant file access or restore revoked data."
+  ],
+  "supersedes": [],
+  "related_decisions": ["0007", "0008", "0011", "0015"],
+  "revisit_when": "More than one persistent comparison, an additional chart source kind or accepted indicator placement requires a new typed layout binding."
+}

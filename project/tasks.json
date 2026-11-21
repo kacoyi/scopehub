@@ -368,7 +368,7 @@
         "A user-selected local decision note retains the dated rationale and evidence references across restart. Append later outcomes separately. Exercise deletion and recovery, and verify that declining to save leaves no decision note.",
         "Exercise commit, lost reply, concurrent replay, fresh disclosure authorization, target selection conflict, undo and rollback. Verify note deletion across restart and restoration with and without known deletion markers.",
         "Provide an explicitly enabled Ubuntu development entry for versioned workspace operations. Exercise a local authorized change, undo and restart against the same Rust authorization and persistence core. Keep the existing synthetic history-only grant restricted and keep the Windows release target.",
-        "Keep saved conversation content, memory, strategy material and derived indexes in the active local user profile. Test two distinct user profiles, local backup and recovery, deletion and cache cleanup. Opening one profile or restoring an older copy never reveals the other user\u2019s data or restores an outbound excerpt grant."
+        "Keep saved conversation content, memory, strategy material and derived indexes in the active local user profile. Test two distinct user profiles, local backup and recovery, deletion and cache cleanup. Opening one profile or restoring an older copy never reveals the other user’s data or restores an outbound excerpt grant."
       ],
       "checks": [
         "operations-workflow",
@@ -435,7 +435,7 @@
           "Two real browser windows sharing a workspace must clear unavailable private bodies and invalid reviews. If a peer corrects a record that remains authorized, preserve the local draft and explicitly review it against the current record. Independent pending approvals on one writer are bounded and cancellation is scoped to the exact challenge. Restore reports all current surviving records, including those absent from the archive.",
           "A private records panel reachable from the native and enabled Ubuntu workspace serves all three types through one typed read and write contract. Manual capture keeps existing transient conversation and speech flows independent.",
           "A bounded logical private-record archive can merge missing records and the union of known tombstones without retaining prior bodies, outbound grants or a secondary search index.",
-          "Use the workspace revision and the selected record revision for correction and deletion. A revision-bound local approval stages only the pending changes. Committing and replaying use a random challenge with no private body or fingerprint in the approval request, log or receipt. The state-migrations gate runs the persistence suite without a name filter. It covers genuine v1\u2013v7 fixtures, rollback and reopen, private archive recovery, deletion cleanup and refusal of restored approval or outbound access."
+          "Use the workspace revision and the selected record revision for correction and deletion. A revision-bound local approval stages only the pending changes. Committing and replaying use a random challenge with no private body or fingerprint in the approval request, log or receipt. The state-migrations gate runs the persistence suite without a name filter. It covers genuine v1–v7 fixtures, rollback and reopen, private archive recovery, deletion cleanup and refusal of restored approval or outbound access."
         ],
         "risks": [
           {
@@ -616,7 +616,7 @@
       "id": "M3-001",
       "title": "Deliver reproducible indicator previews and accepted versions",
       "milestone": "M3",
-      "status": "planned",
+      "status": "done",
       "depends_on": [
         "M2-001"
       ],
@@ -630,7 +630,9 @@
         "0001",
         "0002",
         "0003",
-        "0004"
+        "0004",
+        "0017",
+        "0018"
       ],
       "acceptance": [
         "Declarative previews have deterministic results, bounded execution and validated output.",
@@ -639,12 +641,139 @@
         "Pin the visible and warm-up windows, exact snapshot and resolved typed parameters through confirmation, preview terminal result and durable acceptance. Run the independent numeric and approved trusted-Python examples in indicator-preview. Inspect output after cache clearing, revocation and restart without rerunning Python."
       ],
       "checks": [
-        "indicator-workflow"
+        "indicator-declarative-preview",
+        "indicator-workflow",
+        "generated-contracts",
+        "market-workflow",
+        "operations-workflow",
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "state-migrations",
+        "typescript-contracts",
+        "ui-build"
       ],
-      "evidence": [],
-      "next_action": "Implement the indicator engine and preview-to-acceptance workflow.",
+      "evidence": [
+        {
+          "path": "project/evidence/M3-001-7a8f067e6328e769.json",
+          "sha256": "013a7190d6ccfdcc2fd304d4c112f0a14312502c5d5ec721d5dca484f14a466e"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A user previews a declarative indicator on a real frozen chart, compares it with accepted output, accepts one immutable result, and restores that result with its exact input and typed parameters while current rights permit.",
+        "change_types": [
+          "indicators",
+          "protocol",
+          "ui",
+          "permissions",
+          "persistence"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/schemas/protocol.schema.json",
+          "project/delivery.json",
+          "crates/application/src/workspace.rs",
+          "apps/desktop/ui/src/chart-adapter/history.ts"
+        ],
+        "hypotheses": [
+          "The existing frozen-history and source-rights paths can supply exact on-device indicator input without another market reader.",
+          "A bounded, typed declarative evaluator and independent preview lifetime can run before the durable layout checkpoint lands."
+        ],
+        "risks": [
+          {
+            "failure": "The preview uses a different revision, skips a missing calendar bucket, ignores typed defaults or evaluates out of range.",
+            "checks": [
+              "indicator-workflow",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A failed, cancelled or unauthorized preview changes the chart or accepted output, or a stale result is accepted.",
+            "checks": [
+              "indicator-workflow",
+              "operations-workflow"
+            ]
+          },
+          {
+            "failure": "A failed v10 migration damages v9 layout data, or restart or revocation discloses accepted results improperly.",
+            "checks": [
+              "indicator-workflow",
+              "state-migrations"
+            ]
+          },
+          {
+            "failure": "The sample chart uses a submitted schedule, replaces the frozen observation with a newer sample, or carries a preview across a source change.",
+            "checks": [
+              "indicator-declarative-preview",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An unapproved, expired or cancelled Python run is dispatched, a late worker response becomes visible, or reopening an accepted result reruns code.",
+            "checks": [
+              "indicator-workflow",
+              "operations-workflow",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep preview state disposable and independent of accepted layers. On failed acceptance roll back all durable changes together. Verify an interrupted v10 migration against the populated v9 layout checkpoint before retrying.",
+        "implementation": {
+          "modules": [
+            "domain",
+            "application",
+            "persistence",
+            "desktop",
+            "ui"
+          ],
+          "entrypoints": [
+            "crates/application/src/lib.rs",
+            "crates/application/src/workspace.rs",
+            "apps/desktop/src-tauri/src/bridge.rs",
+            "apps/desktop/ui/src/chart-adapter/history.ts",
+            "contracts/schemas/protocol.schema.json"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/indicators"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization/data_purposes"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scenarios"
+            }
+          ],
+          "non_goals": [
+            "External data transmission, unrestricted commands, automatic trusted execution, and changes to the layout migration."
+          ],
+          "open_questions": [
+            "The verified v9 layout checkpoint b11df1a is composed with v10. Retain populated migration rollback and restore verification.",
+            "The bound synthetic chart uses verified sessions through the normal workspace. CSV continues to explain unverified calendar continuity.",
+            "Use selected UTF-8 Python and explicit local per-run approval. The sibling runner owns only process execution, cancellation and cleanup. This slice uses explicitly bound synthetic snapshots, bounded UTF-8 files, the selected visible bars with no added warm-up, and the existing inline transport.",
+            "The same flat two-close interval yielded a false volatility marker after an earlier price left the window. Check full-history and warm-up views, tiny genuine changes, nulls and gaps through the production evaluator, and retain the original engine identity on saved versions."
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Shared registry, frozen chart history, local source rights, market rendering and existing durable workspace state."
+          ],
+          "change": [
+            "Validate and execute typed declarative drafts with cancellable preview lifetimes.",
+            "Accept a matching result at most once and recheck current rights when restoring visible output.",
+            "For an explicitly bound synthetic sample, re-read its exact frozen series through the offline market registry. Validate the chart snapshot and hash the adapter schedule with the computation input. Reuse the chart adapter for the preview.",
+            "Bind trusted Python dispatch to the one-time local decision, exact selected code, resolved parameters, immutable input, scope revisions and affirmative source-purpose rights. Keep runner output untrusted until the registry verifies the full artifact."
+          ],
+          "data_plan": "Pin the immutable input revision, series, as-of, visible and warm-up bounds, input hash, code identity, engine and resolved typed parameters. Persist validated output and provenance with a workspace operation receipt after coordinating v9.",
+          "cleanup": "Dispose cancelled or superseded previews and isolate validation failures. Retain accepted artifacts independently of disposable preview state. Restore only entitled output and never rerun code on restore."
+        }
+      }
     },
     {
       "id": "M4-001",
@@ -2877,7 +3006,7 @@
           "A metadata-only Windows handle with full sharing can retain the selected directory identity while idle. A short operation can reopen and pin the non-reparse chain, compare identities, then verify source bytes through final commit.",
           "The source identity stored by v5 and its accepted relative path can prove the selected folder even when the original file is absent. A fresh read-only scan can use that live grant and the exact retained mapping without persisting a grant or changing the accepted chart.",
           "An additive v7 manifest anchored to a known v5 mapping can retain complete reviewed membership and source-qualified locators. One guarded transaction can write the revision, deduplicated original bytes and the scoped retry receipt without updating the accepted parent.",
-          "The retained original bytes and exact reviewed parser settings can independently recover unmapped fields for one validated frozen row. The portable Chromium baseline at 73fd6c0 reopened a synthetic revision after renaming the source folder and displayed record 502 at physical lines 504\u2013505 without an inspection control.",
+          "The retained original bytes and exact reviewed parser settings can independently recover unmapped fields for one validated frozen row. The portable Chromium baseline at 73fd6c0 reopened a synthetic revision after renaming the source folder and displayed record 502 at physical lines 504–505 without an inspection control.",
           "A private comparison can bind exact user choices to a canonical candidate digest without proving a write. The dedicated durable receipt then proves the chosen manifest and can replay under a matching live root without rereading files.",
           "The folder source qualified locator, retained file digest and historical anchor mapping can recover one selected raw record through the existing worker. The portable browser can exercise actual Rust picker admission with a supplied synthetic path while the native shell dialog is observed separately.",
           "Use a previous representative only if its current digest still matches. Select a deterministic current representative for each equal digest and use the accepted fingerprints to identify separate historical matches in the review."
@@ -3328,7 +3457,7 @@
       "acceptance": [
         "From Codex CLI and one compatible desktop AI application, independently connect to an explicitly selected running workspace with synthetic data. Read the current chart and compare its source, timeframe and selection to the desktop.",
         "In each client, first attempt a mutation under read-only access. After the user grants write access, add an attributed annotation, inspect it in the same chart and undo it. Record client, version, host, workspace revision and redacted results. Use the client's own model access.",
-        "For each observed client verify that only its user\u2019s approved workspace data cross the bridge. Test the named client independently of any embedded model grant. Use synthetic records for retained verification."
+        "For each observed client verify that only its user’s approved workspace data cross the bridge. Test the named client independently of any embedded model grant. Use synthetic records for retained verification."
       ],
       "checks": [
         "configured-external-ai-clients",
@@ -4250,11 +4379,13 @@
       "id": "M2-002",
       "title": "Customize and restore a single-chart workspace",
       "milestone": "M2",
-      "status": "planned",
+      "status": "done",
       "depends_on": [
         "M2-001"
       ],
       "scope": [
+        "engineering-contract-v1.json",
+        "contracts",
         "apps/desktop",
         "crates/application",
         "crates/persistence",
@@ -4263,7 +4394,8 @@
       "decision_refs": [
         "0004",
         "0007",
-        "0008"
+        "0008",
+        "0016"
       ],
       "acceptance": [
         "Move, resize, dock or tab panels, configure theme and gain/loss colors, link chart and table selection, and pin an independent comparison. Keep active source and confirmation controls reachable.",
@@ -4273,12 +4405,138 @@
       "checks": [
         "workspace-layout",
         "operations-workflow",
-        "state-migrations"
+        "state-migrations",
+        "market-workflow",
+        "ui-build",
+        "desktop-workspace-transport",
+        "generated-contracts",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Start with chart, watchlist and inspection panels. Define the narrow layout operations and versioned storage, then validate actor permissions, restoration and a user-authored binding.",
+      "evidence": [
+        {
+          "path": "project/evidence/M2-002-e21bf63bed696d2a.json",
+          "sha256": "4b19ab5a1d781570aac857ce7e5a12b6970e1e8b9f9b36f2ffff6b8fcdc819ab"
+        },
+        {
+          "path": "project/evidence/M2-002-27b6d8470e3662ee.json",
+          "sha256": "9044088f286ee9be989fa62cd405a04b75588191df89eff8696b901c8cd437bb"
+        },
+        {
+          "path": "project/evidence/M2-002-58c13d0f723275d2.json",
+          "sha256": "c65455d1a1229b88c9a3f5414a87a3d058d15f8114baf9587294e14654bb2f90"
+        },
+        {
+          "path": "project/evidence/M2-002-455f450f8ca66a3b.json",
+          "sha256": "39e467595a122ad178965edbc0f61a3e5af21c379aeeb918c075a8086fe16545"
+        },
+        {
+          "path": "project/evidence/M2-002-b2714f8687abc169.json",
+          "sha256": "9c3cb5ea0ad9fe2e160095f72fa119d5def9eff8a88a85b32c21e7233dd9bfb3"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null
+      "closure_reason": null,
+      "plan": {
+        "outcome": "With the existing desktop chart, arrange the watchlist and inspection, preview and save a named layout, reopen it in the same profile, and reset or undo. Restore the last explicit simulated sample or retain an unavailable source identity and reason with the saved arrangement.",
+        "change_types": [
+          "persistence",
+          "permissions",
+          "ui",
+          "protocol"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/contract.json",
+          "project/delivery.json",
+          "project/development.json",
+          "contracts/decisions/0016-profile-layout-and-source-restore.json"
+        ],
+        "hypotheses": [
+          "The same versioned built-in panel definition can drive manual controls, declarative edits and scoped registry calls.",
+          "The workspace already owns source evidence and a separate selection revision. Reusing it preserves current grants and prevents a layout restore from becoming a source grant.",
+          "A registry preview bound to the current revisions and actor can protect the exact edit, with replay and undo recorded in the existing SQLite transaction."
+        ],
+        "risks": [
+          {
+            "failure": "A stale or substituted preview overwrites a later layout, a lost reply repeats a write, or an unsupported panel binding reaches the renderer.",
+            "checks": [
+              "workspace-layout",
+              "operations-workflow"
+            ]
+          },
+          {
+            "failure": "An interrupted upgrade or write loses workspace selection, saved records, notes, source lineage or the previously accepted layout.",
+            "checks": [
+              "state-migrations",
+              "workspace-layout"
+            ]
+          },
+          {
+            "failure": "A reopened unavailable source restores private data, silently substitutes the sample, or removes access to source and confirmation controls.",
+            "checks": [
+              "workspace-layout",
+              "operations-workflow"
+            ]
+          }
+        ],
+        "rollback": "Keep migration DDL inside the existing SQLite transaction. Simulate an interrupted migration and an aborted write on disposable populated profiles. Preserve the last committed layout and reread the current revision before generating a new preview.",
+        "implementation": {
+          "modules": [
+            "application",
+            "domain",
+            "persistence",
+            "desktop",
+            "ui"
+          ],
+          "entrypoints": [
+            "crates/application/src/workspace.rs",
+            "crates/persistence/src/lib.rs",
+            "contracts/schemas/protocol.schema.json",
+            "apps/desktop/src-tauri/src/workspace.rs",
+            "apps/desktop/ui/src/use-local-workspace.ts",
+            "apps/desktop/ui/src/chart-workspace.tsx"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/customization"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/workspace_entry"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/shared_evidence"
+            },
+            {
+              "path": "contracts/decisions/0008-inspectable-data-and-workspace-actions.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Executable custom panels, external providers, changes to record backups or grant rules, and indicator artifact ownership."
+          ],
+          "open_questions": [
+            "Confirm native Windows accessibility and the remaining evidence navigation scenarios after the local browser slice.",
+            "The shared Rust wire coverage check did not count scoped layout mutations, and the AI vectors lacked a bound preview and apply example. Verify both typed callers and their round trips in the layout task."
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing local chart adapter, profile and evidence binding, workspace undo and source authorization. Existing record archives retain their content and authority boundaries."
+          ],
+          "change": [
+            "Add a typed version 1 layout definition, a built-in panel editor and guarded layout registry operations. Advance profile schema from v8 to v9 additively."
+          ],
+          "data_plan": "Store only panel arrangement and allowlisted binding settings in the layout records. Keep source evidence and grants independently owned by their existing modules.",
+          "cleanup": "Exercise migration and rollback with populated profiles, then remove temporary inputs from the repository and retain scoped run evidence."
+        }
+      }
     },
     {
       "id": "M1-015",
@@ -5111,7 +5369,7 @@
         ],
         "risks": [
           {
-            "failure": "A helper changes someone else\u2019s work or a launcher silently substitutes the wrong model.",
+            "failure": "A helper changes someone else’s work or a launcher silently substitutes the wrong model.",
             "checks": [
               "python-contracts-workers",
               "project-state"
@@ -7621,6 +7879,698 @@
       }
     },
     {
+      "id": "M3-002",
+      "title": "Verify sample history readiness before running indicator browser assertions",
+      "milestone": "M3",
+      "status": "done",
+      "depends_on": [
+        "M3-001"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0018"
+      ],
+      "acceptance": [
+        "Reproduce the early chart assertion failure with a delayed, valid history response through the real preview service and retain the observed Windows failure.",
+        "Observe the exact selected history request, its transport outcome and rendered chart before the calendar and trusted Python assertions, including a fresh browser restoring the bound sample.",
+        "Retain the independent calendar, values, approval, failure isolation and accepted output restoration assertions. Verify the integrated workspace browser check on Linux and the corrected hosted Windows source."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "indicator-declarative-preview",
+        "indicator-workflow",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M3-002-0e9290f77dbdcc7c.json",
+          "sha256": "de56564013777cde00051957137d833c2c32106d45ca840f5171437853fc9843"
+        },
+        {
+          "path": "project/evidence/M3-002-0c0006cb80d4b959.json",
+          "sha256": "e95002f408ef7dfac2e53985f4fbc2f53e9dc333caa77851a84466a68d28bf50"
+        },
+        {
+          "path": "project/evidence/M3-002-05f090e9317d76b3.json",
+          "sha256": "0dcc1c53da301e42f7e76d9e028adbc4942bd7fdd97b3a3f14554a596678d687"
+        },
+        {
+          "path": "project/evidence/M3-002-c9845a8246ed01f3.json",
+          "sha256": "402c5b0ec4eb7b922a556bca55a9f89a128b72674a1955cd84b22d8e78f38302"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "All M3-002 checks passed in authenticated Ubuntu and Windows task run 44854537896 on clean source ecbb3aa93a33b35a93cf590b7a04b52d21b9963c. Both browsers completed the exact selected history and rendered the expected sample before the calendar and trusted Python assertions. Delayed calendar history, gapped output and restart without recomputation were verified. The integrated workspace check also passed the published-revocation scenario after the PR21 fixture correction.",
+      "plan": {
+        "outcome": "Both indicator journeys proceed from a verified frozen sample and distinguish history transport failures from rendering or indicator failures.",
+        "change_types": [
+          "tooling",
+          "indicators"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ui/sample-startup.mjs",
+          "tests/ui/selected-history.mjs",
+          "apps/desktop/ui/ubuntu-preview.mjs"
+        ],
+        "hypotheses": [
+          "The Windows screenshots show admitted sample mode and a loading chart at the five-second cutoff. A real selected history response held beyond that cutoff can reproduce the premature DOM assertion even if valid data arrives within the existing preview operation budget.",
+          "The original artifacts do not record the pending requests' final outcomes. Exact request, browser and host evidence can distinguish recurrence from an actual timeout, abort or chart defect."
+        ],
+        "risks": [
+          {
+            "failure": "A wait that accepts an unrelated response, old revision or incomplete response can incorrectly pass chart readiness.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A deadline extension could hide a transport or indicator failure without validating the source window and chart independently.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Keep the hosted artifact and controlled Linux red. Revert the test changes if they weaken the existing indicator assertions or obscure a transport failure.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Product timing, sample data, workspace authority and indicator semantics."
+          ],
+          "open_questions": [
+            "What terminal outcome does the corrected test observe for the exact selected request on hosted Windows?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Frozen chart source selection, calendar and numeric expectations, explicit Python approval, and restoration of already accepted output."
+          ],
+          "change": [
+            "Observe selected sample responses within the preview operation budget before asserting that the corresponding chart has rendered. Exercise a successful delayed loopback response."
+          ],
+          "data_plan": "Use the existing synthetic data and disposable workspace profiles.",
+          "cleanup": "Release browser routes, pending response timers and observers on every outcome. Retain red and green reports without private handoff credentials."
+        }
+      }
+    },
+    {
+      "id": "M3-003",
+      "title": "Verify a committed indicator undo before reading the exact restored document",
+      "milestone": "M3",
+      "status": "done",
+      "depends_on": [
+        "M3-001",
+        "M3-002"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0017"
+      ],
+      "acceptance": [
+        "Hold the real undo in flight and determine whether the accepted layer is visible before the committed response. Retain the correlated mutation response and the direct read's status and envelope.",
+        "Prove the old result-only assertion can fail on a positively observed retryable read admission failure. Bound any recovery to that status and error before requiring exact equality with the original saved document.",
+        "Retain the frozen chart, independent numeric, cancellation, failure isolation, revocation and restart assertions in the integrated indicator journey."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "indicator-declarative-preview",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M3-003-1552a7d7bfa1bb3a.json",
+          "sha256": "3761377ca0034fca656dbc11ef7424dc144f0d6729c183b62824ca1c90bbf9d2"
+        },
+        {
+          "path": "project/evidence/M3-003-46b49d1a3be973bf.json",
+          "sha256": "4295dcbb35dfe9399dcebf2dc5f93b10681041f666b219f3bcbc4901c3872596"
+        },
+        {
+          "path": "project/evidence/M3-003-e29d54b84c3f5c49.json",
+          "sha256": "3a62a65c714ec56a6075917c548ce10c8f7ee8e9470bc32341f3395b668013ba"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "All M3-003 checks passed locally and in the authenticated Ubuntu and Windows task reports from run 44859651953 at clean source 355fba7b7ce3faf1472627cc6677d8bbb7906e2a. Each observed the in-flight undo with the accepted region hidden, a committed undo receipt at revision 3, and HTTP 200 with the exact saved artifact after a typed retryable admission failure. The independent numeric, cancellation, failure, revocation and restart assertions passed.",
+      "plan": {
+        "outcome": "The frozen CSV journey distinguishes committed undo, rendered accepted state and an authorized read of the exact immutable artifact.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "apps/desktop/ui/src/indicator-acceptance.tsx",
+          "apps/desktop/ui/ubuntu-workspace.mjs",
+          "crates/application/src/workspace/indicators/accepted.rs"
+        ],
+        "hypotheses": [
+          "The hosted assertion extracts only result, so contention and a genuinely missing artifact are indistinguishable in the archived failure.",
+          "The accepted region may be visible after a valid commit while an independent authorized workspace read still occupies the single preview producer."
+        ],
+        "risks": [
+          {
+            "failure": "A broad retry conceals an uncommitted undo, an authorization failure or a changed accepted document.",
+            "checks": [
+              "indicator-declarative-preview",
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Retain the hosted, controlled red and green artifacts. Remove any change that obscures the exact committed receipt, error envelope or document equality.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing indicator semantics, workspace authorization, producer policy or product timeouts."
+          ],
+          "open_questions": [
+            "Does the producer return a typed BUSY before undo completion or during an unrelated read after the restored region is visible?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Exact accepted document equality, frozen inputs, independent indicator results, cancellation, failure isolation, revocation and restart."
+          ],
+          "change": [
+            "Observe the specific undo receipt and log each direct accepted-output response. Recover only from a bounded, observed read admission failure."
+          ],
+          "data_plan": "Use the existing synthetic CSV and a disposable local profile.",
+          "cleanup": "Resume the test-owned suspended writer on every path and detach response observers after the matching request or timeout."
+        }
+      }
+    },
+    {
+      "id": "M3-004",
+      "title": "Give the eight-stage sample and private undo journey its own test budget",
+      "milestone": "M3",
+      "status": "done",
+      "depends_on": [
+        "M3-002",
+        "M3-003"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0018"
+      ],
+      "acceptance": [
+        "Retain the original Windows cutoff evidence. Use the same pacing schedule between completed stages to show the 60-second whole-test cutoff failing and the 90-second journey completing.",
+        "Preserve all eight history, private undo, source, revision and accepted-layer assertions and the individual history response budgets. Verify the separate real disconnect and explicit recovery control.",
+        "Resolve the observed competing-read defect in the integrated indicator undo test fixture. Observe removal refresh completion, gate the exact undo and retain its commit and the exact restored document.",
+        "Archive one matching hosted workspace run that passes this task's required checks."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M3-004-cab56358da60cfd7.json",
+          "sha256": "f85f8a868d90a283c4ea5335aa465a7e985cb1116503bfbbeeaa239e23781d2a"
+        },
+        {
+          "path": "project/evidence/M3-004-1fa65710c5178145.json",
+          "sha256": "a27a8a7367c230e937471f08361d427659f57963b96b7f5231600896fc8aa2e2"
+        },
+        {
+          "path": "project/evidence/M3-004-247a9fb37149097f.json",
+          "sha256": "1d27e748c8cc1f559d5a77cfda76297fa224963b6cc206c7d633f017224717c7"
+        },
+        {
+          "path": "project/evidence/M3-004-3ac7a16758a26365.json",
+          "sha256": "eaf7dd7021b75414533ffa4bf6d8c22e8b1d7d459781fc5d8f77b9d00f8bf2fa"
+        },
+        {
+          "path": "project/evidence/M3-004-16a996167556e4e2.json",
+          "sha256": "57b19c8096f6257efeaaff843da3c8458467dd4327310e1cec9d035e06c3d740"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The complete local workspace task and both authenticated jobs in workflow dispatch 44864057222 passed all named checks on clean source b9fc86eba525cb66c61c3538f7e104d654107b72. The eight sample stages completed with preserved private undo, accepted-layer selection and explicit disconnect recovery. The frozen indicator journey observed the removal reads, committed the exact gated undo at revision 3 and restored the exact original document after the separate typed BUSY read. Earlier successful receipts and the Windows partial pass and failure remain recorded for their observed source.",
+      "plan": {
+        "outcome": "The eight-step browser journey can finish evaluating independently bounded history reads and private undo on the hosted runner.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ui/sample-startup.mjs",
+          "tests/ui/replay-stages.mjs",
+          "apps/desktop/ui/ubuntu-preview.mjs"
+        ],
+        "hypotheses": [
+          "The 60-second enclosing budget can expire during an otherwise valid sequence of eight independently bounded chart stages.",
+          "The hosted stage attachment ended with the eighth request admitted and fetching. The later disconnect screenshot cannot establish when that request settled.",
+          "The separate indicator undo fixture used a generic 429 probe as evidence of mutation admission. Any occupied producer can cause the probe to return 429, including a read that makes the actual mutation return BUSY."
+        ],
+        "risks": [
+          {
+            "failure": "An expanded whole-test deadline hides an individual history transport failure or weakens private undo and source assertions.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A competing refresh owns the producer and the fixture attributes that admission to Undo or retries a mutation without a known outcome.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Keep the original hosted cutoff and controlled red and green observations. Restore the prior journey deadline if the controlled case or real disconnect assertions regress.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Product timeouts, market workers, individual request budgets, the global test timeout and market replay recovery."
+          ],
+          "open_questions": [
+            "The matching 031b5e1 Windows report finished all eight history stages and recovery. A separate indicator undo fixture failed on a correlated 429. Can both pass in the same hosted workspace report after fixing fixture ownership?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The 18-second individual test wait, 15-second preview watchdog, healthy response requirements, explicit disconnect recovery and all private undo and source assertions."
+          ],
+          "change": [
+            "Align only this whole journey with the adjacent 90-second recovery case.",
+            "Wait for the removal's workspace snapshot and empty accepted-layer list. Gate the exact undo before forwarding it once. Keep the independent post-visibility BUSY read probe."
+          ],
+          "data_plan": "Use the existing synthetic sample and disposable profile.",
+          "cleanup": "Retain the comparison diagnostic only in the ignored report directory. Keep sleeps out of the delivered test."
+        }
+      }
+    },
+    {
+      "id": "M1-026",
+      "title": "Keep cold operation validation within the market replay recovery budget",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-019"
+      ],
+      "scope": [
+        "crates/application/src/lib.rs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "A cold operation lookup and authorization do not compile unrelated validators. Each used payload still uses its canonical schema and repeated validation reuses it.",
+        "The real Windows interruption check observes one accepted chart subscription, recovery from the confirmed checkpoint, the exact final closed bar and the original frozen history within the existing replay deadline.",
+        "Existing cancellation, bounded restart, invalid replacement and independent chart and wire assertions continue to pass."
+      ],
+      "checks": [
+        "rust-contracts-workers",
+        "rust-lints",
+        "market-worker-interruption",
+        "market-recovery",
+        "market-recovery-ui",
+        "market-live-stream",
+        "market-fixtures",
+        "ui-build"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-026-43fae6f230c6c013.json",
+          "sha256": "3daea3eefd00fa59774724505092bd13401801b4ecfd533be725a369bd110539"
+        },
+        {
+          "path": "project/evidence/M1-026-813a5ffafcfaf38c.json",
+          "sha256": "8ea6929864d659f504a5682d75e64a044964270bda240884733ba8d5b960071a"
+        },
+        {
+          "path": "project/evidence/M1-026-c4d1d5ad29897cda.json",
+          "sha256": "e0dd181253635729781627134dd08a6088fbe35067e57ed92515cdd824dc7f92"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A cold preview bridge finishes real worker interruption recovery on Windows within the existing five-second subscription budget.",
+        "change_types": [
+          "market",
+          "stream-slice"
+        ],
+        "context": [
+          "crates/application/src/lib.rs",
+          "crates/application/src/replay.rs",
+          "crates/worker-host/src/market.rs",
+          "tests/ubuntu-preview/worker-interruption.spec.mjs"
+        ],
+        "hypotheses": [
+          "Both Windows jobs reached the verified replacement before the five-second subscription deadline. A local cold lookup isolated the eager cost, and the same real-worker interruption probe completed after deferring operation payload validators."
+        ],
+        "risks": [
+          {
+            "failure": "Deferred compilation skips canonical checks, compiles unrelated schemas, or rebuilds a used validator on each request.",
+            "checks": [
+              "rust-contracts-workers",
+              "rust-lints"
+            ]
+          },
+          {
+            "failure": "Replay still times out after resumption or stops preserving the confirmed state and frozen history.",
+            "checks": [
+              "market-worker-interruption",
+              "market-recovery",
+              "market-recovery-ui",
+              "market-live-stream"
+            ]
+          }
+        ],
+        "rollback": "Retain the original hosted failure and cold-bridge comparison. Revert the validator change if validation behavior regresses. Verify the remaining Windows risk with the matching hosted result.",
+        "implementation": {
+          "modules": [
+            "application",
+            "worker-host"
+          ],
+          "entrypoints": [
+            "crates/application/src/lib.rs",
+            "crates/worker-host/src/market.rs",
+            "tests/ubuntu-preview/worker-interruption.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/runtime"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Deadline increases, worker retry changes, protocol changes, and changes to other pull requests."
+          ],
+          "open_questions": [
+            "The retained Windows artifacts identify the terminal stage. A matching native Windows run is needed to verify the repaired budget on that runner."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Canonical request and response validation, actor permissions, recovery timing, cancellation, monotonic checkpoints, and independent expected outputs."
+          ],
+          "change": [
+            "Build only the payload validators needed by the current bridge traffic."
+          ],
+          "data_plan": "Keep compiler caches in process memory and use the existing synthetic replay and retained diagnostic artifacts.",
+          "cleanup": "Reuse the existing validator builder and remove eager catalog compilation."
+        }
+      }
+    },
+    {
+      "id": "M3-005",
+      "title": "Enforce indicator execution limits and restore accepted chart artifacts",
+      "milestone": "M3",
+      "status": "done",
+      "depends_on": [
+        "M3-001"
+      ],
+      "scope": [
+        "crates/application/src/workspace.rs",
+        "crates/application/src/workspace/indicators",
+        "crates/persistence/src/indicator_versions.rs",
+        "crates/persistence/src/lib.rs",
+        "crates/persistence/tests/workspace_registry.rs",
+        "crates/persistence/tests/indicator_lifecycle.rs",
+        "tests/fixtures/indicators/confirmation-sample-history.json",
+        "crates/worker-host/src/indicator.rs",
+        "crates/worker-host/tests/trusted_indicator.rs",
+        "python/worker_runtime/indicator_guard.py",
+        "python/worker_runtime/indicator.py",
+        "scripts/windows_job.py",
+        "tests/integration",
+        "project/tasks.json",
+        "project/feedback.json",
+        "crates/domain/src/wire.rs",
+        "crates/worker-host/src/bin/scopehub-indicator-child.rs",
+        "apps/desktop/src-tauri/src/bridge.rs",
+        "apps/desktop/src-tauri/src/workspace.rs",
+        "apps/desktop/ui",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ui"
+      ],
+      "decision_refs": [
+        "0002",
+        "0004",
+        "0007",
+        "0017"
+      ],
+      "acceptance": [
+        "Current local confirmation grants are required alongside the underlying run or acceptance grants for approval, denial and committed acceptance replay. A rejected unauthorized response leaves a valid pending challenge usable.",
+        "The admitted trusted Python path applies the generated 512 MiB memory policy before selected code executes on Linux and Windows, with accurate platform-specific scope and unchanged file and process authority.",
+        "Ordinary synthetic indicator results retain their independent expected values. Bounded positive and negative resource probes observe actual OS enforcement, a typed failure and owned process cleanup.",
+        "The native trusted indicator and private CLI use the configured indicator timeout rather than the market worker default. The application retains an approved trusted calculation for the prescribed runtime duration, and explicit test deadlines continue to apply.",
+        "Valid accepted-layer lists restore through the normal transport at the supported layer count. Output restored through a narrower sample window uses its visible intersection. Region-only results render positive overlaps with displayed bars, including a region wholly inside a single bar. Regions over missing bars remain absent.",
+        "A delivered newer preview permanently supersedes an older preview for the same dataset during the preview lifetime. Cancelling or clearing the newer one cannot revive an obsolete acceptance challenge.",
+        "A matching retry of the original approved Python preview command recovers its existing task receipt without another approval or dispatch, subject to current grants. Indicator removal undo is verified after remount."
+      ],
+      "checks": [
+        "operations-workflow",
+        "indicator-workflow",
+        "indicator-declarative-preview",
+        "rust-contracts-workers",
+        "rust-lints",
+        "python-contracts-workers",
+        "python-types",
+        "python-types-win32",
+        "ui-build",
+        "market-workflow"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M3-005-23e7883574f8da5c.json",
+          "sha256": "ff84e6ea5f62b9bd154a84f233d56d9497a955b7c190e4ab24561716ce7dc964"
+        },
+        {
+          "path": "project/evidence/M3-005-1189472f387b0b81.json",
+          "sha256": "3bace9b2c4d86126d33211df8e4e9f8da387d393510ee2731f28590fb401d791"
+        },
+        {
+          "path": "project/evidence/M3-005-3ee953149f47b304.json",
+          "sha256": "ea3d3759c57ca9e002e4c251824fe274b2a64fb9cb4273d616322e92dc40acab"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "All 12 selected checks passed on clean source 199a7192ad8e3cf41dd8325399e2a43edf902493 in local run 20261121T095903.292622Z-bf640228 and authenticated task workflow 44892140495 on Ubuntu and native Windows. The actual interpreter probes verified the 512 MiB limit on each platform, with per-process virtual address space on Linux and aggregate committed memory across the owned Job Object on Windows. A test-only 64 MiB cap rejected a 72 MiB allocation with the expected resource error and cleanup. The reports also verify the indicator deadline, current-grant and replay rules through SQLite, all 256 layer references, region-only preview and restore across intrabar, window and gap cases, and indicator removal undo after remount.",
+      "plan": {
+        "outcome": "Local indicator confirmations observe current grants and admitted trusted Python obeys the configured memory budget while preserving valid results and owned cleanup. Restore all supported accepted indicator artifacts on the chart after reopening or changing its sample window.",
+        "change_types": [
+          "permissions",
+          "indicators",
+          "ui"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "crates/application/src/workspace/indicators/accepted.rs",
+          "crates/application/src/workspace/indicators/trusted.rs",
+          "crates/worker-host/src/indicator.rs",
+          "python/worker_runtime/indicator_guard.py",
+          "scripts/windows_job.py",
+          "project/feedback.json",
+          "apps/desktop/src-tauri/src/bridge.rs",
+          "apps/desktop/src-tauri/src/workspace.rs",
+          "apps/desktop/ui/src",
+          "tests/ubuntu-preview/workspace.spec.mjs"
+        ],
+        "hypotheses": [
+          "Both indicator resolution paths check only the underlying operation before handling denial or dispatch; the acceptance path also performs receipt replay there.",
+          "The existing Linux owned interpreter launch and Windows Job Object can apply the generated memory policy without new capabilities or dependencies.",
+          "Native trusted execution inherits the five-second market default and application trusted jobs expire after eight seconds, while the private CLI uses the prescribed ten seconds.",
+          "The accepted-layer transport cap, chart time-domain projection, and region rendering are three separate restoration boundaries observed in the full PR review.",
+          "The first region renderer selects by bar start time. A legal region wholly inside a displayed bar has an empty start-time match even though it intersects the bar interval.",
+          "Acceptance skips cancelled and expired jobs before testing whether a delivered result superseded the old preview.",
+          "Python preview staging checks the pending challenge and consumed draft but omits the committed job lookup that declarative preview uses before consulting a draft.",
+          "The Linux-only resource API is used in a function mypy analyzes against Windows stubs even though its caller is gated to Linux."
+        ],
+        "risks": [
+          {
+            "failure": "A caller with a partial grant consumes a challenge, triggers code or a write, or retrieves a committed acceptance receipt.",
+            "checks": [
+              "rust-contracts-workers",
+              "operations-workflow",
+              "indicator-workflow"
+            ]
+          },
+          {
+            "failure": "The limit blocks healthy code, leaves owned work behind, or fails to produce a sanitized resource outcome.",
+            "checks": [
+              "rust-contracts-workers",
+              "python-contracts-workers",
+              "indicator-workflow"
+            ]
+          },
+          {
+            "failure": "A shorter implicit deadline still rejects a valid trusted run, or the indicator correction changes market timing.",
+            "checks": [
+              "rust-contracts-workers",
+              "indicator-workflow",
+              "market-workflow"
+            ]
+          },
+          {
+            "failure": "A valid layer list exceeds its reply budget, a narrower chart exposes points outside its restored bars, a valid intrabar region vanishes, or a range over missing bars is painted as observed.",
+            "checks": [
+              "indicator-declarative-preview",
+              "ui-build",
+              "indicator-workflow"
+            ]
+          },
+          {
+            "failure": "Old acceptance becomes valid again or an approved Python retry loses task identity or dispatches twice.",
+            "checks": [
+              "rust-contracts-workers",
+              "indicator-workflow",
+              "indicator-declarative-preview"
+            ]
+          },
+          {
+            "failure": "Windows type checking rejects Linux-only resource APIs or the platform guard changes runtime memory enforcement.",
+            "checks": [
+              "python-types",
+              "python-types-win32",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain the original review findings and failing probes. Revert a faulty implementation while keeping the task active and verify the platform launch and cleanup outcomes against the retained controls.",
+        "implementation": {
+          "modules": [
+            "application",
+            "persistence",
+            "worker-host",
+            "worker-runtime",
+            "development-tooling",
+            "domain",
+            "desktop",
+            "ui"
+          ],
+          "entrypoints": [
+            "crates/application/src/workspace.rs",
+            "crates/application/src/workspace/indicators/accepted.rs",
+            "crates/application/src/workspace/indicators/trusted.rs",
+            "crates/worker-host/src/indicator.rs",
+            "python/worker_runtime/indicator_guard.py",
+            "python/worker_runtime/indicator.py",
+            "scripts/windows_job.py",
+            "crates/domain/src/wire.rs",
+            "apps/desktop/src-tauri/src/bridge.rs",
+            "apps/desktop/src-tauri/src/workspace.rs",
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/runtime/defaults/indicator_memory_limit_mb"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/indicators/python_mode"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/runtime/defaults/indicator_timeout_ms"
+            }
+          ],
+          "non_goals": [
+            "New process or filesystem permissions, a security sandbox, changes to verification job defaults, and changes to existing stored results."
+          ],
+          "open_questions": [
+            "Native Windows run 44890490976 observed job and timeout enforcement on 9558acea6bb09edb9df05bf0e848db55a36aa3ba. Observe the same outcomes and a passing native type check on the corrected candidate.",
+            "The coordinated UI and transport lane owns restoration design and its focused regression evidence.",
+            "A focused runtime contributor owns preview supersession and approved Python replay. Verify the existing removal undo after remount in that coordinated evidence."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Local human approval, current source rights, durable acceptance replay under current grants and exact successful artifact values.",
+            "The existing ownership, cancellation and cleanup boundaries, trusted code authority, and default verification Job Object settings.",
+            "Market worker timing, explicit test deadlines, accepted artifacts and independent indicator output values."
+          ],
+          "change": [
+            "Require the confirmation response grant before inspecting or consuming challenges and receipts.",
+            "Apply the generated memory policy before forwarding selected code. Linux caps virtual address space per process, with ordinary descendants inheriting the limit. Windows caps committed memory across the existing owned Job Object.",
+            "Use the canonical indicator timeout for trusted native, CLI and application paths.",
+            "Restore valid accepted-layer reference lists and clip their projection to the current sample window. Render region-only results for overlapping displayed bar intervals and keep gaps unpainted.",
+            "Retain preview supersession through cancellation or clearing and recover already approved Python jobs through the existing receipt identity."
+          ],
+          "data_plan": "Use disposable synthetic code, exact frozen inputs and test-only resource probes. Keep existing stored artifacts and checksums.",
+          "cleanup": "Reap the existing owned interpreter and descendants on failure, cancellation and success. Release scratch storage and admission through the existing cleanup path."
+        }
+      }
+    },
+    {
       "id": "M0-029",
       "title": "Bound local Cargo cache growth across ScopeHub worktrees",
       "milestone": "M0",
@@ -8196,129 +9146,6 @@
       }
     },
     {
-      "id": "M1-026",
-      "title": "Keep cold operation validation within the market replay recovery budget",
-      "milestone": "M1",
-      "status": "done",
-      "depends_on": [
-        "M1-019"
-      ],
-      "scope": [
-        "crates/application/src/lib.rs",
-        "project/tasks.json",
-        "project/feedback.json"
-      ],
-      "decision_refs": [
-        "0004",
-        "0007"
-      ],
-      "acceptance": [
-        "A cold operation lookup and authorization do not compile unrelated validators. Each used payload still uses its canonical schema and repeated validation reuses it.",
-        "The real Windows interruption check observes one accepted chart subscription, recovery from the confirmed checkpoint, the exact final closed bar and the original frozen history within the existing replay deadline.",
-        "Existing cancellation, bounded restart, invalid replacement and independent chart and wire assertions continue to pass."
-      ],
-      "checks": [
-        "rust-contracts-workers",
-        "rust-lints",
-        "market-worker-interruption",
-        "market-recovery",
-        "market-recovery-ui",
-        "market-live-stream",
-        "market-fixtures",
-        "ui-build"
-      ],
-      "evidence": [
-        {
-          "path": "project/evidence/M1-026-43fae6f230c6c013.json",
-          "sha256": "3daea3eefd00fa59774724505092bd13401801b4ecfd533be725a369bd110539"
-        },
-        {
-          "path": "project/evidence/M1-026-813a5ffafcfaf38c.json",
-          "sha256": "8ea6929864d659f504a5682d75e64a044964270bda240884733ba8d5b960071a"
-        },
-        {
-          "path": "project/evidence/M1-026-c4d1d5ad29897cda.json",
-          "sha256": "e0dd181253635729781627134dd08a6088fbe35067e57ed92515cdd824dc7f92"
-        }
-      ],
-      "next_action": null,
-      "blocker": null,
-      "closure_reason": null,
-      "plan": {
-        "outcome": "A cold preview bridge finishes real worker interruption recovery on Windows within the existing five-second subscription budget.",
-        "change_types": [
-          "market",
-          "stream-slice"
-        ],
-        "context": [
-          "crates/application/src/lib.rs",
-          "crates/application/src/replay.rs",
-          "crates/worker-host/src/market.rs",
-          "tests/ubuntu-preview/worker-interruption.spec.mjs"
-        ],
-        "hypotheses": [
-          "Both Windows jobs reached the verified replacement before the five-second subscription deadline. A local cold lookup isolated the eager cost, and the same real-worker interruption probe completed after deferring operation payload validators."
-        ],
-        "risks": [
-          {
-            "failure": "Deferred compilation skips canonical checks, compiles unrelated schemas, or rebuilds a used validator on each request.",
-            "checks": [
-              "rust-contracts-workers",
-              "rust-lints"
-            ]
-          },
-          {
-            "failure": "Replay still times out after resumption or stops preserving the confirmed state and frozen history.",
-            "checks": [
-              "market-worker-interruption",
-              "market-recovery",
-              "market-recovery-ui",
-              "market-live-stream"
-            ]
-          }
-        ],
-        "rollback": "Retain the original hosted failure and cold-bridge comparison. Revert the validator change if validation behavior regresses. Verify the remaining Windows risk with the matching hosted result.",
-        "implementation": {
-          "modules": [
-            "application",
-            "worker-host"
-          ],
-          "entrypoints": [
-            "crates/application/src/lib.rs",
-            "crates/worker-host/src/market.rs",
-            "tests/ubuntu-preview/worker-interruption.spec.mjs"
-          ],
-          "rules": [
-            {
-              "path": "engineering-contract-v1.json",
-              "pointer": "/runtime"
-            },
-            {
-              "path": "project/delivery.json",
-              "pointer": "/scaffold_maintenance"
-            }
-          ],
-          "non_goals": [
-            "Deadline increases, worker retry changes, protocol changes, and changes to other pull requests."
-          ],
-          "open_questions": [
-            "The retained Windows artifacts identify the terminal stage. A matching native Windows run is needed to verify the repaired budget on that runner."
-          ]
-        },
-        "evolution": {
-          "kind": "refactor",
-          "preserve": [
-            "Canonical request and response validation, actor permissions, recovery timing, cancellation, monotonic checkpoints, and independent expected outputs."
-          ],
-          "change": [
-            "Build only the payload validators needed by the current bridge traffic."
-          ],
-          "data_plan": "Keep compiler caches in process memory and use the existing synthetic replay and retained diagnostic artifacts.",
-          "cleanup": "Reuse the existing validator builder and remove eager catalog compilation."
-        }
-      }
-    },
-    {
       "id": "M0-031",
       "title": "Resolve archived diagnostic runs and qualify idle worktrees for retirement",
       "milestone": "M0",
@@ -8462,7 +9289,7 @@
         "The read-only host inventory and the retained M4 diagnostic still resolve after integrating the upstream worktree and storage identity repairs. The command never removes a worktree or its files.",
         "New operational source and workflow changes cannot introduce cross-checkout diagnostic paths. Windows linked consumers and independent retained files are identified using the host path and file identity semantics.",
         "A checkout whose only outstanding hold is partial global process visibility enters human review intake while remaining held. Specific dependencies, activity, unverified evidence or Git state continue to disqualify intake.",
-        "Scoped pnpm projections are rebuildable when they are backed by the owning workspace\u2019s locked dependency or a public root hoist and resolve into its verified local virtual store. Unknown or foreign projections remain holds.",
+        "Scoped pnpm projections are rebuildable when they are backed by the owning workspace’s locked dependency or a public root hoist and resolve into its verified local virtual store. Unknown or foreign projections remain holds.",
         "Nested manifests and checkout-local linked runtime registries keep their downstream dependencies. Unique data buried in Cargo intermediate directories remains protected, and added executable HTML, SQL and harness commands are reviewed for nonlocal report paths."
       ],
       "checks": [

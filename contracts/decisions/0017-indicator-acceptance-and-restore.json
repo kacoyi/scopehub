@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "id": "0017",
+  "title": "Store accepted indicator artifacts independently of chart presentation",
+  "status": "accepted",
+  "recorded_at": "2026-11-19",
+  "context": "A profile can preview different computations over one frozen chart and compare them with an accepted output. Layout v9 stores panel configuration and a separate source preference. A later correction, removal, cache loss or restart must leave the accepted artifact attributable to its original input.",
+  "decision": "Add indicator version, layer state and layer operation tables in SQLite v10 on layout checkpoint 5eebdb9. Persist the exact source and computation snapshots, warm-up boundary, resolved parameters, artifact and hashes in the immutable version. Put mutable layer attachments in a separate table. Commit a human-approved version, its attachment and the shared operation receipt and retry identity in one writer transaction.",
+  "authority": "M3-001 and the indicator lifecycle in the engineering contract require reproducible previews and immutable acceptance. ADR 0007 delegates versioned local persistence and verification.",
+  "alternatives": [
+    {
+      "option": "Keep only a recipe and recompute on restart.",
+      "reason": "This cannot restore the exact accepted bytes after an input correction, engine change, withdrawal or trusted Python interaction with external state."
+    },
+    {
+      "option": "Embed accepted values in the layout or the operation log.",
+      "reason": "Each accepted version has its own source entitlement and retention lifecycle. Presentation and audit records need only the layer and version references."
+    }
+  ],
+  "consequences": [
+    "A failed v10 migration rolls back without changing layout v9 data or its ledger. A failed acceptance rolls back the version, attachment, receipt and workspace revision together.",
+    "The registry binds confirmation to the delivered preview and exact inputs. A committed retry recovers the original receipt, and removal and undo change the attachment without changing version bytes.",
+    "Restoration reads validated artifact bytes under current source rights. A revoked source leaves an unavailable version reference. Restoring a version never starts computation or reuses an execution approval.",
+    "This delivery uses profile-local published CSV and declarative evaluation. User-selected trusted Python requires a separate per-run approval and verification under ADR 0002."
+  ],
+  "supersedes": [],
+  "related_decisions": ["0002", "0007", "0008", "0011"],
+  "revisit_when": "Another adapter supplies retention terms, accepted outputs exceed the inline result envelope, or an explicit version deletion path needs a retention and recovery policy."
+}

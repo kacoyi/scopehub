@@ -80,6 +80,14 @@ pub(crate) fn snapshot_seed(
     hash.finalize().into()
 }
 
+pub(crate) fn snapshot_hash(
+    snapshot: &scopehub_domain::protocol::FrozenSnapshot,
+    timezone: &str,
+    bars: &[Bar],
+) -> String {
+    hex::encode(bars.iter().fold(snapshot_seed(snapshot, timezone), add_bar))
+}
+
 fn put_number(hash: &mut Sha256, value: f64) {
     hash.update((if value == 0.0 { 0.0 } else { value }).to_be_bytes());
 }

@@ -12,13 +12,17 @@ use scopehub_application::{
     OperationRegistry, PRIVATE_RECORD_CHANGE, READ_LOCAL_IMPORT_REVISION, WorkspaceAccess,
     WorkspaceBinding, evidence_operation_name, failure,
 };
-use scopehub_domain::protocol::{Error, ErrorCode};
+use scopehub_domain::{
+    protocol::{Error, ErrorCode},
+    wire::max_message_bytes,
+};
 use scopehub_persistence::SqliteWorkspace;
 use serde_json::{Value, json};
 
 const MAX_REQUEST_BYTES: u64 = 16 * 1024;
 const MAX_NOTE_REQUEST_BYTES: u64 = 32 * 1024;
 const MAX_BACKUP_REQUEST_BYTES: u64 = 1024 * 1024;
+const MAX_SAMPLE_REQUEST_BYTES: u64 = 256 * 1024;
 
 fn request_limit(operation: Option<&str>) -> u64 {
     match operation {
@@ -49,6 +53,8 @@ fn snapshot(
         "workspace": state.workspace,
         "selection_revision": state.selection_revision,
         "chart_evidence": state.chart_evidence,
+        "layouts": state.layouts_json(),
+        "source": state.source_json(),
         "undo": state.undo.map(|target| json!({
             "operation_id": target.operation_id,
             "committed_workspace_revision": target.committed_workspace_revision,
@@ -86,12 +92,12 @@ fn serve(
         line.clear();
         let count = input
             .by_ref()
-            .take(MAX_BACKUP_REQUEST_BYTES + 1)
+            .take(max_message_bytes() as u64 + 1)
             .read_until(b'\n', &mut line)?;
         if count == 0 {
             return Ok(());
         }
-        if count as u64 > MAX_BACKUP_REQUEST_BYTES {
+        if count > max_message_bytes() {
             return write_frame(
                 &mut output,
                 result_frame(Err(failure(ErrorCode::RESOURCELIMIT))),
@@ -105,6 +111,65 @@ fn serve(
         }
         let request =
             serde_json::from_slice::<Value>(&line).map_err(|_| failure(ErrorCode::INVALIDARGUMENT));
+        if request
+            .as_ref()
+            .is_ok_and(|frame| frame["type"] == "indicator_sample_preview")
+        {
+            // The authenticated local preview host assembles this private frame.
+            // Browser requests never supply the history or the wrapper.
+            let mut request = request.expect("private frame");
+            let result = if count as u64 > MAX_SAMPLE_REQUEST_BYTES {
+                Err(failure(ErrorCode::RESOURCELIMIT))
+            } else if let Some(frame) = request.as_object_mut()
+                && frame.len() == 3
+                && frame.contains_key("history")
+                && frame.contains_key("command")
+            {
+                let command = frame.remove("command").expect("command member");
+                let history = frame.remove("history").expect("history member");
+                if command.to_string().len() as u64 >= MAX_REQUEST_BYTES {
+                    Err(failure(ErrorCode::RESOURCELIMIT))
+                } else {
+                    registry.execute_sample_indicator_preview(access, command, history)
+                }
+            } else {
+                Err(failure(ErrorCode::INVALIDARGUMENT))
+            };
+            write_frame(&mut output, result_frame(result))?;
+            continue;
+        }
+        if request
+            .as_ref()
+            .is_ok_and(|frame| frame["type"] == "indicator_python_result")
+        {
+            let request = request.expect("private frame");
+            let result = (|| {
+                let task_id = request["task_id"]
+                    .as_str()
+                    .filter(|id| uuid::Uuid::parse_str(id).is_ok())
+                    .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
+                if !request.as_object().is_some_and(|frame| frame.len() == 4)
+                    || !request["request_id"]
+                        .as_str()
+                        .is_some_and(|id| uuid::Uuid::parse_str(id).is_ok())
+                {
+                    return Err(failure(ErrorCode::INVALIDARGUMENT));
+                }
+                let worker = &request["worker"];
+                let finished = if worker.get("error").is_some() {
+                    Err(serde_json::from_value(worker["error"].clone())
+                        .unwrap_or_else(|_| failure(ErrorCode::OUTPUTINVALID)))
+                } else {
+                    Ok(worker.clone())
+                };
+                registry.finish_trusted_python(access, task_id, finished)?;
+                registry.indicator_preview_status(access, task_id)
+            })();
+            let mut frame = result_frame(result);
+            frame["request_id"] = request["request_id"].clone();
+            write_frame(&mut output, frame)?;
+            continue;
+        }
         let operation = request.as_ref().ok().and_then(|request| {
             evidence_operation_name(request).or_else(|| request["intent"]["operation"].as_str())
         });
@@ -128,6 +193,37 @@ fn serve(
                     result_frame(Err(failure(ErrorCode::INVALIDARGUMENT))),
                 )?;
             }
+        } else if let Ok(request) = &request
+            && matches!(
+                request["type"].as_str(),
+                Some("indicator_accepted_layers" | "indicator_accepted_output")
+            )
+        {
+            let mut frame = result_frame(registry.read_accepted_indicator(access, request));
+            frame["request_id"] = request["request_id"].clone();
+            write_frame(&mut output, frame)?;
+        } else if let Ok(request) = &request
+            && request["type"] == "indicator_preview_status"
+        {
+            let result = match (request["request_id"].as_str(), request["task_id"].as_str()) {
+                (Some(id), Some(task_id))
+                    if request.as_object().is_some_and(|object| object.len() == 3)
+                        && uuid::Uuid::parse_str(id).is_ok()
+                        && uuid::Uuid::parse_str(task_id).is_ok() =>
+                {
+                    registry.indicator_preview_status(access, task_id)
+                }
+                _ => Err(failure(ErrorCode::INVALIDARGUMENT)),
+            };
+            let mut frame = result_frame(result);
+            frame["request_id"] = request["request_id"].clone();
+            write_frame(&mut output, frame)?;
+        } else if let Ok(request) = &request
+            && request["type"] == "workspace_source"
+        {
+            let mut frame = result_frame(registry.select_workspace_source(access, request));
+            frame["request_id"] = request["request_id"].clone();
+            write_frame(&mut output, frame)?;
         } else if let Ok(request) = &request
             && matches!(
                 request["type"].as_str(),
@@ -159,7 +255,17 @@ fn serve(
             write_frame(&mut output, frame)?;
         } else {
             let result = request.and_then(|request| registry.execute_workspace(access, request));
-            write_frame(&mut output, result_frame(result))?;
+            let work = match &result {
+                Ok(reply) => reply["outcome"]["result"]["task_id"].as_str(),
+                Err(_) => None,
+            }
+            .and_then(|task| registry.take_approved_python(access, task).ok().flatten());
+            let mut frame = result_frame(result);
+            if let Some(work) = work {
+                frame["indicator_compute"] =
+                    Value::String(serde_json::to_string(&work.request).map_err(io::Error::other)?);
+            }
+            write_frame(&mut output, frame)?;
         }
     }
 }

@@ -342,13 +342,13 @@ fn project(
     }))
 }
 
-struct FrozenChart {
-    snapshot: FrozenSnapshot,
-    bars: Vec<Bar>,
+pub(super) struct FrozenChart {
+    pub(super) snapshot: FrozenSnapshot,
+    pub(super) bars: Vec<Bar>,
 }
 
 impl FrozenChart {
-    fn new(dataset: &StoredLocalDataset) -> Result<Self, Error> {
+    pub(super) fn new(dataset: &StoredLocalDataset) -> Result<Self, Error> {
         let series = &dataset.content["series"];
         let series_text = |field| {
             series[field]
@@ -397,7 +397,7 @@ impl FrozenChart {
         Ok(Self { snapshot, bars })
     }
 
-    fn interval(&self, range: &VisibleRange) -> Result<&[Bar], Error> {
+    pub(super) fn interval(&self, range: &VisibleRange) -> Result<&[Bar], Error> {
         if range.from_ms >= range.to_ms
             || range.from_ms < self.snapshot.from_ms
             || range.to_ms > self.snapshot.to_ms

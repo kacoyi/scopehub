@@ -2,7 +2,9 @@
 //! Requests use the desktop registry and development market worker.
 use std::io::{BufRead, Read, Write};
 
-use scopehub_application::{Actor, MarketRegistry, SUBSCRIBE, failure};
+use scopehub_application::{
+    Actor, MarketRegistry, READ_INDICATOR_SAMPLE_HISTORY, SUBSCRIBE, failure,
+};
 use scopehub_domain::protocol::ErrorCode;
 use scopehub_worker_host::{
     market::{MarketWorker, WorkerConfig, run_subscription},
@@ -69,6 +71,11 @@ async fn main() {
                 .await;
                 let _ = write_frame(reply(result));
                 break;
+            }
+            Ok(request) if request.operation == READ_INDICATOR_SAMPLE_HISTORY => {
+                registry
+                    .read_sample_indicator_history(request.payload)
+                    .await
             }
             Ok(request) => {
                 registry

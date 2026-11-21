@@ -1,4 +1,4 @@
-# Generated from contracts/schemas/protocol.schema.json; sha256=4576d2b324362ebb7627c676c80d174dfd8e3527af6a33321cb7c875cb99cd37. Do not edit.
+# Generated from contracts/schemas/protocol.schema.json; sha256=9f48bd3a32aadff27fdedaa54a1e79e33d1c13a05d8042e8944d4b728d5cc688. Do not edit.
 from __future__ import annotations
 from typing import Literal, NotRequired, TypedDict
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
@@ -10,7 +10,7 @@ Metadata = dict[str, JsonValue]
 WorkerRole = Literal['market', 'ai', 'indicator']
 ProtocolVersion = Literal['1.0']
 ErrorCode = Literal['INVALID_ARGUMENT', 'UNSUPPORTED_CAPABILITY', 'PERMISSION_DENIED', 'CONFIRMATION_REQUIRED', 'CANCELLED', 'TIMEOUT', 'WORKER_EXITED', 'PROTOCOL_MISMATCH', 'DATA_UNAVAILABLE', 'STALE_CONTEXT', 'RESOURCE_LIMIT', 'OUTPUT_INVALID', 'PROVIDER_NOT_CONFIGURED', 'INTERNAL_ERROR', 'BUSY', 'SNAPSHOT_UNAVAILABLE']
-OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'market.subscribe', 'market.previewLocalImport', 'market.saveLocalImportMapping', 'market.loadLocalImportMapping', 'market.listLocalImportRevisions', 'market.readLocalImportRevision', 'market.readLocalImportSourceRow', 'market.previewLocalFolderRefresh', 'market.prepareLocalFolderPublication', 'market.publishLocalFolderRefresh', 'market.listLocalFolderRevisions', 'market.readLocalFolderRevision', 'market.readLocalFolderSourceRow', 'market.revokeLocalFolderRevision', 'market.revokeLocalImportRevision', 'market.publishLocalImport', 'workspace.readChartProjection', 'workspace.selectEvidence', 'decisionNote.save', 'decisionNote.read', 'decisionNote.appendOutcome', 'decisionNote.delete', 'decisionNote.exportBackup', 'decisionNote.previewRestore', 'decisionNote.restoreBackup', 'privateRecord.read', 'privateRecord.change', 'privateRecord.exportBackup']
+OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'market.subscribe', 'market.previewLocalImport', 'market.saveLocalImportMapping', 'market.loadLocalImportMapping', 'market.listLocalImportRevisions', 'market.readLocalImportRevision', 'market.readLocalImportSourceRow', 'market.previewLocalFolderRefresh', 'market.prepareLocalFolderPublication', 'market.publishLocalFolderRefresh', 'market.listLocalFolderRevisions', 'market.readLocalFolderRevision', 'market.readLocalFolderSourceRow', 'market.revokeLocalFolderRevision', 'market.revokeLocalImportRevision', 'market.publishLocalImport', 'workspace.readChartProjection', 'workspace.selectEvidence', 'decisionNote.save', 'decisionNote.read', 'decisionNote.appendOutcome', 'decisionNote.delete', 'decisionNote.exportBackup', 'decisionNote.previewRestore', 'decisionNote.restoreBackup', 'privateRecord.read', 'privateRecord.change', 'privateRecord.exportBackup', 'workspace.previewLayout', 'workspace.applyLayout']
 ChartStyle = Literal['candlestick', 'line']
 TaskStatus = Literal['queued', 'running', 'awaiting_confirmation', 'completed', 'failed', 'cancelled']
 Tradability = Literal['non_tradable', 'unknown']
@@ -1495,7 +1495,13 @@ class WorkspaceUndoArguments11(TypedDict):
 class WorkspaceUndoIntent11(TypedDict):
     operation: Literal['workspace.undo']
     arguments: WorkspaceUndoArguments11
-MutationIntent11 = WorkspaceOpenInstrumentIntent11 | ChartSetTimeframeIntent11 | ChartSetStyleIntent11 | ChartAddAnnotationIntent11 | ChartRemoveLayerIntent11 | IndicatorCreateDraftIntent11 | IndicatorRunPreviewIntent11 | IndicatorAcceptVersionIntent11 | IndicatorRemoveIntent11 | WorkspaceUndoIntent11
+class WorkspacePreviewLayoutIntent11(TypedDict):
+    operation: Literal['workspace.previewLayout']
+    arguments: WorkspacePreviewLayoutInput11
+class WorkspaceApplyLayoutIntent11(TypedDict):
+    operation: Literal['workspace.applyLayout']
+    arguments: WorkspaceApplyLayoutInput11
+MutationIntent11 = WorkspaceOpenInstrumentIntent11 | ChartSetTimeframeIntent11 | ChartSetStyleIntent11 | ChartAddAnnotationIntent11 | ChartRemoveLayerIntent11 | IndicatorCreateDraftIntent11 | IndicatorRunPreviewIntent11 | IndicatorAcceptVersionIntent11 | IndicatorRemoveIntent11 | WorkspaceUndoIntent11 | WorkspacePreviewLayoutIntent11 | WorkspaceApplyLayoutIntent11
 class ScopedFailure11(TypedDict):
     state: Literal['failed']
     error: WorkspaceFault11
@@ -1576,7 +1582,16 @@ class WorkspaceUndoCommitted11(TypedDict):
     operation: Literal['workspace.undo']
     receipt: OperationReceipt11
     result: WorkspaceUndoOutput
-MutationOutcome11 = WorkspaceOpenInstrumentCommitted11 | ChartSetTimeframeCommitted11 | ChartSetStyleCommitted11 | ChartAddAnnotationCommitted11 | ChartRemoveLayerCommitted11 | IndicatorCreateDraftCommitted11 | IndicatorRunPreviewCommitted11 | IndicatorAcceptVersionCommitted11 | IndicatorRemoveCommitted11 | WorkspaceUndoCommitted11 | NeedsHumanDecision11 | ScopedFailure11
+class WorkspacePreviewLayoutSuccess11(TypedDict):
+    state: Literal['previewed']
+    operation: Literal['workspace.previewLayout']
+    result: WorkspacePreviewLayoutOutput11
+class WorkspaceApplyLayoutSuccess11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['workspace.applyLayout']
+    receipt: OperationReceipt11
+    result: NamedWorkspaceLayout11
+MutationOutcome11 = WorkspaceOpenInstrumentCommitted11 | ChartSetTimeframeCommitted11 | ChartSetStyleCommitted11 | ChartAddAnnotationCommitted11 | ChartRemoveLayerCommitted11 | IndicatorCreateDraftCommitted11 | IndicatorRunPreviewCommitted11 | IndicatorAcceptVersionCommitted11 | IndicatorRemoveCommitted11 | WorkspaceUndoCommitted11 | NeedsHumanDecision11 | ScopedFailure11 | WorkspacePreviewLayoutSuccess11 | WorkspaceApplyLayoutSuccess11
 class InlineIndicatorArtifact11(TypedDict):
     storage: Literal['inline']
     result_hash: Hash
@@ -2571,3 +2586,70 @@ class ReadLocalFolderSourceRowOutput(TypedDict):
 ReadLocalFolderSourceRowReply11 = ReadLocalFolderSourceRowResponse | ReadLocalFolderSourceRowError
 RevokeLocalFolderRevisionReply11 = RevokeLocalFolderRevisionResponse | RevokeLocalFolderRevisionError
 AcceptedFolderRefreshBar = PublishedLocalImportBar | FolderRefreshAlternative
+class LayoutPanel11(TypedDict):
+    panel: Literal['watchlist', 'inspection']
+    dock: Literal['left', 'right', 'bottom']
+    size: int
+class WorkspaceLayout11(TypedDict):
+    version: int
+    panels: list[LayoutPanel11]
+    theme: Literal['dark', 'light']
+    gain_color: str
+    loss_color: str
+    link_selection: bool
+    pinned_instrument: OpaqueId | None
+class NamedWorkspaceLayout11(TypedDict):
+    name: str | None
+    definition: WorkspaceLayout11
+class SaveWorkspaceLayout11(TypedDict):
+    action: Literal['save']
+    name: str
+    definition: WorkspaceLayout11
+class OpenWorkspaceLayout11(TypedDict):
+    action: Literal['open']
+    name: str
+class ResetWorkspaceLayout11(TypedDict):
+    action: Literal['reset']
+WorkspaceLayoutEdit11 = SaveWorkspaceLayout11 | OpenWorkspaceLayout11 | ResetWorkspaceLayout11
+class WorkspacePreviewLayoutInput11(TypedDict):
+    edit: WorkspaceLayoutEdit11
+class WorkspacePreviewLayoutOutput11(TypedDict):
+    layout: NamedWorkspaceLayout11
+    preview_token: str
+class WorkspaceApplyLayoutInput11(TypedDict):
+    edit: WorkspaceLayoutEdit11
+    preview_token: str
+class WorkspacePreviewLayoutCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    scope: MutationScope11
+    intent: WorkspacePreviewLayoutIntent11
+WorkspacePreviewLayoutOutcome11 = WorkspacePreviewLayoutSuccess11 | ScopedFailure11
+class WorkspacePreviewLayoutReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    outcome: WorkspacePreviewLayoutOutcome11
+class WorkspaceApplyLayoutCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    scope: MutationScope11
+    intent: WorkspaceApplyLayoutIntent11
+WorkspaceApplyLayoutOutcome11 = WorkspaceApplyLayoutSuccess11 | ScopedFailure11
+class WorkspaceApplyLayoutReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    outcome: WorkspaceApplyLayoutOutcome11

@@ -138,7 +138,8 @@
       ],
       "input": "IndicatorCreateDraftInput",
       "output": "IndicatorCreateDraftOutput",
-      "implementation": "planned",
+      "implementation": "implemented",
+      "implementation_scope": "Protocol 1.1 profile-local human dispatch stages a typed declarative draft or the exact bytes of explicitly selected trusted Python.",
       "wire_bindings": {
         "1.1": {
           "input": "IndicatorCreateDraftCommand11",
@@ -157,7 +158,8 @@
       ],
       "input": "IndicatorRunPreviewInput",
       "output": "IndicatorRunPreviewOutput",
-      "implementation": "planned",
+      "implementation": "implemented",
+      "implementation_scope": "Protocol 1.1 profile-local human dispatch freezes an authorized published CSV or bound offline sample interval. The sample uses its exact verified adapter schedule. The registry validates declarative output and exposes correlated bounded preview status. An explicitly selected trusted Python draft on the bound synthetic source requires a separate local human decision for each exact code, parameter and frozen input tuple. The interpreter runs with the local user’s permissions and its result is independently validated.",
       "wire_bindings": {
         "1.1": {
           "input": "IndicatorRunPreviewCommand11",
@@ -176,7 +178,8 @@
       ],
       "input": "IndicatorAcceptVersionInput",
       "output": "IndicatorAcceptVersionOutput",
-      "implementation": "planned",
+      "implementation": "implemented",
+      "implementation_scope": "Protocol 1.1 profile-local human confirmation commits one exact entitled CSV preview or approved synthetic Python preview, immutable validated output, and a replayable undo receipt under current source rights.",
       "wire_bindings": {
         "1.1": {
           "input": "IndicatorAcceptVersionCommand11",
@@ -195,11 +198,54 @@
       ],
       "input": "IndicatorRemoveInput",
       "output": "IndicatorRemoveOutput",
-      "implementation": "planned",
+      "implementation": "implemented",
+      "implementation_scope": "Protocol 1.1 profile-local human dispatch detaches an accepted chart layer with a repeatable receipt and a revision-bound inverse. The immutable version remains retained.",
       "wire_bindings": {
         "1.1": {
           "input": "IndicatorRemoveCommand11",
           "output": "IndicatorRemoveReply11"
+        }
+      }
+    },
+    {
+      "name": "workspace.previewLayout",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "input": "WorkspacePreviewLayoutInput11",
+      "output": "WorkspacePreviewLayoutOutput11",
+      "implementation": "implemented",
+      "wire_since": "1.1",
+      "implementation_scope": "The profile-scoped workspace registry previews built-in panel edits at the current revision.",
+      "wire_bindings": {
+        "1.1": {
+          "input": "WorkspacePreviewLayoutCommand11",
+          "output": "WorkspacePreviewLayoutReply11"
+        }
+      }
+    },
+    {
+      "name": "workspace.applyLayout",
+      "effect": "workspace",
+      "confirmation": false,
+      "undoable": true,
+      "actors": [
+        "user",
+        "ai"
+      ],
+      "input": "WorkspaceApplyLayoutInput11",
+      "output": "NamedWorkspaceLayout11",
+      "implementation": "implemented",
+      "wire_since": "1.1",
+      "implementation_scope": "The profile-scoped workspace registry applies a matching preview with a durable replayable undo receipt.",
+      "wire_bindings": {
+        "1.1": {
+          "input": "WorkspaceApplyLayoutCommand11",
+          "output": "WorkspaceApplyLayoutReply11"
         }
       }
     },
@@ -215,7 +261,7 @@
       "input": "WorkspaceUndoInput",
       "output": "WorkspaceUndoOutput",
       "implementation": "implemented",
-      "implementation_scope": "The private protocol 1.1 workspace registry can reverse an eligible main-chart timeframe operation in the initiating principal and client scope. Current revisions and the chart's recorded after-state are checked. A committed inverse has its own replayable receipt.",
+      "implementation_scope": "The private protocol 1.1 workspace registry reverses an eligible main-chart timeframe or applied layout operation in the initiating actor, principal and client scope. Current revisions and the recorded after-state are checked. A committed inverse has its own replayable receipt.",
       "wire_bindings": {
         "1.1": {
           "input": "WorkspaceUndoCommand11",
@@ -234,7 +280,8 @@
       ],
       "input": "TaskCancelInput",
       "output": "TaskCancelOutput",
-      "implementation": "planned",
+      "implementation": "implemented",
+      "implementation_scope": "Protocol 1.1 profile-local human dispatch cancels an unpublished declarative indicator preview.",
       "wire_bindings": {
         "1.1": {
           "input": "TaskCancelRequest11",

@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=4576d2b324362ebb7627c676c80d174dfd8e3527af6a33321cb7c875cb99cd37. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=9f48bd3a32aadff27fdedaa54a1e79e33d1c13a05d8042e8944d4b728d5cc688. Do not edit.
 // Structural types and literal discriminators: validate schema refinements before deserializing.
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -207,6 +207,10 @@ pub enum OperationName {
     PrivateRecordChange,
     #[serde(rename = "privateRecord.exportBackup")]
     PrivateRecordExportBackup,
+    #[serde(rename = "workspace.previewLayout")]
+    WorkspacePreviewLayout,
+    #[serde(rename = "workspace.applyLayout")]
+    WorkspaceApplyLayout,
 }
 impl OperationName {
     pub fn as_str(&self) -> &'static str {
@@ -254,6 +258,8 @@ impl OperationName {
             Self::PrivateRecordRead => "privateRecord.read",
             Self::PrivateRecordChange => "privateRecord.change",
             Self::PrivateRecordExportBackup => "privateRecord.exportBackup",
+            Self::WorkspacePreviewLayout => "workspace.previewLayout",
+            Self::WorkspaceApplyLayout => "workspace.applyLayout",
         }
     }
 }
@@ -2813,6 +2819,18 @@ pub struct WorkspaceUndoIntent11 {
     pub arguments: WorkspaceUndoArguments11,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WorkspacePreviewLayoutIntent11 {
+    pub operation: WorkspacePreviewLayoutIntent11Operation,
+    pub arguments: WorkspacePreviewLayoutInput11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WorkspaceApplyLayoutIntent11 {
+    pub operation: WorkspaceApplyLayoutIntent11Operation,
+    pub arguments: WorkspaceApplyLayoutInput11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]
 pub enum MutationIntent11 {
     WorkspaceOpenInstrumentIntent11(Box<WorkspaceOpenInstrumentIntent11>),
@@ -2825,6 +2843,8 @@ pub enum MutationIntent11 {
     IndicatorAcceptVersionIntent11(Box<IndicatorAcceptVersionIntent11>),
     IndicatorRemoveIntent11(Box<IndicatorRemoveIntent11>),
     WorkspaceUndoIntent11(Box<WorkspaceUndoIntent11>),
+    WorkspacePreviewLayoutIntent11(Box<WorkspacePreviewLayoutIntent11>),
+    WorkspaceApplyLayoutIntent11(Box<WorkspaceApplyLayoutIntent11>),
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -2952,6 +2972,21 @@ pub struct WorkspaceUndoCommitted11 {
     pub result: WorkspaceUndoOutput,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WorkspacePreviewLayoutSuccess11 {
+    pub state: WorkspacePreviewLayoutSuccess11State,
+    pub operation: WorkspacePreviewLayoutSuccess11Operation,
+    pub result: WorkspacePreviewLayoutOutput11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WorkspaceApplyLayoutSuccess11 {
+    pub state: WorkspaceApplyLayoutSuccess11State,
+    pub operation: WorkspaceApplyLayoutSuccess11Operation,
+    pub receipt: OperationReceipt11,
+    pub result: NamedWorkspaceLayout11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]
 pub enum MutationOutcome11 {
     WorkspaceOpenInstrumentCommitted11(Box<WorkspaceOpenInstrumentCommitted11>),
@@ -2966,6 +3001,8 @@ pub enum MutationOutcome11 {
     WorkspaceUndoCommitted11(Box<WorkspaceUndoCommitted11>),
     NeedsHumanDecision11(Box<NeedsHumanDecision11>),
     ScopedFailure11(Box<ScopedFailure11>),
+    WorkspacePreviewLayoutSuccess11(Box<WorkspacePreviewLayoutSuccess11>),
+    WorkspaceApplyLayoutSuccess11(Box<WorkspaceApplyLayoutSuccess11>),
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -4901,6 +4938,128 @@ pub enum RevokeLocalFolderRevisionReply11 {
 pub enum AcceptedFolderRefreshBar {
     PublishedLocalImportBar(Box<PublishedLocalImportBar>),
     FolderRefreshAlternative(Box<FolderRefreshAlternative>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LayoutPanel11 {
+    pub panel: LayoutPanel11Panel,
+    pub dock: LayoutPanel11Dock,
+    pub size: u64,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WorkspaceLayout11 {
+    pub version: u64,
+    pub panels: Vec<LayoutPanel11>,
+    pub theme: WorkspaceLayout11Theme,
+    pub gain_color: String,
+    pub loss_color: String,
+    pub link_selection: bool,
+    pub pinned_instrument: Option<OpaqueId>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NamedWorkspaceLayout11 {
+    pub name: Option<String>,
+    pub definition: WorkspaceLayout11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SaveWorkspaceLayout11 {
+    pub action: SaveWorkspaceLayout11Action,
+    pub name: String,
+    pub definition: WorkspaceLayout11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OpenWorkspaceLayout11 {
+    pub action: OpenWorkspaceLayout11Action,
+    pub name: String,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResetWorkspaceLayout11 {
+    pub action: ResetWorkspaceLayout11Action,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum WorkspaceLayoutEdit11 {
+    SaveWorkspaceLayout11(Box<SaveWorkspaceLayout11>),
+    OpenWorkspaceLayout11(Box<OpenWorkspaceLayout11>),
+    ResetWorkspaceLayout11(Box<ResetWorkspaceLayout11>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WorkspacePreviewLayoutInput11 {
+    pub edit: WorkspaceLayoutEdit11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WorkspacePreviewLayoutOutput11 {
+    pub layout: NamedWorkspaceLayout11,
+    pub preview_token: String,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WorkspaceApplyLayoutInput11 {
+    pub edit: WorkspaceLayoutEdit11,
+    pub preview_token: String,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WorkspacePreviewLayoutCommand11 {
+    pub protocol_version: ProtocolVersion11,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: WorkspacePreviewLayoutCommand11Type,
+    pub request_id: Uuid,
+    pub task_id: Option<Uuid>,
+    pub scope: MutationScope11,
+    pub intent: WorkspacePreviewLayoutIntent11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum WorkspacePreviewLayoutOutcome11 {
+    WorkspacePreviewLayoutSuccess11(Box<WorkspacePreviewLayoutSuccess11>),
+    ScopedFailure11(Box<ScopedFailure11>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WorkspacePreviewLayoutReply11 {
+    pub protocol_version: ProtocolVersion11,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: WorkspacePreviewLayoutReply11Type,
+    pub request_id: Uuid,
+    pub outcome: WorkspacePreviewLayoutOutcome11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WorkspaceApplyLayoutCommand11 {
+    pub protocol_version: ProtocolVersion11,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: WorkspaceApplyLayoutCommand11Type,
+    pub request_id: Uuid,
+    pub task_id: Option<Uuid>,
+    pub scope: MutationScope11,
+    pub intent: WorkspaceApplyLayoutIntent11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum WorkspaceApplyLayoutOutcome11 {
+    WorkspaceApplyLayoutSuccess11(Box<WorkspaceApplyLayoutSuccess11>),
+    ScopedFailure11(Box<ScopedFailure11>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WorkspaceApplyLayoutReply11 {
+    pub protocol_version: ProtocolVersion11,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: WorkspaceApplyLayoutReply11Type,
+    pub request_id: Uuid,
+    pub outcome: WorkspaceApplyLayoutOutcome11,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum FieldExpressionOp {
@@ -8773,6 +8932,30 @@ impl WorkspaceUndoIntent11Operation {
     }
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum WorkspacePreviewLayoutIntent11Operation {
+    #[serde(rename = "workspace.previewLayout")]
+    Value,
+}
+impl WorkspacePreviewLayoutIntent11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "workspace.previewLayout",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum WorkspaceApplyLayoutIntent11Operation {
+    #[serde(rename = "workspace.applyLayout")]
+    Value,
+}
+impl WorkspaceApplyLayoutIntent11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "workspace.applyLayout",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum ScopedFailure11State {
     #[serde(rename = "failed")]
     Value,
@@ -9057,6 +9240,54 @@ impl WorkspaceUndoCommitted11Operation {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Value => "workspace.undo",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum WorkspacePreviewLayoutSuccess11State {
+    #[serde(rename = "previewed")]
+    Value,
+}
+impl WorkspacePreviewLayoutSuccess11State {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "previewed",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum WorkspacePreviewLayoutSuccess11Operation {
+    #[serde(rename = "workspace.previewLayout")]
+    Value,
+}
+impl WorkspacePreviewLayoutSuccess11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "workspace.previewLayout",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum WorkspaceApplyLayoutSuccess11State {
+    #[serde(rename = "committed")]
+    Value,
+}
+impl WorkspaceApplyLayoutSuccess11State {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "committed",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum WorkspaceApplyLayoutSuccess11Operation {
+    #[serde(rename = "workspace.applyLayout")]
+    Value,
+}
+impl WorkspaceApplyLayoutSuccess11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "workspace.applyLayout",
         }
     }
 }
@@ -10440,6 +10671,138 @@ impl FolderRefreshBarStatus {
             Self::Conflict => "conflict",
             Self::Withdrawal => "withdrawal",
             Self::Unverified => "unverified",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LayoutPanel11Panel {
+    #[serde(rename = "watchlist")]
+    Watchlist,
+    #[serde(rename = "inspection")]
+    Inspection,
+}
+impl LayoutPanel11Panel {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Watchlist => "watchlist",
+            Self::Inspection => "inspection",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LayoutPanel11Dock {
+    #[serde(rename = "left")]
+    Left,
+    #[serde(rename = "right")]
+    Right,
+    #[serde(rename = "bottom")]
+    Bottom,
+}
+impl LayoutPanel11Dock {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Left => "left",
+            Self::Right => "right",
+            Self::Bottom => "bottom",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum WorkspaceLayout11Theme {
+    #[serde(rename = "dark")]
+    Dark,
+    #[serde(rename = "light")]
+    Light,
+}
+impl WorkspaceLayout11Theme {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Dark => "dark",
+            Self::Light => "light",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum SaveWorkspaceLayout11Action {
+    #[serde(rename = "save")]
+    Value,
+}
+impl SaveWorkspaceLayout11Action {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "save",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum OpenWorkspaceLayout11Action {
+    #[serde(rename = "open")]
+    Value,
+}
+impl OpenWorkspaceLayout11Action {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "open",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ResetWorkspaceLayout11Action {
+    #[serde(rename = "reset")]
+    Value,
+}
+impl ResetWorkspaceLayout11Action {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "reset",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum WorkspacePreviewLayoutCommand11Type {
+    #[serde(rename = "request")]
+    Value,
+}
+impl WorkspacePreviewLayoutCommand11Type {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum WorkspacePreviewLayoutReply11Type {
+    #[serde(rename = "response")]
+    Value,
+}
+impl WorkspacePreviewLayoutReply11Type {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum WorkspaceApplyLayoutCommand11Type {
+    #[serde(rename = "request")]
+    Value,
+}
+impl WorkspaceApplyLayoutCommand11Type {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum WorkspaceApplyLayoutReply11Type {
+    #[serde(rename = "response")]
+    Value,
+}
+impl WorkspaceApplyLayoutReply11Type {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
         }
     }
 }

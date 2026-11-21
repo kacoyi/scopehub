@@ -44,6 +44,17 @@ const service = `
         if (request.url !== '${operationPath}' || !request.headers['${traceHeader}'] || !fault) return next();
         const end = response.end;
         response.end = function (...args) {
+          if (fault === 'hold-success' && response.statusCode === 200) {
+            const start = performance.now();
+            const timer = setTimeout(() => {
+              console.info('Preview history', JSON.stringify({
+                id: request.headers['${traceHeader}'], stage: 'held-success', elapsed_ms: Math.round(performance.now() - start),
+              }));
+              end.apply(response, args);
+            }, 5500);
+            response.once('close', () => clearTimeout(timer));
+            return response;
+          }
           if (fault === 'before-headers' && response.statusCode === 200) {
             if (heldFirstDisconnect) return response.destroy();
             heldFirstDisconnect = true;
@@ -88,7 +99,7 @@ test.beforeAll(async ({}, testInfo) => {
   testInfo.setTimeout(300_000);
   await exec('cargo', [
     'build', '--locked', '-p', 'scopehub-persistence', '--bin', 'workspace_bridge',
-    '-p', 'scopehub-worker-host', '--example', 'history_bridge', '--target-dir', 'target',
+    '-p', 'scopehub-worker-host', '--example', 'history_bridge', '--bin', 'scopehub-indicator-child', '--target-dir', 'target',
   ], { cwd: root, timeout: 295_000 });
 });
 
@@ -444,26 +455,28 @@ function evidenceBars(a, b) {
   ];
 }
 
-async function seedFrozenEvidence(profile, id, a, b) {
+async function seedFrozenEvidence(profile, id, a, b, fixture = evidenceBars(a, b)) {
   const create = exec(workspaceBridge, [profile.root, profile.id, workspaceId], { timeout: 12_000 });
   create.child.stdin.end();
   await create;
   // Independent fixture inputs. The application reopens and verifies the actual
   // SQLite revision. No operation, authorization or chart reply is stubbed.
   const database = new DatabaseSync(join(profile.root, 'workspace.sqlite3'));
-  const csv = Buffer.from('Date,Symbol,Open,High,Low,Close,Volume\n2026-02-03,FIX,30,34,29,31.5,120\n2026-02-04,FIX,42,47,40,44.25,\n');
+  const csv = Buffer.from(['Date,Symbol,Open,High,Low,Close,Volume', ...fixture.map(bar =>
+    [bar.trading_day, 'FIX', bar.open, bar.high, bar.low, bar.close, bar.volume].join(',')), ''].join('\n'));
   const digest = createHash('sha256').update(csv).digest('hex');
   const mappingDigest = 'b'.repeat(64);
-  const bars = evidenceBars(a, b).map((bar, index) => ({
+  const bars = fixture.map((bar, index) => ({
     bar, locators: [{ record_number: index + 1, line_start: index + 2, line_end: index + 2 }],
   }));
+  const sourceKey = 'source-fixture-' + id;
   try {
     database.exec('PRAGMA foreign_keys = ON; BEGIN');
-    database.prepare('INSERT INTO reviewed_import_mappings VALUES (?, ?, ?, ?)').run('source-fixture', 1, 'a'.repeat(64), '{}');
+    database.prepare('INSERT INTO reviewed_import_mappings VALUES (?, ?, ?, ?)').run(sourceKey, 1, 'a'.repeat(64), '{}');
     database.prepare('INSERT INTO local_dataset_source_blobs VALUES (?, ?)').run(digest, csv);
     database.prepare('INSERT INTO local_dataset_revisions VALUES (?, ?, ?, ?, ?, ?, ?)').run(
-      id, 'source-fixture', 'frozen-fixture.csv', digest, 1, mappingDigest,
-      JSON.stringify({ symbol: 'FIX', series: evidenceSeries, source_record_count: 2, bars }),
+      id, sourceKey, 'frozen-fixture.csv', digest, 1, mappingDigest,
+      JSON.stringify({ symbol: 'FIX', series: evidenceSeries, source_record_count: bars.length, bars }),
     );
     database.exec('COMMIT');
   } finally {
@@ -499,6 +512,1290 @@ function independentEvidenceHash(id, a, b) {
   }
   return result.toString('hex');
 }
+
+test('indicator-preview restores all 256 accepted layer references through the Ubuntu workspace', async () => {
+  const profile = await makeProfile();
+  const revisionId = randomUUID();
+  const first = Date.UTC(2026, 1, 3);
+  const last = Date.UTC(2026, 1, 4);
+  try {
+    await seedFrozenEvidence(profile, revisionId, first, last);
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      const frozen = await (await post(server, {
+        type: 'frozen_chart', request_id: randomUUID(), revision_id: revisionId,
+      })).json();
+      expect(frozen.ok).toBe(true);
+      const source = frozen.result.snapshot;
+      expect(source.content_hash).toBe(independentEvidenceHash(revisionId, first, last));
+
+      // Preload the maximum legal number of active attachments. The fixture
+      // represents separately accepted runs with identical inputs and output.
+      const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+      const parameters = { period: 2 };
+      // Use the canonical key order when hashing the expected artifact.
+      const points = [{ time_ms: first, value: null }, { time_ms: last, value: 37.875 }];
+      const result = {
+        diagnostics: [], markers: [],
+        provenance: {
+          code_hash: 'd'.repeat(64), dataset_id: revisionId, dataset_revision: source.dataset_revision,
+          engine_version: 'scopehub-declarative-3', params_hash: digest(parameters),
+        },
+        regions: [],
+        series: [{ id: 'mean', pane: 'price', points, style: { color: '#123456', width: 2 }, type: 'line' }],
+      };
+      const artifact = { result, result_hash: digest(result), storage: 'inline' };
+      const common = {
+        draft_id: randomUUID(), source_snapshot: source, snapshot: source, warmup_from_ms: null,
+        resolved_parameters: parameters, artifact, calendar_hash: null,
+      };
+      const uuid = index => '00000000-0000-4000-8000-' + index.toString(16).padStart(12, '0');
+      const layers = Array.from({ length: 256 }, (_unused, index) => ({
+        layer_id: uuid(index + 1), version_id: uuid(index + 257), available: true,
+      }));
+      const database = new DatabaseSync(join(profile.root, 'workspace.sqlite3'));
+      try {
+        database.exec('PRAGMA foreign_keys = ON; BEGIN');
+        const record = database.prepare(`INSERT INTO operation_log
+          (id, workspace_id, operation, actor, principal_id, paired_client_id, request_id, committed_at_ms,
+            revision, undoable, before_timeframe, after_timeframe)
+          VALUES (?, ?, 'indicator.acceptVersion', 'user', ?, '', ?, ?, ?, 1, '1m', '1m')`);
+        const version = database.prepare('INSERT INTO indicator_versions VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+        const activate = database.prepare('INSERT INTO indicator_layer_state VALUES (?, ?, 1)');
+        const attachment = database.prepare('INSERT INTO indicator_layer_operations VALUES (?, ?, ?, 0, 1)');
+        for (const [index, layer] of layers.entries()) {
+          const operation = randomUUID();
+          const preview = randomUUID();
+          record.run(operation, workspaceId, profile.id, randomUUID(), Date.now(), index + 1);
+          version.run(workspaceId, layer.layer_id, layer.version_id, preview, randomUUID(), operation, revisionId,
+            JSON.stringify({ ...common, task_id: randomUUID(), preview_id: preview }));
+          activate.run(workspaceId, layer.layer_id);
+          attachment.run(operation, workspaceId, layer.layer_id);
+        }
+        database.prepare('UPDATE workspaces SET revision = ? WHERE id = ?').run(layers.length, workspaceId);
+        database.exec('COMMIT');
+      } finally {
+        database.close();
+      }
+
+      const representative = layers.at(-1);
+      const output = await (await post(server, {
+        type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: representative.layer_id,
+      })).json();
+      expect(output).toMatchObject({ ok: true, result: {
+        layer_id: representative.layer_id, version_id: representative.version_id, document: { artifact },
+      } });
+      const list = async () => {
+        const response = await post(server, {
+          type: 'indicator_accepted_layers', request_id: randomUUID(), revision_id: revisionId,
+        });
+        const listing = await response.json();
+        expect(response.status, JSON.stringify(listing).slice(0, 250)).toBe(200);
+        expect(listing).toMatchObject({ ok: true, result: { dataset_id: revisionId } });
+        return listing.result.layers;
+      };
+      expect(await list()).toEqual(layers);
+
+      // Revocation retains the references and uses the longer false flag.
+      const revoked = new DatabaseSync(join(profile.root, 'workspace.sqlite3'));
+      try {
+        revoked.prepare('INSERT INTO local_dataset_display_revocations (revision_id) VALUES (?)').run(revisionId);
+      } finally {
+        revoked.close();
+      }
+      expect(await list()).toEqual(layers.map(layer => ({ ...layer, available: false })));
+    });
+  } finally {
+    await profile.close();
+  }
+});
+
+test('indicator-preview uses the bound sample calendar through the normal chart', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  const port = await freePort();
+  const afterClosure = 1704243600000;
+  const lastExpected = 1704200940000;
+  const croppedHistory = sampleHistoryCall();
+  const dayStart = Date.UTC(2024, 0, 3);
+  Object.assign(croppedHistory.payload, { from_ms: dayStart, to_ms: Date.UTC(2024, 0, 4) });
+  const gappedRevision = 'scopehub-synthetic-v1:20241013:gapped';
+  const gappedHistory = { ...croppedHistory, payload: { ...croppedHistory.payload, expected_revision: gappedRevision } };
+  const observation = [];
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      const injected = await post(server, {
+        type: 'indicator_sample_preview', command: {}, history: { bars: [], sessions: [] },
+      });
+      expect(injected.status).toBe(403);
+      await injected.body?.cancel();
+
+      await inFreshBrowser(browser, server, async page => {
+        await sampleStep(page, server, testInfo, 'open sample for calendar preview', () => sampleButton(page).click());
+        const source = await (await post(server, snapshot)).json();
+        expect(source.result.source).toMatchObject({ kind: 'sample' });
+        await control(page, 'Data sources').click();
+        const sources = page.getByRole('complementary', { name: 'Data sources' });
+        // UTC Jan 3 starts after the first session. The preceding bar
+        // must come from the same immutable revision's earlier warm-up.
+        const releaseRoute = await holdSampleHistory(page, dayStart);
+        try {
+          const historyRequest = await sampleStep(page, server, testInfo, 'read delayed January 3 sample',
+            () => sources.getByLabel('Sample date (UTC)').fill('2024-01-03'),
+            { catalog: false, historyCall: croppedHistory, bars: 20 });
+          const stages = server.historyStages.get(historyRequest.headers()[traceHeader]);
+          const hold = stages.find(stage => stage.stage === 'held-success');
+          expect(hold?.elapsed_ms, 'Delay of the successful history response').toBeGreaterThan(5_000);
+        } finally {
+          await releaseRoute();
+        }
+        const plot = page.getByRole('region', { name: 'Price chart' });
+        await sources.getByRole('button', { name: 'Close panel' }).click();
+        const indicatorSwitch = plot.getByText('Indicators', { exact: true });
+        await indicatorSwitch.click({ timeout: 8_000 });
+        const indicator = plot.getByRole('region', { name: 'Indicator preview' });
+        let previewCommand;
+        const run = async () => {
+          await indicator.getByLabel('First visible bar').selectOption(String(afterClosure));
+          await indicator.getByLabel('Last visible bar').selectOption(String(afterClosure));
+          const ready = page.waitForResponse(async response =>
+            new URL(response.url()).pathname === endpoint
+            && response.request().postDataJSON()?.type === 'indicator_preview_status'
+            && (await response.json()).result?.status === 'ready');
+          const submitted = page.waitForRequest(request => new URL(request.url()).pathname === endpoint
+            && request.postDataJSON()?.intent?.operation === 'indicator.runPreview');
+          await indicator.getByRole('button', { name: 'Run preview' }).click();
+          previewCommand = (await submitted).postDataJSON();
+          const terminal = (await (await ready).json()).result;
+          await expect(indicator.getByText(/Preview layers/)).toBeVisible();
+          return terminal;
+        };
+        const normal = await run();
+        expect(normal.event.artifact.result.series[0].points).toEqual([{ time_ms: afterClosure, value: 3500.5 }]);
+        expect(normal.warmup_from_ms).toBe(lastExpected);
+        expect(normal.source_snapshot.from_ms).toBe(dayStart);
+        expect(normal.event.snapshot.warmup_bars).toBe(1);
+        expect(normal.calendar_hash).toMatch(/^[a-f0-9]{64}$/);
+        await expect(indicator.getByText("The source's scheduled closures add no indicator buckets.")).toBeVisible();
+        await expect(indicator.getByText(/expected market buckets are missing/)).toHaveCount(0);
+        await indicator.getByText('Preview provenance and values').click();
+        await expect(indicator.getByRole('table', { name: 'Indicator preview values' })).toContainText('3500.5');
+        observation.push(normal);
+        expect(Object.keys(previewCommand.intent.arguments).sort()).toEqual(['draft_id', 'parameters', 'snapshot']);
+        const forged = structuredClone(previewCommand);
+        forged.request_id = randomUUID();
+        forged.message_id = randomUUID();
+        forged.scope.idempotency_key = randomUUID();
+        forged.scope.target.snapshot.content_hash = 'f'.repeat(64);
+        forged.intent.arguments.snapshot.content_hash = 'f'.repeat(64);
+        const denied = await (await post(server, forged)).json();
+        expect(denied.result?.outcome).toMatchObject({ state: 'failed', error: { code: 'SNAPSHOT_UNAVAILABLE' } });
+        await expect(indicator.getByRole('table', { name: 'Indicator preview values' })).toContainText('3500.5');
+
+
+        await control(page, 'Data sources').click();
+        await sampleStep(page, server, testInfo, 'read gapped January 3 sample',
+          () => sources.getByLabel('Sample revision').selectOption('gapped'),
+          { catalog: false, historyCall: gappedHistory, bars: 20 });
+        await expect(sources.getByText(gappedRevision, { exact: true })).toBeVisible();
+        await sources.getByRole('button', { name: 'Close panel' }).click();
+        if (await plot.locator('.chart-indicators').getAttribute('open') === null) {
+          await indicatorSwitch.click({ timeout: 8_000 });
+        }
+        // Jan 3 has the same observed bars; switching the revision removes the
+        // old result even though the chart looks identical in this UTC slice.
+        await expect(indicator.getByText(/Preview layers/)).toHaveCount(0);
+        const gapped = await run();
+        expect(gapped.source_snapshot.dataset_revision).toMatch(/:gapped$/);
+        expect(gapped.calendar_hash).toBe(normal.calendar_hash);
+        expect(gapped.event.snapshot.content_hash).not.toBe(normal.event.snapshot.content_hash);
+        expect(gapped.event.artifact.result.series[0].points).toEqual([{ time_ms: afterClosure, value: null }]);
+        await expect(indicator.getByText(/expected market buckets are missing/)).toBeVisible();
+        await expect(indicator.getByText(/no verified session schedule/)).toHaveCount(0);
+        observation.push(gapped);
+
+        await control(page, 'Data sources').click();
+        await sources.getByRole('button', { name: 'Leave sample' }).click();
+        await expect(plot.getByRole('region', { name: 'Indicator preview' })).toHaveCount(0);
+        await expect.poll(async () => (await (await post(server, {
+          type: 'indicator_preview_status', request_id: randomUUID(), task_id: gapped.task_id,
+        })).json()).error?.code).toBe('STALE_CONTEXT');
+      }, [endpoint, '/__scopehub/operation'], { traceSample: true });
+    }, { historyTrace: true, historyFault: true });
+    await testInfo.attach('sample-indicator-calendar', { body: JSON.stringify(observation), contentType: 'application/json' });
+  } finally {
+    await profile.close();
+  }
+});
+
+test('indicator-preview shows zero volatility for equal closes in a full or cropped window', async ({ browser }) => {
+  const profile = await makeProfile();
+  const revision = randomUUID();
+  const prices = [133.33, 120.21, 120.21].map((close, index) => {
+    const time = Date.UTC(2026, 1, 3 + index);
+    return { time_ms: time, trading_day: new Date(time).toISOString().slice(0, 10),
+      open: close, high: close, low: close, close, volume: 10, is_closed: true };
+  });
+  try {
+    await seedFrozenEvidence(profile, revision, prices[0].time_ms, prices[2].time_ms, prices);
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        await control(page, 'Open published CSV').click();
+        const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+        await dialog.getByLabel('Revision ID').fill(revision);
+        await dialog.getByRole('button', { name: 'Open frozen chart' }).click();
+        const panel = dialog.getByRole('region', { name: 'Indicator preview' });
+        await expect(panel.getByLabel('Rolling period')).toHaveValue('2');
+        for (const count of [3, 1]) {
+          if (count === 1) await panel.getByLabel('First visible bar').selectOption(String(prices[2].time_ms));
+          const [reply] = await Promise.all([
+            page.waitForResponse(async r => r.url().endsWith(endpoint)
+              && r.request().postDataJSON()?.type === 'indicator_preview_status' && (await r.json()).result?.status === 'ready'),
+            panel.getByRole('button', { name: 'Run preview' }).click(),
+          ]);
+          const ready = (await reply.json()).result;
+          const values = ready.event.artifact.result.series[1].points;
+          expect(values).toHaveLength(count);
+          expect(values.at(-1)).toEqual({ time_ms: prices[2].time_ms, value: 0 });
+          if (count === 1) expect(ready.warmup_from_ms).toBe(prices[1].time_ms);
+          const table = panel.getByRole('table', { name: 'Indicator preview values' });
+          if (!await table.isVisible()) await panel.getByText('Preview provenance and values').click();
+          await expect(table.locator('tbody tr')).toHaveCount(count);
+          await expect(table.locator('tbody tr').last().getByRole('cell').last()).toHaveText('0');
+        }
+      });
+    });
+  } finally {
+    await profile.close();
+  }
+});
+
+test('indicator-preview evaluates real frozen chart bytes and isolates failure and cancellation', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  const port = await freePort();
+  const id = randomUUID();
+  const other = randomUUID();
+  const day = 86_400_000;
+  const a = Date.parse('2026-02-03T00:00:00Z');
+  const makeBars = (closes, offsets) => closes.map((close, index) => ({
+    time_ms: a + offsets[index] * day, trading_day: new Date(a + offsets[index] * day).toISOString().slice(0, 10),
+    open: close, high: close, low: close, close, volume: index === 1 ? null : 10 + index, is_closed: true,
+  }));
+  const bars = makeBars([1, 3, 5], [0, 1, 2]);
+  const revised = makeBars([10, 14, 20], [0, 1, 3]);
+  const command = () => ({
+    protocol_version: '1.1', type: 'request', request_id: randomUUID(),
+    message_id: randomUUID(), timestamp_ms: Date.now(),
+  });
+  let workspaceRevision = 0;
+  const mutation = (operation, args, target = { kind: 'chart', object_id: 'main-chart' }) => ({
+    ...command(), task_id: null, scope: {
+      workspace_id: workspaceId, target, expected_workspace_revision: workspaceRevision,
+      expected_selection_revision: 0, idempotency_key: randomUUID(),
+    }, intent: { operation, arguments: args },
+  });
+  const status = task_id => ({ type: 'indicator_preview_status', request_id: randomUUID(), task_id });
+  const resultPoints = artifact => artifact.result.series.map(series => series.points.map(point => point.value));
+  const reply = async (server, body) => (await (await post(server, body)).json()).result;
+  const observation = {};
+  let savedLayer;
+  let savedOutput;
+  try {
+    await seedFrozenEvidence(profile, id, a, a + day, bars);
+    await seedFrozenEvidence(profile, other, a, a + day, revised);
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        await control(page, 'Open published CSV').click();
+        const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+        await dialog.getByLabel('Revision ID').fill(id);
+        const opened = page.waitForResponse(response => response.request().postDataJSON()?.type === 'frozen_chart');
+        await dialog.getByRole('button', { name: 'Open frozen chart' }).click();
+        const source = (await (await opened).json()).result.snapshot;
+        const chart = dialog.getByRole('region', { name: 'Frozen local CSV chart' });
+        const plot = chart.getByRole('img', { name: 'Candlestick and volume chart for FIX' });
+        await expect(plot).toBeVisible();
+        const initialCanvasCount = await plot.locator('canvas').count();
+        const preview = dialog.getByRole('region', { name: 'Indicator preview' });
+        const run = async () => {
+          const response = page.waitForResponse(async response => response.request().postDataJSON()?.type === 'indicator_preview_status'
+            && (await response.json()).result?.status === 'ready');
+          await preview.getByRole('button', { name: 'Run preview' }).click();
+          const terminal = (await (await response).json()).result;
+          expect(terminal.status).toBe('ready');
+          await expect(preview.getByText(/Preview layers/)).toBeVisible();
+          return terminal;
+        };
+        const first = await run();
+        expect(resultPoints(first.event.artifact)).toEqual([[null, 2, 4], [null, 1, 1]]);
+        expect(first.resolved_parameters).toEqual({ period: 2 });
+        await expect(preview.getByText('This source has no verified session schedule. Indicator windows restart after timestamp gaps.')).toBeVisible();
+        expect(first.event.snapshot).toMatchObject({ dataset_id: id, from_ms: a, to_ms: a + 2 * day + 1, warmup_bars: 0 });
+        await expect.poll(() => plot.locator('canvas').count()).toBeGreaterThan(initialCanvasCount);
+        await expect(chart.getByText('The indicator layer could not be displayed.')).toHaveCount(0);
+        await preview.getByText('Preview provenance and values').click();
+        await expect(preview.getByRole('table', { name: 'Indicator preview values' }).getByRole('row').last())
+          .toContainText('2026-02-05T00:00:00.000Z41');
+
+        await preview.getByLabel('Rolling period').fill('3');
+        const second = await run();
+        expect(resultPoints(second.event.artifact)).toEqual([[null, null, 3], [null, null, Math.sqrt(8 / 3)]]);
+        expect(second.event.params_hash).not.toBe(first.event.params_hash);
+        expect(second.event.snapshot.content_hash).toBe(first.event.snapshot.content_hash);
+
+        await preview.getByLabel('First visible bar').selectOption(String(a + 2 * day));
+        const warmed = await run();
+        expect(warmed.event.snapshot).toMatchObject({ from_ms: a + 2 * day, to_ms: a + 2 * day + 1, warmup_bars: 2 });
+        expect(warmed.warmup_from_ms).toBe(a);
+        expect(warmed.event.snapshot.content_hash).not.toBe(second.event.snapshot.content_hash);
+        expect(resultPoints(warmed.event.artifact)).toEqual([[3], [Math.sqrt(8 / 3)]]);
+        const replayed = await reply(server, status(warmed.task_id));
+        expect(replayed).toEqual(warmed);
+
+        // Run another real revision and cancel a distinct staged job before delivery.
+        const alternate = await reply(server, { type: 'frozen_chart', request_id: randomUUID(), revision_id: other });
+        const target = frozen => ({
+          kind: 'chart_interval', snapshot: frozen, range: { from_ms: frozen.from_ms, to_ms: frozen.to_ms },
+        });
+        const constant = value => ({ op: 'constant', value });
+        const close = { op: 'field', field: 'close' };
+        const style = { color: '#001122', width: 2 };
+        const series = (id, value) => ({ kind: 'line', id, pane: 'price', style, value });
+        const draft = await reply(server, mutation('indicator.createDraft', { language: 'declarative', source: {
+          parameters: [{ type: 'number', name: 'threshold', default: 12 }],
+          outputs: [
+            series('mean', { op: 'rolling_mean', value: close, window: { periods: 2 } }),
+            series('volume', { op: 'field', field: 'volume' }),
+            { kind: 'marker_when', position: 'above', label: 'Above threshold', color: '#001122',
+              when: { op: 'gt', left: close, right: { op: 'number_parameter', name: 'threshold' } } },
+          ],
+        } }));
+        expect(draft.outcome.state).toBe('committed');
+        const submit = async frozen => {
+          const request = mutation('indicator.runPreview', {
+            draft_id: draft.outcome.result.draft_id, snapshot: frozen, parameters: [],
+          }, target(frozen));
+          return (await reply(server, request)).outcome.result.task_id;
+        };
+        const cancellable = await submit(source);
+        const remaining = await submit(alternate.snapshot);
+        const cancelled = await reply(server, { ...command(), operation: 'task.cancel', task_id: cancellable });
+        expect(cancelled.outcome).toEqual({ status: 'cancelled' });
+        expect((await reply(server, status(cancellable))).event.outcome).toEqual({ status: 'cancelled' });
+        await expect.poll(async () => (await reply(server, status(remaining))).status).toBe('ready');
+        const otherReady = await reply(server, status(remaining));
+        expect(resultPoints(otherReady.event.artifact)).toEqual([[null, 12, null], [10, null, 12]]);
+        expect(otherReady.event.artifact.result.markers.map(marker => marker.time_ms)).toEqual([a + day, a + 3 * day]);
+
+        const invalid = await reply(server, mutation('indicator.createDraft', { language: 'declarative', source: {
+          parameters: [], outputs: [series('overflow', { op: 'multiply', left: constant(1e308), right: constant(1e308) })],
+        } }));
+        const failed = await reply(server, mutation('indicator.runPreview', {
+          draft_id: invalid.outcome.result.draft_id, snapshot: source, parameters: [],
+        }, target(source)));
+        const failedId = failed.outcome.result.task_id;
+        await expect.poll(async () => (await reply(server, status(failedId))).status).toBe('terminal');
+        expect((await reply(server, status(failedId))).event.outcome).toMatchObject({
+          status: 'failed', error: { code: 'OUTPUT_INVALID' },
+        });
+        await expect(preview.getByText(/Period 3 · 2 warm-up bars/)).toBeVisible();
+        await expect(plot).toBeVisible();
+        expect((await reply(server, status(warmed.task_id))).event.artifact).toEqual(warmed.event.artifact);
+
+        const database = new DatabaseSync(join(profile.root, 'workspace.sqlite3'));
+        try {
+          database.prepare('INSERT INTO local_dataset_display_revocations (revision_id) VALUES (?)').run(other);
+        } finally {
+          database.close();
+        }
+        const withheld = await (await post(server, status(remaining))).json();
+        expect(withheld).toMatchObject({ ok: false, error: { code: 'PERMISSION_DENIED' } });
+        expect(withheld.result).toBeUndefined();
+        const stage = async () => {
+          const replyFrame = page.waitForResponse(response => response.request().postDataJSON()?.intent?.operation === 'indicator.acceptVersion');
+          await preview.getByRole('button', { name: 'Accept preview' }).click();
+          const response = await replyFrame;
+          const challenge = (await response.json()).result.outcome.challenge;
+          expect(challenge).toMatchObject({ task_id: warmed.task_id, workspace_revision: 0, selection_revision: 0 });
+          expect(challenge.target.range).toEqual({ from_ms: a + 2 * day, to_ms: a + 2 * day + 1 });
+          expect(challenge.parameters_hash).toMatch(/^[0-9a-f]{64}$/);
+          return response.request().postDataJSON();
+        };
+        await stage();
+        await preview.getByRole('button', { name: 'Cancel indicator acceptance' }).click();
+        await expect(preview.getByRole('button', { name: 'Accept preview' })).toBeEnabled();
+        const acceptRequest = await stage();
+        const decision = page.waitForResponse(response => response.request().postDataJSON()?.operation === 'confirmation.respond');
+        await preview.getByRole('button', { name: 'Confirm indicator acceptance' }).click();
+        const committed = (await (await decision).json()).result.outcome;
+        expect(committed).toMatchObject({ state: 'committed', receipt: { committed_workspace_revision: 1, undoable: true } });
+        savedLayer = committed.result;
+        await expect(preview.getByRole('region', { name: 'Accepted indicators' })).toBeVisible();
+        await expect(preview.getByText(/Preview layers/)).toHaveCount(0);
+        workspaceRevision = 1;
+
+        const outputRequest = () => ({ type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: savedLayer.layer_id });
+        savedOutput = await reply(server, outputRequest());
+        expect(savedOutput.document.artifact).toEqual(warmed.event.artifact);
+        expect(savedOutput.document.snapshot).toEqual(warmed.event.snapshot);
+        expect(savedOutput.document.resolved_parameters).toEqual({ period: 3 });
+        expect(savedOutput.document.warmup_from_ms).toBe(a);
+        const retry = { ...acceptRequest, message_id: randomUUID(), request_id: randomUUID() };
+        expect((await reply(server, retry)).outcome).toEqual(committed);
+        expect((await reply(server, { ...retry, scope: { ...retry.scope, idempotency_key: randomUUID() } })).outcome)
+          .toMatchObject({ state: 'failed', error: { code: 'STALE_CONTEXT' } });
+
+        const nextFailure = await reply(server, mutation('indicator.runPreview', {
+          draft_id: invalid.outcome.result.draft_id, snapshot: source, parameters: [],
+        }, target(source)));
+        const nextFailureId = nextFailure.outcome.result.task_id;
+        await expect.poll(async () => (await reply(server, status(nextFailureId))).status).toBe('terminal');
+        expect((await reply(server, status(nextFailureId))).event.outcome.status).toBe('failed');
+        expect(await reply(server, outputRequest())).toEqual(savedOutput);
+        await expect(plot).toBeVisible();
+
+        const accepted = preview.getByRole('region', { name: 'Accepted indicators' });
+        const remove = preview.getByRole('button', { name: 'Remove accepted layer' });
+        const undo = preview.getByRole('button', { name: 'Undo indicator removal' });
+        const undoStages = { reads: [], competing_attempts: [] };
+        const isLayerMutation = (payload, operation) => payload?.intent?.operation === operation
+          && payload.scope?.target?.kind === 'layer' && payload.scope.target.object_id === savedLayer.layer_id;
+        const layerMutation = async (operation, action) => {
+          const matches = request => new URL(request.url()).pathname === endpoint
+            && isLayerMutation(request.postDataJSON(), operation);
+          const request = await duringPageEvent(page, 'requestfinished', matches, action, 8_000, matches);
+          const response = await request.response();
+          return { request: request.postDataJSON(), http: response.status(), body: await response.json() };
+        };
+        const removalRead = (type, matches) => page.waitForResponse(async response => {
+          if (new URL(response.url()).pathname !== endpoint || response.status() !== 200
+            || response.request().postDataJSON()?.type !== type) return false;
+          const body = await response.json().catch(() => undefined);
+          return body?.ok === true && matches(body.result);
+        }, { timeout: 8_000 });
+        const readOutput = async () => {
+          const request = outputRequest();
+          const response = await post(server, request, {}, AbortSignal.timeout(3_000));
+          return { request, http: response.status, body: await response.json() };
+        };
+        try {
+          const [removalSnapshot, removalLayers, removed] = await Promise.all([
+            removalRead('snapshot', result => result.workspace?.revision === 2),
+            removalRead('indicator_accepted_layers', result => result.dataset_id === id && result.layers?.length === 0),
+            layerMutation('indicator.remove', () => remove.click()),
+          ]);
+          expect(removed).toMatchObject({ http: 200, body: { ok: true, result: {
+            request_id: removed.request.request_id,
+            outcome: { state: 'committed', receipt: { committed_workspace_revision: 2, undoable: true } },
+          } } });
+          undoStages.removal_reads = {
+            snapshot: (await removalSnapshot.json()).result.workspace.revision,
+            layers: (await removalLayers.json()).result.layers,
+          };
+          await expect(accepted).toHaveCount(0);
+          await expect(undo).toBeEnabled();
+          const removalId = removed.body.result.outcome.receipt.operation_id;
+          expect((await removalLayers.json()).result.undo).toEqual({
+            operation_id: removalId, layer_id: savedLayer.layer_id, committed_workspace_revision: 2,
+          });
+          await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+          await control(page, 'Open published CSV').click();
+          await dialog.getByLabel('Revision ID').fill(id);
+          const reopened = removalRead('indicator_accepted_layers', result => result.dataset_id === id);
+          await dialog.getByRole('button', { name: 'Open frozen chart' }).click();
+          expect((await (await reopened).json()).result.undo?.operation_id).toBe(removalId);
+          await expect(undo).toBeEnabled();
+          await expect(undo).toHaveCount(1);
+          const releaseUndo = Promise.withResolvers();
+          const undoRoute = `**${endpoint}`;
+          let heldUndo;
+          const holdUndo = async route => {
+            const request = route.request();
+            const payload = request.postDataJSON();
+            if (!isLayerMutation(payload, 'workspace.undo') || payload.intent.arguments?.operation_id !== removalId) {
+              return route.fallback();
+            }
+            heldUndo = request;
+            await releaseUndo.promise;
+            await route.continue();
+          };
+          await page.route(undoRoute, holdUndo);
+          let undone;
+          try {
+            undone = await layerMutation('workspace.undo', async () => {
+              await undo.click();
+              await expect.poll(() => Boolean(heldUndo), { timeout: 3_000 }).toBe(true);
+              undoStages.held_undo = {
+                request_id: heldUndo.postDataJSON().request_id, accepted_visible: await accepted.isVisible(),
+              };
+              expect(undoStages.held_undo.accepted_visible).toBe(false);
+              expect(heldUndo.existingResponse()).toBeNull();
+              releaseUndo.resolve();
+            });
+          } finally {
+            releaseUndo.resolve();
+            await page.unroute(undoRoute, holdUndo);
+          }
+          undoStages.undo = undone;
+          expect(undone.request.request_id).toBe(undoStages.held_undo.request_id);
+          expect(undone.request.intent.arguments).toEqual({ operation_id: removalId });
+          expect(undone).toMatchObject({ http: 200, body: { ok: true, result: {
+            request_id: undone.request.request_id,
+            outcome: { state: 'committed', receipt: { committed_workspace_revision: 3, undoable: false } },
+          } } });
+          await expect(preview.getByText('Accepted layer restored.', { exact: true })).toBeVisible();
+          await expect(accepted.getByText(savedLayer.version_id, { exact: true })).toBeVisible();
+
+          // Reproduce read contention after the exact layer is visible with a real authorized snapshot.
+          const writer = await writerPid(server);
+          const whileWriterPaused = async action => {
+            await writerPid(server, 'suspend', writer);
+            try { return await action(); }
+            finally { await writerPid(server, 'resume', writer); }
+          };
+          const admissionBusy = ({ http, body }) =>
+            http === 429 && body?.ok === false && body.error?.code === 'BUSY' && body.error?.retryable === true;
+          const contendWithSnapshot = async () => {
+            const attempt = {};
+            undoStages.competing_attempts.push(attempt);
+            let competing;
+            try {
+              attempt.output = await whileWriterPaused(async () => {
+                competing = post(server, snapshot).then(async response => ({ http: response.status, body: await response.json() }))
+                  .catch(error => ({ error: error.message }));
+                await expect.poll(() => postStatus(server, admissionProbe), { timeout: 3_000 }).toBe(429);
+                return readOutput();
+              });
+            } finally {
+              if (competing) attempt.snapshot = await competing;
+            }
+            return attempt;
+          };
+          let contention = await contendWithSnapshot();
+          // A busy slot alone identifies no owner. Retry the read-only contender
+          // once after drain if that exact snapshot was refused before admission.
+          if (admissionBusy(contention.snapshot)) {
+            await expect.poll(() => postStatus(server, admissionProbe), { timeout: 3_000 }).toBe(400);
+            contention = await contendWithSnapshot();
+          }
+          expect(contention.snapshot).toMatchObject({ http: 200, body: { ok: true, result: { workspace: { revision: 3 } } } });
+          let output = contention.output;
+          undoStages.reads.push(output);
+          expect(output).toMatchObject({ http: 429, body: busy });
+          await expect.poll(async () => {
+            if (!admissionBusy(output)) return false;
+            output = await readOutput();
+            undoStages.reads.push(output);
+            return admissionBusy(output);
+          }, { timeout: 3_000, message: 'The restored indicator output read cleared preview admission' }).toBe(false);
+          expect(output).toMatchObject({ http: 200, body: { ok: true } });
+          expect(output.body.result).toEqual(savedOutput);
+        } finally {
+          await testInfo.attach('indicator-undo-stages', { body: JSON.stringify(undoStages), contentType: 'application/json' });
+        }
+        observation.preview = { initial: first.event.snapshot, warmed: warmed.event.snapshot, cancelled, withheld, committed };
+
+      });
+    });
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        let reruns = 0;
+        page.on('request', request => { if (request.postDataJSON()?.intent?.operation === 'indicator.runPreview') reruns += 1; });
+        await control(page, 'Open published CSV').click();
+        const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+        await dialog.getByLabel('Revision ID').fill(id);
+        await dialog.getByRole('button', { name: 'Open frozen chart' }).click();
+        const accepted = dialog.getByRole('region', { name: 'Accepted indicators' });
+        await expect(accepted.getByText(savedLayer.version_id)).toBeVisible();
+        await expect(dialog.getByRole('button', { name: 'Undo indicator removal' })).toHaveCount(0);
+        await accepted.getByText('Accepted provenance and values').click();
+        await expect(accepted.getByText('mean · 3')).toBeVisible();
+        expect(reruns).toBe(0);
+        const restore = { type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: savedLayer.layer_id };
+        expect(await reply(server, restore)).toEqual(savedOutput);
+        await dialog.getByRole('button', { name: 'Use as workspace source' }).click();
+        const mainChart = page.getByRole('region', { name: 'Price chart' });
+        await mainChart.getByText('Indicators', { exact: true }).click();
+        await expect(mainChart.getByRole('region', { name: 'Accepted indicators' }).getByText(savedLayer.version_id)).toBeVisible();
+        expect(reruns).toBe(0);
+
+        const database = new DatabaseSync(join(profile.root, 'workspace.sqlite3'));
+        try {
+          database.prepare('INSERT INTO local_dataset_display_revocations (revision_id) VALUES (?)').run(id);
+          const counts = database.prepare('SELECT count(*) AS count FROM indicator_versions').get();
+          expect(counts.count).toBe(1);
+        } finally {
+          database.close();
+        }
+        const withheld = await (await post(server, restore)).json();
+        expect(withheld).toMatchObject({ ok: false, error: { code: 'PERMISSION_DENIED' } });
+        expect(withheld.result).toBeUndefined();
+        expect(await reply(server, { type: 'indicator_accepted_layers', request_id: randomUUID(), revision_id: id }))
+          .toMatchObject({ layers: [{ ...savedLayer, available: false }] });
+        observation.restored = { reruns, withheld, version: savedLayer.version_id };
+      });
+    });
+    await testInfo.attach('indicator-preview', { body: JSON.stringify(observation), contentType: 'application/json' });
+
+  } finally {
+    await profile.close();
+  }
+});
+
+test('indicator-preview rejects obsolete inputs and open confirmations without replacing accepted output', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  const port = await freePort();
+  const id = randomUUID();
+  const other = randomUUID();
+  const a = Date.parse('2026-02-04T00:00:00Z');
+  const day = 86_400_000;
+  const bars = [1, 3, 5, 7, 9, 11].map((close, index) => {
+    const time_ms = a + day * index;
+    return {
+      time_ms, trading_day: new Date(time_ms).toISOString().slice(0, 10),
+      open: close, high: close, low: close, close, volume: close * 10, is_closed: true,
+    };
+  });
+  const command = () => ({
+    protocol_version: '1.1', type: 'request', request_id: randomUUID(),
+    message_id: randomUUID(), timestamp_ms: Date.now(),
+  });
+  const respond = challenge_id => ({ ...command(), operation: 'confirmation.respond', decision: 'approve', challenge_id });
+  const status = task_id => ({ type: 'indicator_preview_status', request_id: randomUUID(), task_id });
+  const observation = {};
+  let saved;
+  let readSaved;
+  try {
+    await seedFrozenEvidence(profile, id, a, a + day, bars);
+    const alternative = bars.map(bar => ({ ...bar, close: bar.close + 20, high: bar.high + 20 }));
+    await seedFrozenEvidence(profile, other, a, a + day, alternative);
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      const send = async request => (await post(server, request)).json();
+      await inFreshBrowser(browser, server, async page => {
+        const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+        const editor = dialog.getByRole('region', { name: 'Indicator preview' });
+        const open = async revisionId => {
+          await control(page, 'Open published CSV').click();
+          await dialog.getByLabel('Revision ID').fill(revisionId);
+          await dialog.getByRole('button', { name: 'Open frozen chart' }).click();
+          await expect(editor.getByRole('button', { name: 'Run preview' })).toBeEnabled();
+        };
+        const run = async () => {
+          await editor.getByRole('button', { name: 'Run preview' }).click();
+          await expect(editor.getByRole('button', { name: 'Accept preview' })).toBeEnabled();
+        };
+        const stage = async () => {
+          const reply = await duringPageEvent(page, 'response', response =>
+            response.request().postDataJSON()?.intent?.operation === 'indicator.acceptVersion',
+          () => editor.getByRole('button', { name: 'Accept preview' }).click(), 8_000);
+          await expect(editor.getByRole('button', { name: 'Confirm indicator acceptance' })).toBeEnabled();
+          return (await reply.json()).result.outcome.challenge;
+        };
+        const waitInvalidation = async (task, action) => {
+          const response = await duringPageEvent(page, 'response', response => {
+            const body = response.request().postDataJSON();
+            return body?.operation === 'task.cancel' && body.task_id === task && response.ok();
+          }, action, 8_000);
+          expect((await response.json()).result.task_id).toBe(task);
+        };
+
+        await open(id);
+        await run();
+        await stage();
+        const confirmed = await duringPageEvent(page, 'response', response =>
+          response.request().postDataJSON()?.operation === 'confirmation.respond',
+        () => editor.getByRole('button', { name: 'Confirm indicator acceptance' }).click(), 8_000);
+        saved = (await confirmed.json()).result.outcome.result;
+        await expect(editor.getByText(saved.version_id)).toBeVisible();
+        const request = { type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: saved.layer_id };
+        readSaved = (await send(request)).result;
+
+        const held = Promise.withResolvers();
+        const release = Promise.withResolvers();
+        const routeStatus = async route => {
+          if (route.request().postDataJSON()?.type !== 'indicator_preview_status') return route.continue();
+          const response = await route.fetch();
+          const body = await response.json();
+          if (body.result?.status === 'ready') {
+            held.resolve(body.result);
+            await release.promise;
+          }
+          await route.fulfill({ response }).catch(() => {});
+        };
+        await page.route('**' + endpoint, routeStatus);
+        try {
+          await editor.getByRole('button', { name: 'Run preview' }).click();
+          const waiting = await Promise.race([held.promise, delay(8_000).then(() => { throw new Error('Ready reply was not intercepted'); })]);
+          expect(waiting.resolved_parameters).toEqual({ period: 2 });
+          expect(waiting.event.snapshot.from_ms).toBe(a);
+          await waitInvalidation(waiting.task_id, async () => {
+            await editor.getByLabel('Rolling period').fill('3');
+            await editor.getByLabel('First visible bar').selectOption(String(a + 5 * day));
+          });
+          release.resolve();
+          await expect(editor.getByRole('button', { name: 'Accept preview' })).toHaveCount(0);
+          const withheld = await send(status(waiting.task_id));
+          expect(withheld).toMatchObject({ ok: false, error: { code: 'STALE_CONTEXT' } });
+          const rejected = await send({
+            ...command(), task_id: null, scope: {
+              workspace_id: workspaceId, expected_workspace_revision: 1, expected_selection_revision: 0,
+              idempotency_key: randomUUID(), target: {
+                kind: 'chart_interval', snapshot: waiting.source_snapshot,
+                range: { from_ms: waiting.event.snapshot.from_ms, to_ms: waiting.event.snapshot.to_ms },
+              },
+            }, intent: { operation: 'indicator.acceptVersion', arguments: {
+              preview_id: waiting.event.preview_id, result_hash: waiting.event.artifact.result_hash,
+            } },
+          });
+          expect(rejected.result.outcome).toMatchObject({ state: 'failed', error: { code: 'STALE_CONTEXT' } });
+          observation.lateReady = { task: waiting.task_id, withheld, rejected: rejected.result.outcome };
+        } finally {
+          release.resolve();
+          await page.unroute('**' + endpoint, routeStatus);
+        }
+
+        await run();
+        await expect(editor.getByText('Period 3 · 2 warm-up bars')).toBeVisible();
+        const staged = await stage();
+        await waitInvalidation(staged.task_id, async () => {
+          await editor.getByLabel('Indicator input').selectOption('volume');
+          await editor.getByLabel('Rolling period').fill('2');
+          await editor.getByLabel('First visible bar').selectOption(String(a + 4 * day));
+        });
+        await expect(editor.getByRole('button', { name: 'Confirm indicator acceptance' })).toHaveCount(0);
+        const rejectedDecision = (await send(respond(staged.challenge_id))).result.outcome;
+        expect(rejectedDecision).toMatchObject({ state: 'failed', error: { code: 'STALE_CONTEXT' } });
+        observation.openApproval = rejectedDecision;
+
+        await run();
+        const oldSource = await stage();
+        await waitInvalidation(oldSource.task_id, () => dialog.getByRole('button', { name: 'Close', exact: true }).click());
+        await open(other);
+        const rejectedSource = (await send(respond(oldSource.challenge_id))).result.outcome;
+        expect(rejectedSource).toMatchObject({ state: 'failed', error: { code: 'STALE_CONTEXT' } });
+        observation.sourceChange = rejectedSource;
+        expect((await send(request)).result).toEqual(readSaved);
+      });
+    });
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      const list = await (await post(server, {
+        type: 'indicator_accepted_layers', request_id: randomUUID(), revision_id: id,
+      })).json();
+      expect(list.result.layers).toEqual([{ ...saved, available: true }]);
+      const restored = await (await post(server, {
+        type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: saved.layer_id,
+      })).json();
+      expect(restored.result).toEqual(readSaved);
+      observation.restarted = { version: saved.version_id, input: restored.result.document.snapshot };
+    });
+    await testInfo.attach('obsolete-indicator-inputs', { body: JSON.stringify(observation), contentType: 'application/json' });
+  } finally {
+    await profile.close();
+  }
+});
+
+test('indicator-preview runs trusted Python once after exact local approval and restores the accepted output', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  const port = await freePort();
+  const id = randomUUID();
+  const before = 1704200940000;
+  const after = 1704243600000;
+  const mean = await readFile(join(root, 'tests/fixtures/indicators/two-bar-mean.py'), 'utf8');
+  const invalid = mean.replace("bar['time_ms'], 'value'", "bar['time_ms'] + 1, 'value'");
+  const slow = "def compute(bars, params):\n    while True:\n        1 + 1\n";
+  const frame = () => ({ protocol_version: '1.1', type: 'request', request_id: randomUUID(),
+    message_id: randomUUID(), timestamp_ms: Date.now() });
+  const call = async (server, body) => {
+    let frame;
+    await expect.poll(async () => {
+      frame = await (await post(server, body)).json();
+      return frame.error?.code;
+    }).not.toBe('BUSY');
+    return frame;
+  };
+  const status = task_id => ({ type: 'indicator_preview_status', request_id: randomUUID(), task_id });
+  const respond = (challenge_id, decision = 'approve') =>
+    ({ ...frame(), operation: 'confirmation.respond', challenge_id, decision });
+  const sampleEditor = async page => {
+    const chart = page.getByRole('region', { name: 'Price chart' });
+    const plot = chart.getByRole('img', { name: /Candlestick and volume chart/ });
+    await expect(plot).toBeVisible();
+    await chart.getByText('Indicators', { exact: true }).click();
+    return { editor: chart.getByRole('region', { name: 'Indicator preview' }), plot };
+  };
+  const rows = [
+    { time_ms: before, trading_day: '2024-01-02', open: 10, high: 10, low: 10, close: 10, volume: null, is_closed: true },
+    { time_ms: after, trading_day: '2024-01-03', open: 14, high: 14, low: 14, close: 14, volume: null, is_closed: true },
+  ];
+  const observations = {};
+  let layer;
+  let saved;
+  const output = () => ({ type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: layer.layer_id });
+  try {
+    await seedFrozenEvidence(profile, id, before, after, rows);
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        await sampleStep(page, server, testInfo, 'open sample for trusted Python preview', () => sampleButton(page).click());
+        const { editor, plot } = await sampleEditor(page);
+        const canvases = await plot.locator('canvas').count();
+        await editor.getByLabel('Indicator type').selectOption('python');
+        await editor.getByLabel('Python parameters').fill('{"divisor":2}');
+        await editor.getByLabel('First visible bar').selectOption(String(before));
+        await editor.getByLabel('Last visible bar').selectOption(String(after));
+
+        const review = async source => {
+          await editor.getByLabel('Select Python file').setInputFiles({
+            name: 'fixture.py', mimeType: 'text/x-python', buffer: Buffer.from(source),
+          });
+          const result = await duringResponse(page, 'indicator.runPreview', () =>
+            editor.getByRole('button', { name: 'Review Python run' }).click());
+          const outcome = (await result.json()).result.outcome;
+          expect(outcome.state).toBe('awaiting_confirmation');
+          const prompt = editor.getByRole('group', { name: 'Confirm trusted Python run' });
+          await expect(prompt).toBeVisible();
+          expect(await prompt.getByLabel('Exact Python code').textContent()).toBe(source);
+          expect(outcome.challenge.python.code_hash).toBe(createHash('sha256').update(source).digest('hex'));
+          const beforeApproval = await call(server, status(outcome.challenge.task_id));
+          expect(beforeApproval).toMatchObject({ ok: false, error: { code: 'STALE_CONTEXT' } });
+          return { prompt, challenge: outcome.challenge };
+        };
+        const clickApproval = async (prompt, approve) => {
+          const response = page.waitForResponse(response => response.request().postDataJSON()?.operation === 'confirmation.respond');
+          await prompt.getByRole('button', { name: approve ? 'Run selected Python' : 'Decline Python run' }).click();
+          const wire = await (await response).json();
+          expect(wire.indicator_compute).toBeUndefined();
+          return wire.result.outcome;
+        };
+        const terminal = async task_id => {
+          let outcome;
+          await expect.poll(async () => {
+            outcome = (await call(server, status(task_id))).result;
+            return outcome?.status;
+          }).toMatch(/^(ready|terminal)$/);
+          return outcome;
+        };
+
+        const declined = await review(mean);
+        expect(await clickApproval(declined.prompt, false)).toMatchObject({ state: 'failed', error: { code: 'CANCELLED' } });
+        expect((await call(server, respond(declined.challenge.challenge_id))).result.outcome)
+          .toMatchObject({ state: 'failed', error: { code: 'STALE_CONTEXT' } });
+        await expect(editor.getByRole('button', { name: 'Review Python run' })).toBeDisabled();
+
+        const obsolete = await review(mean);
+        const cancelledReview = page.waitForResponse(response => {
+          const body = response.request().postDataJSON();
+          return body?.operation === 'task.cancel' && body.task_id === obsolete.challenge.task_id && response.ok();
+        });
+        await editor.getByLabel('Python parameters').fill('{"divisor":3}');
+        await expect(obsolete.prompt).toHaveCount(0);
+        await cancelledReview;
+        expect((await call(server, respond(obsolete.challenge.challenge_id))).result?.outcome)
+          .toMatchObject({ state: 'failed', error: { code: 'STALE_CONTEXT' } });
+        await editor.getByLabel('Python parameters').fill('{"divisor":2}');
+
+        const approved = await review(mean);
+        expect(approved.challenge).toMatchObject({
+          target: { snapshot: { from_ms: before, to_ms: after + 1, warmup_bars: 0 } },
+          python: { input_use: 'trusted_code_permitted',
+            parameters_hash: createHash('sha256').update('{"divisor":2}').digest('hex') },
+        });
+        await expect(approved.prompt).toContainText('Resolved parameters {"divisor":2}');
+        await expect(approved.prompt).toContainText('read or change files and access the network with your user permissions');
+        await expect(approved.prompt).toContainText('2 bars · 0 warm-up bars');
+        await approved.prompt.getByText('Exact frozen input bars').click();
+        const shownBars = JSON.parse(await approved.prompt.locator('details pre').textContent());
+        expect(shownBars.map(bar => [bar.time_ms, bar.close])).toEqual([[before, 3500.2], [after, 3500.8]]);
+        expect(await clickApproval(approved.prompt, true)).toMatchObject({
+          state: 'committed', result: { task_id: approved.challenge.task_id },
+        });
+        const ready = await terminal(approved.challenge.task_id);
+        expect(ready.event.snapshot.content_hash).toBe(approved.challenge.python.snapshot_hash);
+        expect(ready.event.artifact.result.series[0].points).toEqual([
+          { time_ms: before, value: null }, { time_ms: after, value: 3500.5 },
+        ]);
+        await expect(editor.getByText('Preview layers · trusted Python')).toBeVisible();
+        await expect.poll(() => plot.locator('canvas').count()).toBeGreaterThan(canvases);
+
+        await editor.getByRole('button', { name: 'Accept preview' }).click();
+        const accepted = page.waitForResponse(response => response.request().postDataJSON()?.operation === 'confirmation.respond');
+        await editor.getByRole('button', { name: 'Confirm indicator acceptance' }).click();
+        const acceptedOutcome = (await (await accepted).json()).result.outcome;
+        expect(acceptedOutcome.state).toBe('committed');
+        layer = acceptedOutcome.result;
+        saved = (await call(server, output())).result;
+        expect(saved.document.artifact).toEqual(ready.event.artifact);
+        const layers = editor.getByRole('region', { name: 'Accepted indicators' });
+        await expect(layers.getByText(layer.version_id)).toBeVisible();
+
+        const malformed = await review(invalid);
+        expect(await clickApproval(malformed.prompt, true)).toMatchObject({ state: 'committed' });
+        expect(await terminal(malformed.challenge.task_id)).toMatchObject({
+          event: { outcome: { status: 'failed', error: { code: 'OUTPUT_INVALID' } } },
+        });
+        await expect(layers.getByText(layer.version_id)).toBeVisible();
+
+        const cancellable = await review(slow);
+        expect(await clickApproval(cancellable.prompt, true)).toMatchObject({ state: 'committed' });
+        expect((await call(server, status(cancellable.challenge.task_id))).result).toMatchObject({ status: 'running' });
+        await editor.getByRole('button', { name: 'Cancel preview' }).click();
+        expect(await terminal(cancellable.challenge.task_id)).toMatchObject({ event: { outcome: { status: 'cancelled' } } });
+        await expect(layers.getByText(layer.version_id)).toBeVisible();
+        expect((await call(server, output())).result).toEqual(saved);
+        const database = new DatabaseSync(join(profile.root, 'workspace.sqlite3'), { readOnly: true });
+        try {
+          expect(database.prepare('SELECT count(*) AS count FROM indicator_versions').get().count).toBe(1);
+        } finally { database.close(); }
+
+        await control(page, 'Data sources').click();
+        await page.getByRole('complementary', { name: 'Data sources' })
+          .getByRole('button', { name: 'Open published CSV' }).click();
+        const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+        await dialog.getByLabel('Revision ID').fill(id);
+        const opened = page.waitForResponse(response => response.request().postDataJSON()?.type === 'frozen_chart');
+        await dialog.getByRole('button', { name: 'Open frozen chart' }).click();
+        const csv = (await (await opened).json()).result.snapshot;
+        const current = (await call(server, snapshot)).result;
+        const scope = { workspace_id: workspaceId, target: { kind: 'chart', object_id: 'main-chart' },
+          expected_workspace_revision: current.workspace.revision, expected_selection_revision: current.selection_revision,
+          idempotency_key: randomUUID() };
+        const draft = (await call(server, { ...frame(), scope, task_id: null, intent: {
+          operation: 'indicator.createDraft', arguments: { language: 'python', source: mean, params: {} },
+        } })).result.outcome.result;
+        expect((await call(server, { ...frame(), task_id: null, scope: {
+          ...scope, target: { kind: 'chart_interval', snapshot: csv, range: { from_ms: before, to_ms: after + 1 } },
+          idempotency_key: randomUUID(),
+        }, intent: { operation: 'indicator.runPreview',
+          arguments: { draft_id: draft.draft_id, snapshot: csv, python_params: { divisor: 2 } },
+        } })).result.outcome).toMatchObject({ state: 'failed', error: { code: 'PERMISSION_DENIED' } });
+        observations.first = { accepted: layer, output: ready.event.artifact, declined: true, obsolete: true,
+          rejectedOutput: true, cancelled: true, csvPurposeDenied: true };
+      }, [endpoint, '/__scopehub/operation'], { traceSample: true });
+    }, { historyTrace: true });
+
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        let runs = 0;
+        page.on('request', request => { if (request.postDataJSON()?.intent?.operation === 'indicator.runPreview') runs += 1; });
+        const { editor } = await sampleEditor(page);
+        const accepted = editor.getByRole('region', { name: 'Accepted indicators' });
+        await expect(accepted.getByText(layer.version_id)).toBeVisible();
+        await accepted.getByText('Accepted provenance and values').click();
+        await expect(accepted.getByText('python-mean · Unknown, 3500.5')).toBeVisible();
+        expect((await call(server, output())).result).toEqual(saved);
+        expect(runs).toBe(0);
+        await leaveSample(page);
+        const withheld = await call(server, output());
+        expect(withheld).toMatchObject({ ok: false, error: { code: 'PERMISSION_DENIED' } });
+        expect(withheld.result).toBeUndefined();
+        const references = await call(server, { type: 'indicator_accepted_layers', request_id: randomUUID(),
+          revision_id: saved.document.snapshot.dataset_id });
+        expect(references.result.layers).toEqual([{
+          layer_id: layer.layer_id, version_id: layer.version_id, available: false,
+        }]);
+        observations.reopened = { runs, references: references.result.layers, error: withheld.error.code };
+      }, [endpoint, '/__scopehub/operation'], { traceSample: true, restoredSample: { testInfo, label: 'restore trusted Python sample' } });
+    }, { historyTrace: true });
+    await testInfo.attach('trusted-indicator', { body: JSON.stringify(observations), contentType: 'application/json' });
+  } finally { await profile.close(); }
+});
+
+test('indicator-preview runs trusted Python once for a region-only result and restores it', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  const port = await freePort();
+  const previous = 1704200940000;
+  const next = 1704243600000;
+  const last = next + 240_000;
+  const label = '<img src=x onerror=alert(1)>';
+  const regions = [
+    { from_ms: previous, to_ms: next + 120_000, label, color: '#ff00ff' },
+    { from_ms: next + 190_000, to_ms: next + 200_000, label: 'Inside the fourth minute', color: '#ff8000' },
+    { from_ms: previous + 70_000, to_ms: next - 10_000, label: 'Between sessions', color: '#ffff00' },
+  ];
+  const program = `def compute(bars, params):
+    return {"series": [], "markers": [], "regions": ${JSON.stringify(regions)}, "diagnostics": []}
+`;
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        const history = await sampleStep(page, server, testInfo, 'open sample for a region preview', () => sampleButton(page).click());
+        const original = (await history.existingResponse().json()).result.snapshot;
+        const chart = page.getByRole('region', { name: 'Price chart' });
+        const plot = chart.getByRole('img', { name: /and volume chart/ });
+        const fit = control(page, 'Fit chart');
+        const openIndicators = async () => {
+          const disclosure = chart.locator('details.chart-indicators');
+          if (await disclosure.getAttribute('open', { timeout: 5000 }) === null) {
+            await disclosure.locator(':scope > summary').click({ timeout: 5000 });
+          }
+        };
+        await expect(plot).toBeVisible();
+        await openIndicators();
+        const editor = chart.getByRole('region', { name: 'Indicator preview' });
+        await editor.getByLabel('Indicator type').selectOption('python');
+        await editor.getByLabel('First visible bar').selectOption(String(previous));
+        await editor.getByLabel('Last visible bar').selectOption(String(last));
+        await editor.getByLabel('Select Python file').setInputFiles({
+          name: 'region.py', mimeType: 'text/x-python', buffer: Buffer.from(program),
+        });
+        await editor.getByRole('button', { name: 'Review Python run' }).click();
+        const ready = page.waitForResponse(async response => response.request().postDataJSON()?.type === 'indicator_preview_status'
+          && (await response.json()).result?.status === 'ready');
+        await editor.getByRole('button', { name: 'Run selected Python' }).click();
+        const preview = (await (await ready).json()).result.event.artifact;
+        expect(preview.result).toMatchObject({ series: [], markers: [], regions });
+        await expect(editor.getByText('Preview layers · trusted Python')).toBeVisible();
+        await editor.getByText('Preview provenance and values').click();
+        await expect(editor.getByRole('list', { name: 'Indicator regions' })).toContainText(label);
+        await expect(editor.locator('img')).toHaveCount(0);
+        await fit.click();
+        await expect.poll(async () => (await regionBand(plot))?.intensity ?? 0).toBeGreaterThan(25);
+        const previewBand = await regionBand(plot);
+        await expect.poll(async () => (await regionBand(plot, 'orange'))?.intensity ?? 0).toBeGreaterThan(12);
+        const previewMinute = await regionBand(plot, 'orange');
+        expect(await regionBand(plot, 'yellow')).toBeNull();
+
+        await editor.getByRole('button', { name: 'Accept preview' }).click();
+        const commit = page.waitForResponse(response => response.request().postDataJSON()?.operation === 'confirmation.respond');
+        await editor.getByRole('button', { name: 'Confirm indicator acceptance' }).click();
+        const outcome = (await (await commit).json()).result.outcome;
+        expect(outcome.state).toBe('committed');
+        const output = { type: 'indicator_accepted_output', layer_id: outcome.result.layer_id };
+        const saved = async () => {
+          let body;
+          await expect.poll(async () => {
+            body = await (await post(server, { ...output, request_id: randomUUID() })).json();
+            return body.error?.code;
+          }).not.toBe('BUSY');
+          return body;
+        };
+        expect((await saved()).result.document.artifact).toEqual(preview);
+        const accepted = editor.getByRole('region', { name: 'Accepted indicators' });
+        await expect(accepted.getByText(outcome.result.version_id)).toBeVisible();
+        await expect(editor.getByText('Preview layers · trusted Python')).toHaveCount(0);
+        await expect.poll(async () => (await regionBand(plot))?.intensity ?? 0).toBeGreaterThan(previewBand.intensity + 15);
+        await expect.poll(async () => (await regionBand(plot, 'orange'))?.intensity ?? 0).toBeGreaterThan(previewMinute.intensity + 10);
+        expect(await regionBand(plot, 'yellow')).toBeNull();
+        let reruns = 0;
+        page.on('request', request => {
+          if (request.postDataJSON()?.intent?.operation === 'indicator.runPreview') reruns++;
+        });
+
+        const sources = page.getByRole('complementary', { name: 'Data sources' });
+        const sampleDate = sources.getByLabel('Sample date (UTC)');
+        const cropRequest = sampleHistoryCall();
+        Object.assign(cropRequest.payload, { from_ms: Date.UTC(2024, 0, 3), to_ms: Date.UTC(2024, 0, 4) });
+        await control(page, 'Data sources').click();
+        await sampleStep(page, server, testInfo, 'crop across the accepted region', () => sampleDate.fill('2024-01-03'),
+          { catalog: false, historyCall: cropRequest, bars: 20 });
+        await sources.getByRole('button', { name: 'Close panel' }).click();
+        await fit.click();
+        // The interval includes the final Jan 2 bar and exactly two Jan 3 bars.
+        // In the cropped chart it starts at the left edge and spans 2 of 20 cells.
+        await expect.poll(async () => {
+          const band = await regionBand(plot);
+          return band && { first: Math.round(band.start * 20), span: Math.round((band.end - band.start) * 20) };
+        }).toEqual({ first: 0, span: 2 });
+        await expect.poll(async () => {
+          const band = await regionBand(plot, 'orange');
+          return band && { first: Math.round(band.start * 20), span: Math.round((band.end - band.start) * 20) };
+        }).toEqual({ first: 3, span: 1 });
+        expect(await regionBand(plot, 'yellow')).toBeNull();
+        await openIndicators();
+        await expect(accepted.getByText(outcome.result.version_id)).toBeVisible();
+        await accepted.getByText('Accepted provenance and values').click();
+        await expect(accepted.getByRole('list', { name: 'Indicator regions' })).toContainText(label);
+        await expect(accepted.locator('img')).toHaveCount(0);
+        await control(page, 'Close-price line').click();
+        await expect(plot).toHaveAccessibleName(/Close-price line and volume chart/);
+        await expect.poll(async () => (await regionBand(plot))?.intensity ?? 0).toBeGreaterThan(previewBand.intensity + 15);
+
+        // Request the first replay observation from the same provider. The
+        // dataset identity and the highlighted early bars still match.
+        const later = original.as_of_ms + 15_000;
+        await page.route(`**${operationPath}`, route => {
+          const call = route.request().postDataJSON();
+          if (call?.operation !== 'market.readHistoryPage') return route.continue();
+          return route.continue({ postData: JSON.stringify({ ...call, payload: { ...call.payload, as_of_ms: later } }) });
+        });
+        const laterHistory = page.waitForResponse(response => new URL(response.url()).pathname === operationPath
+          && response.request().postDataJSON()?.operation === 'market.readHistoryPage' && response.status() !== 429,
+        { timeout: 8000 });
+        await control(page, 'Data sources').click();
+        await sampleDate.fill('');
+        const changed = await (await laterHistory).json();
+        expect(changed).toMatchObject({ ok: true, result: { snapshot: {
+          dataset_id: original.dataset_id, dataset_revision: original.dataset_revision, as_of_ms: later, series: original.series,
+        } } });
+        await sources.getByRole('button', { name: 'Close panel' }).click();
+        await openIndicators();
+        await expect(accepted.getByText('Accepted version · different chart observation')).toBeVisible();
+        await expect.poll(() => regionBand(plot)).toBeNull();
+        expect(await regionBand(plot, 'orange')).toBeNull();
+        await accepted.getByText('Accepted provenance and values').click();
+        await expect(accepted.getByRole('list', { name: 'Indicator regions' })).toContainText(label);
+        expect((await saved()).result.document.artifact).toEqual(preview);
+
+        await page.unroute(`**${operationPath}`);
+        await control(page, 'Data sources').click();
+        await sampleStep(page, server, testInfo, 'return to the compatible observation', () => sampleDate.fill('2024-01-03'),
+          { catalog: false, historyCall: cropRequest, bars: 20 });
+        await expect.poll(async () => (await regionBand(plot))?.intensity ?? 0).toBeGreaterThan(previewBand.intensity + 15);
+        await sources.getByRole('button', { name: 'Leave sample' }).click();
+        await expect(plot).toHaveCount(0);
+        expect(await saved()).toMatchObject({ ok: false, error: { code: 'PERMISSION_DENIED' } });
+        expect(reruns).toBe(0);
+      }, [endpoint, '/__scopehub/operation'], { traceSample: true });
+    }, { historyTrace: true });
+  } finally {
+    await profile.close();
+  }
+});
+
+async function regionBand(plot, color = 'magenta') {
+  return plot.locator('canvas').evaluateAll((canvases, color) => {
+    for (const canvas of canvases) {
+      if (!canvas.width || !canvas.height) continue;
+      const values = canvas.getContext('2d').getImageData(0, Math.floor(canvas.height / 2), canvas.width, 1).data;
+      const columns = [];
+      for (let x = 0; x < canvas.width; x++) {
+        const offset = x * 4;
+        const [red, green, blue, alpha] = values.subarray(offset, offset + 4);
+        const matches = color === 'orange' ? red > green + 12 && green > blue + 4
+          : color === 'yellow' ? red > blue + 25 && green > blue + 25 && Math.abs(red - green) < 10
+            : red > green + 25 && blue > green + 25;
+        if (alpha > 0 && matches) columns.push(x);
+      }
+      if (columns.length < 3) continue;
+      const middle = 4 * columns[Math.floor(columns.length / 2)];
+      return { start: columns[0] / canvas.width, end: (columns.at(-1) + 1) / canvas.width,
+        intensity: values[middle] - values[middle + 1] };
+    }
+    return null;
+  }, color);
+}
+
+test('indicator-preview clips region overlap to shortened, missing and irregular buckets', async ({ browser }) => {
+  const profile = await makeProfile();
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        const bands = await page.evaluate(async () => {
+          const { indicatorBarIntervals, clipIndicatorRegions } = await import('/src/chart-adapter/indicator-regions.ts');
+          const start = Date.UTC(2024, 0, 2, 13);
+          const reopen = Date.UTC(2024, 0, 3, 1);
+          const trading_day = '2024-01-03';
+          const minute = 60_000;
+          const bar = (time_ms, is_closed = true) => ({
+            time_ms, trading_day, open: 10, high: 12, low: 9, close: 11, volume: 3, is_closed,
+          });
+          const range = { from_ms: start, to_ms: reopen + 2 * minute };
+          const sessions = [
+            { start_ms: start, end_ms: start + 17 * minute, trading_day },
+            { start_ms: reopen, end_ms: reopen + 2 * minute, trading_day },
+          ];
+          const buckets = indicatorBarIntervals([bar(start), bar(start + 5 * minute), bar(start + 15 * minute),
+            bar(reopen, false)], '5m', reopen + 20_000, true, sessions);
+          const daily = indicatorBarIntervals([bar(start)], '1d', range.to_ms, true, sessions);
+          const irregular = indicatorBarIntervals([bar(start), bar(start + 30_000), bar(reopen)], '1m', undefined, false);
+          const atCutoff = indicatorBarIntervals([bar(start), bar(start + minute, false), bar(start + 2 * minute)],
+            '1m', start + minute, false);
+          const unverified = indicatorBarIntervals([bar(start)], '1m', range.to_ms, true, [sessions[1], sessions[0]]);
+          const match = (intervals, from_ms, to_ms, visible = range) => clipIndicatorRegions(intervals,
+            [{ from_ms, to_ms, label: 'Fixture interval', color: '#446688' }], visible, false)
+            .map(({ first, last }) => [first, last]);
+          return {
+            missingFiveMinuteBar: match(buckets, start + 10 * minute, start + 11 * minute),
+            shortenedFiveMinuteBar: match(buckets, start + 16 * minute, start + 17 * minute),
+            justAfterSession: match(buckets, start + 17 * minute, start + 18 * minute),
+            openFiveMinuteBar: match(buckets, reopen + 10_000, reopen + 20_000),
+            afterObservation: match(buckets, reopen + 20_000, reopen + 30_000),
+            outsideFrozenRange: match(buckets, reopen + 10_000, reopen + 20_000,
+              { ...range, to_ms: reopen + 10_000 }),
+            secondSessionOfDailyBar: match(daily, reopen + 15_000, reopen + 20_000),
+            dailyBreak: match(daily, start + 17 * minute, reopen),
+            clippedAtNextIrregularStart: match(irregular, start + 30_000, start + 45_000),
+            irregularGap: match(irregular, start + 90_000, reopen),
+            startsAtObservation: match(atCutoff, start + minute, start + minute + 1),
+            startsAfterObservation: match(atCutoff, start + 2 * minute, start + 2 * minute + 1),
+            unverifiedBucketInterior: match(unverified, start + 10_000, start + 20_000),
+            unverifiedBarStart: match(unverified, start, start + 1),
+          };
+        });
+        expect(bands).toEqual({
+          missingFiveMinuteBar: [], shortenedFiveMinuteBar: [[2, 2]], justAfterSession: [],
+          openFiveMinuteBar: [[3, 3]], afterObservation: [], outsideFrozenRange: [],
+          secondSessionOfDailyBar: [[0, 0]], dailyBreak: [],
+          clippedAtNextIrregularStart: [[1, 1]], irregularGap: [],
+          startsAtObservation: [[1, 1]], startsAfterObservation: [],
+          unverifiedBucketInterior: [], unverifiedBarStart: [[0, 0]],
+        });
+      });
+    });
+  } finally {
+    await profile.close();
+  }
+});
+
+test('indicator-preview excludes points and markers outside the displayed chart bars', async ({ browser }) => {
+  const profile = await makeProfile();
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        const painted = await page.evaluate(async () => {
+          const { mountHistoryChart } = await import('/src/chart-adapter/history.ts');
+          const element = document.body.appendChild(document.createElement('div'));
+          Object.assign(element.style, { width: '600px', height: '400px' });
+          const point = time_ms => ({
+            time_ms, trading_day: '2024-01-02', open: 10, high: 12, low: 9, close: 11, volume: 3, is_closed: true,
+          });
+          const [before, first, missing, last] = [1704200700000, 1704200760000, 1704200820000, 1704200880000];
+          const bars = [point(first), point(last)];
+          const labels = [];
+          const fillText = CanvasRenderingContext2D.prototype.fillText;
+          CanvasRenderingContext2D.prototype.fillText = function (text, ...args) {
+            if (element.contains(this.canvas)) labels.push(text);
+            return fillText.call(this, text, ...args);
+          };
+          const chart = mountHistoryChart(element, { bars, dataset: { instrument_id: 'FIX', timeframe: '1m', timezone: 'UTC' } },
+            { price_tick: '0.01' }, 'candlestick', () => {});
+          try {
+            const drawLabels = async () => {
+              labels.length = 0;
+              chart.fit();
+              await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+              return [...labels];
+            };
+            const result = {
+              series: [{ id: 'fixture', pane: 'price', type: 'line', style: { color: '#ffff00', width: 1 },
+                points: [{ time_ms: before, value: 900000 }, { time_ms: first, value: 11 }, { time_ms: last, value: 500000 }] }],
+              markers: [
+                { time_ms: first, position: 'above', label: 'First fixture bar', color: '#ff0000' },
+                { time_ms: missing, position: 'above', label: 'Updated fixture bar', color: '#ff0000' },
+              ],
+              regions: [], diagnostics: [],
+            };
+            chart.setIndicatorLayers(undefined, [{ range: { from_ms: before, to_ms: last }, result }]);
+            const initial = await drawLabels();
+            chart.replaceBars([point(missing), point(last)]);
+            return { initial, updated: await drawLabels() };
+          } finally {
+            chart.dispose();
+            element.remove();
+            CanvasRenderingContext2D.prototype.fillText = fillText;
+          }
+        });
+        expect(painted.initial).toContain('First fixture bar');
+        expect(painted.initial).not.toContain('Updated fixture bar');
+        expect(painted.initial).not.toContain('02 Jan, 13:05');
+        expect(painted.updated).toContain('Updated fixture bar');
+        expect(painted.updated).not.toContain('First fixture bar');
+        for (const labels of [painted.initial, painted.updated]) {
+          expect(labels).toContain('11.00');
+          expect(Math.max(...labels.map(Number).filter(Number.isFinite))).toBeLessThan(20);
+        }
+      });
+    });
+  } finally {
+    await profile.close();
+  }
+});
 
 test('private decision notes require consent and retain the dated original separately from outcomes', async ({ browser }) => {
   const profile = await makeProfile();
@@ -875,8 +2172,29 @@ const futureHistory = { '1m': 40, '5m': 8, '1d': 2 };
 const sampleButton = page => control(page, 'Open offline sample');
 const retryHistory = page => control(page, 'Retry history');
 
+async function holdSampleHistory(page, from) {
+  const handler = async route => {
+    const call = route.request().postDataJSON();
+    if (call?.operation !== 'market.readHistoryPage' || call.payload.from_ms !== from) return route.continue();
+    const headers = await route.request().allHeaders();
+    return route.continue({ headers: { ...headers, 'x-scopehub-test-interrupt': 'hold-success' } });
+  };
+  await page.route(`**${operationPath}`, handler);
+  return () => page.unroute(`**${operationPath}`, handler);
+}
+
+async function expectedLayerRead(historyRequest) {
+  const reply = await historyRequest.existingResponse().json();
+  expect(reply.ok).toBe(true);
+  return {
+    type: 'indicator_accepted_layers', revision_id: reply.result.snapshot.dataset_id,
+    request_id: expect.stringMatching(/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/),
+  };
+}
+
 async function sampleStep(page, server, testInfo, label, trigger, {
-  timeframe = '1m', catalog = true, error, retryable = false,
+  timeframe = '1m', catalog = true, error, retryable = false, historyCall = sampleHistoryCall(timeframe),
+  bars = futureHistory[timeframe],
 } = {}) {
   const observer = observeSampleRequests(page, { marketOnly: true });
   const selection = { id: future, timeframe };
@@ -892,9 +2210,9 @@ async function sampleStep(page, server, testInfo, label, trigger, {
     expect(terminal, label).toEqual(error ? { state: 'error', message: error } : { state: 'chart' });
     await expect(retryHistory(page)).toHaveCount(retryable ? 1 : 0);
     if (error) await expect(page.locator('.history')).toHaveCount(0);
-    else await expect(history).toHaveAttribute('data-bars', String(futureHistory[timeframe]));
+    else await expect(history).toHaveAttribute('data-bars', String(bars));
 
-    const expected = [...(catalog ? [sampleCatalogCall] : []), sampleHistoryCall(timeframe)];
+    const expected = [...(catalog ? [sampleCatalogCall] : []), historyCall];
     let phase = 0;
     for (const [request, attempt] of observer.attempts) {
       const call = expected[phase];
@@ -916,12 +2234,13 @@ async function sampleStep(page, server, testInfo, label, trigger, {
           future, 'SIM.CN.STOCK.001', 'SIM.US.STOCK.001',
         ]);
       } else {
+        const { series, expected_revision: dataset_revision, from_ms, to_ms, warmup_bars } = call.payload;
         expect(reply.result).toMatchObject({
-          snapshot: { series: call.payload.series, dataset_revision: call.payload.expected_revision },
+          snapshot: { series, dataset_revision, from_ms, to_ms, warmup_bars },
           dataset: { provider_id: 'scopehub.synthetic', mode: 'simulated' },
-          quality_state: { connection: 'offline' }, total_bars: futureHistory[timeframe], next_cursor: null,
+          quality_state: { connection: 'offline' }, total_bars: bars, next_cursor: null,
         });
-        expect(reply.result.bars).toHaveLength(futureHistory[timeframe]);
+        expect(reply.result.bars).toHaveLength(bars);
         expect(reply.result.snapshot.content_hash).toMatch(/^[a-f0-9]{64}$/);
       }
     }
@@ -943,6 +2262,7 @@ async function sampleStep(page, server, testInfo, label, trigger, {
 }
 
 test('the offline sample keeps its own timeframe without replacing the private undo', async ({ browser }, testInfo) => {
+  test.setTimeout(90_000);
   const profile = await makeProfile();
   const port = await freePort();
   const context = await browser.newContext();
@@ -959,12 +2279,24 @@ test('the offline sample keeps its own timeframe without replacing the private u
       const workspaceRequests = [];
       context.on('request', request => {
         if (new URL(request.url()).pathname !== endpoint) return;
-        const body = request.postDataJSON();
-        workspaceRequests.push(body.intent?.operation ?? body.type);
+        workspaceRequests.push(request.postDataJSON());
       });
       const launch = () => page.goto(server.url + launchPath);
       const shellUrl = url => url.origin === server.url && url.pathname === '/' && url.hash === '';
-      const readPrivate = async () => state(await (await post(server, snapshot)).json());
+      const sampleSource = { kind: 'sample', instrument_id: null };
+      const noSource = { kind: 'none' };
+      const readPrivate = async (selectionRevision, source) => {
+        const frame = await (await post(server, snapshot)).json();
+        const current = state(frame, selectionRevision);
+        expect(frame.result.source).toEqual(source);
+        return current;
+      };
+      const assertSourceWrite = async (start, expectedSelection, source, layerRead) => {
+        await expect.poll(() => workspaceRequests.slice(start)).toEqual([{
+          type: 'workspace_source', source, expected_selection_revision: expectedSelection,
+          request_id: expect.stringMatching(/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/),
+        }, snapshot, ...(layerRead ? [layerRead] : [])]);
+      };
       const undo = control(page, 'Undo timeframe change');
 
       await launch();
@@ -972,7 +2304,7 @@ test('the offline sample keeps its own timeframe without replacing the private u
       await expect(page).toHaveURL(server.url + '/');
       await expect(page.locator('.connection')).toHaveText('No data source');
       expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
-      expect(await readPrivate()).toEqual({ revision: 0, timeframe: '1m', undo: null });
+      expect(await readPrivate(0, null)).toEqual({ revision: 0, timeframe: '1m', undo: null });
       expect((await act(page, '5m', 'chart.setTimeframe')).result.outcome)
         .toMatchObject({ state: 'committed', result: { timeframe: '5m', revision: 1 } });
       const prior = (await act(page, '1m', 'chart.setTimeframe')).result.outcome;
@@ -981,44 +2313,50 @@ test('the offline sample keeps its own timeframe without replacing the private u
         revision: 2, timeframe: '1m',
         undo: { operation_id: prior.receipt.operation_id, committed_workspace_revision: 2 },
       };
-      expect(await readPrivate()).toEqual(before);
+      expect(await readPrivate(0, null)).toEqual(before);
       await expect(undo).toBeEnabled();
 
       const beforeSample = workspaceRequests.length;
-      await sampleStep(page, server, testInfo, 'first explicit sample open', () => sampleButton(page).click());
-      await sampleStep(page, server, testInfo, 'sample five-minute selection', () => control(page, '5m').click(),
+      const firstHistory = await sampleStep(page, server, testInfo, 'first explicit sample open', () => sampleButton(page).click());
+      await expect(page).toHaveURL(shellUrl);
+      await expect(control(page, 'Edit layout')).toBeEnabled();
+      const oneMinuteRead = await expectedLayerRead(firstHistory);
+      await assertSourceWrite(beforeSample, 0, sampleSource, oneMinuteRead);
+      const duringSample = workspaceRequests.length;
+      const fiveMinuteHistory = await sampleStep(page, server, testInfo, 'sample five-minute selection', () => control(page, '5m').click(),
         { timeframe: '5m', catalog: false });
-      const after = await readPrivate();
+      const fiveMinuteRead = await expectedLayerRead(fiveMinuteHistory);
+      const after = await readPrivate(1, sampleSource);
       const refreshed = await context.newPage();
       await observeSelectedHistory(refreshed, { includeCatalog: true });
       await sampleStep(refreshed, server, testInfo, 'shared sample preference open', () => refreshed.goto(server.url), { timeframe: '5m' });
       await sampleStep(refreshed, server, testInfo, 'shared sample preference refresh', () => refreshed.reload(), { timeframe: '5m' });
       const refreshedTimeframe = await refreshed.locator('.history').getAttribute('data-timeframe');
-      await testInfo.attach('workspace-sample-timeframe', {
-        body: JSON.stringify({ before, after, refreshedTimeframe, sampleWorkspaceRequests: workspaceRequests.slice(beforeSample) }),
-        contentType: 'application/json',
-      });
       expect(after).toEqual(before);
-      expect(workspaceRequests.slice(beforeSample)).toEqual([]);
+      expect(workspaceRequests.slice(duringSample)).toEqual([fiveMinuteRead]);
       await expect(undo).toHaveCount(0);
       await expect(control(refreshed, 'Undo timeframe change')).toHaveCount(0);
       await assertSampleStorage(refreshed, '5m');
       await refreshed.close();
 
+      const beforeLeave = workspaceRequests.length;
       await leaveSample(page);
       await expect(page).toHaveURL(shellUrl);
       await expect(page.locator('.connection')).toHaveText('No data source');
       await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
       await expect(undo).toBeEnabled();
-      expect(await readPrivate()).toEqual(before);
+      await assertSourceWrite(beforeLeave, 1, noSource);
+      expect(await readPrivate(2, noSource)).toEqual(before);
       const reply = await duringResponse(page, 'workspace.undo', () => undo.click());
-      expect(reply.request().postDataJSON().intent.arguments).toEqual({ operation_id: prior.receipt.operation_id });
+      const undoRequest = reply.request().postDataJSON();
+      expect(undoRequest.intent.arguments).toEqual({ operation_id: prior.receipt.operation_id });
+      expect(undoRequest.scope).toMatchObject({ expected_workspace_revision: 2, expected_selection_revision: 2 });
       expect((await reply.json()).result.outcome).toMatchObject({
         state: 'committed', result: { timeframe: '5m', revision: 3 }, receipt: { undoable: false },
       });
       await expect(undo).toBeDisabled();
       const afterUndo = { revision: 3, timeframe: '5m', undo: null };
-      expect(await readPrivate()).toEqual(afterUndo);
+      expect(await readPrivate(2, noSource)).toEqual(afterUndo);
       expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
 
       const beforeReload = workspaceRequests.length;
@@ -1032,12 +2370,16 @@ test('the offline sample keeps its own timeframe without replacing the private u
       await expect(page).toHaveURL(server.url + '/');
       await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
       await expect(undo).toBeDisabled();
-      expect(workspaceRequests.slice(beforeReload)).toEqual(['snapshot']);
+      expect(workspaceRequests.slice(beforeReload)).toEqual([snapshot]);
 
       const beforeSampleReload = workspaceRequests.length;
       await sampleStep(page, server, testInfo, 'second explicit sample open', () => sampleButton(page).click());
-      await sampleStep(page, server, testInfo, 'sample daily selection', () => control(page, '1d').click(),
+      await assertSourceWrite(beforeSampleReload, 2, sampleSource, oneMinuteRead);
+      const duringSampleReload = workspaceRequests.length;
+      const dailyHistory = await sampleStep(page, server, testInfo, 'sample daily selection', () => control(page, '1d').click(),
         { timeframe: '1d', catalog: false });
+      const dailyRead = await expectedLayerRead(dailyHistory);
+      expect(await readPrivate(3, sampleSource)).toEqual(afterUndo);
       await assertSampleStorage(page, '1d');
       await sampleStep(page, server, testInfo, 'sample daily refresh', () => page.reload(), { timeframe: '1d' });
       await expect(undo).toHaveCount(0);
@@ -1046,9 +2388,32 @@ test('the offline sample keeps its own timeframe without replacing the private u
       await expect(page.locator('.connection')).toHaveText('No data source');
       await expect(control(page, '1m')).toHaveAttribute('aria-pressed', 'true');
       await expect(undo).toHaveCount(0);
-      expect(workspaceRequests.slice(beforeSampleReload)).toEqual([]);
+      expect(workspaceRequests.slice(duringSampleReload)).toEqual([dailyRead]);
       expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
-      expect(await readPrivate()).toEqual(afterUndo);
+      expect(await readPrivate(3, sampleSource)).toEqual(afterUndo);
+
+      // The browser-only leave discarded its presentation preference without a local grant.
+      // Relaunching the profile restores its explicit sample at the browser's default period.
+      const beforeProfileRestore = workspaceRequests.length;
+      await sampleStep(page, server, testInfo, 'restore the profile sample', launch);
+      await expect(page).toHaveURL(shellUrl);
+      await expect(undo).toHaveCount(0);
+      await expect.poll(() => workspaceRequests.slice(beforeProfileRestore)).toEqual([snapshot, oneMinuteRead]);
+      expect(await readPrivate(3, sampleSource)).toEqual(afterUndo);
+      const beforeProfileLeave = workspaceRequests.length;
+      await leaveSample(page);
+      await expect(page).toHaveURL(shellUrl);
+      await expect(page.locator('.connection')).toHaveText('No data source');
+      await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
+      await expect(undo).toBeDisabled();
+      await assertSourceWrite(beforeProfileLeave, 3, noSource);
+      expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
+      expect(await readPrivate(4, noSource)).toEqual(afterUndo);
+      await testInfo.attach('workspace-sample-timeframe', {
+        body: JSON.stringify({ before, after, afterUndo, refreshedTimeframe,
+          sampleWorkspaceRequests: workspaceRequests.slice(beforeSample), finalSelectionRevision: 4 }),
+        contentType: 'application/json',
+      });
     }, { historyTrace: true });
   } finally {
     await context.close();
@@ -1068,7 +2433,11 @@ test('the reopened sample recovers its history without consuming the private und
     await inService(port, profile, 'ubuntu-workspace', async server => {
       await inFreshBrowser(browser, server, async page => {
         const writer = await writerPid(server);
-        const privateState = async () => state(await (await post(server, snapshot)).json());
+        const privateState = async (selectionRevision, kind) => {
+          const frame = await (await post(server, snapshot)).json();
+          expect(frame.result.source).toEqual(kind === 'sample' ? { kind, instrument_id: null } : { kind });
+          return state(frame, selectionRevision);
+        };
         const committed = (await act(page, '5m', 'chart.setTimeframe')).result.outcome;
         expect(committed).toMatchObject({ state: 'committed', result: { timeframe: '5m', revision: 1 }, receipt: { undoable: true } });
         const undo = control(page, 'Undo timeframe change');
@@ -1076,7 +2445,10 @@ test('the reopened sample recovers its history without consuming the private und
           revision: 1, timeframe: '5m',
           undo: { operation_id: committed.receipt.operation_id, committed_workspace_revision: 1 },
         };
-        const operationRequests = observeOperations(page);
+        const sourceCalls = [];
+        page.on('request', request => {
+          if (new URL(request.url()).pathname === endpoint) sourceCalls.push(request.postDataJSON());
+        });
         const open = () => sampleButton(page).click();
         const retry = () => retryHistory(page).click();
         const step = (label, trigger, options) => sampleStep(page, server, testInfo, label, trigger, options);
@@ -1130,7 +2502,7 @@ test('the reopened sample recovers its history without consuming the private und
             }
           }
           expect(failed.headers()[traceHeader]).not.toBe(stillLost.headers()[traceHeader]);
-          expect(await privateState()).toEqual(before);
+          expect(await privateState(3, 'sample')).toEqual(before);
         });
         await inject('during-body-200', undefined, async () => {
           const request = await step('retry with interrupted successful response body', cutBody(retry, 200), {
@@ -1179,9 +2551,16 @@ test('the reopened sample recovers its history without consuming the private und
         });
         await leaveSample(page);
 
-        expect(operationRequests).not.toContain(endpoint);
+        const layerRead = await expectedLayerRead(initial);
+        const expectedScopeChanges = Array.from({ length: 10 }, (_, revision) => [{
+          type: 'workspace_source',
+          source: revision % 2 === 0 ? { kind: 'sample', instrument_id: null } : { kind: 'none' },
+          expected_selection_revision: revision,
+          request_id: expect.stringMatching(/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/),
+        }, snapshot, ...([0, 2].includes(revision) ? [layerRead] : [])]).flat();
+        expect(sourceCalls).toEqual(expectedScopeChanges);
         expect(await postStatus(server, snapshot, { Authorization: '' })).toBe(403);
-        expect(await privateState()).toEqual(before);
+        expect(await privateState(10, 'none')).toEqual(before);
         expect(await writerPid(server)).toBe(writer);
         await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
         await expect(undo).toBeEnabled();
@@ -1190,8 +2569,8 @@ test('the reopened sample recovers its history without consuming the private und
         expect(inverted.request().postDataJSON().intent.arguments).toEqual({ operation_id: committed.receipt.operation_id });
         expect((await inverted.json()).result.outcome).toMatchObject({ state: 'committed', result: { timeframe: '1m', revision: 2 } });
         await expect(undo).toBeDisabled();
-        expect(await privateState()).toEqual({ revision: 2, timeframe: '1m', undo: null });
-      }, { includeSample: true });
+        expect(await privateState(10, 'none')).toEqual({ revision: 2, timeframe: '1m', undo: null });
+      }, [endpoint, operationPath], { traceSample: true });
     }, { historyTrace: true, historyFault: true });
   } finally {
     await profile.close();
@@ -1647,11 +3026,11 @@ async function postStatus(server, body, headers) {
   return responseStatus(await post(server, body, headers));
 }
 
-function state(frame) {
+function state(frame, expectedSelectionRevision = 0) {
   if (frame.ok !== true) return undefined;
   const { workspace, undo } = frame.result;
   expect(workspace).toMatchObject({ id: workspaceId, instrument_id: null, dataset: null, layers: [] });
-  expect(frame.result.selection_revision).toBe(0);
+  expect(frame.result.selection_revision).toBe(expectedSelectionRevision);
   return { revision: workspace.revision, timeframe: workspace.timeframe, undo };
 }
 
@@ -1686,7 +3065,7 @@ async function assertSampleStorage(page, timeframe) {
   expect(stored).toEqual({ onlySamplePreference: true, emptySessionStorage: true, matchesSample: true });
 }
 
-async function inFreshBrowser(browser, server, use, { includeSample = false } = {}) {
+async function inFreshBrowser(browser, server, use, permittedOperations = [endpoint], { restoredSample, traceSample = false } = {}) {
   const context = await browser.newContext();
   try {
     // Read the real launcher handoff but set its fragment locally before page
@@ -1695,26 +3074,34 @@ async function inFreshBrowser(browser, server, use, { includeSample = false } = 
       window.history.replaceState(null, '', '#workspace=' + capability);
     }, server.capability);
     const page = await context.newPage();
-    if (includeSample) await observeSelectedHistory(page, { includeCatalog: true });
+    if (traceSample) await observeSelectedHistory(page, { includeCatalog: true });
     const requests = observeOperations(page);
     let capabilityInRequestUrl = false;
     page.on('request', request => { capabilityInRequestUrl ||= request.url().includes(server.capability); });
-    await use(page, await openWorkspaceSnapshot(page, server.url));
-    expect(requests.every(path => path === endpoint || (includeSample && path === operationPath))).toBe(true);
+    let initial;
+    const open = async () => { initial = await openWorkspaceSnapshot(page, server.url, Boolean(restoredSample)); };
+    if (restoredSample) await sampleStep(page, server, restoredSample.testInfo, restoredSample.label, open);
+    else await open();
+    await use(page, initial);
+    expect(requests.every(path => permittedOperations.includes(path))).toBe(true);
     expect(capabilityInRequestUrl).toBe(false);
   } finally {
     await context.close();
   }
 }
 
-async function openWorkspaceSnapshot(page, url) {
+async function openWorkspaceSnapshot(page, url, restoredSample = false) {
   const response = await duringPageEvent(page, 'response', response =>
     new URL(response.url()).pathname === endpoint && response.request().postDataJSON()?.type === 'snapshot', async () => {
     await page.goto(url);
-    await expect(control(page, 'Open offline sample')).toBeVisible();
-    await expect(page.getByText('No data source')).toBeVisible();
+    if (restoredSample) {
+      await expect(page.getByText('Offline sample', { exact: true })).toBeVisible();
+    } else {
+      await expect(control(page, 'Open offline sample')).toBeVisible();
+      await expect(page.getByText('No data source')).toBeVisible();
+      expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
+    }
     expect(await page.evaluate(() => window.location.hash === '')).toBe(true);
-    expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
   });
   return response.json();
 }

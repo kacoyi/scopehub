@@ -1,12 +1,14 @@
 //! Profile-bound SQLite workspace storage for the Rust application registry.
 
 mod folder_manifest;
+mod indicator_versions;
 mod local_dataset;
 mod note_backup;
 mod notes;
 mod private_records;
 mod reviewed_import;
 mod storage;
+mod workspace_layout;
 
 use std::{fmt, path::Path, time::Duration};
 
@@ -14,15 +16,18 @@ use rusqlite::{
     Connection, OpenFlags, OptionalExtension, Row, TransactionBehavior, config::DbConfig, params,
 };
 use scopehub_application::{
-    Actor, ChartEvidenceRef, ChartEvidenceStatus, DecisionNoteBackupData, DecisionNoteChange,
-    DecisionNoteMutation, DecisionNoteReplay, DecisionNoteRestorePlan, PrivateRecordPlan,
-    SET_TIMEFRAME, StoredLocalDataset, Timeframe, UNDO, WorkspaceBinding, WorkspaceChange,
-    WorkspaceReceipt, WorkspaceReplay, WorkspaceReplayKey, WorkspaceState, WorkspaceStore,
-    WorkspaceTransaction, WorkspaceUndoAccess, WorkspaceUndoTarget, failure,
+    APPLY_LAYOUT, Actor, ChartEvidenceRef, ChartEvidenceStatus, DecisionNoteBackupData,
+    DecisionNoteChange, DecisionNoteMutation, DecisionNoteReplay, DecisionNoteRestorePlan,
+    IndicatorLayerRef, IndicatorLayerUndo, IndicatorVersionRecord, PrivateRecordPlan,
+    SET_TIMEFRAME, StoredLocalDataset, StoredWorkspaceView, Timeframe, UNDO, WorkspaceBinding,
+    WorkspaceChange, WorkspaceLayoutChange, WorkspaceLayoutSnapshot, WorkspaceLayoutState,
+    WorkspaceReceipt, WorkspaceReplay, WorkspaceReplayKey, WorkspaceSourcePreference,
+    WorkspaceState, WorkspaceStore, WorkspaceTransaction, WorkspaceUndoAccess, WorkspaceUndoTarget,
+    failure,
 };
 use scopehub_domain::protocol::{
     DecisionNoteDate, DecisionNoteReadOutput, Error, ErrorCode, PrivateRecordArchiveEntry,
-    PrivateRecordEntry, PrivateRecordSummary, Revision, VisibleRange,
+    PrivateRecordEntry, PrivateRecordSummary, Revision, VisibleRange, WorkspaceLayout11,
 };
 
 const DATABASE_NAME: &str = "workspace.sqlite3";
@@ -35,7 +40,9 @@ const LOCAL_DATASET_SCHEMA_VERSION: i64 = 5;
 const CHART_EVIDENCE_SCHEMA_VERSION: i64 = 6;
 const FOLDER_MANIFEST_SCHEMA_VERSION: i64 = 7;
 const PRIVATE_RECORD_SCHEMA_VERSION: i64 = 8;
-const SCHEMA_VERSION: i64 = PRIVATE_RECORD_SCHEMA_VERSION;
+const WORKSPACE_LAYOUT_SCHEMA_VERSION: i64 = 9;
+const INDICATOR_VERSIONS_SCHEMA_VERSION: i64 = 10;
+const SCHEMA_VERSION: i64 = INDICATOR_VERSIONS_SCHEMA_VERSION;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum OpenWorkspaceError {
@@ -258,6 +265,14 @@ fn migrate(connection: &Connection, binding: &WorkspaceBinding) -> Result<(), Op
         connection.execute_batch(include_str!("private_records.sql"))?;
         record_migration(connection, PRIVATE_RECORD_SCHEMA_VERSION)?;
     }
+    if version < WORKSPACE_LAYOUT_SCHEMA_VERSION {
+        connection.execute_batch(include_str!("workspace_layout.sql"))?;
+        record_migration(connection, WORKSPACE_LAYOUT_SCHEMA_VERSION)?;
+    }
+    if version < INDICATOR_VERSIONS_SCHEMA_VERSION {
+        connection.execute_batch(include_str!("indicator_versions.sql"))?;
+        record_migration(connection, INDICATOR_VERSIONS_SCHEMA_VERSION)?;
+    }
     Ok(())
 }
 
@@ -391,10 +406,18 @@ fn eligible_undo(
 }
 
 fn chart_revision(connection: &Connection, workspace_id: &str) -> Result<Revision, Error> {
+    // Undo shares an operation name across targets. The original operation
+    // identifies an inverse's target in both current and predecessor profiles.
     connection
         .query_row(
-            "SELECT coalesce(max(revision), 0) FROM operation_log
-             WHERE workspace_id = ?1 AND operation IN (?2, ?3)",
+            "SELECT coalesce(max(event.revision), 0) FROM operation_log AS event
+             WHERE event.workspace_id = ?1 AND (
+                 event.operation = ?2 OR (event.operation = ?3 AND EXISTS (
+                     SELECT 1 FROM operation_log AS original
+                     WHERE original.id = event.undoes AND original.workspace_id = event.workspace_id
+                       AND original.operation = ?2
+                 ))
+             )",
             params![workspace_id, SET_TIMEFRAME, UNDO],
             |row| revision(row, 0),
         )
@@ -410,20 +433,18 @@ impl WorkspaceStore for SqliteWorkspace {
         &self,
         undo: Option<WorkspaceUndoAccess<'_>>,
         disclose_chart_evidence: bool,
-    ) -> Result<
-        (
-            WorkspaceState,
-            Option<WorkspaceUndoTarget>,
-            Option<ChartEvidenceStatus>,
-        ),
-        Error,
-    > {
+    ) -> Result<StoredWorkspaceView, Error> {
         let snapshot = self
             .connection
             .unchecked_transaction()
             .map_err(store_error)?;
         let workspace_id = &self.binding.workspace_id;
         let state = state(&snapshot, workspace_id)?;
+        let layouts = workspace_layout::read(&snapshot, workspace_id)?;
+        let layout_undo = undo
+            .map(|undo| workspace_layout::eligible_undo(&snapshot, workspace_id, undo))
+            .transpose()?
+            .flatten();
         let target = undo
             .map(|undo| eligible_undo(&snapshot, workspace_id, state, undo))
             .transpose()?
@@ -439,8 +460,23 @@ impl WorkspaceStore for SqliteWorkspace {
         } else {
             None
         };
+        let source = if disclose_chart_evidence {
+            workspace_layout::source_view(&snapshot, workspace_id)?
+        } else {
+            None
+        };
         snapshot.commit().map_err(store_error)?;
-        Ok((state, target, evidence))
+        Ok(StoredWorkspaceView {
+            state,
+            chart_undo: target,
+            chart_evidence: evidence,
+            layouts: WorkspaceLayoutSnapshot {
+                active: layouts.active,
+                saved: layouts.saved.into_keys().collect(),
+                undo: layout_undo,
+            },
+            source,
+        })
     }
 
     fn inspect<T>(
@@ -531,6 +567,71 @@ impl WorkspaceTransaction for SqliteTransaction<'_> {
         state(self.connection, &self.binding.workspace_id)
     }
 
+    fn set_source_preference(&mut self, source: &WorkspaceSourcePreference) -> Result<(), Error> {
+        workspace_layout::write_source(self.connection, &self.binding.workspace_id, source)
+    }
+
+    fn layouts(&self) -> Result<WorkspaceLayoutState, Error> {
+        workspace_layout::read(self.connection, &self.binding.workspace_id)
+    }
+
+    fn layout_change(
+        &self,
+        operation_id: &str,
+        actor: Actor,
+    ) -> Result<Option<WorkspaceLayoutChange>, Error> {
+        workspace_layout::change(
+            self.connection,
+            &self.binding.workspace_id,
+            operation_id,
+            actor,
+        )
+    }
+
+    fn layout_undo_candidate(
+        &self,
+        operation_id: &str,
+        access: WorkspaceUndoAccess<'_>,
+    ) -> Result<Option<WorkspaceReceipt>, Error> {
+        self.connection
+            .query_row(
+                "SELECT id, revision, undoable, before_timeframe, after_timeframe
+                 FROM operation_log
+                 WHERE id = ?1 AND workspace_id = ?2 AND principal_id = ?3
+                   AND paired_client_id = ?4 AND actor = ?5 AND operation = ?6 AND undoable = 1
+                   AND revision = (SELECT max(revision) FROM operation_log AS candidate
+                     JOIN workspace_layout_changes AS edit ON edit.operation_id = candidate.id
+                     WHERE candidate.workspace_id = ?2)",
+                params![
+                    operation_id,
+                    self.binding.workspace_id,
+                    access.principal_id,
+                    access.paired_client_id.unwrap_or(""),
+                    access.actor.as_str(),
+                    APPLY_LAYOUT
+                ],
+                receipt,
+            )
+            .optional()
+            .map_err(store_error)
+    }
+
+    fn record_layout(
+        &mut self,
+        change: &WorkspaceChange<'_>,
+        edit: &WorkspaceLayoutChange,
+        saved_after: Option<&WorkspaceLayout11>,
+    ) -> Result<(), Error> {
+        self.record_change(change, None)?;
+        workspace_layout::write(
+            self.connection,
+            &self.binding.workspace_id,
+            &change.receipt.operation_id,
+            edit,
+            saved_after,
+        )
+    }
+
     fn private_record(&self, id: &str) -> Result<Option<PrivateRecordEntry>, Error> {
         private_records::read(self.connection, &self.binding.workspace_id, id)
     }
@@ -614,6 +715,145 @@ impl WorkspaceTransaction for SqliteTransaction<'_> {
 
     fn local_evidence_display_allowed(&self, revision_id: &str) -> Result<bool, Error> {
         local_dataset::display_allowed(self.connection, revision_id)
+    }
+
+    fn indicator_trusted_python_allowed(&self, instrument_id: &str) -> Result<bool, Error> {
+        // The bundled synthetic fixtures affirm this local use. Unknown and
+        // display-only CSV/provider adapters never inherit this policy.
+        if !matches!(
+            instrument_id,
+            "SIM.CN.FUTURE.001" | "SIM.CN.STOCK.001" | "SIM.US.STOCK.001"
+        ) {
+            return Ok(false);
+        }
+        self.indicator_sample_allowed(instrument_id)
+    }
+
+    fn indicator_sample_allowed(&self, instrument_id: &str) -> Result<bool, Error> {
+        let source = workspace_layout::source_view(self.connection, &self.binding.workspace_id)?;
+        Ok(matches!(
+            source.map(|view| view.preference),
+            Some(WorkspaceSourcePreference::Sample(selected))
+                if selected.as_deref().is_none_or(|id| id == instrument_id)
+        ))
+    }
+
+    fn indicator_compute_allowed(&self, revision_id: &str) -> Result<bool, Error> {
+        // These revisions contain native CSV selected and published by this
+        // profile. That local source policy allows on-device declarative analysis.
+        // Other adapters must establish their own affirmative purpose rights.
+        local_dataset::display_allowed(self.connection, revision_id)
+    }
+
+    fn indicator_retention_allowed(&self, revision_id: &str) -> Result<bool, Error> {
+        // The profile's explicit CSV publication policy permits local artifacts.
+        local_dataset::display_allowed(self.connection, revision_id)
+    }
+
+    fn active_indicator_count(&self) -> Result<u64, Error> {
+        indicator_versions::active_count(self.connection, &self.binding.workspace_id)
+    }
+
+    fn indicator_preview_accepted(&self, preview_id: &str) -> Result<bool, Error> {
+        indicator_versions::accepted_preview(
+            self.connection,
+            &self.binding.workspace_id,
+            preview_id,
+        )
+    }
+
+    fn indicator_layer(&self, layer_id: &str) -> Result<Option<IndicatorLayerRef>, Error> {
+        indicator_versions::read_layer(self.connection, &self.binding.workspace_id, layer_id)
+    }
+
+    fn indicator_layers(&self, revision_id: &str) -> Result<Vec<IndicatorLayerRef>, Error> {
+        indicator_versions::list_layers(self.connection, &self.binding.workspace_id, revision_id)
+    }
+
+    fn indicator_operation_layer(
+        &self,
+        operation_id: &str,
+    ) -> Result<Option<IndicatorLayerRef>, Error> {
+        indicator_versions::operation_layer(
+            self.connection,
+            &self.binding.workspace_id,
+            operation_id,
+        )
+    }
+
+    fn indicator_layer_undo(
+        &self,
+        operation_id: &str,
+        principal_id: &str,
+        layer_id: &str,
+    ) -> Result<Option<IndicatorLayerUndo>, Error> {
+        indicator_versions::undo_target(
+            self.connection,
+            &self.binding.workspace_id,
+            operation_id,
+            principal_id,
+            layer_id,
+        )
+    }
+
+    fn latest_indicator_removal(
+        &self,
+        revision_id: &str,
+        principal_id: &str,
+    ) -> Result<Option<(IndicatorLayerRef, WorkspaceReceipt)>, Error> {
+        indicator_versions::latest_removal(
+            self.connection,
+            &self.binding.workspace_id,
+            revision_id,
+            principal_id,
+        )
+    }
+
+    fn indicator_confirmation_receipt(
+        &self,
+        challenge_id: &str,
+        principal_id: &str,
+    ) -> Result<Option<(IndicatorLayerRef, WorkspaceReceipt)>, Error> {
+        indicator_versions::confirmation_receipt(
+            self.connection,
+            &self.binding.workspace_id,
+            challenge_id,
+            principal_id,
+        )
+    }
+
+    fn indicator_document(&self, layer_id: &str) -> Result<Option<serde_json::Value>, Error> {
+        indicator_versions::read_document(self.connection, &self.binding.workspace_id, layer_id)
+    }
+
+    fn record_indicator_version(
+        &mut self,
+        change: &WorkspaceChange<'_>,
+        version: &IndicatorVersionRecord,
+    ) -> Result<(), Error> {
+        self.record_change(change, None)?;
+        indicator_versions::record_version(
+            self.connection,
+            &self.binding.workspace_id,
+            &change.receipt.operation_id,
+            version,
+        )
+    }
+
+    fn record_indicator_layer(
+        &mut self,
+        change: &WorkspaceChange<'_>,
+        layer: &IndicatorLayerRef,
+        active: bool,
+    ) -> Result<(), Error> {
+        self.record_change(change, None)?;
+        indicator_versions::record_layer(
+            self.connection,
+            &self.binding.workspace_id,
+            &change.receipt.operation_id,
+            layer,
+            active,
+        )
     }
 
     fn chart_revision(&self) -> Result<Revision, Error> {

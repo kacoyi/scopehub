@@ -105,7 +105,9 @@
         "decisionNote.restoreBackup",
         "privateRecord.read",
         "privateRecord.change",
-        "privateRecord.exportBackup"
+        "privateRecord.exportBackup",
+        "workspace.previewLayout",
+        "workspace.applyLayout"
       ]
     },
     "ChartStyle": {
@@ -5099,6 +5101,12 @@
         },
         {
           "$ref": "#/$defs/WorkspaceUndoIntent11"
+        },
+        {
+          "$ref": "#/$defs/WorkspacePreviewLayoutIntent11"
+        },
+        {
+          "$ref": "#/$defs/WorkspaceApplyLayoutIntent11"
         }
       ]
     },
@@ -5349,6 +5357,12 @@
         },
         {
           "$ref": "#/$defs/ScopedFailure11"
+        },
+        {
+          "$ref": "#/$defs/WorkspacePreviewLayoutSuccess11"
+        },
+        {
+          "$ref": "#/$defs/WorkspaceApplyLayoutSuccess11"
         }
       ]
     },
@@ -15517,6 +15531,496 @@
           "$ref": "#/$defs/FolderRefreshAlternative"
         }
       ]
+    },
+    "LayoutPanel11": {
+      "type": "object",
+      "properties": {
+        "panel": {
+          "type": "string",
+          "enum": [
+            "watchlist",
+            "inspection"
+          ]
+        },
+        "dock": {
+          "type": "string",
+          "enum": [
+            "left",
+            "right",
+            "bottom"
+          ]
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 180,
+          "maximum": 480
+        }
+      },
+      "required": [
+        "panel",
+        "dock",
+        "size"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceLayout11": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "panels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LayoutPanel11"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "theme": {
+          "type": "string",
+          "enum": [
+            "dark",
+            "light"
+          ]
+        },
+        "gain_color": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "loss_color": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "link_selection": {
+          "type": "boolean"
+        },
+        "pinned_instrument": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OpaqueId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "version",
+        "panels",
+        "theme",
+        "gain_color",
+        "loss_color",
+        "link_selection",
+        "pinned_instrument"
+      ],
+      "additionalProperties": false
+    },
+    "NamedWorkspaceLayout11": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 48
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "definition": {
+          "$ref": "#/$defs/WorkspaceLayout11"
+        }
+      },
+      "required": [
+        "name",
+        "definition"
+      ],
+      "additionalProperties": false
+    },
+    "SaveWorkspaceLayout11": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "save"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 48
+        },
+        "definition": {
+          "$ref": "#/$defs/WorkspaceLayout11"
+        }
+      },
+      "required": [
+        "action",
+        "name",
+        "definition"
+      ],
+      "additionalProperties": false
+    },
+    "OpenWorkspaceLayout11": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "open"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 48
+        }
+      },
+      "required": [
+        "action",
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "ResetWorkspaceLayout11": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "reset"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceLayoutEdit11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/SaveWorkspaceLayout11"
+        },
+        {
+          "$ref": "#/$defs/OpenWorkspaceLayout11"
+        },
+        {
+          "$ref": "#/$defs/ResetWorkspaceLayout11"
+        }
+      ]
+    },
+    "WorkspacePreviewLayoutInput11": {
+      "type": "object",
+      "properties": {
+        "edit": {
+          "$ref": "#/$defs/WorkspaceLayoutEdit11"
+        }
+      },
+      "required": [
+        "edit"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspacePreviewLayoutOutput11": {
+      "type": "object",
+      "properties": {
+        "layout": {
+          "$ref": "#/$defs/NamedWorkspaceLayout11"
+        },
+        "preview_token": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "layout",
+        "preview_token"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceApplyLayoutInput11": {
+      "type": "object",
+      "properties": {
+        "edit": {
+          "$ref": "#/$defs/WorkspaceLayoutEdit11"
+        },
+        "preview_token": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "edit",
+        "preview_token"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspacePreviewLayoutIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "workspace.previewLayout"
+        },
+        "arguments": {
+          "$ref": "#/$defs/WorkspacePreviewLayoutInput11"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspacePreviewLayoutCommand11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/MutationScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/WorkspacePreviewLayoutIntent11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "scope",
+        "intent"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspacePreviewLayoutSuccess11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "previewed"
+        },
+        "operation": {
+          "type": "string",
+          "const": "workspace.previewLayout"
+        },
+        "result": {
+          "$ref": "#/$defs/WorkspacePreviewLayoutOutput11"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspacePreviewLayoutOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/WorkspacePreviewLayoutSuccess11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
+    },
+    "WorkspacePreviewLayoutReply11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "outcome": {
+          "$ref": "#/$defs/WorkspacePreviewLayoutOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceApplyLayoutIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "workspace.applyLayout"
+        },
+        "arguments": {
+          "$ref": "#/$defs/WorkspaceApplyLayoutInput11"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceApplyLayoutCommand11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/MutationScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/WorkspaceApplyLayoutIntent11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "scope",
+        "intent"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceApplyLayoutSuccess11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "committed"
+        },
+        "operation": {
+          "type": "string",
+          "const": "workspace.applyLayout"
+        },
+        "receipt": {
+          "$ref": "#/$defs/OperationReceipt11"
+        },
+        "result": {
+          "$ref": "#/$defs/NamedWorkspaceLayout11"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "receipt",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceApplyLayoutOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/WorkspaceApplyLayoutSuccess11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
+    },
+    "WorkspaceApplyLayoutReply11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "outcome": {
+          "$ref": "#/$defs/WorkspaceApplyLayoutOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
+      ],
+      "additionalProperties": false
     }
   }
 }

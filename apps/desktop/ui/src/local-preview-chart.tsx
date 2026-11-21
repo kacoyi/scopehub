@@ -2,9 +2,10 @@ import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'reac
 import type {
   Bar, FolderRefreshSource, LocalImportPreviewOutput, LocalImportRowLocator, PreviewSeries, ReadLocalFolderRevisionOutput,
 } from '../../../../contracts/generated/protocol';
-import type { ChartStyle, HistoryChartHandle } from './chart-adapter/history';
+import type { ChartStyle, HistoryChartHandle, IndicatorChartLayer } from './chart-adapter/history';
 import { FrozenEvidenceControls, type FrozenChartResult } from './frozen-evidence';
 import { hasLocalCsvPicker, readLocalFolderSourceRow, readLocalImportSourceRow } from './local-import-transport';
+import { IndicatorPreview } from './indicator-preview';
 import { PriceChart } from './price-chart';
 import { displayAccessDenied, type PublishedRevisionAccess } from './published-revision-access';
 import type { LocalWorkspace } from './use-local-workspace';
@@ -18,9 +19,11 @@ type ChartProps = {
   bars: readonly Bar[] | undefined;
   emptyMessage?: string;
   controls?: ReactNode;
+  indicatorPreview?: IndicatorChartLayer | undefined;
+  acceptedIndicators?: readonly IndicatorChartLayer[] | undefined;
 };
 
-function LocalBarChart({ title, label, styleLabel, series, symbol, bars, emptyMessage, controls }: ChartProps) {
+function LocalBarChart({ title, label, styleLabel, series, symbol, bars, emptyMessage, controls, indicatorPreview, acceptedIndicators }: ChartProps) {
   const [style, setStyle] = useState<ChartStyle>('candlestick');
   const handle = useRef<HistoryChartHandle | null>(null);
   const projection = useMemo(() => {
@@ -46,7 +49,7 @@ function LocalBarChart({ title, label, styleLabel, series, symbol, bars, emptyMe
     {projection && series ? <>
       <div className="local-chart-canvas">
         <PriceChart instrument={projection.instrument} history={projection.history} handle={handle} style={style}
-          cursor="crosshair" replayBar={undefined} repairedBars={undefined} />
+          cursor="crosshair" replayBar={undefined} repairedBars={undefined} indicatorPreview={indicatorPreview} acceptedIndicators={acceptedIndicators} />
       </div>
       <footer className="chart-footer">
         <span>{series.venue} · {series.timezone}</span><span>Volume in {series.quantity_unit}</span><span>{series.price_adjustment}</span>
@@ -90,11 +93,17 @@ export function LocalPreviewChart({ result }: { result: LocalImportPreviewOutput
 export function FrozenLocalChart({ result, workspace, access }: {
   result: FrozenChartResult; workspace: LocalWorkspace | undefined; access: PublishedRevisionAccess;
 }) {
+  const [indicatorPreview, setIndicatorPreview] = useState<IndicatorChartLayer>();
+  const [acceptedIndicators, setAcceptedIndicators] = useState<readonly IndicatorChartLayer[]>([]);
   const { revision, bars: events } = result;
   const bars = useMemo(() => events.map(event => event.bar), [events]);
+  const showIndicators = result.snapshot && workspace && access.canDisplay(revision.revision_id);
   return <>
     <LocalBarChart title="Frozen chart" label="Frozen local CSV chart" styleLabel="Frozen chart style"
-      series={revision.series} symbol={revision.symbol} bars={bars} />
+      series={revision.series} symbol={revision.symbol} bars={bars} indicatorPreview={showIndicators ? indicatorPreview : undefined}
+      acceptedIndicators={showIndicators ? acceptedIndicators : undefined} />
+    {result.snapshot && workspace && <IndicatorPreview snapshot={result.snapshot} bars={bars} workspace={workspace}
+      access={access} showResult={setIndicatorPreview} showAccepted={setAcceptedIndicators} />}
     {result.snapshot && workspace && <FrozenEvidenceControls snapshot={result.snapshot} bars={bars} workspace={workspace} access={access} />}
     <section className="local-import-card" aria-label="Published source provenance">
       <h2>Published source provenance</h2>
