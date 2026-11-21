@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-031",
+  "focus_task_id": "M2-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -6821,7 +6821,7 @@
       "id": "M0-031",
       "title": "Resolve archived diagnostic runs and qualify idle worktrees for retirement",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-030"
       ],
@@ -6846,10 +6846,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Implement the portable report resolver and read-only retirement eligibility command, then verify with independent fixtures and the current host inventory.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-031-d51e47fee17aab36.json",
+          "sha256": "f8ee6182855c8f39fb27140c6be500db9039fa403637bdabbb8798cfe6d4d2a0"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Linux fixtures exercised eligible and held worktrees. The host observation held all 50 registered entries, found 10 tips reachable from the observed origin/main, and reported missing verified retention, active paths, downstream consumers and incomplete process visibility. The archived diagnostic run 20261121T015908.326119Z-721f69a6 retained its blocked outcome with 13 selected checks passed and two blocked. Its 13 logs and archive checksum manifest verified.",
       "plan": {
         "outcome": "Retain diagnostic runs across relocation and expose idle, recoverable task checkouts ready for a separately reviewed retirement.",
         "change_types": [
