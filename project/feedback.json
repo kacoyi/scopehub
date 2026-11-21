@@ -2067,6 +2067,22 @@
         "prevention": "The authenticated task reports show the January 3 response held for 5500 ms on Ubuntu and 5514 ms on Windows, followed by HTTP 200, a complete successful browser body and the chart. The independent normal and gapped calculations returned 3500.5 and null. The trusted Python initial open and restart both reached the chart, and restart restored accepted output with zero preview executions."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "indicator-undo-immediate-output-read-unattributed",
+      "source": "Authenticated Ubuntu full PR 22 workflow 44856274123 at head 7e30119607b6e22095a37d7f373db177aae2344c and checkout 568064cdc4625ab9b5205765ae75b81805f81b69.",
+      "observation": "The frozen CSV indicator journey was the only failed workspace-timeframe case. At workspace.spec.mjs:862 the direct accepted-output reader returned undefined after Undo and after waiting for the accepted region. The screenshot showed Accepted layer restored and the expected accepted version. The result-only helper discarded the status and response envelope. The original cause of the unsuccessful read remains unidentified. The browser results SHA-256 is d16e5e0601e304e510125ec7b66212a1256bb35b061bb5e68ac3a430c58bc0b3. The authenticated original is retained under .reports/ci/44856274123/linux. In the controlled Linux red, the suspended real writer admitted Undo and returned HTTP 429 BUSY with retryable true to a competing accepted-output read. The accepted region was still hidden. Resuming the writer produced a committed undo receipt at workspace revision 3 and the expected accepted version then rendered. Holding an authorized snapshot after that point returned the same 429 error to a direct read. Extracting only result reproduced the original undefined assertion. The red browser report at .reports/M3-003-red/workspace-timeframe/results.json has SHA-256 4ca76c7b3226533bfd11c53acce94b9da797eb3dcded6c8af9ec657af4ba45fb. The focused green at .reports/M3-003-green/workspace-timeframe/results.json has SHA-256 22c460f1b2c43816fec2399ddd8115b439d283320727f3573f42f1d771ebadf7. It retained the committed receipt and both 429 envelopes, then the bounded read returned HTTP 200 and the exact saved document. The existing cancellation, failure and restart assertions passed.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M3-003"
+      ],
+      "regression_checks": [
+        "indicator-declarative-preview",
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

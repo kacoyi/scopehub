@@ -855,11 +855,87 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         expect(await reply(server, outputRequest())).toEqual(savedOutput);
         await expect(plot).toBeVisible();
 
-        await preview.getByRole('button', { name: 'Remove accepted layer' }).click();
-        await expect(preview.getByRole('region', { name: 'Accepted indicators' })).toHaveCount(0);
-        await preview.getByRole('button', { name: 'Undo indicator removal' }).click();
-        await expect(preview.getByRole('region', { name: 'Accepted indicators' })).toBeVisible();
-        expect(await reply(server, outputRequest())).toEqual(savedOutput);
+        const accepted = preview.getByRole('region', { name: 'Accepted indicators' });
+        const remove = preview.getByRole('button', { name: 'Remove accepted layer' });
+        const undo = preview.getByRole('button', { name: 'Undo indicator removal' });
+        const undoStages = { reads: [] };
+        const layerMutation = async (operation, action) => {
+          const matches = request => {
+            if (new URL(request.url()).pathname !== endpoint) return false;
+            const payload = request.postDataJSON();
+            return payload?.intent?.operation === operation && payload.scope?.target?.kind === 'layer'
+              && payload.scope.target.object_id === savedLayer.layer_id;
+          };
+          const request = await duringPageEvent(page, 'requestfinished', matches, action, 8_000, matches);
+          const response = await request.response();
+          return { request: request.postDataJSON(), http: response.status(), body: await response.json() };
+        };
+        const readOutput = async () => {
+          const request = outputRequest();
+          const response = await post(server, request, {}, AbortSignal.timeout(3_000));
+          return { request, http: response.status, body: await response.json() };
+        };
+        try {
+          const removed = await layerMutation('indicator.remove', () => remove.click());
+          expect(removed).toMatchObject({ http: 200, body: { ok: true, result: {
+            request_id: removed.request.request_id,
+            outcome: { state: 'committed', receipt: { committed_workspace_revision: 2, undoable: true } },
+          } } });
+          await expect(accepted).toHaveCount(0);
+          await expect(undo).toBeEnabled();
+          const writer = await writerPid(server);
+          const whileWriterPaused = async action => {
+            await writerPid(server, 'suspend', writer);
+            try { return await action(); }
+            finally { await writerPid(server, 'resume', writer); }
+          };
+          const waitForAdmission = () => expect.poll(() => postStatus(server, admissionProbe), { timeout: 3_000 }).toBe(429);
+          const undone = await layerMutation('workspace.undo', () => whileWriterPaused(async () => {
+            await undo.click();
+            await waitForAdmission();
+            const pending = await readOutput();
+            undoStages.in_flight = { ...pending, accepted_visible: await accepted.isVisible() };
+            expect(undoStages.in_flight).toMatchObject({ http: 429, body: busy, accepted_visible: false });
+          }));
+          undoStages.undo = undone;
+          expect(undone.request.intent.arguments).toEqual({ operation_id: removed.body.result.outcome.receipt.operation_id });
+          expect(undone).toMatchObject({ http: 200, body: { ok: true, result: {
+            request_id: undone.request.request_id,
+            outcome: { state: 'committed', receipt: { committed_workspace_revision: 3, undoable: false } },
+          } } });
+          await expect(preview.getByText('Accepted layer restored.', { exact: true })).toBeVisible();
+          await expect(accepted.getByText(savedLayer.version_id, { exact: true })).toBeVisible();
+
+          // Reproduce read contention after the exact layer is visible with a real authorized snapshot.
+          let competing;
+          let output;
+          try {
+            output = await whileWriterPaused(async () => {
+              competing = post(server, snapshot).then(async response => ({ http: response.status, body: await response.json() }))
+                .catch(error => ({ error: error.message }));
+              await waitForAdmission();
+              const observed = await readOutput();
+              undoStages.reads.push(observed);
+              return observed;
+            });
+          } finally {
+            if (competing) undoStages.competing_snapshot = await competing;
+          }
+          expect(undoStages.competing_snapshot).toMatchObject({ http: 200, body: { ok: true, result: { workspace: { revision: 3 } } } });
+          expect(output).toMatchObject({ http: 429, body: busy });
+          const admissionBusy = ({ http, body }) =>
+            http === 429 && body.ok === false && body.error?.code === 'BUSY' && body.error?.retryable === true;
+          await expect.poll(async () => {
+            if (!admissionBusy(output)) return false;
+            output = await readOutput();
+            undoStages.reads.push(output);
+            return admissionBusy(output);
+          }, { timeout: 3_000, message: 'The restored indicator output read cleared preview admission' }).toBe(false);
+          expect(output).toMatchObject({ http: 200, body: { ok: true } });
+          expect(output.body.result).toEqual(savedOutput);
+        } finally {
+          await testInfo.attach('indicator-undo-stages', { body: JSON.stringify(undoStages), contentType: 'application/json' });
+        }
         observation.preview = { initial: first.event.snapshot, warmed: warmed.event.snapshot, cancelled, withheld, committed };
 
       });

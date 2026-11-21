@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M4-001",
+  "focus_task_id": "M3-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -7990,6 +7990,97 @@
           ],
           "data_plan": "Use the existing synthetic data and disposable workspace profiles.",
           "cleanup": "Release browser routes, pending response timers and observers on every outcome. Retain red and green reports without private handoff credentials."
+        }
+      }
+    },
+    {
+      "id": "M3-003",
+      "title": "Verify a committed indicator undo before reading the exact restored document",
+      "milestone": "M3",
+      "status": "active",
+      "depends_on": [
+        "M3-001",
+        "M3-002"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0017"
+      ],
+      "acceptance": [
+        "Hold the real undo in flight and determine whether the accepted layer is visible before the committed response. Retain the correlated mutation response and the direct read's status and envelope.",
+        "Prove the old result-only assertion can fail on a positively observed retryable read admission failure. Bound any recovery to that status and error before requiring exact equality with the original saved document.",
+        "Retain the frozen chart, independent numeric, cancellation, failure isolation, revocation and restart assertions in the integrated indicator journey."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "indicator-declarative-preview",
+        "workspace-timeframe"
+      ],
+      "evidence": [],
+      "next_action": "Run the integrated task check on the source checkpoint and obtain matching hosted Linux and Windows workflow evidence before closing the feedback.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The frozen CSV journey distinguishes committed undo, rendered accepted state and an authorized read of the exact immutable artifact.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "apps/desktop/ui/src/indicator-acceptance.tsx",
+          "apps/desktop/ui/ubuntu-workspace.mjs",
+          "crates/application/src/workspace/indicators/accepted.rs"
+        ],
+        "hypotheses": [
+          "The hosted assertion extracts only result, so contention and a genuinely missing artifact are indistinguishable in the archived failure.",
+          "The accepted region may be visible after a valid commit while an independent authorized workspace read still occupies the single preview producer."
+        ],
+        "risks": [
+          {
+            "failure": "A broad retry conceals an uncommitted undo, an authorization failure or a changed accepted document.",
+            "checks": [
+              "indicator-declarative-preview",
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Retain the hosted, controlled red and green artifacts. Remove any change that obscures the exact committed receipt, error envelope or document equality.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing indicator semantics, workspace authorization, producer policy or product timeouts."
+          ],
+          "open_questions": [
+            "Does the producer return a typed BUSY before undo completion or during an unrelated read after the restored region is visible?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Exact accepted document equality, frozen inputs, independent indicator results, cancellation, failure isolation, revocation and restart."
+          ],
+          "change": [
+            "Observe the specific undo receipt and log each direct accepted-output response. Recover only from a bounded, observed read admission failure."
+          ],
+          "data_plan": "Use the existing synthetic CSV and a disposable local profile.",
+          "cleanup": "Resume the test-owned suspended writer on every path and detach response observers after the matching request or timeout."
         }
       }
     }
