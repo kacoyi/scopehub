@@ -7883,9 +7883,13 @@
         {
           "path": "project/evidence/M3-002-0e9290f77dbdcc7c.json",
           "sha256": "de56564013777cde00051957137d833c2c32106d45ca840f5171437853fc9843"
+        },
+        {
+          "path": "project/evidence/M3-002-0c0006cb80d4b959.json",
+          "sha256": "e95002f408ef7dfac2e53985f4fbc2f53e9dc333caa77851a84466a68d28bf50"
         }
       ],
-      "next_action": "Run matching hosted Windows verification for the corrected revision, inspect the correlated sample history stages and archive the task report before closing the feedback.",
+      "next_action": "Run the M3-002 hosted task on the integrated PR21 fixture checkpoint. Verify both platforms and the full workspace-timeframe check, inspect the indicator request stages and archive passing source-matched reports before closing the feedback.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
