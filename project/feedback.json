@@ -1235,7 +1235,7 @@
       "source": "Owner storage review and repository-scoped allocated-block inventory on 2026-11-20.",
       "observation": "Across 45 existing worktrees, Cargo target directories occupied approximately 178.4 GiB of 194.8 GiB measured. Repeated local builds had no repository-wide retention budget.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-029"
       ],
@@ -1243,7 +1243,11 @@
         "python-contracts-workers",
         "project-state"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Each development worktree accumulated independent Cargo debug outputs. Completed incremental sessions and old dependencies or test executables continued occupying physical blocks after verification.",
+        "correction": "Inventory repository-owned caches, collect positively identified idle artifacts above the budget, and default ordinary local verification to non-incremental builds. On the affected host Cargo outputs fell from 178.44 GiB to 81.05 GiB. A user timer runs the same pinned collector for checkouts on older revisions.",
+        "prevention": "Regression fixtures cover non-destructive reporting, occupied files and executables, repository boundaries, threshold behavior and Cargo rebuilding after interruption. All 45 original Git heads and status snapshots, metadata for 31,290 retained evidence or diagnostic files, and 10,803 file digests matched after both sweeps. Active and unclassified artifacts can keep usage above the soft budget."
+      },
       "deferral_reason": null
     }
   ]

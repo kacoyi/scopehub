@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-029",
+  "focus_task_id": "M2-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -6588,7 +6588,7 @@
       "id": "M0-029",
       "title": "Bound local Cargo cache growth across ScopeHub worktrees",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-025"
       ],
@@ -6613,8 +6613,13 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Audit recovered space and retained evidence on the affected Linux host, then archive acceptance evidence.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-029-a27496e2e1e1e79d.json",
+          "sha256": "a4131a7156604afcf7d892f19cbd18b8e88cd23dd49d7df9591c588ce7b8c960"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
