@@ -108,7 +108,7 @@ def dedicated_worktree_directory(current, common, registered, directory):
     for parent in (directory, *directory.parents):
         marker = parent / '.git'
         try:
-            marker.lstat()
+            marker_info = marker.lstat()
         except FileNotFoundError:
             continue
         try:
@@ -116,6 +116,12 @@ def dedicated_worktree_directory(current, common, registered, directory):
         except subprocess.CalledProcessError as error:
             if error.returncode != 128:
                 raise
+            # Only a readable, empty directory proves that this marker contains no Git metadata.
+            if not stat.S_ISDIR(marker_info.st_mode) or reparse(marker_info):
+                return False
+            with os.scandir(marker) as entries:
+                if next(entries, None) is not None:
+                    return False
         else:
             return False
     return True

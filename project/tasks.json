@@ -7875,14 +7875,14 @@
       ],
       "acceptance": [
         "Creating, locating or reusing a worktree verifies both directions of the Git registration and the actual branch at its path. Another linked worktree in the same repository cannot satisfy its identity.",
-        "The worktree manager and Cargo maintenance agree on the permitted dedicated managed root; a tree nested in any foreign checkout is protected."
+        "The worktree manager and Cargo maintenance protect trees nested in foreign checkouts or under indeterminate ancestor Git markers through the same managed-root admission rule. Collection rechecks admission under the Cargo locks."
       ],
       "checks": [
         "project-state",
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Retain the review findings, reproduce each boundary in an isolated fixture, repair the normal entrypoints, and verify local and hosted checks before integration.",
+      "next_action": "Combine the reviewed M0-033 directory-handle follow-up, verify the combined revision locally and on hosted Ubuntu and Windows, archive matching evidence, and observe the required pull request jobs.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -7910,7 +7910,7 @@
             ]
           },
           {
-            "failure": "A cache in another enclosing repository is admitted for deletion.",
+            "failure": "A cache in another enclosing repository is admitted for deletion, including when Git cannot resolve the enclosing marker.",
             "checks": [
               "project-state",
               "python-contracts-workers"
@@ -7946,7 +7946,7 @@
           ],
           "change": [
             "Creating, locating or reusing a worktree verifies both directions of the Git registration and the actual branch at its path. Another linked worktree in the same repository cannot satisfy its identity.",
-            "The worktree manager and Cargo maintenance agree on the permitted dedicated managed root; a tree nested in any foreign checkout is protected."
+            "The worktree manager and Cargo maintenance block foreign and indeterminate enclosing Git markers during root admission, including the recheck under Cargo locks."
           ],
           "data_plan": "Use temporary Git and filesystem fixtures. No persistent product data needs migration.",
           "cleanup": "Keep worktree.py and storage.py independently runnable as pinned host helpers. Verify admission parity at the CLI boundary and recheck admissibility before collection."

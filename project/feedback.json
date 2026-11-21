@@ -2006,7 +2006,7 @@
     {
       "id": "managed-worktree-foreign-checkout-admission",
       "source": "PR 25 review and disposable native Git and Cargo cache reproductions.",
-      "observation": "Storage inventory admitted a managed root nested in a foreign Git checkout that the worktree manager would reject. When a foreign repository appeared after inventory, collection deleted a fixture artifact under the foreign checkout. The legacy sibling rule also permitted that nesting.",
+      "observation": "Storage inventory admitted a managed root nested in a foreign Git checkout that the worktree manager would reject. When a foreign repository appeared after inventory, collection deleted a fixture artifact under the foreign checkout. The legacy sibling rule also permitted that nesting. Re-review reproduced both worktree creation and collection under a foreign .git file that Git could not resolve, including collection of an enclosing repository's tracked file after Cargo locks had been acquired.",
       "severity": "major",
       "status": "open",
       "task_ids": [

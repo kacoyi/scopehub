@@ -407,6 +407,42 @@ class CollectionTests(RepositoryFixture):
         self.assertEqual(artifact.read_bytes(), before)
         self.assertFalse(control.exists(), result)
 
+    def test_collection_preserves_foreign_tracked_file_when_git_marker_becomes_unresolvable(self):
+        foreign = self.directory / 'foreign'
+        managed = foreign / 'managed'
+        artifact = self.cargo_cache(self.worktree(managed / 'member'))
+        control = self.cargo_cache(self.worktree('legacy'))
+        metadata = self.directory / 'foreign metadata'
+        self.git(foreign, 'init', '--quiet', '--separate-git-dir', str(metadata))
+        tracked_path = artifact.relative_to(foreign).as_posix()
+        # Seed the enclosing index explicitly because normal add skips nested worktrees.
+        blob = self.git(foreign, 'hash-object', '-w', '--', tracked_path).stdout.decode('ascii').strip()
+        self.git(foreign, 'update-index', '--add', '--cacheinfo', f'100644,{blob},{tracked_path}')
+        self.git(foreign, '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+                 'commit', '--quiet', '-m', 'Track original file')
+        before = self.git(foreign, 'show', f'HEAD:{tracked_path}').stdout
+        self.assertEqual(artifact.read_bytes(), before)
+        marker = foreign / '.git'
+        marker.unlink()
+        self.git(self.root, 'config', '--local', 'scopehub.worktreeRoot', str(managed))
+        take_lock = storage.take_lock
+        foreign_debug = artifact.parents[1].stat()
+
+        def reveal_unavailable_foreign_repo(stack, debug_fd, name, mount_id):
+            taken = take_lock(stack, debug_fd, name, mount_id)
+            if os.path.samestat(os.fstat(debug_fd), foreign_debug) and not marker.exists():
+                marker.write_bytes(b'gitdir: missing-metadata\n')
+            return taken
+
+        with patch.object(storage, 'take_lock', side_effect=reveal_unavailable_foreign_repo):
+            result = self.collect()
+
+        self.assertEqual(Path(result['managed_worktree_root']), managed)
+        self.assertEqual(self.report_entry(result, artifact.parents[2])['reason'], 'worktree_directory_changed')
+        self.assertEqual(artifact.read_bytes(), before)
+        self.assertFalse(control.exists(), result)
+        self.assertIsNone(storage.run(self.root)['managed_worktree_root'])
+
     def test_legacy_sibling_does_not_bypass_foreign_checkout_protection(self):
         artifact = self.cargo_cache(self.worktree('legacy'))
         self.git(self.checkouts, 'init', '--quiet')
