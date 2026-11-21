@@ -8242,7 +8242,7 @@
         "python-types",
         "architecture"
       ],
-      "next_action": "On the integrated source, retain native Windows x64 evidence for the synthetic Credential Manager lifecycle and packaged desktop runtime. Real-account cloud text qualification remains under M4-002 with explicit account and spend authorization.",
+      "next_action": "Verify the packaged desktop runtime on the release candidate. The source-bound Windows x64 synthetic Credential Manager lifecycle passed as recorded in contracts/reviews/2026-11-20-native-openai-credential.json. Real-account cloud text qualification remains under M4-002 with explicit account and spend authorization.",
       "blocker": null,
       "closure_reason": null,
       "evidence": [
