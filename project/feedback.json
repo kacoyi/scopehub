@@ -1266,7 +1266,7 @@
       "resolution": {
         "cause": "Parallel and historical checkouts were created as project-directory siblings. The previous collector only admitted siblings, and generated runtime shims held absolute checkout paths.",
         "correction": "Provide a shared repository-local managed root and portable creation or reuse commands. On the affected host, move 36 idle checkouts, defer seven live sessions, retain three observed legacy mappings, and place the verified historical build archive on its optional volume. Ordinary source and build workflows remain on the source filesystem.",
-        "prevention": "Regression tests cover repository identity, explicit branch and base, reuse, interruptions and storage eligibility. All 43 original worktrees matched Git and retained evidence after relocation. Host verification exercised the actual client build, four Rust/Python handshake cases, fresh worktree creation, Herdr routing, and an offline cache fallback."
+        "prevention": "Regression tests cover repository identity, explicit branch and base, reuse, interruptions and storage eligibility. All 43 original worktrees matched Git and retained evidence after relocation. Host verification exercised the actual client build, four Rust/Python handshake cases, fresh worktree creation, Herdr routing, and an offline cache fallback. Process-death tests exercise kernel-released creation locks, including a Git child which outlives the launcher. The installed host alias resumed after a forced process exit."
       },
       "deferral_reason": null
     }
