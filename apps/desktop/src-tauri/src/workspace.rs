@@ -934,7 +934,7 @@ mod tests {
     #[tokio::test]
     async fn native_text_setup_contention_is_retryable_before_registry_admission() {
         let profile = std::env::temp_dir().join(format!("scopehub-text-{}", uuid::Uuid::new_v4()));
-        let bridge = WorkspaceBridge::development(Some(&profile), true);
+        let bridge = WorkspaceBridge::local(Some(&profile), true);
         let command = |arguments| {
             json!({
                 "protocol_version": "1.1", "type": "request", "timestamp_ms": 1763600000000_u64,
