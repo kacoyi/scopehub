@@ -1996,7 +1996,7 @@
       "observation": "First status and route proposals were rejected before the registry with retryable transport BUSY and zero outbound requests. The UI reported an answer in progress before a question had been sent. The same executable completed three ordinary turns, including a 20,480-byte answer, when the initial workspace snapshot was ready.",
       "severity": "major",
       "status": "open",
-      "task_ids": ["M4-008"],
+      "task_ids": ["M4-009"],
       "regression_checks": ["desktop-workspace-transport", "rust-contracts-workers"],
       "resolution": null,
       "deferral_reason": null

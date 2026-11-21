@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M4-008",
+  "focus_task_id": "M4-009",
   "tasks": [
     {
       "id": "M0-001",
@@ -7852,7 +7852,7 @@
       }
     },
     {
-      "id": "M4-008",
+      "id": "M4-009",
       "title": "Recover native text setup during initial workspace admission",
       "milestone": "M4",
       "status": "active",
