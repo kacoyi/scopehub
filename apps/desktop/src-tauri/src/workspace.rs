@@ -1,13 +1,14 @@
 //! Native profile binding and admission for the existing SQLite workspace writer.
 
 use std::{
+    future::Future,
     path::{Path, PathBuf},
     sync::Arc,
 };
 
 use scopehub_application::{
-    Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, FolderManifestAnchor,
-    FolderRefreshBase, FrozenLocalSourceRow, LIST_LOCAL_FOLDER_REVISIONS,
+    Actor, ApprovedPython, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE,
+    FolderManifestAnchor, FolderRefreshBase, FrozenLocalSourceRow, LIST_LOCAL_FOLDER_REVISIONS,
     LIST_LOCAL_IMPORT_REVISIONS, LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS,
     LocalDatasetPublication, MappingCommitGuard, OperationRegistry,
     PREPARE_LOCAL_FOLDER_PUBLICATION, PREVIEW_LOCAL_FOLDER_REFRESH, PRIVATE_RECORD_CHANGE,
@@ -52,6 +53,7 @@ const MAX_REQUEST_BYTES: usize = 16 * 1024;
 const MAX_NOTE_REQUEST_BYTES: usize = 32 * 1024;
 const MAX_BACKUP_REQUEST_BYTES: usize = 1024 * 1024;
 
+#[derive(Clone)]
 pub(super) struct WorkspaceBridge {
     lane: Arc<Mutex<Lane>>,
     workspace_enabled: bool,
@@ -67,8 +69,12 @@ enum Lane {
 
 enum Request {
     Snapshot,
+    WorkspaceSource(Value),
     FrozenChart(String),
     FrozenChartStatus(String),
+    IndicatorPreviewStatus(String),
+    IndicatorAcceptedRead(Value),
+    SampleIndicatorPreview(Value, Value),
     Operation(Value),
 }
 
@@ -146,6 +152,11 @@ impl WorkspaceBridge {
         let lane = self.admit()?;
         let request = match operation {
             None if payload == json!({"type": "snapshot"}) => Request::Snapshot,
+            None if payload["type"] == "workspace_source"
+                && payload.to_string().len() <= MAX_REQUEST_BYTES =>
+            {
+                Request::WorkspaceSource(payload)
+            }
             None if payload["type"] == "frozen_chart" || chart_status => {
                 let revision_id = payload["revision_id"]
                     .as_str()
@@ -163,10 +174,35 @@ impl WorkspaceBridge {
                     Request::FrozenChart(revision_id.to_owned())
                 }
             }
+            None if matches!(
+                payload["type"].as_str(),
+                Some("indicator_accepted_layers" | "indicator_accepted_output")
+            ) =>
+            {
+                Request::IndicatorAcceptedRead(payload)
+            }
+            None if payload["type"] == "indicator_preview_status" => {
+                let task_id = payload["task_id"]
+                    .as_str()
+                    .filter(|id| {
+                        id.len() == 36
+                            && payload.as_object().is_some_and(|object| object.len() == 3)
+                            && payload["request_id"]
+                                .as_str()
+                                .is_some_and(|request_id| request_id.len() == 36)
+                    })
+                    .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
+                Request::IndicatorPreviewStatus(task_id.into())
+            }
             Some(operation)
                 if payload["type"] == "request"
                     && (payload["intent"]["operation"] == operation
-                        || evidence_operation_name(&payload) == Some(operation)) =>
+                        || evidence_operation_name(&payload) == Some(operation)
+                        || matches!(
+                            operation,
+                            scopehub_application::CANCEL_INDICATOR_TASK
+                                | scopehub_application::INDICATOR_CONFIRMATION
+                        ) && payload["operation"] == operation) =>
             {
                 let limit = if matches!(
                     operation,
@@ -192,6 +228,70 @@ impl WorkspaceBridge {
             None if chart_status => Ok(json!({"available": false})),
             None => Err(failure(ErrorCode::INTERNALERROR)),
         }
+    }
+
+    pub(super) async fn dispatch_indicator_decision(
+        &self,
+        command: Value,
+    ) -> Result<(Value, Option<ApprovedPython>), Error> {
+        if !self.workspace_enabled {
+            return Err(failure(ErrorCode::PERMISSIONDENIED));
+        }
+        if command.to_string().len() >= MAX_REQUEST_BYTES {
+            return Err(failure(ErrorCode::RESOURCELIMIT));
+        }
+        Self::with_bound(self.admit()?, true, move |bound| {
+            let reply = bound.dispatch(Request::Operation(command))?;
+            let work = if let Some(task) = reply["outcome"]["result"]["task_id"].as_str() {
+                bound
+                    .registry
+                    .take_approved_python(&workspace_access(&bound.profile_id), task)?
+            } else {
+                None
+            };
+            Ok((reply, work))
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::INTERNALERROR))
+    }
+
+    pub(super) async fn finish_trusted_python(
+        &self,
+        task: String,
+        response: Result<Value, Error>,
+    ) -> Result<(), Error> {
+        let lane = Arc::clone(&self.lane).lock_owned().await;
+        if !matches!(&*lane, Lane::Open(_)) {
+            return Ok(());
+        }
+        Self::with_bound(lane, false, move |bound| {
+            bound.registry.finish_trusted_python(
+                &workspace_access(&bound.profile_id),
+                &task,
+                response,
+            )
+        })
+        .await?;
+        Ok(())
+    }
+
+    pub(super) async fn dispatch_sample_preview(
+        &self,
+        command: Value,
+        load_history: impl Future<Output = Result<Value, Error>>,
+    ) -> Result<Value, Error> {
+        if !self.workspace_enabled {
+            return Err(failure(ErrorCode::PERMISSIONDENIED));
+        }
+        if command.to_string().len() >= MAX_REQUEST_BYTES {
+            return Err(failure(ErrorCode::RESOURCELIMIT));
+        }
+        let history = load_history.await?;
+        Self::with_bound(self.admit()?, true, move |bound| {
+            bound.dispatch(Request::SampleIndicatorPreview(command, history))
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::INTERNALERROR))
     }
 
     pub(super) async fn find(
@@ -559,15 +659,7 @@ impl BoundWorkspace {
     }
 
     fn dispatch(&mut self, request: Request) -> Result<Value, Error> {
-        let access = WorkspaceAccess {
-            actor: Actor::User,
-            profile_id: &self.profile_id,
-            principal_id: &self.profile_id,
-            paired_client_id: None,
-            workspace_id: WORKSPACE_ID,
-            operations: LOCAL_WORKSPACE_OPERATIONS,
-            disclose_workspace_state: true,
-        };
+        let access = workspace_access(&self.profile_id);
         match request {
             Request::Snapshot => {
                 let snapshot = self.registry.workspace_snapshot(&access)?;
@@ -575,11 +667,16 @@ impl BoundWorkspace {
                     "workspace": snapshot.workspace,
                     "selection_revision": snapshot.selection_revision,
                     "chart_evidence": snapshot.chart_evidence,
+                    "layouts": snapshot.layouts_json(),
+                    "source": snapshot.source_json(),
                     "undo": snapshot.undo.map(|target| json!({
                         "operation_id": target.operation_id,
                         "committed_workspace_revision": target.committed_workspace_revision,
                     })),
                 }))
+            }
+            Request::WorkspaceSource(request) => {
+                self.registry.select_workspace_source(&access, &request)
             }
             Request::FrozenChart(revision_id) => self
                 .registry
@@ -591,8 +688,29 @@ impl BoundWorkspace {
                 )?;
                 Ok(json!({"available": available}))
             }
+            Request::IndicatorPreviewStatus(task_id) => {
+                self.registry.indicator_preview_status(&access, &task_id)
+            }
+            Request::IndicatorAcceptedRead(payload) => {
+                self.registry.read_accepted_indicator(&access, &payload)
+            }
+            Request::SampleIndicatorPreview(command, page) => self
+                .registry
+                .execute_sample_indicator_preview(&access, command, page),
             Request::Operation(payload) => self.registry.execute_workspace(&access, payload),
         }
+    }
+}
+
+fn workspace_access(profile_id: &str) -> WorkspaceAccess<'_> {
+    WorkspaceAccess {
+        actor: Actor::User,
+        profile_id,
+        principal_id: profile_id,
+        paired_client_id: None,
+        workspace_id: WORKSPACE_ID,
+        operations: LOCAL_WORKSPACE_OPERATIONS,
+        disclose_workspace_state: true,
     }
 }
 

@@ -1,0 +1,101 @@
+{
+  "dataset": {
+    "id": "836cb0d6-61d3-5d80-8e4d-37da5b308cf1",
+    "instrument_id": "SIM.CN.FUTURE.001",
+    "provider_id": "scopehub.synthetic",
+    "mode": "simulated",
+    "timeframe": "1m",
+    "price_adjustment": "raw",
+    "timezone": "Asia/Shanghai",
+    "calendar_id": "SIM.CN.FUTURE.001.sample-calendar.v1",
+    "quantity_unit": "contracts",
+    "revision": "scopehub-synthetic-v1:20241013:normal",
+    "quality": "fresh",
+    "provenance": {
+      "synthetic": true,
+      "generator": "scopehub-synthetic-v1",
+      "seed": 20241013,
+      "start_ms": 1704200400000,
+      "as_of_ms": 1704330570000,
+      "last_observed_ms": 1704330570000,
+      "missing_minute_starts_ms": [],
+      "calendar_scope": "Only the declared sample windows are represented; not an exchange calendar",
+      "sessions": [
+        {
+          "start_ms": 1704200400000,
+          "end_ms": 1704201000000,
+          "trading_day": "2024-01-03"
+        },
+        {
+          "start_ms": 1704243600000,
+          "end_ms": 1704244200000,
+          "trading_day": "2024-01-03"
+        },
+        {
+          "start_ms": 1704286800000,
+          "end_ms": 1704287400000,
+          "trading_day": "2024-01-04"
+        },
+        {
+          "start_ms": 1704330000000,
+          "end_ms": 1704330600000,
+          "trading_day": "2024-01-04"
+        }
+      ]
+    }
+  },
+  "bars": [
+    {
+      "time_ms": 1704200400000,
+      "trading_day": "2024-01-03",
+      "open": 3500.0,
+      "high": 3500.4,
+      "low": 3498.8,
+      "close": 3499.2,
+      "volume": 120.0,
+      "is_closed": true
+    },
+    {
+      "time_ms": 1704200460000,
+      "trading_day": "2024-01-03",
+      "open": 3499.2,
+      "high": 3500.4,
+      "low": 3498.6,
+      "close": 3499.8,
+      "volume": 80.0,
+      "is_closed": true
+    }
+  ],
+  "snapshot": {
+    "series": {
+      "instrument_id": "SIM.CN.FUTURE.001",
+      "provider_id": "scopehub.synthetic",
+      "timeframe": "1m",
+      "price_adjustment": "raw",
+      "session_scope": "sample-sessions",
+      "calendar_id": "SIM.CN.FUTURE.001.sample-calendar.v1",
+      "quantity_unit": "contracts"
+    },
+    "dataset_id": "836cb0d6-61d3-5d80-8e4d-37da5b308cf1",
+    "dataset_revision": "scopehub-synthetic-v1:20241013:normal",
+    "from_ms": 0,
+    "to_ms": 1704200520000,
+    "warmup_bars": 0,
+    "as_of_ms": 1704330570000,
+    "content_hash": "3a1b0032b57711c9563131caf34c8cfda9d91bbf5ef5e9dbc7a4f0f48ab390d1"
+  },
+  "quality_state": {
+    "as_of_ms": 1704330570000,
+    "last_observed_ms": 1704330570000,
+    "session_state": "open",
+    "freshness": "current",
+    "connection": "offline",
+    "coverage": "observed",
+    "gaps": [],
+    "source_kind": "synthetic"
+  },
+  "stream_position": null,
+  "next_cursor": null,
+  "total_bars": 2,
+  "offset": 0
+}

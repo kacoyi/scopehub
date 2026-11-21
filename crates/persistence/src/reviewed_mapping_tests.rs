@@ -293,7 +293,7 @@ fn v3_upgrade_is_atomic_and_preserves_workspace_notes_and_outcomes() {
 
     let writer = profile.open().unwrap();
     assert_eq!(ledger(&writer.connection), current_ledger());
-    let state = writer.snapshot(None, false).unwrap().0;
+    let state = writer.snapshot(None, false).unwrap().state;
     assert_eq!(
         (state.revision, state.timeframe),
         (2, Timeframe::FiveMinutes)

@@ -1,19 +1,23 @@
 use std::{
     future::Future,
     path::{Path, PathBuf},
-    sync::Mutex as SyncMutex,
+    sync::{Mutex as SyncMutex, atomic::Ordering},
     time::Duration,
 };
 
 use scopehub_application::{
-    Actor, LIST_LOCAL_FOLDER_REVISIONS, LIST_LOCAL_IMPORT_REVISIONS, LOAD_LOCAL_IMPORT_MAPPING,
-    LOCAL_WORKSPACE_OPERATIONS, MarketLifecycle, MarketPort, MarketRegistry,
-    PREPARE_LOCAL_FOLDER_PUBLICATION, PREVIEW_LOCAL_FOLDER_REFRESH, PREVIEW_LOCAL_IMPORT,
-    PUBLISH_LOCAL_FOLDER_REFRESH, PUBLISH_LOCAL_IMPORT, READ_LOCAL_FOLDER_REVISION,
-    READ_LOCAL_FOLDER_SOURCE_ROW, READ_LOCAL_IMPORT_REVISION, READ_LOCAL_IMPORT_SOURCE_ROW,
-    REVOKE_LOCAL_FOLDER_REVISION, REVOKE_LOCAL_IMPORT_REVISION, SAVE_LOCAL_IMPORT_MAPPING, failure,
+    Actor, INDICATOR_CONFIRMATION, LIST_LOCAL_FOLDER_REVISIONS, LIST_LOCAL_IMPORT_REVISIONS,
+    LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS, MarketLifecycle, MarketPort,
+    MarketRegistry, PREPARE_LOCAL_FOLDER_PUBLICATION, PREVIEW_LOCAL_FOLDER_REFRESH,
+    PREVIEW_LOCAL_IMPORT, PUBLISH_LOCAL_FOLDER_REFRESH, PUBLISH_LOCAL_IMPORT,
+    READ_LOCAL_FOLDER_REVISION, READ_LOCAL_FOLDER_SOURCE_ROW, READ_LOCAL_IMPORT_REVISION,
+    READ_LOCAL_IMPORT_SOURCE_ROW, REVOKE_LOCAL_FOLDER_REVISION, REVOKE_LOCAL_IMPORT_REVISION,
+    RUN_INDICATOR_PREVIEW, SAVE_LOCAL_IMPORT_MAPPING, failure, is_sample_indicator_preview,
 };
-use scopehub_domain::protocol::{Error, ErrorCode};
+use scopehub_domain::{
+    protocol::{Error, ErrorCode},
+    wire::indicator_timeout,
+};
 use scopehub_platform::local_folder::LocalFolderHost;
 use scopehub_worker_host::market::{MarketWorker, WorkerConfig};
 use serde_json::Value;
@@ -29,6 +33,7 @@ pub struct State {
     reads: Mutex<MarketRegistry<MarketWorker>>,
     local_import: LocalImport,
     workspace: WorkspaceBridge,
+    trusted_jobs: Mutex<tokio::task::JoinSet<()>>,
     replay: Mutex<()>,
     cancellation: SyncMutex<Cancellation>,
 }
@@ -68,6 +73,23 @@ fn development_config() -> Option<WorkerConfig> {
     None
 }
 
+fn development_indicator_config() -> Option<WorkerConfig> {
+    development_config().map(|mut config| {
+        config.deadline = indicator_timeout();
+        config
+    })
+}
+
+#[cfg(all(test, debug_assertions))]
+#[test]
+fn development_indicator_and_market_use_their_own_deadlines() {
+    let market = development_config().unwrap();
+    let indicator = development_indicator_config().unwrap();
+    assert_eq!(market.deadline, Duration::from_secs(5));
+    assert_eq!(indicator.deadline, Duration::from_secs(10));
+    assert_eq!(indicator.python, market.python);
+}
+
 pub fn state() -> State {
     state_with_local_profile(None)
 }
@@ -90,6 +112,7 @@ fn state_with_profile(app_local_data: Option<&Path>, enable_workspace: bool) -> 
             app_local_data.filter(|_| cfg!(debug_assertions)),
             enable_workspace && cfg!(debug_assertions),
         ),
+        trusted_jobs: Mutex::new(tokio::task::JoinSet::new()),
         replay: Mutex::new(()),
         cancellation: SyncMutex::default(),
     }
@@ -116,6 +139,49 @@ impl State {
         authorize_window(window_label)?;
         match operation {
             None => self.workspace.dispatch(operation, payload).await,
+            Some(INDICATOR_CONFIRMATION) if payload["operation"] == INDICATOR_CONFIRMATION => {
+                let (reply, approved) = self.workspace.dispatch_indicator_decision(payload).await?;
+                if let Some(work) = approved {
+                    let workspace = self.workspace.clone();
+                    let mut jobs = self.trusted_jobs.lock().await;
+                    while jobs.try_join_next().is_some() {}
+                    jobs.spawn(async move {
+                        let task = work.request.task_id.clone();
+                        let response = if let Some(config) = development_indicator_config() {
+                            scopehub_worker_host::indicator::compute(
+                                &config,
+                                &work.request,
+                                async {
+                                    while !work.cancelled.load(Ordering::Acquire) {
+                                        tokio::time::sleep(Duration::from_millis(25)).await;
+                                    }
+                                },
+                            )
+                            .await
+                            .and_then(|result| {
+                                serde_json::to_value(result)
+                                    .map_err(|_| failure(ErrorCode::OUTPUTINVALID))
+                            })
+                        } else {
+                            Err(failure(ErrorCode::PROVIDERNOTCONFIGURED))
+                        };
+                        let _ = workspace.finish_trusted_python(task, response).await;
+                    });
+                }
+                Ok(reply)
+            }
+            Some(RUN_INDICATOR_PREVIEW) if is_sample_indicator_preview(&payload) => {
+                let request = payload.clone();
+                self.workspace
+                    .dispatch_sample_preview(payload, async {
+                        let mut market = self
+                            .reads
+                            .try_lock()
+                            .map_err(|_| failure(ErrorCode::BUSY))?;
+                        market.read_sample_indicator_history(request).await
+                    })
+                    .await
+            }
             Some(name) if LOCAL_WORKSPACE_OPERATIONS.contains(&name) => {
                 self.workspace.dispatch(operation, payload).await
             }
@@ -310,6 +376,7 @@ impl State {
             }
         }
         self.workspace.shutdown().await;
+        while self.trusted_jobs.lock().await.join_next().await.is_some() {}
         let _replay = self.replay.lock().await;
         let _ = self.reads.lock().await.shutdown().await;
     }

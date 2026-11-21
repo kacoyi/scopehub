@@ -1,0 +1,139 @@
+{
+  "recorded_at": "2026-11-19",
+  "kind": "native_workspace_layout_and_sample_restore",
+  "task_id": "M2-002",
+  "source_commit": "d57be7d3d0aca27ad23554bde4e3b92f0d299231",
+  "platform": "Standard-user Windows 11 x64 KVM guest, interactive native MSVC desktop with WebView2 and a disposable synthetic profile.",
+  "native_build": {
+    "archive_sha256": "5033946d6613e6815f94bd860dbea36f07f94888468da92f544a7877e9b3c59a",
+    "exe_sha256": "05a8e2e712b2aa04a07bb9374db09f82954aca58c71c3c2ce0c9376235a2bdff",
+    "exe_bytes": 32022528,
+    "build_and_run_manifests_agree": true
+  },
+  "artifact_root": "/mnt/testvm/scopehub-win11-qa/trials/ws493/run",
+  "native_core_checks": {
+    "artifact_directory": "native-layout-d57be7d",
+    "state_sha256": "d4bd2745092c668a59afcb70cf607a1192f64776f9d3f1ad2a281da65bbf9a09",
+    "persistence_unit": {
+      "passed": 32,
+      "ignored_subprocess_entries": 2
+    },
+    "workspace_process": {
+      "passed": 18,
+      "ignored_subprocess_entries": 2
+    },
+    "workspace_registry": {
+      "passed": 8,
+      "ignored_subprocess_entries": 0
+    }
+  },
+  "native_observation": {
+    "artifact_directory": "native-layout-window-d57be7d",
+    "sha256": {
+      "WSDIAG.JSON": "d6d6e4f2cd4f1d3c79581435c826c7eaca8eaa792e40732c1babef144c0dabde",
+      "LAYOUT.PNG": "f71e0d7f566970f02fdd6e3b842fe61927475db830cb6aa1021c6ae7c88e5fd4"
+    },
+    "case_sha256": "6753b3b555d5905c59470e0f79d2efeea543ee1e4b9b815f48ccbcf4206cc119",
+    "verified": [
+      "Keyboard editing previewed Native private layout with no operation, layout, selection or workspace revision change, then applied the layout once.",
+      "Native private layout reopened in the same profile. Undoing the layout kept the chart at 5m and left its original undo usable. Chart undo then restored 1m.",
+      "The explicit Simulated 5m sample and Native sample layout reopened together. The workspace retained private timeframe 1m and the saved layout and selection revisions.",
+      "The light layout reopened with the watchlist at the left, the Data window below the main chart, an independent pinned comparison and both configured candle colors.",
+      "Enter in the Historical bars table selected the 2024-01-04T01:05:00.000Z bar, marked the row pressed and updated the main chart selection."
+    ],
+    "restored_geometry_px": {
+      "chart": {
+        "x": 356,
+        "y": 81.84375,
+        "width": 878,
+        "height": 494.15625
+      },
+      "watchlist": {
+        "x": 46,
+        "y": 81.84375,
+        "width": 309,
+        "height": 494.15625
+      },
+      "inspection": {
+        "x": 46,
+        "y": 577,
+        "width": 1188,
+        "height": 204
+      }
+    },
+    "observed_candle_colors": [
+      "#138a61",
+      "#b73348"
+    ],
+    "processes_closed_normally": 3,
+    "desktop_exit_codes": [
+      0,
+      0,
+      0
+    ],
+    "listener_counts_after_close": [
+      0,
+      0,
+      0
+    ],
+    "source_and_worker_runtime_unchanged": true
+  },
+  "earlier_observations": [
+    {
+      "artifact_directory": "native-layout-window-selector-d57be7d",
+      "sha256": {
+        "WSDIAG.JSON": "301313e9b2421851b54ff3b1914fe7e9a75916e51d5a0b52a1ced661063ffaac",
+        "FAIL.PNG": "deb6139587a84daf7e4d375f31e7b6465d439c1758ee3e5e60b1ed80799833eb"
+      },
+      "observation": "The observer timed out locating the Data window dock control by its exact label.",
+      "revised_observation": "The accepted journey locates the control by its accessible name and role."
+    },
+    {
+      "artifact_directory": "native-layout-window-color-observer-d57be7d",
+      "sha256": {
+        "WSDIAG.JSON": "ea0f934d50f688ee2729775d967c4239338c5dc408e963f40acaa952805a0895",
+        "FAIL.PNG": "8a38945cff1e3b5eb11a43d6b9fa070076f26233823bc4533de68138ff253b0c"
+      },
+      "observation": "The observer timed out waiting for its original expected canvas colors.",
+      "revised_observation": "The accepted journey detects the actual gain and loss colors on the chart."
+    },
+    {
+      "artifact_directory": "native-layout-window-hover-observer-d57be7d",
+      "sha256": {
+        "WSDIAG.JSON": "54f7ee51e10d1e64726087f0ae52b3e6188de41f1f9c034523f0c094897e4239",
+        "FAIL.PNG": "c6e9fce21cdc0dc2b9507bf8bf0df737774ac7405ecbddcf24a6ce66795d4c74"
+      },
+      "observation": "Hover reported trading day 2024-01-03 while the observer expected 2024-01-04.",
+      "revised_observation": "The accepted journey uses Enter to select the intended row and verifies the selected bar and chart legend."
+    }
+  ],
+  "linux_task_evidence": {
+    "path": "project/evidence/M2-002-58c13d0f723275d2.json",
+    "sha256": "c65455d1a1229b88c9a3f5414a87a3d058d15f8114baf9587294e14654bb2f90",
+    "ordinary_apply_retry": {
+      "negative": {
+        "source_commit": "b11df1abe4ea768fb1cc8e340fe2535402e5f64c",
+        "path": ".reports/m2-002-interaction-red-b11df1a/results.json",
+        "sha256": "dbced9000e608009fadadc8b5c169d2b8a23841c58801417d8731bc0ff84b511"
+      },
+      "positive": {
+        "source_commit": "d57be7d3d0aca27ad23554bde4e3b92f0d299231",
+        "path": ".reports/runs/20261119T194416.904451Z-bc847592/workspace-layout/results.json",
+        "sha256": "8182b5184ea56848608b880900dcb451372c96b932356c13896e4c6c10617477"
+      },
+      "observed": "After a committed reply was dropped, the ordinary Apply button recovered the same receipt under the original scope and idempotency key. The workspace revision advanced once. The run also exercised changed definitions, real staleness and authorization denial."
+    }
+  },
+  "third_acceptance": {
+    "verified_on_layout_branch": [
+      "Linux Chromium reopened the selected frozen CSV under the same profile, retained source identity and layout through an interrupted read, recovered the same source and retained its identity and layout after display revocation.",
+      "The native Windows KVM journey reopened the explicit simulated sample with its layout."
+    ],
+    "remaining_combined_evidence": "Exercise the saved layout, source and an accepted M3 indicator together on one reviewed integration commit. Verify same-profile restart and interrupted restore for an available frozen source, an explicit sample, an unavailable source and a revoked grant, preserving the layout and accepted artifact under current access."
+  },
+  "separate_acceptance": [
+    "Packaged release candidate.",
+    "Physical Windows experience.",
+    "Owner product experience and subjective acceptance."
+  ]
+}

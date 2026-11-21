@@ -75,14 +75,14 @@
       "paths": [
         "crates/domain"
       ],
-      "responsibility": "Cross-language domain types and structural wire validation.",
+      "responsibility": "Cross-language domain types, structural wire validation and bounded declarative indicator evaluation.",
       "public_entries": [
         "crates/domain/src/lib.rs",
         "crates/domain/src/wire.rs"
       ],
       "dependencies": [],
       "owns": [
-        "Domain vocabulary and wire decoding invariants"
+        "Domain vocabulary, wire decoding invariants and declarative indicator calculation semantics"
       ],
       "invariants": [
         "No UI, database or adapter dependencies"
@@ -125,6 +125,7 @@
       "responsibility": "Controlled worker lifecycle and correlated, bounded transport.",
       "public_entries": [
         "crates/worker-host/src/lib.rs",
+        "crates/worker-host/src/indicator.rs",
         "crates/worker-host/src/local_import.rs",
         "crates/worker-host/src/market.rs"
       ],
@@ -234,12 +235,14 @@
       "responsibility": "Validated protocol dispatch for controlled worker roles.",
       "public_entries": [
         "python/worker_runtime/__main__.py",
+        "python/worker_runtime/indicator.py",
         "python/worker_runtime/local_import.py",
         "python/worker_runtime/protocol.py"
       ],
       "dependencies": [
         "domain",
-        "providers"
+        "providers",
+        "indicators"
       ],
       "owns": [
         "Protocol role and dispatch state"
@@ -364,7 +367,9 @@
         "python/indicators"
       ],
       "responsibility": "Declarative computation and explicitly authorized trusted Python.",
-      "public_entries": [],
+      "public_entries": [
+        "python/indicators/trusted.py"
+      ],
       "dependencies": [
         "domain"
       ],
@@ -450,7 +455,7 @@
         "M3-001"
       ],
       "delivery": "current-contract",
-      "boundary": "Declarative and trusted-Python gates are unimplemented."
+      "boundary": "A local human can run and cancel typed declarative previews on authorized frozen CSV intervals, accept one exact result, restore it under current source rights, and remove or undo its chart attachment. CSV calendar identifiers do not establish a schedule. The ordinary bound synthetic chart re-reads and verifies the displayed snapshot, earlier warm-up and explicit adapter sessions before preview. Trusted Python and accepted synthetic artifacts remain separate slices."
     },
     {
       "id": "product-ai-collaboration",
@@ -537,7 +542,7 @@
         "M4-001"
       ],
       "delivery": "current-contract",
-      "boundary": "The default chart workspace and user- or AI-edited built-in panel layouts share a versioned definition. Layout acceptance is pending."
+      "boundary": "The built-in workspace chart, watchlist and inspection panel share a typed, editable definition and profile-local layout store. Registered human and scoped AI edits use the same preview, apply, undo and revision checks. Independent comparison uses the selected simulated catalog. Source restoration uses current profile access. Native Windows and owner review remain separate."
     },
     {
       "id": "realtime-voice",
@@ -644,7 +649,7 @@
       "id": "accepted-indicator-versions",
       "owner": "application",
       "writer": "persistence",
-      "status": "planned",
+      "status": "implemented",
       "rule": "Acceptance creates immutable versions; previews and cache disposal do not overwrite accepted work."
     },
     {

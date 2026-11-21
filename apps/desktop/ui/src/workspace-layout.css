@@ -1,0 +1,81 @@
+.plot-layout { display: flex; flex: 1; min-width: 0; min-height: 0; }
+.layout-grid {
+  display: grid;
+  grid-template-columns: min(var(--layout-left, 0px), 38%) minmax(0, 1fr) min(var(--layout-right, 0px), 38%);
+  grid-template-rows: minmax(0, 1fr) min(var(--layout-bottom, 0px), 46%);
+}
+.layout-grid > .plot-workspace { grid-area: 1 / 2; }
+.layout-dock { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--surface); overflow: hidden; }
+.layout-dock-left { grid-area: 1 / 1; border-right: 1px solid var(--line); }
+.layout-dock-right { grid-area: 1 / 3; border-left: 1px solid var(--line); }
+.layout-dock-bottom { grid-area: 2 / 1 / 3 / 4; border-top: 1px solid var(--line); }
+.layout-dock .workspace-panel { position: static; width: 100%; min-height: 0; flex: 1; border-left: 0; box-shadow: none; }
+.layout-dock [role="tabpanel"]:not([hidden]) { display: flex; flex: 1; min-height: 0; }
+.layout-tabs { display: flex; gap: 2px; overflow: auto; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+.layout-tabs button { flex: none; padding: 5px 8px; font-size: 12px; }
+.layout-tabs [aria-selected="true"] { color: var(--accent); box-shadow: inset 0 -2px var(--accent); }
+.workbody > .layout-source-panel {
+  position: absolute; z-index: 4; inset: 0 46px 0 auto; width: min(380px, calc(100% - 92px));
+  box-shadow: -6px 0 20px #080b133d;
+}
+.workbody > .layout-source-scrim { display: block; position: absolute; inset: 0 46px 0 0; z-index: 3; border-radius: 0; background: #05081140; }
+
+.layout-review, .layout-comparison { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; }
+.layout-review { padding: 5px 10px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.layout-review p { font-size: 13px; }
+.layout-review .layout-actions { margin-left: auto; }
+.layout-review .layout-actions button { padding-block: 3px; }
+.layout-comparison { padding: 5px 10px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+.layout-comparison h2 { font-size: inherit; font-weight: 620; }
+.layout-comparison strong { color: var(--accent); }
+.layout-bar-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 8px; padding: 2px 8px 6px; font-size: 11px; color: var(--muted); }
+.layout-bar-actions .secondary-button { margin: 0; padding: 3px 6px; }
+.layout-selected-bar { background: color-mix(in srgb, var(--accent) 18%, var(--surface)); }
+
+.symbol-dialog.layout-dialog { width: min(580px, calc(100vw - 26px)); max-height: calc(100dvh - 26px); overflow: auto; }
+.layout-dialog .dialog-heading { position: sticky; top: 0; z-index: 1; padding-block: 7px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.layout-dialog .secondary-button, .layout-review .secondary-button { margin: 0; }
+.layout-editor, .layout-edit-form, .layout-fields { display: grid; gap: 9px; min-width: 0; }
+.layout-editor { padding: 10px 14px 14px; }
+.layout-edit-form { border: 0; margin: 0; padding: 0; }
+.layout-fields { margin: 0; padding: 7px 8px 8px; border: 1px solid var(--line); border-radius: 6px; }
+.layout-fields legend { padding-inline: 4px; font-weight: 620; }
+.layout-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(125px, 100%), 1fr)); gap: 8px; }
+.layout-editor label { display: grid; align-content: start; min-width: 0; gap: 3px; }
+.layout-editor .layout-check { display: flex; gap: 7px; align-items: center; }
+.layout-editor :is(input:not([type="checkbox"]), select, textarea) {
+  width: 100%; min-height: 34px; padding: 5px 7px; border: 1px solid var(--line); border-radius: 5px;
+  background: var(--layout-background, #131722); color: inherit; font: inherit;
+}
+.layout-editor textarea { display: block; resize: vertical; font-family: ui-monospace, monospace; }
+.layout-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.layout-error { color: var(--layout-error, #ffb0ac); }
+.workstation[data-layout-theme] .topbar { flex-wrap: wrap; }
+.workstation[data-layout-theme] .up { color: var(--layout-gain); }
+.workstation[data-layout-theme] .down { color: var(--layout-loss); }
+.workstation[data-layout-theme="light"] {
+  --layout-background: #f7f9fc; --surface: #edf2f8; --line: #b5c2d4; --muted: #44536a; --accent: #255995;
+  --layout-error: #8e2338;
+  color-scheme: light; color: #172841; background: var(--layout-background);
+}
+.workstation[data-layout-theme="light"] :is(button:hover, button[aria-pressed="true"], button[aria-expanded="true"], .search-option[aria-selected="true"]) { background: #d6e2f3; }
+.workstation[data-layout-theme="light"] .primary { background: #b3cff5; }
+.workstation[data-layout-theme="light"] .primary:hover { background: #9bbfec; }
+.workstation[data-layout-theme="light"] :is(dd, .bar-detail b, .chart-footer a) { color: #344b6e; }
+.workstation[data-layout-theme="light"] :is(.connection.sample, .connection.sample b, .partial, .history-status.warning, .replay-status.gap, .replay-status.reconnecting) { color: #704800; }
+.workstation[data-layout-theme="light"] :is(.history-status, .replay-status, .note-list button time, .note-status) { color: #21664d; }
+.workstation[data-layout-theme="light"] :is(.note-error, .replay-status.failed, .chart-footer .workspace-error, .local-source-actions p[role="alert"]) { color: var(--layout-error); }
+.workstation[data-layout-theme="light"] :is(.sample-filters input, .sample-filters select, .note-fields input, .note-fields textarea, .private-record-editor input, .private-record-editor select, .private-record-editor textarea) {
+  background: var(--layout-background); color: inherit; border-color: var(--line);
+}
+
+@media (max-width: 760px) {
+  .layout-grid { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+  .layout-grid > .plot-workspace { grid-area: 1 / 1; }
+  .layout-grid .layout-dock {
+    position: absolute; z-index: 3; inset: 0 33px 0 auto; width: min(360px, calc(100% - 66px));
+    box-shadow: -6px 0 20px #080b133d;
+  }
+  .workbody > .layout-source-panel { inset-inline-end: 33px; width: min(360px, calc(100% - 66px)); }
+  .workbody > .layout-source-scrim { inset-inline-end: 33px; }
+}

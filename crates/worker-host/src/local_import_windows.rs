@@ -8,7 +8,7 @@ use tokio::process::Command;
 
 use super::{development_venv, managed_cpython_home};
 
-pub(super) fn direct_interpreter(config: &WorkerConfig, launcher: &Command) -> Option<Command> {
+pub(crate) fn direct_interpreter(config: &WorkerConfig, launcher: &Command) -> Option<Command> {
     let venv = development_venv(&config.python)?;
     let home = managed_cpython_home(venv)?;
     let interpreter = home.join("python.exe").canonicalize().ok()?;

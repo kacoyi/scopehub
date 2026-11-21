@@ -179,6 +179,13 @@ function runOperation(root, line, maxReplyBytes, signal, streamResponse) {
   });
 }
 
+// Used only by the authenticated workspace host. The public market route
+// does not admit this internal history operation or any worker payload.
+export async function readIndicatorSampleHistory(root, command, signal) {
+  const line = JSON.stringify({ operation: 'indicator.loadSampleHistory', payload: command }) + '\n';
+  return JSON.parse(await runOperation(root, line, 256 * 1024, signal));
+}
+
 export function ubuntuPreview() {
   return {
     name: 'scopehub-ubuntu-preview',

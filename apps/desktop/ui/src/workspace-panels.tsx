@@ -1,7 +1,7 @@
 import { assetLabel, instrumentName, price, symbol, unitLabel } from './instrument-display';
 import {
   isClosedBarGapRevision, isSampleRevision, sampleDateStart, sampleRevisionInstrument, sampleRevisions,
-  type ChartHistory, type Instrument, type MarketFailure, type SampleRevision,
+  type Bar, type ChartHistory, type Instrument, type MarketFailure, type SampleRevision,
 } from './market';
 import { MarketQualityFacts, ReplayGapFacts } from './market-quality';
 import type { ReplayRecoveryStatus } from './market-replay';
@@ -58,35 +58,56 @@ function InstrumentDetails({ instrument, history }: { instrument: Instrument; hi
   </section>;
 }
 
-function Watchlist({ instruments, selected, history, choose, sample }: {
+function Watchlist({ instruments, selected, history, choose, sample, choosing }: {
   instruments: Instrument[]; selected: Instrument | undefined; history: ChartHistory | undefined;
-  choose: (item: Instrument) => void; sample: boolean;
+  choose: (item: Instrument) => void; sample: boolean; choosing: boolean;
 }) {
   return <>
     <div className="watch-columns"><span>Symbol</span><span>Currency</span></div>
     <div className="watch-rows">{instruments.map(item => <button type="button" key={item.id}
-      aria-pressed={item.id === selected?.id} className="watch-row" onClick={() => choose(item)}>
+      disabled={choosing} aria-pressed={item.id === selected?.id} className="watch-row" onClick={() => choose(item)}>
       <span className={'asset-mark ' + item.asset_class} aria-hidden="true">{item.asset_class === 'future' ? 'F' : 'S'}</span>
       <span className="watch-name"><strong>{symbol(item)}</strong><small>{instrumentName(item)}</small></span>
       <span className="watch-currency">{item.currency}</span>
     </button>)}</div>
-    {!sample && <p className="panel-message">Symbols appear here when you open a data source.</p>}
+    {!sample && !instruments.length && <p className="panel-message">Symbols appear here when you open a data source.</p>}
     {selected && history && <InstrumentDetails instrument={selected} history={history} />}
   </>;
 }
 
-function DataWindow({ history }: { history: ChartHistory | undefined }) {
+type BarSelection = {
+  selectedBarTime?: number | undefined;
+  selectBar?: ((bar: Bar) => void) | undefined;
+  clearBar?: (() => void) | undefined;
+  selectionBlocked?: boolean | undefined;
+};
+
+function DataWindow({ history, instrument, selectedBarTime, selectBar, clearBar, selectionBlocked }: BarSelection & {
+  history: ChartHistory | undefined;
+  instrument: Instrument | undefined;
+}) {
   if (!history) return <p className="panel-message">Select a series to inspect its bars.</p>;
+  const display = history.dataset.instrument_id === instrument?.id ? symbol(instrument) : history.dataset.instrument_id.replace(/^SIM\./, '');
   return <>
-    <p className="panel-intro"><strong>{history.dataset.instrument_id.replace(/^SIM\./, '')} · {history.dataset.timeframe}</strong>
+    <p className="panel-intro"><strong>{display} · {history.dataset.timeframe}</strong>
       <span>{history.bars.length} bars · Volume in {history.dataset.quantity_unit}</span></p>
+    {clearBar && <div className="layout-bar-actions">
+      <span role="status">Selected bar · {new Date(selectedBarTime ?? 0).toISOString()}</span>
+      <button type="button" className="secondary-button" disabled={selectionBlocked} onClick={clearBar}>Clear chart selection</button>
+    </div>}
     <div className="table-scroll" tabIndex={0} role="region" aria-label="Scroll historical bars">
       <table aria-label="Historical bars">
         <thead><tr>{['Start (UTC)', 'Trading day', 'Open', 'High', 'Low', 'Close', 'Volume', 'Status'].map(name => <th key={name} scope="col">{name}</th>)}</tr></thead>
-        <tbody>{history.bars.map(b => <tr key={b.time_ms}>
-          <td>{new Date(b.time_ms).toISOString()}</td><td>{b.trading_day}</td><td>{b.open}</td><td>{b.high}</td>
-          <td>{b.low}</td><td>{b.close}</td><td>{b.volume ?? 'Unknown'}</td><td>{b.is_closed ? 'Closed' : 'Partial'}</td>
-        </tr>)}</tbody>
+        <tbody>{history.bars.map(b => {
+          const time = new Date(b.time_ms).toISOString();
+          const active = b.time_ms === selectedBarTime;
+          return <tr key={b.time_ms} className={active ? 'layout-selected-bar' : undefined}>
+            <td>{selectBar ? <button type="button" aria-label={`Select bar at ${time}`} aria-pressed={active}
+              disabled={selectionBlocked} onClick={() => selectBar(b)}>{time}</button> : time}</td>
+            <td>{b.trading_day}</td><td>{b.open}</td><td>{b.high}</td>
+            <td>{b.low}</td><td>{b.close}</td><td>{b.volume ?? 'Unknown'}</td><td>{b.is_closed ? 'Closed' : 'Partial'}</td>
+          </tr>;
+        })}</tbody>
       </table>
     </div>
   </>;
@@ -103,10 +124,12 @@ type MarketStatus = {
   replayGap: ReplayGap | undefined;
 };
 
-function DataSources({ sample, selected, history, failureKind, workerRecovery, replayGap, filters, leave, localActions }: MarketStatus & {
+function DataSources({ sample, selected, history, failureKind, workerRecovery, replayGap, filters, leave, localActions, openPublished, openSample }: MarketStatus & {
   sample: boolean; selected: Instrument | undefined; history: ChartHistory | undefined;
   filters: SampleFilters; leave: () => void;
   localActions: LocalSourceActions | undefined;
+  openPublished?: (() => void) | undefined;
+  openSample?: (() => void) | undefined;
 }) {
   return <div className="source-details">
     {sample && <section><h3>Historical sample</h3><p>Generated prices and volume from fixed sessions in January 2024.</p>
@@ -133,25 +156,39 @@ function DataSources({ sample, selected, history, failureKind, workerRecovery, r
     </section>}
     {replayGap && <ReplayGapFacts gap={replayGap} />}
     {localActions && <section><h3>Local CSV</h3><LocalSourceButtons actions={localActions} /></section>}
+    {openPublished && <section><h3>Local CSV</h3><button type="button" className="secondary-button"
+      aria-haspopup="dialog" onClick={openPublished}>Open published CSV</button></section>}
+    {openSample && <section><h3>Historical sample</h3><button type="button" className="secondary-button"
+      onClick={openSample}>Open offline sample</button></section>}
     <section><h3>Your connections</h3><p>Connect your own market data, AI and information services as integrations become available. Service subscriptions are separate.</p>
       <dl className="facts"><dt>Market data</dt><dd>Not configured</dd><dt>AI model</dt><dd>Not configured</dd><dt>Information</dt><dd>Not configured</dd></dl>
     </section>
   </div>;
 }
 
-type Props = MarketStatus & {
+type Props = MarketStatus & BarSelection & {
   panel: Panel; sample: boolean; instruments: Instrument[]; selected: Instrument | undefined; history: ChartHistory | undefined;
   filters: SampleFilters;
   choose: (item: Instrument) => void; close: () => void; leave: () => void;
+  choosingInstrument: boolean;
   localActions: LocalSourceActions | undefined;
+  layoutPanel?: 'watchlist' | 'inspection';
+  layoutSource?: boolean;
+  openPublished?: (() => void) | undefined;
+  openSample?: (() => void) | undefined;
 };
-export function WorkspacePanel({ panel, sample, instruments, selected, history, failureKind, workerRecovery, replayGap, filters, choose, close, leave, localActions }: Props) {
-  return <aside id="workspace-panel" className={'workspace-panel panel-' + panel} aria-label={panelLabels[panel]}>
+export function WorkspacePanel({ panel, sample, instruments, selected, history, failureKind, workerRecovery, replayGap, filters,
+  choose, close, leave, choosingInstrument, localActions, layoutPanel, layoutSource, openPublished, openSample, ...selection }: Props) {
+  return <aside id={layoutPanel ? `workspace-panel-${layoutPanel}` : 'workspace-panel'}
+    className={`workspace-panel panel-${panel}${layoutSource ? ' layout-source-panel' : ''}`}
+    data-layout-panel={layoutPanel} aria-label={panelLabels[panel]}>
     <div className="panel-heading"><h2>{panelLabels[panel]}</h2>
       <button type="button" className="icon-button" aria-label="Close panel" title="Close panel" onClick={close}><WorkspaceIcon name="close" /></button></div>
-    {panel === 'watchlist' && <Watchlist instruments={instruments} selected={selected} history={history} choose={choose} sample={sample} />}
-    {panel === 'data' && <DataWindow history={history} />}
+    {panel === 'watchlist' && <Watchlist instruments={instruments} selected={selected} history={history}
+      choose={choose} sample={sample} choosing={choosingInstrument} />}
+    {panel === 'data' && <DataWindow history={history} instrument={selected} {...selection} />}
     {panel === 'sources' && <DataSources history={history} sample={sample} selected={selected}
-      failureKind={failureKind} workerRecovery={workerRecovery} replayGap={replayGap} filters={filters} leave={leave} localActions={localActions} />}
+      failureKind={failureKind} workerRecovery={workerRecovery} replayGap={replayGap} filters={filters} leave={leave}
+      localActions={localActions} openPublished={openPublished} openSample={openSample} />}
   </aside>;
 }
