@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-026",
+  "focus_task_id": "M4-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -8220,7 +8220,7 @@
       "id": "M1-026",
       "title": "Keep cold operation validation within the market replay recovery budget",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-019"
       ],
@@ -8248,8 +8248,21 @@
         "market-fixtures",
         "ui-build"
       ],
-      "evidence": [],
-      "next_action": "Verify the functional checkpoint in the matching hosted Linux and native Windows jobs, then archive matching evidence before closure.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-026-43fae6f230c6c013.json",
+          "sha256": "3daea3eefd00fa59774724505092bd13401801b4ecfd533be725a369bd110539"
+        },
+        {
+          "path": "project/evidence/M1-026-813a5ffafcfaf38c.json",
+          "sha256": "8ea6929864d659f504a5682d75e64a044964270bda240884733ba8d5b960071a"
+        },
+        {
+          "path": "project/evidence/M1-026-c4d1d5ad29897cda.json",
+          "sha256": "e0dd181253635729781627134dd08a6088fbe35067e57ed92515cdd824dc7f92"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
