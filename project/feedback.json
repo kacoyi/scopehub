@@ -1249,6 +1249,22 @@
         "prevention": "Regression fixtures cover non-destructive reporting, occupied files and executables, repository boundaries, threshold behavior and Cargo rebuilding after interruption. All 45 original Git heads and status snapshots, metadata for 31,290 retained evidence or diagnostic files, and 10,803 file digests matched after both sweeps. Active and unclassified artifacts can keep usage above the soft budget."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "cargo-storage-review-admission-boundaries",
+      "source": "Independent review of PR 24 at 98506a29aa50f82f9ff8b08417a3323d2949aa41 and disposable M0-033 regression fixtures.",
+      "observation": "The Linux process scan skipped other UIDs, allowing removal without a lease while a foreign process could be holding a dependency open. Collection accepted replacements at inventoried child cache paths, including a replaced debug directory and an absent, replaced or edited .rustc_info.json marker. A regular file at target raised NotADirectoryError during child discovery and interrupted the repository-wide review.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-033"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "project-state"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

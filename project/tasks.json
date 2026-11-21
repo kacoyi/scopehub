@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-001",
+  "focus_task_id": "M0-033",
   "tasks": [
     {
       "id": "M0-001",
@@ -6695,6 +6695,103 @@
           ],
           "data_plan": "Inspect filesystem metadata and repository identity locally. Product data and credentials remain outside the collection scope.",
           "cleanup": "Leave protected or active items in place and make any unmet budget visible. Repeated collection uses fresh eligibility checks."
+        }
+      }
+    },
+    {
+      "id": "M0-033",
+      "title": "Protect active and replaced Cargo caches during maintenance",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-029"
+      ],
+      "scope": [
+        "scripts/storage.py",
+        "tests/project/test_storage.py",
+        "tests/project/test_storage_cargo.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Treat unobservable processes, including other-user activity, as partial visibility and preserve active files. Prove directory identity and child Cargo provenance across inventory and destructive collection.",
+        "An unexpected ordinary file at target does not abort a repository inventory. Interrupted collection leaves rebuildable or correctly retained state and preserves unrelated files."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Validate the boundary repairs locally with automatic maintenance disabled, merge the coordinator's verified main revision, and retain matching Linux and Windows evidence for PR 24.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Protect active and replaced Cargo caches during maintenance with independent regression fixtures.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/storage.py",
+          "tests/project/test_storage.py",
+          "tests/project/test_storage_cargo.py",
+          "project/delivery.json",
+          "project/development.json"
+        ],
+        "hypotheses": [
+          "Independent identity checks and fail-closed admission can preserve supported maintenance without weakening existing checks."
+        ],
+        "risks": [
+          {
+            "failure": "A changed cache or a file in active use is collected.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A single unusable target hides eligible or retained paths in other worktrees.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the previous verified revision and host configuration. Use read-only inventory while uncertain, disable automatic maintenance during the transition, and preserve diagnostic material.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/storage.py",
+            "tests/project/test_storage.py",
+            "tests/project/test_storage_cargo.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Product features, changing host repository locations or deleting real worktrees."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Current native worktree identities, source, user profiles, retained evidence, safe local builds and reports."
+          ],
+          "change": [
+            "Treat unobservable processes, including other-user activity, as partial visibility and preserve active files. Prove directory identity and child Cargo provenance across inventory and destructive collection.",
+            "An unexpected ordinary file at target does not abort a repository inventory. Interrupted collection leaves rebuildable or correctly retained state and preserves unrelated files."
+          ],
+          "data_plan": "Use temporary Git and filesystem fixtures. No persistent product data needs migration.",
+          "cleanup": "Retain fail-closed behavior on unidentifiable or unavailable storage and reuse shared admission logic where applicable."
         }
       }
     }
