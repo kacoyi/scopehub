@@ -63,6 +63,18 @@ class DiagnosticArchiveTests(unittest.TestCase):
         data = ''.join(f'{sha256((directory / path).read_bytes())}  {path}\n' for path in paths)
         return self.write(directory / 'SHA256SUMS', data.encode())
 
+    def harness_with_observation(self, check, binding):
+        report = self.harness_report()
+        log = f'{check}.log'
+        report['checks'].append({
+            'id': check, 'status': 'passed', 'exit_code': 0,
+            'log': f'.reports/runs/{RUN}/{log}', 'log_sha256': sha256(HARNESS_LOG), **binding,
+        })
+        path, locator = self.harness(report)
+        directory = path.parent
+        self.write(directory / log, HARNESS_LOG)
+        return directory, locator, (path.name, 'environment.log', 'owner-observation.log', log)
+
     def test_locator_is_independent_of_archive_and_checkout_paths(self):
         path, locator = self.harness()
         self.assertEqual(diagnostic_locator(path), locator)
@@ -150,6 +162,67 @@ class DiagnosticArchiveTests(unittest.TestCase):
             resolve_diagnostic(locator, self.archive)
         manifest.write_bytes(f'{sha256(b"outside")}  ../outside.log\n'.encode())
         with self.assertRaisesRegex(DiagnosticArchiveError, 'Invalid archive-relative path'):
+            resolve_diagnostic(locator, self.archive)
+
+    def test_blocked_run_requires_report_bound_field_observation_and_screenshots(self):
+        check = 'ubuntu-workspace-observation'
+        relative = f'observations/{check}'
+        manifest = f'{relative}/observation.json'
+        screenshot = f'{relative}/screenshots/workspace.png'
+        image = b'\x89PNG\r\n\x1a\n screenshot evidence'
+        contents = json.dumps({
+            'kind': check, 'commit': COMMIT, 'surface': 'ubuntu-graphical-workspace',
+            'screenshots': [{'path': 'screenshots/workspace.png', 'sha256': sha256(image)}],
+        }).encode()
+        directory, locator, files = self.harness_with_observation(check, {
+            'field_observation': {
+                'kind': check, 'commit': COMMIT, 'surface': 'ubuntu-graphical-workspace',
+                'observation_sha256': sha256(contents),
+            },
+        })
+        self.checksums(directory, *files)
+        with self.assertRaisesRegex(DiagnosticArchiveError, 'observation.json'):
+            resolve_diagnostic(locator, self.archive)
+        self.write(directory / manifest, contents)
+        self.checksums(directory, *files, manifest)
+        with self.assertRaisesRegex(DiagnosticArchiveError, 'workspace.png'):
+            resolve_diagnostic(locator, self.archive)
+
+        self.write(directory / screenshot, image)
+        self.checksums(directory, *files, manifest, screenshot)
+        result = resolve_diagnostic(locator, self.archive)
+        self.assertEqual(result['recorded_status'], 'blocked')
+        self.assertEqual(result['selected_check_statuses'][check], 'passed')
+        self.assertEqual(result['verified_observations'], [manifest])
+        self.assertTrue(result['manifest_verified'])
+
+        self.write(directory / screenshot, b'changed screenshot')
+        self.checksums(directory, *files, manifest, screenshot)
+        with self.assertRaisesRegex(DiagnosticArchiveError, 'changed diagnostic bytes: .*workspace.png'):
+            resolve_diagnostic(locator, self.archive)
+        # A valid bundle-level copy cannot hide a damaged per-run snapshot.
+        self.write(self.archive / manifest, contents)
+        self.write(self.archive / screenshot, image)
+        self.write(directory / manifest, contents + b' ')
+        self.checksums(directory, *files, manifest, screenshot)
+        with self.assertRaisesRegex(DiagnosticArchiveError, 'changed diagnostic bytes: .*observation.json'):
+            resolve_diagnostic(locator, self.archive)
+
+    def test_report_bound_session_observation_survives_archive_without_checksum_manifest(self):
+        check = 'configured-model-session'
+        relative = f'{check}.observation.json'
+        contents = json.dumps({'check': check, 'commit': COMMIT, 'modality': 'text'}).encode()
+        directory, locator, _ = self.harness_with_observation(check, {
+            'observation': {'evidence_sha256': sha256(contents)},
+        })
+        with self.assertRaisesRegex(DiagnosticArchiveError, relative):
+            resolve_diagnostic(locator, self.archive)
+        self.write(directory / relative, contents)
+        result = resolve_diagnostic(locator, self.archive)
+        self.assertEqual(result['verified_observations'], [relative])
+        self.assertFalse(result['manifest_verified'])
+        self.write(directory / relative, contents + b' ')
+        with self.assertRaisesRegex(DiagnosticArchiveError, 'changed diagnostic bytes'):
             resolve_diagnostic(locator, self.archive)
 
     def test_linked_archive_files_cannot_reference_another_checkout(self):

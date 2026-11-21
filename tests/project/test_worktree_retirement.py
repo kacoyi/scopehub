@@ -2,7 +2,8 @@
 
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -138,6 +139,73 @@ class WorktreeRetirementTests(unittest.TestCase):
         self.git('merge', '--no-commit', '--no-ff', 'empty-change', cwd=self.candidate)
         self.assertEqual(self.git('status', '--porcelain', cwd=self.candidate), '')
         self.assert_held(self.row(IDLE), 'git_operation_in_progress')
+
+    def test_private_refs_and_fetch_head_require_shared_recoverability(self):
+        head = self.head(self.candidate)
+        checkpoint = self.git('commit-tree', 'HEAD^{tree}', '-p', head, '-m', 'Private checkpoint',
+                              cwd=self.candidate).strip()
+        refs = ('refs/worktree/checkpoint', 'refs/bisect/checkpoint', 'refs/rewritten/checkpoint', 'ORIG_HEAD')
+        for ref in refs:
+            self.git('update-ref', ref, checkpoint, cwd=self.candidate)
+        fetch_head = worktree.git_path(self.candidate, '--git-dir') / 'FETCH_HEAD'
+        fetch_head.write_text(f'{checkpoint}\tnot-for-merge\tfixture fetch\n', encoding='ascii')
+        other = self.add_worktree('other')
+        self.git('update-ref', 'refs/worktree/other-checkpoint', checkpoint, cwd=other)
+
+        row = self.row(IDLE)
+        self.assert_held(row, 'unrecoverable_worktree_git_state')
+        self.assertEqual(row['head'], head)
+        self.assertEqual(row['details']['unrecoverable_worktree_git_state'],
+                         {ref: [checkpoint] for ref in (*refs, 'FETCH_HEAD')})
+
+        # The checkpoint is safe once it is reachable as an ancestor of a shared ref.
+        successor = self.git('commit-tree', 'HEAD^{tree}', '-p', checkpoint, '-m', 'Retained successor').strip()
+        self.git('update-ref', 'refs/heads/retained-checkpoint', successor)
+        self.assert_candidate(self.row(IDLE))
+
+    def test_detached_head_reflog_requires_shared_recoverability(self):
+        baseline = self.head(self.candidate)
+        self.git('switch', '--quiet', '--detach', cwd=self.candidate)
+        self.git('commit', '--allow-empty', '-qm', 'Detached experiment', cwd=self.candidate)
+        experiment = self.head(self.candidate)
+        self.git('switch', '--quiet', '--detach', baseline, cwd=self.candidate)
+
+        row = self.row(IDLE)
+        self.assert_held(row, 'unrecoverable_worktree_git_state')
+        self.assertEqual(row['details']['unrecoverable_worktree_git_state']['logs/HEAD'], [experiment])
+        self.git('update-ref', 'refs/tags/retained-experiment', experiment)
+        self.assert_candidate(self.row(IDLE))
+
+    def test_effective_global_filter_holds_only_the_checkout_using_it_and_never_executes(self):
+        home = self.directory / 'global Git configuration'
+        home.mkdir()
+        marker = self.directory / 'filter invocation'
+        mark = f'printf invoked > {shlex.quote(marker.as_posix())}'
+        with patch.dict(os.environ, {'HOME': str(home), 'USERPROFILE': str(home), 'XDG_CONFIG_HOME': str(home)}):
+            filtered = self.add_worktree('filtered')
+            attributes = filtered / '.gitattributes'
+            attributes.write_text('fixture.txt filter=lfs\n', encoding='ascii')
+            self.git('-c', 'filter.lfs.clean=', '-c', 'filter.lfs.process=', '-c', 'filter.lfs.required=false',
+                     'add', '--', '.gitattributes', cwd=filtered)
+            (filtered / 'fixture.txt').write_text('changed fixture activates clean conversion\n', encoding='utf-8')
+            self.git('config', '--global', 'filter.lfs.clean', f'{mark}; cat')
+            self.git('config', '--global', 'filter.lfs.process', f'{mark}; exit 1')
+            self.git('config', '--global', 'filter.lfs.required', 'true')
+            self.assert_candidate(self.row(IDLE))
+
+            row = self.row(IDLE, filtered)
+            self.assert_held(row, 'external_clean_filter_unverified')
+            self.assertEqual(row['details']['external_clean_filter_unverified'],
+                             ['filter.lfs.clean', 'filter.lfs.process'])
+            self.assert_candidate(self.row(IDLE))
+            self.assertFalse(marker.exists())
+
+            # A worktree-level attribute change can suppress the filter configured by the index.
+            attributes.write_text('fixture.txt -filter\n', encoding='ascii')
+            row = self.row(IDLE, filtered)
+            self.assert_held(row, 'dirty_checkout')
+            self.assertNotIn('external_clean_filter_unverified', row['holds'])
+            self.assertFalse(marker.exists())
 
     def test_ignored_evidence_requires_external_verified_bytes(self):
         payloads = {'.reports/diagnostic.log': b'failed step\n', '.env': b'SYNTHETIC=local\n'}
@@ -293,3 +361,124 @@ class WorktreeRetirementTests(unittest.TestCase):
 
         self.commit(self.candidate, 'fixture.txt', 'a new experiment')
         self.assert_held(self.row(IDLE, dispositions=reference), 'not_integrated_or_disposed')
+
+    def test_harness_and_development_registries_keep_operational_dependencies(self):
+        downstream = self.add_worktree('downstream')
+        path = self.candidate / 'scripts/check.py'
+        for record, data in (
+            ('project/checks.json', {'checks': [{'id': 'fixture', 'command': ['{python}', str(path)]}]}),
+            ('project/development.json', {'herdr': {'profiles': {'implement': {'command': [str(path)]}}}}),
+        ):
+            with self.subTest(record=record):
+                document = json.dumps(data)
+                self.commit(downstream, record, document)
+                row = self.row(IDLE)
+                self.assert_held(row, 'downstream_path_consumer')
+                self.assertEqual(row['details']['downstream_path_consumer'], [f'{downstream}: {record}'])
+                self.commit(downstream, record, document.replace(json.dumps(str(path))[1:-1], 'scripts/check.py'))
+                self.assert_candidate(self.row(IDLE))
+
+    def test_indexed_regular_file_replaced_by_link_protects_its_live_target(self):
+        downstream = self.add_worktree('downstream')
+        relative = 'scripts/check.py'
+        self.commit(downstream, relative, 'print("fixture")')
+        self.assert_candidate(self.row(IDLE))
+
+        link = downstream / relative
+        link.unlink()
+        try:
+            link.symlink_to(self.candidate / 'fixture.txt')
+        except (NotImplementedError, OSError) as error:
+            self.skipTest(f'The fixture cannot create a file symlink: {error}')
+        self.assertTrue(self.git('ls-files', '--stage', '--', relative, cwd=downstream).startswith('100644 '))
+        row = self.row(IDLE)
+        self.assert_held(row, 'downstream_path_consumer')
+        self.assertEqual(row['details']['downstream_path_consumer'], [f'{downstream}: {link}'])
+
+    def test_windows_substitution_paths_match_the_registered_checkout_spelling(self):
+        for target, candidate in (
+            (r'\\?\C:\managed\Candidate\not-yet-created.txt', r'c:\managed\candidate'),
+            (r'\\?\UNC\server\share\candidate\missing', r'\\server\share\candidate'),
+        ):
+            with self.subTest(target=target):
+                canonical = worktree_retirement.comparable_path(PureWindowsPath(target))
+                self.assertTrue(canonical.is_relative_to(PureWindowsPath(candidate)))
+                self.assertFalse(canonical.is_relative_to(PureWindowsPath(candidate + '-copy')))
+
+    def test_editable_environment_paths_report_the_actual_python_consumer(self):
+        downstream = self.add_worktree('downstream')
+        self.commit(downstream, '.gitignore', '.venv/\n')
+        self.commit(downstream, 'uv.lock', '# fixture lock\n')
+        venv = downstream / '.venv'
+        site = venv / ('Lib/site-packages' if os.name == 'nt' else 'lib/python3.12/site-packages')
+        site.mkdir(parents=True)
+        (venv / 'CACHEDIR.TAG').write_bytes(worktree_retirement.storage.CARGO_TAG + b'\n')
+        startup = site / '_editable.pth'
+        local_path = os.path.relpath(downstream, site)
+        target_path = os.path.relpath(self.candidate, site)
+        startup.write_text(f'# {target_path}\n{local_path}\n', encoding='utf-8')
+        self.assert_candidate(self.row(IDLE))
+
+        startup.write_text(f'{target_path}\n', encoding='utf-8')
+        row = self.row(IDLE)
+        self.assert_held(row, 'downstream_path_consumer')
+        self.assertEqual(row['details']['downstream_path_consumer'],
+                         [f'{downstream}: {startup.relative_to(downstream).as_posix()}'])
+
+    def test_cargo_generated_outputs_are_distinguished_from_unique_build_data(self):
+        self.commit(self.candidate, '.gitignore', 'target/\n')
+        head = self.commit(self.candidate, 'Cargo.lock', '# fixture lock\n')
+        self.git('update-ref', 'refs/remotes/origin/main', head)
+        target = self.candidate / 'target'
+        build = target / 'debug/build/example-0123456789abcdef'
+        output = build / 'out'
+        output.mkdir(parents=True)
+        (target / 'CACHEDIR.TAG').write_bytes(worktree_retirement.storage.CARGO_TAG + b'\n')
+        (build / 'invoked.timestamp').write_bytes(b'')
+        (output / '0123456789abcdef-helper.o').write_bytes(b'fixture build object')
+
+        row = self.row(IDLE)
+        self.assert_candidate(row)
+        self.assertGreaterEqual(row['local_evidence']['generated_entries_excluded'], 2)
+
+        diagnostic = output / 'user-observation.json'
+        diagnostic.write_bytes(b'{"record":"unique diagnostic"}\n')
+        relative = diagnostic.relative_to(self.candidate)
+        row = self.row(IDLE)
+        self.assert_held(row, 'unretained_local_evidence')
+        self.assertEqual(row['details']['unretained_local_evidence'], [str(relative)])
+
+        archive = self.archive / 'worktrees' / head / 'files' / relative
+        archive.parent.mkdir(parents=True)
+        os.link(diagnostic, archive)
+        self.assert_held(self.row(IDLE, archive_root=self.archive), 'unretained_local_evidence')
+        archive.unlink()
+        archive.write_bytes(diagnostic.read_bytes())
+        preserved = self.row(IDLE, archive_root=self.archive)
+        self.assert_candidate(preserved)
+        self.assertEqual(preserved['local_evidence']['verified_retained_files'], 1)
+
+    def test_partial_process_visibility_only_admits_otherwise_eligible_reviews(self):
+        review = self.candidate
+        active = self.add_worktree('active')
+        unretained = self.add_worktree('unretained')
+        consumed = self.add_worktree('consumed')
+        marker = review / '.env'
+        marker.write_bytes(b'SYNTHETIC=review\n')
+        archived = self.archive / 'worktrees' / self.head(review) / 'files/.env'
+        archived.parent.mkdir(parents=True)
+        archived.write_bytes(marker.read_bytes())
+        (unretained / '.env').write_bytes(b'SYNTHETIC=unique\n')
+        self.commit(self.primary, 'project/checks.json',
+                    json.dumps({'checks': [{'command': [str(consumed / 'fixture.txt')]}]}))
+
+        activity = ({active}, ['process_observation_incomplete'])
+        rows = {Path(row['path']): row for row in self.report(activity, archive_root=self.archive)['worktrees']}
+        self.assert_held(rows[review], 'process_observation_incomplete')
+        self.assertTrue(rows[review]['review_intake'])
+        self.assertEqual(rows[review]['local_evidence']['verified_retained_files'], 1)
+        for path, blocker in ((active, 'active_session_or_process'), (unretained, 'unretained_local_evidence'),
+                              (consumed, 'downstream_path_consumer'), (self.primary, 'primary_checkout')):
+            self.assert_held(rows[path], blocker)
+            self.assertFalse(rows[path]['review_intake'])
+        self.assertFalse(self.row(IDLE, archive_root=self.archive)['review_intake'])

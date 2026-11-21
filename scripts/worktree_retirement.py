@@ -4,7 +4,7 @@ from collections import defaultdict
 import hashlib
 import json
 import os
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 import stat
 import sys
@@ -12,9 +12,11 @@ import time
 
 if __package__:
     from . import storage, worktree
+    from .operational_paths import OPERATIONAL_PATHS, is_operational_path
 else:
     import storage
     import worktree
+    from operational_paths import OPERATIONAL_PATHS, is_operational_path
 
 
 INTEGRATION_REF = 'refs/remotes/origin/main'
@@ -22,16 +24,19 @@ FULL_COMMIT = re.compile(r'(?:[0-9a-f]{40}|[0-9a-f]{64})\Z')
 DURABLE_REF = re.compile(r'refs/(?:heads|tags|remotes)/.+')
 GIT_OPERATIONS = (
     'index.lock', 'MERGE_HEAD', 'CHERRY_PICK_HEAD', 'REVERT_HEAD', 'BISECT_START',
+    'MERGE_MODE', 'MERGE_MSG', 'SQUASH_MSG', 'REBASE_HEAD', 'BISECT_LOG',
     'rebase-merge', 'rebase-apply', 'sequencer',
 )
+PRIVATE_REF_ROOTS = ('refs/bisect', 'refs/worktree', 'refs/rewritten')
+WORKTREE_ADMIN_FILES = {'HEAD', 'index', 'commondir', 'gitdir', 'COMMIT_EDITMSG', 'locked'}
+FILTER_COMMAND = re.compile(r'filter\.(.+)\.(?:clean|process)\Z')
 MAX_EVIDENCE_DETAILS = 8
 MAX_CONSUMER_ENTRIES = 20_000
 PROJECT_RECORDS = (
-    'project/tasks.json', 'project/feedback.json', 'project/development.json', 'project/delivery.json',
+    'project/tasks.json', 'project/checks.json', 'project/feedback.json', 'project/development.json',
+    'project/delivery.json', 'project/dependencies.json', 'project/dependency-inventory.json',
+    'project/branch-protection.json', 'contracts/references.json',
 )
-CONTROL_PATHS = ('scripts', '.github', '.cargo', 'AGENTS.md', 'package.json', '.gitmodules')
-CONTROL_FILES = {'AGENTS.md', 'package.json', '.gitmodules', '.cargo/config', '.cargo/config.toml'}
-SCRIPT_SUFFIXES = {'.py', '.sh', '.bash', '.fish', '.nu', '.ps1', '.cmd', '.bat', '.js', '.mjs', '.cjs', '.ts'}
 
 
 def git(cwd, *args, **options):
@@ -45,6 +50,86 @@ def commit_at(cwd, ref):
 
 def ancestor(cwd, head, tip):
     return bool(tip and git(cwd, 'merge-base', '--is-ancestor', head, tip, allowed=(0, 1)).returncode == 0)
+
+
+def is_private_ref(name):
+    return any(name == root or name.startswith(root + '/') for root in PRIVATE_REF_ROOTS)
+
+
+def git_ref_records(cwd, *prefixes):
+    result = git(cwd, 'for-each-ref', '--format=%(refname)%09%(objectname)%09%(symref)', *prefixes)
+    if result.stderr:
+        raise ValueError(os.fsdecode(result.stderr).strip())
+    return [tuple(os.fsdecode(line).split('\t')) for line in result.stdout.splitlines()]
+
+
+def durable_git_refs(cwd):
+    # A shared symbolic ref can point back into the worktree that would be removed.
+    return {name: oid for name, oid, symbolic in git_ref_records(cwd)
+            if not symbolic and not is_private_ref(name)}
+
+
+def durable_git_objects(cwd, refs):
+    tips = ''.join(f'{oid}\n' for oid in sorted(set(refs.values()))).encode('ascii')
+    if not tips:
+        return set()
+    # Report missing objects without asking a partial clone to fetch them.
+    result = git(cwd, 'rev-list', '--objects', '--no-object-names', '--missing=print', '--stdin', input=tips)
+    objects = set(result.stdout.decode('ascii').splitlines())
+    if any(oid.startswith('?') for oid in objects):
+        raise ValueError('Shared Git references depend on missing objects')
+    return objects
+
+
+def worktree_git_operations(git_dir):
+    return [name for name in GIT_OPERATIONS if worktree.entry_info(git_dir / name) is not None]
+
+
+def reflog_objects(directory):
+    for path in sorted(directory.iterdir()):
+        info = path.lstat()
+        if stat.S_ISDIR(info.st_mode) and not storage.reparse(info):
+            yield from reflog_objects(path)
+        else:
+            # The oldest old object can be absent from `git reflog show`.
+            entries = [line.split(b' ', 2) for line in read_control(path).splitlines()]
+            if any(len(fields) != 3 for fields in entries):
+                raise ValueError(f'Malformed worktree reflog: {path}')
+            yield path, {oid.decode('ascii') for old, new, _ in entries for oid in (old, new)}
+
+
+def private_git_recovery(checkout, git_dir, common, durable_objects):
+    if git_dir == common:
+        return {}
+    if durable_objects is None:
+        raise ValueError('Shared Git object reachability is unavailable')
+    refs = {name: {oid} for name, oid, _ in git_ref_records(checkout, *PRIVATE_REF_ROOTS)
+            if is_private_ref(name)}
+    for path in git_dir.iterdir():
+        name = path.name
+        if name in WORKTREE_ADMIN_FILES or name in GIT_OPERATIONS:
+            continue
+        if name in {'logs', 'refs'}:
+            info = path.lstat()
+            if not stat.S_ISDIR(info.st_mode) or storage.reparse(info):
+                raise ValueError(f'Unrecognized worktree Git metadata: {path}')
+            if name == 'logs':
+                refs.update((source.relative_to(git_dir).as_posix(), objects)
+                            for source, objects in reflog_objects(path))
+        elif name == 'FETCH_HEAD':
+            refs[name] = {line.partition(b'\t')[0].decode('ascii') for line in read_control(path).splitlines()}
+        elif re.fullmatch(r'[A-Z][A-Z0-9_]*', name):
+            refs[name] = {read_control(path).decode('ascii').strip()}
+        else:
+            # Includes alternate ref backends and worktree-specific configuration.
+            raise ValueError(f'Unrecognized worktree Git metadata: {path}')
+    failures = {}
+    for name, objects in sorted(refs.items()):
+        if any(not FULL_COMMIT.fullmatch(oid) for oid in objects):
+            raise ValueError(f'Malformed worktree Git object reference: {name}')
+        if missing := sorted(oid for oid in objects - durable_objects if oid.strip('0')):
+            failures[name] = missing
+    return failures
 
 
 def safe_relative(value):
@@ -157,8 +242,22 @@ def observe_activity():
     return paths, uncertainty
 
 
+def comparable_path(path):
+    # Windows readlink can return a DOS or UNC substitution path, even for a dangling link.
+    if isinstance(path, PureWindowsPath):
+        value = str(path)
+        if value[:8].lower() == '\\\\?\\unc\\':
+            return type(path)('\\\\' + value[8:])
+        if re.match(r'\\\\\?\\[A-Za-z]:\\', value):
+            return type(path)(value[4:])
+    return path
+
+
 def path_is_under(value, path):
-    return value.is_relative_to(path) or value.resolve().is_relative_to(path)
+    path = comparable_path(path)
+    lexical = comparable_path(value)
+    return (('..' not in lexical.parts and lexical.is_relative_to(path)) or
+            comparable_path(value.resolve()).is_relative_to(path))
 
 
 def dependency_patterns(consumer, git_dir, candidates):
@@ -180,6 +279,39 @@ def dependency_patterns(consumer, git_dir, candidates):
     return patterns
 
 
+def editable_python_paths(checkout, mounts):
+    # Python reads startup path files directly from these virtual environment locations.
+    paths = [checkout / '.venv']
+    while paths:
+        path = paths.pop()
+        info = worktree.entry_info(path)
+        if info is None:
+            continue
+        if storage.reparse(info):
+            yield path, False
+            continue
+        if path in mounts or (not mounts and path.is_mount()):
+            raise OSError(f'Python consumer path crosses a mount boundary: {path}')
+        if not stat.S_ISDIR(info.st_mode):
+            raise OSError(f'Expected a Python environment directory: {path}')
+        if path.name == 'site-packages':
+            for entry in path.iterdir():
+                if entry.suffix in {'.pth', '.egg-link'} or (
+                        entry.name.startswith('__editable__') and entry.name.endswith('_finder.py')):
+                    yield entry, True
+        elif path.name == '.venv':
+            paths.extend(path / name for name in ('lib', 'lib64', 'Lib'))
+            config = path / 'pyvenv.cfg'
+            if worktree.entry_info(config) is not None:
+                yield config, True
+        elif path.name in {'lib', 'lib64', 'Lib'}:
+            paths.append(path / 'site-packages')
+            paths.extend(entry for entry in path.iterdir()
+                         if re.fullmatch(r'python\d+\.\d+[a-z]*', entry.name))
+        else:
+            paths.append(path / 'site-packages')
+
+
 def observe_dependencies(consumer, candidates, common, git_dir, config, ignored, mounts):
     patterns = dependency_patterns(consumer, git_dir, candidates)
     observed = defaultdict(set)
@@ -192,7 +324,11 @@ def observe_dependencies(consumer, candidates, common, git_dir, config, ignored,
 
     for name in PROJECT_RECORDS:
         path = consumer / name
-        if not path.exists():
+        info = worktree.entry_info(path)
+        if info is None:
+            continue
+        if storage.reparse(info):
+            observe_symlink(path, patterns, observed)
             continue
         for value in strings(json.loads(read_control(path))):
             observe_text(value, name)
@@ -212,16 +348,13 @@ def observe_dependencies(consumer, candidates, common, git_dir, config, ignored,
     for entry in tracked:
         if entry.startswith('160000 '):
             raise ValueError('Nested Git submodule consumer scope needs independent observation')
-        if entry.startswith('120000 '):
+        if entry:
             observe_symlink(consumer / entry.partition('\t')[2], patterns, observed)
     controls = os.fsdecode(git(consumer, 'ls-files', '--cached', '--others', '--exclude-standard', '-z',
-                                '--', *CONTROL_PATHS).stdout)
+                                '--', 'AGENTS.md', *OPERATIONAL_PATHS).stdout)
     for name in set(controls.split('\0')) - {''}:
-        relative = PurePosixPath(name)
-        operational = (name in CONTROL_FILES or relative.suffix in SCRIPT_SUFFIXES or
-                       (relative.parts[0] == '.github' and relative.suffix in {'.yml', '.yaml'}))
         path = consumer / name
-        if operational and path.is_file() and not path.is_symlink():
+        if (name == 'AGENTS.md' or is_operational_path(name)) and worktree.regular_file(path):
             observe_text(path.read_text(encoding='utf-8', errors='surrogateescape'), name)
     untracked = os.fsdecode(git(consumer, 'ls-files', '--others', '--exclude-standard', '-z').stdout)
     for name in untracked.split('\0'):
@@ -230,27 +363,59 @@ def observe_dependencies(consumer, candidates, common, git_dir, config, ignored,
     for path, regular in ignored_files(consumer, ignored, mounts, include_generated_links=True):
         if not regular:
             observe_symlink(path, patterns, observed)
+    for path, startup_file in editable_python_paths(consumer, mounts):
+        if observe_symlink(path, patterns, observed) or not startup_file:
+            continue
+        if path in mounts:
+            raise OSError(f'Python consumer path crosses a mount boundary: {path}')
+        value = os.fsdecode(read_control(path))
+        name = path.relative_to(consumer).as_posix()
+        if path.suffix not in {'.pth', '.egg-link'}:
+            observe_text(value, name)
+            continue
+        for line in value.splitlines():
+            if not line.strip() or line.startswith('#'):
+                continue
+            if line.startswith(('import ', 'import\t')):
+                observe_text(line, name)
+                continue
+            source = path.parent / line.rstrip()
+            for candidate in patterns:
+                if path_is_under(source, candidate):
+                    observed[candidate].add(name)
     return observed
 
 
 def observe_symlink(path, candidates, observed):
-    if path.is_symlink():
+    info = worktree.entry_info(path)
+    if info is not None and storage.reparse(info):
         target = path.parent / os.readlink(path)
         for candidate in candidates:
             if path_is_under(target, candidate):
                 observed[candidate].add(str(path))
+        return True
+    return False
 
 
 def git_status(checkout):
     config = os.fsdecode(git(checkout, 'config', '--null', '--list', '--includes').stdout)
-    filters = []
+    commands = {}
     for line in config.split('\0'):
         key, _, value = line.partition('\n')
-        if value and key.startswith('filter.') and key.endswith(('.clean', '.process')):
-            filters.append(key)
-    overrides = [option for key in filters for option in ('-c', f'{key}=')]
-    required = {key.rpartition('.')[0] + '.required' for key in filters}
-    overrides.extend(option for key in sorted(required) for option in ('-c', f'{key}=false'))
+        if match := FILTER_COMMAND.fullmatch(key):
+            commands[key] = (match[1], value)
+    configured = {driver for driver, value in commands.values() if value}
+    filters = set()
+    if configured:
+        tracked = git(checkout, 'ls-files', '--cached', '-z').stdout
+        attributes = git(checkout, 'check-attr', '-z', '--stdin', 'filter', input=tracked).stdout
+        selected = set(os.fsdecode(attributes).split('\0')[2::3]) & configured
+        filters = {key for key, (driver, value) in commands.items() if value and driver in selected}
+    # Disable every configured command before reading status, including unused drivers.
+    overrides = []
+    for driver in sorted({driver for driver, _ in commands.values()}):
+        for key, value in (('clean', ''), ('process', ''), ('required', 'false')):
+            overrides.extend(('-c', f'filter.{driver}.{key}={value}'))
     output = git(checkout, '-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false', *overrides,
                  'status', '--porcelain=v1', '-z', '--untracked-files=normal',
                  '--ignored=matching', '--ignore-submodules=all').stdout
@@ -269,6 +434,18 @@ def cache_tag(path):
         return False
     with marker.open('rb') as handle:
         return handle.read(len(storage.CARGO_TAG)) == storage.CARGO_TAG
+
+
+def cargo_build_output(parts):
+    # Cargo owns these filenames. A build script can write arbitrary files under out/.
+    if len(parts) not in {5, 6} or not re.fullmatch(r'[\w-]+-[0-9a-f]{16}', parts[3]):
+        return False
+    if len(parts) == 5:
+        fingerprint = parts[3].rsplit('-', 1)[1]
+        return (parts[4] in {'invoked.timestamp', 'root-output', 'output', 'stderr'} or
+                re.fullmatch(rf'(?:build-script-build|build_script_build-{fingerprint})'
+                             r'(?:\.d|\.exe|\.pdb)?', parts[4]) is not None)
+    return parts[4] == 'out' and re.fullmatch(r'[0-9a-f]{16}-.+\.(?:o|obj)', parts[5]) is not None
 
 
 def rebuildable(path, checkout, info):
@@ -290,8 +467,10 @@ def rebuildable(path, checkout, info):
     if relative.parts[0] == 'target' and (checkout / 'Cargo.lock').is_file() and cache_tag(checkout / 'target'):
         if len(relative.parts) == 2:
             return path.name in {'CACHEDIR.TAG', '.rustc_info.json'}
+        if relative.parts[1:3] == ('debug', 'build'):
+            return stat.S_ISREG(info.st_mode) and cargo_build_output(relative.parts)
         if len(relative.parts) == 3 and relative.parts[1] == 'debug':
-            return path.name in {'deps', '.fingerprint', 'build', 'incremental', *storage.CARGO_LOCKS}
+            return path.name in {'deps', '.fingerprint', 'incremental', *storage.CARGO_LOCKS}
     if path.parent.name == 'node_modules':
         root_modules = checkout / 'node_modules'
         if ((checkout / 'pnpm-lock.yaml').is_file() and (root_modules / '.modules.yaml').is_file() and
@@ -332,15 +511,26 @@ def ignored_files(checkout, paths, mounts, *, include_generated_links=False, exc
 
 def hash_file(path):
     flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0) | getattr(os, 'O_BINARY', 0)
+    initial = path.lstat()
+    if not stat.S_ISREG(initial.st_mode) or storage.reparse(initial):
+        raise OSError(f'Expected a regular retained file: {path}')
     with os.fdopen(os.open(path, flags), 'rb') as handle:
         before = os.fstat(handle.fileno())
-        if not stat.S_ISREG(before.st_mode):
+        if not stat.S_ISREG(before.st_mode) or not before.st_ino:
             raise OSError(f'Expected a regular retained file: {path}')
         digest = hashlib.sha256()
         for block in iter(lambda: handle.read(1024 * 1024), b''):
             digest.update(block)
-        after = path.lstat()
-    if (not os.path.samestat(before, after) or storage.reparse(after) or
+        current = path.lstat()
+        if not stat.S_ISREG(current.st_mode) or storage.reparse(current):
+            raise OSError(f'File changed during observation: {path}')
+        if os.name == 'nt':
+            # Use the same handle-based file ID on both sides of the Windows comparison.
+            with os.fdopen(os.open(path, flags), 'rb') as reopened:
+                after = os.fstat(reopened.fileno())
+        else:
+            after = current
+    if (not os.path.samestat(before, after) or
             (before.st_size, before.st_mtime_ns, before.st_ctime_ns) !=
             (after.st_size, after.st_mtime_ns, after.st_ctime_ns)):
         raise OSError(f'File changed during observation: {path}')
@@ -381,6 +571,17 @@ def checkout_limited_to_owner(path):
     return False
 
 
+def verify_consumer_checkout(common, entry, *, primary):
+    if not primary:
+        worktree.verify_checkout(common, entry)
+        return
+    path = entry.path
+    if (entry.flags & {'bare', 'prunable'} or path.resolve() != path or
+            worktree.git_path(path, '--show-toplevel') != path or worktree.git_path(path, '--git-dir') != common or
+            worktree.git_path(path, '--git-common-dir') != common):
+        raise worktree.WorktreeError(f'Cannot verify the primary checkout at {path}.')
+
+
 def retirement_report(cwd, common, registered, *, archive_root=None, dispositions=None):
     archive_error = None
     archive = None
@@ -392,6 +593,12 @@ def retirement_report(cwd, common, registered, *, archive_root=None, disposition
         archive_error = str(error)
     disposition_commit, disposition_by_head = read_dispositions(cwd, dispositions)
     integrated = commit_at(cwd, INTEGRATION_REF)
+    shared_refs = durable_objects = None
+    try:
+        shared_refs = durable_git_refs(cwd)
+        durable_objects = durable_git_objects(cwd, shared_refs)
+    except (OSError, RuntimeError, ValueError):
+        pass  # Linked rows will hold because recovery cannot be established.
     worktrees = []
     dependencies = defaultdict(set)
     uncertain_consumers = []
@@ -418,12 +625,12 @@ def retirement_report(cwd, common, registered, *, archive_root=None, disposition
             holds['worktree_locked'] = entry.lock_reason or True
         ignored = None
         try:
-            worktree.verify_checkout(cwd, common, entry)
+            verify_consumer_checkout(common, entry, primary=position == 0)
         except (OSError, RuntimeError) as error:
             holds['registration_unavailable'] = str(error)
             # Git's prunable entry for a missing path has no checkout files to consume.
             try:
-                missing = worktree.entry_mode(checkout) is None
+                missing = worktree.entry_info(checkout) is None
             except OSError:
                 missing = False
             if not missing:
@@ -453,10 +660,13 @@ def retirement_report(cwd, common, registered, *, archive_root=None, disposition
                 holds['index_visibility_restricted'] = True
             if filters:
                 holds['external_clean_filter_unverified'] = sorted(set(filters))
-            operations = [name for name in GIT_OPERATIONS if worktree.entry_mode(git_dir / name) is not None]
+            operations = worktree_git_operations(git_dir)
             if operations:
                 holds['git_operation_in_progress'] = operations
             row['clean'] = not (dirty or hidden or filters or operations)
+            private_state = private_git_recovery(checkout, git_dir, common, durable_objects)
+            if private_state:
+                holds['unrecoverable_worktree_git_state'] = private_state
             if sys.platform == 'linux' and not checkout_limited_to_owner(checkout):
                 holds['other_user_process_visibility_unverified'] = True
             evidence = []
@@ -496,6 +706,10 @@ def retirement_report(cwd, common, registered, *, archive_root=None, disposition
             uncertainty.append('active_path_resolution_incomplete')
     changing_registrations = registration_snapshot(worktree.registrations(cwd)) != registration_snapshot(registered)
     changing_integration = commit_at(cwd, INTEGRATION_REF) != integrated
+    try:
+        changing_recovery = shared_refs is not None and durable_git_refs(cwd) != shared_refs
+    except (OSError, RuntimeError, ValueError):
+        changing_recovery = True
     for row in worktrees:
         path = Path(row['path'])
         holds = row['details']
@@ -512,11 +726,14 @@ def retirement_report(cwd, common, registered, *, archive_root=None, disposition
             holds['worktree_registration_changed'] = True
         if changing_integration:
             holds['integration_ref_changed'] = True
+        if changing_recovery:
+            holds['recovery_ref_changed'] = True
         integration = row['integration']
         if integration and integration['kind'] == 'disposition' and (
                 commit_at(cwd, integration['recoverable_ref']) != integration['retained_tip']):
             holds['recovery_ref_changed'] = True
         row['active_use_observed'] = bool(active_paths)
+        row['review_intake'] = set(holds) == {'process_observation_incomplete'}
         row['holds'] = list(holds)
         row['state'] = 'held' if holds else 'candidate'
 

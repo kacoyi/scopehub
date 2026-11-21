@@ -2061,6 +2061,34 @@
         "prevention": "M0-031's recorded Linux checks passed positive and negative Git fixtures, including tracked and untracked script consumers, an overlapping archive root, an archive symlink back into the checkout, independent retained copies and incomplete activity visibility. The actual host report held all 50 registrations, including 10 tips reachable from the observed origin/main. Explicit resolution of the M4 diagnostic verified 13 logs and the archive checksum manifest and preserved the blocked outcome with 13 selected checks passed and two blocked."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "retirement-observation-and-diagnostic-review-gaps",
+      "source": "Independent Herdr review of PR 27 on 2026-11-21, supervisor reproductions and authenticated Ubuntu and Windows run 44887586115 reports retained in the current checkout.",
+      "observation": "Independent fixtures exposed missed check registry, live symlink, editable Python and Cargo build output dependencies, lost worktree-private Git recovery references, incomplete observation artifact verification, caller-relative and exported report regressions, and an unused clean filter holding idle checkouts. Hosted Python checks failed on both platforms under globally configured Git LFS. Windows also missed untracked and ignored symlinks and rejected an independent archived file. The supervisor reproduced cross-checkout diagnostic paths escaping history checks in app, workflow and crate sources and requested a human review intake for the otherwise clear checkouts affected only by partial process visibility.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261121T090216.542762Z-df265eff",
+          "source_commit": "75bddf88fa31fbc7ba0e5aae447b64ca862941e1",
+          "report_sha256": "5698e691bb3353fdbb8eed307e484270c6d20a6fa3fe43ce67c7420585b2ea2f"
+        },
+        {
+          "run_id": "20261121T090454.861752Z-508c4df7",
+          "source_commit": "75bddf88fa31fbc7ba0e5aae447b64ca862941e1",
+          "report_sha256": "3eda674b61ec2e3332f797b9a4ba74abd1f621fde59d3ad6beea6913c0de6d82"
+        }
+      ],
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-035"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

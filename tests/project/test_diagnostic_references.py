@@ -1,14 +1,19 @@
 """Verify that diagnostic dependencies stay portable across checkout layouts."""
 
+from contextlib import chdir, redirect_stdout
+from io import StringIO
+import json
 import os
 import subprocess
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
+from scripts import project
 from scripts.project import (
-    ProjectError, archive_evidence, json_bytes, load_project, review_history, task_definition_hash,
+    ProjectError, archive_evidence, json_bytes, load_project, read_json, review_history, task_definition_hash,
 )
+from scripts.worktree import WorktreeError
 from tests.project.fixtures import task_by_id
 from tests.project.test_continuity import ProjectFixture
 
@@ -88,17 +93,69 @@ class DiagnosticReferenceTests(ProjectFixture):
         with (self.root / '.gitignore').open('a', encoding='utf-8') as ignored:
             ignored.write('retained/\n')
         report = self.report()
-        self.assertIn('path', archive_evidence(self.root, 'M0-001', report))
-        self.assertIn('path', archive_evidence(self.root, 'M0-001', Path('.reports/test-report.json')))
+        receipt = archive_evidence(self.root, 'M0-001', report)
+        with chdir(report.parent):
+            self.assertEqual(receipt, archive_evidence(self.root, 'M0-001', Path(report.name)))
         local_copy = self.root / 'retained/test-report.json'
         local_copy.parent.mkdir()
         local_copy.write_bytes(report.read_bytes())
-        self.assertIn('path', archive_evidence(self.root, 'M0-001', local_copy))
+        self.assertEqual(receipt, archive_evidence(self.root, 'M0-001', local_copy))
+
+    def test_record_package_script_honors_pnpm_invocation_directory(self):
+        report = self.report()
+        receipt = archive_evidence(self.root, 'M0-001', report)
+        output = StringIO()
+        with (
+            chdir(self.root),
+            patch.object(project, 'ROOT', self.root),
+            patch('sys.argv', ['project.py', 'record', 'M0-001', '--report', report.name]),
+            patch.dict(os.environ, {'npm_lifecycle_event': 'project:record', 'INIT_CWD': str(report.parent)}),
+            redirect_stdout(output),
+        ):
+            project.main()
+        self.assertEqual(receipt, json.loads(output.getvalue()))
+
+    def test_exported_report_uses_verified_local_log_and_source_bindings(self):
+        report = self.report()
+        receipt = archive_evidence(self.root, 'M0-001', report)
         with tempfile.TemporaryDirectory() as other:
             external = Path(other) / 'test-report.json'
             external.write_bytes(report.read_bytes())
-            with self.assertRaisesRegex(ProjectError, 'checkout-local'):
+            self.assertEqual(receipt, archive_evidence(self.root, 'M0-001', external))
+            log = self.root / read_json(report)['checks'][0]['log']
+            log.write_bytes(b'Changed local verification output.\n')
+            with self.assertRaisesRegex(ProjectError, 'log changed after the run'):
                 archive_evidence(self.root, 'M0-001', external)
+            (self.root / 'implementation.py').write_text('value = 2\n', encoding='utf-8')
+            with self.assertRaisesRegex(ProjectError, 'stale report'):
+                archive_evidence(self.root, 'M0-001', external)
+
+    def test_record_reports_unverifiable_checkout_metadata(self):
+        report = self.report()
+        with patch.object(project, 'has_git_metadata', side_effect=WorktreeError('Unresolved Git marker')):
+            with self.assertRaisesRegex(ProjectError, 'Cannot verify the report checkout.*Unresolved Git marker'):
+                archive_evidence(self.root, 'M0-001', report)
+
+    def test_record_rejects_a_report_still_in_another_checkout(self):
+        self.commit()
+        report = self.report()
+        with tempfile.TemporaryDirectory() as other:
+            linked = Path(other) / 'linked'
+            subprocess.run(
+                ['git', 'worktree', 'add', '--detach', str(linked), 'HEAD'],
+                cwd=self.root, check=True, capture_output=True,
+            )
+            external = linked / '.reports/test-report.json'
+            external.parent.mkdir()
+            external.write_bytes(report.read_bytes())
+            with self.assertRaisesRegex(ProjectError, 'another checkout'):
+                archive_evidence(self.root, 'M0-001', external)
+            exported = Path(other) / 'test-report.json'
+            exported.write_bytes(external.read_bytes())
+            self.assertEqual(
+                archive_evidence(self.root, 'M0-001', report),
+                archive_evidence(self.root, 'M0-001', exported),
+            )
 
     def test_history_preserves_legacy_paths_and_rejects_a_new_closed_dependency(self):
         self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
@@ -131,3 +188,37 @@ class DiagnosticReferenceTests(ProjectFixture):
             review_history(self.root, base)
         added.write_text("read('.reports/test-report.json')\n", encoding='utf-8')
         self.assertEqual('passed', review_history(self.root, base)['status'])
+
+    def test_history_checks_new_application_native_and_workflow_report_paths(self):
+        paths = {
+            'apps/desktop/replay.ts': "const replayPath = '{path}';\n",
+            'packages/core/consumer.rs': 'const REPLAY_PATH: &str = "{path}";\n',
+            '.github/workflows/windows.yml': "jobs:\n  replay:\n    steps:\n      - run: cat '{path}'\n",
+        }
+        inherited = self.root / 'apps/desktop/inherited.ts'
+        inherited.parent.mkdir(parents=True)
+        inherited.write_text("const inheritedPath = '../legacy/.reports/replay.json';\n", encoding='utf-8')
+        base = self.commit()
+        with inherited.open('a', encoding='utf-8') as existing:
+            existing.write("const localPath = '.reports/local.json';\n")
+        for relative in ('apps/desktop/node_modules/dep/index.ts', 'packages/core/generated/replay.rs',
+                         'python/fixtures/consumer.py'):
+            fixture = self.root / relative
+            fixture.parent.mkdir(parents=True)
+            fixture.write_text("'../fixture/.reports/replay.json'\n", encoding='utf-8')
+        self.assertEqual('passed', review_history(self.root, base)['status'])
+        for relative, template in paths.items():
+            with self.subTest(path=relative):
+                source = self.root / relative
+                source.parent.mkdir(parents=True, exist_ok=True)
+                source.write_text(template.format(path='../sibling/.reports/replay.json'), encoding='utf-8')
+                with self.assertRaisesRegex(ProjectError, f'{source.name}.*nonlocal report path'):
+                    review_history(self.root, base)
+                self.commit()
+                with self.assertRaisesRegex(ProjectError, f'{source.name}.*nonlocal report path'):
+                    review_history(self.root, base)
+                source.write_text(template.format(path=r'..\\sibling\\.reports\\replay.json'), encoding='utf-8')
+                with self.assertRaisesRegex(ProjectError, f'{source.name}.*nonlocal report path'):
+                    review_history(self.root, base)
+                source.write_text(template.format(path='.reports/replay.json'), encoding='utf-8')
+                self.assertEqual('passed', review_history(self.root, base)['status'])

@@ -8183,7 +8183,9 @@
       "acceptance": [
         "A worktree with active harness or editable-runtime consumers, a live linked-file type change, unique local evidence in generated layouts, or an unrecoverable per-worktree reference is held. An inactive globally configured Git filter does not block a genuinely eligible checkout.",
         "A retained blocked diagnostic must verify the observation artifacts explicitly bound by its report. Checkout-local report selection from a subdirectory and independently supplied compatible reports preserve the established evidence semantics and reject a cross-worktree report dependency.",
-        "The read-only host inventory and the retained M4 diagnostic still resolve after integrating the upstream worktree and storage identity repairs. The command never removes a worktree or its files."
+        "The read-only host inventory and the retained M4 diagnostic still resolve after integrating the upstream worktree and storage identity repairs. The command never removes a worktree or its files.",
+        "New operational source and workflow changes cannot introduce cross-checkout diagnostic paths. Windows linked consumers and independent retained files are identified using the host path and file identity semantics.",
+        "A checkout whose only outstanding hold is partial global process visibility enters human review intake while remaining held. Specific dependencies, activity, unverified evidence or Git state continue to disqualify intake."
       ],
       "checks": [
         "project-state",
@@ -8204,7 +8206,8 @@
           "scripts/project.py",
           "scripts/storage.py",
           "scripts/worktree.py",
-          "project/feedback.json"
+          "project/feedback.json",
+          "scripts/operational_paths.py"
         ],
         "hypotheses": [
           "The preliminary candidate report treats a generated directory as proof that all contained files are rebuildable and checks the index type instead of the live path at some consumer boundaries.",
@@ -8234,7 +8237,8 @@
             "scripts/project.py",
             "scripts/worktree.py",
             "scripts/worktree_retirement.py",
-            "scripts/diagnostic_archive.py"
+            "scripts/diagnostic_archive.py",
+            "scripts/operational_paths.py"
           ],
           "rules": [
             {
@@ -8257,7 +8261,8 @@
             "Original accepted tasks and their receipts, diagnostic status, read-only operation, existing archive layout and in-checkout report callers."
           ],
           "change": [
-            "Check the real consumers, private Git state and bound observation files missed in the independent review. Restrict generated-data and filter exclusions to the observations that justify them."
+            "Check the real consumers, private Git state and bound observation files missed in the independent review. Restrict generated-data and filter exclusions to the observations that justify them.",
+            "Cover changed operational sources and workflows in history validation, preserve Windows path and file identity, and expose a separate human review intake for otherwise clear checkouts under partial process visibility."
           ],
           "data_plan": "Inspect repository metadata and retained development evidence locally. Opt in to archive access only for explicit verification.",
           "cleanup": "Keep the existing locator and queue entrypoints and remove overly broad assumptions under deterministic regression fixtures."

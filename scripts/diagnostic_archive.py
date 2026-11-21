@@ -82,8 +82,12 @@ def _file_hash(path):
 
 
 def _verify_file(root, relative, expected):
-    if not _matches(_SHA256, expected) or _file_hash(_path(root, relative)) != expected:
-        raise DiagnosticArchiveError(f'Missing or changed diagnostic bytes: {relative}')
+    try:
+        if _matches(_SHA256, expected) and _file_hash(_path(root, relative)) == expected:
+            return
+    except FileNotFoundError:
+        pass
+    raise DiagnosticArchiveError(f'Missing or changed diagnostic bytes: {relative}')
 
 
 def _json_document(data):
@@ -166,6 +170,50 @@ def _checked_logs(directory, report):
             raise DiagnosticArchiveError(f'Missing log or log outside its diagnostic run: {check_id}')
         _verify_file(directory, relative, check.get('log_sha256'))
         verified.append(check_id)
+    return verified
+
+
+def _checked_observations(root, directory, checks):
+    verified = []
+    for check in checks:
+        check_id = check['id']
+        if 'observation' in check:
+            binding = check['observation']
+            relative = f'{check_id}.observation.json'
+            if not isinstance(binding, dict):
+                raise DiagnosticArchiveError(f'Invalid session observation binding: {check_id}')
+            _verify_file(directory, relative, binding.get('evidence_sha256'))
+            verified.append(relative)
+        if 'field_observation' in check:
+            binding = check['field_observation']
+            observation_dir = f'observations/{check_id}'
+            relative = f'{observation_dir}/observation.json'
+            if not isinstance(binding, dict):
+                raise DiagnosticArchiveError(f'Invalid field observation binding: {check_id}')
+            # A run can hold its own snapshot. The harness and hosted exports
+            # write field observations next to their runs directory.
+            try:
+                _path(directory, observation_dir, directory=True)
+            except FileNotFoundError:
+                observation_root = root
+            else:
+                observation_root = directory
+            try:
+                contents = _path(observation_root, relative).read_bytes()
+            except FileNotFoundError as error:
+                raise DiagnosticArchiveError(f'Missing field observation: {relative}') from error
+            if hashlib.sha256(contents).hexdigest() != binding.get('observation_sha256'):
+                raise DiagnosticArchiveError(f'Missing or changed diagnostic bytes: {relative}')
+            screenshots = _json_document(contents).get('screenshots')
+            if not isinstance(screenshots, list) or not screenshots:
+                raise DiagnosticArchiveError(f'Missing field observation screenshot references: {relative}')
+            for ref in screenshots:
+                if not isinstance(ref, dict):
+                    raise DiagnosticArchiveError(f'Invalid field observation screenshot reference: {relative}')
+                path = ref.get('path')
+                _parts(path)
+                _verify_file(observation_root, f'{observation_dir}/{path}', ref.get('sha256'))
+            verified.append(relative)
     return verified
 
 
@@ -298,6 +346,7 @@ def resolve_diagnostic(locator, archive_root):
             raise DiagnosticArchiveError('Archived document was found under the wrong diagnostic layout')
         directory = report_path.parent
         logs = _checked_logs(directory, report) if kind == 'harness' else []
+        observations = _checked_observations(root, directory, report['checks']) if kind == 'harness' else []
         candidate_manifest = _verify_candidate(directory, report) if kind == 'harness' else False
         originals = _verified_originals(directory, report) if kind == 'recovery' else []
         manifest = _verify_checksums(directory)
@@ -314,6 +363,7 @@ def resolve_diagnostic(locator, archive_root):
                                     if not isinstance(selected, list) or key in selected},
         'source_working_tree_dirty': dirty,
         'verified_logs': logs,
+        'verified_observations': observations,
         'verified_originals': originals,
         'manifest_verified': kind == 'recovery' or candidate_manifest or manifest,
         'report_path': str(report_path),

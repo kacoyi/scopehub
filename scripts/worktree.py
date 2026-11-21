@@ -34,13 +34,13 @@ class Registration:
     head: str | None = None
 
 
-def git(cwd, *args, allowed=(0,), lock_fd=None):
+def git(cwd, *args, allowed=(0,), lock_fd=None, input=None):
     # In particular, ignore an inherited alternate worktree, index or config.
     env = {key: value for key, value in os.environ.items() if not key.startswith('GIT_')}
     command = ['git', *args]
-    options = dict(cwd=cwd, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    options = dict(cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if lock_fd is None:
-        result = subprocess.run(command, **options)
+        result = subprocess.run(command, input=input, stdin=subprocess.DEVNULL if input is None else None, **options)
     else:
         env['LC_ALL'] = 'C'  # Git records its initialization lock reason in the child's locale.
         # This child retains the lock through Git's exit if the original CLI is killed.
@@ -53,8 +53,9 @@ def git(cwd, *args, allowed=(0,), lock_fd=None):
         with inherit_lock(lock_fd) as inheritance:
             # subprocess.run would kill the lock holder on Python-side interruption.
             with subprocess.Popen([sys.executable, '-I', '-S', '-c', runner, *command],
+                                  stdin=subprocess.DEVNULL if input is None else subprocess.PIPE,
                                   **inheritance, **options) as process:
-                stdout, stderr = process.communicate()
+                stdout, stderr = process.communicate(input)
                 result = subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
     if result.returncode not in allowed:
         detail = os.fsdecode(result.stderr).strip()
