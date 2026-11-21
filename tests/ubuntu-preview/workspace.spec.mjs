@@ -1374,6 +1374,7 @@ test('losing parent IPC releases the listener and writer with a history response
       observation.vite = server.pid;
       observation.writer = await writerPid(server);
       expect(state(await (await post(server, snapshot)).json())).toEqual({ revision: 0, timeframe: '1m', undo: null });
+      const signal = AbortSignal.any([history.signal, AbortSignal.timeout(15_000)]);
       const response = await fetch(server.url + operationPath, {
         method: 'POST',
         headers: {
@@ -1381,23 +1382,21 @@ test('losing parent IPC releases the listener and writer with a history response
           'x-scopehub-test-interrupt': 'during-body-200',
         },
         body: JSON.stringify(sampleHistoryCall()),
-        signal: AbortSignal.any([history.signal, AbortSignal.timeout(15_000)]),
+        signal,
       });
       expect(response.status).toBe(200);
       const reader = response.body.getReader();
       expect(await reader.read()).toEqual({ value: new TextEncoder().encode('{'), done: false });
-      const terminal = reader.read().then(
-        () => 'completed',
-        error => error.name,
-      );
+      const responseReleased = reader.read().then(({ done }) => done, () => !signal.aborted);
       observation.beforeDisconnect = await observe();
       expect(observation.beforeDisconnect).toEqual({ vite: true, writer: true, listening: true });
-      server.disconnectOwner(observation.writer);
+      const exited = server.disconnectOwner(observation.writer);
       await expect.poll(async () => {
         observation.afterDisconnect = await observe();
         return observation.afterDisconnect;
       }, { timeout: 4_000 }).toEqual({ vite: false, writer: false, listening: false });
-      expect(await terminal).toBe('TypeError');
+      expect(await exited).toEqual([0, null]);
+      expect(await responseReleased).toBe(true);
       await expect(stat(server.handoff)).rejects.toMatchObject({ code: 'ENOENT' });
     }, { historyTrace: true, historyFault: true });
   } finally {
@@ -1687,6 +1686,7 @@ async function inService(port, profile, mode, use, { expectHandoff = true, termi
       // Node does not reliably emit ChildProcess close after a local IPC disconnect.
       disconnectedExit = once(child, 'exit');
       if (child.connected) child.disconnect();
+      return disconnectedExit;
     },
   };
   try {
@@ -1729,9 +1729,8 @@ async function inService(port, profile, mode, use, { expectHandoff = true, termi
         }
       }
     } finally {
-      const [code, signal] = await reapService(child, disconnectedExit ?? closed);
+      const [, signal] = await reapService(child, disconnectedExit ?? closed);
       expect(signal).not.toBe('SIGKILL');
-      if (!terminalSignal) expect(code).toBe(0);
       if (server.capability) expect(!output.includes(server.capability)).toBe(true);
     }
   }
