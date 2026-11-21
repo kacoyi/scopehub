@@ -2013,6 +2013,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "selected-chart-contention-and-stale-draft",
+      "source": "Interrupted chart collaboration review and local Chromium controls in .reports/M4-001-resume-busy-red/results.json and .reports/M4-001-stale-draft-red/results.json.",
+      "observation": "An explicit pre-admission HTTP 429 BUSY disabled further selection until reload at a8c9609. At d701eba, a second client cleared the selection and the reopened dialog enabled Send for the stale chart draft after the workspace reloaded. At dc9b283 the owned HTTP peer regression verifies retry with the same request, a single selection revision advance, preservation of the blocked draft after reload, recovery by reselecting a bar, and a fresh unselected text turn. All four model-connection workflow cases passed in .reports/runs/20261121T015908.326119Z-721f69a6/ai-workflow/results.json (SHA-256 dd70ca5458a96f5027baf106bcafbec138dde2693b3fd815e7b15200c72633b6). Combined-branch verification is pending.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M4-001"
+      ],
+      "regression_checks": [
+        "model-connection-workflow"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
