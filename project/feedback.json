@@ -1255,7 +1255,7 @@
       "source": "Owner review and registered worktree inventory on 2026-11-20.",
       "observation": "The projects directory contained the ScopeHub primary checkout and 43 sibling task worktrees. Shared storage maintenance only recognized the primary checkout directory, and retained build archives occupied the same source filesystem.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-030"
       ],
@@ -1263,7 +1263,11 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Parallel and historical checkouts were created as project-directory siblings. The previous collector only admitted siblings, and generated runtime shims held absolute checkout paths.",
+        "correction": "Provide a shared repository-local managed root and portable creation or reuse commands. On the affected host, move 36 idle checkouts, defer seven live sessions, retain three observed legacy mappings, and place the verified historical build archive on its optional volume. Ordinary source and build workflows remain on the source filesystem.",
+        "prevention": "Regression tests cover repository identity, explicit branch and base, reuse, interruptions and storage eligibility. All 43 original worktrees matched Git and retained evidence after relocation. Host verification exercised the actual client build, four Rust/Python handshake cases, fresh worktree creation, Herdr routing, and an offline cache fallback."
+      },
       "deferral_reason": null
     }
   ]

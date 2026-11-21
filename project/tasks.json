@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-030",
+  "focus_task_id": "M2-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -6702,7 +6702,7 @@
       "id": "M0-030",
       "title": "Give long-lived ScopeHub development a stable worktree layout",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-029"
       ],
@@ -6727,8 +6727,13 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Validate host relocation, pinned alias and Herdr reuse, evidence retention, and optional archive routing before closure.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-030-706c38938b3c0d96.json",
+          "sha256": "b74790705faf120769525ab5b5ed6f16a692c991bb2edecb2a540a913f1b0ddb"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -6768,7 +6773,7 @@
           ],
           "entrypoints": [
             "package.json",
-          "scripts/worktree.py",
+            "scripts/worktree.py",
             "scripts/storage.py",
             "scripts/herdr.py"
           ],
