@@ -1956,14 +1956,18 @@
       "source": "Ubuntu and Windows jobs in PR run 44601667278 at head 4aeddf2, merged test checkout 611de0d, workspace-timeframe screenshots and structured reports.",
       "observation": "Ubuntu failed at the second explicit 1m sample open (former line 923), after 23 other workspace scenarios passed. Windows failed at the first explicit 1m open (former line 870). Both screenshots display three catalog instruments, a disconnected local preview and Retry history. Both history assertions saw only a missing chart after five seconds. The reports lack the network error, HTTP status and host response stage for either sample failure. Their initiating transport or OS causes remain unknown.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-010"
       ],
       "regression_checks": [
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The original runs showed a populated catalog and a disconnected selected-history view. The initiating transport or OS cause remains unknown because the original evidence lacks the host response and browser request stages.",
+        "correction": "Observe catalog and selected history separately through host, browser and client completion. Use a controlled loopback disconnect to exercise the explicit Retry history action.",
+        "prevention": "Both hosted workspace-timeframe reports from run 44616706526 showed HTTP 200 and completed bodies for healthy opens, reopens and refreshes. The controlled reopen completed the catalog, lost selected history before headers, surfaced Chromium net::ERR_EMPTY_RESPONSE and a retryable disconnect, then recovered the frozen synthetic chart after explicit retry while preserving private undo. Retry during continued loss remained visibly disconnected."
+      },
       "deferral_reason": null
     },
     {
@@ -1971,7 +1975,7 @@
       "source": "Local Chromium controlled socket interruption in .reports/ubuntu-workspace/1795119478701-2b19c416-64aa-4151-887b-518f4c68ff98/results.json, preview denial with interrupted body attachment.",
       "observation": "The actual Vite preview rejected a synthetic test request with HTTP 403 and PERMISSION_DENIED. Chromium received the 403 headers before losing the chunked body. The client recorded a body TypeError without a selection abort and showed the retryable local disconnect instead of retaining the denied HTTP status. This controlled case is independent of the unidentified initiating failure in run 44601667278.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-010"
       ],
@@ -1979,13 +1983,17 @@
         "workspace-timeframe",
         "market-quality-states"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "When the preview's response body failed after Chromium received HTTP 403, the client treated the body TypeError as a retryable disconnect and discarded the known status.",
+        "correction": "Classify an interrupted non-success response by its received HTTP status and retain typed failures from completed bodies. An interrupted successful response still takes the explicit transport recovery path.",
+        "prevention": "Both hosted workspace-timeframe reports from run 44616706526 showed host PERMISSION_DENIED, browser HTTP 403 followed by net::ERR_INCOMPLETE_CHUNKED_ENCODING, and a client body-rejected stage with HTTP 403. The UI retained the 403 without a retry action. A completed 403 showed the typed denial, and an interrupted HTTP 200 body offered transport retry. Both market-quality-states checks passed."
+      },
       "deferral_reason": null
     },
     {
       "id": "private-delete-uncertainty-peer-rename-wait",
       "source": "Hosted Windows PR run 44601667278, head 4aeddf2, CI checkout 611de0d, workspace-timeframe final peer-rename case.",
-      "observation": "The screenshot shows a body-free Recover deletion result view. A wait for the renamed detail at workspace.spec.mjs line 2039 ended with the 60-second test. The original evidence does not confirm the peer write or the subsequent read stage. Both adjacent lost-reply and committed-WAL cleanup cases passed. The Windows browser results in the original integration artifact have SHA-256 763a0fac3d83d1bb0583376fdbfe41e320ba15fa8600a946b8226a11d6e1bd58. The same original journey passed locally in .reports/M2-011-baseline/workspace-timeframe/results.json. The controlled Linux red in .reports/M2-011-red/workspace-timeframe/results.json (SHA-256 ad5610583c570fdd40ff9b572b7b232d0f66281754f5e1961dac6ba0e36e3d15) retained the peer's HTTP 429 BUSY during an origin read, the observer cleanup, and the old generic panel error. The focused green in .reports/M2-011-green/workspace-timeframe/results.json (SHA-256 0999bb4ce106813f885788390212414e7fa915691f4b34d1d42ba06a5caa4e2c) reported contention explicitly and passed the two-service path with a committed peer correction, unchanged retry returning STALE_CONTEXT, body-free recovery until the authorized reload, and zero deletions. Both committed deletion controls passed in that run. Integrated Windows verification remains open.",
+      "observation": "The screenshot shows a body-free Recover deletion result view. A wait for the renamed detail at workspace.spec.mjs line 2039 ended with the 60-second test. The original evidence does not confirm the peer write or the subsequent read stage. Both adjacent lost-reply and committed-WAL cleanup cases passed. The Windows browser results in the original integration artifact have SHA-256 763a0fac3d83d1bb0583376fdbfe41e320ba15fa8600a946b8226a11d6e1bd58. The same original journey passed locally in .reports/M2-011-baseline/workspace-timeframe/results.json. The controlled Linux red in .reports/M2-011-red/workspace-timeframe/results.json (SHA-256 ad5610583c570fdd40ff9b572b7b232d0f66281754f5e1961dac6ba0e36e3d15) retained the peer's HTTP 429 BUSY during an origin read, the observer cleanup, and the old generic panel error. The focused green in .reports/M2-011-green/workspace-timeframe/results.json (SHA-256 0999bb4ce106813f885788390212414e7fa915691f4b34d1d42ba06a5caa4e2c) reported contention explicitly and passed the two-service path with a committed peer correction, unchanged retry returning STALE_CONTEXT, body-free recovery until the authorized reload, and zero deletions. Both committed deletion controls passed in that run. The uploaded Windows workspace-timeframe result from PR 21 run 44616706526 (SHA-256 d84217c31fbbaf4c417c1b14b929865e683c7513371b0e55a2269d9159031ff2) passed the two-service case. The origin deletion returned BUSY before commit, the authorized peer committed revision 2, an ungranted read returned HTTP 403, and the unchanged deletion retry returned STALE_CONTEXT. The recovery stayed body-free until the authorized reread displayed revision 2 with zero deletions. The shared-producer HTTP 429 BUSY and observer cleanup, lost-reply and blocked-checkpoint controls also passed. The Windows verification report passed before post-cache job cancellation. Its check selection omitted private-record-lifecycle, and the Windows M2-011 archive command reported Required check did not pass: private-record-lifecycle. The integrated local receipt remains attached and the Windows task gate remains open.",
       "severity": "major",
       "status": "open",
       "task_ids": [
@@ -2003,7 +2011,7 @@
       "source": "Authenticated Ubuntu and Windows workspace-timeframe artifacts from PR run 44610931395 at head 20d0ae950f4063583973f15b0975f5194d0dc81f.",
       "observation": "The first healthy sample open completed both reads. On the controlled disconnected reopen, the catalog returned successfully and the host closed the initial selected-history response before headers. At the five-second DOM assertion cutoff Chromium was still fetching, and the same logical request had reached host admission again. The test ended before the browser reported a terminal outcome. On Windows the ordinary first sample open and the recovery control’s initial healthy open both finished the catalog and reached admission of the selected history. Both observations ended at the same five-second cutoff while fetch was still pending. The shared-producer contention and peer-rename controls passed on both platforms.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-010"
       ],
@@ -2011,7 +2019,11 @@
         "workspace-timeframe",
         "market-workflow"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The five-second DOM assertion expired while Chromium was still fetching. The controlled case showed a pre-header close followed by a second host admission for the same request. The Windows healthy opens were observed through selected-history admission at the cutoff.",
+        "correction": "Wait for the selected request's browser and client terminal stages within a bounded deadline before asserting the rendered outcome. Track the catalog independently and retain the correlated host stages.",
+        "prevention": "Both workspace-timeframe reports from run 44616706526 recorded host admission, a held pre-header disconnect and two closes for the controlled reopen, followed by Chromium net::ERR_EMPTY_RESPONSE and a client fetch rejection before the visible disconnect assertion. An explicit retry after restoration completed HTTP 200 and rendered the chart. The normal sample opens and both market-workflow checks passed."
+      },
       "deferral_reason": null
     },
     {

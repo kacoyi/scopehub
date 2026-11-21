@@ -7596,7 +7596,7 @@
       "id": "M2-010",
       "title": "Verify recovery of a disconnected sample history read from the private workspace",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-009"
       ],
@@ -7629,11 +7629,23 @@
         {
           "path": "project/evidence/M2-010-a11a7bfa1fb61b67.json",
           "sha256": "5222a7d86e483307c0bc28437d81fe776be1b2127a3d1d47dbae8c993a955efa"
+        },
+        {
+          "path": "project/evidence/M2-010-4079ff43267eb2f9.json",
+          "sha256": "045951b2ed091be58995a84cd7926cbb1ec8a29698c5414bcbc3244bc40faefc"
+        },
+        {
+          "path": "project/evidence/M2-010-0acc282c90acc287.json",
+          "sha256": "7348a7cc3767f6e3fd3c524656f0aab58bac9694875c6578cd04f47698d9169f"
+        },
+        {
+          "path": "project/evidence/M2-010-6f8b1653b73db8e7.json",
+          "sha256": "42e40f86f14e58dd3c04ddf28b474497f2a5926b35ac3bd5c4d7f5a4127e547d"
         }
       ],
-      "next_action": "Verify the integrated execution inputs on hosted Ubuntu and Windows, inspect both stage reports and archive matching evidence before closing M2-010.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "All required checks passed in the integrated local task run and in the authenticated Ubuntu and Windows verification reports from PR 21 run 44616706526. Both hosted browser reports verified healthy opens and refreshes, explicit recovery after a controlled transport loss, distinct denials, and preserved private undo. The Windows verification report passed and was uploaded before the PR job was cancelled during post-cache. The initiating cause of the original hosted incident remains unknown.",
       "plan": {
         "outcome": "A user can identify a disconnected history read and recover the explicitly selected offline sample while retaining the private workspace timeframe and undo.",
         "change_types": [
@@ -7716,6 +7728,11 @@
       "scope": [
         "tests/ubuntu-preview/workspace.spec.mjs",
         "apps/desktop/ui/src/private-records.tsx",
+        ".github/workflows/verify.yml",
+        "scripts/ci.py",
+        "scripts/integration.py",
+        "tests/project/test_ci.py",
+        "tests/project/test_integration.py",
         "project/tasks.json",
         "project/feedback.json"
       ],
@@ -7746,11 +7763,11 @@
           "sha256": "b69474c224b9315ee2abc377ba6813a37a74b8ab0811cda7c0f00f8bd7cbbf48"
         }
       ],
-      "next_action": "Run the workspace-timeframe and private-record-lifecycle gates on the integrated source, retain matching Linux and Windows evidence, and close the peer-rename feedback when verified.",
+      "next_action": "Run pnpm check --task M2-011 on Windows against the matching integrated source to execute workspace-timeframe and private-record-lifecycle. Retain the report and logs, archive them with pnpm project:record M2-011, and close the task and peer-rename feedback after the Windows receipt validates.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
-        "outcome": "A user can resolve an uncertain deletion after another authorized window edits the same record and see the correct outcome.",
+        "outcome": "A user can resolve an uncertain deletion after another authorized window edits the same record and see the correct outcome. A hosted Windows task run can verify and upload both required recovery checks with time for job cleanup.",
         "change_types": [
           "tooling",
           "ui"
@@ -7758,11 +7775,14 @@
         "context": [
           "tests/ubuntu-preview/workspace.spec.mjs",
           "apps/desktop/ui/src/private-records.tsx",
+          ".github/workflows/verify.yml",
+          "scripts/integration.py",
           "project/delivery.json"
         ],
         "hypotheses": [
           "The archived Windows waiter expired without identifying the peer action or origin read. The original Windows trigger remains unknown.",
-          "An admitted focus read occupies the single preview producer. In the controlled Linux reproduction the authorized peer then received HTTP 429 BUSY and the old panel reported only a generic failure."
+          "An admitted focus read occupies the single preview producer. In the controlled Linux reproduction the authorized peer then received HTTP 429 BUSY and the old panel reported only a generic failure.",
+          "Windows run 44616706526 finished verification and artifact upload at 41 minutes, then reached the 45-minute job deadline during cache cleanup. Its full selection omitted the task-cadence private-record-lifecycle check. Use an explicit task selection and a bounded 60-minute ordinary Windows job limit."
         ],
         "risks": [
           {
@@ -7777,9 +7797,15 @@
               "workspace-timeframe",
               "private-record-lifecycle"
             ]
+          },
+          {
+            "failure": "A task dispatch supersedes the protected PR verification or masks its result during integration inspection.",
+            "checks": [
+              "python-contracts-workers"
+            ]
           }
         ],
-        "rollback": "Keep the original Windows artifact and the independently reproduced failure. Revert an ineffective change without weakening receipt, authorization or deletion assertions.",
+        "rollback": "Keep the original Windows artifact and the independently reproduced failure. Revert an ineffective change without weakening receipt, authorization or deletion assertions. If the dispatch cannot produce matching Windows evidence, retain its diagnostic results and keep the task open.",
         "implementation": {
           "modules": [
             "development-tooling",
@@ -7787,7 +7813,11 @@
           ],
           "entrypoints": [
             "tests/ubuntu-preview/workspace.spec.mjs",
-            "apps/desktop/ui/src/private-records.tsx"
+            "apps/desktop/ui/src/private-records.tsx",
+            ".github/workflows/verify.yml",
+            "scripts/check.py",
+            "scripts/ci.py",
+            "scripts/integration.py"
           ],
           "rules": [
             {
@@ -7796,20 +7826,23 @@
             }
           ],
           "non_goals": [
-            "Changing deletion policy, granting a new reader, or replaying a mutation automatically."
+            "Changing deletion policy, granting a new reader, or replaying a mutation automatically.",
+            "Changing the check catalog, artifact admission, protected check contexts or release selection."
           ],
           "open_questions": [
-            "Does the staged recovery and the shared-producer negative control pass on the integrated Windows source?"
+            "Can the coordinator obtain a source-matched Windows task receipt covering both workspace-timeframe and private-record-lifecycle after the workflow repair?"
           ]
         },
         "evolution": {
           "kind": "refactor",
           "preserve": [
-            "Body-free recovery, explicit confirmation, original operation identity, peer access checks, stale revision handling and single tombstones."
+            "Body-free recovery, explicit confirmation, original operation identity, peer access checks, stale revision handling and single tombstones.",
+            "Keep the automatic PR and main push selections, full and release behavior, check deadlines, artifact trust and prior receipts."
           ],
           "change": [
             "Expose a real BUSY as contention in the private records panel.",
-            "Observe the peer read, review, approval and stored correction independently of the origin focus and exact deletion retry. Prove shared-producer contention separately from the two-service recovery."
+            "Observe the peer read, review, approval and stored correction independently of the origin focus and exact deletion retry. Prove shared-producer contention separately from the two-service recovery.",
+            "Route an optional dispatch task ID to the existing harness on both operating systems. Distinguish task jobs from protected checks, group task concurrency by ref and task ID, and select only pull request runs for PR integration. Describe manual CI status in terms of the selection recorded by that run."
           ],
           "data_plan": "Use only synthetic records in disposable profiles.",
           "cleanup": "Release the test-owned read observer, writer transaction and browser contexts on every outcome."
