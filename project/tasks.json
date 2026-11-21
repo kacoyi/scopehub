@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M3-003",
+  "focus_task_id": "M4-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -7997,7 +7997,7 @@
       "id": "M3-003",
       "title": "Verify a committed indicator undo before reading the exact restored document",
       "milestone": "M3",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M3-001",
         "M3-002"
@@ -8022,10 +8022,23 @@
         "indicator-declarative-preview",
         "workspace-timeframe"
       ],
-      "evidence": [],
-      "next_action": "Run the integrated task check on the source checkpoint and obtain matching hosted Linux and Windows workflow evidence before closing the feedback.",
+      "evidence": [
+        {
+          "path": "project/evidence/M3-003-1552a7d7bfa1bb3a.json",
+          "sha256": "3761377ca0034fca656dbc11ef7424dc144f0d6729c183b62824ca1c90bbf9d2"
+        },
+        {
+          "path": "project/evidence/M3-003-46b49d1a3be973bf.json",
+          "sha256": "4295dcbb35dfe9399dcebf2dc5f93b10681041f666b219f3bcbc4901c3872596"
+        },
+        {
+          "path": "project/evidence/M3-003-e29d54b84c3f5c49.json",
+          "sha256": "3a62a65c714ec56a6075917c548ce10c8f7ee8e9470bc32341f3395b668013ba"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "All M3-003 checks passed locally and in the authenticated Ubuntu and Windows task reports from run 44859651953 at clean source 355fba7b7ce3faf1472627cc6677d8bbb7906e2a. Each observed the in-flight undo with the accepted region hidden, a committed undo receipt at revision 3, and HTTP 200 with the exact saved artifact after a typed retryable admission failure. The independent numeric, cancellation, failure, revocation and restart assertions passed.",
       "plan": {
         "outcome": "The frozen CSV journey distinguishes committed undo, rendered accepted state and an authorized read of the exact immutable artifact.",
         "change_types": [
