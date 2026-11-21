@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { painted } from '../ui/chart-pixels.mjs';
 import { replayStage, waitForReplayRequest } from '../ui/replay-stages.mjs';
+import { openDefaultSample } from '../ui/sample-startup.mjs';
 import { expectSelectedHistory, observeSelectedHistory } from '../ui/selected-history.mjs';
 import { control, openPanel } from '../ui/workspace-controls.mjs';
 
@@ -293,7 +294,7 @@ test('searches and replays three simulated instruments in one chart session', as
   await expect(dialog.getByText('No data source is connected.')).toBeVisible();
   await expect(dialog.getByRole('option')).toHaveCount(0);
   expect(calls, 'operations issued while unconfigured').toEqual([]);
-  await control(dialog, 'Open offline sample').click();
+  await openDefaultSample(page, { trigger: () => control(dialog, 'Open offline sample').click() });
   await expect(dialog).toHaveCount(0);
   await expect(sourceStatus.getByText('Offline sample', { exact: true })).toBeVisible();
   await expect(sourceStatus.getByText('Simulated', { exact: true })).toBeVisible();

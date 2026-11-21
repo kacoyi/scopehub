@@ -110,7 +110,7 @@
       ],
       "invariants": [
         "Reject unsupported operations; actor identity comes from trusted transports",
-        "Current history registry is synthetic-only; generalize source policy before real adapters"
+        "Synthetic history reads use explicit sources. Local CSV preview, reviewed mapping and full publication require the trusted desktop human transport and a live file selection. Frozen reads require profile entitlement and use immutable stored data."
       ],
       "checks": [
         "rust-contracts-workers"
@@ -125,6 +125,7 @@
       "responsibility": "Controlled worker lifecycle and correlated, bounded transport.",
       "public_entries": [
         "crates/worker-host/src/lib.rs",
+        "crates/worker-host/src/local_import.rs",
         "crates/worker-host/src/market.rs"
       ],
       "dependencies": [
@@ -164,7 +165,8 @@
         "Window identity and application assembly"
       ],
       "invariants": [
-        "Bind user actor at the transport; no general file/process/SQL command"
+        "Bind user actor at the transport; no general file/process/SQL command",
+        "Only a native directory picker supplies the root of a local CSV selection"
       ],
       "checks": [
         "architecture",
@@ -196,6 +198,7 @@
       "checks": [
         "chart-history",
         "ubuntu-preview",
+        "local-import-ui",
         "ui-build"
       ]
     },
@@ -231,6 +234,7 @@
       "responsibility": "Validated protocol dispatch for controlled worker roles.",
       "public_entries": [
         "python/worker_runtime/__main__.py",
+        "python/worker_runtime/local_import.py",
         "python/worker_runtime/protocol.py"
       ],
       "dependencies": [
@@ -253,9 +257,10 @@
       "paths": [
         "python/providers"
       ],
-      "responsibility": "Synthetic market acquisition and future replaceable data adapters.",
+      "responsibility": "Market-data adapters for synthetic acquisition and bounded local file preview.",
       "public_entries": [
         "python/providers/history.py",
+        "python/providers/local_folder.py",
         "python/providers/simulated.py",
         "python/providers/history_pages.py",
         "python/providers/replay.py"
@@ -281,7 +286,7 @@
       "paths": [
         "crates/persistence"
       ],
-      "responsibility": "Profile-bound SQLite workspace transactions, committed operation receipts and versioned migrations.",
+      "responsibility": "Profile-bound SQLite workspace transactions, committed operation receipts, and versioned migrations.",
       "public_entries": [
         "crates/persistence/src/lib.rs"
       ],
@@ -290,10 +295,14 @@
         "application"
       ],
       "owns": [
-        "Physical storage and migrations"
+        "Physical storage and migrations",
+        "Stored reviewed mapping versions and their source header associations",
+        "Published local CSV revisions, retained source bytes and display rights"
       ],
       "invariants": [
-        "Core single-writer path; preserve accepted versions"
+        "Use the Rust core single-writer path and preserve accepted versions",
+        "Append reviewed mapping versions within the bound profile transaction",
+        "Bind each local CSV revision to the accepted mapping, deduplicate original bytes and check display rights on frozen reads"
       ],
       "checks": [
         "rust-contracts-workers",
@@ -302,12 +311,14 @@
     },
     {
       "id": "platform",
-      "status": "planned",
+      "status": "implemented",
       "paths": [
         "crates/platform"
       ],
-      "responsibility": "Windows credentials, paths and process limits.",
-      "public_entries": [],
+      "responsibility": "Native resources, including read-only access to a directory explicitly selected by the trusted host.",
+      "public_entries": [
+        "crates/platform/src/local_folder.rs"
+      ],
       "dependencies": [
         "domain",
         "application"
@@ -316,10 +327,12 @@
         "OS-specific resources"
       ],
       "invariants": [
-        "Credentials remain outside database and logs"
+        "Credentials remain outside database and logs",
+        "Local import reads resolve catalog-issued file IDs inside the current native selection"
       ],
       "checks": [
-        "credential-boundaries"
+        "credential-boundaries",
+        "rust-contracts-workers"
       ]
     },
     {
@@ -511,7 +524,7 @@
         "M1-008"
       ],
       "delivery": "current-contract",
-      "boundary": "CSV directory selection, mapping preview and repeatable refresh require their own integrated check."
+      "boundary": "The Windows desktop offers a native folder picker and editable local CSV preview. An explicit save records a mapping version and header association in the profile SQLite store. A new session can reuse the mapping after selecting the source again. A changed header requires review. Native Windows verification of durable reuse, staged dataset publication and repeatable folder refresh remain pending."
     },
     {
       "id": "workspace-layout",
@@ -642,6 +655,20 @@
       "rule": "Source adapters own source semantics and provenance, not application database writes."
     },
     {
+      "id": "reviewed-local-import-mappings",
+      "owner": "application",
+      "writer": "persistence",
+      "status": "implemented",
+      "rule": "An explicit local review appends a mapping version associated with the selected source and its decoded header in the current profile. Resolve a live selection again before reuse. Saving a mapping grants no source access."
+    },
+    {
+      "id": "published-local-csv-revisions",
+      "owner": "application",
+      "writer": "persistence",
+      "status": "implemented",
+      "rule": "Publish only a fully checked source under an active native selection and genuine reviewed mapping. Store source bytes, mapping identity, frozen bars and row locators in the profile. Frozen reads require that profile's display right and never reopen the selected directory."
+    },
+    {
       "id": "worker-session",
       "owner": "worker-host",
       "writer": "worker-host",
@@ -672,16 +699,16 @@
     {
       "id": "shared-evidence-selection",
       "owner": "application",
-      "writer": "application",
-      "status": "planned",
-      "rule": "Publish an explicitly chosen versioned evidence target and selection token. Revalidate that token independently of the durable workspace revision for target-dependent operations."
+      "writer": "persistence",
+      "status": "implemented",
+      "rule": "The SQLite writer persists the explicitly selected published CSV revision UUID, interval and independent selection token. The Rust registry revalidates current permissions and source rights for each selection or projection. Other target kinds and general bound durable mutations are pending."
     },
     {
       "id": "local-private-content",
       "owner": "application",
       "writer": "persistence",
-      "status": "planned",
-      "rule": "The Rust core owns each user’s saved conversations, memories, strategies, retrieval data, deletion and excerpt grants. Storage writes go through the local single-writer path."
+      "status": "implemented",
+      "rule": "The local Rust single writer stores explicitly saved typed exchanges, memories and strategies, and applies corrections, deletion and backup recovery within the bound profile. The core also owns any future retrieval data and excerpt grants. Those behaviors are tracked by their delivery tasks."
     }
   ],
   "herdr": {

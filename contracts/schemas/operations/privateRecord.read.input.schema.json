@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:scopehub:privateRecord.read:input:1.1",
+  "$comment": "Generated projection; edit protocol.schema.json.",
+  "$ref": "urn:scopehub:protocol:1.1#/$defs/PrivateRecordReadInput"
+}

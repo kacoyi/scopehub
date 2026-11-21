@@ -483,7 +483,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d045de693cb712d0b22c6a64be5b953f67b3ce00ab5ad3dd5d8b441886ab8e1a"
 dependencies = [
  "quote",
- "syn 2.0.119",
+ "syn 3.0.9",
 ]
 
 [[package]]
@@ -909,6 +909,17 @@ checksum = "e246562084dde8ebbcc943b261c406ce4f68e5032ec28029a251a47d6a295500"
 dependencies = [
  "num",
  "num-bigint",
+]
+
+[[package]]
+name = "fs-id"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f1648c1b89e98d042d61b5c1ed0fbcd9dbd7815163864d20f8e7976a9b3af938"
+dependencies = [
+ "libc",
+ "wasi",
+ "winapi",
 ]
 
 [[package]]
@@ -2708,6 +2719,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "rfd"
+version = "0.17.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "20dafead71c16a34e1ff357ddefc8afc11e7d51d6d2b9fbd07eaa48e3e540220"
+dependencies = [
+ "block2",
+ "dispatch2",
+ "js-sys",
+ "libc",
+ "log",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-core-foundation",
+ "objc2-foundation",
+ "percent-encoding",
+ "raw-window-handle",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "rusqlite"
 version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2823,9 +2857,11 @@ dependencies = [
 name = "scopehub-desktop"
 version = "0.1.0"
 dependencies = [
+ "rfd",
  "scopehub-application",
  "scopehub-domain",
  "scopehub-persistence",
+ "scopehub-platform",
  "scopehub-worker-host",
  "serde_json",
  "sha2",
@@ -2855,9 +2891,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "scopehub-platform"
+version = "0.1.0"
+dependencies = [
+ "fs-id",
+ "libc",
+ "sha2",
+ "uuid",
+]
+
+[[package]]
 name = "scopehub-worker-host"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "jsonschema",
  "scopehub-application",
  "scopehub-domain",

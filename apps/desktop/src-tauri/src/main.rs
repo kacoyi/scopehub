@@ -19,14 +19,16 @@ fn main() {
             bridge::execute_market_subscription,
             bridge::cancel_market_subscription,
             bridge::prepare_market_subscription,
-            bridge::cancel_market_preparation
+            bridge::cancel_market_preparation,
+            bridge::cancel_local_import_preview,
+            bridge::choose_local_csv_folder
         ])
         .setup(move |app| {
+            let local_data = app.path().app_local_data_dir().ok();
             let state = if development_workspace {
-                let directory = app.path().app_local_data_dir().ok();
-                bridge::state_with_development_workspace(directory.as_deref())
+                bridge::state_with_development_workspace(local_data.as_deref())
             } else {
-                bridge::state()
+                bridge::state_with_local_profile(local_data.as_deref())
             };
             app.manage(state);
             let mut window = tauri::WebviewWindowBuilder::from_config(app, &app.config().app.windows[0])?

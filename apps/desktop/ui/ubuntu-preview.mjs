@@ -39,7 +39,7 @@ export function failureResponse(request, response, failure) {
   });
 }
 
-export function assertLocalJsonRequest(request, server) {
+export function assertLocalJsonRequest(request, server, maxBytes = maxRequestBytes) {
   const address = server.address();
   const host = address && `127.0.0.1:${address.port}`;
   if (address?.address !== '127.0.0.1' || request.socket.remoteAddress !== '127.0.0.1'
@@ -49,22 +49,25 @@ export function assertLocalJsonRequest(request, server) {
   if (request.method !== 'POST') throw new PreviewFailure(405, 'INVALID_ARGUMENT');
   if (!/^application\/json(?:\s*;\s*charset=(?:utf-8|"utf-8"))?$/i.test(request.headers['content-type'] ?? '')
       || request.headers['content-encoding']) throw new PreviewFailure(415, 'INVALID_ARGUMENT');
-  if (Number(request.headers['content-length']) > maxRequestBytes) throw new PreviewFailure(413, 'RESOURCE_LIMIT');
+  if (Number(request.headers['content-length']) > maxBytes) throw new PreviewFailure(413, 'RESOURCE_LIMIT');
 }
 
-export async function readLocalJson(request) {
+export async function readLocalJson(request, maxBytes = maxRequestBytes, operationLimit) {
   const chunks = [];
   let size = 0;
   for await (const chunk of request.iterator({ destroyOnReturn: false })) {
     size += chunk.length;
-    if (size > maxRequestBytes) throw new PreviewFailure(413, 'RESOURCE_LIMIT');
+    if (size > maxBytes) throw new PreviewFailure(413, 'RESOURCE_LIMIT');
     chunks.push(chunk);
   }
+  let body;
   try {
-    return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks)));
+    body = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks)));
   } catch {
     throw new PreviewFailure(400, 'INVALID_ARGUMENT');
   }
+  if (operationLimit && size > operationLimit(body?.intent?.operation)) throw new PreviewFailure(413, 'RESOURCE_LIMIT');
+  return body;
 }
 
 async function readOperation(request, stream) {

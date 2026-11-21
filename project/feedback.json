@@ -2,6 +2,86 @@
   "schema_version": "1.0",
   "items": [
     {
+      "id": "private-record-deletion-receipt-lost-on-refresh",
+      "source": "Independent t47 review of the 4498ebc private-record repair and subsequent two-window observation at 3bad802.",
+      "observation": "A committed deletion with a lost approval reply lost its receipt recovery control when a later detail read returned DATA_UNAVAILABLE. A pre-commit BUSY followed by a peer rename retained the stale target title while offering Retry. The 4498ebc Chromium baseline reproduced all three cases with actual SQLite responses. The repaired journey recovered the same deletion receipt following a dropped reply and a blocked post-commit checkpoint, kept exactly one tombstone and completed cleanup. A pre-commit BUSY followed by a peer rename kept the old content hidden and rejected the original resolution as stale. The prior six Chromium private-record journeys also passed. Evidence is retained under .reports/private-record-v8/delete-reply-green.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "private-record-lifecycle"
+      ],
+      "resolution": {
+        "cause": "The refresh path treated a missing detail as cancellation of an approval whose commit result was unknown.",
+        "correction": "Retain the original body-free resolution until a matching receipt, a definitive stale result or access denial. Drop superseded displayed content independently.",
+        "prevention": "The real browser covers lost reply, committed cleanup BUSY, and pre-commit BUSY with a peer rename. SQLite verifies one tombstone and completed cleanup."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "private-record-multiwindow-review",
+      "source": "Independent t47 review of 8c9d27f, recorded in the M2-001 Herdr review terminal.",
+      "observation": "The synthetic two-window fixture retained a deleted memory on writer loss, discarded a local draft on peer correction, and kept a stale deletion review visible after known removal. Reviews omitted record identity. The reviewer identified cross-window cancellation interference and found that restore preview accounts only for current records also in the archive. The unchanged 57a9cab runtime reproduced those findings through the real Chromium and Rust routes. The repair passed six local Chromium lifecycle and review cases and the SQLite persistence suite. Independent confirmation remains pending.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "private-record-lifecycle"
+      ],
+      "resolution": {
+        "cause": "The panel and approval stage coupled multiple windows and revisions. The restore preview counted only the intersection with archived records.",
+        "correction": "Separate draft and displayed data, scope each confirmation, clear known inaccessible content, and count all surviving current records during preview.",
+        "prevention": "Two writers exercise connection loss, peer change and deletion. Rust checks independent approvals and restoration with current-only records."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "published-evidence-ui-retains-revoked-content",
+      "source": "Independent Chromium review at cecda1c in .reports/independent-evidence-cecda1c/browser-observations.json.",
+      "observation": "After real peer revocation and focus refresh, the rendered inspection retained a close. Explicit refresh removed that inspection but retained the frozen chart, source SHA-256 and expandable published source rows. The focused baseline Chromium run in .reports/evidence-revocation-red-1461/results.json also reproduced a delayed formerly authorized chart body reappearing after revocation. The corrected Chromium workspace and native-bridge browser checks in .reports/runs/20261119T161404.568704Z-6c3e3adc removed the inspection, chart, source SHA-256 and rows, rejected delayed redisplay and preserved other authorized display and independent live-folder access.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "desktop-workspace-transport",
+        "local-import-publication"
+      ],
+      "resolution": {
+        "cause": "Previously authorized chart, row and inspection projections survived a later source denial.",
+        "correction": "Invalidate each revoked revision across the open chart, provenance, detail editor and pending replies.",
+        "prevention": "The browser exercises expanded rows, focus, a held authorized reply, peer revocation and a still-entitled sibling revision."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "unavailable-evidence-clear-unreachable",
+      "source": "Independent Chromium review at cecda1c in .reports/independent-evidence-cecda1c/browser-observations.json.",
+      "observation": "A fresh authorized window observed a revoked shared selection, but the workspace and the denied published-chart dialog offered no way to clear it. The Rust registry accepted an explicit null for the current revision. The focused baseline Chromium run in .reports/evidence-revocation-red-1461/results.json reproduced both missing controls. The corrected Chromium workspace check in .reports/runs/20261119T161404.568704Z-6c3e3adc found both controls and committed explicit null through the current selection token. The workspace projection and undo receipt were preserved and a later entitled interval could be selected.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "Clear controls depended on successfully reopening a selected revision.",
+        "correction": "Expose explicit null through the current selection revision in the workspace and the failed-open dialog.",
+        "prevention": "Shared selection clears without changing the durable chart revision or its undo. A different entitled revision remains usable."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "verification-lifetime",
       "source": "scripts/check.py",
       "observation": "Timeout handling discards captured output and subprocess.run does not explicitly terminate the check process group.",
@@ -888,6 +968,47 @@
       "deferral_reason": null
     },
     {
+      "id": "market-recovery-gap-and-snapshot-integrity",
+      "source": "Independent review and owned synthetic bridge probes at bebc1c2.",
+      "observation": "Cropping the requested end by one millisecond hid an interior source gap. A replacement worker could change the volume of an earlier closed row under the same revision. A real worker exit during the repair read dropped the disconnection reason.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-003"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "market-worker-interruption",
+        "market-recovery"
+      ],
+      "resolution": {
+        "cause": "Completion depended on repair eligibility, resume compared only the latest bar, and a failed repair read discarded the worker error.",
+        "correction": "Track actual in-range gaps independently of repair, compare closed historical rows at the confirmed boundary, and preserve a worker failure after emitting the validated gap.",
+        "prevention": "A one-millisecond crop, altered previously closed row and owned worker termination each have a regression. The ordinary chart retained the gap and the frozen history on a worker failure."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "market-recovery-replacement-coverage-and-bar-digest",
+      "source": "Independent follow-up review of 2d55f0a using the real provider and captured bridge frames.",
+      "observation": "A same-hash replacement page declared a new visible gap while recovery still allowed completion. Altering the missing closed bar volume from 90 to 91 on an otherwise genuine repair frame retained its original digest and the chart accepted the altered value.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-003"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "market-recovery"
+      ],
+      "resolution": {
+        "cause": "The history row digest excludes quality coverage, and the consumer previously validated a repair digest only by its presence and format.",
+        "correction": "Compare visible half-open gap coverage at the resume boundary. Verify the canonical digest of both received repair bars before projecting them after a completed stream.",
+        "prevention": "The real worker probe stops before re-subscribing when visible coverage changes. An altered volume with its prior digest retains the gap and 39 frozen bars. Stopping or changing selection while verification is pending prevents late projection."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "hosted-restored-chart-deadline",
       "source": "Hosted Windows Verify delivery run 44509534715, market-live-stream, first test after page reload.",
       "observation": "The five-second selected-bar assertion expired. The failure screenshot already shows the restored simulated futures chart, selected line style, open data window, forty bars and the original partial close of 3500.8 with volume 110. The other seven stream cases passed.",
@@ -903,6 +1024,132 @@
         "cause": "The selected-bar assertion started before catalog and history had completed. Holding both real successful replies for 2.75 seconds each reproduced the Windows missing-element timeout with the original assertion.",
         "correction": "Observe every POST from issuance through the rendered chart, correlate completion or failure, and verify each read against its own deadline. Recheck the visible instrument, timeframe, chart style, simulated source and identical frozen final row after reload.",
         "prevention": "All eight replay cases pass with the bounded restore. Four independent negative probes reproduced the earlier false passes and confirm a failed extra read, an outstanding read, an unrelated BUSY and early history issuance are rejected."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-market-recovery-observation",
+      "source": "Required Windows job 135536750939 at 9d1e403 in run 44517364634.",
+      "observation": "Five Rust cases returned TIMEOUT during replacement verification or retry exhaustion. Ten repair-browser cases failed to observe their expected result under the default five-second assertion. The owned process interruption helper rejected its Windows launcher. The thirty-minute job ceiling cancelled the last suite before artifacts could be staged.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-019"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "market-recovery",
+        "market-worker-interruption",
+        "market-recovery-ui"
+      ],
+      "resolution": {
+        "cause": "Cold worker startup, browser progress assertions and process ownership on Windows exceeded assumptions from the Linux tests. The older hosted time budget also stopped artifact staging.",
+        "correction": "Observe the real accepted worker and its confirmed cursor, verify each preparation and stream result, and isolate the test server from development watchers. Use the bounded Windows change job and retain its results.",
+        "prevention": "Linux and Windows run 44542089017 independently passed Rust recovery and all 12 gap, 18 recovery UI, 13 quality, eight stream and one owned-process interruption cases. The Windows interruption test observed the real replacement and frozen bar."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "local-import-source-semantics-and-boundaries",
+      "source": "Independent review of 59f0878 using synthetic futures rows, confined directories, valid long CSV fields and a partial output stream.",
+      "observation": "A previous settlement price mapped to closing price without a diagnostic, and a source row marked open normalized as a closed bar. A shut down desktop host retained a readable selected directory. The parser rejected a valid field above its implicit library limit and skipped the next row. A short write could truncate a terminal result while the worker still reported success.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "market-fixtures",
+        "rust-contracts-workers",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The mapper accepted settlement aliases as OHLC and assumed source rows were closed. The reader inherited a smaller CSV field limit, its reply writer assumed a complete write, and shutdown did not close directory admission.",
+        "correction": "Keep settlement fields independent from OHLC and require a closed source bar. Bound the CSV parser by the reviewed input size, drain framed writes, close admission and release owned workers and directory handles on shutdown.",
+        "prevention": "Python, the Rust desktop registry and framed-worker regressions exercise prior settlement, open bars, a long multiline field followed by another bar, short writes and shutdown during preview."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "utf8-import-source-architecture-check",
+      "source": "Hosted Windows run 44524540362 and the reproduced Linux C-locale failure on the local folder branch.",
+      "observation": "The architecture check read UTF-8 project source using the host default encoding and stopped before checking imports. This occurred on the Windows default code page when a provider contained a non-ASCII source label.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "architecture",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The architecture scanner used the host text encoding to read UTF-8 source.",
+        "correction": "Read the checked source explicitly as UTF-8.",
+        "prevention": "The architecture regression contains non-ASCII source, and Windows also executes the repository architecture gate."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "cold-worker-restart-and-sample-startup",
+      "source": "Native Windows report 44524484734 at 6a30e60 and genuine worker hello timings on the dedicated Windows 11 guest.",
+      "observation": "The interrupted worker reached reconnecting and resumed, then returned TIMEOUT before the last confirmed bar. Two gap cases also timed out before a cold catalog and its following real history could present a chart. The prior core recovery and closed-bar repair checks passed in the same hosted run.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-019"
+      ],
+      "regression_checks": [
+        "market-worker-interruption",
+        "market-quality-states",
+        "market-recovery-ui",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "An unused schema-format dependency compiled a grammar at each Python process start. Browser assertions also started before the cold catalog and history requests had completed.",
+        "correction": "Keep the required format validators without the unused grammar, and observe successful catalog and history requests in order before checking the chart.",
+        "prevention": "The same real Windows bridge recovered twice in about 2.17 seconds with the slimmer environment. Both hosted jobs in run 44542089017 passed the owned-worker, chart startup and schema format regressions."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "hosted-public-publisher-advisory-rate-limit",
+      "source": "GitHub Actions run 44536924867, hosted Linux dependency-review.",
+      "observation": "The locked inventory passed. The approved live GitHub publisher advisory GET returned HTTP 403 with the anonymous REST rate limit exhausted, so dependency-review failed.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-027"
+      ],
+      "regression_checks": [
+        "dependency-review",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The mandatory publisher advisory check shared the anonymous GitHub REST rate limit of the hosted runner.",
+        "correction": "Fetch the one published advisory in an isolated step using the existing job credential at the exact approved TLS endpoint. The dependency checker validates fresh public metadata bound to that checkout, workflow attempt and runner.",
+        "prevention": "Both jobs in run 44542089017 passed the isolated live fetch and online review of 540 locked packages and seven pinned actions. The regression suite covers refused redirects, stale records, unavailable advisories and credential isolation."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "csv-timezones-without-system-tables",
+      "source": "Real local-folder future preview under the merged minimal worker environment with no system IANA search path.",
+      "observation": "A valid Asia/Shanghai night-session mapping produced timezone_unavailable and kept every record raw after an unrelated schema-format dependency stopped installing timezone data. The same mapping with the recorded IANA package restored its original UTC timestamp and explicit trading day.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "market-fixtures"
+      ],
+      "resolution": {
+        "cause": "The local provider depended on incidental time-zone data supplied through an unrelated dependency.",
+        "correction": "Pin tzdata as a direct requirement and resolve IANA time zones in the locked worker environment.",
+        "prevention": "Run the night-session mapping without system tables and verify the independent UTC instant, reported trading day and rejection of ambiguous local times."
       },
       "deferral_reason": null
     },
@@ -967,6 +1214,123 @@
       "deferral_reason": null
     },
     {
+      "id": "note-restore-stage-retention",
+      "source": "Synthetic Rust-process review of 89401c9 and independent rerun at 5453889c7e9029c6e80b23612a841abf2c38a9f4, stage_after_peer_deletion in .reports/decision-note-independent-5453889/coordinator-rust.json. The 5453889 decision-note-lifecycle log is in .reports/runs/20261119T133002.616158Z-22e48663/.",
+      "observation": "Staging a missing later outcome copied the existing original note body. A second writer deleted the note and the first writer observed the new revision, but the first process retained the redundant staged payload. Expired payloads were collected only during later mutations. At 5453889, the regression asserted that an outcome-only stage held no original. The independent run observed one added outcome, zero added originals, and after the peer deletion at revision 2, zero live notes and one marker. Both old-stage decisions returned CONFIRMATION_REQUIRED and the detail returned DATA_UNAVAILABLE. Lifecycle regressions passed for observed revision invalidation, deadline expiry without another operation, and disposal.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "decision-note-lifecycle"
+      ],
+      "resolution": {
+        "cause": "A pending outcome-only restore also retained an existing original. Collection depended on later mutations.",
+        "correction": "Stage only missing content and release it on revision change, session disposal or expiry.",
+        "prevention": "Storage tests exercise peer deletion, expiry and disposal. Independent decline and approve after supersession both require a new review."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "note-restore-export-capacity",
+      "source": "Synthetic Rust-process review of 89401c9 and independent rerun at 5453889c7e9029c6e80b23612a841abf2c38a9f4, complete_backup_capacity in .reports/decision-note-independent-5453889/coordinator-rust.json. The 5453889 decision-note-lifecycle log is in .reports/runs/20261119T133002.616158Z-22e48663/.",
+      "observation": "Two individually valid backups of the same note with 64 and 65 different later outcomes merged successfully. The resulting 129 outcomes were readable, but exporting the combined note failed with RESOURCE_LIMIT. At 5453889, both the independent run and the process regression observed RESOURCE_LIMIT before issuing a stage for the 129-outcome merge, with both archives unchanged. The 128-outcome boundary merged and exported every outcome, and the next append was rejected before approval with the complete export unchanged.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "decision-note-lifecycle"
+      ],
+      "resolution": {
+        "cause": "Restore checked its input archive without checking the export size of the merged record.",
+        "correction": "Validate the full resulting archive before staging and again before committing.",
+        "prevention": "Two valid inputs with 64 and 65 outcomes are refused unchanged. The 128-outcome case round-trips exactly."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "note-unrelated-revision-draft-loss",
+      "source": "Synthetic Chromium review of 89401c9 and independent passing outcome_draft_after_peer_timeframe check at 5453889c7e9029c6e80b23612a841abf2c38a9f4 in .reports/decision-note-independent-5453889/coordinator-browser-draft.json. The 5453889 workspace-timeframe log is in .reports/runs/20261119T133002.616158Z-22e48663/.",
+      "observation": "When a peer changed only the chart timeframe, a visible unsaved later-outcome draft and its date were silently discarded. At 5453889 the independent browser observed a fresh detail read after the peer changed 5m to 1d, preserved both draft fields, approved the outcome, and reopened it with the same text and date. The browser regression also passed for invalidating the older approval while keeping the draft and clearing the draft when its note was deleted.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "Refreshing a note after an unrelated workspace edit reset the local outcome form.",
+        "correction": "Track the editable draft independently of refreshed note details and expire superseded approvals.",
+        "prevention": "The two-window browser case preserves the typed date and result, saves the outcome and reopens it after a peer timeframe change."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "note-deleted-list-projection",
+      "source": "Synthetic Chromium review of 89401c9 and independent rerun at 5453889c7e9029c6e80b23612a841abf2c38a9f4, deleted_index_rows_and_raced_open in .reports/decision-note-independent-5453889/coordinator-browser-list.json. The 5453889 workspace-timeframe log is in .reports/runs/20261119T133002.616158Z-22e48663/.",
+      "observation": "After a peer deleted a note, a focused list still displayed its date and identity suffix across two polling intervals and after clicking the stale entry returned unavailable. At 5453889 the independent browser and workspace regression observed focus refresh removing the deleted entry and retaining the unrelated entry. A detail read that raced a second deletion returned DATA_UNAVAILABLE, and the list removed the stale entry and showed the empty state.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The list retained an old note summary after the underlying note was deleted.",
+        "correction": "Revalidate the focused list and retire an entry when its detail becomes unavailable.",
+        "prevention": "The independent list and raced-detail cases remove only the deleted item. The integrated workspace browser repeats the case with separate writers."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "local-import-save-without-matching-public-preview",
+      "source": "Independent trusted Rust desktop dispatcher observation at 6c2f1a4 using only a temporary synthetic CSV and profile.",
+      "observation": "The trusted dispatcher displayed a synthetic close of 5 using Close. Saving the same file digest and mapping revision with AltClose without an AltClose preview committed it. A restarted workspace loaded the unreviewed mapping, which normalized the same row to 6.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "local-folder-import"
+      ],
+      "resolution": {
+        "cause": "Saving reran a private preview without establishing that the same mapping had already been presented through the public preview operation.",
+        "correction": "Bind a successful public preview to the selected file, source digest, mapping and effective sample limit. Recheck the live selection and bytes before saving.",
+        "prevention": "The registry rejects an unseen alternate close column. A separately previewed alternate saves and reopens at its own mapping revision."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "local-import-body-decode-reported-as-header-change",
+      "source": "Independent trusted Rust desktop dispatcher observation at 6c2f1a4 using only a temporary synthetic CSV and profile.",
+      "observation": "A synthetic file kept identical decoded header bytes while an invalid UTF-8 byte in a later data row changed the complete checksum. Loading a reviewed mapping returned review_required and hid the record, the same response as an actual changed header.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "python-contracts-workers",
+        "local-folder-import"
+      ],
+      "resolution": {
+        "cause": "Header identity depended on decoding the entire file, conflating a bad later record with a changed header.",
+        "correction": "Decode and compare the complete logical header independently. Return a distinct diagnostic when the header cannot be verified and report later decoding failures during full preview.",
+        "prevention": "Tests distinguish unchanged headers followed by invalid bytes from changed, reordered, incomplete and undecodable headers and verify the whole-file digest."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "workspace-profile-static-denial",
       "source": "Hosted Windows workspace-timeframe on a temporary synthetic profile.",
       "observation": "Hosted Windows run 44528913523 at 4a379d8 returned HTTP 200 for a synthetic workspace file check. The check captured status alone, so the returned representation is unknown. It could not distinguish the ordinary HTML fallback from a file response.",
@@ -1001,6 +1365,263 @@
         "cause": "The original Windows assertion used enum operands in PowerShell 5.1 bitwise tests. A later hosted exit 52 combined provider lookup, descriptor read and owner comparison into one stage. A standard-user Windows 11 guest returned the current owner and DACL through both readers in both TEMP spellings, so the precise cause of that hosted exit remains undetermined.",
         "correction": "Use integer masks and explicitly read the owner and access sections through filesystem APIs. Report descriptor reads independently from owner mismatches. Keep the current-SID directory rule, allowed file owners and trustees, inherited rights and an actual read/write handle.",
         "prevention": "The Windows 11 guest passed the revised positive check in both TEMP spellings and reached the intended denial for broad access and missing inheritance on empty synthetic files. Hosted Windows workspace-timeframe at 290bd578 passed the same private handoff case with both negative controls."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-sample-startup-aggregate-wait",
+      "source": "PR 12 hosted Windows run 44531620190, market-workflow and ubuntu-preview logs.",
+      "observation": "The three-symbol journey did not find Play sample updates within five seconds. The desktop, narrow-screen, and Retry demo preview paths hit the same five-second limit waiting for the first history chart. The assertions did not distinguish catalog latency, history latency, and rendering.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-020"
+      ],
+      "regression_checks": [
+        "market-workflow",
+        "ubuntu-preview"
+      ],
+      "resolution": {
+        "cause": "One five-second browser assertion covered two serial worker reads and the first chart render. Holding each real reply reproduced startup beyond that assertion's budget.",
+        "correction": "The shared startup verifier checks the real catalog request and reply, then the scoped history request and reply, before waiting for chart readiness. The preview suite exercises each held reply and a typed worker rejection. Product worker deadlines and retry behavior remain unchanged.",
+        "prevention": "Hosted run 44544324678 for PR head cd93f96d076b0b7f0fa45374c646dfa463e199e3 passed market-workflow (1 case) and ubuntu-preview (7 cases) on Linux and Windows. The preview cases covered independently delayed catalog and history replies, offline Retry demo and a real worker rejection. Both task receipts retain their platform and log digests."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "selected-chart-mutation-without-local-analysis-grant",
+      "source": "Synthetic published CSV and private Rust registry regression at cecda1c80829d42b7a120aba9ab4e3e12221669b. The observed red log is .reports/operations-workflow/cecda1c-red.log.",
+      "observation": "The real shared selection advanced to interval A at selection revision 1 while the workspace revision stayed 0. An authenticated generic AI command using those revisions committed the main-chart timeframe at workspace revision 1 despite missing the selected interval's local analysis grant. The operations-workflow regression now requires a denial with no operation or replay row. A separately authorized on-device intent for B can commit through the same registry.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-001"
+      ],
+      "regression_checks": [
+        "operations-workflow"
+      ],
+      "resolution": {
+        "cause": "The generic registry path accepted an AI timeframe intent before checking the current selection-specific on-device grant.",
+        "correction": "Bind the operation to both workspace and selection revisions, then verify the current target and permitted analysis purpose for writes and receipt disclosure.",
+        "prevention": "The SQLite operation workflow proves denied AI access makes no operation or replay record, concurrent retries commit once, and revocation blocks subsequent disclosure."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "native-reviewed-csv-worker-timeout",
+      "source": "Windows 11 native MSVC/WebView2 engineering run on 2f4a0c0 with a selected synthetic 292-byte CSV, followed by two bounded standalone worker comparisons on the same guest.",
+      "observation": "The actual desktop showed the complete digest after reading three raw rows in 2.17 seconds. The first native OHLCV preview subsequently displayed a worker timeout. The same worker exchange run directly twice returned closes 102 and 105, the incomplete-row diagnostic and process exit in 219 ms each. The native save and restart journey remains pending at this observation.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "local-folder-import",
+        "local-import-ui",
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The first native timeout did not expose its internal stage and later exact-source traces completed. The previous read-only worker exchange had no recovery after a genuine elapsed attempt.",
+        "correction": "Permit one bounded replacement for a qualified read-only preview after confirmed cleanup, fresh authorization and cancellation checks. Reuse the frozen input and mapping. Preserve decoded terminal errors. ADR 0013 records interpreter ownership.",
+        "prevention": "Controlled Linux and Windows runs verify worker identity, cleanup, cancellation, terminal errors and a successful replacement. Subsequent native raw and normalized previews, explicit save and restart completed. The cause of the original timeout remains undetermined."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "local-csv-mapping-save-and-publication-replay",
+      "source": "Independent synthetic native Rust dispatcher replays at 4571353. Probes: /var/tmp/scopehub-local-v5-sOXuzpLM/independent/replay.json and /var/tmp/scopehub-local-v5-sOXuzpLM/minimal-replay/events.jsonl.",
+      "observation": "Replaying the same trusted mapping save with its original request ID, live folder and file, full digest, mapping and preview limit advanced the review revision from 2 to 3. A delayed retry of the already committed publication then returned STALE_CONTEXT. Publishing under revision 3 created a second dataset UUID with the same source and mapping digests, 504 identical bars and 506 source locators. A fresh one-row repro left two reviewed mapping versions, two byte-equivalent frozen revisions and one source blob. Independent lock tests preserved cancellation and changed-source rollback.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "local-import-publication"
+      ],
+      "resolution": {
+        "cause": "A repeated committed save advanced the mapping revision and invalidated replay of its earlier publication.",
+        "correction": "Reuse the current equivalent review and return exact admitted receipts under the current native grant and display right. Preserve fresh A-to-B-to-A mapping changes as separate versions.",
+        "prevention": "The save, publish and lost-reply sequence retains one review, revision and original. Separate tests cover changed inputs, revoked rights and cancellation while a SQLite write waits."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-reviewed-mapping-selector-spelling",
+      "source": "Hosted Windows run 44548543796 at e960fd1, rust-contracts-workers log, and the native Win11 MSVC comparison at 2f4a0c0 retained in .reports/guest/2f4a0c0-mapping-path-reopen.",
+      "observation": "The hosted restart test saved through a canonicalized synthetic directory and reselected the same source through the supplied spelling. Loading returned not_saved instead of saved before header comparison. On the Win11 guest, the same unmodified test and NTFS temporary directory passed with the long TEMP name and failed with its real 8.3 alias. The ordinary Win11 GUI observation with its selection spelling remains separately recorded.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "local-folder-import"
+      ],
+      "resolution": {
+        "cause": "A path-derived association could differ across equivalent Windows long and short spellings of the same selected root.",
+        "correction": "Resolve and verify native source association against the selected directory and retain compatibility with reviewed v4 keys.",
+        "prevention": "Native MSVC cases cover long and actual 8.3 selection, restart, legacy v4 lookup, different directories containing the same bytes and a rejected junction."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-idle-local-source-sharing",
+      "source": "Hosted Windows run 44563163301 rust-contracts-workers and independent standard-user Win11 MSVC measurements in .reports/windows-source-sharing/measured/CHANGES.JSON and PINS.JSON. The native Windows follow-up at 875f5e0 is recorded in contracts/reviews/2026-11-19-windows-folder-refresh-source-handles.json.",
+      "observation": "The native bridge replay tests failed at bridge_tests.rs:523 and :608 with Win32 error 32. The independent desktop matrix reproduced error 32 for direct-child rename and atomic replacement after selection, preview and publication. Both succeeded before selection and after exit. The isolated handle matrix reproduced the failure with read-only sharing on the selected directory and distinguished that from the expected protection of a file currently being verified.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "local-folder-import",
+        "local-import-publication"
+      ],
+      "resolution": {
+        "cause": "The selected directory held restrictive sharing flags even while idle. Ordinary external saves and file replacements could then fail.",
+        "correction": "Retain a fully shareable metadata handle when idle. Pin and validate the selected ancestry and opened files during reads and the final publication guard.",
+        "prevention": "Native file-operation and source replacement checks cover direct and nested files, root identity and ordinary external rename, rewrite and replacement."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "workspace-browser-navigation-observer-lifetime",
+      "source": "Authenticated hosted Windows PR #13 run 44548543796 at e960fd1, workspace-timeframe log and source snapshot.",
+      "observation": "Chromium reported ERR_NO_BUFFER_SPACE on the initial document of the wrong-profile backup visit. The workspace test had already created a response waiter and had not installed a rejection handler. Context teardown also reported that the response waiter rejected when its page closed. Eight browser cases passed and the POSIX signal case skipped.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-008"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The test created a response waiter before navigation and only awaited it after navigation and UI assertions succeeded. Controlled Chromium navigation failure left the waiter live, and context teardown rejected it separately. The origin of the original hosted ERR_NO_BUFFER_SPACE on the document remains undetermined.",
+        "correction": "Scope response and download observations to the triggering action, detach their listeners on exit and preserve the action error. Cancel unread status-only bodies and dispose intercepted API responses during cleanup.",
+        "prevention": "The controlled document failure reports the navigation error and verifies listener cleanup before context close. The status-only control verifies body cancellation. Hosted Verify delivery run 44560917644 at 6540608 passed both controls and the original backup-restore journey on Ubuntu and Windows."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "workspace-held-note-read-shares-test-lane",
+      "source": "Local M2-008 task run 20261119T153931.924374Z-c35b457c with temporary synthetic profiles.",
+      "observation": "The peer-deletion browser case timed out while the observer had a pending detail read. A retained screenshot showed the peer on the second note with Local workspace is busy and Review deletion disabled. Both pages used the same single-flight Vite producer, and a page action could fail before the held route entered its release block. The backup restore and both new lifecycle controls passed in the same run.",
+      "severity": "minor",
+      "status": "addressed",
+      "task_ids": [
+        "M2-008"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The observer and deleting peer shared a single-flight Vite producer while an observer detail request was intentionally delayed. The peer entered BUSY in the retained local failure. The route release scope also started after the click, leaving an early action error outside cleanup.",
+        "correction": "Give the peers separately authenticated Rust writers for the same synthetic profile. Verify the detail request has reached the hold before committing the peer deletion. Release the hold and await removal of its route when the action exits.",
+        "prevention": "The browser test establishes distinct writer processes, deletes through the peer and verifies that the released stale detail is unavailable and the remaining list is correct. The joined local run and both hosted platforms in run 44560917644 passed this case."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "native-published-csv-revision-discovery",
+      "source": "Development verification in the native Windows desktop at 4571353, recorded in contracts/reviews/2026-11-19-windows-local-publication.json. The ordinary native keyboard list path at 09e89d2 is recorded in contracts/reviews/2026-11-19-windows-published-revision-library.json.",
+      "observation": "After restarting with an already published local CSV, reopening its frozen chart required manually pasting an opaque revision UUID even though the revision and source were already stored in the current profile.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "local-import-publication",
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The restart workflow could resolve a known ID but provided no library for finding the frozen revisions in the current profile.",
+        "correction": "List authorized revisions in the native library, page them and recheck display rights when a revision opens or is revoked.",
+        "prevention": "Portable and native journeys select immutable revisions after source removal and verify that revoking one leaves independently entitled revisions accessible."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "same-name-frozen-csv-revisions-hard-to-identify",
+      "source": "Development verification of the standard-user Windows desktop at 09e89d2. See contracts/reviews/2026-11-19-windows-published-revision-library.json.",
+      "observation": "Two revisions of daily.csv for the same symbol and period share the displayed filename and counts. Their final closes differ. The library shows only hashes and revision identifiers to distinguish them before opening a chart. Native Windows verification of the repaired selection path at b5f4054 is recorded in contracts/reviews/2026-11-19-windows-readable-csv-revisions.json.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "local-import-publication"
+      ],
+      "resolution": {
+        "cause": "Different revisions could share a filename, instrument and bar count. The list did not expose their observed market differences.",
+        "correction": "Render the final close and trading-day summary alongside venue, timeframe, source digest and revision identity.",
+        "prevention": "The user-facing native library and real Chromium checks distinguish same-name revisions by their different closes, including after restart."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "folder-refresh-explicit-declaration-drift",
+      "source": "Independent Herdr review t46 at 875f5e0716ec7c53583d9b5d883d70d89f441135 with synthetic CSVs and an in-memory render. A matching integrated Chromium regression failed against f666d83 and passed on the corrected source. Retained results and the pre-fix test patch are under .reports/folder-preview-review/.",
+      "observation": "Same-header, same-symbol CSVs with identical OHLCV and declarations of shares/raw, lots/raw and shares/split_adjusted all normalized as shares/raw without diagnostics through the public CSV parser.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "local-folder-refresh-preview"
+      ],
+      "resolution": {
+        "cause": "Same-header inputs could inherit the saved mapping despite contrary quantity, adjustment or venue declarations.",
+        "correction": "Hold contradicting sources for review before publishing their bars.",
+        "prevention": "The parser and the integrated folder review exercise incompatible units, adjustment and venue as well as compatible source declarations."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "folder-refresh-same-file-competing-values-hidden",
+      "source": "Independent Herdr review t46 at 875f5e0716ec7c53583d9b5d883d70d89f441135 with synthetic CSVs and an in-memory render. A matching integrated Chromium regression failed against f666d83 and passed on the corrected source. Retained results and the pre-fix test patch are under .reports/folder-preview-review/.",
+      "observation": "The complete checker held a two-row correction file with closes 6 and 7 at the accepted close 5, reporting the second conflicting row. In the refresh comparator the held file supplied no alternatives, leaving the accepted overlap labeled unchanged.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "local-folder-refresh-preview"
+      ],
+      "resolution": {
+        "cause": "Publication correctly held a file containing corrections, but the read-only comparison discarded its competing rows.",
+        "correction": "Return distinct verified alternatives with their original row locators in the comparison. Require an explicit choice before publication.",
+        "prevention": "The integrated browser and registry expose accepted 5 and candidates 6 and 7 and independently verify the selected values, conflicting duplicates and source locators."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "folder-refresh-missing-series-units",
+      "source": "Independent Herdr review t46 at 875f5e0716ec7c53583d9b5d883d70d89f441135 with synthetic CSVs and an in-memory render. A matching integrated Chromium regression failed against f666d83 and passed on the corrected source. Retained results and the pre-fix test patch are under .reports/folder-preview-review/.",
+      "observation": "The preview response includes the saved venue, quantity unit and price adjustment, but rendering the comparison at the reviewed commit showed a bare volume value and omitted the series declarations.",
+      "severity": "minor",
+      "status": "addressed",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "local-folder-refresh-preview"
+      ],
+      "resolution": {
+        "cause": "The comparison received the economic context but omitted it from the visible bar review.",
+        "correction": "Display the venue, quantity unit and price adjustment with the competing values.",
+        "prevention": "The folder review asserts the visible declarations and economic alternatives from the real source."
       },
       "deferral_reason": null
     },
@@ -1065,111 +1686,6 @@
       "deferral_reason": null
     },
     {
-      "id": "market-recovery-gap-and-snapshot-integrity",
-      "source": "Independent review and owned synthetic bridge probes at bebc1c2.",
-      "observation": "Cropping the requested end by one millisecond hid an interior source gap. A replacement worker could change the volume of an earlier closed row under the same revision. A real worker exit during the repair read dropped the disconnection reason.",
-      "severity": "major",
-      "status": "addressed",
-      "task_ids": [
-        "M1-003"
-      ],
-      "regression_checks": [
-        "rust-contracts-workers",
-        "market-worker-interruption",
-        "market-recovery"
-      ],
-      "resolution": {
-        "cause": "Completion depended on repair eligibility, resume compared only the latest bar, and a failed repair read discarded the worker error.",
-        "correction": "Track actual in-range gaps independently of repair, compare closed historical rows at the confirmed boundary, and preserve a worker failure after emitting the validated gap.",
-        "prevention": "A one-millisecond crop, altered previously closed row and owned worker termination each have a regression. The ordinary chart retained the gap and the frozen history on a worker failure."
-      },
-      "deferral_reason": null
-    },
-    {
-      "id": "market-recovery-replacement-coverage-and-bar-digest",
-      "source": "Independent follow-up review of 2d55f0a using the real provider and captured bridge frames.",
-      "observation": "A same-hash replacement page declared a new visible gap while recovery still allowed completion. Altering the missing closed bar volume from 90 to 91 on an otherwise genuine repair frame retained its original digest and the chart accepted the altered value.",
-      "severity": "major",
-      "status": "addressed",
-      "task_ids": [
-        "M1-003"
-      ],
-      "regression_checks": [
-        "rust-contracts-workers",
-        "market-recovery"
-      ],
-      "resolution": {
-        "cause": "The history row digest excludes quality coverage, and the consumer previously validated a repair digest only by its presence and format.",
-        "correction": "Compare visible half-open gap coverage at the resume boundary. Verify the canonical digest of both received repair bars before projecting them after a completed stream.",
-        "prevention": "The real worker probe stops before re-subscribing when visible coverage changes. An altered volume with its prior digest retains the gap and 39 frozen bars. Stopping or changing selection while verification is pending prevents late projection."
-      },
-      "deferral_reason": null
-    },
-    {
-      "id": "windows-market-recovery-observation",
-      "source": "Required Windows job 135536750939 at 9d1e403 in run 44517364634.",
-      "observation": "Five Rust cases returned TIMEOUT during replacement verification or retry exhaustion. Ten repair-browser cases failed to observe their expected result under the default five-second assertion. The owned process interruption helper rejected its Windows launcher. The thirty-minute job ceiling cancelled the last suite before artifacts could be staged.",
-      "severity": "major",
-      "status": "addressed",
-      "task_ids": [
-        "M1-019"
-      ],
-      "regression_checks": [
-        "rust-contracts-workers",
-        "market-recovery",
-        "market-worker-interruption",
-        "market-recovery-ui"
-      ],
-      "resolution": {
-        "cause": "Cold worker startup, browser progress assertions and process ownership on Windows exceeded assumptions from the Linux tests. The older hosted time budget also stopped artifact staging.",
-        "correction": "Observe the real accepted worker and its confirmed cursor, verify each preparation and stream result, and isolate the test server from development watchers. Use the bounded Windows change job and retain its results.",
-        "prevention": "Linux and Windows run 44542089017 independently passed Rust recovery and all 12 gap, 18 recovery UI, 13 quality, eight stream and one owned-process interruption cases. The Windows interruption test observed the real replacement and frozen bar."
-      },
-      "deferral_reason": null
-    },
-    {
-      "id": "cold-worker-restart-and-sample-startup",
-      "source": "Native Windows report 44524484734 at 6a30e60 and genuine worker hello timings on the dedicated Windows 11 guest.",
-      "observation": "The interrupted worker reached reconnecting and resumed, then returned TIMEOUT before the last confirmed bar. Two gap cases also timed out before a cold catalog and its following real history could present a chart. The prior core recovery and closed-bar repair checks passed in the same hosted run.",
-      "severity": "major",
-      "status": "addressed",
-      "task_ids": [
-        "M1-019"
-      ],
-      "regression_checks": [
-        "market-worker-interruption",
-        "market-quality-states",
-        "market-recovery-ui",
-        "python-contracts-workers"
-      ],
-      "resolution": {
-        "cause": "An unused schema-format dependency compiled a grammar at each Python process start. Browser assertions also started before the cold catalog and history requests had completed.",
-        "correction": "Keep the required format validators without the unused grammar, and observe successful catalog and history requests in order before checking the chart.",
-        "prevention": "The same real Windows bridge recovered twice in about 2.17 seconds with the slimmer environment. Both hosted jobs in run 44542089017 passed the owned-worker, chart startup and schema format regressions."
-      },
-      "deferral_reason": null
-    },
-    {
-      "id": "hosted-public-publisher-advisory-rate-limit",
-      "source": "GitHub Actions run 44536924867, hosted Linux dependency-review.",
-      "observation": "The locked inventory passed. The approved live GitHub publisher advisory GET returned HTTP 403 with the anonymous REST rate limit exhausted, so dependency-review failed.",
-      "severity": "major",
-      "status": "addressed",
-      "task_ids": [
-        "M0-027"
-      ],
-      "regression_checks": [
-        "dependency-review",
-        "python-contracts-workers"
-      ],
-      "resolution": {
-        "cause": "The mandatory publisher advisory check shared the anonymous GitHub REST rate limit of the hosted runner.",
-        "correction": "Fetch the one published advisory in an isolated step using the existing job credential at the exact approved TLS endpoint. The dependency checker validates fresh public metadata bound to that checkout, workflow attempt and runner.",
-        "prevention": "Both jobs in run 44542089017 passed the isolated live fetch and online review of 540 locked packages and seven pinned actions. The regression suite covers refused redirects, stale records, unavailable advisories and credential isolation."
-      },
-      "deferral_reason": null
-    },
-    {
       "id": "hosted-preview-app-mount-missing",
       "source": "Hosted Windows run 44546526143 for PR 9 at e4c4868, market-quality-states first case, compared with the Linux job.",
       "observation": "The test exhausted its 60-second budget waiting for Data sources after navigation. The screenshot shows a dark page without workspace controls. Windows passed the following twelve cases and the other checks. Linux passed all thirteen quality cases. The published artifacts do not identify the startup terminal reason. An independent Linux HTTP 500 injection on the first application module reproduced the old locator timeout and an identical screenshot. The test now reports actual module and mount failures. The original Windows cause remains unconfirmed, pending an instrumented Windows run.",
@@ -1227,6 +1743,207 @@
         "cause": "The healthy browser workflow waited for a canvas after the selected history had already reached a visible transport terminal. Its earlier artifacts cannot distinguish the original network or worker phase.",
         "correction": "Track the selected request and client outcome separately from obsolete selections, preserve completed HTTP status, and exercise explicit recovery on the same symbol, timeframe and chart style.",
         "prevention": "Hosted run 44589094507 passed the three-instrument journey, eight replay tests and twenty quality cases on Windows and Ubuntu. The controlled lost response recovers the same eight 5-minute bars and original final close 12.15 and volume 510. The healthy assertion fails immediately on an unexpected current terminal."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-revision-library-during-native-workspace-startup",
+      "source": "Standard-user Windows 11 WebView2 on commit 3bad802 after publishing and reopening the same synthetic profile.",
+      "observation": "Opening the revision browser during profile startup returned retryable BUSY for both the single-file and folder lists. The dialog showed a generic read failure. A direct folder list still returned BUSY at 3329 ms and returned the two retained revisions at 4204 ms. An explicit refresh then restored the priced parent and the fully withdrawn child. Reopening the priced revision recovered both line 3 locators and close 104. Revoking its display access left the empty child usable.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "local-import-ui",
+        "local-folder-refresh-preview"
+      ],
+      "resolution": {
+        "cause": "The initial workspace snapshot and revision listing used one native admission slot. A list could reach it before the initial profile read had settled.",
+        "correction": "Retain the selected revision kind while the workspace starts and serialize library submissions. Scope errors and completed responses to their selected list.",
+        "prevention": "Delayed startup and held-list Chromium controls reproduce the ordering. In Windows WebView2 the folder tab opened during startup, listed both revisions and reopened their charts."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "folder-refresh-current-alias-points-to-replaced-source",
+      "source": "Independent review of the ordinary folder registry at 3b39f81. Synthetic operation trace /var/tmp/scopehub-015a70a-rows-nknu705w/ops.jsonl line 23. Retained registry and real Chromium reproduction under .reports/folder-alias-identity/red.",
+      "observation": "After daily.csv and z.csv were published with identical bytes, replacing only daily.csv left z.csv labeled as its current alias. The replacement had a different current SHA-256. The economic comparison still reported close 8 and close 9 as competing values.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "local-folder-refresh-preview",
+        "local-folder-import"
+      ],
+      "resolution": {
+        "cause": "The alias lookup seeded current membership from accepted path names even after their present content changed.",
+        "correction": "Build current groups from current digests, preserve a matching accepted representative where possible and display historical provenance independently.",
+        "prevention": "The registry and real browser exercise competing prices, two same-content groups and reversed file discovery. Prior v7 revisions retain their original locators."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "csv-declared-trades-reported-as-unclassified",
+      "source": "Review of the ordinary CSV editor and Python provider at 3a423ec against product.data_onboarding.financial_content and M1-008.",
+      "observation": "An explicitly classified synthetic trade file with two fills at the same reported time returned the same unsupported_record_kind diagnostic as unknown input. The editor offered closed bars, quotes and unclassified rows only. Declared depth, reference and corporate-action inputs also appeared unclassified. Original rows remained available.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "local-folder-import",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The editor and parser had a dedicated quote classification but grouped declared trades with inputs of unknown kind.",
+        "correction": "Expose executed trades, depth snapshots, reference records and corporate actions as explicit raw classifications and retain their original order, values and fields.",
+        "prevention": "The Python regressions verify all four declarations. Chromium submits a trade mapping and reads two same-time fills with different prices and leading-zero quantities."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "revision-library-during-profile-reload",
+      "source": "Joined native inspection on Windows 11 and the effect that submits revision list requests in local-revision-dialog.tsx.",
+      "observation": "After removing access to a folder revision and immediately switching to its independently entitled single-file source, an initial Windows journey timed out. The retained profile could open that source on a fresh launch, and an instrumented same-window repeat passed. The original timeout did not capture a terminal operation code. The revision browser waits for an initial snapshot but submits a list immediately during a subsequent reload of a known workspace on the same single-flight host.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-008"
+      ],
+      "regression_checks": [
+        "local-folder-refresh-preview",
+        "local-folder-import"
+      ],
+      "resolution": {
+        "cause": "The dialog waited only while the initial workspace snapshot was missing. A subsequent snapshot request occupied the same admission slot while an explicit switch could submit a list.",
+        "correction": "Defer the selected list and disable competing foreground reads while a workspace operation is pending. Submit the selected request after it settles.",
+        "prevention": "A held real UI reload through substituted native IPC reproduced the premature list and then passed with one list submission. Windows independently passed the subsequent single-file read after revocation. The first native timeout had no recorded terminal code."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "revision-entitlement-probe-competes-with-open",
+      "source": "Standard-user Windows 11 WebView2 and native Rust trace at dbdd831, with the real single-file and folder source-row workflow.",
+      "observation": "Immediately after a folder revision was revoked, the same-window single-file open returned BUSY while its simultaneous frozen_chart_status succeeded. The earlier workspace reload and single-file enumeration had already completed. Both the folder and the single-file reads succeeded independently. The first failed attempt showed The market worker is busy and no chart.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-008",
+        "M2-001"
+      ],
+      "regression_checks": [
+        "local-folder-refresh-preview",
+        "local-import-publication",
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The dialog immediately checked display entitlement on selecting a revision while its foreground read was already checking the same entitlement. The two commands competed for a single native admission slot.",
+        "correction": "Let the foreground read perform the initial authorization. Recheck on an observed profile change, focus, visibility or a periodic check, and retain the denial fence for responses already in transit.",
+        "prevention": "Both single-file and folder controls reproduced BUSY before the change. The native Windows same-window operation opened the independently entitled file in one read after folder revocation. Real Chromium with a peer writer still suppressed a formerly authorized response after revocation."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "workspace-sample-reopen-transport-terminal",
+      "source": "Ubuntu and Windows jobs in PR run 44601667278 at head 4aeddf2, merged test checkout 611de0d, workspace-timeframe screenshots and structured reports.",
+      "observation": "Ubuntu failed at the second explicit 1m sample open (former line 923), after 23 other workspace scenarios passed. Windows failed at the first explicit 1m open (former line 870). Both screenshots display three catalog instruments, a disconnected local preview and Retry history. Both history assertions saw only a missing chart after five seconds. The reports lack the network error, HTTP status and host response stage for either sample failure. Their initiating transport or OS causes remain unknown.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-010"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The original runs showed a populated catalog and a disconnected selected-history view. The initiating transport or OS cause remains unknown because the original evidence lacks the host response and browser request stages.",
+        "correction": "Observe catalog and selected history separately through host, browser and client completion. Use a controlled loopback disconnect to exercise the explicit Retry history action.",
+        "prevention": "Both hosted workspace-timeframe reports from run 44616706526 showed HTTP 200 and completed bodies for healthy opens, reopens and refreshes. The controlled reopen completed the catalog, lost selected history before headers, surfaced Chromium net::ERR_EMPTY_RESPONSE and a retryable disconnect, then recovered the frozen synthetic chart after explicit retry while preserving private undo. Retry during continued loss remained visibly disconnected."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "preview-history-denial-body-transport-misclassification",
+      "source": "Local Chromium controlled socket interruption in .reports/ubuntu-workspace/1795119478701-2b19c416-64aa-4151-887b-518f4c68ff98/results.json, preview denial with interrupted body attachment.",
+      "observation": "The actual Vite preview rejected a synthetic test request with HTTP 403 and PERMISSION_DENIED. Chromium received the 403 headers before losing the chunked body. The client recorded a body TypeError without a selection abort and showed the retryable local disconnect instead of retaining the denied HTTP status. This controlled case is independent of the unidentified initiating failure in run 44601667278.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-010"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "market-quality-states"
+      ],
+      "resolution": {
+        "cause": "When the preview's response body failed after Chromium received HTTP 403, the client treated the body TypeError as a retryable disconnect and discarded the known status.",
+        "correction": "Classify an interrupted non-success response by its received HTTP status and retain typed failures from completed bodies. An interrupted successful response still takes the explicit transport recovery path.",
+        "prevention": "Both hosted workspace-timeframe reports from run 44616706526 showed host PERMISSION_DENIED, browser HTTP 403 followed by net::ERR_INCOMPLETE_CHUNKED_ENCODING, and a client body-rejected stage with HTTP 403. The UI retained the 403 without a retry action. A completed 403 showed the typed denial, and an interrupted HTTP 200 body offered transport retry. Both market-quality-states checks passed."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "private-delete-uncertainty-peer-rename-wait",
+      "source": "Hosted Windows PR run 44601667278, head 4aeddf2, CI checkout 611de0d, workspace-timeframe final peer-rename case.",
+      "observation": "The screenshot shows a body-free Recover deletion result view. A wait for the renamed detail at workspace.spec.mjs line 2039 ended with the 60-second test. The original evidence does not confirm the peer write or the subsequent read stage. Both adjacent lost-reply and committed-WAL cleanup cases passed. The Windows browser results in the original integration artifact have SHA-256 763a0fac3d83d1bb0583376fdbfe41e320ba15fa8600a946b8226a11d6e1bd58. The same original journey passed locally in .reports/M2-011-baseline/workspace-timeframe/results.json. The controlled Linux red in .reports/M2-011-red/workspace-timeframe/results.json (SHA-256 ad5610583c570fdd40ff9b572b7b232d0f66281754f5e1961dac6ba0e36e3d15) retained the peer's HTTP 429 BUSY during an origin read, the observer cleanup, and the old generic panel error. The focused green in .reports/M2-011-green/workspace-timeframe/results.json (SHA-256 0999bb4ce106813f885788390212414e7fa915691f4b34d1d42ba06a5caa4e2c) reported contention explicitly and passed the two-service path with a committed peer correction, unchanged retry returning STALE_CONTEXT, body-free recovery until the authorized reload, and zero deletions. Both committed deletion controls passed in that run. The uploaded Windows workspace-timeframe result from PR 21 run 44616706526 (SHA-256 d84217c31fbbaf4c417c1b14b929865e683c7513371b0e55a2269d9159031ff2) passed the two-service case. The origin deletion returned BUSY before commit, the authorized peer committed revision 2, an ungranted read returned HTTP 403, and the unchanged deletion retry returned STALE_CONTEXT. The recovery stayed body-free until the authorized reread displayed revision 2 with zero deletions. The shared-producer HTTP 429 BUSY and observer cleanup, lost-reply and blocked-checkpoint controls also passed. The Windows verification report passed before post-cache job cancellation. Its check selection omitted private-record-lifecycle, and the Windows M2-011 archive command reported Required check did not pass: private-record-lifecycle. The integrated local receipt remains attached and the Windows task gate remains open.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-011"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "private-record-lifecycle"
+      ],
+      "resolution": {
+        "cause": "The initiating failure in run 44601667278 remains undetermined. A controlled shared-producer read reproduced peer HTTP 429 BUSY and the generic panel failure, which obscured the peer write stage.",
+        "correction": "Show BUSY explicitly in the private records panel. Check the authorized peer read, committed correction, origin focus, unchanged deletion retry and authorized reread at separate stages. Exercise the shared-producer contention and observer cleanup independently.",
+        "prevention": "Hosted Linux and Windows in run 44853953507 passed workspace-timeframe and private-record-lifecycle. Both peer-rename journeys observed pre-commit BUSY, a correction committed by the separate authorized service, HTTP 403 for an ungranted read, and STALE_CONTEXT on the unchanged deletion retry. Recovery kept the prior content hidden until the authorized reread displayed revision 2 intact with zero deletions."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "published-revocation-bridge-build-deadline",
+      "source": "Authenticated Windows task artifact for run 44852116487, head b21073577d201875e0c0e00e308665cd748fbbdf, workspace-timeframe/results.json (SHA-256 b5ad55d0478b0a2926e64ce615585de3a0e6454244d941d257d91623164868f5).",
+      "observation": "The published revocation case was the only unexpected result in workspace-timeframe. It timed out at 60004 ms with only error-context and no published-revisions attachment, placing the cutoff before fixture completion. The same case passed in 18.546 to 22.588 seconds in the three prior Windows runs. The peer-rename case and private-record-lifecycle passed in run 44852116487. A Linux PATH shim delayed only the real local_import_bridge build by 65 seconds. On b210735 the case timed out at 60003 ms with only error-context (.reports/M2-011-revocation.U1Kciz/red/results.json, SHA-256 bc28f53b1f182fbdbeb01157ab36aa2fd1d0f4416448c1fd6cc4c0c74fdf3f91). The same delay with the build in its own bounded fixture passed the original assertions in 5249 ms and retained the real Cargo output and both published revision IDs (.reports/M2-011-revocation.U1Kciz/green/results.json, SHA-256 c642efba8a3ab7574dc03b6a863f1d97a54d443024d3da1e36a5c8c64ffb211b). A source-matched Windows result is pending.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-011"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The fixture allowed a 90-second Cargo build inside a 60-second behavior case. Run 44852116487 locates the cutoff before the publication attachment. The controlled build delay isolated the budget defect.",
+        "correction": "Compile the actual local import bridge in a scoped setup fixture with a 300-second deadline and a 295-second Cargo limit. Retain the build output and run the publication and browser assertions within their original 60-second budget.",
+        "prevention": "The matched 65-second delay timed out on b210735 and passed on the repaired source with the original assertions. In run 44853953507 both platforms retained build output and two published revision IDs. Windows recorded 40.83 seconds for the build and 7.868 seconds for behavior. The workspace suite passed 25 cases on Windows with the POSIX signal case skipped, and passed all 26 cases on Linux."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "sample-recovery-dom-checked-before-transport",
+      "source": "Authenticated Ubuntu and Windows workspace-timeframe artifacts from PR run 44610931395 at head 20d0ae950f4063583973f15b0975f5194d0dc81f.",
+      "observation": "The first healthy sample open completed both reads. On the controlled disconnected reopen, the catalog returned successfully and the host closed the initial selected-history response before headers. At the five-second DOM assertion cutoff Chromium was still fetching, and the same logical request had reached host admission again. The test ended before the browser reported a terminal outcome. On Windows the ordinary first sample open and the recovery control’s initial healthy open both finished the catalog and reached admission of the selected history. Both observations ended at the same five-second cutoff while fetch was still pending. The shared-producer contention and peer-rename controls passed on both platforms.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-010"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "market-workflow"
+      ],
+      "resolution": {
+        "cause": "The five-second DOM assertion expired while Chromium was still fetching. The controlled case showed a pre-header close followed by a second host admission for the same request. The Windows healthy opens were observed through selected-history admission at the cutoff.",
+        "correction": "Wait for the selected request's browser and client terminal stages within a bounded deadline before asserting the rendered outcome. Track the catalog independently and retain the correlated host stages.",
+        "prevention": "Both workspace-timeframe reports from run 44616706526 recorded host admission, a held pre-header disconnect and two closes for the controlled reopen, followed by Chromium net::ERR_EMPTY_RESPONSE and a client fetch rejection before the visible disconnect assertion. An explicit retry after restoration completed HTTP 200 and rendered the chart. The normal sample opens and both market-workflow checks passed."
       },
       "deferral_reason": null
     }

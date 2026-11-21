@@ -1,9 +1,20 @@
-use std::{path::Path, sync::Mutex as SyncMutex, time::Duration};
+use std::{
+    future::Future,
+    path::{Path, PathBuf},
+    sync::Mutex as SyncMutex,
+    time::Duration,
+};
 
 use scopehub_application::{
-    Actor, MarketLifecycle, MarketPort, MarketRegistry, SET_TIMEFRAME, UNDO, failure,
+    Actor, LIST_LOCAL_FOLDER_REVISIONS, LIST_LOCAL_IMPORT_REVISIONS, LOAD_LOCAL_IMPORT_MAPPING,
+    LOCAL_WORKSPACE_OPERATIONS, MarketLifecycle, MarketPort, MarketRegistry,
+    PREPARE_LOCAL_FOLDER_PUBLICATION, PREVIEW_LOCAL_FOLDER_REFRESH, PREVIEW_LOCAL_IMPORT,
+    PUBLISH_LOCAL_FOLDER_REFRESH, PUBLISH_LOCAL_IMPORT, READ_LOCAL_FOLDER_REVISION,
+    READ_LOCAL_FOLDER_SOURCE_ROW, READ_LOCAL_IMPORT_REVISION, READ_LOCAL_IMPORT_SOURCE_ROW,
+    REVOKE_LOCAL_FOLDER_REVISION, REVOKE_LOCAL_IMPORT_REVISION, SAVE_LOCAL_IMPORT_MAPPING, failure,
 };
 use scopehub_domain::protocol::{Error, ErrorCode};
+use scopehub_platform::local_folder::LocalFolderHost;
 use scopehub_worker_host::market::{MarketWorker, WorkerConfig};
 use serde_json::Value;
 #[cfg(windows)]
@@ -12,13 +23,14 @@ use tokio::sync::{Mutex, MutexGuard, oneshot};
 #[cfg(windows)]
 use {scopehub_worker_host::market::run_subscription, serde_json::json};
 
-use crate::workspace::WorkspaceBridge;
+use crate::{local_import::LocalImport, workspace::WorkspaceBridge};
 
 pub struct State {
     reads: Mutex<MarketRegistry<MarketWorker>>,
+    local_import: LocalImport,
+    workspace: WorkspaceBridge,
     replay: Mutex<()>,
     cancellation: SyncMutex<Cancellation>,
-    workspace: WorkspaceBridge,
 }
 
 #[derive(Default)]
@@ -57,42 +69,172 @@ fn development_config() -> Option<WorkerConfig> {
 }
 
 pub fn state() -> State {
-    State {
-        reads: Mutex::new(MarketRegistry::new(MarketWorker::new(development_config()))),
-        replay: Mutex::new(()),
-        cancellation: SyncMutex::default(),
-        workspace: WorkspaceBridge::disabled(),
-    }
+    state_with_local_profile(None)
 }
 
+/// Only the native desktop launcher supplies the trusted local app-data root.
+pub fn state_with_local_profile(app_local_data: Option<&Path>) -> State {
+    state_with_profile(app_local_data, false)
+}
+
+/// The native launcher explicitly opts this session into private workspace actions.
 pub fn state_with_development_workspace(app_local_data: Option<&Path>) -> State {
+    state_with_profile(app_local_data, true)
+}
+
+fn state_with_profile(app_local_data: Option<&Path>, enable_workspace: bool) -> State {
     State {
-        workspace: WorkspaceBridge::development(app_local_data),
-        ..state()
+        reads: Mutex::new(MarketRegistry::new(MarketWorker::new(development_config()))),
+        local_import: LocalImport::new(development_config()),
+        workspace: WorkspaceBridge::development(
+            app_local_data.filter(|_| cfg!(debug_assertions)),
+            enable_workspace && cfg!(debug_assertions),
+        ),
+        replay: Mutex::new(()),
+        cancellation: SyncMutex::default(),
     }
 }
 
 impl State {
+    #[cfg(feature = "portable-test-bridge")]
+    pub async fn execute_test_window_operation(
+        &self,
+        operation: Option<&str>,
+        payload: Value,
+        request_id: Option<&str>,
+    ) -> Result<Value, Error> {
+        self.execute("main", operation, payload, request_id).await
+    }
+
     async fn execute(
         &self,
         window_label: &str,
         operation: Option<&str>,
         payload: Value,
+        request_id: Option<&str>,
     ) -> Result<Value, Error> {
         authorize_window(window_label)?;
         match operation {
-            None | Some(SET_TIMEFRAME | UNDO) => self.workspace.dispatch(operation, payload).await,
-            Some(operation) => self.read(operation, payload).await,
+            None => self.workspace.dispatch(operation, payload).await,
+            Some(name) if LOCAL_WORKSPACE_OPERATIONS.contains(&name) => {
+                self.workspace.dispatch(operation, payload).await
+            }
+            Some(name) => {
+                self.execute_local_operation(name, payload, request_id)
+                    .await
+            }
         }
     }
 
-    async fn read(&self, operation: &str, payload: Value) -> Result<Value, Error> {
+    /// Native launcher/picker entry. Webview operation payloads have no access
+    /// to directory adoption or this host instance.
+    pub fn local_folders(&self) -> &LocalFolderHost {
+        &self.local_import.folders
+    }
+
+    pub fn cancel_local_import(&self, request_id: &str) {
+        self.local_import.cancel(request_id);
+    }
+
+    /// The Rust host supplies the picker. WebView callers receive catalog metadata.
+    pub async fn choose_local_csv_folder<F>(
+        &self,
+        pick: impl FnOnce() -> F,
+    ) -> Result<Option<Value>, Error>
+    where
+        F: Future<Output = Option<PathBuf>>,
+    {
+        self.local_import.choose_folder(pick).await
+    }
+
+    pub async fn execute_local_operation(
+        &self,
+        operation: &str,
+        payload: Value,
+        request_id: Option<&str>,
+    ) -> Result<Value, Error> {
+        match operation {
+            PREVIEW_LOCAL_IMPORT => return self.local_import.preview(payload, request_id).await,
+            LOAD_LOCAL_IMPORT_MAPPING => {
+                return self
+                    .local_import
+                    .load_mapping(&self.workspace, payload, request_id)
+                    .await;
+            }
+            SAVE_LOCAL_IMPORT_MAPPING => {
+                return self
+                    .local_import
+                    .save_mapping(&self.workspace, payload, request_id)
+                    .await;
+            }
+            PUBLISH_LOCAL_IMPORT => {
+                return self
+                    .local_import
+                    .publish(&self.workspace, payload, request_id)
+                    .await;
+            }
+            PREVIEW_LOCAL_FOLDER_REFRESH => {
+                return self
+                    .local_import
+                    .preview_folder_refresh(&self.workspace, payload, request_id)
+                    .await;
+            }
+            PREPARE_LOCAL_FOLDER_PUBLICATION => {
+                return self
+                    .local_import
+                    .prepare_folder_publication(&self.workspace, payload, request_id)
+                    .await;
+            }
+            PUBLISH_LOCAL_FOLDER_REFRESH => {
+                return self
+                    .local_import
+                    .publish_folder_refresh(&self.workspace, payload, request_id)
+                    .await;
+            }
+            LIST_LOCAL_FOLDER_REVISIONS => {
+                self.local_import.reject_reused_request(request_id)?;
+                return self.workspace.list_local_folder_revisions(payload).await;
+            }
+            READ_LOCAL_FOLDER_REVISION => {
+                self.local_import.reject_reused_request(request_id)?;
+                return self.workspace.read_local_folder_revision(payload).await;
+            }
+            READ_LOCAL_FOLDER_SOURCE_ROW => {
+                return self
+                    .local_import
+                    .read_frozen_folder_source_row(&self.workspace, payload, request_id)
+                    .await;
+            }
+            REVOKE_LOCAL_FOLDER_REVISION => {
+                self.local_import.reject_reused_request(request_id)?;
+                return self.workspace.revoke_local_folder_revision(payload).await;
+            }
+            LIST_LOCAL_IMPORT_REVISIONS => {
+                self.local_import.reject_reused_request(request_id)?;
+                return self.workspace.list_local_revisions(payload).await;
+            }
+            READ_LOCAL_IMPORT_REVISION => {
+                self.local_import.reject_reused_request(request_id)?;
+                return self.workspace.read_local_revision(payload).await;
+            }
+            READ_LOCAL_IMPORT_SOURCE_ROW => {
+                return self
+                    .local_import
+                    .read_frozen_source_row(&self.workspace, payload, request_id)
+                    .await;
+            }
+            REVOKE_LOCAL_IMPORT_REVISION => {
+                self.local_import.reject_reused_request(request_id)?;
+                return self.workspace.revoke_local_revision(payload).await;
+            }
+            _ => {}
+        }
         // Do not create an unbounded queue of requests in the native process.
         let mut registry = self
             .reads
             .try_lock()
             .map_err(|_| failure(ErrorCode::BUSY))?;
-        registry.execute(Actor::User, operation, payload).await
+        registry.execute(Actor::LocalUser, operation, payload).await
     }
 
     fn begin_replay(
@@ -159,6 +301,7 @@ impl State {
     }
 
     pub async fn shutdown(&self) {
+        self.local_import.shutdown().await;
         {
             let mut cancellation = self.cancellation.lock().expect("cancellation state");
             cancellation.closing = true;
@@ -187,9 +330,46 @@ pub async fn execute_operation(
     state: tauri::State<'_, State>,
     operation: Option<String>,
     payload: Value,
+    request_id: Option<String>,
 ) -> Result<Value, Error> {
     state
-        .execute(window.label(), operation.as_deref(), payload)
+        .execute(
+            window.label(),
+            operation.as_deref(),
+            payload,
+            request_id.as_deref(),
+        )
+        .await
+}
+
+#[cfg(windows)]
+#[tauri::command]
+pub fn cancel_local_import_preview(
+    window: tauri::WebviewWindow,
+    state: tauri::State<'_, State>,
+    request_id: String,
+) -> Result<(), Error> {
+    authorize_window(window.label())?;
+    state.cancel_local_import(&request_id);
+    Ok(())
+}
+
+#[cfg(windows)]
+#[tauri::command]
+pub async fn choose_local_csv_folder(
+    window: tauri::WebviewWindow,
+    state: tauri::State<'_, State>,
+) -> Result<Option<Value>, Error> {
+    authorize_window(window.label())?;
+    state
+        .choose_local_csv_folder(|| async {
+            rfd::AsyncFileDialog::new()
+                .set_title("Choose local CSV folder")
+                .set_parent(&window)
+                .pick_folder()
+                .await
+                .map(|folder| folder.path().to_path_buf())
+        })
         .await
 }
 

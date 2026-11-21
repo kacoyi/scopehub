@@ -246,7 +246,8 @@
         "Accepted state restores without replaying AI actions.",
         "Migration failure leaves a documented recovery route and retained user data.",
         "Execute a confirmed write, lose its reply, reconnect and submit the same idempotency key twice concurrently. Obtain one operation ID and one durable change. Undo that operation with a new receipt; a later conflicting change stays intact.",
-        "Restore layout and accepted artifacts with the recorded source disconnected and revoked separately. Keep its identity and visible reason without substituting a sample or issuing a forbidden read."
+        "Restore layout and accepted artifacts with the recorded source disconnected and revoked separately. Keep its identity and visible reason without substituting a sample or issuing a forbidden read.",
+        "Explicitly save a typed exchange, memory and strategy in the local profile. Reopen and inspect the same ordered turns, correct a record, delete it and apply an older local backup. A different profile cannot import the backup, and known tombstones suppress old copies."
       ],
       "failure_cases": [
         "Stale confirmation",
@@ -263,6 +264,8 @@
       "checks": [
         "operations-workflow",
         "state-migrations",
+        "decision-note-lifecycle",
+        "private-record-lifecycle",
         "workspace-timeframe",
         "desktop-workspace-transport"
       ],
@@ -524,9 +527,10 @@
         "ai-workflow",
         "ai-replay-evaluations",
         "state-migrations",
+        "decision-note-lifecycle",
         "configured-model-session"
       ],
-      "evidence_boundary": "Replay verifies permissions, provenance and which information was available. Observe the quality of dialogue separately with an authorized configured model. A simulated or realized return is not an acceptance metric."
+      "evidence_boundary": "Local decision-note checks cover explicit retention, dated review, later outcomes, deletion and staged note-only backup recovery. Configured dialogue has its own verification. A simulated or realized return is not an acceptance metric."
     },
     {
       "id": "external-ai-on-the-open-chart",

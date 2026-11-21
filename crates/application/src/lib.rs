@@ -1,14 +1,63 @@
 //! Shared operation entry for trusted transports.
 
+mod folder_manifest;
+mod folder_publication;
+mod folder_refresh;
 mod history;
+mod local_import;
+mod local_publication;
 mod replay;
+mod reviewed_mapping;
 mod workspace;
 
+pub use folder_manifest::{
+    FolderManifestAnchor, FolderManifestBar, FolderManifestLocator, FolderManifestPublication,
+    FolderManifestRequest, FolderManifestSource, FolderManifestSourceRef, FolderManifestStore,
+    StoredFolderManifest,
+};
+pub use folder_publication::{
+    LIST_LOCAL_FOLDER_REVISIONS, PREPARE_LOCAL_FOLDER_PUBLICATION, PUBLISH_LOCAL_FOLDER_REFRESH,
+    READ_LOCAL_FOLDER_REVISION, READ_LOCAL_FOLDER_SOURCE_ROW, REVOKE_LOCAL_FOLDER_REVISION,
+    folder_prepare_input, list_local_folder_revisions_input, publish_folder_refresh_input,
+    read_local_folder_revision_input, read_local_folder_source_row_input,
+    revoke_local_folder_revision_input,
+};
+pub use folder_refresh::{
+    FolderRefreshBase, FolderRefreshCheck, FolderRefreshFile, MAX_STAGED_RECORDS,
+    PREVIEW_LOCAL_FOLDER_REFRESH, folder_refresh_input, folder_refresh_output,
+    prepare_folder_manifest,
+};
+pub use local_import::{
+    DEFAULT_PREVIEW_ROWS, LocalImportPort, PREVIEW_LOCAL_IMPORT, preview_local_import,
+    validate_csv_preview,
+};
+pub use local_publication::{
+    FrozenLocalSourceRow, LIST_LOCAL_IMPORT_REVISIONS, LocalDatasetPublication, LocalDatasetStore,
+    PUBLISH_LOCAL_IMPORT, READ_LOCAL_IMPORT_REVISION, READ_LOCAL_IMPORT_SOURCE_ROW,
+    REVOKE_LOCAL_IMPORT_REVISION, StoredLocalDataset, list_local_import_revisions_input,
+    local_mapping_fingerprint, publish_local_import_input, read_local_import_revision_input,
+    read_local_import_source_row_input, revoke_local_import_revision_input,
+};
 pub use replay::{SUBSCRIBE, SubscriptionFuture, SubscriptionPort};
+pub use reviewed_mapping::{
+    LOAD_LOCAL_IMPORT_MAPPING, MappingCommitGuard, ReviewedImportMapping, ReviewedMappingStore,
+    SAVE_LOCAL_IMPORT_MAPPING, load_mapping_input, load_mapping_output, mapping_header_digest,
+    reviewed_preview_header, save_mapping_input,
+};
 pub use workspace::{
-    MAIN_CHART_ID, SET_TIMEFRAME, Timeframe, UNDO, WorkspaceAccess, WorkspaceBinding,
+    ChartEvidenceRef, ChartEvidenceStatus, DECISION_NOTE_APPEND_OUTCOME,
+    DECISION_NOTE_BACKUP_MAX_BYTES, DECISION_NOTE_BACKUP_MAX_DELETIONS,
+    DECISION_NOTE_BACKUP_MAX_NOTES, DECISION_NOTE_BACKUP_MAX_OUTCOMES, DECISION_NOTE_DELETE,
+    DECISION_NOTE_EXPORT_BACKUP, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE,
+    DECISION_NOTE_READ, DECISION_NOTE_RESTORE_BACKUP, DECISION_NOTE_SAVE, DecisionNoteBackupData,
+    DecisionNoteChange, DecisionNoteMutation, DecisionNoteOutcomeAddition, DecisionNoteReceipt,
+    DecisionNoteReplay, DecisionNoteRestorePlan, LOCAL_WORKSPACE_OPERATIONS,
+    LocalChartAnalysisGrant, MAIN_CHART_ID, PRIVATE_RECORD_CHANGE, PRIVATE_RECORD_EXPORT,
+    PRIVATE_RECORD_OPERATIONS, PRIVATE_RECORD_READ, PrivateRecordPlan, READ_CHART_PROJECTION,
+    SELECT_EVIDENCE, SET_TIMEFRAME, Timeframe, UNDO, WorkspaceAccess, WorkspaceBinding,
     WorkspaceChange, WorkspaceReceipt, WorkspaceReplay, WorkspaceReplayKey, WorkspaceSnapshot,
     WorkspaceState, WorkspaceStore, WorkspaceTransaction, WorkspaceUndoAccess, WorkspaceUndoTarget,
+    evidence_operation_name,
 };
 
 use std::{
@@ -39,6 +88,7 @@ pub const READ_OPERATIONS: [&str; 3] = [
 #[derive(Clone, Copy)]
 pub enum Actor {
     User,
+    LocalUser,
     Ai,
     System,
 }
@@ -46,7 +96,7 @@ pub enum Actor {
 impl Actor {
     pub fn as_str(self) -> &'static str {
         match self {
-            Self::User => "user",
+            Self::User | Self::LocalUser => "user",
             Self::Ai => "ai",
             Self::System => "system",
         }
@@ -59,6 +109,8 @@ pub fn failure(code: ErrorCode) -> Error {
         ErrorCode::UNSUPPORTEDCAPABILITY => "This operation or timeframe is not implemented.",
         ErrorCode::INVALIDARGUMENT => "The request arguments are invalid.",
         ErrorCode::PERMISSIONDENIED => "This caller cannot perform the operation.",
+        ErrorCode::CANCELLED => "The operation was cancelled.",
+        ErrorCode::STALECONTEXT => "The selected source is no longer current.",
         ErrorCode::DATAUNAVAILABLE => "No data is available for this instrument.",
         ErrorCode::TIMEOUT => "The market worker did not respond before the deadline.",
         ErrorCode::WORKEREXITED => "The market worker is unavailable.",
@@ -67,7 +119,6 @@ pub fn failure(code: ErrorCode) -> Error {
         ErrorCode::BUSY => "The market worker is busy.",
         ErrorCode::SNAPSHOTUNAVAILABLE => "The requested market snapshot is unavailable.",
         ErrorCode::RESOURCELIMIT => "The market request exceeded a resource limit.",
-        ErrorCode::STALECONTEXT => "The workspace revision or target has changed.",
         _ => "The operation could not be completed.",
     };
     Error {
@@ -118,7 +169,26 @@ struct WireBinding {
 
 impl Operation {
     fn authorize(&self, actor: Actor) -> Result<(), Error> {
-        if !self.actors.iter().any(|allowed| allowed == actor.as_str()) {
+        if !self.actors.iter().any(|allowed| allowed == actor.as_str())
+            || (matches!(
+                self.name.as_str(),
+                PREVIEW_LOCAL_IMPORT
+                    | LOAD_LOCAL_IMPORT_MAPPING
+                    | SAVE_LOCAL_IMPORT_MAPPING
+                    | PUBLISH_LOCAL_IMPORT
+                    | LIST_LOCAL_IMPORT_REVISIONS
+                    | READ_LOCAL_IMPORT_REVISION
+                    | READ_LOCAL_IMPORT_SOURCE_ROW
+                    | PREVIEW_LOCAL_FOLDER_REFRESH
+                    | PREPARE_LOCAL_FOLDER_PUBLICATION
+                    | PUBLISH_LOCAL_FOLDER_REFRESH
+                    | LIST_LOCAL_FOLDER_REVISIONS
+                    | READ_LOCAL_FOLDER_REVISION
+                    | READ_LOCAL_FOLDER_SOURCE_ROW
+                    | REVOKE_LOCAL_FOLDER_REVISION
+                    | REVOKE_LOCAL_IMPORT_REVISION
+            ) && !matches!(actor, Actor::LocalUser))
+        {
             return Err(failure(ErrorCode::PERMISSIONDENIED));
         }
         Ok(())
@@ -206,7 +276,12 @@ fn authorized_operation(actor: Actor, name: &str) -> Result<&'static Operation, 
 /// ```
 pub struct OperationRegistry<P> {
     port: P,
+    note_confirmation: Option<workspace::PendingDecisionNoteConfirmation>,
+    note_restore: workspace::DecisionNoteRestoreStaging,
+    private_record_stage: workspace::PrivateRecordStaging,
 }
+
+pub type MarketRegistry<P> = OperationRegistry<P>;
 
 enum ReadFailure {
     Worker(Error),
@@ -233,11 +308,14 @@ impl From<Error> for ReadFailure {
     }
 }
 
-pub type MarketRegistry<P> = OperationRegistry<P>;
-
 impl<P> OperationRegistry<P> {
     pub fn new(port: P) -> Self {
-        Self { port }
+        Self {
+            port,
+            note_confirmation: None,
+            note_restore: workspace::DecisionNoteRestoreStaging::default(),
+            private_record_stage: workspace::PrivateRecordStaging::default(),
+        }
     }
 }
 

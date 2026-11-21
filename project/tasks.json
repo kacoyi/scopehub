@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-001",
+  "focus_task_id": "M2-002",
   "tasks": [
     {
       "id": "M0-001",
@@ -327,7 +327,7 @@
       "id": "M2-001",
       "title": "Deliver shared operations and durable workspace state",
       "milestone": "M2",
-      "status": "planned",
+      "status": "done",
       "depends_on": [
         "M1-001",
         "M2-005"
@@ -335,8 +335,22 @@
       "scope": [
         "crates/application",
         "crates/persistence",
+        "crates/worker-host/tests/protocol.rs",
         "apps/desktop",
-        "tests"
+        "contracts",
+        "engineering-contract-v1.json",
+        "tests",
+        "Cargo.toml",
+        "Cargo.lock",
+        "project/development.json",
+        "project/dependency-inventory.json",
+        "THIRD_PARTY_NOTICES",
+        "project/checks.json",
+        "project/delivery.json",
+        "pyproject.toml",
+        "uv.lock",
+        "package.json",
+        "scripts/ci_artifacts.py"
       ],
       "decision_refs": [
         "0001",
@@ -344,7 +358,8 @@
         "0003",
         "0004",
         "0009",
-        "0011"
+        "0011",
+        "0015"
       ],
       "acceptance": [
         "Human and AI actions use the same registry, permissions, confirmations, revisions and idempotency semantics.",
@@ -357,17 +372,38 @@
       ],
       "checks": [
         "operations-workflow",
-        "state-migrations"
+        "state-migrations",
+        "decision-note-lifecycle",
+        "private-record-lifecycle",
+        "local-folder-manifest-storage",
+        "architecture",
+        "dependency-review",
+        "rust-contracts-workers",
+        "rust-format",
+        "rust-lints",
+        "ui-build",
+        "workspace-timeframe",
+        "project-state",
+        "python-contracts-workers",
+        "desktop-workspace-transport",
+        "local-import-publication"
       ],
-      "evidence": [],
-      "next_action": "After the chart workflow and revision clarification, implement the first SQLite-backed timeframe round trip through the shared registry. Extend it to scoped idempotency, explicit private saves and tested backup recovery.",
+      "evidence": [
+        {
+          "path": "project/evidence/M2-001-8776db8aa3a00bea.json",
+          "sha256": "3698fb116b2a771c9a00ead35cb829b19b5080fdcfe769caec300dfb36a0d389"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
-        "outcome": "An authorized human or AI change goes through the same Rust registry, survives process restart in the originating local profile and can be undone by operation ID. Accepted results, private records and deletion decisions survive the documented recovery cases.",
+        "outcome": "An authorized human or AI change goes through the same Rust registry, survives process restart in the originating local profile and can be undone by operation ID. Accepted results, private records and deletion decisions survive the documented recovery cases. The next slice proves current local human or scoped on-device AI can change the main chart timeframe under independently versioned shared evidence, recover one authorized receipt after a lost response, and undo an eligible chart edit. In the profile-local private-record slice, the owner can explicitly save, list, inspect, correct and delete a titled typed exchange with ordered speakers, a memory or a strategy. The same records reopen after a restart in that profile. A local backup can recover missing records and preserve known deletions.",
         "change_types": [
           "persistence",
-          "permissions"
+          "permissions",
+          "dependencies",
+          "tooling"
         ],
         "context": [
           "engineering-contract-v1.json",
@@ -375,17 +411,38 @@
           "contracts/schemas/protocol.schema.json",
           "crates/application/src/lib.rs",
           "apps/desktop/src-tauri/src/bridge.rs",
-          "apps/desktop/ui/ubuntu-preview.mjs"
+          "apps/desktop/ui/ubuntu-preview.mjs",
+          "crates/application/src/workspace.rs",
+          "crates/persistence/src/lib.rs",
+          "apps/desktop/ui/ubuntu-workspace.mjs",
+          "crates/application/src/local_publication.rs",
+          "crates/persistence/src/local_dataset.sql",
+          "crates/worker-host/tests/protocol.rs",
+          "crates/application/src/workspace/backup.rs",
+          "crates/persistence/src/note_backup.rs",
+          "apps/desktop/ui/src/decision-notes.tsx",
+          "apps/desktop/src-tauri/src/workspace.rs"
         ],
         "hypotheses": [
           "Start with 1m to 5m, restart the Rust process, undo by the returned operation ID and restart to 1m. Two profiles with the same workspace ID make isolation directly observable.",
-          "A profile-bound, long-lived Rust core can share one transaction owner across the native and explicitly enabled Ubuntu workspace entries."
+          "A profile-bound, long-lived Rust core can share one transaction owner across the native and explicitly enabled Ubuntu workspace entries.",
+          "A synthetic original thesis and a separately dated outcome can be distinguished after restart. Deleting their note can retain a profile-bound marker and redacted operation results without leaving the body available to a live read, undo or idempotent replay.",
+          "A logical backup limited to decision notes can recover missing originals and dated outcomes, keep newer work, and suppress marked notes without copying operation history, grants or SQLite journals.",
+          "Restore stages can retain only pending inserts and release them when the revision changes, a deadline expires or the session ends. Revision-based projection refresh can preserve a surviving note's unsubmitted outcome draft while clearing deleted list entries and details.",
+          "The published single-series CSV revision UUID identifies the frozen chart and scopes its instrument identity. Derive the history-chain-v1 hash from the exact stored bars. Use the exclusive bar-start coverage bound as the deterministic cutoff for this closed-bar source, which carries no observation clock.",
+          "Native publication browsing can use stored v5 revision summaries while v6 selection and projected chart reads continue through scoped workspace permissions. Opening a library row follows the same revocation checks as opening by revision ID.",
+          "An already submitted deletion can retain only its original scope, challenge and opaque record ID after the detail disappears. Retry recovers the original body-free receipt or returns a current terminal denial. Exercise a dropped committed reply, BUSY during post-commit WAL cleanup, and BUSY before commit followed by a peer rename using actual Chromium and SQLite.",
+          "Two real browser windows sharing a workspace must clear unavailable private bodies and invalid reviews. If a peer corrects a record that remains authorized, preserve the local draft and explicitly review it against the current record. Independent pending approvals on one writer are bounded and cancellation is scoped to the exact challenge. Restore reports all current surviving records, including those absent from the archive.",
+          "A private records panel reachable from the native and enabled Ubuntu workspace serves all three types through one typed read and write contract. Manual capture keeps existing transient conversation and speech flows independent.",
+          "A bounded logical private-record archive can merge missing records and the union of known tombstones without retaining prior bodies, outbound grants or a secondary search index.",
+          "Use the workspace revision and the selected record revision for correction and deletion. A revision-bound local approval stages only the pending changes. Committing and replaying use a random challenge with no private body or fingerprint in the approval request, log or receipt. The state-migrations gate runs the persistence suite without a name filter. It covers genuine v1–v7 fixtures, rollback and reopen, private archive recovery, deletion cleanup and refusal of restored approval or outbound access."
         ],
         "risks": [
           {
             "failure": "A lost response, concurrent duplicate or stale selected target applies a change twice or reveals a result after grants change.",
             "checks": [
-              "operations-workflow"
+              "operations-workflow",
+              "decision-note-lifecycle"
             ]
           },
           {
@@ -401,9 +458,62 @@
               "state-migrations",
               "operations-workflow"
             ]
+          },
+          {
+            "failure": "The bundled database or a Rust module dependency cannot be built on a supported target, or the locked license and advisory inventory no longer matches the delivered code.",
+            "checks": [
+              "architecture",
+              "dependency-review",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A new browser loses the eligible undo, an ordinary startup obtains a workspace writer, or a suspended request replays twice.",
+            "checks": [
+              "workspace-timeframe",
+              "rust-contracts-workers",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "An old token becomes valid again after reopen, a second writer overwrites an intervening choice, or a revoked dataset or grant discloses private chart data.",
+            "checks": [
+              "rust-contracts-workers",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "Revocation leaves an old chart, provenance, bars or projection visible, an older response restores the bytes, or the unavailable target cannot be cleared without its revoked display right.",
+            "checks": [
+              "workspace-timeframe",
+              "local-import-publication"
+            ]
+          },
+          {
+            "failure": "A foreign profile, model route or paired client can read saved bodies, or a backup reuses outbound approval.",
+            "checks": [
+              "private-record-lifecycle",
+              "rust-contracts-workers",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "A stale approval overwrites another edit, or a failed transaction commits a partial private record or tombstone.",
+            "checks": [
+              "private-record-lifecycle",
+              "state-migrations",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A correction or deletion leaves superseded pages in SQLite sidecars, or an older archive revives a known deletion.",
+            "checks": [
+              "state-migrations",
+              "private-record-lifecycle"
+            ]
           }
         ],
-        "rollback": "Keep the original database and an untouched local backup through staged migration. Exercise interruption before the atomic cutover and verify forward repair or restoring the previous visible state.",
+        "rollback": "Keep the selected backup file untouched. Stage a revision-bound restore in memory. Cancel, reject or interrupt before committing the SQLite transaction and verify the previous live notes, deletion state and timeframe remain available across process restart. Exercise v6 migration rollback and a rejected selection transaction against a populated v5 fixture, then reopen and verify both revisions, undo, notes, mappings and published data. Bind private-record approval and restore preview to the same revision. On failure roll back SQLite and preserve the selected backup. Exercise a failed write and an interrupted migration on disposable databases, verify clean restart, and retry only after rereading the current revision. Reopen and restore the populated v7 fixture through the v8 migration. Preserve the exact prior ledger, folder manifest, source bytes, prior note and chart state when v8 rolls back.",
         "implementation": {
           "modules": [
             "application",
@@ -417,7 +527,24 @@
             "apps/desktop/src-tauri/src/bridge.rs",
             "apps/desktop/ui/ubuntu-preview.mjs",
             "contracts/schemas/protocol.schema.json",
-            "project/development.json"
+            "project/development.json",
+            "crates/application/src/workspace.rs",
+            "crates/application/src/workspace/notes.rs",
+            "crates/application/src/workspace/backup.rs",
+            "crates/persistence/src/lib.rs",
+            "crates/persistence/src/decision_notes.sql",
+            "crates/persistence/src/decision_note_restore.sql",
+            "apps/desktop/ui/src/decision-notes.tsx",
+            "apps/desktop/ui/src/use-local-workspace.ts",
+            "apps/desktop/ui/src/local-revision-dialog.tsx",
+            "crates/persistence/tests/workspace_process.rs",
+            "crates/persistence/tests/support/operations_workflow.rs",
+            "apps/desktop/ui/src/local-import-editor.tsx",
+            "apps/desktop/src-tauri/src/workspace.rs",
+            "crates/persistence/src/bin/workspace_bridge.rs",
+            "crates/application/src/workspace/private_records.rs",
+            "crates/persistence/src/private_records.sql",
+            "apps/desktop/ui/src/private-records.tsx"
           ],
           "rules": [
             {
@@ -439,23 +566,49 @@
             {
               "path": "contracts/decisions/0011-local-profiles-and-connected-model-use.json",
               "pointer": "/decision"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence/notes_and_restore"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/shared_evidence"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization/data_purposes"
+            },
+            {
+              "path": "contracts/contract.json",
+              "pointer": "/operations"
             }
           ],
           "non_goals": [
-            "Real cloud or voice sessions, financial provider subscriptions, and full indicator computation belong to other tasks."
+            "The first backup covers saved decision notes, dated outcomes and deletion markers. Broader workspace settings, accepted indicator versions, saved conversations, credentials, grants, audit history, caches and journals are outside this backup format.",
+            "Real cloud or voice sessions, financial provider subscriptions, and full indicator computation belong to other tasks.",
+            "The chart evidence slice uses the registered main chart and the existing published CSV interval. It adds no selection kinds, provider transmission, external recipient admission or confirmation surface.",
+            "The separate private-record archive excludes notes, ephemeral chat and speech, prompts, audio, model sessions, provider calls, automated extraction and outbound attachment grants. No search index is required for the bounded list and detail reads."
           ],
           "open_questions": []
         },
         "evolution": {
           "kind": "additive",
           "preserve": [
-            "Synthetic read-only development grant, existing 1.1 reads, explicitly selected sample preferences, established confirmation and private excerpt rules."
+            "Synthetic read-only development grant, existing 1.1 reads, explicitly selected sample preferences, established confirmation and private excerpt rules.",
+            "Keep ordinary connected-model scope and the exact selected excerpt rule independent of saving. Preserve the v6 ledger and the genuine v7 folder migration."
           ],
           "change": [
-            "Add the profile-local transaction owner and versioned storage, then scoped replay and confirmation, explicit private saves and deletes, and staged backup recovery."
+            "The private hosts dispatch decisionNote.save, decisionNote.read, decisionNote.appendOutcome and decisionNote.delete through the Rust registry. Explicit local confirmation authorizes new writes. Reads and redacted receipt replay use current disclosure access.",
+            "Add explicit local decision-note export and revision-bound preview and apply. Recover missing notes and outcomes, preserve other current notes, reject conflicting surviving identities and apply the union of known deletion markers in the same transaction. Warn before approving candidates whose deletion history is unavailable.",
+            "Check complete backup capacity before admitting note additions and restore plans. Keep private drafts separate from refreshed note projections.",
+            "Add a shared chart interval and an independently increasing selection token; local hover and chart navigation stay in the UI. Recheck current target access and exact requested fields for projected reads.",
+            "Revalidate the main-chart target and both revision tokens for new chart edits. Require an effective local chart analysis grant for AI mutations using a selected interval. Rebuild chart-only replay results from the immutable receipt under current workspace disclosure.",
+            "Invalidate the open published revision and pending old replies after observing current display entitlement loss. Keep unavailable selection clear controls reachable from both the workspace and the revision dialog.",
+            "Add private-record save, inspection, correction and deletion to the trusted local registry with one shared editor for conversation exchanges, memories and strategies. Add a separate explicit local backup and revision-bound restore preview."
           ],
-          "data_plan": "Keep application state inside the bound OS-user profile. Use WAL and foreign keys, a versioned migration, redacted receipts and profile-scoped deletion markers. Validate the original database on failure, independent older backup warnings and cross-profile isolation.",
-          "cleanup": "Keep a single write path. Remove provisional adapters once both hosts reach the same application core. Recover without replaying past AI work or reusing external disclosure grants."
+          "data_plan": "Keep application state inside the bound OS-user profile. The v1 to v2 migration retains chart state, undo and replay and adds immutable originals, separate outcomes and profile-scoped deletion markers. Version 3 preserves outcome order and supports several outcomes under one restore receipt. A versioned logical note backup stays scoped to its originating profile and workspace. Version 6 adds only the selected immutable revision UUID and interval bounds. It preserves the existing selection revision and all workspace, undo, note, mapping, publication and revocation records. The reference restores no disclosure grant. Add v8 with a bound private-record table, body-free replay metadata and tombstones. Use one SQLite transaction for the workspace revision, receipt and record change. The logical archive retains current record bodies and tombstone IDs only.",
+          "cleanup": "Delete original and outcome bodies, clear body-derived replay fingerprints, and durably resume SQLite WAL cleanup if a reader blocks it. Restore without replaying past AI work or reusing external disclosure grants. Clear the selected reference explicitly without resetting its token. Deny a revoked target without restoring or exporting its contents. Securely replace or delete superseded private record bodies and checkpoint SQLite WAL with durable retry. Release browser drafts and approval stages on cancel, supersession and close. Warn about independent older copies."
         }
       }
     },
@@ -2619,7 +2772,7 @@
       "id": "M1-008",
       "title": "Import and refresh a user-selected historical CSV folder",
       "milestone": "M1",
-      "status": "planned",
+      "status": "done",
       "depends_on": [
         "M1-001",
         "M1-003"
@@ -2628,13 +2781,20 @@
         "crates",
         "python",
         "apps/desktop",
-        "tests"
+        "tests",
+        "project/checks.json",
+        "project/development.json",
+        "contracts",
+        "engineering-contract-v1.json"
       ],
       "decision_refs": [
         "0007",
         "0004",
         "0005",
-        "0008"
+        "0008",
+        "0013",
+        "0014",
+        "0015"
       ],
       "acceptance": [
         "Read only the selected scope. Show raw and normalized rows and a chart preview for equity and futures bar examples with different headers, encodings, units and date conventions. A manual mapping works offline.",
@@ -2645,12 +2805,392 @@
       "checks": [
         "market-fixtures",
         "chart-history",
-        "local-folder-import"
+        "local-folder-import",
+        "local-import-publication",
+        "local-folder-refresh-preview",
+        "local-folder-manifest-storage",
+        "project-state",
+        "python-contracts-workers",
+        "architecture",
+        "python-types",
+        "ui-build",
+        "rust-contracts-workers",
+        "market-workflow",
+        "generated-contracts",
+        "typescript-contracts",
+        "operations-workflow",
+        "state-migrations",
+        "local-import-ui"
       ],
-      "evidence": [],
-      "next_action": "Use independent CSV fixtures with differing headers and an ambiguous unit. Exercise selection, correction, charting, refresh and failure recovery. Use the futures sample assessment for snapshot counterexamples.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-008-823227e93a45d20f.json",
+          "sha256": "0bd106edb39ed4ec9b28ee60599eb4e7314d74d044ef73046400dd28fc2b9375"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A person chooses a local CSV directory, reviews the actual rows and explicit mapping offline, then publishes a traceable equity or futures series to the chart. External editors can save, replace, add and remove files while the selection is idle. Compatible refreshes preserve the accepted mapping and earlier snapshots. After restart, the person can browse displayable revisions for the active profile and explicitly reopen a frozen chart without a folder selection or a memorized ID. From the chart, the person can inspect the original decoded fields at a selected published locator, including records outside the preview.",
+        "change_types": [
+          "market-fixtures",
+          "ui",
+          "protocol",
+          "permissions",
+          "persistence"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "project/assessments/futures-tick-20260109.json",
+          "scripts/inspect_futures_ticks.py",
+          "python/providers/local_folder.py",
+          "crates/platform/src/local_folder.rs",
+          "crates/application/src/lib.rs",
+          "project/development.json",
+          "crates/persistence/src/lib.rs",
+          "apps/desktop/src-tauri/src/workspace.rs",
+          "apps/desktop/ui/src/local-import-editor.tsx",
+          "contracts/reviews/2026-11-19-windows-reviewed-mapping.json",
+          "contracts/reviews/2026-11-19-windows-reviewed-mapping-paths.json",
+          "contracts/reviews/2026-11-19-windows-local-publication.json",
+          "crates/persistence/src/local_dataset.rs",
+          "apps/desktop/ui/src/local-revision-dialog.tsx",
+          "crates/worker-host/src/local_import.rs",
+          "crates/worker-host/src/local_import_windows.rs",
+          "contracts/reviews/2026-11-19-windows-published-revision-library.json",
+          "contracts/reviews/2026-11-19-windows-readable-csv-revisions.json",
+          "contracts/decisions/0015-immutable-local-folder-manifests.json",
+          "crates/persistence/src/chart_evidence.sql"
+        ],
+        "hypotheses": [
+          "Explicit source mappings can normalize native OHLCV bars without inferring a price, volume unit or session from ambiguous financial fields. File identities and row locators can connect every accepted row to its original input.",
+          "A stable host-derived source identity and exact ordered header digest can associate a reviewed mapping across restarts while every read still requires a freshly selected folder and file.",
+          "A transient host-side fingerprint of an eligible public preview can bind the explicit save to the same active grant, file, checksum, mapping, and preview sample without retaining source rows.",
+          "The first logical CSV record can establish the decoded header even when a later row cannot be decoded, provided the header boundary is verified with the existing CSV parser.",
+          "The current native grant, selected catalog file, full file fingerprint and persisted mapping identity can jointly authorize publication without accepting normalized bars from the UI.",
+          "Immutable storage and a transactional idempotency key can return the same revision on retry and preserve the previous publication on interruption.",
+          "The pre-decode not_saved result after the same-profile restart is consistent with a mapping key derived from different spellings of one directory. Resolve the Windows association path while the admitted non-reparse directory chain is pinned, and retain the existing v4 path-key format.",
+          "A bounded keyset projection from the existing v5 revision and revocation tables can show distinguishing source and series summaries without reading the original CSV blob or granting source access. Existing frozen reads can recheck entitlement for every selection.",
+          "A single replacement can complete a pure preview on already-frozen bytes after the first worker misses its deadline, when the first worker has been reaped and the selection remains current.",
+          "An opt-in list projection of the stored venue, the first and final bars' trading days, and the final bar's close lets a person distinguish same-name corrections such as 305 and 304 before opening either chart. The bar dates describe chart endpoints and carry no publication chronology.",
+          "A metadata-only Windows handle with full sharing can retain the selected directory identity while idle. A short operation can reopen and pin the non-reparse chain, compare identities, then verify source bytes through final commit.",
+          "The source identity stored by v5 and its accepted relative path can prove the selected folder even when the original file is absent. A fresh read-only scan can use that live grant and the exact retained mapping without persisting a grant or changing the accepted chart.",
+          "An additive v7 manifest anchored to a known v5 mapping can retain complete reviewed membership and source-qualified locators. One guarded transaction can write the revision, deduplicated original bytes and the scoped retry receipt without updating the accepted parent.",
+          "The retained original bytes and exact reviewed parser settings can independently recover unmapped fields for one validated frozen row. The portable Chromium baseline at 73fd6c0 reopened a synthetic revision after renaming the source folder and displayed record 502 at physical lines 504–505 without an inspection control.",
+          "A private comparison can bind exact user choices to a canonical candidate digest without proving a write. The dedicated durable receipt then proves the chosen manifest and can replay under a matching live root without rereading files.",
+          "The folder source qualified locator, retained file digest and historical anchor mapping can recover one selected raw record through the existing worker. The portable browser can exercise actual Rust picker admission with a supplied synthetic path while the native shell dialog is observed separately.",
+          "Use a previous representative only if its current digest still matches. Select a deterministic current representative for each equal digest and use the accepted fingerprints to identify separate historical matches in the review."
+        ],
+        "risks": [
+          {
+            "failure": "An ambiguous date, encoding, adjustment, calendar, unit or quote snapshot silently creates an incorrect tradable bar.",
+            "checks": [
+              "market-fixtures",
+              "local-folder-import"
+            ]
+          },
+          {
+            "failure": "An alias, replaced input, interruption or changed mapping rewrites a published snapshot or double-counts an event.",
+            "checks": [
+              "local-folder-import",
+              "state-migrations"
+            ]
+          },
+          {
+            "failure": "The software reads beyond the folder selected by the active user or shares private paths, source rows or grants outside that scope.",
+            "checks": [
+              "local-folder-import",
+              "operations-workflow"
+            ]
+          },
+          {
+            "failure": "The plot shows an unrelated or synthetic series after import fails.",
+            "checks": [
+              "chart-history",
+              "local-folder-import"
+            ]
+          },
+          {
+            "failure": "An explicit open bar or prior settlement becomes a valid historical close, a stopped session can still read a path, or a long valid row or partial write loses a source record.",
+            "checks": [
+              "market-fixtures",
+              "rust-contracts-workers",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A cancelled save commits a mapping, a different profile can load it, or header drift applies it without review.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-folder-import"
+            ]
+          },
+          {
+            "failure": "A save reparses and stores a mapping that was never successfully previewed for the exact selected source and digest.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-folder-import"
+            ]
+          },
+          {
+            "failure": "A corrupt data row is reported as a changed header, or an undecodable or incomplete header is accepted for reuse.",
+            "checks": [
+              "rust-contracts-workers",
+              "python-contracts-workers",
+              "local-folder-import"
+            ]
+          },
+          {
+            "failure": "Only sampled rows are published or a later ambiguous row is silently dropped, or a frozen chart reread changes after the selected file is modified.",
+            "checks": [
+              "market-fixtures",
+              "rust-contracts-workers",
+              "local-folder-import",
+              "state-migrations"
+            ]
+          },
+          {
+            "failure": "The native desktop times out before showing a valid normalized mapping, leaving a user unable to save an otherwise reviewed data source.",
+            "checks": [
+              "local-import-ui",
+              "local-folder-import",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An exact save retry advances the saved revision or can reapply an earlier mapping. A delayed publication retry executes source work again, duplicates bars or discloses a revoked frozen revision.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-import-publication"
+            ]
+          },
+          {
+            "failure": "Equivalent native path spellings lose mapping reuse, or canonicalization admits a redirected root or merges distinct sources or profiles.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-folder-import"
+            ]
+          },
+          {
+            "failure": "The library leaks a revoked or other profile revision, shows ambiguous same-file revisions, skips or repeats rows at page boundaries, or reopens a stale selection after restart.",
+            "checks": [
+              "local-import-publication",
+              "rust-contracts-workers",
+              "generated-contracts"
+            ]
+          },
+          {
+            "failure": "A timed-out preview overlaps a still-running interpreter, restarts after source revocation, or retries a known rejection or a publication.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-folder-import"
+            ]
+          },
+          {
+            "failure": "A revision label rounds away a price correction, uses a timestamp's calendar date instead of the stored trading day, implies publication order, or changes the response for callers that did not opt in.",
+            "checks": [
+              "local-import-publication",
+              "rust-contracts-workers",
+              "generated-contracts"
+            ]
+          },
+          {
+            "failure": "An idle Windows selection blocks external atomic saves, or revalidation admits a substituted root or subdirectory under an existing grant. Run the direct and nested file operation matrix, root and branch replacement regressions, and the final commit pin check. On failure preserve the prior frozen revision and require a fresh picker selection for a replaced root.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-folder-import",
+              "local-import-publication"
+            ]
+          },
+          {
+            "failure": "Traversal order chooses an economic correction, aliases lose source row locators, a different directory is accepted as the original, or staged failures or cancellation change the frozen revision.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-folder-refresh-preview"
+            ]
+          },
+          {
+            "failure": "A partial migration changes populated v6 state, a failed or interrupted v7 write leaks staged originals, or a changed retry key discloses or duplicates a revision. Verify the preserved v6 backup and operation receipts, staged transaction rollback, profile isolation and display revocation after reopen.",
+            "checks": [
+              "local-folder-manifest-storage",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An explicitly incompatible unit or price adjustment is overwritten by the saved mapping, then merged into an economically different accepted bar.",
+            "checks": [
+              "python-contracts-workers",
+              "local-folder-refresh-preview"
+            ]
+          },
+          {
+            "failure": "The complete check discards same-file competing prices and their locators, leaving the accepted timestamp labeled unchanged.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-folder-refresh-preview"
+            ]
+          },
+          {
+            "failure": "A person reviewing differing values cannot see the declared quantity unit, venue or price adjustment in the comparison.",
+            "checks": [
+              "local-folder-refresh-preview"
+            ]
+          },
+          {
+            "failure": "An ordinal or quote boundary mismatch returns a different original record, a raw settlement is confused with normalized close, or a delayed response discloses stale or revoked fields. Verify exact fields, full locators, output size, stale selection, restart, and peer revocation with the portable Rust, Python, SQLite, and Chromium path.",
+            "checks": [
+              "local-import-publication",
+              "local-folder-import",
+              "rust-contracts-workers",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A changed file or directory, ambiguous review, lost reply, result revocation or partial SQLite commit publishes or exposes an unauthorized folder revision. Exercise prompt cancellation, recheck of complete digests and membership, exact replay and re-open with no folder grant.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-folder-import",
+              "local-folder-manifest-storage"
+            ]
+          },
+          {
+            "failure": "A retained path is reported as a current alias of its former representative after that path changes bytes. Compare current fingerprints and direct alias references after replacement and reordered enumeration. Verify the historical match, accepted snapshot and competing closes through the registry and built review.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-folder-refresh-preview",
+              "local-folder-import"
+            ]
+          }
+        ],
+        "rollback": "Keep the accepted mapping, immutable source identities and last published revision while staging changes. Rejected rows and unsupported files remain inspectable in the selected local session. Stage a mapping version in the current SQLite transaction and roll it back if cancellation or source revocation wins before commit. Keep the previous reviewed version available after failures. The library is a read-only projection. Its refresh can restart from the first page and the existing direct-ID read remains available if listing fails.",
+        "implementation": {
+          "modules": [
+            "providers",
+            "worker-runtime",
+            "worker-host",
+            "platform",
+            "application",
+            "persistence",
+            "desktop",
+            "ui",
+            "chart-adapter"
+          ],
+          "entrypoints": [
+            "python/providers/local_folder.py",
+            "python/worker_runtime/local_import.py",
+            "crates/worker-host/src/local_import.rs",
+            "crates/platform/src/local_folder.rs",
+            "crates/application/src/lib.rs",
+            "apps/desktop/src-tauri/src/bridge.rs",
+            "apps/desktop/ui/src/chart-workspace.tsx",
+            "scripts/inspect_futures_ticks.py",
+            "contracts/schemas/protocol.schema.json",
+            "crates/persistence/src/lib.rs",
+            "apps/desktop/src-tauri/src/workspace.rs",
+            "apps/desktop/ui/src/local-import-editor.tsx",
+            "crates/persistence/src/reviewed_import.rs",
+            "crates/persistence/src/local_dataset.rs",
+            "crates/application/src/local_publication.rs",
+            "apps/desktop/ui/src/local-revision-dialog.tsx",
+            "crates/worker-host/src/local_import_windows.rs",
+            "crates/platform/src/local_folder/platform_fs.rs",
+            "crates/platform/tests/local_folder.rs",
+            "apps/desktop/src-tauri/src/local_import/folder_refresh.rs",
+            "apps/desktop/ui/src/folder-refresh-review.tsx",
+            "crates/application/src/folder_refresh.rs",
+            "crates/application/src/folder_manifest.rs",
+            "crates/persistence/src/folder_manifest.rs",
+            "crates/persistence/src/folder_manifest.sql",
+            "python/providers/csv_bar_mapping.py",
+            "apps/desktop/ui/src/local-preview-chart.tsx",
+            "tests/ui/local-import.spec.mjs",
+            "crates/application/src/folder_publication.rs",
+            "scripts/check_local_import_publication.py"
+          ],
+          "rules": [
+            {
+              "path": "contracts/decisions/0013-own-the-local-csv-interpreter-directly.json",
+              "pointer": "/decision"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/product/data_onboarding"
+            },
+            {
+              "path": "contracts/decisions/0008-inspectable-data-and-workspace-actions.json",
+              "pointer": "/decision"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization/replay"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/product/data_onboarding/refresh_conflicts"
+            },
+            {
+              "path": "contracts/decisions/0014-local-folder-operation-handles.json",
+              "pointer": "/decision"
+            },
+            {
+              "path": "contracts/decisions/0015-immutable-local-folder-manifests.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Remote data channels, cloud transmissions, inferred settlement/trade conversions and the separate real-provider connection workflow.",
+            "First publication and explicit compatible replacement cover one selected file and one fully resolved native bar series. No persistent folder grant is issued.",
+            "The single-file library reads v5 snapshots alongside the v7 folder library. Neither library preserves a native directory grant or makes network requests.",
+            "Repair replay and selected-folder sharing on the current schema v5. Coordinate the checked directory interface with the separately implemented folder review and manifest.",
+            "Use the existing v7 schema and local profile writer. Keep existing v5 library and shared chart selection behavior. Private records and cross-branch integration belong to their own work.",
+            "Frozen source row inspection remains local human display within the revision entitlement. No new grant or model and external authority changes. The portable gate uses a trusted synthetic path chooser callback and covers native picker admission, registry dispatch, worker execution and profile storage."
+          ],
+          "open_questions": [
+            "Compare canonical source membership, alias locators and explicit conflict and withdrawal choices across native Windows and portable release candidates.",
+            "Verify explicitly identified executed trades, depth snapshots, reference data and corporate actions remain inspectable in source order alongside unknown inputs. Derived candles and roll calculations require their documented source semantics.",
+            "Verify that a person can select each same-name revision by its final close in the native Windows library. Use the stored trading days and venue as context and retain the source digest when the visible market summaries are equal.",
+            "Verify the picker, publication, migration and frozen chart path in the native Windows application.",
+            "Qualify large directory and source record limits in the native review workflow, including partial-coverage diagnostics."
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Explicit sample selection, source identity, original frozen historical reads and source rights.",
+            "Direct revision-ID opening and its unavailable and denied results.",
+            "The normalized chart, original source bytes, and reviewed encoding, delimiter, and logical CSV record boundaries remain immutable for each single-file revision."
+          ],
+          "change": [
+            "Add a separately authorized local-folder source with reviewable versioned mappings and snapshots.",
+            "Add immutable reviewed mapping versions in the existing profile database, including an explicit review-required result for a changed header.",
+            "Require a prior completed public preview before the existing single-click save. Keep the live file reread and guarded SQLite commit.",
+            "Compare the complete ordered decoded header independently of later decode failures. Preserve the source checksum and explicitly identify unverifiable headers.",
+            "Add explicit complete-file publication and frozen reads for one resolved native CSV bar series. Check up to 4 MiB and 10,000 original records, hold incomplete or ambiguous results, and retain source bytes, mapping fingerprint and all row locators. Exact retries reuse the immutable revision.",
+            "Support explicit and separately reviewable republishing of compatible changed bytes as a new single-file revision. Reopen an earlier revision by ID with no directory grant. A separate local human action removes that revision's display permission while preserving its stored original.",
+            "Distinguish the same admitted save request from an independent review. Reuse the exact equivalent latest saved mapping in the writer while allowing a new explicit A-to-B-to-A review. Test changed request purpose or inputs, native grants, source bytes, cancellation and concurrent attempts.",
+            "Recover an exact committed publication receipt within the original live native selection before requiring a current reviewed mapping, completed preview or another file read. Check the current display right on every reply. Keep current grant, preview and source validation on the new-publication path. A restart requires a fresh native selection for new source work and still allows entitled frozen reads by revision ID.",
+            "Normalize the Windows association path only after trusted selection admission. Retain canonical v4 keys, opaque live grants and source and profile separation.",
+            "Add an explicit, human-only paginated library in Open published CSV. List entitled revisions in stable revision-ID order and read the selected frozen chart through the existing operation.",
+            "Retry only a pure local preview once after a five-second worker timeout and confirmed cleanup. Reuse the frozen bytes, fingerprint and mapping, preserve caller deadlines, and stop on a second timeout.",
+            "Targeted verification passed on the standard-user Win11 MSVC archive 255ae9138f7a with 16 local-import controls and one separate ownership run. Independent Linux archive a377f77d50d3 passed 12 controls. ADR 0013 records artifact hashes and scope. The phase and cause of the original GUI timeout remain unknown.",
+            "Release strict native directory and file handles after each filesystem operation. Revalidate the selected root and catalogued subdirectory identities under checked traversal before using a path. An exact committed replay still uses the grant and display rights without rereading the source.",
+            "Stage a deterministic folder comparison against the immutable accepted v5 single-file revision. Apply the versioned saved mapping only when the ordered header and resolved series agree. Coalesce identical economic bars with every locator and preserve divergent alternatives and the prior bar for review. Show source replacement and withdrawal candidates without committing any.",
+            "Add the v7 owned storage and ordered migration. Bind each accepted folder revision to its v5 anchor, persist reviewed source membership and every selected locator, and store an exact retry receipt in the same SQLite transaction.",
+            "Check explicit per-row quantity unit, price adjustment and venue declarations against the reviewed mapping. Use private complete-source inspection to retain all same-file competing values and source locators. Show the reviewed series context with the comparison and keep strict normalization for single-file publication.",
+            "Bind explicit conflict choices and source and bar withdrawals to a private review. Publish a canonical chosen manifest under the final checked native handles, then return entitled exact receipts. Add frozen folder discovery, chart and source inspection, and independent display revocation through the existing local human workflow.",
+            "Resolve one published source locator through the current profile and revision display entitlement. Parse retained bytes using the historical reviewed mapping, validate the returned digest, locator and header, and return original decoded fields within 64 KiB. Qualify both frozen presenters with their own source revision scope.",
+            "The local-folder-import gate exercises editable, genuinely parsed equity and futures CSVs, distinguishes declared dated and continuous native sources, and holds raw-only and incompatible inputs. It drives reviewed addition, aliases, correction, withdrawal, exact reply replay, final-source rejection and host interruption through the built desktop UI and retained profile. Isolate it from single-file publication, read-only folder staging and the SQLite crash-in-transaction control.",
+            "Point each current alias directly to a current path with equal bytes. Retain a matching accepted path as representative when available. Display matches to accepted fingerprints with a separate historical label using the existing preview and immutable snapshot formats."
+          ],
+          "data_plan": "Keep source bytes, mapping, evidence locators and dataset revisions on the active profile. Migrate long-lived state through its owning Rust writer when publication is introduced. Integrate the profile writer and migration history from af89eff. Preserve workspace schema v1, decision notes v2 and backup and restore v3. Apply reviewed mapping schema v4 transactionally and verify both populated v3 databases and fresh initialization. Persist an opaque per-source association, ordered header digest and reviewed mapping. Derive folder access only from the current trusted selection. Add a transactional v4 to v5 migration owned by the existing profile writer. Test upgrade with populated workspace, decision-note and reviewed mapping data, plus new and reopened profiles. A failed or cancelled publication leaves previous revisions readable without rereading the folder. Recover a failed migration from the preserved pre-upgrade profile. Discover from existing immutable v5 records and revocation markers with no new persisted state. The read-only folder preview compares those same immutable publications in the joined v6 profile. Folder manifest persistence starts with the v7 migration. Apply v7 as additive schema in the existing immediate migration transaction, with no fabricated folder history for old single-file revisions. Exercise a populated v6 profile and an untouched recovery copy. Keep folder ownership local and store neither directory grants nor absolute source paths. Read frozen raw fields on demand from existing single-file and folder lineage. Retain no new copies in storage or shared workspace records.",
+          "cleanup": "Cancel uncommitted staging on failure and close file handles when the selected folder or profile changes. Close the profile writer and cancel uncommitted mapping operations when the host shuts down. Release any uncommitted complete-file data after cancellation, changed bytes or write failure. Discard stale list pages on refresh and remove inaccessible entries after a raced selection. Keep the worker admission permit through the bounded cleanup. A failed cleanup never authorizes a replacement. Release the private staged files and cancel the current scan or parser on directory grant change or cancellation. The frozen source and its original remain available under existing display rights. Roll back uncommitted v7 rows, shared byte insertions and receipts on cancellation, stale guard, or abrupt process exit. Drop the transient source row on collapse, page change, replacement, or revocation. A failed read leaves the revision and its normalized chart intact."
+        }
+      }
     },
     {
       "id": "M4-002",
@@ -5302,6 +5842,178 @@
       }
     },
     {
+      "id": "M1-019",
+      "title": "Verify recovery boundaries and owned worker interruption on Windows",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-003"
+      ],
+      "scope": [
+        "crates/worker-host",
+        "tests/ubuntu-preview",
+        "tests/ui",
+        "scripts/rust_workspace.py",
+        ".github/workflows/verify.yml",
+        "project/tasks.json",
+        "project/feedback.json",
+        "tests/project/test_market_probe_owner.py",
+        "pyproject.toml",
+        "uv.lock",
+        "project/dependency-inventory.json",
+        "THIRD_PARTY_NOTICES",
+        "tests/integration/test_worker.py",
+        "tests/project/test_dependencies.py"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "A cold native Windows runner can verify recovery, preserve a visible gap on mismatched replacement and exhaust the bounded retry sequence while preserving the expected terminal cause. Independent request, cleanup and cancellation limits remain enforced.",
+        "The real chart interruption reaches only the admitted worker under the test-owned preview. The test observes its confirmed progress, one final projection and unchanged frozen data. Closed-bar browser checks observe preparation and stream progress separately and still reject every altered or incomplete frame.",
+        "The hosted change verification leaves enough bounded time for the full Windows check sequence and retained evidence, including failures. Linux and native Windows outcomes are observed separately.",
+        "A provisioned Linux runner launches the pinned Chromium before the chart suites. When required system libraries are absent, install them and verify the same browser starts before continuing.",
+        "Default sample startup verifies the completed catalog and its subsequent history before asserting the chart. The real interrupted worker resumes inside the original product budget, and the minimal locked dependency environment enforces every format declared by the protocol and project schemas."
+      ],
+      "checks": [
+        "rust-contracts-workers",
+        "market-recovery",
+        "market-worker-interruption",
+        "market-recovery-ui",
+        "rust-format",
+        "rust-lints",
+        "architecture",
+        "python-contracts-workers",
+        "project-state",
+        "market-fixtures",
+        "python-types",
+        "dependency-review",
+        "market-quality-states",
+        "market-live-stream",
+        "ui-build"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-019-9b158d1aa2e3299c.json",
+          "sha256": "ccfe770fa2f4d38ecb4797143c98dfe0b8811f394d1da1e773872ff60b7c969f"
+        },
+        {
+          "path": "project/evidence/M1-019-da1cca2453fa7f86.json",
+          "sha256": "77d244a24ecb44fef4d4f406d0b3dc633880ff7f3a06b4a0a6abbc3bd73d8f91"
+        },
+        {
+          "path": "project/evidence/M1-019-1139dbf6ff2e06ed.json",
+          "sha256": "164c58576a2e1725828a2c9e28f762a4d74d4fa8cbc4a825ac73f3f961e1ffbb"
+        },
+        {
+          "path": "project/evidence/M1-019-a5c00379c62d812b.json",
+          "sha256": "ade7745a3b59b2b08631312c9316857151498898f102c8aaa2480ccf8f7d24b3"
+        },
+        {
+          "path": "project/evidence/M1-019-875d2aa0a12efd3c.json",
+          "sha256": "c9ce07a16bba084da526c3ca6b293fab69a27f9d35eb73ce3b6ddcba4cad6756"
+        },
+        {
+          "path": "project/evidence/M1-019-e036185761cf4c65.json",
+          "sha256": "7e6b31c53e8c67539b63a4a95aa207f6edac4062dc7bc17c563d82b3fe63aca6"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "One credible cross-platform verification of owned replay interruption and closed-bar repair, with diagnostics retained after failed checks.",
+        "change_types": [
+          "tooling",
+          "market-fixtures",
+          "dependencies",
+          "quality-slice",
+          "stream-slice"
+        ],
+        "context": [
+          "crates/worker-host/src/market.rs",
+          "crates/worker-host/src/market_recovery_tests.rs",
+          "tests/ubuntu-preview/interrupt_owned_worker.py",
+          "tests/ubuntu-preview/market-closed-bar-repair.spec.mjs",
+          "tests/ui/replay-stages.mjs",
+          ".github/workflows/verify.yml"
+        ],
+        "hypotheses": [
+          "The Windows redirector adds a process between the helper and its owning Node test. Cold worker startup, retries and browser preparation can individually succeed while a check waiting across them expires.",
+          "Runs 44520641312 and 44521481949 stopped fetching Ubuntu font packages before executing any project check. Starting the pinned browser verifies the existing host runtime and reserves package installation for missing dependencies.",
+          "The native Windows runner observed reconnecting and resumed before the real stream timed out. The optional schema extra compiles an unused grammar on every worker start. Compare fresh locked environments with the same owned bridge, fixture and monotonic deadlines."
+        ],
+        "risks": [
+          {
+            "failure": "An unrelated process is interrupted or a late/absent result is reported as acceptable.",
+            "checks": [
+              "market-worker-interruption",
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "A blanket delay masks a stalled worker, invalid replacement or unbounded recovery.",
+            "checks": [
+              "rust-contracts-workers",
+              "market-recovery-ui"
+            ]
+          },
+          {
+            "failure": "Removing an optional grammar silently disables a format the wire protocol or project evidence uses, or a chart startup assertion waits across multiple cold operations.",
+            "checks": [
+              "python-contracts-workers",
+              "dependency-review",
+              "market-quality-states",
+              "market-live-stream"
+            ]
+          }
+        ],
+        "rollback": "Retain the cancelled hosted run and its surviving check tails. Exercise controlled missing, delayed or incorrect results before accepting replacement evidence.",
+        "implementation": {
+          "modules": [
+            "worker-host",
+            "development-tooling",
+            "ui"
+          ],
+          "entrypoints": [
+            "crates/worker-host/src/market.rs",
+            "tests/ubuntu-preview/interrupt_owned_worker.py",
+            "tests/ubuntu-preview/market-closed-bar-repair.spec.mjs",
+            ".github/workflows/verify.yml",
+            "python/worker_runtime/protocol.py",
+            "pyproject.toml",
+            "tests/ui/sample-startup.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/runtime"
+            }
+          ],
+          "non_goals": [
+            "New market sources, chart features or release qualification."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Retry limits, confirmed stream position, frozen source data, private process ownership and an observable terminal error."
+          ],
+          "change": [
+            "Bind test observation to actual admitted work and keep the hosted Windows report recoverable under cold builds."
+          ],
+          "data_plan": "Private CI diagnostics and temporary synthetic fixtures cover the regression.",
+          "cleanup": "Keep one restart sequence and one test-owned process tree. Leave unverified hosted results visible."
+        }
+      }
+    },
+    {
       "id": "M2-007",
       "title": "Verify the persisted timeframe and eligible undo across local workspace sessions",
       "milestone": "M2",
@@ -5457,6 +6169,328 @@
           ],
           "data_plan": "Only temporary synthetic profiles are used for the browser checks. They are removed after their owned processes exit.",
           "cleanup": "Keep the process probe test-only. Stage named browser results and retain private working databases locally."
+        }
+      }
+    },
+    {
+      "id": "M1-020",
+      "title": "Verify serial catalog and history startup in chart previews",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-001"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/market-workflow.spec.mjs",
+        "tests/ubuntu-preview/preview.spec.mjs",
+        "tests/ubuntu-preview/playwright.config.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Default sample startup verifies the exact real catalog and history requests and their separate successful replies before checking chart readiness in both browser suites.",
+        "Holding each real reply independently reproduces a startup beyond the old five-second aggregate wait. Exact chart, replay, offline retry, and typed worker-error assertions still apply."
+      ],
+      "checks": [
+        "market-workflow",
+        "ubuntu-preview",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-020-d05ddb38f6fbe253.json",
+          "sha256": "2c3bfc81be3f5e290bacfa225d559024c41b0de1fb06ba944c2d71a30a44ba67"
+        },
+        {
+          "path": "project/evidence/M1-020-262ff58ae7d6230d.json",
+          "sha256": "32348045029b73c35d9eb6cd09b4a785e502b4b65703a817007d066f2edf01e2"
+        },
+        {
+          "path": "project/evidence/M1-020-839a408a8b3f3cd1.json",
+          "sha256": "d1971b1a3fbf4483e55dc8b8339f718142b620ce3cd31e3e5687d5a62efe6426"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Separate catalog and history verification from chart paint in the inherited M1-001 browser paths.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ui/sample-startup.mjs",
+          "apps/desktop/ui/ubuntu-preview.mjs"
+        ],
+        "hypotheses": [
+          "The two serial worker reads can legitimately outlast the former five-second render wait, including after Retry demo."
+        ],
+        "risks": [
+          {
+            "failure": "An unsuccessful worker reply, incorrect series, or missing chart passes as slow startup.",
+            "checks": [
+              "market-workflow",
+              "ubuntu-preview"
+            ]
+          }
+        ],
+        "rollback": "Retain hosted run 44531620190 and the held-response regression before reopening any failing phase.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ui/sample-startup.mjs",
+            "tests/ubuntu-preview/preview.spec.mjs",
+            "tests/ubuntu-preview/market-workflow.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Worker deadlines, application retry rules, fixtures, and packaged Windows acceptance."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Explicit synthetic opt-in, replay and chart values, and offline recovery behavior."
+          ],
+          "change": [
+            "Use the shared default startup verifier and cover two independently held real replies and a typed worker failure."
+          ],
+          "data_plan": "Use only committed synthetic fixtures through the local bridge.",
+          "cleanup": "Keep timeout allowances in browser verification and leave product deadlines intact."
+        }
+      }
+    },
+    {
+      "id": "M0-027",
+      "title": "Isolate the live publisher advisory request in GitHub verification",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-017"
+      ],
+      "scope": [
+        ".github/workflows/verify.yml",
+        "scripts/dependencies.py",
+        "scripts/publisher_advisory.py",
+        "tests/project/test_dependencies.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Hosted verification uses the existing job read token only for the exact approved public publisher advisory GET. No redirect or other dependency client receives it.",
+        "The live published advisory is bound to the current job attempt and checkout. Missing, unavailable, stale, malformed, or changed metadata fails review. Inventory, notices, immutable Actions, OSV, npm, and target-scope requirements still apply."
+      ],
+      "checks": [
+        "dependency-review",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-027-25105a7b3a4f376a.json",
+          "sha256": "86751b14e19cb2f9b2dfce9baf02de232e84eec447ee98c1f51245acc6c901f4"
+        },
+        {
+          "path": "project/evidence/M0-027-875d2aa0a12efd3c.json",
+          "sha256": "6bb2d38b8253a08a5309e784bb195c2a163e8ea58f35aaa772abae61f8d0558b"
+        },
+        {
+          "path": "project/evidence/M0-027-e036185761cf4c65.json",
+          "sha256": "4b5a6dfb545c543ea9298bac984771f657cc36e6a662180a129f46246425189c"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Recheck the public publisher advisory under the existing CI identity without transmitting it elsewhere.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/dependencies.json",
+          "scripts/dependencies.py",
+          ".github/workflows/verify.yml"
+        ],
+        "hypotheses": [
+          "The Linux runner exhausted its anonymous GitHub REST request quota. A job-scoped authenticated read can avoid that quota when the publisher endpoint accepts the identity."
+        ],
+        "risks": [
+          {
+            "failure": "A redirect, later check, subprocess, or diagnostic receives the token.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An unavailable, stale, or changed publisher reply authorizes a disposition.",
+            "checks": [
+              "dependency-review",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain the run 44536924867 failure. If the approved live endpoint remains unavailable, keep the gate failed and retain its bounded diagnostics.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            ".github/workflows/verify.yml",
+            "scripts/dependencies.py",
+            "scripts/publisher_advisory.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/dependencies.json",
+              "pointer": "/advisory_dispositions"
+            }
+          ],
+          "non_goals": [
+            "Permission expansion, user credentials, product changes, and static advisory waivers."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing online advisory, target coverage, license, and notice acceptance."
+          ],
+          "change": [
+            "Isolate an exact-origin publisher fetch and bind its public result to the current CI invocation."
+          ],
+          "data_plan": "Store only reviewed public advisory fields in the runner temporary directory.",
+          "cleanup": "The fetch has no child checks. The runner owns temporary public evidence and the built-in job credential lifetime."
+        }
+      }
+    },
+    {
+      "id": "M2-008",
+      "title": "Own browser response waits in the workspace preview harness",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-007"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "A controlled initial document failure in real Chromium reports its navigation error and releases the pending workspace snapshot observation before context teardown.",
+        "Response and download observations in the workspace suite are scoped to the browser action. Test-only HTTP probes consume or cancel the bodies they own. Existing success and rejection assertions continue to pass without retries or extended timeouts.",
+        "Retain the original hosted Windows error and report the harness finding separately from the unresolved origin of that Chromium navigation error."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-008-21f96520ee78a8a1.json",
+          "sha256": "db2977baa24757ef29b37284c9230d2a83511e9215b5065e5735e1cbc6d0ea63"
+        },
+        {
+          "path": "project/evidence/M2-008-58367345402022ed.json",
+          "sha256": "a492e7c0727d1af3ee9d5c73e0ab1818e5eb10835c515592de1bbea8c5733389"
+        },
+        {
+          "path": "project/evidence/M2-008-147fd2b169587165.json",
+          "sha256": "33fe3c9305e4bbc2d7e2c9ba2e51096d1536795dff2a182a2ccf9535b20014bb"
+        },
+        {
+          "path": "project/evidence/M2-008-32991f2b48f4105b.json",
+          "sha256": "4c63913412c54b2671a1b992d9b238983e3b389247f62fe73d1c6604da56a758"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A real navigation error remains the primary assertion failure and leaves no workspace snapshot observer behind.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ubuntu-preview/workspace.config.mjs",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The response promise created before navigation was observed only after successful navigation and UI assertions. Closing the context on failure rejects that abandoned promise."
+        ],
+        "risks": [
+          {
+            "failure": "A snapshot listener survives a rejected action or captures the wrong response.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A test helper masks the original document error or changes a notes authorization assertion.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Keep the original hosted failure and the controlled red result. Scope any repair to the workspace harness and compare the original operation assertions.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changes to product operations, grants, SQLite, public registries, timeouts or runner settings."
+          ],
+          "open_questions": [
+            "The origin of the isolated hosted Chromium document error remains unverified."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Real Chromium, Vite, Rust persistence, the existing test deadlines, and independent synthetic profiles."
+          ],
+          "change": [
+            "Tie the lifetimes of test observations and response bodies to the operations that own them."
+          ],
+          "data_plan": "Use a unique local port and a controlled browser route or temporary synthetic profile.",
+          "cleanup": "Detach pending listeners when an action fails. Consume or cancel owned HTTP response bodies and close the owned browser contexts."
         }
       }
     },
@@ -5813,290 +6847,6 @@
           ],
           "data_plan": "Use only synthetic market data and an isolated development profile in a disposable Windows clone.",
           "cleanup": "Close owned processes and retain the original source, runtime and diagnostic results separately."
-        }
-      }
-    },
-    {
-      "id": "M1-019",
-      "title": "Verify recovery boundaries and owned worker interruption on Windows",
-      "milestone": "M1",
-      "status": "done",
-      "depends_on": [
-        "M1-003"
-      ],
-      "scope": [
-        "crates/worker-host",
-        "tests/ubuntu-preview",
-        "tests/ui",
-        "scripts/rust_workspace.py",
-        ".github/workflows/verify.yml",
-        "project/tasks.json",
-        "project/feedback.json",
-        "tests/project/test_market_probe_owner.py",
-        "pyproject.toml",
-        "uv.lock",
-        "project/dependency-inventory.json",
-        "THIRD_PARTY_NOTICES",
-        "tests/integration/test_worker.py",
-        "tests/project/test_dependencies.py"
-      ],
-      "decision_refs": [
-        "0004",
-        "0007"
-      ],
-      "acceptance": [
-        "A cold native Windows runner can verify recovery, preserve a visible gap on mismatched replacement and exhaust the bounded retry sequence while preserving the expected terminal cause. Independent request, cleanup and cancellation limits remain enforced.",
-        "The real chart interruption reaches only the admitted worker under the test-owned preview. The test observes its confirmed progress, one final projection and unchanged frozen data. Closed-bar browser checks observe preparation and stream progress separately and still reject every altered or incomplete frame.",
-        "The hosted change verification leaves enough bounded time for the full Windows check sequence and retained evidence, including failures. Linux and native Windows outcomes are observed separately.",
-        "A provisioned Linux runner launches the pinned Chromium before the chart suites. When required system libraries are absent, install them and verify the same browser starts before continuing.",
-        "Default sample startup verifies the completed catalog and its subsequent history before asserting the chart. The real interrupted worker resumes inside the original product budget, and the minimal locked dependency environment enforces every format declared by the protocol and project schemas."
-      ],
-      "checks": [
-        "rust-contracts-workers",
-        "market-recovery",
-        "market-worker-interruption",
-        "market-recovery-ui",
-        "rust-format",
-        "rust-lints",
-        "architecture",
-        "python-contracts-workers",
-        "project-state",
-        "market-fixtures",
-        "python-types",
-        "dependency-review",
-        "market-quality-states",
-        "market-live-stream",
-        "ui-build"
-      ],
-      "evidence": [
-        {
-          "path": "project/evidence/M1-019-9b158d1aa2e3299c.json",
-          "sha256": "ccfe770fa2f4d38ecb4797143c98dfe0b8811f394d1da1e773872ff60b7c969f"
-        },
-        {
-          "path": "project/evidence/M1-019-da1cca2453fa7f86.json",
-          "sha256": "77d244a24ecb44fef4d4f406d0b3dc633880ff7f3a06b4a0a6abbc3bd73d8f91"
-        },
-        {
-          "path": "project/evidence/M1-019-1139dbf6ff2e06ed.json",
-          "sha256": "164c58576a2e1725828a2c9e28f762a4d74d4fa8cbc4a825ac73f3f961e1ffbb"
-        },
-        {
-          "path": "project/evidence/M1-019-a5c00379c62d812b.json",
-          "sha256": "ade7745a3b59b2b08631312c9316857151498898f102c8aaa2480ccf8f7d24b3"
-        },
-        {
-          "path": "project/evidence/M1-019-875d2aa0a12efd3c.json",
-          "sha256": "c9ce07a16bba084da526c3ca6b293fab69a27f9d35eb73ce3b6ddcba4cad6756"
-        },
-        {
-          "path": "project/evidence/M1-019-e036185761cf4c65.json",
-          "sha256": "7e6b31c53e8c67539b63a4a95aa207f6edac4062dc7bc17c563d82b3fe63aca6"
-        }
-      ],
-      "next_action": null,
-      "blocker": null,
-      "closure_reason": null,
-      "plan": {
-        "outcome": "One credible cross-platform verification of owned replay interruption and closed-bar repair, with diagnostics retained after failed checks.",
-        "change_types": [
-          "tooling",
-          "market-fixtures",
-          "dependencies",
-          "quality-slice",
-          "stream-slice"
-        ],
-        "context": [
-          "crates/worker-host/src/market.rs",
-          "crates/worker-host/src/market_recovery_tests.rs",
-          "tests/ubuntu-preview/interrupt_owned_worker.py",
-          "tests/ubuntu-preview/market-closed-bar-repair.spec.mjs",
-          "tests/ui/replay-stages.mjs",
-          ".github/workflows/verify.yml"
-        ],
-        "hypotheses": [
-          "The Windows redirector adds a process between the helper and its owning Node test. Cold worker startup, retries and browser preparation can individually succeed while a check waiting across them expires.",
-          "Runs 44520641312 and 44521481949 stopped fetching Ubuntu font packages before executing any project check. Starting the pinned browser verifies the existing host runtime and reserves package installation for missing dependencies.",
-          "The native Windows runner observed reconnecting and resumed before the real stream timed out. The optional schema extra compiles an unused grammar on every worker start. Compare fresh locked environments with the same owned bridge, fixture and monotonic deadlines."
-        ],
-        "risks": [
-          {
-            "failure": "An unrelated process is interrupted or a late/absent result is reported as acceptable.",
-            "checks": [
-              "market-worker-interruption",
-              "market-recovery"
-            ]
-          },
-          {
-            "failure": "A blanket delay masks a stalled worker, invalid replacement or unbounded recovery.",
-            "checks": [
-              "rust-contracts-workers",
-              "market-recovery-ui"
-            ]
-          },
-          {
-            "failure": "Removing an optional grammar silently disables a format the wire protocol or project evidence uses, or a chart startup assertion waits across multiple cold operations.",
-            "checks": [
-              "python-contracts-workers",
-              "dependency-review",
-              "market-quality-states",
-              "market-live-stream"
-            ]
-          }
-        ],
-        "rollback": "Retain the cancelled hosted run and its surviving check tails. Exercise controlled missing, delayed or incorrect results before accepting replacement evidence.",
-        "implementation": {
-          "modules": [
-            "worker-host",
-            "development-tooling",
-            "ui"
-          ],
-          "entrypoints": [
-            "crates/worker-host/src/market.rs",
-            "tests/ubuntu-preview/interrupt_owned_worker.py",
-            "tests/ubuntu-preview/market-closed-bar-repair.spec.mjs",
-            ".github/workflows/verify.yml",
-            "python/worker_runtime/protocol.py",
-            "pyproject.toml",
-            "tests/ui/sample-startup.mjs"
-          ],
-          "rules": [
-            {
-              "path": "project/delivery.json",
-              "pointer": "/scaffold_maintenance"
-            },
-            {
-              "path": "engineering-contract-v1.json",
-              "pointer": "/runtime"
-            }
-          ],
-          "non_goals": [
-            "New market sources, chart features or release qualification."
-          ],
-          "open_questions": []
-        },
-        "evolution": {
-          "kind": "refactor",
-          "preserve": [
-            "Retry limits, confirmed stream position, frozen source data, private process ownership and an observable terminal error."
-          ],
-          "change": [
-            "Bind test observation to actual admitted work and keep the hosted Windows report recoverable under cold builds."
-          ],
-          "data_plan": "Private CI diagnostics and temporary synthetic fixtures cover the regression.",
-          "cleanup": "Keep one restart sequence and one test-owned process tree. Leave unverified hosted results visible."
-        }
-      }
-    },
-    {
-      "id": "M0-027",
-      "title": "Isolate the live publisher advisory request in GitHub verification",
-      "milestone": "M0",
-      "status": "done",
-      "depends_on": [
-        "M0-017"
-      ],
-      "scope": [
-        ".github/workflows/verify.yml",
-        "scripts/dependencies.py",
-        "scripts/publisher_advisory.py",
-        "tests/project/test_dependencies.py",
-        "project/tasks.json",
-        "project/feedback.json"
-      ],
-      "decision_refs": [
-        "0004",
-        "0007"
-      ],
-      "acceptance": [
-        "Hosted verification uses the existing job read token only for the exact approved public publisher advisory GET. No redirect or other dependency client receives it.",
-        "The live published advisory is bound to the current job attempt and checkout. Missing, unavailable, stale, malformed, or changed metadata fails review. Inventory, notices, immutable Actions, OSV, npm, and target-scope requirements still apply."
-      ],
-      "checks": [
-        "dependency-review",
-        "project-state",
-        "python-contracts-workers"
-      ],
-      "evidence": [
-        {
-          "path": "project/evidence/M0-027-25105a7b3a4f376a.json",
-          "sha256": "86751b14e19cb2f9b2dfce9baf02de232e84eec447ee98c1f51245acc6c901f4"
-        },
-        {
-          "path": "project/evidence/M0-027-875d2aa0a12efd3c.json",
-          "sha256": "6bb2d38b8253a08a5309e784bb195c2a163e8ea58f35aaa772abae61f8d0558b"
-        },
-        {
-          "path": "project/evidence/M0-027-e036185761cf4c65.json",
-          "sha256": "4b5a6dfb545c543ea9298bac984771f657cc36e6a662180a129f46246425189c"
-        }
-      ],
-      "next_action": null,
-      "blocker": null,
-      "closure_reason": null,
-      "plan": {
-        "outcome": "Recheck the public publisher advisory under the existing CI identity without transmitting it elsewhere.",
-        "change_types": [
-          "tooling"
-        ],
-        "context": [
-          "project/dependencies.json",
-          "scripts/dependencies.py",
-          ".github/workflows/verify.yml"
-        ],
-        "hypotheses": [
-          "The Linux runner exhausted its anonymous GitHub REST request quota. A job-scoped authenticated read can avoid that quota when the publisher endpoint accepts the identity."
-        ],
-        "risks": [
-          {
-            "failure": "A redirect, later check, subprocess, or diagnostic receives the token.",
-            "checks": [
-              "python-contracts-workers"
-            ]
-          },
-          {
-            "failure": "An unavailable, stale, or changed publisher reply authorizes a disposition.",
-            "checks": [
-              "dependency-review",
-              "python-contracts-workers"
-            ]
-          }
-        ],
-        "rollback": "Retain the run 44536924867 failure. If the approved live endpoint remains unavailable, keep the gate failed and retain its bounded diagnostics.",
-        "implementation": {
-          "modules": [
-            "development-tooling"
-          ],
-          "entrypoints": [
-            ".github/workflows/verify.yml",
-            "scripts/dependencies.py",
-            "scripts/publisher_advisory.py"
-          ],
-          "rules": [
-            {
-              "path": "project/delivery.json",
-              "pointer": "/scaffold_maintenance"
-            },
-            {
-              "path": "project/dependencies.json",
-              "pointer": "/advisory_dispositions"
-            }
-          ],
-          "non_goals": [
-            "Permission expansion, user credentials, product changes, and static advisory waivers."
-          ],
-          "open_questions": []
-        },
-        "evolution": {
-          "kind": "refactor",
-          "preserve": [
-            "Existing online advisory, target coverage, license, and notice acceptance."
-          ],
-          "change": [
-            "Isolate an exact-origin publisher fetch and bind its public result to the current CI invocation."
-          ],
-          "data_plan": "Store only reviewed public advisory fields in the runner temporary directory.",
-          "cleanup": "The fetch has no child checks. The runner owns temporary public evidence and the built-in job credential lifetime."
         }
       }
     },
@@ -6581,6 +7331,292 @@
           ],
           "data_plan": "Use the existing simulated source and disposable local fixtures.",
           "cleanup": "Keep failed and successful logs and remove temporary listeners with their request scopes."
+        }
+      }
+    },
+    {
+      "id": "M2-010",
+      "title": "Verify recovery of a disconnected sample history read from the private workspace",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-009"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ui/sample-startup.mjs",
+        "tests/ui/selected-history.mjs",
+        "apps/desktop/ui",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Observe catalog and selected-history transport separately during an explicit sample open from the private workspace, including a later reopen and refresh. Confirm the actual instrument, timeframe, frozen chart and simulated source.",
+        "A controlled lost local history connection gives the actual user a visible recovery path. Observe the failed read and its terminal state, restore the transport, use the offered action, and verify a successful current history and preserved prior workspace undo. Permanent connection loss and provider rejections remain observable.",
+        "Keep the original hosted evidence and document which failure stage was established. Verify the affected suite on the integrated Ubuntu and Windows source."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe",
+        "market-workflow",
+        "ui-build",
+        "market-quality-states"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-010-a11a7bfa1fb61b67.json",
+          "sha256": "5222a7d86e483307c0bc28437d81fe776be1b2127a3d1d47dbae8c993a955efa"
+        },
+        {
+          "path": "project/evidence/M2-010-4079ff43267eb2f9.json",
+          "sha256": "045951b2ed091be58995a84cd7926cbb1ec8a29698c5414bcbc3244bc40faefc"
+        },
+        {
+          "path": "project/evidence/M2-010-0acc282c90acc287.json",
+          "sha256": "7348a7cc3767f6e3fd3c524656f0aab58bac9694875c6578cd04f47698d9169f"
+        },
+        {
+          "path": "project/evidence/M2-010-6f8b1653b73db8e7.json",
+          "sha256": "42e40f86f14e58dd3c04ddf28b474497f2a5926b35ac3bd5c4d7f5a4127e547d"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "All required checks passed in the integrated local task run and in the authenticated Ubuntu and Windows verification reports from PR 21 run 44616706526. Both hosted browser reports verified healthy opens and refreshes, explicit recovery after a controlled transport loss, distinct denials, and preserved private undo. The Windows verification report passed and was uploaded before the PR job was cancelled during post-cache. The initiating cause of the original hosted incident remains unknown.",
+      "plan": {
+        "outcome": "A user can identify a disconnected history read and recover the explicitly selected offline sample while retaining the private workspace timeframe and undo.",
+        "change_types": [
+          "tooling",
+          "ui"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ui/sample-startup.mjs",
+          "tests/ui/selected-history.mjs",
+          "apps/desktop/ui/src/market.ts",
+          "apps/desktop/ui/ubuntu-preview.mjs",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The original Ubuntu run reached the selected-history transport terminal after the catalog populated. The archived report supplies neither a browser network error nor a host response stage, so the initiating OS or transport cause remains unknown.",
+          "A separately controlled loopback failure established that a real HTTP 403 could be presented as a retryable disconnect when its response body was interrupted after the browser received headers. The known HTTP status must still govern that terminal."
+        ],
+        "risks": [
+          {
+            "failure": "An invalid, denied or failed current history can look like a successful sample open.",
+            "checks": [
+              "workspace-timeframe",
+              "market-workflow",
+              "market-quality-states"
+            ]
+          },
+          {
+            "failure": "Retrying a sample read or reloading a tab accidentally dispatches a private write or replaces its undo.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Keep the original hosted artifact, controlled red and precise selected operation observations. Narrow any change to the demonstrated failure or restore the previous implementation.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "ui"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "apps/desktop/ui/src/market.ts"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing workspace authority, private persistence or the product timing contract."
+          ],
+          "open_questions": [
+            "If the original symptom recurs on the integrated Ubuntu or Windows source, use the correlated host, browser and client stages to locate the earliest observed failure."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Synthetic opt-in, selected request identity, preview service lifetime, typed provider failures, and private workspace authorization, revision and undo."
+          ],
+          "change": [
+            "Record the catalog and selected history terminal independently. Exercise explicit recovery through real loopback socket interruption while the normal open, reopen and refresh path requires a healthy chart.",
+            "Use an already received non-success HTTP status when its body cannot be read. Keep successful-status transfer failures eligible for explicit recovery and leave selection cancellation intact."
+          ],
+          "data_plan": "Use a disposable synthetic local profile and fixture.",
+          "cleanup": "Release test interception and response listeners on every path; retain bounded diagnostics without profile credentials."
+        }
+      }
+    },
+    {
+      "id": "M2-011",
+      "title": "Verify a deletion receipt after a peer corrects the original private record",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-001"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "apps/desktop/ui/src/private-records.tsx",
+        ".github/workflows/verify.yml",
+        "scripts/ci.py",
+        "scripts/integration.py",
+        "tests/project/test_ci.py",
+        "tests/project/test_integration.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "After a genuinely busy pre-commit deletion, observe the intended peer correction and the originating window recovery through the normal private workspace UI.",
+        "Keep uncertain deletion recovery body-free. An explicit retry reuses its original confirmation, fails stale after the peer correction, reveals the current record to its authorized viewer, and leaves the corrected record intact.",
+        "Distinguish peer authorization, peer commit, focus and current-read observations in a bounded test. A failed peer action or transport terminal has an attributed outcome and leaves no outstanding waiter. Preserve the Windows artifact and verify the affected checks on the integrated source."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "ui-build",
+        "market-workflow",
+        "workspace-timeframe",
+        "private-record-lifecycle"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-011-d2a7b9f8f9ce0c13.json",
+          "sha256": "66fc4380fb5595752813df072bf8f9d948097a170cfe0125b8026b047ad0c1bc"
+        },
+        {
+          "path": "project/evidence/M2-011-ec1f69ef216071b4.json",
+          "sha256": "b69474c224b9315ee2abc377ba6813a37a74b8ab0811cda7c0f00f8bd7cbbf48"
+        },
+        {
+          "path": "project/evidence/M2-011-20f1c7f5a60c604a.json",
+          "sha256": "19d6190a0557c6e865ce38fd813651fa16db4ef0937b95b654a4055f58123dbb"
+        },
+        {
+          "path": "project/evidence/M2-011-4c97599cecddceeb.json",
+          "sha256": "f9ebe69c19a13fb324365f0855033fd0cef779aa4af482043186be5eb0928bec"
+        },
+        {
+          "path": "project/evidence/M2-011-e69c505897f077a2.json",
+          "sha256": "3072ee6aa0fde04601369a44e960be5e4b034a16d4675eba3c18843ec442533a"
+        },
+        {
+          "path": "project/evidence/M2-011-459e39b0bf9d6978.json",
+          "sha256": "c271c70406e1c3af981b9973c956e6b8d90b516670b48a076049a8ae9f9afa3b"
+        },
+        {
+          "path": "project/evidence/M2-011-5fe022830b51dac1.json",
+          "sha256": "6601c269078dcb3502e0a0e3e61966811d5187f67594f3dd8910ff1ea155961a"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The local Linux task run and both authenticated jobs in run 44853953507 passed the required checks on a8a622e. Both hosted peer-rename journeys observed a pre-commit BUSY, a committed authorized correction, a stale retry of the original receipt, and revision 2 intact with zero deletions. The published revocation case passed within its behavior budget after independently bounded bridge setup. Windows skipped the POSIX signal case as expected.",
+      "plan": {
+        "outcome": "A user can resolve an uncertain deletion after another authorized window edits the same record and see the correct outcome. A hosted Windows task run can verify and upload both required recovery checks with time for job cleanup.",
+        "change_types": [
+          "tooling",
+          "ui"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ubuntu-preview/workspace.config.mjs",
+          "apps/desktop/ui/src/private-records.tsx",
+          ".github/workflows/verify.yml",
+          "scripts/integration.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The archived Windows waiter expired without identifying the peer action or origin read. The original Windows trigger remains unknown.",
+          "An admitted focus read occupies the single preview producer. In the controlled Linux reproduction the authorized peer then received HTTP 429 BUSY and the old panel reported only a generic failure.",
+          "Windows run 44616706526 finished verification and artifact upload at 41 minutes, then reached the 45-minute job deadline during cache cleanup. Its full selection omitted the task-cadence private-record-lifecycle check. Use an explicit task selection and a bounded 60-minute ordinary Windows job limit.",
+          "Windows task run 44852116487 reached the published revocation case's 60-second deadline before recording published revisions. The fixture runs a 90-second Cargo build inside that deadline. Delay only the local_import_bridge build on the baseline and repaired source to test the budget mismatch independently of browser behavior."
+        ],
+        "risks": [
+          {
+            "failure": "An observer outlives a failed peer navigation, edit or read, hiding the first actionable failure.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "Retrying an uncertain receipt deletes the corrected record, leaks the superseded title or body, or abandons a legitimately committed receipt.",
+            "checks": [
+              "workspace-timeframe",
+              "private-record-lifecycle"
+            ]
+          },
+          {
+            "failure": "A task dispatch supersedes the protected PR verification or masks its result during integration inspection.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A cold bridge build consumes the published revocation case's behavior deadline or a setup timeout obscures which command failed.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Keep the original Windows artifact and the independently reproduced failure. Revert an ineffective change without weakening receipt, authorization or deletion assertions. If the dispatch cannot produce matching Windows evidence, retain its diagnostic results and keep the task open.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "ui"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "apps/desktop/ui/src/private-records.tsx",
+            ".github/workflows/verify.yml",
+            "scripts/check.py",
+            "scripts/ci.py",
+            "scripts/integration.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing deletion policy, granting a new reader, or replaying a mutation automatically.",
+            "Changing the check catalog, artifact admission, protected check contexts or release selection."
+          ],
+          "open_questions": [
+            "Can the coordinator obtain a source-matched Windows task receipt covering both workspace-timeframe and private-record-lifecycle after isolating the revocation build budget?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Body-free recovery, explicit confirmation, original operation identity, peer access checks, stale revision handling and single tombstones.",
+            "Keep the automatic PR and main push selections, full and release behavior, check deadlines, artifact trust and prior receipts."
+          ],
+          "change": [
+            "Expose a real BUSY as contention in the private records panel.",
+            "Observe the peer read, review, approval and stored correction independently of the origin focus and exact deletion retry. Prove shared-producer contention separately from the two-service recovery.",
+            "Route an optional dispatch task ID to the existing harness on both operating systems. Distinguish task jobs from protected checks, group task concurrency by ref and task ID, and select only pull request runs for PR integration. Describe manual CI status in terms of the selection recorded by that run.",
+            "Give only the published revocation case's bridge build a separate bounded setup budget. Keep fixture publication, application behavior and assertions within their existing deadline."
+          ],
+          "data_plan": "Use only synthetic records in disposable profiles.",
+          "cleanup": "Release the test-owned read observer, writer transaction and browser contexts on every outcome."
         }
       }
     }
