@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-036",
+  "focus_task_id": "M2-002",
   "tasks": [
     {
       "id": "M0-001",
@@ -8091,7 +8091,7 @@
       "id": "M0-036",
       "title": "Bound Windows desktop fixture ACL preparation",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-011"
       ],
@@ -8115,8 +8115,21 @@
         "rust-format",
         "rust-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Validate short-lived fixture admission and directory cleanup locally, dispatch the native Rust task on PR 25, and compare the standard Windows job.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-036-2263a63bf3b1a326.json",
+          "sha256": "ebb6e7b9f08407173cb20a792df59ef4205377b50b5124ac8f09e41120f165c8"
+        },
+        {
+          "path": "project/evidence/M0-036-bede1e0b8b042a8b.json",
+          "sha256": "951c8dee010667c741ccee98c4a3cf61e6f6d0e933dd5076dd1b6e0a49ce2076"
+        },
+        {
+          "path": "project/evidence/M0-036-48a1ce86d7f1472b.json",
+          "sha256": "a741e3de3b2ef8b9b9c336e8334f90b5c80303814a745a9b5e031115f34e2bfc"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
