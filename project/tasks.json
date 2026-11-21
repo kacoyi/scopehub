@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-034",
+  "focus_task_id": "M0-033",
   "tasks": [
     {
       "id": "M0-001",
@@ -7857,7 +7857,7 @@
       "id": "M0-034",
       "title": "Verify linked checkout identity and shared managed-root admission",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-030"
       ],
@@ -7881,8 +7881,21 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Combine the reviewed M0-033 directory-handle follow-up, verify the combined revision locally and on hosted Ubuntu and Windows, archive matching evidence, and observe the required pull request jobs.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-034-b55505f4a1425012.json",
+          "sha256": "f73263e32d60dcc348c90d17ec66f04e9e852e55198ec64d0916206b3be83a75"
+        },
+        {
+          "path": "project/evidence/M0-034-886808f5528bc68f.json",
+          "sha256": "46559e3daa7999d4151074ae8239ca92fcfa51f9acba93efb038bac330633237"
+        },
+        {
+          "path": "project/evidence/M0-034-ec2bc88958a65715.json",
+          "sha256": "e2ebefe517304bb1285af1b48b00ca284347eb08a2011e9f4dcfcd4bc95236d9"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {

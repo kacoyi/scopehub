@@ -1992,7 +1992,7 @@
       "source": "PR 25 review and disposable native Git reproductions.",
       "observation": "The worktree helper accepted a Git file borrowed from a sibling linked checkout on the same branch. It also accepted a copied Git directory outside the native registry when its common directory, backlink and branch matched. New checkout creation reported success after a native hook switched HEAD to another branch.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-034"
       ],
@@ -2000,7 +2000,11 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Several checkouts share the same Git common directory. The previous verification trusted the top level and shared metadata, and a successful native add did not prove the requested branch survived the checkout hook.",
+        "correction": "Require a unique registration, the checkout-specific directory in the common worktree registry, its backlink to the checkout Git file, and the current symbolic branch. Recheck the requested branch after a native add.",
+        "prevention": "Disposable native Git fixtures cover a borrowed Git file from the same branch, copied metadata, a branch-changing hook, detached relative registrations, and the standalone pinned host helper. The Ubuntu and Windows task runs pass these fixtures."
+      },
       "deferral_reason": null
     },
     {
@@ -2008,7 +2012,7 @@
       "source": "PR 25 review and disposable native Git and Cargo cache reproductions.",
       "observation": "Storage inventory admitted a managed root nested in a foreign Git checkout that the worktree manager would reject. When a foreign repository appeared after inventory, collection deleted a fixture artifact under the foreign checkout. The legacy sibling rule also permitted that nesting. Re-review reproduced both worktree creation and collection under a foreign .git file that Git could not resolve, including collection of an enclosing repository's tracked file after Cargo locks had been acquired. The existing M0-030 fixture additionally caught a change to the mounted-worktree diagnostic while combining the root and cache handle safeguards.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-034"
       ],
@@ -2016,7 +2020,11 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Storage used a narrower ancestry check than the worktree manager. Git used exit 128 for both an empty marker directory and unresolved foreign metadata, which both callers could interpret as permission to proceed.",
+        "correction": "Check foreign and unresolved ancestor Git markers at admission and under Cargo locks. Preserve mounted-worktree diagnostics and keep both host helpers independently runnable.",
+        "prevention": "Independent disposable repositories exercise foreign linked ancestry, missing marker targets, and an outer Git repository’s committed file surviving collection after the locks. The existing mount and relocation fixtures continue to pass."
+      },
       "deferral_reason": null
     },
     {
