@@ -8676,7 +8676,7 @@
       "id": "M0-037",
       "title": "Recover history and local CSV bridges in previously relocated managed worktrees",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-030"
       ],
@@ -8702,10 +8702,15 @@
         "python-contracts-workers",
         "rust-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Stage only the affected installed bridge artifacts from approved exact source revisions in capped private space outside every registered checkout. Verify each staged runtime and preserve the separate missing-root and protocol baselines. Request per-checkout installation approval after stage and rollback review.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-037-647258ffc2b6c6d9.json",
+          "sha256": "880b93e3e736b6cf12b67ebf631933dc7eaba5555d4f83b553a8f97c60a7f4a8"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Scoped repository checks passed. The linked feedback records independent native acceptance for the 36 repaired bridge entries and tested byte-preserving recovery.",
       "plan": {
         "outcome": "Previously relocated managed worktrees can run their installed synthetic history and desktop CSV flows through the Python interpreter at their registered canonical paths, with reversible recovery of the original installed artifacts.",
         "change_types": [
