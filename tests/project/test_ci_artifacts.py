@@ -152,10 +152,10 @@ class PublicationTests(ProjectFixture):
             'ubuntu-preview/fixture/browser/preview-open/private.png', 'ubuntu-preview/fixture/profile.json',
             'runs/fixture/market-quality-states/browser/market-quality-source/trace.zip',
             'runs/fixture/market-workflow/browser/market-workflow-symbols/private.png',
-            'runs/fixture/workspace-timeframe/browser/workspace-restore/workspace.sqlite3',
             'runs/fixture/market-worker-interruption/browser/worker-interruption-market/worker-data.json',
             'runs/fixture/market-recovery/browser/market-closed-bar-repair-gap/worker-data.json',
             'runs/fixture/market-recovery/browser/other-case/verified-closed-bar-repair.png',
+            'runs/fixture/workspace-timeframe/browser/workspace-restore/workspace.sqlite3',
             '.private',
         ]:
             self.write(relative, self.sentinel)

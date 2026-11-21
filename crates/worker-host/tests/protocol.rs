@@ -1,4 +1,16 @@
-use scopehub_domain::protocol::{Message, Request, ToolCall};
+use scopehub_domain::{
+    protocol::{
+        DecisionNoteAppendOutcomeCommand11, DecisionNoteAppendOutcomeReply11,
+        DecisionNoteDeleteCommand11, DecisionNoteDeleteReply11, DecisionNoteExportBackupCommand11,
+        DecisionNoteExportBackupReply11, DecisionNotePreviewRestoreCommand11,
+        DecisionNotePreviewRestoreReply11, DecisionNoteReadCommand11, DecisionNoteReadReply11,
+        DecisionNoteRestoreBackupCommand11, DecisionNoteRestoreBackupReply11,
+        DecisionNoteSaveCommand11, DecisionNoteSaveReply11, Message, PrivateRecordChangeCommand11,
+        PrivateRecordChangeReply11, PrivateRecordExportCommand11, PrivateRecordExportReply11,
+        PrivateRecordReadCommand11, PrivateRecordReadReply11, Request, ToolCall,
+    },
+    wire::normalize_integers,
+};
 use scopehub_worker_host::{SCHEMA, decode_line, max_message_bytes};
 use serde_json::Value;
 use std::collections::BTreeSet;
@@ -76,6 +88,51 @@ fn shared_vectors_and_generated_types_agree() {
                 Message::MarketSubscriptionRequest(_) => {
                     requests.insert("market.subscribe");
                 }
+                Message::LocalImportPreviewRequest(_) => {
+                    requests.insert("market.previewLocalImport");
+                }
+                Message::SaveLocalImportMappingRequest(_) => {
+                    requests.insert("market.saveLocalImportMapping");
+                }
+                Message::LoadLocalImportMappingRequest(_) => {
+                    requests.insert("market.loadLocalImportMapping");
+                }
+                Message::PublishLocalImportRequest(_) => {
+                    requests.insert("market.publishLocalImport");
+                }
+                Message::ListLocalImportRevisionsRequest(_) => {
+                    requests.insert("market.listLocalImportRevisions");
+                }
+                Message::ReadLocalImportRevisionRequest(_) => {
+                    requests.insert("market.readLocalImportRevision");
+                }
+                Message::ReadLocalImportSourceRowRequest(_) => {
+                    requests.insert("market.readLocalImportSourceRow");
+                }
+                Message::PreviewLocalFolderRefreshRequest(_) => {
+                    requests.insert("market.previewLocalFolderRefresh");
+                }
+                Message::PrepareLocalFolderPublicationRequest(_) => {
+                    requests.insert("market.prepareLocalFolderPublication");
+                }
+                Message::PublishLocalFolderRefreshRequest(_) => {
+                    requests.insert("market.publishLocalFolderRefresh");
+                }
+                Message::ListLocalFolderRevisionsRequest(_) => {
+                    requests.insert("market.listLocalFolderRevisions");
+                }
+                Message::ReadLocalFolderRevisionRequest(_) => {
+                    requests.insert("market.readLocalFolderRevision");
+                }
+                Message::ReadLocalFolderSourceRowRequest(_) => {
+                    requests.insert("market.readLocalFolderSourceRow");
+                }
+                Message::RevokeLocalFolderRevisionRequest(_) => {
+                    requests.insert("market.revokeLocalFolderRevision");
+                }
+                Message::RevokeLocalImportRevisionRequest(_) => {
+                    requests.insert("market.revokeLocalImportRevision");
+                }
                 Message::ReadProjectedChart11(_) => {
                     requests.insert("workspace.readChartProjection");
                 }
@@ -120,6 +177,38 @@ fn shared_vectors_and_generated_types_agree() {
                 // an unknown observation and must survive deserialization distinctly.
                 assert_eq!(serialized["result"], original["result"]);
             }
+            if original["operation"] == "market.previewLocalImport" && original["type"] == "request"
+            {
+                // A null volume selector explicitly declares that the source has
+                // no volume column. An omitted selector is an unfinished mapping.
+                assert_eq!(serialized["payload"], original["payload"]);
+            }
+            if matches!(
+                original["operation"].as_str(),
+                Some(
+                    "market.saveLocalImportMapping"
+                        | "market.loadLocalImportMapping"
+                        | "market.publishLocalImport"
+                        | "market.listLocalImportRevisions"
+                        | "market.readLocalImportRevision"
+                        | "market.readLocalImportSourceRow"
+                        | "market.previewLocalFolderRefresh"
+                        | "market.prepareLocalFolderPublication"
+                        | "market.publishLocalFolderRefresh"
+                        | "market.listLocalFolderRevisions"
+                        | "market.readLocalFolderRevision"
+                        | "market.readLocalFolderSourceRow"
+                        | "market.revokeLocalFolderRevision"
+                        | "market.revokeLocalImportRevision"
+                )
+            ) {
+                let mut actual = serialized.clone();
+                let mut expected = original.clone();
+                // Native OHLC prices are floats even when the wire value is a whole number.
+                normalize_integers(&mut actual);
+                normalize_integers(&mut expected);
+                assert_eq!(actual, expected, "{}", example["name"]);
+            }
             if original.get("operation").is_some() {
                 assert_eq!(serialized["operation"], original["operation"]);
             }
@@ -138,6 +227,7 @@ fn shared_vectors_and_generated_types_agree() {
             .as_array()
             .unwrap()
             .iter()
+            .filter(|op| op["transport"] != "private_workspace")
             .filter(|op| {
                 op["actors"]
                     .as_array()
@@ -151,13 +241,117 @@ fn shared_vectors_and_generated_types_agree() {
     assert_eq!(
         requests,
         operations_for("user"),
-        "Every human request needs a semantic vector"
+        "Every public human request needs a semantic vector"
     );
     assert_eq!(
         tools,
         operations_for("ai"),
         "Every AI tool call needs a semantic vector"
     );
+}
+
+#[test]
+fn private_workspace_vectors_use_local_projections_and_generated_types() {
+    let manifest: Value =
+        serde_json::from_str(include_str!("../../../contracts/contract.json")).unwrap();
+    let cases = [
+        include_str!("../../../tests/fixtures/decision-note-protocol-cases.json"),
+        include_str!("../../../tests/fixtures/private-record-protocol-cases.json"),
+    ]
+    .into_iter()
+    .flat_map(|source| serde_json::from_str::<Vec<Value>>(source).unwrap())
+    .collect::<Vec<_>>();
+    let operations: Vec<_> = manifest["operations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|op| op["transport"] == "private_workspace")
+        .collect();
+    let mut covered = BTreeSet::new();
+    for example in &cases {
+        let operation = example["operation"].as_str().unwrap();
+        let direction = example["direction"].as_str().unwrap();
+        let name = example["name"].as_str().unwrap();
+        let message = &example["message"];
+        let definition = operations
+            .iter()
+            .find(|op| op["name"] == operation)
+            .unwrap()["wire_bindings"]["1.1"][direction]
+            .as_str()
+            .unwrap();
+        let mut schema = SCHEMA.clone();
+        schema["$ref"] = Value::String(format!("#/$defs/{definition}"));
+        let validator = jsonschema::options()
+            .should_validate_formats(true)
+            .build(&schema)
+            .unwrap();
+        let valid = validator.is_valid(message);
+        assert_eq!(valid, example["valid"].as_bool().unwrap(), "{name}");
+        assert_eq!(
+            decode_line(&serde_json::to_vec(message).unwrap()).is_ok(),
+            example["shared_fault"] == true,
+            "{name}: only the generic redacted fault may cross schema boundaries"
+        );
+        if !valid {
+            continue;
+        }
+        covered.insert((operation, direction));
+        let decoded = match (operation, direction) {
+            ("decisionNote.save", "input") => roundtrip::<DecisionNoteSaveCommand11>(message),
+            ("decisionNote.save", "output") => roundtrip::<DecisionNoteSaveReply11>(message),
+            ("decisionNote.read", "input") => roundtrip::<DecisionNoteReadCommand11>(message),
+            ("decisionNote.read", "output") => roundtrip::<DecisionNoteReadReply11>(message),
+            ("decisionNote.appendOutcome", "input") => {
+                roundtrip::<DecisionNoteAppendOutcomeCommand11>(message)
+            }
+            ("decisionNote.appendOutcome", "output") => {
+                roundtrip::<DecisionNoteAppendOutcomeReply11>(message)
+            }
+            ("decisionNote.delete", "input") => roundtrip::<DecisionNoteDeleteCommand11>(message),
+            ("decisionNote.delete", "output") => roundtrip::<DecisionNoteDeleteReply11>(message),
+            ("decisionNote.exportBackup", "input") => {
+                roundtrip::<DecisionNoteExportBackupCommand11>(message)
+            }
+            ("decisionNote.exportBackup", "output") => {
+                roundtrip::<DecisionNoteExportBackupReply11>(message)
+            }
+            ("decisionNote.previewRestore", "input") => {
+                roundtrip::<DecisionNotePreviewRestoreCommand11>(message)
+            }
+            ("decisionNote.previewRestore", "output") => {
+                roundtrip::<DecisionNotePreviewRestoreReply11>(message)
+            }
+            ("decisionNote.restoreBackup", "input") => {
+                roundtrip::<DecisionNoteRestoreBackupCommand11>(message)
+            }
+            ("decisionNote.restoreBackup", "output") => {
+                roundtrip::<DecisionNoteRestoreBackupReply11>(message)
+            }
+            ("privateRecord.read", "input") => roundtrip::<PrivateRecordReadCommand11>(message),
+            ("privateRecord.read", "output") => roundtrip::<PrivateRecordReadReply11>(message),
+            ("privateRecord.change", "input") => roundtrip::<PrivateRecordChangeCommand11>(message),
+            ("privateRecord.change", "output") => roundtrip::<PrivateRecordChangeReply11>(message),
+            ("privateRecord.exportBackup", "input") => {
+                roundtrip::<PrivateRecordExportCommand11>(message)
+            }
+            ("privateRecord.exportBackup", "output") => {
+                roundtrip::<PrivateRecordExportReply11>(message)
+            }
+            _ => panic!("Missing generated type for {operation} {direction}"),
+        };
+        assert_eq!(decoded, *message, "{name}");
+    }
+    for op in operations {
+        let operation = op["name"].as_str().unwrap();
+        for direction in ["input", "output"] {
+            assert!(covered.contains(&(operation, direction)));
+        }
+    }
+}
+
+fn roundtrip<T: serde::de::DeserializeOwned + serde::Serialize>(message: &Value) -> Value {
+    let decoded: T = serde_json::from_value(message.clone()).unwrap();
+    serde_json::to_value(decoded).unwrap()
 }
 
 #[test]

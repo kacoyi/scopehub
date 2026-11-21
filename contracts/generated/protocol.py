@@ -1,4 +1,4 @@
-# Generated from contracts/schemas/protocol.schema.json; sha256=00d5588197a5635a218a3f20f558086ee5336b4d0663fe40557e3abe3a6b950a. Do not edit.
+# Generated from contracts/schemas/protocol.schema.json; sha256=4576d2b324362ebb7627c676c80d174dfd8e3527af6a33321cb7c875cb99cd37. Do not edit.
 from __future__ import annotations
 from typing import Literal, NotRequired, TypedDict
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
@@ -10,7 +10,7 @@ Metadata = dict[str, JsonValue]
 WorkerRole = Literal['market', 'ai', 'indicator']
 ProtocolVersion = Literal['1.0']
 ErrorCode = Literal['INVALID_ARGUMENT', 'UNSUPPORTED_CAPABILITY', 'PERMISSION_DENIED', 'CONFIRMATION_REQUIRED', 'CANCELLED', 'TIMEOUT', 'WORKER_EXITED', 'PROTOCOL_MISMATCH', 'DATA_UNAVAILABLE', 'STALE_CONTEXT', 'RESOURCE_LIMIT', 'OUTPUT_INVALID', 'PROVIDER_NOT_CONFIGURED', 'INTERNAL_ERROR', 'BUSY', 'SNAPSHOT_UNAVAILABLE']
-OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'market.subscribe', 'workspace.readChartProjection', 'workspace.selectEvidence']
+OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'market.subscribe', 'market.previewLocalImport', 'market.saveLocalImportMapping', 'market.loadLocalImportMapping', 'market.listLocalImportRevisions', 'market.readLocalImportRevision', 'market.readLocalImportSourceRow', 'market.previewLocalFolderRefresh', 'market.prepareLocalFolderPublication', 'market.publishLocalFolderRefresh', 'market.listLocalFolderRevisions', 'market.readLocalFolderRevision', 'market.readLocalFolderSourceRow', 'market.revokeLocalFolderRevision', 'market.revokeLocalImportRevision', 'market.publishLocalImport', 'workspace.readChartProjection', 'workspace.selectEvidence', 'decisionNote.save', 'decisionNote.read', 'decisionNote.appendOutcome', 'decisionNote.delete', 'decisionNote.exportBackup', 'decisionNote.previewRestore', 'decisionNote.restoreBackup', 'privateRecord.read', 'privateRecord.change', 'privateRecord.exportBackup']
 ChartStyle = Literal['candlestick', 'line']
 TaskStatus = Literal['queued', 'running', 'awaiting_confirmation', 'completed', 'failed', 'cancelled']
 Tradability = Literal['non_tradable', 'unknown']
@@ -627,6 +627,441 @@ class MarketStreamGapEvent(TypedDict):
     sequence: Revision
     event: Literal['market.stream_gap']
     payload: MarketStreamGap
+class LocalImportPreviewRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.previewLocalImport']
+    payload: LocalImportPreviewInput
+class LocalImportPreviewResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.previewLocalImport']
+    ok: Literal[True]
+    result: LocalImportPreviewOutput
+    error: None
+class LocalImportPreviewError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.previewLocalImport']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
+class SaveLocalImportMappingRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.saveLocalImportMapping']
+    payload: SaveLocalImportMappingInput
+class SaveLocalImportMappingResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.saveLocalImportMapping']
+    ok: Literal[True]
+    result: SaveLocalImportMappingOutput
+    error: None
+class SaveLocalImportMappingError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.saveLocalImportMapping']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
+class LoadLocalImportMappingRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.loadLocalImportMapping']
+    payload: LoadLocalImportMappingInput
+class LoadLocalImportMappingResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.loadLocalImportMapping']
+    ok: Literal[True]
+    result: LoadLocalImportMappingOutput
+    error: None
+class LoadLocalImportMappingError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.loadLocalImportMapping']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
+class ListLocalImportRevisionsRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.listLocalImportRevisions']
+    payload: ListLocalImportRevisionsInput
+class ListLocalImportRevisionsResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.listLocalImportRevisions']
+    ok: Literal[True]
+    result: ListLocalImportRevisionsOutput
+    error: None
+class ListLocalImportRevisionsError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.listLocalImportRevisions']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
+class ReadLocalImportRevisionRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.readLocalImportRevision']
+    payload: ReadLocalImportRevisionInput
+class ReadLocalImportRevisionResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.readLocalImportRevision']
+    ok: Literal[True]
+    result: ReadLocalImportRevisionOutput
+    error: None
+class ReadLocalImportRevisionError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.readLocalImportRevision']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
+class ReadLocalImportSourceRowRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.readLocalImportSourceRow']
+    payload: ReadLocalImportSourceRowInput
+class ReadLocalImportSourceRowResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.readLocalImportSourceRow']
+    ok: Literal[True]
+    result: ReadLocalImportSourceRowOutput
+    error: None
+class ReadLocalImportSourceRowError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.readLocalImportSourceRow']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
+class PreviewLocalFolderRefreshRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.previewLocalFolderRefresh']
+    payload: PreviewLocalFolderRefreshInput
+class PreviewLocalFolderRefreshResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.previewLocalFolderRefresh']
+    ok: Literal[True]
+    result: PreviewLocalFolderRefreshOutput
+    error: None
+class PreviewLocalFolderRefreshError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.previewLocalFolderRefresh']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
+class PrepareLocalFolderPublicationRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.prepareLocalFolderPublication']
+    payload: PrepareLocalFolderPublicationInput
+class PrepareLocalFolderPublicationResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.prepareLocalFolderPublication']
+    ok: Literal[True]
+    result: PrepareLocalFolderPublicationOutput
+    error: None
+class PrepareLocalFolderPublicationError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.prepareLocalFolderPublication']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
+class PublishLocalFolderRefreshRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.publishLocalFolderRefresh']
+    payload: PublishLocalFolderRefreshInput
+class PublishLocalFolderRefreshResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.publishLocalFolderRefresh']
+    ok: Literal[True]
+    result: PublishLocalFolderRefreshOutput
+    error: None
+class PublishLocalFolderRefreshError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.publishLocalFolderRefresh']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
+class ListLocalFolderRevisionsRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.listLocalFolderRevisions']
+    payload: ListLocalFolderRevisionsInput
+class ListLocalFolderRevisionsResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.listLocalFolderRevisions']
+    ok: Literal[True]
+    result: ListLocalFolderRevisionsOutput
+    error: None
+class ListLocalFolderRevisionsError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.listLocalFolderRevisions']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
+class ReadLocalFolderRevisionRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.readLocalFolderRevision']
+    payload: ReadLocalFolderRevisionInput
+class ReadLocalFolderRevisionResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.readLocalFolderRevision']
+    ok: Literal[True]
+    result: ReadLocalFolderRevisionOutput
+    error: None
+class ReadLocalFolderRevisionError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.readLocalFolderRevision']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
+class ReadLocalFolderSourceRowRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.readLocalFolderSourceRow']
+    payload: ReadLocalFolderSourceRowInput
+class ReadLocalFolderSourceRowResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.readLocalFolderSourceRow']
+    ok: Literal[True]
+    result: ReadLocalFolderSourceRowOutput
+    error: None
+class ReadLocalFolderSourceRowError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.readLocalFolderSourceRow']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
+class RevokeLocalFolderRevisionRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.revokeLocalFolderRevision']
+    payload: RevokeLocalFolderRevisionInput
+class RevokeLocalFolderRevisionResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.revokeLocalFolderRevision']
+    ok: Literal[True]
+    result: RevokeLocalFolderRevisionOutput
+    error: None
+class RevokeLocalFolderRevisionError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.revokeLocalFolderRevision']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
+class RevokeLocalImportRevisionRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.revokeLocalImportRevision']
+    payload: RevokeLocalImportRevisionInput
+class RevokeLocalImportRevisionResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.revokeLocalImportRevision']
+    ok: Literal[True]
+    result: RevokeLocalImportRevisionOutput
+    error: None
+class RevokeLocalImportRevisionError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.revokeLocalImportRevision']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
+class PublishLocalImportRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.publishLocalImport']
+    payload: PublishLocalImportInput
+class PublishLocalImportResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.publishLocalImport']
+    ok: Literal[True]
+    result: PublishLocalImportOutput
+    error: None
+class PublishLocalImportError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.publishLocalImport']
+    ok: Literal[False]
+    result: None
+    error: MarketPageFault
 class WorkerHello11(TypedDict):
     protocol_version: ProtocolVersion11
     message_id: Uuid
@@ -889,7 +1324,7 @@ class CancelTaskError11(TypedDict):
     operation: Literal['task.cancel']
     request_id: Uuid
     error: WorkspaceFault11
-Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat | MarketHistoryPageRequest | MarketHistoryPageResponse | MarketHistoryPageError | MarketSubscriptionRequest | MarketSubscriptionResponse | MarketSubscriptionError | MarketBarUpdateEvent | MarketBarCorrectionEvent | MarketStreamGapEvent | WorkerHello11 | ScopedMutationRequest11 | ScopedMutationResponse11 | TrustedConfirmationDecision11 | PreviewReady11 | ArtifactChunk11 | TaskTerminalEvent11 | TaskCancelRequest11 | CancelMemberRequest11 | ReadProjectedChart11 | ProjectedChartResponse11 | SharedSelectionEvent11 | SharedSelectionRequest11 | AiToolRequest11 | AiToolResultDelivery11 | AiToolResultAck11 | ProjectedChartError11 | IndicatorCompute11 | IndicatorComputed11 | IndicatorInputSegment11 | SharedSelectionResponse11 | SharedSelectionError11 | SharedContextRequest11 | SharedContextResponse11 | SharedContextError11 | CancelTaskResponse11 | CancelTaskError11
+Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat | MarketHistoryPageRequest | MarketHistoryPageResponse | MarketHistoryPageError | MarketSubscriptionRequest | MarketSubscriptionResponse | MarketSubscriptionError | LocalImportPreviewRequest | LocalImportPreviewResponse | LocalImportPreviewError | SaveLocalImportMappingRequest | SaveLocalImportMappingResponse | SaveLocalImportMappingError | LoadLocalImportMappingRequest | LoadLocalImportMappingResponse | LoadLocalImportMappingError | ListLocalImportRevisionsRequest | ListLocalImportRevisionsResponse | ListLocalImportRevisionsError | ReadLocalImportRevisionRequest | ReadLocalImportRevisionResponse | ReadLocalImportRevisionError | ReadLocalImportSourceRowRequest | ReadLocalImportSourceRowResponse | ReadLocalImportSourceRowError | PreviewLocalFolderRefreshRequest | PreviewLocalFolderRefreshResponse | PreviewLocalFolderRefreshError | PrepareLocalFolderPublicationRequest | PrepareLocalFolderPublicationResponse | PrepareLocalFolderPublicationError | PublishLocalFolderRefreshRequest | PublishLocalFolderRefreshResponse | PublishLocalFolderRefreshError | ListLocalFolderRevisionsRequest | ListLocalFolderRevisionsResponse | ListLocalFolderRevisionsError | ReadLocalFolderRevisionRequest | ReadLocalFolderRevisionResponse | ReadLocalFolderRevisionError | ReadLocalFolderSourceRowRequest | ReadLocalFolderSourceRowResponse | ReadLocalFolderSourceRowError | RevokeLocalFolderRevisionRequest | RevokeLocalFolderRevisionResponse | RevokeLocalFolderRevisionError | RevokeLocalImportRevisionRequest | RevokeLocalImportRevisionResponse | RevokeLocalImportRevisionError | PublishLocalImportRequest | PublishLocalImportResponse | PublishLocalImportError | MarketBarUpdateEvent | MarketBarCorrectionEvent | MarketStreamGapEvent | WorkerHello11 | ScopedMutationRequest11 | ScopedMutationResponse11 | TrustedConfirmationDecision11 | PreviewReady11 | ArtifactChunk11 | TaskTerminalEvent11 | TaskCancelRequest11 | CancelMemberRequest11 | ReadProjectedChart11 | ProjectedChartResponse11 | SharedSelectionEvent11 | SharedSelectionRequest11 | AiToolRequest11 | AiToolResultDelivery11 | AiToolResultAck11 | ProjectedChartError11 | IndicatorCompute11 | IndicatorComputed11 | IndicatorInputSegment11 | SharedSelectionResponse11 | SharedSelectionError11 | SharedContextRequest11 | SharedContextResponse11 | SharedContextError11 | CancelTaskResponse11 | CancelTaskError11
 ProtocolVersion11 = Literal['1.1']
 class WorkspaceObject11(TypedDict):
     kind: Literal['chart', 'layer', 'layout', 'dataset', 'workspace']
@@ -1410,3 +1845,729 @@ class WorkspaceUndoReply11(TypedDict):
     request_id: Uuid
     outcome: WorkspaceUndoOutcome11
 HistoryPageReply11 = MarketHistoryPageResponse | MarketHistoryPageError
+class CsvColumnMappingV1(TypedDict):
+    symbol: NotRequired[str]
+    timestamp: NotRequired[str]
+    trading_day: NotRequired[str]
+    open: NotRequired[str]
+    high: NotRequired[str]
+    low: NotRequired[str]
+    close: NotRequired[str]
+    volume: NotRequired[str | None]
+class CsvMappingV1(TypedDict):
+    version: int
+    revision: str
+    encoding: str
+    delimiter: str
+    record_kind: str
+    columns: NotRequired[CsvColumnMappingV1]
+    instrument_kind: NotRequired[str]
+    venue: NotRequired[str]
+    timeframe: NotRequired[str]
+    calendar_id: NotRequired[str]
+    session_scope: NotRequired[str]
+    timezone: NotRequired[str]
+    quantity_unit: NotRequired[str]
+    price_adjustment: NotRequired[str]
+    roll_method: NotRequired[str]
+    volume_semantics: NotRequired[str]
+    timestamp_convention: NotRequired[str]
+    timestamp_format: NotRequired[str]
+    trading_day_format: NotRequired[str]
+    daily_start_time: NotRequired[str]
+class PreviewIssue(TypedDict):
+    code: str
+    field: str | None
+    message: str
+class RawOnlyColumn(TypedDict):
+    column: str
+    reason: str
+class PreviewSeries(TypedDict):
+    instrument_kind: str
+    venue: str
+    timeframe: str
+    calendar_id: str
+    session_scope: str
+    timezone: str
+    quantity_unit: str
+    price_adjustment: str
+    roll_method: str | None
+class PreviewRow(TypedDict):
+    record_number: int
+    line_start: int
+    line_end: int
+    raw_fields: list[str]
+    raw_text: str | None
+    symbol: str | None
+    normalized: Bar | None
+    issues: list[PreviewIssue]
+class CsvPreview(TypedDict):
+    file_sha256: Hash
+    mapping_version: int | None
+    mapping_revision: str | None
+    header: list[str]
+    raw_header_text: str | None
+    rows: list[PreviewRow]
+    issues: list[PreviewIssue]
+    raw_only_columns: list[RawOnlyColumn]
+    series: PreviewSeries | None
+    truncated: bool
+class LocalImportPreviewInput(TypedDict):
+    version: int
+    folder_id: Uuid
+    file_id: Uuid
+    expected_sha256: NotRequired[Hash]
+    mapping: CsvMappingV1
+    row_limit: NotRequired[int]
+class LocalImportPreviewOutput(TypedDict):
+    version: int
+    folder_id: Uuid
+    file_id: Uuid
+    relative_path: str
+    display_name: str
+    byte_count: int
+    sha256: Hash
+    preview: CsvPreview
+LocalImportPreviewReply11 = LocalImportPreviewResponse | LocalImportPreviewError
+class SavedLocalImportMapping(TypedDict):
+    review_revision: int
+    header_sha256: Hash
+    mapping: CsvMappingV1
+class SaveLocalImportMappingInput(TypedDict):
+    version: int
+    folder_id: Uuid
+    file_id: Uuid
+    expected_sha256: Hash
+    mapping: CsvMappingV1
+    row_limit: NotRequired[int]
+class SaveLocalImportMappingOutput(TypedDict):
+    version: int
+    record: SavedLocalImportMapping
+class LoadLocalImportMappingInput(TypedDict):
+    version: int
+    folder_id: Uuid
+    file_id: Uuid
+class LoadLocalImportMappingOutput(TypedDict):
+    version: int
+    status: Literal['saved', 'not_saved', 'review_required']
+    record: SavedLocalImportMapping | None
+    source_sha256: Hash | None
+SaveLocalImportMappingReply11 = SaveLocalImportMappingResponse | SaveLocalImportMappingError
+LoadLocalImportMappingReply11 = LoadLocalImportMappingResponse | LoadLocalImportMappingError
+DecisionNoteUuid11 = str
+DecisionNoteDate = str
+class DecisionNoteEvidenceRef(TypedDict):
+    source_id: str
+    source_revision: str
+    locator: str
+class DecisionNoteOriginal(TypedDict):
+    note_id: DecisionNoteUuid11
+    decided_on: DecisionNoteDate
+    thesis: str
+    evidence_refs: list[DecisionNoteEvidenceRef]
+    choice: str
+class DecisionNoteSummary(TypedDict):
+    note_id: DecisionNoteUuid11
+    decided_on: DecisionNoteDate
+class DecisionNoteOutcome(TypedDict):
+    outcome_id: DecisionNoteUuid11
+    observed_on: DecisionNoteDate
+    outcome: str
+class DecisionNoteReadOutput(TypedDict):
+    note: DecisionNoteOriginal | None
+    notes: list[DecisionNoteSummary]
+    outcomes: list[DecisionNoteOutcome]
+    next_offset: Revision | None
+class DecisionNoteTarget(TypedDict):
+    kind: Literal['decision_note']
+    object_id: DecisionNoteUuid11
+PrivateRecordUuid11 = str
+class PrivateRecordReadScope11(TypedDict):
+    workspace_id: OpaqueId
+class PrivateRecordChangeScope11(TypedDict):
+    workspace_id: OpaqueId
+    expected_workspace_revision: Revision
+    idempotency_key: PrivateRecordUuid11
+PrivateRecordKind = Literal['conversation', 'memory', 'strategy']
+class PrivateRecordTurn(TypedDict):
+    speaker: Literal['user', 'assistant']
+    text: str
+class PrivateRecordConversation(TypedDict):
+    kind: Literal['conversation']
+    title: str
+    turns: list[PrivateRecordTurn]
+class PrivateRecordMemory(TypedDict):
+    kind: Literal['memory']
+    title: str
+    text: str
+class PrivateRecordStrategy(TypedDict):
+    kind: Literal['strategy']
+    title: str
+    text: str
+PrivateRecordContent = PrivateRecordConversation | PrivateRecordMemory | PrivateRecordStrategy
+class PrivateRecordEntry(TypedDict):
+    record_id: PrivateRecordUuid11
+    revision: Revision
+    content: PrivateRecordContent
+class PrivateRecordSummary(TypedDict):
+    record_id: PrivateRecordUuid11
+    revision: Revision
+    kind: PrivateRecordKind
+    title: str
+class PrivateRecordArchiveEntry(TypedDict):
+    record_id: PrivateRecordUuid11
+    content: PrivateRecordContent
+class PrivateRecordBackupV1(TypedDict):
+    format: Literal['scopehub.private-records']
+    version: int
+    profile_binding: str
+    records: list[PrivateRecordArchiveEntry]
+    deletions: list[PrivateRecordUuid11]
+class PrivateRecordReadInput(TypedDict):
+    record_id: PrivateRecordUuid11 | None
+class PrivateRecordReadOutput(TypedDict):
+    workspace_revision: Revision
+    record: PrivateRecordEntry | None
+    records: list[PrivateRecordSummary]
+class PrivateRecordSaveInput(TypedDict):
+    action: Literal['save']
+    record_id: PrivateRecordUuid11
+    expected_record_revision: Revision | None
+    content: PrivateRecordContent
+class PrivateRecordDeleteInput(TypedDict):
+    action: Literal['delete']
+    record_id: PrivateRecordUuid11
+    expected_record_revision: Revision
+class PrivateRecordRestoreInput(TypedDict):
+    action: Literal['restore']
+    backup: PrivateRecordBackupV1
+class PrivateRecordResolveInput(TypedDict):
+    action: Literal['resolve']
+    challenge_id: PrivateRecordUuid11
+    decision: Literal['approve', 'decline']
+PrivateRecordChangeInput = PrivateRecordSaveInput | PrivateRecordDeleteInput | PrivateRecordRestoreInput | PrivateRecordResolveInput
+class PrivateRecordChangeSummary(TypedDict):
+    added: int
+    corrected: int
+    removed: int
+    kept: int
+    suppressed: int
+    imported_deletions: int
+class PrivateRecordReceipt11(TypedDict):
+    operation_id: PrivateRecordUuid11
+    workspace_id: OpaqueId
+    record_id: PrivateRecordUuid11 | None
+    committed_workspace_revision: Revision
+    undoable: Literal[False]
+class PrivateRecordExportInput(TypedDict):
+    pass
+class PrivateRecordReadIntent11(TypedDict):
+    operation: Literal['privateRecord.read']
+    arguments: PrivateRecordReadInput
+class PrivateRecordReadCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: PrivateRecordUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: PrivateRecordUuid11
+    scope: PrivateRecordReadScope11
+    intent: PrivateRecordReadIntent11
+class PrivateRecordReadCompleted11(TypedDict):
+    state: Literal['completed']
+    operation: Literal['privateRecord.read']
+    result: PrivateRecordReadOutput
+PrivateRecordReadOutcome11 = PrivateRecordReadCompleted11 | ScopedFailure11
+class PrivateRecordReadReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: PrivateRecordUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: PrivateRecordUuid11
+    outcome: PrivateRecordReadOutcome11
+class PrivateRecordChangeIntent11(TypedDict):
+    operation: Literal['privateRecord.change']
+    arguments: PrivateRecordChangeInput
+class PrivateRecordChangeCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: PrivateRecordUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: PrivateRecordUuid11
+    scope: PrivateRecordChangeScope11
+    intent: PrivateRecordChangeIntent11
+class PrivateRecordChangeCommitted11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['privateRecord.change']
+    receipt: PrivateRecordReceipt11
+class PrivateRecordChangeConfirmationRequired11(TypedDict):
+    state: Literal['confirmation_required']
+    operation: Literal['privateRecord.change']
+    challenge_id: PrivateRecordUuid11
+    expires_at_ms: Timestamp
+    summary: PrivateRecordChangeSummary
+PrivateRecordChangeOutcome11 = PrivateRecordChangeCommitted11 | PrivateRecordChangeConfirmationRequired11 | ScopedFailure11
+class PrivateRecordChangeReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: PrivateRecordUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: PrivateRecordUuid11
+    outcome: PrivateRecordChangeOutcome11
+class PrivateRecordExportIntent11(TypedDict):
+    operation: Literal['privateRecord.exportBackup']
+    arguments: PrivateRecordExportInput
+class PrivateRecordExportCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: PrivateRecordUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: PrivateRecordUuid11
+    scope: PrivateRecordReadScope11
+    intent: PrivateRecordExportIntent11
+class PrivateRecordExportCompleted11(TypedDict):
+    state: Literal['completed']
+    operation: Literal['privateRecord.exportBackup']
+    result: PrivateRecordBackupV1
+PrivateRecordExportOutcome11 = PrivateRecordExportCompleted11 | ScopedFailure11
+class PrivateRecordExportReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: PrivateRecordUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: PrivateRecordUuid11
+    outcome: PrivateRecordExportOutcome11
+class DecisionNoteReceipt11(TypedDict):
+    operation_id: DecisionNoteUuid11
+    workspace_id: OpaqueId
+    target: DecisionNoteTarget
+    committed_workspace_revision: Revision
+    undoable: Literal[False]
+class DecisionNoteReadScope11(TypedDict):
+    workspace_id: OpaqueId
+class DecisionNoteWriteScope11(TypedDict):
+    workspace_id: OpaqueId
+    target: DecisionNoteTarget
+    expected_workspace_revision: Revision
+    idempotency_key: DecisionNoteUuid11
+class DecisionNoteConfirmation11(TypedDict):
+    challenge_id: DecisionNoteUuid11
+    decision: Literal['approve', 'decline']
+class DecisionNoteSaveInput(TypedDict):
+    decided_on: DecisionNoteDate
+    thesis: str
+    evidence_refs: list[DecisionNoteEvidenceRef]
+    choice: str
+class DecisionNoteSaveIntent11(TypedDict):
+    operation: Literal['decisionNote.save']
+    arguments: DecisionNoteSaveInput
+class DecisionNoteSaveCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: DecisionNoteUuid11
+    scope: DecisionNoteWriteScope11
+    intent: DecisionNoteSaveIntent11
+    confirmation: DecisionNoteConfirmation11 | None
+class DecisionNoteSaveCommitted11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['decisionNote.save']
+    receipt: DecisionNoteReceipt11
+class DecisionNoteSaveConfirmationRequired11(TypedDict):
+    state: Literal['confirmation_required']
+    operation: Literal['decisionNote.save']
+    challenge_id: DecisionNoteUuid11
+    expires_at_ms: Timestamp
+DecisionNoteSaveOutcome11 = DecisionNoteSaveCommitted11 | DecisionNoteSaveConfirmationRequired11 | ScopedFailure11
+class DecisionNoteSaveReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: DecisionNoteUuid11
+    outcome: DecisionNoteSaveOutcome11
+class DecisionNoteReadInput(TypedDict):
+    note_id: DecisionNoteUuid11 | None
+    offset: Revision
+class DecisionNoteReadIntent11(TypedDict):
+    operation: Literal['decisionNote.read']
+    arguments: DecisionNoteReadInput
+class DecisionNoteReadCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: DecisionNoteUuid11
+    scope: DecisionNoteReadScope11
+    intent: DecisionNoteReadIntent11
+class DecisionNoteReadCompleted11(TypedDict):
+    state: Literal['completed']
+    operation: Literal['decisionNote.read']
+    result: DecisionNoteReadOutput
+DecisionNoteReadOutcome11 = DecisionNoteReadCompleted11 | ScopedFailure11
+class DecisionNoteReadReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: DecisionNoteUuid11
+    outcome: DecisionNoteReadOutcome11
+class DecisionNoteAppendOutcomeInput(TypedDict):
+    observed_on: DecisionNoteDate
+    outcome: str
+class DecisionNoteAppendOutcomeIntent11(TypedDict):
+    operation: Literal['decisionNote.appendOutcome']
+    arguments: DecisionNoteAppendOutcomeInput
+class DecisionNoteAppendOutcomeCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: DecisionNoteUuid11
+    scope: DecisionNoteWriteScope11
+    intent: DecisionNoteAppendOutcomeIntent11
+    confirmation: DecisionNoteConfirmation11 | None
+class DecisionNoteAppendOutcomeCommitted11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['decisionNote.appendOutcome']
+    receipt: DecisionNoteReceipt11
+class DecisionNoteAppendOutcomeConfirmationRequired11(TypedDict):
+    state: Literal['confirmation_required']
+    operation: Literal['decisionNote.appendOutcome']
+    challenge_id: DecisionNoteUuid11
+    expires_at_ms: Timestamp
+DecisionNoteAppendOutcomeOutcome11 = DecisionNoteAppendOutcomeCommitted11 | DecisionNoteAppendOutcomeConfirmationRequired11 | ScopedFailure11
+class DecisionNoteAppendOutcomeReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: DecisionNoteUuid11
+    outcome: DecisionNoteAppendOutcomeOutcome11
+class DecisionNoteDeleteInput(TypedDict):
+    pass
+class DecisionNoteDeleteIntent11(TypedDict):
+    operation: Literal['decisionNote.delete']
+    arguments: DecisionNoteDeleteInput
+class DecisionNoteDeleteCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: DecisionNoteUuid11
+    scope: DecisionNoteWriteScope11
+    intent: DecisionNoteDeleteIntent11
+    confirmation: DecisionNoteConfirmation11 | None
+class DecisionNoteDeleteCommitted11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['decisionNote.delete']
+    receipt: DecisionNoteReceipt11
+class DecisionNoteDeleteConfirmationRequired11(TypedDict):
+    state: Literal['confirmation_required']
+    operation: Literal['decisionNote.delete']
+    challenge_id: DecisionNoteUuid11
+    expires_at_ms: Timestamp
+DecisionNoteDeleteOutcome11 = DecisionNoteDeleteCommitted11 | DecisionNoteDeleteConfirmationRequired11 | ScopedFailure11
+class DecisionNoteDeleteReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: DecisionNoteUuid11
+    outcome: DecisionNoteDeleteOutcome11
+class DecisionNoteBackupEntry(TypedDict):
+    original: DecisionNoteOriginal
+    outcomes: list[DecisionNoteOutcome]
+class DecisionNoteBackupDeletion(TypedDict):
+    note_id: DecisionNoteUuid11
+    deleted_at_ms: Timestamp
+class DecisionNoteBackupV1(TypedDict):
+    format: Literal['scopehub.decision-notes']
+    version: int
+    profile_binding: str
+    captured_workspace_revision: Revision
+    notes: list[DecisionNoteBackupEntry]
+    deletions: list[DecisionNoteBackupDeletion]
+class DecisionNoteRestoreScope11(TypedDict):
+    workspace_id: OpaqueId
+    expected_workspace_revision: Revision
+    idempotency_key: DecisionNoteUuid11
+class DecisionNoteRestoreSummary(TypedDict):
+    added_notes: Revision
+    added_outcomes: Revision
+    removed_notes: Revision
+    suppressed_notes: Revision
+    imported_deletions: Revision
+    independent_copy_warning: bool
+class DecisionNoteExportBackupInput(TypedDict):
+    pass
+class DecisionNotePreviewRestoreInput(TypedDict):
+    backup: DecisionNoteBackupV1
+class DecisionNoteRestoreBackupInput(TypedDict):
+    stage_id: DecisionNoteUuid11
+    decision: Literal['approve', 'decline']
+class DecisionNoteExportBackupIntent11(TypedDict):
+    operation: Literal['decisionNote.exportBackup']
+    arguments: DecisionNoteExportBackupInput
+class DecisionNoteExportBackupCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: DecisionNoteUuid11
+    scope: DecisionNoteReadScope11
+    intent: DecisionNoteExportBackupIntent11
+class DecisionNoteExportBackupCompleted11(TypedDict):
+    state: Literal['completed']
+    operation: Literal['decisionNote.exportBackup']
+    result: DecisionNoteBackupV1
+DecisionNoteExportBackupOutcome11 = DecisionNoteExportBackupCompleted11 | ScopedFailure11
+class DecisionNoteExportBackupReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: DecisionNoteUuid11
+    outcome: DecisionNoteExportBackupOutcome11
+class DecisionNotePreviewRestoreIntent11(TypedDict):
+    operation: Literal['decisionNote.previewRestore']
+    arguments: DecisionNotePreviewRestoreInput
+class DecisionNotePreviewRestoreCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: DecisionNoteUuid11
+    scope: DecisionNoteRestoreScope11
+    intent: DecisionNotePreviewRestoreIntent11
+class DecisionNotePreviewRestoreConfirmationRequired11(TypedDict):
+    state: Literal['confirmation_required']
+    operation: Literal['decisionNote.previewRestore']
+    stage_id: DecisionNoteUuid11
+    expires_at_ms: Timestamp
+    summary: DecisionNoteRestoreSummary
+DecisionNotePreviewRestoreOutcome11 = DecisionNotePreviewRestoreConfirmationRequired11 | ScopedFailure11
+class DecisionNotePreviewRestoreReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: DecisionNoteUuid11
+    outcome: DecisionNotePreviewRestoreOutcome11
+class DecisionNoteRestoreBackupIntent11(TypedDict):
+    operation: Literal['decisionNote.restoreBackup']
+    arguments: DecisionNoteRestoreBackupInput
+class DecisionNoteRestoreBackupCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: DecisionNoteUuid11
+    scope: DecisionNoteRestoreScope11
+    intent: DecisionNoteRestoreBackupIntent11
+class DecisionNoteRestoreBackupCommitted11(TypedDict):
+    state: Literal['committed']
+    operation: Literal['decisionNote.restoreBackup']
+    receipt: OperationReceipt11
+DecisionNoteRestoreBackupOutcome11 = DecisionNoteRestoreBackupCommitted11 | ScopedFailure11
+class DecisionNoteRestoreBackupReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: DecisionNoteUuid11
+    outcome: DecisionNoteRestoreBackupOutcome11
+class LocalImportRowLocator(TypedDict):
+    record_number: int
+    line_start: int
+    line_end: int
+class PublishedLocalImportBar(TypedDict):
+    bar: Bar
+    locators: list[LocalImportRowLocator]
+class PublishedLocalImportRevision(TypedDict):
+    revision_id: Uuid
+    relative_path: str
+    source_sha256: Hash
+    mapping_sha256: Hash
+    review_revision: int
+    symbol: str
+    series: PreviewSeries
+    bar_count: int
+    source_record_count: int
+class PublishLocalImportInput(TypedDict):
+    version: int
+    folder_id: Uuid
+    file_id: Uuid
+    expected_sha256: Hash
+    review_revision: int
+class PublishLocalImportOutput(TypedDict):
+    version: int
+    revision: PublishedLocalImportRevision
+class LocalImportRevisionBarSummary(TypedDict):
+    venue: str
+    first_trading_day: str
+    final_trading_day: str
+    final_close: float
+class LocalImportRevisionListEntry(TypedDict):
+    revision_id: CanonicalRevisionCursor
+    relative_path: str
+    symbol: str
+    bar_count: int
+    source_record_count: int
+    source_sha256: Hash
+    timeframe: str
+    bar_summary: NotRequired[LocalImportRevisionBarSummary]
+CanonicalRevisionCursor = str
+class ListLocalImportRevisionsInput(TypedDict):
+    version: int
+    after_revision_id: CanonicalRevisionCursor | None
+    limit: int
+    include_bar_summary: NotRequired[bool]
+class ListLocalImportRevisionsOutput(TypedDict):
+    version: int
+    revisions: list[LocalImportRevisionListEntry]
+    next_after_revision_id: CanonicalRevisionCursor | None
+ListLocalImportRevisionsReply11 = ListLocalImportRevisionsResponse | ListLocalImportRevisionsError
+class ReadLocalImportRevisionInput(TypedDict):
+    version: int
+    revision_id: Uuid
+class ReadLocalImportRevisionOutput(TypedDict):
+    version: int
+    revision: PublishedLocalImportRevision
+    bars: list[PublishedLocalImportBar]
+PublishLocalImportReply11 = PublishLocalImportResponse | PublishLocalImportError
+ReadLocalImportRevisionReply11 = ReadLocalImportRevisionResponse | ReadLocalImportRevisionError
+class ReadLocalImportSourceRowInput(TypedDict):
+    version: int
+    revision_id: Uuid
+    locator: LocalImportRowLocator
+class ReadLocalImportSourceRowOutput(TypedDict):
+    version: int
+    revision_id: Uuid
+    source_sha256: Hash
+    locator: LocalImportRowLocator
+    header: list[str]
+    raw_fields: list[str]
+ReadLocalImportSourceRowReply11 = ReadLocalImportSourceRowResponse | ReadLocalImportSourceRowError
+class RevokeLocalImportRevisionInput(TypedDict):
+    version: int
+    revision_id: Uuid
+RevokeLocalImportRevisionReply11 = RevokeLocalImportRevisionResponse | RevokeLocalImportRevisionError
+class RevokeLocalImportRevisionOutput(TypedDict):
+    version: int
+    revision_id: Uuid
+class FolderRefreshFile(TypedDict):
+    relative_path: str
+    source_sha256: Hash | None
+    prior_sha256: Hash | None
+    change: Literal['unchanged', 'added', 'replaced', 'removed', 'unverified']
+    alias_of: str | None
+    review: Literal['compatible', 'header_changed', 'series_mismatch', 'invalid_rows', 'unavailable', 'removed']
+    detail: str | None
+class FolderRefreshSource(TypedDict):
+    relative_path: str
+    source_sha256: Hash
+    record_number: int
+    line_start: int
+    line_end: int
+class FolderRefreshAlternative(TypedDict):
+    bar: Bar
+    sources: list[FolderRefreshSource]
+class FolderRefreshBar(TypedDict):
+    time_ms: Timestamp
+    status: Literal['unchanged', 'addition', 'conflict', 'withdrawal', 'unverified']
+    accepted: AcceptedFolderRefreshBar | None
+    alternatives: list[FolderRefreshAlternative]
+class PreviewLocalFolderRefreshInput(TypedDict):
+    version: int
+    folder_id: Uuid
+    revision_id: Uuid
+class PreviewLocalFolderRefreshOutput(TypedDict):
+    version: int
+    base: NotRequired[PublishedLocalImportRevision]
+    files: list[FolderRefreshFile]
+    bars: list[FolderRefreshBar]
+    folder_base: NotRequired[PublishedLocalFolderRevision]
+    review_id: NotRequired[Hash]
+    publication_allowed: NotRequired[bool]
+PreviewLocalFolderRefreshReply11 = PreviewLocalFolderRefreshResponse | PreviewLocalFolderRefreshError
+class FolderPublicationConflictChoice(TypedDict):
+    time_ms: Timestamp
+    alternative_index: int
+class PublishedLocalFolderRevision(TypedDict):
+    revision_id: Uuid
+    base_revision_id: Uuid
+    parent_revision_id: Uuid | None
+    origin_path: str
+    symbol: str
+    series: PreviewSeries
+    source_count: int
+    bar_count: int
+    bar_summary: NotRequired[LocalImportRevisionBarSummary]
+class PublishedLocalFolderSource(TypedDict):
+    relative_path: str
+    source_sha256: Hash
+    record_count: int
+class PrepareLocalFolderPublicationInput(TypedDict):
+    version: int
+    folder_id: Uuid
+    review_id: Hash
+    conflicts: list[FolderPublicationConflictChoice]
+    withdraw_bars: list[Timestamp]
+    withdraw_sources: list[str]
+class PrepareLocalFolderPublicationOutput(TypedDict):
+    version: int
+    review_id: Hash
+    candidate_sha256: Hash
+    parent_revision_id: Uuid
+    source_count: int
+    bar_count: int
+class PublishLocalFolderRefreshInput(TypedDict):
+    version: int
+    folder_id: Uuid
+    review_id: Hash
+    candidate_sha256: Hash
+    idempotency_key: Uuid
+class PublishLocalFolderRefreshOutput(TypedDict):
+    version: int
+    revision: PublishedLocalFolderRevision
+class ListLocalFolderRevisionsInput(TypedDict):
+    version: int
+    after_revision_id: CanonicalRevisionCursor | None
+    limit: int
+class ListLocalFolderRevisionsOutput(TypedDict):
+    version: int
+    revisions: list[PublishedLocalFolderRevision]
+    next_after_revision_id: CanonicalRevisionCursor | None
+class ReadLocalFolderRevisionInput(TypedDict):
+    version: int
+    revision_id: Uuid
+    include_details: NotRequired[bool]
+class ReadLocalFolderRevisionOutput(TypedDict):
+    version: int
+    revision: PublishedLocalFolderRevision
+    files: list[PublishedLocalFolderSource]
+    bars: list[FolderRefreshAlternative]
+class RevokeLocalFolderRevisionInput(TypedDict):
+    version: int
+    revision_id: Uuid
+class RevokeLocalFolderRevisionOutput(TypedDict):
+    version: int
+    revision_id: Uuid
+PrepareLocalFolderPublicationReply11 = PrepareLocalFolderPublicationResponse | PrepareLocalFolderPublicationError
+PublishLocalFolderRefreshReply11 = PublishLocalFolderRefreshResponse | PublishLocalFolderRefreshError
+ListLocalFolderRevisionsReply11 = ListLocalFolderRevisionsResponse | ListLocalFolderRevisionsError
+ReadLocalFolderRevisionReply11 = ReadLocalFolderRevisionResponse | ReadLocalFolderRevisionError
+class ReadLocalFolderSourceRowInput(TypedDict):
+    version: int
+    revision_id: Uuid
+    source: FolderRefreshSource
+class ReadLocalFolderSourceRowOutput(TypedDict):
+    version: int
+    revision_id: Uuid
+    source: FolderRefreshSource
+    header: list[str]
+    raw_fields: list[str]
+ReadLocalFolderSourceRowReply11 = ReadLocalFolderSourceRowResponse | ReadLocalFolderSourceRowError
+RevokeLocalFolderRevisionReply11 = RevokeLocalFolderRevisionResponse | RevokeLocalFolderRevisionError
+AcceptedFolderRefreshBar = PublishedLocalImportBar | FolderRefreshAlternative

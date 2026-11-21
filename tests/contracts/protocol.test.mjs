@@ -41,6 +41,19 @@ for (const example of read('../fixtures/protocol-cases.json')) {
   });
 }
 
+const privateWorkspaceCases = [
+  ...read('../fixtures/decision-note-protocol-cases.json'),
+  ...read('../fixtures/private-record-protocol-cases.json'),
+];
+for (const example of privateWorkspaceCases) {
+  test(`private workspace: ${example.name}`, () => {
+    const projected = read(`../../contracts/schemas/operations/${example.operation}.v1.1.${example.direction}.schema.json`);
+    const validator = ajv.getSchema(projected.$id) ?? ajv.compile(projected);
+    assert.equal(validator(example.message), example.valid);
+    assert.equal(validate(example.message), example.shared_fault === true);
+  });
+}
+
 test('reject oversized frames before parsing', () => {
   assert.equal(accepts(' '.repeat(policy.max_message_bytes + 1)), false);
 });

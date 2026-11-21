@@ -6,6 +6,7 @@ rust-version.workspace = true
 license.workspace = true
 
 [dependencies]
+base64 = "0.22"
 scopehub-domain = { path = "../domain" }
 serde_json.workspace = true
 serde.workspace = true

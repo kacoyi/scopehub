@@ -119,8 +119,10 @@ def inspect(root=ROOT, pr_number=None):
 
     def workflow_status():
         response = json.loads(command(['gh', 'api', '--method', 'GET', f'repos/{repository}/actions/runs',
-                                       '-f', f"head_sha={pr['headRefOid']}", '-f', 'per_page=100'], root))
-        return classify_runs(response['workflow_runs'], pr['headRefOid'], dirty=source['working_tree_dirty'])
+                                       '-f', f"head_sha={pr['headRefOid']}", '-f', 'event=pull_request',
+                                       '-f', 'per_page=100'], root))
+        pr_runs = [run for run in response['workflow_runs'] if run.get('event') == 'pull_request']
+        return classify_runs(pr_runs, pr['headRefOid'], dirty=source['working_tree_dirty'])
 
     workflow = workflow_status()
     jobs = []

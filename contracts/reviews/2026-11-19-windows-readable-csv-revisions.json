@@ -1,0 +1,48 @@
+{
+  "recorded_at": "2026-11-19",
+  "kind": "native_readable_revision_selection",
+  "task_id": "M1-008",
+  "source_commit": "b5f40549bdbbfea5dc2e222d05edfac8dc29a3b0",
+  "baseline": "contracts/reviews/2026-11-19-windows-published-revision-library.json",
+  "platform": "Standard-user Windows 11 Enterprise Evaluation 26H2 build 26300.9457, x64 KVM, native MSVC desktop and Edge WebView 157.0.4341.60.",
+  "native_executable_sha256": "c1e61f0ff7db322525ba94639af9dfa6bb0e4377ecffe1a8a6b3bc1d6b120d40",
+  "source_archive_sha256": "8ae9f67949c9867e752cb130ccb362b45f064edccac76a3fa73f9e855a905cdd",
+  "observed": [
+    "The native picker admitted a synthetic 502-row daily equity file. A one-row preview preceded publication of the full historical series. The test changed the final close from 305 to 304 and explicitly published a second immutable revision of the same filename.",
+    "After moving the original directory and restarting the application, the library displayed the venue, first trading day, final trading day and final close of each revision. The tester selected both rows using their visible filename, close and trading day and activated each by keyboard. The selector used no source digest or version identifier.",
+    "The underlying charts and independently inspected final source records showed 305 and 304 on 2025-05-16, record 502, line 503. Revoking the first entry removed it from the refreshed list and prevented a direct read. The corrected entry reopened."
+  ],
+  "artifacts": [
+    {
+      "file": ".reports/guest/b5f4054-readable-library/BUILD.JSON",
+      "sha256": "7596c366ca41b1b7b5994b5164693abb45b0b800098a6b0a414b6c907c2d2d14"
+    },
+    {
+      "file": ".reports/guest/b5f4054-readable-library/MAPEXE.JSON",
+      "sha256": "fbcd2610bb200e8c0d02963426e020b38cad41fed8cbe9be0f935d4022e5a5fa"
+    },
+    {
+      "file": ".reports/guest/b5f4054-readable-library/PUBGUI.JSON",
+      "sha256": "e352860f22250ea76f935e6530c92f50ee3fed5a09ce31cecb046a4709d0717e"
+    },
+    {
+      "file": ".reports/guest/b5f4054-readable-library/LIBRARY.PNG",
+      "sha256": "f0ad0c2f2b75998a666d44b62a5c662b5782d0204394b9515806ce445d625f25"
+    },
+    {
+      "file": ".reports/guest/b5f4054-readable-library/PUBBACK.PNG",
+      "sha256": "ecbee2f31424315a39ce600c2c73447837c44061b948044cecd40f0a6d26ba3f"
+    },
+    {
+      "file": ".reports/guest/b5f4054-readable-library/NATIVE.PY",
+      "sha256": "7b43674f9b4d551f54c959c1c3afbaa6ca7fea23c125f42394fe4ddf07ffa0eb"
+    },
+    {
+      "file": ".reports/guest/b5f4054-readable-library/DIALOG.PS1",
+      "sha256": "ee663e634f47156c9912f606282fde912a380f751d76edd2c6568bfef5b7b0db"
+    }
+  ],
+  "pending": [
+    "Folder-wide refresh and withdrawal, actual packaged and physical Windows acceptance, and product-owner experience review."
+  ]
+}

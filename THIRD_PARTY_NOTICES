@@ -70,6 +70,10 @@ PyPI: typing-extensions 4.16.0
 Declared license: PSF-2.0
 Upstream metadata: https://pypi.org/pypi/typing-extensions/4.16.0/json
 
+PyPI: tzdata 2026.5
+Declared license: Apache-2.0
+Upstream metadata: https://pypi.org/pypi/tzdata/2026.5/json
+
 crates.io: adler2 2.0.1
 Declared license: 0BSD OR MIT OR Apache-2.0
 Upstream metadata: https://crates.io/crates/adler2/2.0.1
@@ -473,6 +477,10 @@ Upstream metadata: https://crates.io/crates/form_urlencoded/1.2.2
 crates.io: fraction 0.17.0
 Declared license: MIT OR Apache-2.0
 Upstream metadata: https://crates.io/crates/fraction/0.17.0
+
+crates.io: fs-id 0.2.0
+Declared license: Zlib
+Upstream metadata: https://crates.io/crates/fs-id/0.2.0
 
 crates.io: futures-channel 0.3.34
 Declared license: MIT OR Apache-2.0
@@ -1141,6 +1149,10 @@ Upstream metadata: https://crates.io/crates/regex-syntax/0.8.11
 crates.io: reqwest 0.13.5
 Declared license: MIT OR Apache-2.0
 Upstream metadata: https://crates.io/crates/reqwest/0.13.5
+
+crates.io: rfd 0.17.2
+Declared license: MIT
+Upstream metadata: https://crates.io/crates/rfd/0.17.2
 
 crates.io: rusqlite 0.43.0
 Declared license: MIT

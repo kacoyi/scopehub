@@ -1,5 +1,7 @@
 """Report this repository's Cargo storage. Use --collect to reclaim idle debug intermediates."""
 
+from __future__ import annotations
+
 import argparse
 from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass, field
@@ -60,6 +62,16 @@ class LinuxContext:
     inaccessible_processes: int = 0
 
 
+@dataclass(frozen=True)
+class CacheSnapshot:
+    path: Path
+    root: os.stat_result
+    outer: os.stat_result
+    directory: os.stat_result
+    debug: os.stat_result
+    rustc_info: os.stat_result | None = None
+
+
 def git(root, *args):
     # Git can otherwise inherit the caller's alternate worktree, common dir or index.
     env = {name: value for name, value in os.environ.items() if not name.startswith('GIT_')}
@@ -84,19 +96,50 @@ def worktrees(root):
             yield Path(fields[0].removeprefix('worktree ')), {field.split(' ', 1)[0] for field in fields[1:]}
 
 
-def managed_worktree_directory(current, registered):
+def dedicated_worktree_directory(current, common, registered, directory):
+    # Match worktree.py's admission rule for existing roots. Both helpers also run standalone.
+    if (not directory.is_absolute() or directory == directory.parent or
+            directory.resolve(strict=True) != directory or directory.is_relative_to(common) or
+            any(directory.is_relative_to(path) for path, _ in registered)):
+        return False
+    info = directory.lstat()
+    if not stat.S_ISDIR(info.st_mode) or reparse(info):
+        return False
+    for parent in (directory, *directory.parents):
+        marker = parent / '.git'
+        try:
+            marker.lstat()
+        except FileNotFoundError:
+            continue
+        try:
+            git(current, 'rev-parse', '--resolve-git-dir', str(marker))
+        except subprocess.CalledProcessError as error:
+            if error.returncode != 128:
+                raise
+        else:
+            return False
+    return True
+
+
+def managed_worktree_directory(current, common, registered):
     try:
         values = git(current, 'config', '--local', '--null', '--type=path', '--get-all',
                      'scopehub.worktreeRoot').removesuffix('\0').split('\0')
         if len(values) != 1:
             return None
         directory = Path(values[0])
-        if (directory.is_absolute() and directory != directory.parent and
-                directory.resolve(strict=True) == directory and
-                not any(directory.is_relative_to(path) for path, _ in registered)):
-            info = directory.lstat()
-            if stat.S_ISDIR(info.st_mode) and not reparse(info):
-                return directory
+        if dedicated_worktree_directory(current, common, registered, directory):
+            return directory
+    except (OSError, RuntimeError, subprocess.SubprocessError):
+        pass
+    return None
+
+
+def legacy_worktree_directory(current, common, registered):
+    directory = registered[0][0].parent
+    try:
+        if dedicated_worktree_directory(current, common, registered, directory):
+            return directory
     except (OSError, RuntimeError, subprocess.SubprocessError):
         pass
     return None
@@ -200,20 +243,11 @@ def linux_context(deadline=None):
     active = set()
     inodes = set()
     inaccessible = 0
-    uid = os.geteuid()
     for process in Path('/proc').iterdir():
         budget(deadline)
         if not process.name.isdecimal() or process.name == str(os.getpid()):
             continue
-        try:
-            status = (process / 'status').read_text()
-        except (FileNotFoundError, ProcessLookupError):
-            continue
-        match = re.search(r'^Uid:[ \t]+([0-9 \t]+)$', status, re.MULTILINE)
-        if not match:
-            raise StorageError('could not determine the owner of a visible process')
-        if uid not in {int(value) for value in match[1].split()}:
-            continue
+        # Any process can hold a cache file. Its owner says nothing about our visibility.
         if not observe_process(process, active, inodes, deadline):
             inaccessible += 1
     return LinuxContext(mounts, active, inodes, inaccessible)
@@ -241,6 +275,7 @@ def inventory(path, mounts, deadline, seen, active_inodes=()):
     newest_debug = 0
     protected = None
     debug = path / 'debug'
+    debug_info = None
     while pending:
         budget(deadline)
         entry = pending.pop()
@@ -261,6 +296,8 @@ def inventory(path, mounts, deadline, seen, active_inodes=()):
         if entry.is_relative_to(debug):
             newest_debug = max(newest_debug, info.st_mtime_ns)
         if stat.S_ISDIR(info.st_mode):
+            if entry == debug:
+                debug_info = info
             pending.extend(entry.iterdir())
         elif info.st_nlink > 1:
             key = (info.st_dev, info.st_ino)
@@ -268,21 +305,23 @@ def inventory(path, mounts, deadline, seen, active_inodes=()):
                 continue
             seen.add(key)
         total += allocated(info)
-    return total, newest_debug, protected
+    return total, newest_debug, protected, debug_info
 
 
 def lock_names(debug):
-    names = {item.name for item in debug.iterdir() if item.name.startswith('.cargo-') and item.name.endswith('-lock')}
-    names.add('.cargo-lock')
-    # A partial modern lock set may simply mean cargo check has never linked artifacts.
-    # Preserve it until the complete layout is present.
-    if names not in ({'.cargo-lock'}, CARGO_LOCKS):
-        raise StorageError('unrecognized Cargo lock layout')
-    for name in names:
-        item = (debug / name).lstat()
-        if not regular_lock(item):
+    with os.scandir(debug) as entries:
+        locks = {entry.name: entry for entry in entries
+                 if entry.name.startswith('.cargo-') and entry.name.endswith('-lock')}
+        # A partial modern lock set may mean cargo check has never linked artifacts.
+        if locks.keys() not in ({'.cargo-lock'}, CARGO_LOCKS):
+            raise StorageError('unrecognized Cargo lock layout')
+        if any(not regular_lock(entry.stat(follow_symlinks=False)) for entry in locks.values()):
             raise StorageError('unrecognized Cargo lock file')
-    return sorted(names)
+    return sorted(locks)
+
+
+def valid_cache_tag(contents):
+    return contents.partition(b'\n')[0].rstrip(b'\r') == CARGO_TAG
 
 
 def cargo_layout(target):
@@ -291,7 +330,7 @@ def cargo_layout(target):
     if not stat.S_ISREG(info.st_mode) or info.st_size > 4096:
         raise StorageError('invalid Cargo cache tag')
     with tag.open('rb') as handle:
-        if handle.readline(4097).rstrip(b'\r\n') != CARGO_TAG:
+        if not valid_cache_tag(handle.readline(4097)):
             raise StorageError('invalid Cargo cache tag')
     debug = target / 'debug'
     if not stat.S_ISDIR(debug.lstat().st_mode):
@@ -693,7 +732,32 @@ def filesystem(path, mounts):
     return next((mounts[parent] for parent in (path, *path.parents) if parent in mounts), None)
 
 
-def collect_target(target, root, common, context, progress, deadline):
+def cache_is_current(cache, root, root_fd, outer_fd, target_fd, debug_fd):
+    directories = [(root, None, root_fd, cache.root), ('target', root_fd, outer_fd, cache.outer),
+                   ('debug', target_fd, debug_fd, cache.debug)]
+    if cache.rustc_info is not None:
+        directories.append((cache.path.name, outer_fd, target_fd, cache.directory))
+    try:
+        for name, parent_fd, fd, observed in directories:
+            current = os.fstat(fd)
+            # An inode number can be reused once the inventoried directory is removed.
+            if (not os.path.samestat(current, observed) or current.st_ctime_ns != observed.st_ctime_ns or
+                    not same_entry(name, parent_fd, current)):
+                return False
+        if cache.rustc_info is None:
+            return True
+        # The marker is provenance for a custom target. An in-place rewrite also invalidates it.
+        current = os.stat('.rustc_info.json', dir_fd=target_fd, follow_symlinks=False)
+        observed = cache.rustc_info
+        return (stat.S_ISREG(current.st_mode) and os.path.samestat(current, observed) and
+                current.st_size == observed.st_size and current.st_mtime_ns == observed.st_mtime_ns and
+                current.st_ctime_ns == observed.st_ctime_ns)
+    except FileNotFoundError:
+        return False
+
+
+def collect_target(cache, root, common, context, progress, deadline):
+    target = cache.path
     if active_worktree(root, context):
         return 'active_process'
     if any(mount.is_relative_to(target) for mount in context.mounts):
@@ -708,9 +772,11 @@ def collect_target(target, root, common, context, progress, deadline):
         custom = target != root / 'target'
         target_fd = anchored_directory(stack, target.name, outer_fd, mount_id) if custom else outer_fd
         debug_fd = anchored_directory(stack, 'debug', target_fd, mount_id)
-        if any(os.fstat(fd).st_uid != os.geteuid() for fd in (root_fd, target_fd, debug_fd)):
+        if any(os.fstat(fd).st_uid != os.geteuid() for fd in (root_fd, outer_fd, target_fd, debug_fd)):
             return 'different_owner'
-        locks = [take_lock(stack, debug_fd, name, mount_id) for name in cargo_layout(target)]
+        if not cache_is_current(cache, root, root_fd, outer_fd, target_fd, debug_fd):
+            return 'cache_identity_changed'
+        locks = [take_lock(stack, debug_fd, name, mount_id) for name in lock_names(debug_fd)]
         # Recheck registration, tracking, process paths, and directory identities under the locks.
         if identity(root) != (root, common) or tracked(root):
             return 'worktree_or_index_changed'
@@ -718,7 +784,8 @@ def collect_target(target, root, common, context, progress, deadline):
         flags = dict(registered).get(root)
         if flags is None or flags & {'locked', 'bare', 'prunable'}:
             return 'worktree_registration_changed'
-        if root.parent != registered[0][0].parent and root.parent != managed_worktree_directory(root, registered):
+        if (root.parent != legacy_worktree_directory(root, common, registered) and
+                root.parent != managed_worktree_directory(root, common, registered)):
             return 'worktree_directory_changed'
         refreshed = linux_context(deadline)
         if refreshed.mounts != context.mounts:
@@ -727,14 +794,12 @@ def collect_target(target, root, common, context, progress, deadline):
             return 'active_process'
         if refreshed.active_inodes:
             # A build process can see the same files through a different mount path.
-            _, _, boundary = inventory(target, refreshed.mounts, deadline, set(), refreshed.active_inodes)
+            _, _, boundary, _ = inventory(target, refreshed.mounts, deadline, set(), refreshed.active_inodes)
             if boundary:
                 return boundary
-        if (not os.path.samestat(root.lstat(), os.fstat(root_fd)) or
-                not same_entry('target', root_fd, os.fstat(outer_fd)) or
-                (custom and not same_entry(target.name, outer_fd, os.fstat(target_fd))) or
-                not same_entry('debug', target_fd, os.fstat(debug_fd)) or
-                any(not same_entry(name, debug_fd, info) for name, info in locks)):
+        if (not valid_cache_tag(read_marker(target_fd, 'CACHEDIR.TAG', 4096)) or
+                any(not same_entry(name, debug_fd, info) for name, info in locks) or
+                not cache_is_current(cache, root, root_fd, outer_fd, target_fd, debug_fd)):
             return 'cache_identity_changed'
         completed_only = bool(context.inaccessible_processes or refreshed.inaccessible_processes)
         if completed_only and {name for name, _ in locks} != CARGO_LOCKS:
@@ -750,25 +815,26 @@ def inspect(root, worktree_directories, current, common, flags, mounts, deadline
     row = {'path': str(target), 'allocated_bytes': None, 'reason': None}
     if not root.is_absolute() or root.parent not in worktree_directories or flags & {'bare', 'prunable'}:
         row['reason'] = 'outside_worktree_directories_or_unavailable'
-        return row, 0
+        return row, []
     try:
-        if root.resolve(strict=True) != root or reparse(root.lstat()):
+        root_info = root.lstat()
+        if root.resolve(strict=True) != root or reparse(root_info):
             row['reason'] = 'outside_worktree_directories_or_unavailable'
-            return row, 0
+            return row, []
         if identity(root) != (root, common):
             row['reason'] = 'different_repository'
-            return row, 0
-        target.lstat()
+            return row, []
+        target_info = target.lstat()
     except FileNotFoundError:
-        return None, 0
+        return None, []
     except (OSError, RuntimeError, subprocess.SubprocessError):
         row['reason'] = 'worktree_unavailable'
-        return row, 0
+        return row, []
     try:
-        if not hasattr(target.lstat(), 'st_blocks'):
+        if not hasattr(target_info, 'st_blocks'):
             row['reason'] = 'allocated_blocks_unavailable'
-            return row, 0
-        row['allocated_bytes'], newest, boundary = inventory(
+            return row, []
+        row['allocated_bytes'], newest, boundary, debug_info = inventory(
             target, mounts, deadline, seen, context.active_inodes if context else (),
         )
         if root == current:
@@ -784,43 +850,57 @@ def inspect(root, worktree_directories, current, common, flags, mounts, deadline
         elif tracked(root):
             row['reason'] = 'tracked_target'
         else:
+            row['reason'] = 'unknown_cargo_layout'
+            if not stat.S_ISDIR(target_info.st_mode) or reparse(target_info):
+                return row, []
+            caches = list(child_caches(target, root_info, target_info, mounts, deadline))
+            if debug_info is None:
+                return row, caches
             try:
                 cargo_layout(target)
-                row['reason'] = 'candidate'
                 row['retained_paths'] = sorted(
                     [entry.name for entry in target.iterdir() if entry.name != 'debug'] +
                     [f'debug/{entry.name}' for entry in (target / 'debug').iterdir()
                      if entry.name not in INTERMEDIATE_DIRS]
                 )
             except (OSError, StorageError):
-                row['reason'] = 'unknown_cargo_layout'
-        return row, newest
+                return row, caches
+            row['reason'] = 'candidate'
+            caches.append((row, newest, CacheSnapshot(target, root_info, target_info, target_info, debug_info)))
+            return row, caches
+        return row, []
     except (OSError, subprocess.SubprocessError):
         row['reason'] = 'inspection_failed'
-        return row, 0
+        return row, []
 
 
-def child_caches(target, mounts, deadline):
+def child_caches(target, root_info, target_info, mounts, deadline):
     # An independently configured target directory has its own rustc metadata.
     # Never search inside an unknown child or a cross-compiled target triple.
-    for child in sorted(target.iterdir()):
+    try:
+        children = sorted(target.iterdir())
+    except OSError:
+        return
+    for child in children:
         budget(deadline)
         if child.name.startswith('.') or child.name in NON_CACHE_CHILDREN or TARGET_TRIPLE.fullmatch(child.name):
             continue
         try:
-            if not stat.S_ISDIR(child.lstat().st_mode):
+            child_info = child.lstat()
+            if not stat.S_ISDIR(child_info.st_mode) or reparse(child_info):
                 continue
-            if not stat.S_ISREG((child / '.rustc_info.json').lstat().st_mode):
+            rustc_info = (child / '.rustc_info.json').lstat()
+            if not stat.S_ISREG(rustc_info.st_mode) or reparse(rustc_info):
                 continue
             cargo_layout(child)
-            size, newest, boundary = inventory(child, mounts, deadline, set())
-        except (OSError, StorageError) as error:
-            if isinstance(error, TimeLimit):
-                raise
+            size, newest, boundary, debug_info = inventory(child, mounts, deadline, set())
+        except TimeLimit:
+            raise
+        except (OSError, StorageError):
             continue
-        if not boundary:
-            yield {'path': str(child), 'included_in': str(target), 'allocated_bytes': size,
-                   'reason': 'candidate'}, newest
+        if not boundary and debug_info is not None:
+            row = {'path': str(child), 'included_in': str(target), 'allocated_bytes': size, 'reason': 'candidate'}
+            yield row, newest, CacheSnapshot(child, root_info, target_info, child_info, debug_info, rustc_info)
 
 
 def run(root, *, collect=False, high_bytes=HIGH_BYTES, low_bytes=LOW_BYTES, deadline=None):
@@ -860,10 +940,9 @@ def inspect_repository(current, common, configured, context, mounts, blocked,
     registered = list(worktrees(current))
     if not registered or current not in dict(registered):
         raise StorageError('current checkout is missing from Git worktree registration')
-    managed = managed_worktree_directory(current, registered)
-    worktree_directories = {registered[0][0].parent}
-    if managed is not None:
-        worktree_directories.add(managed)
+    managed = managed_worktree_directory(current, common, registered)
+    legacy = legacy_worktree_directory(current, common, registered)
+    worktree_directories = {managed, legacy} - {None}
     rows = []
     candidates = []
     seen = set()
@@ -886,23 +965,18 @@ def inspect_repository(current, common, configured, context, mounts, blocked,
     try:
         for path, flags in registered if report['inventory_complete'] else ():
             budget(deadline)
-            row, newest = inspect(
+            row, caches = inspect(
                 path, worktree_directories, current, common, flags, mounts, deadline, seen, context, configured,
             )
             if row is None:
                 continue
             rows.append(row)
             total += row['allocated_bytes'] or 0
-            if row['reason'] not in {'candidate', 'unknown_cargo_layout'}:
-                continue
-            caches = list(child_caches(Path(row['path']), mounts, deadline))
-            rows.extend(child for child, _ in caches)
-            if row['reason'] == 'candidate':
-                caches.append((row, newest))
-            for cache, modified in caches:
+            rows.extend(child for child, _, _ in caches if child is not row)
+            for cache, modified, snapshot in caches:
                 if partial:
                     try:
-                        preview = preview_partial_cache(Path(cache['path']), mounts, deadline)
+                        preview = preview_partial_cache(snapshot.path, mounts, deadline)
                     except TimeLimit:
                         raise
                     except (OSError, StorageError):
@@ -912,18 +986,18 @@ def inspect_repository(current, common, configured, context, mounts, blocked,
                             'completed_sessions', 'cold_dependency_files', 'cold_test_harnesses')):
                         cache['reason'] = 'no_partial_visibility_candidates'
                         continue
-                candidates.append((modified, cache['path'], path, cache))
+                candidates.append((modified, cache['path'], path, cache, snapshot))
     except TimeLimit as error:
         report.update(inventory_complete=False, collection_blocked=str(error))
     remaining = total
     if collect and context and total > high_bytes and report['inventory_complete'] and not blocked:
-        for _, _, root, row in sorted(candidates):
+        for _, _, root, row, snapshot in sorted(candidates):
             if remaining <= low_bytes:
                 break
             progress = {'path': row['path'], 'released_bytes': 0, 'files': 0}
             try:
                 budget(deadline)
-                row['reason'] = collect_target(Path(row['path']), root, common, context, progress, deadline)
+                row['reason'] = collect_target(snapshot, root, common, context, progress, deadline)
             except BlockingIOError:
                 row['reason'] = 'cargo_locked'
             except TimeLimit as error:

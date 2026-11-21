@@ -1,0 +1,553 @@
+[
+  {
+    "name": "list uses a null selected record",
+    "operation": "privateRecord.read",
+    "direction": "input",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "10000000-aaaa-4aaa-aaaa-000000000001",
+      "timestamp_ms": 1234,
+      "request_id": "10000000-aaaa-4aaa-aaaa-000000000002",
+      "type": "request",
+      "scope": {
+        "workspace_id": "synthetic-workspace"
+      },
+      "intent": {
+        "operation": "privateRecord.read",
+        "arguments": {
+          "record_id": null
+        }
+      }
+    }
+  },
+  {
+    "name": "inspect accepts a scoped UUID",
+    "operation": "privateRecord.read",
+    "direction": "input",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "10000000-aaaa-4aaa-aaaa-000000000001",
+      "timestamp_ms": 1234,
+      "request_id": "10000000-aaaa-4aaa-aaaa-000000000002",
+      "type": "request",
+      "scope": {
+        "workspace_id": "synthetic-workspace"
+      },
+      "intent": {
+        "operation": "privateRecord.read",
+        "arguments": {
+          "record_id": "10000000-aaaa-4aaa-aaaa-000000000003"
+        }
+      }
+    }
+  },
+  {
+    "name": "read cannot specify a profile",
+    "operation": "privateRecord.read",
+    "direction": "input",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "10000000-aaaa-4aaa-aaaa-000000000001",
+      "timestamp_ms": 1234,
+      "request_id": "10000000-aaaa-4aaa-aaaa-000000000002",
+      "type": "request",
+      "scope": {
+        "workspace_id": "synthetic-workspace",
+        "profile_id": "foreign"
+      },
+      "intent": {
+        "operation": "privateRecord.read",
+        "arguments": {
+          "record_id": "10000000-aaaa-4aaa-aaaa-000000000003"
+        }
+      }
+    }
+  },
+  {
+    "name": "detail preserves exact turn order",
+    "operation": "privateRecord.read",
+    "direction": "output",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "10000000-aaaa-4aaa-aaaa-000000000001",
+      "timestamp_ms": 1234,
+      "request_id": "10000000-aaaa-4aaa-aaaa-000000000002",
+      "type": "response",
+      "outcome": {
+        "operation": "privateRecord.read",
+        "state": "completed",
+        "result": {
+          "workspace_revision": 5,
+          "records": [],
+          "record": {
+            "record_id": "10000000-aaaa-4aaa-aaaa-000000000003",
+            "revision": 5,
+            "content": {
+              "kind": "conversation",
+              "title": "Synthetic exchange",
+              "turns": [
+                {
+                  "speaker": "assistant",
+                  "text": "Synthetic opening"
+                },
+                {
+                  "speaker": "user",
+                  "text": "Synthetic reply"
+                },
+                {
+                  "speaker": "assistant",
+                  "text": "Synthetic closing"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "stage an ordered conversation exchange",
+    "operation": "privateRecord.change",
+    "direction": "input",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "10000000-aaaa-4aaa-aaaa-000000000001",
+      "timestamp_ms": 1234,
+      "request_id": "10000000-aaaa-4aaa-aaaa-000000000002",
+      "type": "request",
+      "scope": {
+        "workspace_id": "synthetic-workspace",
+        "expected_workspace_revision": 4,
+        "idempotency_key": "10000000-aaaa-4aaa-aaaa-000000000004"
+      },
+      "intent": {
+        "operation": "privateRecord.change",
+        "arguments": {
+          "action": "save",
+          "record_id": "10000000-aaaa-4aaa-aaaa-000000000003",
+          "expected_record_revision": null,
+          "content": {
+            "kind": "conversation",
+            "title": "Synthetic exchange",
+            "turns": [
+              {
+                "speaker": "assistant",
+                "text": "Synthetic opening"
+              },
+              {
+                "speaker": "user",
+                "text": "Synthetic reply"
+              },
+              {
+                "speaker": "assistant",
+                "text": "Synthetic closing"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "conversation speakers are bounded to the two participants",
+    "operation": "privateRecord.change",
+    "direction": "input",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "10000000-aaaa-4aaa-aaaa-000000000001",
+      "timestamp_ms": 1234,
+      "request_id": "10000000-aaaa-4aaa-aaaa-000000000002",
+      "type": "request",
+      "scope": {
+        "workspace_id": "synthetic-workspace",
+        "expected_workspace_revision": 4,
+        "idempotency_key": "10000000-aaaa-4aaa-aaaa-000000000004"
+      },
+      "intent": {
+        "operation": "privateRecord.change",
+        "arguments": {
+          "action": "save",
+          "record_id": "10000000-aaaa-4aaa-aaaa-000000000003",
+          "expected_record_revision": null,
+          "content": {
+            "kind": "conversation",
+            "title": "Synthetic exchange",
+            "turns": [
+              {
+                "speaker": "system",
+                "text": "Synthetic opening"
+              },
+              {
+                "speaker": "user",
+                "text": "Synthetic reply"
+              },
+              {
+                "speaker": "assistant",
+                "text": "Synthetic closing"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "a conversation cannot include audio",
+    "operation": "privateRecord.change",
+    "direction": "input",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "10000000-aaaa-4aaa-aaaa-000000000001",
+      "timestamp_ms": 1234,
+      "request_id": "10000000-aaaa-4aaa-aaaa-000000000002",
+      "type": "request",
+      "scope": {
+        "workspace_id": "synthetic-workspace",
+        "expected_workspace_revision": 4,
+        "idempotency_key": "10000000-aaaa-4aaa-aaaa-000000000004"
+      },
+      "intent": {
+        "operation": "privateRecord.change",
+        "arguments": {
+          "action": "save",
+          "record_id": "10000000-aaaa-4aaa-aaaa-000000000003",
+          "expected_record_revision": null,
+          "content": {
+            "kind": "conversation",
+            "title": "Synthetic exchange",
+            "turns": [
+              {
+                "speaker": "assistant",
+                "text": "Synthetic opening"
+              },
+              {
+                "speaker": "user",
+                "text": "Synthetic reply"
+              },
+              {
+                "speaker": "assistant",
+                "text": "Synthetic closing"
+              }
+            ],
+            "audio": "encoded"
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "stage a correction with the record revision",
+    "operation": "privateRecord.change",
+    "direction": "input",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "10000000-aaaa-4aaa-aaaa-000000000001",
+      "timestamp_ms": 1234,
+      "request_id": "10000000-aaaa-4aaa-aaaa-000000000002",
+      "type": "request",
+      "scope": {
+        "workspace_id": "synthetic-workspace",
+        "expected_workspace_revision": 4,
+        "idempotency_key": "10000000-aaaa-4aaa-aaaa-000000000004"
+      },
+      "intent": {
+        "operation": "privateRecord.change",
+        "arguments": {
+          "action": "save",
+          "record_id": "10000000-aaaa-4aaa-aaaa-000000000003",
+          "expected_record_revision": 3,
+          "content": {
+            "kind": "strategy",
+            "title": "Synthetic strategy",
+            "text": "Synthetic rule"
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "stage restore from an explicit archive",
+    "operation": "privateRecord.change",
+    "direction": "input",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "10000000-aaaa-4aaa-aaaa-000000000001",
+      "timestamp_ms": 1234,
+      "request_id": "10000000-aaaa-4aaa-aaaa-000000000002",
+      "type": "request",
+      "scope": {
+        "workspace_id": "synthetic-workspace",
+        "expected_workspace_revision": 4,
+        "idempotency_key": "10000000-aaaa-4aaa-aaaa-000000000004"
+      },
+      "intent": {
+        "operation": "privateRecord.change",
+        "arguments": {
+          "action": "restore",
+          "backup": {
+            "format": "scopehub.private-records",
+            "version": 1,
+            "profile_binding": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "records": [
+              {
+                "record_id": "10000000-aaaa-4aaa-aaaa-000000000003",
+                "content": {
+                  "kind": "strategy",
+                  "title": "Synthetic strategy",
+                  "text": "Synthetic rule"
+                }
+              }
+            ],
+            "deletions": []
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "approve a retained stage with a body-free request",
+    "operation": "privateRecord.change",
+    "direction": "input",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "10000000-aaaa-4aaa-aaaa-000000000001",
+      "timestamp_ms": 1234,
+      "request_id": "10000000-aaaa-4aaa-aaaa-000000000002",
+      "type": "request",
+      "scope": {
+        "workspace_id": "synthetic-workspace",
+        "expected_workspace_revision": 4,
+        "idempotency_key": "10000000-aaaa-4aaa-aaaa-000000000004"
+      },
+      "intent": {
+        "operation": "privateRecord.change",
+        "arguments": {
+          "action": "resolve",
+          "challenge_id": "10000000-aaaa-4aaa-aaaa-000000000004",
+          "decision": "approve"
+        }
+      }
+    }
+  },
+  {
+    "name": "an approval cannot replace the reviewed bytes",
+    "operation": "privateRecord.change",
+    "direction": "input",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "10000000-aaaa-4aaa-aaaa-000000000001",
+      "timestamp_ms": 1234,
+      "request_id": "10000000-aaaa-4aaa-aaaa-000000000002",
+      "type": "request",
+      "scope": {
+        "workspace_id": "synthetic-workspace",
+        "expected_workspace_revision": 4,
+        "idempotency_key": "10000000-aaaa-4aaa-aaaa-000000000004"
+      },
+      "intent": {
+        "operation": "privateRecord.change",
+        "arguments": {
+          "action": "resolve",
+          "challenge_id": "10000000-aaaa-4aaa-aaaa-000000000004",
+          "decision": "approve",
+          "content": {
+            "kind": "conversation",
+            "title": "Synthetic exchange",
+            "turns": [
+              {
+                "speaker": "assistant",
+                "text": "Synthetic opening"
+              },
+              {
+                "speaker": "user",
+                "text": "Synthetic reply"
+              },
+              {
+                "speaker": "assistant",
+                "text": "Synthetic closing"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "a stage reply carries counts",
+    "operation": "privateRecord.change",
+    "direction": "output",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "10000000-aaaa-4aaa-aaaa-000000000001",
+      "timestamp_ms": 1234,
+      "request_id": "10000000-aaaa-4aaa-aaaa-000000000002",
+      "type": "response",
+      "outcome": {
+        "operation": "privateRecord.change",
+        "state": "confirmation_required",
+        "challenge_id": "10000000-aaaa-4aaa-aaaa-000000000004",
+        "expires_at_ms": 5000,
+        "summary": {
+          "added": 0,
+          "corrected": 1,
+          "removed": 0,
+          "kept": 0,
+          "suppressed": 0,
+          "imported_deletions": 0
+        }
+      }
+    }
+  },
+  {
+    "name": "a receipt contains only scoped metadata",
+    "operation": "privateRecord.change",
+    "direction": "output",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "10000000-aaaa-4aaa-aaaa-000000000001",
+      "timestamp_ms": 1234,
+      "request_id": "10000000-aaaa-4aaa-aaaa-000000000002",
+      "type": "response",
+      "outcome": {
+        "operation": "privateRecord.change",
+        "state": "committed",
+        "receipt": {
+          "operation_id": "10000000-aaaa-4aaa-aaaa-000000000004",
+          "workspace_id": "synthetic-workspace",
+          "record_id": "10000000-aaaa-4aaa-aaaa-000000000003",
+          "committed_workspace_revision": 5,
+          "undoable": false
+        }
+      }
+    }
+  },
+  {
+    "name": "a receipt rejects private content",
+    "operation": "privateRecord.change",
+    "direction": "output",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "10000000-aaaa-4aaa-aaaa-000000000001",
+      "timestamp_ms": 1234,
+      "request_id": "10000000-aaaa-4aaa-aaaa-000000000002",
+      "type": "response",
+      "outcome": {
+        "operation": "privateRecord.change",
+        "state": "committed",
+        "receipt": {
+          "operation_id": "10000000-aaaa-4aaa-aaaa-000000000004",
+          "workspace_id": "synthetic-workspace",
+          "record_id": "10000000-aaaa-4aaa-aaaa-000000000003",
+          "committed_workspace_revision": 5,
+          "undoable": false,
+          "content": {
+            "kind": "strategy",
+            "title": "Synthetic strategy",
+            "text": "Synthetic rule"
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "explicit manual backup export",
+    "operation": "privateRecord.exportBackup",
+    "direction": "input",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "10000000-aaaa-4aaa-aaaa-000000000001",
+      "timestamp_ms": 1234,
+      "request_id": "10000000-aaaa-4aaa-aaaa-000000000002",
+      "type": "request",
+      "scope": {
+        "workspace_id": "synthetic-workspace"
+      },
+      "intent": {
+        "operation": "privateRecord.exportBackup",
+        "arguments": {}
+      }
+    }
+  },
+  {
+    "name": "export returns a versioned profile-scoped archive",
+    "operation": "privateRecord.exportBackup",
+    "direction": "output",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "10000000-aaaa-4aaa-aaaa-000000000001",
+      "timestamp_ms": 1234,
+      "request_id": "10000000-aaaa-4aaa-aaaa-000000000002",
+      "type": "response",
+      "outcome": {
+        "operation": "privateRecord.exportBackup",
+        "state": "completed",
+        "result": {
+          "format": "scopehub.private-records",
+          "version": 1,
+          "profile_binding": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "records": [
+            {
+              "record_id": "10000000-aaaa-4aaa-aaaa-000000000003",
+              "content": {
+                "kind": "strategy",
+                "title": "Synthetic strategy",
+                "text": "Synthetic rule"
+              }
+            }
+          ],
+          "deletions": []
+        }
+      }
+    }
+  },
+  {
+    "name": "archive rejects outbound grants",
+    "operation": "privateRecord.exportBackup",
+    "direction": "output",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "10000000-aaaa-4aaa-aaaa-000000000001",
+      "timestamp_ms": 1234,
+      "request_id": "10000000-aaaa-4aaa-aaaa-000000000002",
+      "type": "response",
+      "outcome": {
+        "operation": "privateRecord.exportBackup",
+        "state": "completed",
+        "result": {
+          "format": "scopehub.private-records",
+          "version": 1,
+          "profile_binding": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "records": [
+            {
+              "record_id": "10000000-aaaa-4aaa-aaaa-000000000003",
+              "content": {
+                "kind": "strategy",
+                "title": "Synthetic strategy",
+                "text": "Synthetic rule"
+              }
+            }
+          ],
+          "deletions": [],
+          "grants": []
+        }
+      }
+    }
+  }
+]

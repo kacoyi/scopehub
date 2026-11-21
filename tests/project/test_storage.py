@@ -1,10 +1,12 @@
 """Storage regression fixtures use only disposable repositories and worktrees."""
 
+from contextlib import contextmanager
 import errno
 import json
 import os
 from pathlib import Path
 import select
+import shutil
 import struct
 import subprocess
 import sys
@@ -171,6 +173,36 @@ class StorageReportTests(RepositoryFixture):
 
         self.assertIsNone(result['managed_worktree_root'])
         self.assertIsNone(self.report_entry(result, nested / 'target')['allocated_bytes'])
+
+    def test_bootstrap_cli_excludes_managed_root_in_foreign_checkout(self):
+        foreign_primary = self.directory / 'foreign primary'
+        self.initialize(foreign_primary)
+        foreign = self.directory / 'foreign linked checkout'
+        self.git(foreign_primary, 'worktree', 'add', '--quiet', '--detach', str(foreign), 'HEAD')
+        managed = foreign / 'tools' / 'managed'
+        nested = self.worktree(managed / 'nested')
+        artifact = self.cargo_cache(nested)
+        self.git(self.root, 'config', '--local', 'scopehub.worktreeRoot', str(managed))
+        before = artifact.read_bytes()
+        pinned = self.directory / 'pinned tools'
+        pinned.mkdir()
+        storage_script = shutil.copyfile(SCRIPT, pinned / 'storage.py')
+
+        process = subprocess.run([sys.executable, '-I', '-S', str(storage_script)], cwd=self.root,
+                                 capture_output=True, encoding='utf-8', timeout=10)
+        self.assertEqual(process.returncode, 0, process.stderr)
+        result = json.loads(process.stdout)
+        self.assertIsNone(result['managed_worktree_root'])
+        self.assertIsNone(self.report_entry(result, nested / 'target')['allocated_bytes'])
+        self.assertEqual(artifact.read_bytes(), before)
+
+        worktree_script = SCRIPT.with_name('worktree.py')
+        create = subprocess.run([sys.executable, '-I', '-S', str(worktree_script),
+                                 'create', 'another', '--new-branch', 'another', '--base', 'HEAD'],
+                                cwd=self.root, capture_output=True, encoding='utf-8', timeout=10)
+        self.assertNotEqual(create.returncode, 0, create.stdout)
+        self.assertIn('outside every Git checkout', create.stderr)
+        self.assertFalse((managed / 'another').exists())
 
     @unittest.skipUnless(sys.platform == 'linux', 'Allocated block counts are checked on Linux.')
     def test_sparse_files_are_reported_as_allocated_blocks(self):
@@ -339,8 +371,8 @@ class CollectionTests(RepositoryFixture):
         artifact = self.cargo_cache(self.worktree(managed / 'managed-member'))
         managed_directory = storage.managed_worktree_directory
 
-        def unset_after_snapshot(current, registered):
-            directory = managed_directory(current, registered)
+        def unset_after_snapshot(current, common, registered):
+            directory = managed_directory(current, common, registered)
             if directory is not None:
                 self.git(self.root, 'config', '--local', '--unset', 'scopehub.worktreeRoot')
             return directory
@@ -351,6 +383,42 @@ class CollectionTests(RepositoryFixture):
         self.assertEqual(result['collected'], [])
         self.assertEqual(self.report_entry(result, artifact.parents[2])['reason'], 'worktree_directory_changed')
         self.assertTrue(artifact.is_file())
+
+    def test_collection_preserves_managed_cache_in_new_foreign_checkout(self):
+        foreign = self.directory / 'foreign'
+        managed = foreign / 'tools' / 'managed'
+        self.git(self.root, 'config', '--local', 'scopehub.worktreeRoot', str(managed))
+        artifact = self.cargo_cache(self.worktree(managed / 'member'))
+        control = self.cargo_cache(self.worktree('legacy'))
+        cargo_layout = storage.cargo_layout
+        before = artifact.read_bytes()
+
+        def start_foreign_checkout_after_inventory(target):
+            layout = cargo_layout(target)
+            if target == artifact.parents[2] and not (foreign / '.git').exists():
+                self.git(foreign, 'init', '--quiet')
+            return layout
+
+        with patch.object(storage, 'cargo_layout', side_effect=start_foreign_checkout_after_inventory):
+            result = self.collect()
+
+        self.assertEqual(Path(result['managed_worktree_root']), managed)
+        self.assertEqual(self.report_entry(result, artifact.parents[2])['reason'], 'worktree_directory_changed')
+        self.assertEqual(artifact.read_bytes(), before)
+        self.assertFalse(control.exists(), result)
+
+    def test_legacy_sibling_does_not_bypass_foreign_checkout_protection(self):
+        artifact = self.cargo_cache(self.worktree('legacy'))
+        self.git(self.checkouts, 'init', '--quiet')
+        self.git(self.root, 'config', '--local', 'scopehub.worktreeRoot', str(self.checkouts))
+        before = artifact.read_bytes()
+
+        result = self.collect()
+
+        self.assertIsNone(result['managed_worktree_root'])
+        self.assertIsNone(self.report_entry(result, artifact.parents[2])['allocated_bytes'])
+        self.assertEqual(result['collected'], [])
+        self.assertEqual(artifact.read_bytes(), before)
 
     def test_held_cargo_locks_exclude_only_their_cache(self):
         import fcntl
@@ -501,6 +569,85 @@ class CollectionTests(RepositoryFixture):
             with self.subTest(cache=cache):
                 self.assertTrue(queries[cache].is_file(), result)
 
+    def test_regular_target_does_not_abort_inventory_or_collection(self):
+        unusual = self.worktree('ordinary-target')
+        target = self.write(unusual, 'target', b'ordinary target file')
+        artifact = self.cargo_cache(self.worktree('valid-cache'))
+
+        result = self.collect()
+
+        self.assertTrue(result['inventory_complete'], result)
+        self.assertEqual(self.report_entry(result, target)['allocated_bytes'], target.stat().st_blocks * 512)
+        self.assertEqual(b'ordinary target file', target.read_bytes())
+        self.assertFalse(artifact.exists(), result)
+
+    def test_child_cache_rejects_replacement_or_provenance_changes_after_inventory(self):
+        retained = {}
+        for change in ('outer', 'child', 'debug', 'child_moved_back',
+                       'marker_missing', 'marker_replaced', 'marker_edited'):
+            tree = self.worktree(change)
+            retained[change] = self.cargo_cache(tree, target_dir='target/custom')
+        disposable = self.cargo_cache(self.worktree('valid-cache'), target_dir='target/custom')
+        collect_target = storage.collect_target
+        changed = False
+
+        def replace_after_inventory(*args, **kwargs):
+            nonlocal changed
+            if not changed:
+                changed = True
+                for change, artifact in retained.items():
+                    child = artifact.parents[2]
+                    marker = child / '.rustc_info.json'
+                    if change in {'outer', 'child', 'debug'}:
+                        directory = {'outer': child.parent, 'child': child, 'debug': child / 'debug'}[change]
+                        directory.rename(directory.with_name(directory.name + '-previous'))
+                        if change == 'debug':
+                            self.cargo_cache(self.directory / 'replacement').parents[1].rename(directory)
+                        else:
+                            self.cargo_cache(artifact.parents[4], target_dir='target/custom')
+                    elif change == 'child_moved_back':
+                        moved = child.rename(child.with_name('moved'))
+                        moved.rename(child)
+                    elif change == 'marker_missing':
+                        marker.unlink()
+                    elif change == 'marker_replaced':
+                        marker.rename(marker.with_suffix('.previous'))
+                        marker.write_bytes(b'{}')
+                    else:
+                        info = marker.stat()
+                        marker.write_bytes(b'[]')
+                        os.utime(marker, ns=(info.st_atime_ns, info.st_mtime_ns))
+            return collect_target(*args, **kwargs)
+
+        with patch.object(storage, 'collect_target', side_effect=replace_after_inventory):
+            result = self.collect()
+
+        self.assertFalse(disposable.exists(), result)
+        for change, artifact in retained.items():
+            with self.subTest(change=change):
+                self.assertEqual(artifact.read_bytes(), b'\x01' * 16_384)
+                self.assertEqual(self.report_entry(result, artifact.parents[2])['reason'], 'cache_identity_changed')
+
+    def test_child_cache_rechecks_provenance_after_acquiring_locks(self):
+        artifact = self.cargo_cache(self.worktree('linked'), target_dir='target/custom')
+        marker = artifact.parents[2] / '.rustc_info.json'
+        context = storage.LinuxContext({Path('/'): 'ext4'}, set())
+
+        with patch.object(storage, 'linux_context') as observe:
+            def recheck(deadline):
+                if observe.call_count > 1:
+                    info = marker.stat()
+                    marker.write_bytes(b'[]')
+                    os.utime(marker, ns=(info.st_atime_ns, info.st_mtime_ns))
+                return context
+
+            observe.side_effect = recheck
+            result = storage.run(self.root, collect=True, high_bytes=1, low_bytes=0)
+
+        self.assertEqual(result['collected'], [])
+        self.assertEqual(self.report_entry(result, artifact.parents[2])['reason'], 'cache_identity_changed')
+        self.assertTrue(artifact.is_file(), result)
+
     def require_exclusive_leases(self):
         import fcntl
 
@@ -650,12 +797,14 @@ sys.exit(1)
             with self.subTest(artifact=artifact):
                 self.assertEqual(artifact.read_bytes(), elf)
 
-    def test_process_permission_denial_keeps_auditing_visible_processes(self):
+    @contextmanager
+    def proc_fixture(self, *, foreign_denied=False):
         proc = self.directory / 'proc'
         denied, visible = [proc / str(os.getpid() + offset) for offset in (1, 2)]
         uid = os.geteuid()
         for process in (denied, visible):
-            self.write(process, 'status', f'Uid:\t{uid}\t{uid}\t{uid}\t{uid}\n'.encode('ascii'))
+            owner = uid + int(foreign_denied or process == visible)
+            self.write(process, 'status', f'Uid:\t{owner}\t{owner}\t{owner}\t{owner}\n'.encode('ascii'))
             self.write(process, 'cmdline', b'')
             self.write(process, 'maps', b'')
             (process / 'fd').mkdir()
@@ -679,10 +828,30 @@ sys.exit(1)
         with (patch.object(storage, 'Path', side_effect=lambda path: proc_paths.get(path, Path(path))),
               patch.object(storage.os, 'readlink', side_effect=observe),
               patch.object(storage, 'mount_table', return_value=(mounts, [('proc', '/')]))):
+            yield
+
+    def test_process_permission_denial_keeps_auditing_visible_processes(self):
+        with self.proc_fixture():
             context = storage.linux_context()
 
         self.assertEqual(context.inaccessible_processes, 1)
         self.assertIn(self.root, context.active_paths)
+
+    def test_inaccessible_foreign_process_prevents_lease_free_dependency_removal(self):
+        self.require_exclusive_leases()
+        tree = self.worktree('linked')
+        held = self.cargo_cache(tree, stamp=1000)
+        idle = self.write(held.parent, 'libidle-aaaaaaaaaaaaaaaa.rlib')
+        os.utime(idle, (1000, 1000))
+
+        with self.proc_fixture(foreign_denied=True), held.open('rb') as reader:
+            result = storage.run(self.root, collect=True, high_bytes=1, low_bytes=0)
+            self.assertEqual(reader.read(), b'\x01' * 16_384)
+
+        self.assertEqual(result['process_visibility'], 'partial')
+        self.assertEqual(result['inaccessible_processes'], 1)
+        self.assertTrue(held.is_file(), result)
+        self.assertFalse(idle.exists(), result)
 
     def test_collection_cannot_keep_full_scope_when_visibility_degrades_after_lock(self):
         tree = self.worktree('linked')

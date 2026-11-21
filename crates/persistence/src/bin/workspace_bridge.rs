@@ -8,13 +8,25 @@ use std::{
 };
 
 use scopehub_application::{
-    Actor, OperationRegistry, SET_TIMEFRAME, UNDO, WorkspaceAccess, WorkspaceBinding, failure,
+    Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, LOCAL_WORKSPACE_OPERATIONS,
+    OperationRegistry, PRIVATE_RECORD_CHANGE, READ_LOCAL_IMPORT_REVISION, WorkspaceAccess,
+    WorkspaceBinding, evidence_operation_name, failure,
 };
 use scopehub_domain::protocol::{Error, ErrorCode};
 use scopehub_persistence::SqliteWorkspace;
 use serde_json::{Value, json};
 
 const MAX_REQUEST_BYTES: u64 = 16 * 1024;
+const MAX_NOTE_REQUEST_BYTES: u64 = 32 * 1024;
+const MAX_BACKUP_REQUEST_BYTES: u64 = 1024 * 1024;
+
+fn request_limit(operation: Option<&str>) -> u64 {
+    match operation {
+        Some(DECISION_NOTE_PREVIEW_RESTORE | PRIVATE_RECORD_CHANGE) => MAX_BACKUP_REQUEST_BYTES,
+        Some(operation) if DECISION_NOTE_OPERATIONS.contains(&operation) => MAX_NOTE_REQUEST_BYTES,
+        _ => MAX_REQUEST_BYTES,
+    }
+}
 
 fn result_frame(result: Result<Value, Error>) -> Value {
     match result {
@@ -36,6 +48,7 @@ fn snapshot(
     Ok(json!({
         "workspace": state.workspace,
         "selection_revision": state.selection_revision,
+        "chart_evidence": state.chart_evidence,
         "undo": state.undo.map(|target| json!({
             "operation_id": target.operation_id,
             "committed_workspace_revision": target.committed_workspace_revision,
@@ -73,12 +86,12 @@ fn serve(
         line.clear();
         let count = input
             .by_ref()
-            .take(MAX_REQUEST_BYTES + 1)
+            .take(MAX_BACKUP_REQUEST_BYTES + 1)
             .read_until(b'\n', &mut line)?;
         if count == 0 {
             return Ok(());
         }
-        if count as u64 > MAX_REQUEST_BYTES {
+        if count as u64 > MAX_BACKUP_REQUEST_BYTES {
             return write_frame(
                 &mut output,
                 result_frame(Err(failure(ErrorCode::RESOURCELIMIT))),
@@ -92,6 +105,15 @@ fn serve(
         }
         let request =
             serde_json::from_slice::<Value>(&line).map_err(|_| failure(ErrorCode::INVALIDARGUMENT));
+        let operation = request.as_ref().ok().and_then(|request| {
+            evidence_operation_name(request).or_else(|| request["intent"]["operation"].as_str())
+        });
+        if count as u64 > request_limit(operation) {
+            return write_frame(
+                &mut output,
+                result_frame(Err(failure(ErrorCode::RESOURCELIMIT))),
+            );
+        }
         if let Ok(request) = &request
             && request["type"] == "snapshot"
         {
@@ -106,6 +128,35 @@ fn serve(
                     result_frame(Err(failure(ErrorCode::INVALIDARGUMENT))),
                 )?;
             }
+        } else if let Ok(request) = &request
+            && matches!(
+                request["type"].as_str(),
+                Some("frozen_chart" | "frozen_chart_status")
+            )
+        {
+            let result = match request["revision_id"].as_str() {
+                Some(id)
+                    if request.as_object().is_some_and(|obj| obj.len() == 3)
+                        && request["request_id"].as_str().is_some() =>
+                {
+                    let display = WorkspaceAccess {
+                        actor: Actor::LocalUser,
+                        operations: &[READ_LOCAL_IMPORT_REVISION],
+                        ..*access
+                    };
+                    if request["type"] == "frozen_chart_status" {
+                        registry
+                            .evidence_chart_display_allowed(&display, id)
+                            .map(|available| json!({"available": available}))
+                    } else {
+                        registry.open_evidence_chart(&display, id)
+                    }
+                }
+                _ => Err(failure(ErrorCode::INVALIDARGUMENT)),
+            };
+            let mut frame = result_frame(result);
+            frame["request_id"] = request["request_id"].clone();
+            write_frame(&mut output, frame)?;
         } else {
             let result = request.and_then(|request| registry.execute_workspace(access, request));
             write_frame(&mut output, result_frame(result))?;
@@ -152,7 +203,7 @@ fn main() -> ExitCode {
         principal_id: profile_id,
         paired_client_id: None,
         workspace_id,
-        operations: &[SET_TIMEFRAME, UNDO],
+        operations: LOCAL_WORKSPACE_OPERATIONS,
         disclose_workspace_state: true,
     };
     let io = serve(

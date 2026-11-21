@@ -1,0 +1,249 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M2-001",
+  "task_definition_sha256": "911d833a93d891cef02c017e7a95c13a4637a778706d40acc7db825d00a0275d",
+  "run_id": "20261119T183056.088825Z-d975e214",
+  "recorded_at": "2026-11-19T18:36:27.177577+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "1594731051eb138061492951619da4b01c9b48b974ce1e2a8e552d093ec4c3ad",
+    "file_count": 414,
+    "git_head": "449e9d1846d25e87c87e69f8c5338b1fd68e2c3b",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "8776db8aa3a00bea7d614e3d14ced341f6676c7b7d40e943314e045197551b85",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/projects/scopehub-private-integration/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "operations-workflow",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-persistence",
+        "--test",
+        "workspace_process",
+        "operations_workflow::"
+      ],
+      "exit_code": 0,
+      "log_sha256": "077c8678e7c05fafed7f1ce0a853d8a805fc7262b3978ae1fbf2ab074822cf76"
+    },
+    {
+      "id": "state-migrations",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-persistence"
+      ],
+      "exit_code": 0,
+      "log_sha256": "20edfb8ac986f532f44db0aecb3538207c1449cd9603768e0868086b35be7070"
+    },
+    {
+      "id": "decision-note-lifecycle",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-application",
+        "-p",
+        "scopehub-persistence",
+        "decision_note"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d806b715a16f0e8d49b8d7f33914dc83be0f08e8d10e071be90483d5284651f1"
+    },
+    {
+      "id": "private-record-lifecycle",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-application",
+        "-p",
+        "scopehub-persistence",
+        "private_record"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a9efd07a42def582be3a372db0870eb051bd52cddcfcdfba330b844d5edf2222"
+    },
+    {
+      "id": "local-folder-manifest-storage",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-persistence",
+        "folder_manifest"
+      ],
+      "exit_code": 0,
+      "log_sha256": "4305433a5cbf8c558efbc1fd44bded4618739a1cf65bacbee7b44a941c7db927"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-private-integration/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d59748bf59c5fa966a36dc8ea81ef7db48be78cd6d2c9ba58f15a085cada7b34"
+    },
+    {
+      "id": "dependency-review",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-private-integration/.venv/bin/python",
+        "scripts/dependencies.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "688e6d70acaa52508c29941325ce3b245fbb4ea74018c41f2ff10ec005631101"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-private-integration/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ab16763610d4ec67214dbbf6a1f773309ce26e348ce03910b47f94f9056d30d5"
+    },
+    {
+      "id": "rust-format",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "rust-lints",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-private-integration/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "clippy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "0ae2a134e1e3b27ee8c3cac8f207b1ef4ba4a0e55178a866747e76936dfd0d80"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2cd8b7157ba06dcc8a99dcb3155da4b7b1dfd278b8ea1cad439b8c8a73ec97fc"
+    },
+    {
+      "id": "workspace-timeframe",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "7c93d05681eeb3dc6d6aef9f1b51a322ce74b01dbf85b6d61e2ade5f76c47ac3"
+    },
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-private-integration/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c77f938e9e8f4ba513c8e6783df9a7fcacdf0889bdee66f12edf252e3c9cd5f3"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-private-integration/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d13bbcca60611de76d122c0dceb75d68ed1eff7b0e3fdb43743da37719034d3b"
+    },
+    {
+      "id": "desktop-workspace-transport",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/desktop-workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "1091eeefb8d00fa4051d4f011baf040d84e9f4fad52c68ed6e81fe50d91bbc52"
+    },
+    {
+      "id": "local-import-publication",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-private-integration/.venv/bin/python",
+        "scripts/check_local_import_publication.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "017e5f6ea3e8be82e4c08ef754fa3643191304a35b1821a15a44b2e1a729587c"
+    }
+  ],
+  "project_definition_sha256": "2e3cc5bad9198f77b88790f94e1080f6f4e88944454aa12596056c15429efefd",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

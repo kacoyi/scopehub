@@ -1,0 +1,260 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M1-008",
+  "task_definition_sha256": "8b162fcb1e343c53e771067c4281be2e6f81a15cbe664b7c7a2bef11d1da2c15",
+  "run_id": "20261119T193310.685948Z-814ddda4",
+  "recorded_at": "2026-11-19T19:43:35.509323+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "c35f091af77e17a0bb26217d3dbb07d42ae91e05b7bff67316ac1ce086132f79",
+    "file_count": 425,
+    "git_head": "4e61b89230f9289121cb608411d7625c37f99fbf",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "823227e93a45d20fc49cf10d93bb21efbc046761a256c2973d646bcf4788d278",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/projects/scopehub-product-integration/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "market-fixtures",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-product-integration/.venv/bin/python",
+        "-m",
+        "unittest",
+        "tests.integration.test_market_fixtures",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "30db9f465df459f89eb1a9ce8d889f5a913e9bbad1a61c1688941fa801e0b43a"
+    },
+    {
+      "id": "chart-history",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-product-integration/.venv/bin/python",
+        "scripts/check_chart_history.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2611a8658ec8a090399a8ff9e70544514db97ee3e4c13657c8e114951e1527a5"
+    },
+    {
+      "id": "local-folder-import",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-product-integration/.venv/bin/python",
+        "scripts/check_local_import_publication.py",
+        "folder-import"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f12d06ee6ee1544b4d7dde07718fa642998635a99a13e040df0d97cd417c57d8"
+    },
+    {
+      "id": "local-import-publication",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-product-integration/.venv/bin/python",
+        "scripts/check_local_import_publication.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "4698600ce5e85e779a375910575c980dfe613f39e8c65d365e799d4290b8a459"
+    },
+    {
+      "id": "local-folder-refresh-preview",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-product-integration/.venv/bin/python",
+        "scripts/check_local_import_publication.py",
+        "folder-refresh"
+      ],
+      "exit_code": 0,
+      "log_sha256": "fef1ad02cf343b0ee023f4ff9982b18254ef85d83a82df387c13de542688f9d8"
+    },
+    {
+      "id": "local-folder-manifest-storage",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-persistence",
+        "folder_manifest"
+      ],
+      "exit_code": 0,
+      "log_sha256": "624117aef7f56be934c5a19cf5d46e4d636fb120d625e7c7240a8710f8c37a66"
+    },
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-product-integration/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "083882fb5ee9312625b1ca5d43fd3f0aab79a345e061b389ac7cd4130eed1ff6"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-product-integration/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "b0361e98f3aeed39d3eee8ba306edaa5acf2614c4b612e44811710b4bdb62f07"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-product-integration/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "cf1ebf0ec712833607ebf055360984c04a68ac1d283a68ad720c99c96120dba7"
+    },
+    {
+      "id": "python-types",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-product-integration/.venv/bin/python",
+        "-m",
+        "mypy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8f3f4c0ebcb835e848682f2c6610a1bf32c86a993bdb626d9ff36e3a49408398"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "cc59fbe38d68a9da70d3dec17f0aed96819c2352936e146966fe208e6a94d83d"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-product-integration/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9ff23a1e9d5e5ca9bc589ae5123008c2ccf58f39623accdd08c963b307a05e7c"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "28eb20c30e2732bb29b89e728a5adc0f16dc2794cc73dbb0bd4d6d672544c5b4"
+    },
+    {
+      "id": "generated-contracts",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-product-integration/.venv/bin/python",
+        "scripts/generate_contracts.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a007d3a9c2d174f0c9ef19c989b6b2a74056caa13ef97457b17734cd3bab3f37"
+    },
+    {
+      "id": "typescript-contracts",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "check:contracts"
+      ],
+      "exit_code": 0,
+      "log_sha256": "aa246b66b5e66d3aaaf7d78992005db147fba42973e7448c8b535426a069f480"
+    },
+    {
+      "id": "operations-workflow",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-persistence",
+        "--test",
+        "workspace_process",
+        "operations_workflow::"
+      ],
+      "exit_code": 0,
+      "log_sha256": "0992cfabfb415a6d765fcba541c585d9be040f8d28bf58808a4716585dd09e78"
+    },
+    {
+      "id": "state-migrations",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-persistence"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ab0cb56fa84b6bb4ca1b19e1e6b63ee20911b1c1f62783c11954ca4918658073"
+    },
+    {
+      "id": "local-import-ui",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/local-import.playwright.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "aad1f27c3436f7ded7bf055c7c83f7ecea2a1560382deae8eeaa19f2428747b0"
+    }
+  ],
+  "project_definition_sha256": "edabd5e63f112a980ffebe4e063138ad2ae840f56aecec1e7afe5091a60ca349",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

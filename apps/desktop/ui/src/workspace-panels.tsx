@@ -11,6 +11,29 @@ import { WorkspaceIcon } from './workspace-icons';
 export type Panel = 'watchlist' | 'data' | 'sources';
 export const panelLabels: Record<Panel, string> = { watchlist: 'Watchlist', data: 'Data window', sources: 'Data sources' };
 
+export type LocalSourceActions = {
+  choose: () => void;
+  openRevision: () => void;
+  resume: (() => void) | undefined;
+  choosing: boolean;
+  error: string | undefined;
+};
+
+export function LocalSourceButtons({ actions }: { actions: LocalSourceActions }) {
+  return <div className="local-source-actions">
+    <button type="button" className="secondary-button" disabled={actions.choosing} onClick={actions.choose}>
+      Choose local CSV folder
+    </button>
+    <button type="button" className="secondary-button" aria-haspopup="dialog" disabled={actions.choosing} onClick={actions.openRevision}>
+      Open published CSV
+    </button>
+    {actions.resume && <button type="button" className="secondary-button" disabled={actions.choosing} onClick={actions.resume}>
+      Back to local CSV preview
+    </button>}
+    {actions.error && <p role="alert">{actions.error}</p>}
+  </div>;
+}
+
 function InstrumentDetails({ instrument, history }: { instrument: Instrument; history: ChartHistory }) {
   const last = history.bars.at(-1);
   if (!last) return null;
@@ -80,9 +103,10 @@ type MarketStatus = {
   replayGap: ReplayGap | undefined;
 };
 
-function DataSources({ sample, selected, history, failureKind, workerRecovery, replayGap, filters, leave }: MarketStatus & {
+function DataSources({ sample, selected, history, failureKind, workerRecovery, replayGap, filters, leave, localActions }: MarketStatus & {
   sample: boolean; selected: Instrument | undefined; history: ChartHistory | undefined;
   filters: SampleFilters; leave: () => void;
+  localActions: LocalSourceActions | undefined;
 }) {
   return <div className="source-details">
     {sample && <section><h3>Historical sample</h3><p>Generated prices and volume from fixed sessions in January 2024.</p>
@@ -108,6 +132,7 @@ function DataSources({ sample, selected, history, failureKind, workerRecovery, r
       <button type="button" className="secondary-button" onClick={leave}>Leave sample</button>
     </section>}
     {replayGap && <ReplayGapFacts gap={replayGap} />}
+    {localActions && <section><h3>Local CSV</h3><LocalSourceButtons actions={localActions} /></section>}
     <section><h3>Your connections</h3><p>Connect your own market data, AI and information services as integrations become available. Service subscriptions are separate.</p>
       <dl className="facts"><dt>Market data</dt><dd>Not configured</dd><dt>AI model</dt><dd>Not configured</dd><dt>Information</dt><dd>Not configured</dd></dl>
     </section>
@@ -118,14 +143,15 @@ type Props = MarketStatus & {
   panel: Panel; sample: boolean; instruments: Instrument[]; selected: Instrument | undefined; history: ChartHistory | undefined;
   filters: SampleFilters;
   choose: (item: Instrument) => void; close: () => void; leave: () => void;
+  localActions: LocalSourceActions | undefined;
 };
-export function WorkspacePanel({ panel, sample, instruments, selected, history, failureKind, workerRecovery, replayGap, filters, choose, close, leave }: Props) {
+export function WorkspacePanel({ panel, sample, instruments, selected, history, failureKind, workerRecovery, replayGap, filters, choose, close, leave, localActions }: Props) {
   return <aside id="workspace-panel" className={'workspace-panel panel-' + panel} aria-label={panelLabels[panel]}>
     <div className="panel-heading"><h2>{panelLabels[panel]}</h2>
       <button type="button" className="icon-button" aria-label="Close panel" title="Close panel" onClick={close}><WorkspaceIcon name="close" /></button></div>
     {panel === 'watchlist' && <Watchlist instruments={instruments} selected={selected} history={history} choose={choose} sample={sample} />}
     {panel === 'data' && <DataWindow history={history} />}
     {panel === 'sources' && <DataSources history={history} sample={sample} selected={selected}
-      failureKind={failureKind} workerRecovery={workerRecovery} replayGap={replayGap} filters={filters} leave={leave} />}
+      failureKind={failureKind} workerRecovery={workerRecovery} replayGap={replayGap} filters={filters} leave={leave} localActions={localActions} />}
   </aside>;
 }

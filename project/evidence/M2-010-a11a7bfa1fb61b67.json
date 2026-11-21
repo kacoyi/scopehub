@@ -1,0 +1,123 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M2-010",
+  "task_definition_sha256": "41ef98a2304664a3749850f69d454f784993c5dd65f536fb0854167a16071b64",
+  "run_id": "20261119T202505.325703Z-21a7525b",
+  "recorded_at": "2026-11-19T20:31:31.359257+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "bae8badc3c87be4e25540bf5afa96660c6681b3863926ff227895396678ff5f0",
+    "file_count": 425,
+    "git_head": "02c4ceee6883475b62557b5885ac6b2abf5ae3db",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "a11a7bfa1fb61b67a9940875017403193f3f452ca0017ac6f4828ad9c33b223e",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/projects/scopehub-sample-reconnect-ci/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-sample-reconnect-ci/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "3147c091bf86ea6e22633bb7ee7857fba433900aa341c393cc237467db59ce84"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-sample-reconnect-ci/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f17999161e2f7518b04978501c7e83171a2c97ff0d69a54cccac1eeed32132c8"
+    },
+    {
+      "id": "workspace-timeframe",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "1e8fb7f7f3893ac5fb46b61bf09d8cccf7de5842dca5fe4dad25a9506007c168"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ef8c7e0ca37def11f45027380655a85b4fd5b40cbe8da7e686ff6c24da1a1aca"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "59b4598fdabf3da3194196a67f151b550762a7c05f4911996908f9c76ba8f849"
+    },
+    {
+      "id": "market-quality-states",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-quality.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "610a20e73314211193163c0ffa5c9ee4eb7f11f781c92cf703cd6b29ae5d1734"
+    }
+  ],
+  "project_definition_sha256": "cd04d2f139aa7d016e63826cf6e1100b5cb8ce24ed18976d56328ddfd6c69ca1",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

@@ -1,5 +1,7 @@
 """Create and locate native Git worktrees in ScopeHub's managed worktree root."""
 
+from __future__ import annotations
+
 import argparse
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
@@ -74,16 +76,25 @@ def registrations(cwd):
                                fields.get('HEAD'))
 
 
-def entry_mode(path):
+def entry_info(path):
     try:
-        return path.lstat().st_mode
+        return path.lstat()
     except FileNotFoundError:
         return None
 
 
+def reparse_point(info):
+    return bool(getattr(info, 'st_file_attributes', 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT)
+
+
+def regular_file(path):
+    info = entry_info(path)
+    return info is not None and stat.S_ISREG(info.st_mode) and not reparse_point(info)
+
+
 def has_git_metadata(cwd, directory):
     marker = directory / '.git'
-    return (entry_mode(marker) is not None
+    return (entry_info(marker) is not None
             and git(cwd, 'rev-parse', '--resolve-git-dir', str(marker), allowed=(0, 128)).returncode == 0)
 
 
@@ -98,9 +109,10 @@ def managed_root(cwd, common, registered):
         root = Path(values[0])
     if root.resolve() != root or root == root.parent:
         raise WorktreeError(f'{ROOT_CONFIG} must name a dedicated absolute directory without symlinks: {root}')
-    mode = entry_mode(root)
-    if mode is not None and not stat.S_ISDIR(mode):
-        raise WorktreeError(f'Managed worktree root is not a directory: {root}')
+    info = entry_info(root)
+    if info is not None and (not stat.S_ISDIR(info.st_mode) or reparse_point(info)):
+        raise WorktreeError(f'Managed worktree root is not a plain directory: {root}')
+    # storage.py applies the same admission rule to existing roots. Both helpers also run standalone.
     if (root.is_relative_to(common) or any(root.is_relative_to(entry.path) for entry in registered)
             or any(has_git_metadata(cwd, parent) for parent in (root, *root.parents))):
         raise WorktreeError(f'Managed worktree root must be outside every Git checkout and its metadata: {root}')
@@ -117,18 +129,38 @@ def destination(root, name):
     return path
 
 
-def verify_checkout(cwd, common, entry):
+def registered_checkout(registered, path):
+    matches = [entry for entry in registered if entry.path == path]
+    if len(matches) > 1:
+        raise WorktreeError(f'Ambiguous Git worktree registration at {path}. Inspect git worktree list --porcelain.')
+    return matches[0] if matches else None
+
+
+def verify_checkout(common, entry):
     if entry.lock_reason == 'initializing':
         raise WorktreeError(
             f'Git has not completed checkout at {entry.path} (locked: initializing). '
             'Wait for Git to exit and inspect git worktree list --porcelain before retrying. '
             'Use another name and branch if the incomplete checkout must be preserved.'
         )
-    if (entry.flags & {'bare', 'prunable'} or entry.path.resolve() != entry.path
-            or not (entry.path / '.git').exists()):
+    path = entry.path
+    marker = path / '.git'
+    if entry.flags & {'bare', 'prunable'} or path.resolve() != path or not regular_file(marker):
         raise WorktreeError(f'Git worktree is unavailable at {entry.path}. Inspect git worktree list --porcelain.')
-    if git_path(entry.path, '--show-toplevel') != entry.path or git_path(entry.path, '--git-common-dir') != common:
-        raise WorktreeError(f'Git worktree at {entry.path} does not belong to {cwd}.')
+    git_dir = git_path(path, '--git-dir')
+    if (git_path(path, '--show-toplevel') != path or git_path(path, '--git-common-dir') != common
+            or git_dir.parent != common / 'worktrees'):
+        raise WorktreeError(f'Git worktree at {path} does not have a linked Git directory in {common}.')
+    backlink = git_dir / 'gitdir'
+    if not regular_file(backlink):
+        raise WorktreeError(f'Git directory {git_dir} is missing its worktree backlink. Inspect git worktree list --porcelain.')
+    location = os.fsdecode(backlink.read_bytes()).removesuffix('\n').removesuffix('\r')
+    if Path(os.path.abspath(git_dir / location)) != marker:
+        raise WorktreeError(f'Git directory {git_dir} does not point back to {marker}. Inspect git worktree list --porcelain.')
+    head = git(path, 'symbolic-ref', '--quiet', 'HEAD', allowed=(0, 1))
+    branch = os.fsdecode(head.stdout).removesuffix('\n') if head.returncode == 0 else None
+    if branch != entry.branch:
+        raise WorktreeError(f'Git branch changed at {path}. Inspect git worktree list --porcelain and retry.')
 
 
 def open_windows_lock(path):
@@ -235,16 +267,16 @@ def create(cwd, common, root, registered, path, args, lock_fd):
     base = None
     if args.new_branch is not None:
         base = git(cwd, 'rev-parse', '--verify', '--end-of-options', f'{args.base}^{{commit}}').stdout.decode().strip()
-    entry = next((entry for entry in registered if entry.path == path), None)
+    entry = registered_checkout(registered, path)
     if entry:
-        verify_checkout(cwd, common, entry)
+        verify_checkout(common, entry)
         if entry.branch != ref:
             raise WorktreeError(f'{path} is already registered for {entry.branch or "a detached HEAD"}; choose another name.')
         if base and git(cwd, 'merge-base', '--is-ancestor', base, ref, allowed=(0, 1)).returncode:
             raise WorktreeError(f'Cannot reuse {path}: {args.base} is not an ancestor of {branch}.')
         return 'Reused'
 
-    if entry_mode(path) is not None or any(entry.path.is_relative_to(path) for entry in registered):
+    if entry_info(path) is not None or any(entry.path.is_relative_to(path) for entry in registered):
         raise WorktreeError(f'Worktree path is occupied or already registered: {path}. Choose another name.')
     for entry in registered:
         if entry.branch == ref:
@@ -261,6 +293,12 @@ def create(cwd, common, root, registered, path, args, lock_fd):
 
     root.mkdir(parents=True, exist_ok=True)
     add_worktree(cwd, lock_fd, path, branch, base)
+    entry = registered_checkout(registrations(cwd), path)
+    if entry is None:
+        raise WorktreeError(f'Git did not register {path}. Inspect git worktree list --porcelain.')
+    verify_checkout(common, entry)
+    if entry.branch != ref:
+        raise WorktreeError(f'Git did not register {path} for {ref}. Inspect git worktree list --porcelain.')
     return 'Created'
 
 
@@ -313,10 +351,10 @@ def main():
                     outcome = create(cwd, common, root, registered, path, args, lock_fd)
                     print(f'{outcome} {path}\nUse "use {args.name}" to print its path.')
                 else:
-                    entry = next((entry for entry in registered if entry.path == path), None)
+                    entry = registered_checkout(registered, path)
                     if entry is None:
                         raise WorktreeError(f'No registered checkout at {path}. Use list or create.')
-                    verify_checkout(cwd, common, entry)
+                    verify_checkout(common, entry)
                     print(path)
     except KeyboardInterrupt:
         parser.exit(130, 'ScopeHub worktree: Interrupted. Wait for Git to exit before retrying.\n')

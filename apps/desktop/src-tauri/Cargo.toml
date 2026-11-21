@@ -9,16 +9,25 @@ license.workspace = true
 check_platform = "windows-x64"
 portable_test_lib = true
 
+[features]
+portable-test-bridge = []
+
+[[example]]
+name = "local_import_bridge"
+required-features = ["portable-test-bridge"]
+
 [dependencies]
 scopehub-application = { path = "../../../crates/application" }
 scopehub-domain = { path = "../../../crates/domain" }
 scopehub-persistence = { path = "../../../crates/persistence" }
+scopehub-platform = { path = "../../../crates/platform" }
 scopehub-worker-host = { path = "../../../crates/worker-host" }
 serde_json.workspace = true
 sha2 = "0.10"
 tokio.workspace = true
 
 [target.'cfg(windows)'.dependencies]
+rfd = { version = "=0.17.2", default-features = false }
 tauri = { version = "2.12.3", default-features = false, features = ["wry", "compression", "common-controls-v6"] }
 
 [target.'cfg(windows)'.build-dependencies]

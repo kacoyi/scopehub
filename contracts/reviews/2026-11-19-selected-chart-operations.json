@@ -1,0 +1,43 @@
+{
+  "recorded_at": "2026-11-19",
+  "kind": "profile_bound_chart_selection_and_operation_replay",
+  "task_id": "M2-001",
+  "source_commit": "8cb1ba91e4ca87a983d88449288ce9dfebcf1b37",
+  "baseline_commit": "cecda1c80829d42b7a120aba9ab4e3e12221669b",
+  "scope": "Linux, local Rust core and two synthetic SQLite profiles, Chromium with the private development entry, and separate substituted desktop IPC. The actor tests use a locally provisioned AI principal.",
+  "observed": [
+    "At the baseline a generic AI chart mutation could commit against a selected interval without the local analysis grant. The new direct operation tests reject that mutation without a durable write.",
+    "A user or an appropriately authorized on-device AI intent can target the selected interval. New writes check both selection and workspace versions. Retrying an already committed action while the selected interval changes recovers the original result only under current disclosure permissions.",
+    "Four real SQLite operation tests cover rollback, wrong target or grant, conflicting undo, concurrent identical requests and reopening a fresh writer after losing a reply. Concurrent duplicates commit once.",
+    "All 15 selected checks passed. The private-workspace Chromium suite passed 14 cases including clearing an unavailable selection, rejecting late content after revocation and retaining the prior durable operation. Four substituted desktop IPC cases passed."
+  ],
+  "artifacts": [
+    {
+      "file": ".reports/operations-workflow/cecda1c-red.log",
+      "sha256": "4630acf7bb7f0f1912c3b22b282f96eac2445eef4f3072ab70bdfe15ddc8a654"
+    },
+    {
+      "file": ".reports/runs/20261119T171300.753937Z-4c775643/test-report.json",
+      "sha256": "492942181522dd685cf35b6024c5188b1fc10c131bca703c4156539f12986674"
+    },
+    {
+      "file": ".reports/runs/20261119T171300.753937Z-4c775643/operations-workflow.log",
+      "sha256": "b72eb8093755f0d6cbf779c61722d1b4b8fff7cad0724f238c989841207abecc"
+    },
+    {
+      "file": ".reports/runs/20261119T171300.753937Z-4c775643/decision-note-lifecycle.log",
+      "sha256": "c82c5619ca9dc64bde74ca79ad80d47509f82552257426fa26e06b1ae867c782"
+    },
+    {
+      "file": ".reports/runs/20261119T171300.753937Z-4c775643/workspace-timeframe.log",
+      "sha256": "9f43524241fb25cd32dbd03c46f8b5a5164ce40c45fe671feb1f7c660a96bce4"
+    },
+    {
+      "file": ".reports/runs/20261119T171300.753937Z-4c775643/desktop-workspace-transport.log",
+      "sha256": "e39f7f80be5c161cdfb8a186318fc0fe53e5c61271b76b3ca5253ff044273b82"
+    }
+  ],
+  "pending": [
+    "Saved personal conversations, memories and strategies, their profile-local backup, deletion and migration verification, connected model qualification, and packaged and physical Windows acceptance."
+  ]
+}
