@@ -1962,6 +1962,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "text-model-route-ack-loss-leaves-stale-grant",
+      "source": "Follow-up independent review and Chromium regressions against the real Ubuntu workspace at 0bb1c6b. The lost route review and disconnect replies are retained in .reports/ai-workflow/1795224895471-109c697d-bc93-46eb-988e-d321080e891a/results.json and .reports/ai-workflow/1795225142282-ad3ec39f-c2ac-49de-a20e-98c85913925b/results.json.",
+      "observation": "The Rust writer completed both a proposal for another destination and an explicit disconnect. Losing the local proposal reply left the old Send control visible in chat. Losing the disconnect reply left the revoked recipient visible in AI settings.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M4-007"
+      ],
+      "regression_checks": [
+        "model-connection-workflow"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

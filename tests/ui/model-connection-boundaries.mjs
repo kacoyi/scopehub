@@ -4,13 +4,14 @@ import { control } from './workspace-controls.mjs';
 
 const chat = page => page.getByRole('dialog', { name: 'Ask AI' });
 const settings = page => page.getByRole('dialog', { name: 'AI settings' });
-const conversation = page => chat(page).getByRole('log', { name: 'Conversation' });
+// The UI hides the log when it has no turns. Inspect it even then to verify it was cleared.
+const conversation = page => chat(page).getByRole('log', { name: 'Conversation', includeHidden: true });
 const user = content => ({ role: 'user', content });
 const assistant = content => ({ role: 'assistant', content });
 const peerReply = turn => `Synthetic peer reply ${turn}`;
 
 export async function checkModelConnectionBoundaries(browser, testInfo, controls) {
-  const { openChat, propose, activateRoute, send, observeAction, expectRevoked, expectRequest } = controls;
+  const { openChat, propose, activateRoute, send, observeAction, expectRevoked, expectRequest, loseConnectionReply } = controls;
   await withPeer(first => withPeer(second => withProfile(profile => withProfile(async otherProfile => {
     expect(first.origin).not.toBe(second.origin);
     expect(profile.id).not.toBe(otherProfile.id);
@@ -62,12 +63,13 @@ export async function checkModelConnectionBoundaries(browser, testInfo, controls
 
         await withWorkspace(browser, otherProfile, async (otherPage, dispatchOther) => {
           await openChat(otherPage);
+          await expect(control(chat(otherPage), 'AI settings')).toBeEnabled();
           await expect(chat(otherPage).getByText('No model connected', { exact: true })).toBeVisible();
           await expect(conversation(otherPage)).toBeEmpty();
-          await expectRevoked(dispatchOther, firstCommand, secondGrant);
-          expect(second.traffic).toHaveLength(1);
           await control(chat(otherPage), 'AI settings').click();
           await activateRoute(otherPage, await propose(otherPage, second.origin));
+          await expectRevoked(dispatchOther, firstCommand, secondGrant);
+          expect(second.traffic).toHaveLength(1);
           const isolatedQuestion = 'Synthetic recipient B question in a separate profile';
           await send(otherPage, isolatedQuestion);
           await expect(conversation(otherPage).getByText(peerReply(2), { exact: true })).toBeVisible();
@@ -95,7 +97,8 @@ export async function checkModelConnectionBoundaries(browser, testInfo, controls
         await expect(conversation(page).getByText(peerReply(4), { exact: true })).toBeVisible();
         expectRequest(second.traffic[3], [user(newQuestion)]);
         await control(chat(page), 'AI settings').click();
-        await control(settings(page), 'Disconnect').click();
+        await loseConnectionReply(page, 'disconnect', () => control(settings(page), 'Disconnect').click());
+        await expect(settings(page).getByRole('region', { name: 'Active model connection' })).toHaveCount(0);
         await control(settings(page), 'Back to question').click();
         await expect(chat(page).getByText('No model connected', { exact: true })).toBeVisible();
         await expectRevoked(dispatch, firstCommand, reactivatedGrant);

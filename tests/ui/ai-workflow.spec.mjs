@@ -37,9 +37,13 @@ async function askBeforeSetup(page) {
   await expect(control(settings(page), 'Use offline mock')).toBeVisible();
 }
 
-async function propose(page, origin) {
+async function fillRoute(page, origin) {
   await settings(page).getByLabel('Server origin').fill(origin);
   await settings(page).getByLabel('Model', { exact: true }).fill(requestedModel);
+}
+
+async function propose(page, origin) {
+  await fillRoute(page, origin);
   await control(settings(page), 'Review connection').click();
   const activation = control(settings(page), 'Connect and enable');
   await expect(activation).toBeVisible();
@@ -80,6 +84,29 @@ async function observeAction(page, name, action) {
   return request.postDataJSON();
 }
 
+async function loseConnectionReply(page, name, action) {
+  const workspaceRoute = `**${workspaceEndpoint}`;
+  let acknowledgement;
+  const loseReply = async route => {
+    if (!isAction(route.request(), name)) return route.fallback();
+    const response = await route.fetch({ maxRedirects: 0 });
+    acknowledgement = await response.json();
+    await route.abort('failed');
+  };
+  await page.route(workspaceRoute, loseReply);
+  try {
+    await Promise.all([
+      page.waitForEvent('requestfailed', { predicate: request => isAction(request, name) }),
+      action(),
+    ]);
+    expect(acknowledgement).toMatchObject({ ok: true, result: { outcome: {
+      state: 'completed', result: { action: name },
+    } } });
+  } finally {
+    await page.unroute(workspaceRoute, loseReply);
+  }
+}
+
 async function expectRevoked(dispatch, command, connectionId = command.intent.arguments.connection_id) {
   const reply = await dispatch({
     ...command,
@@ -90,7 +117,9 @@ async function expectRevoked(dispatch, command, connectionId = command.intent.ar
       action: 'send', connection_id: connectionId, question: 'Synthetic stale-grant probe',
     } },
   });
-  expect(reply).toMatchObject({ ok: true, result: { outcome: { state: 'failed' } } });
+  expect(reply, `Expected a registry denial, received ${JSON.stringify(reply)}`).toMatchObject({
+    ok: true, result: { outcome: { state: 'failed' } },
+  });
   expect(['PERMISSION_DENIED', 'STALE_CONTEXT']).toContain(reply.result.outcome.error.code);
 }
 
@@ -306,7 +335,7 @@ for (const fault of ['lost', 'mismatched']) {
 
 test('sixth turn, changed destination, separate profile and cancellation respect the approved route', async ({ browser }, testInfo) => {
   await checkModelConnectionBoundaries(browser, testInfo,
-    { openChat, propose, activateRoute, send, observeAction, expectRevoked, expectRequest });
+    { openChat, propose, activateRoute, send, observeAction, expectRevoked, expectRequest, loseConnectionReply });
 });
 
 test('one scoped activation delivers two ordinary turns to the owned peer and handles denial, failure and cancellation', async ({ browser }, testInfo) => {
@@ -388,8 +417,19 @@ test('one scoped activation delivers two ordinary turns to the owned peer and ha
 
         await control(chat(page), 'AI settings').click();
         await control(settings(page), 'Change connection').click();
-        await propose(page, otherPeer.origin);
+        await fillRoute(page, otherPeer.origin);
+        const loseStatus = route => isAction(route.request(), 'status') ? route.abort('failed') : route.fallback();
+        await page.route(workspaceRoute, loseStatus);
+        await loseConnectionReply(page, 'propose', () => control(settings(page), 'Review connection').click());
+        const checkStatus = control(settings(page), 'Check connection status');
+        await expect(checkStatus).toBeEnabled();
+        await expect(settings(page).getByRole('region', { name: 'Active model connection' })).toHaveCount(0);
+        await expect(control(settings(page), 'Back to question')).toHaveCount(0);
+        await page.unroute(workspaceRoute, loseStatus);
+        await checkStatus.click();
+        await expect(settings(page).getByRole('region', { name: 'Review model connection' })).toHaveCount(0);
         await control(settings(page), 'Back to question').click();
+        await expect(chat(page).getByText('No model connected', { exact: true })).toBeVisible();
         await expect(control(chat(page), 'Send')).toHaveCount(0);
         await expect(control(chat(page), 'Ask')).toBeVisible();
         await expectRevoked(dispatch, firstCommand, reactivated);
