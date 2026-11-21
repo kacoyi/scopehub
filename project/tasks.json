@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M3-005",
+  "focus_task_id": "M4-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -8343,7 +8343,7 @@
       "id": "M3-005",
       "title": "Enforce indicator execution limits and restore accepted chart artifacts",
       "milestone": "M3",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M3-001"
       ],
@@ -8398,10 +8398,23 @@
         "ui-build",
         "market-workflow"
       ],
-      "evidence": [],
-      "next_action": "Obtain exact-source task receipts from hosted Linux and native Windows for the region overlap and Python platform corrections before closing M3-005.",
+      "evidence": [
+        {
+          "path": "project/evidence/M3-005-23e7883574f8da5c.json",
+          "sha256": "ff84e6ea5f62b9bd154a84f233d56d9497a955b7c190e4ab24561716ce7dc964"
+        },
+        {
+          "path": "project/evidence/M3-005-1189472f387b0b81.json",
+          "sha256": "3bace9b2c4d86126d33211df8e4e9f8da387d393510ee2731f28590fb401d791"
+        },
+        {
+          "path": "project/evidence/M3-005-3ee953149f47b304.json",
+          "sha256": "ea3d3759c57ca9e002e4c251824fe274b2a64fb9cb4273d616322e92dc40acab"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "All 12 selected checks passed on clean source 199a7192ad8e3cf41dd8325399e2a43edf902493 in local run 20261121T095903.292622Z-bf640228 and authenticated task workflow 44892140495 on Ubuntu and native Windows. The actual interpreter probes verified the 512 MiB limit on each platform, with per-process virtual address space on Linux and aggregate committed memory across the owned Job Object on Windows. A test-only 64 MiB cap rejected a 72 MiB allocation with the expected resource error and cleanup. The reports also verify the indicator deadline, current-grant and replay rules through SQLite, all 256 layer references, region-only preview and restore across intrabar, window and gap cases, and indicator removal undo after remount.",
       "plan": {
         "outcome": "Local indicator confirmations observe current grants and admitted trusted Python obeys the configured memory budget while preserving valid results and owned cleanup. Restore all supported accepted indicator artifacts on the chart after reopening or changing its sample window.",
         "change_types": [

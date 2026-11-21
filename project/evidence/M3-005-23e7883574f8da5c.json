@@ -1,0 +1,180 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M3-005",
+  "task_definition_sha256": "fad74ccf91d2797c1ee082846e7544d13e3d212c5e6e01c751b9381ac6341cad",
+  "run_id": "20261121T095903.292622Z-bf640228",
+  "recorded_at": "2026-11-21T10:01:57.237953+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "cb6e342dccfd144ef9e89abf48359551fc5353e825608d0e4670fba51433ab5a",
+    "file_count": 469,
+    "git_head": "199a7192ad8e3cf41dd8325399e2a43edf902493",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "23e7883574f8da5cf6a11ceb3edb3f79bd7a39c0b0eeb88b211a37b3112e6a1d",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/projects/scopehub-indicator-integration/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "operations-workflow",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-persistence",
+        "--test",
+        "workspace_process",
+        "operations_workflow::"
+      ],
+      "exit_code": 0,
+      "log_sha256": "4386c0b71ee5658322ada65d638b6053c8dd51ef82c01f750177e1ff19c4bd7c"
+    },
+    {
+      "id": "indicator-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs",
+        "--grep",
+        "indicator-preview runs trusted Python once"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2fc820d36b4f20710dbfd52ffcbe1df1f211e5741dbb6d82ff9e6cab93a96e20"
+    },
+    {
+      "id": "indicator-declarative-preview",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs",
+        "--grep",
+        "indicator-preview",
+        "--grep-invert",
+        "runs trusted Python once"
+      ],
+      "exit_code": 0,
+      "log_sha256": "71d39a927a468686e7929c33bb5a284304c8f9efd472139819594594ca2c70c4"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-indicator-integration/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ff20daf8190eae5f3253ac20c6252fb4bfc43e22f3ba1055b85219557d781245"
+    },
+    {
+      "id": "rust-lints",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-indicator-integration/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "clippy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f228a5ae5451ea4223316784e88a3da6a7e688266b620bdd267f86d2968bbcf5"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-indicator-integration/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "88346d17c21fc86bbad091587128dd8c802cdda007ea8eaa6ce12d9ad0c699af"
+    },
+    {
+      "id": "python-types",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-indicator-integration/.venv/bin/python",
+        "-m",
+        "mypy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ca16d6d1a06c6903f5407ba5268cb8b5eb5d8c7811b7532282916ec31807c328"
+    },
+    {
+      "id": "python-types-win32",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-indicator-integration/.venv/bin/python",
+        "-m",
+        "mypy",
+        "--platform",
+        "win32"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ca16d6d1a06c6903f5407ba5268cb8b5eb5d8c7811b7532282916ec31807c328"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "76d51185335450121980689694e397dde76a27538f8c4bdd09331477ec98399e"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c2ac19caa89f9210b2719c2e1add7cf8a0573043df920f3c2bc2e4c868f5b013"
+    }
+  ],
+  "project_definition_sha256": "fa86781bbe24a3663a7e044dcda40562e4a35fabaf508d71dd1398dde2add777",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}
