@@ -2153,6 +2153,21 @@
         "prevention": "Local and hosted task verification matched the clean 320946e execution inputs. Ubuntu ran 438 Python tests and Windows ran the same suite with 45 platform skips. The stable host read-only snapshot found two intake rows and zero candidates among 50 registrations. One intake row verified 17 retained files, while the integrated product checkout verified 999 and remained held for additional unarchived files. The three failure reports retain their original failed outcomes and verified manifests. The retained M4 run still records 13 passed checks and two blocked."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "preview-fixtures-survive-parent-disconnect",
+      "source": "Primary relocation host observation on 2026-11-21, preserved private evidence SHA-256 f07b858853bd4ce3cc31c85e0303bc5830b6d381ab69ee210be06cee1c1e1463.",
+      "observation": "Two Vite synthetic history fixtures and their workspace writers survived for hours after their original owner exited. They held two listening ports and a historical checkout, with no connected clients. Ordinary termination of the two verified fixture parents released both listeners and their writers.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-038"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
