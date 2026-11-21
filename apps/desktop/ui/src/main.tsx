@@ -147,7 +147,8 @@ function App() {
     </div>}
     <ModelChat key={modelWorkspaceId} workspaceId={modelWorkspaceId} theme={snapshot?.layouts?.active.definition.theme}
       view={modelChatView} show={setModelChatView} chartSelection={currentModelSelection}
-      chartSelectionChanged={!local && modelSelection !== undefined && currentModelSelection === undefined} />
+      invalidChartSelectionRevision={!local && currentModelSelection === undefined ? modelSelection?.selectionRevision : undefined}
+      discardChartSelection={() => setModelSelection(undefined)} />
     {openingRevision && <OpenLocalRevisionDialog onClose={() => setOpeningRevision(false)} revisionAccess={revisionAccess}
       workspace={workspace} nativeLocalImport={hasLocalCsvPicker()}
       useWorkspaceSource={workspace && supportsSourcePreference ? async revision_id => {
