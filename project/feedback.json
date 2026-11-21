@@ -2153,6 +2153,23 @@
         "prevention": "Local and hosted task verification matched the clean 320946e execution inputs. Ubuntu ran 438 Python tests and Windows ran the same suite with 45 platform skips. The stable host read-only snapshot found two intake rows and zero candidates among 50 registrations. One intake row verified 17 retained files, while the integrated product checkout verified 999 and remained held for additional unarchived files. The three failure reports retain their original failed outcomes and verified manifests. The retained M4 run still records 13 passed checks and two blocked."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "relocated-managed-history-bridge-retains-old-source-root",
+      "source": "Coordinator's native synthetic history bridge survey and the indicator coordinator's isolated canonical rebuild probe.",
+      "observation": "All 25 surveyed prior managed worktrees had clean Git working states. A synthetic instrument.search failed in 23 with WORKER_EXITED before launch because the worker working directory was missing. In the other two, native child-process observation confirmed that Python still launched through an old checkout alias. An isolated rebuild from one exact canonical checkout revision used a private copy of its old build output and launched the child with the canonical Python interpreter. The survey and probe preserved all original installed artifacts.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-037"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers",
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

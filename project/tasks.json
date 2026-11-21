@@ -8671,6 +8671,119 @@
           "cleanup": "Use a temporary compatibility link for the original coordinating Herdr terminal. Switch the coordinator to a new canonical Herdr space, retire the old folder entry and link after checking live terminal paths, and verify the normal entrypoints again."
         }
       }
+    },
+    {
+      "id": "M0-037",
+      "title": "Recover history bridge runtimes in previously relocated managed worktrees",
+      "milestone": "M0",
+      "status": "planned",
+      "depends_on": [
+        "M0-030"
+      ],
+      "scope": [
+        "scripts",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Bind the 25 observed managed worktrees to their native Git registrations and exact checkout revisions. Confirm Git identity and working state, protected owner and worker activity, and Cargo consumers before touching each approved runtime. Record explicit holds wherever availability or exact source cannot be established.",
+        "Build the history bridge against the approved checkout's exact canonical source and locked Python and Cargo inputs. Stage and verify replacement files before any promotion. Retain checksum-verified originals and replace only the approved installed artifacts while the checkout and relevant build consumers are idle.",
+        "From each repaired canonical path, repeat a synthetic instrument.search and observe the actual child working directory and Python interpreter. Run with any obsolete path unavailable where the owner can release it. Keep the checkout pending if another live consumer still requires an alias and an independent probe cannot establish canonical operation.",
+        "On an isolated native fixture, repeat the move and recovery with the old path unavailable, restore the previous installed bytes and relevant metadata, and verify canonical operation after a second recovery. Preserve all source, Git identities, ignored non-build files and original diagnostics and receipts.",
+        "Run the listed repository checks and keep the actual-host results separately in a private, source-bound receipt. Record exact artifact digests, canonical child launch observations and rollback verification there before counting any repaired runtime as accepted."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "rust-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Wait for the host coordinator to authorize an idle per-checkout repair and approve the native rollback fixture. Keep the earlier runtime evidence and M0-032 cutover scope intact.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Previously relocated managed worktrees can run the synthetic history bridge through the Python interpreter at their registered canonical paths, with reversible recovery of the original installed artifacts.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "crates/worker-host/examples/history_bridge.rs",
+          "scripts/worktree.py",
+          "scripts/storage.py",
+          "project/development.json",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "A cached bridge can retain the absolute source root embedded by CARGO_MANIFEST_DIR. Rebuilding from the exact canonical source with locked dependencies can restore launches without an old checkout entry.",
+          "An isolated Cargo build can reuse safe inputs while the deployed runtime changes are limited to artifacts verified for the canonical checkout. Sequential staging can bound disk use."
+        ],
+        "risks": [
+          {
+            "failure": "A bridge probe appears to pass by using an old alias, a different Python interpreter or source from another checkout.",
+            "checks": [
+              "python-contracts-workers",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Replacing a generated file interferes with a live shell, worker or Cargo job, or a failed promotion loses the prior installed state.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          },
+          {
+            "failure": "Recovery consumes excess disk space, alters retained evidence or changes Git working state or checkout identity.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Keep a private manifest of each changed artifact with its source binding, digest and relevant metadata. After excluding active consumers, restore the exact prior artifacts from verified staging and recheck their bytes and metadata. Keep the original failed launch observation as historical evidence.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/worktree.py",
+            "scripts/storage.py",
+            "crates/worker-host/examples/history_bridge.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/herdr"
+            }
+          ],
+          "non_goals": [
+            "Moving any checkout, extending the seven-sibling M0-032 scope, updating branches, changing scheduled maintenance or product behavior, rewriting earlier evidence, and retaining a full duplicate Cargo target for each repaired worktree."
+          ],
+          "open_questions": [
+            "Which checkouts still need a bridge runtime, which owners can release an old path for the native probe, and which installed artifacts must be staged for each approved repair?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Git registration, source and working state, open owner sessions, ignored non-build files, original diagnostics and accepted project history."
+          ],
+          "change": [
+            "Replace only verified path-bound runtime artifacts at approved canonical managed paths. Check the child process identity and restore the previous installed bytes on rollback."
+          ],
+          "data_plan": "Keep host paths, activity observations and exact runtime receipts private. Use bounded scratch space and retain only the original artifacts needed for recovery. Use synthetic history for verification.",
+          "cleanup": "Retire task-created staging after verification and retain the minimal rollback payload. Record any held runtime and required alias with its release condition. Leave existing compatibility entries under coordinator control."
+        }
+      }
     }
   ]
 }
