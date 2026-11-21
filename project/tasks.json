@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M3-002",
+  "focus_task_id": "M2-011",
   "tasks": [
     {
       "id": "M0-001",
@@ -7870,7 +7870,7 @@
       "id": "M3-002",
       "title": "Verify sample history readiness before running indicator browser assertions",
       "milestone": "M3",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M3-001"
       ],
@@ -7904,11 +7904,19 @@
         {
           "path": "project/evidence/M3-002-0c0006cb80d4b959.json",
           "sha256": "e95002f408ef7dfac2e53985f4fbc2f53e9dc333caa77851a84466a68d28bf50"
+        },
+        {
+          "path": "project/evidence/M3-002-05f090e9317d76b3.json",
+          "sha256": "0dcc1c53da301e42f7e76d9e028adbc4942bd7fdd97b3a3f14554a596678d687"
+        },
+        {
+          "path": "project/evidence/M3-002-c9845a8246ed01f3.json",
+          "sha256": "402c5b0ec4eb7b922a556bca55a9f89a128b72674a1955cd84b22d8e78f38302"
         }
       ],
-      "next_action": "Run the M3-002 hosted task on the integrated PR21 fixture checkpoint. Verify both platforms and the full workspace-timeframe check, inspect the indicator request stages and archive passing source-matched reports before closing the feedback.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "All M3-002 checks passed in authenticated Ubuntu and Windows task run 44854537896 on clean source ecbb3aa93a33b35a93cf590b7a04b52d21b9963c. Both browsers completed the exact selected history and rendered the expected sample before the calendar and trusted Python assertions. Delayed calendar history, gapped output and restart without recomputation were verified. The integrated workspace check also passed the published-revocation scenario after the PR21 fixture correction.",
       "plan": {
         "outcome": "Both indicator journeys proceed from a verified frozen sample and distinguish history transport failures from rendering or indicator failures.",
         "change_types": [
