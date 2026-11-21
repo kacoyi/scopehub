@@ -2006,7 +2006,7 @@
     {
       "id": "managed-worktree-foreign-checkout-admission",
       "source": "PR 25 review and disposable native Git and Cargo cache reproductions.",
-      "observation": "Storage inventory admitted a managed root nested in a foreign Git checkout that the worktree manager would reject. When a foreign repository appeared after inventory, collection deleted a fixture artifact under the foreign checkout. The legacy sibling rule also permitted that nesting. Re-review reproduced both worktree creation and collection under a foreign .git file that Git could not resolve, including collection of an enclosing repository's tracked file after Cargo locks had been acquired.",
+      "observation": "Storage inventory admitted a managed root nested in a foreign Git checkout that the worktree manager would reject. When a foreign repository appeared after inventory, collection deleted a fixture artifact under the foreign checkout. The legacy sibling rule also permitted that nesting. Re-review reproduced both worktree creation and collection under a foreign .git file that Git could not resolve, including collection of an enclosing repository's tracked file after Cargo locks had been acquired. The existing M0-030 fixture additionally caught a change to the mounted-worktree diagnostic while combining the root and cache handle safeguards.",
       "severity": "major",
       "status": "open",
       "task_ids": [
@@ -2021,8 +2021,8 @@
     },
     {
       "id": "cargo-storage-review-admission-boundaries",
-      "source": "Independent review of PR 24 at 98506a29aa50f82f9ff8b08417a3323d2949aa41 and disposable M0-033 regression fixtures.",
-      "observation": "The Linux process scan skipped other UIDs, allowing removal without a lease while a foreign process could be holding a dependency open. Collection accepted replacements at inventoried child cache paths, including a replaced debug directory and an absent, replaced or edited .rustc_info.json marker. A regular file at target raised NotADirectoryError during child discovery and interrupted the repository-wide review.",
+      "source": "Independent reviews of PR 24 at 98506a29aa50f82f9ff8b08417a3323d2949aa41 and cbab3a9ec47a3c2611fcdebeafa46717dad7cc6f, and disposable M0-033 regression fixtures.",
+      "observation": "The Linux process scan skipped other UIDs, allowing removal without a lease while a foreign process could be holding a dependency open. Collection accepted replacements at inventoried child cache paths, including a replaced debug directory and an absent, replaced or edited .rustc_info.json marker. The first repair compared directory stat samples, which may be indistinguishable when inodes are reused on filesystems with coarse timestamps. A regular file at target raised NotADirectoryError during child discovery and interrupted the repository-wide review.",
       "severity": "major",
       "status": "open",
       "task_ids": [

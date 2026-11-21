@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import select
 import shutil
+import stat
 import struct
 import subprocess
 import sys
@@ -683,6 +684,80 @@ class CollectionTests(RepositoryFixture):
         self.assertEqual(result['collected'], [])
         self.assertEqual(self.report_entry(result, artifact.parents[2])['reason'], 'cache_identity_changed')
         self.assertTrue(artifact.is_file(), result)
+
+    def test_live_directory_handles_distinguish_a_replacement_with_the_same_sampled_stat(self):
+        original = self.cargo_cache(self.worktree('linked'), target_dir='target/custom')
+        debug = original.parents[1]
+        replacement = self.cargo_cache(self.directory / 'replacement')
+        replacement.write_bytes(b'other fixture directory')
+        replacement_debug = replacement.parents[1]
+        previous_debug = debug.with_name('older-debug')
+        lstat = Path.lstat
+        fstat = os.fstat
+        staged_info = lstat(replacement_debug)
+        self.assertNotEqual(lstat(debug).st_ino, staged_info.st_ino)
+        collect_target = storage.collect_target
+        swapped = False
+
+        class CoarseDirectoryStat:
+            st_ctime_ns = 1000
+
+            def __init__(self, info):
+                self.info = info
+
+            def __getattr__(self, name):
+                return getattr(self.info, name)
+
+        def coarse(info):
+            return CoarseDirectoryStat(info) if stat.S_ISDIR(info.st_mode) else info
+
+        def sample_path(path):
+            # Model a saved path stat indistinguishable from the eventual replacement.
+            return coarse(staged_info if path == debug and not swapped else lstat(path))
+
+        def swap_after_inventory(*args, **kwargs):
+            nonlocal swapped
+            debug.rename(previous_debug)
+            replacement_debug.rename(debug)
+            swapped = True
+            return collect_target(*args, **kwargs)
+
+        with (patch.object(Path, 'lstat', sample_path),
+              patch.object(storage.os, 'fstat', side_effect=lambda fd: coarse(fstat(fd))),
+              patch.object(storage, 'collect_target', side_effect=swap_after_inventory)):
+            result = self.collect()
+
+        self.assertTrue(swapped)
+        self.assertEqual(result['collected'], [], result)
+        self.assertEqual(self.report_entry(result, original.parents[2])['reason'], 'cache_identity_changed')
+        self.assertEqual((previous_debug / original.relative_to(debug)).read_bytes(), b'\x01' * 16_384)
+        self.assertEqual(original.read_bytes(), b'other fixture directory')
+
+    def test_inventory_closes_candidate_handles_on_noop_and_interruption(self):
+        artifact = self.cargo_cache(self.worktree('linked'))
+        observed = []
+        observe_directory = storage.observe_directory
+
+        def record_handle(*args, **kwargs):
+            handle = observe_directory(*args, **kwargs)
+            observed.append(handle.fd)
+            return handle
+
+        context = storage.LinuxContext({Path('/'): 'ext4'}, set())
+        with (patch.object(storage, 'observe_directory', side_effect=record_handle),
+              patch.object(storage, 'linux_context', return_value=context)):
+            storage.run(self.root)
+            self.assertEqual(observed, [])
+            storage.run(self.root, collect=True)
+            self.assertTrue(observed)
+            with patch.object(storage, 'collect_target', side_effect=storage.TimeLimit('fixture deadline')):
+                outcome = storage.run(self.root, collect=True, high_bytes=1, low_bytes=0)
+            self.assertEqual(outcome['collection_blocked'], 'fixture deadline')
+        for fd in observed:
+            with self.assertRaises(OSError) as closed:
+                os.fstat(fd)
+            self.assertEqual(closed.exception.errno, errno.EBADF)
+        self.assertTrue(artifact.is_file())
 
     def require_exclusive_leases(self):
         import fcntl
