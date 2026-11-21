@@ -8824,6 +8824,229 @@
           "cleanup": "Release held test responses in the existing fixture teardown."
         }
       }
+    },
+    {
+      "id": "M3-003",
+      "title": "Verify a committed indicator undo before reading the exact restored document",
+      "milestone": "M3",
+      "status": "done",
+      "depends_on": [
+        "M3-001",
+        "M3-002"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0017"
+      ],
+      "acceptance": [
+        "Hold the real undo in flight and determine whether the accepted layer is visible before the committed response. Retain the correlated mutation response and the direct read's status and envelope.",
+        "Prove the old result-only assertion can fail on a positively observed retryable read admission failure. Bound any recovery to that status and error before requiring exact equality with the original saved document.",
+        "Retain the frozen chart, independent numeric, cancellation, failure isolation, revocation and restart assertions in the integrated indicator journey."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "indicator-declarative-preview",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M3-003-1552a7d7bfa1bb3a.json",
+          "sha256": "3761377ca0034fca656dbc11ef7424dc144f0d6729c183b62824ca1c90bbf9d2"
+        },
+        {
+          "path": "project/evidence/M3-003-46b49d1a3be973bf.json",
+          "sha256": "4295dcbb35dfe9399dcebf2dc5f93b10681041f666b219f3bcbc4901c3872596"
+        },
+        {
+          "path": "project/evidence/M3-003-e29d54b84c3f5c49.json",
+          "sha256": "3a62a65c714ec56a6075917c548ce10c8f7ee8e9470bc32341f3395b668013ba"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "All M3-003 checks passed locally and in the authenticated Ubuntu and Windows task reports from run 44859651953 at clean source 355fba7b7ce3faf1472627cc6677d8bbb7906e2a. Each observed the in-flight undo with the accepted region hidden, a committed undo receipt at revision 3, and HTTP 200 with the exact saved artifact after a typed retryable admission failure. The independent numeric, cancellation, failure, revocation and restart assertions passed.",
+      "plan": {
+        "outcome": "The frozen CSV journey distinguishes committed undo, rendered accepted state and an authorized read of the exact immutable artifact.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "apps/desktop/ui/src/indicator-acceptance.tsx",
+          "apps/desktop/ui/ubuntu-workspace.mjs",
+          "crates/application/src/workspace/indicators/accepted.rs"
+        ],
+        "hypotheses": [
+          "The hosted assertion extracts only result, so contention and a genuinely missing artifact are indistinguishable in the archived failure.",
+          "The accepted region may be visible after a valid commit while an independent authorized workspace read still occupies the single preview producer."
+        ],
+        "risks": [
+          {
+            "failure": "A broad retry conceals an uncommitted undo, an authorization failure or a changed accepted document.",
+            "checks": [
+              "indicator-declarative-preview",
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Retain the hosted, controlled red and green artifacts. Remove any change that obscures the exact committed receipt, error envelope or document equality.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing indicator semantics, workspace authorization, producer policy or product timeouts."
+          ],
+          "open_questions": [
+            "Does the producer return a typed BUSY before undo completion or during an unrelated read after the restored region is visible?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Exact accepted document equality, frozen inputs, independent indicator results, cancellation, failure isolation, revocation and restart."
+          ],
+          "change": [
+            "Observe the specific undo receipt and log each direct accepted-output response. Recover only from a bounded, observed read admission failure."
+          ],
+          "data_plan": "Use the existing synthetic CSV and a disposable local profile.",
+          "cleanup": "Resume the test-owned suspended writer on every path and detach response observers after the matching request or timeout."
+        }
+      }
+    },
+    {
+      "id": "M3-004",
+      "title": "Give the eight-stage sample and private undo journey its own test budget",
+      "milestone": "M3",
+      "status": "done",
+      "depends_on": [
+        "M3-002",
+        "M3-003"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0018"
+      ],
+      "acceptance": [
+        "Retain the original Windows cutoff evidence. Use the same pacing schedule between completed stages to show the 60-second whole-test cutoff failing and the 90-second journey completing.",
+        "Preserve all eight history, private undo, source, revision and accepted-layer assertions and the individual history response budgets. Verify the separate real disconnect and explicit recovery control.",
+        "Resolve the observed competing-read defect in the integrated indicator undo test fixture. Observe removal refresh completion, gate the exact undo and retain its commit and the exact restored document.",
+        "Archive one matching hosted workspace run that passes this task's required checks."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M3-004-cab56358da60cfd7.json",
+          "sha256": "f85f8a868d90a283c4ea5335aa465a7e985cb1116503bfbbeeaa239e23781d2a"
+        },
+        {
+          "path": "project/evidence/M3-004-1fa65710c5178145.json",
+          "sha256": "a27a8a7367c230e937471f08361d427659f57963b96b7f5231600896fc8aa2e2"
+        },
+        {
+          "path": "project/evidence/M3-004-247a9fb37149097f.json",
+          "sha256": "1d27e748c8cc1f559d5a77cfda76297fa224963b6cc206c7d633f017224717c7"
+        },
+        {
+          "path": "project/evidence/M3-004-3ac7a16758a26365.json",
+          "sha256": "eaf7dd7021b75414533ffa4bf6d8c22e8b1d7d459781fc5d8f77b9d00f8bf2fa"
+        },
+        {
+          "path": "project/evidence/M3-004-16a996167556e4e2.json",
+          "sha256": "57b19c8096f6257efeaaff843da3c8458467dd4327310e1cec9d035e06c3d740"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The complete local workspace task and both authenticated jobs in workflow dispatch 44864057222 passed all named checks on clean source b9fc86eba525cb66c61c3538f7e104d654107b72. The eight sample stages completed with preserved private undo, accepted-layer selection and explicit disconnect recovery. The frozen indicator journey observed the removal reads, committed the exact gated undo at revision 3 and restored the exact original document after the separate typed BUSY read. Earlier successful receipts and the Windows partial pass and failure remain recorded for their observed source.",
+      "plan": {
+        "outcome": "The eight-step browser journey can finish evaluating independently bounded history reads and private undo on the hosted runner.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ui/sample-startup.mjs",
+          "tests/ui/replay-stages.mjs",
+          "apps/desktop/ui/ubuntu-preview.mjs"
+        ],
+        "hypotheses": [
+          "The 60-second enclosing budget can expire during an otherwise valid sequence of eight independently bounded chart stages.",
+          "The hosted stage attachment ended with the eighth request admitted and fetching. The later disconnect screenshot cannot establish when that request settled.",
+          "The separate indicator undo fixture used a generic 429 probe as evidence of mutation admission. Any occupied producer can cause the probe to return 429, including a read that makes the actual mutation return BUSY."
+        ],
+        "risks": [
+          {
+            "failure": "An expanded whole-test deadline hides an individual history transport failure or weakens private undo and source assertions.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A competing refresh owns the producer and the fixture attributes that admission to Undo or retries a mutation without a known outcome.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Keep the original hosted cutoff and controlled red and green observations. Restore the prior journey deadline if the controlled case or real disconnect assertions regress.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Product timeouts, market workers, individual request budgets, the global test timeout and market replay recovery."
+          ],
+          "open_questions": [
+            "The matching 031b5e1 Windows report finished all eight history stages and recovery. A separate indicator undo fixture failed on a correlated 429. Can both pass in the same hosted workspace report after fixing fixture ownership?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The 18-second individual test wait, 15-second preview watchdog, healthy response requirements, explicit disconnect recovery and all private undo and source assertions."
+          ],
+          "change": [
+            "Align only this whole journey with the adjacent 90-second recovery case.",
+            "Wait for the removal's workspace snapshot and empty accepted-layer list. Gate the exact undo before forwarding it once. Keep the independent post-visibility BUSY read probe."
+          ],
+          "data_plan": "Use the existing synthetic sample and disposable profile.",
+          "cleanup": "Retain the comparison diagnostic only in the ignored report directory. Keep sleeps out of the delivered test."
+        }
+      }
     }
   ]
 }
