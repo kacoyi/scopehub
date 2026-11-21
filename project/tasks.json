@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M4-007",
+  "focus_task_id": "M4-008",
   "tasks": [
     {
       "id": "M0-001",
@@ -7734,7 +7734,7 @@
       "id": "M4-007",
       "title": "Preserve the local writer and conversation across text reply boundaries",
       "milestone": "M4",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M4-006"
       ],
@@ -7765,10 +7765,15 @@
         "rust-contracts-workers",
         "python-contracts-workers"
       ],
-      "next_action": "Finish the existing Ubuntu boundary cases, reconcile lost route-change acknowledgements with the local grant, and record passing formal task evidence.",
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M4-007-3e31e53b1d4314ee.json",
+          "sha256": "65065e3e425ba70e103137cec8af4fc3ddd8663664b4da8be48cc30dd3eb1f18"
+        }
+      ],
       "plan": {
         "outcome": "A user can continue the same conversation and work in the same workspace after a large reply or an interrupted local poll.",
         "change_types": [
@@ -7843,6 +7848,77 @@
           ],
           "data_plan": "Use disposable synthetic profiles and isolated test recipients. Keep successful ordinary pairs within their existing session.",
           "cleanup": "Settle or reject each pending turn and remove listeners and retained state when the session ends."
+        }
+      }
+    },
+    {
+      "id": "M4-008",
+      "title": "Recover native text setup during initial workspace admission",
+      "milestone": "M4",
+      "status": "active",
+      "depends_on": ["M4-007"],
+      "scope": [
+        "apps/desktop/ui/src/model-chat-transport.ts",
+        "apps/desktop/ui/src/model-chat.tsx",
+        "apps/desktop/src-tauri/src/workspace.rs",
+        "tests/ui/desktop-workspace.spec.mjs"
+      ],
+      "decision_refs": ["0004", "0007", "0011", "0019"],
+      "acceptance": [
+        "The first native chat status and route review recover after controlled workspace writer contention. Retry only explicitly retryable transport BUSY before registry admission, with the same command and a bounded wait.",
+        "A workspace admission failure identifies the local workspace. Preserve exactly one explicit model send, current cancellation behavior and grant checks. Setup contacts no model recipient.",
+        "Retain a controlled held-writer regression through the native dispatch and the normal UI entry. Supply a local source commit for a native Windows cold and warm rerun."
+      ],
+      "checks": [
+        "desktop-workspace-transport",
+        "market-workflow",
+        "model-connection-replay",
+        "model-connection-workflow",
+        "rust-contracts-workers",
+        "ui-build"
+      ],
+      "next_action": "Implement and exercise the bounded native control retry, then hand off the source revision for the Windows rerun.",
+      "blocker": null,
+      "closure_reason": null,
+      "evidence": [],
+      "plan": {
+        "outcome": "An immediate Ask AI and route review can complete after the first private workspace snapshot releases the native writer.",
+        "change_types": ["model-connection", "ui"],
+        "context": [
+          "apps/desktop/src-tauri/src/workspace.rs",
+          "crates/persistence/src/lib.rs",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "apps/desktop/ui/src/model-chat-transport.ts"
+        ],
+        "hypotheses": [
+          "The initial snapshot holds native admission while opening SQLite. Only the outer retryable BUSY rejects status and propose before execution. A bounded retry around the transport can safely keep their original correlation."
+        ],
+        "risks": [
+          {
+            "failure": "Replaying a command after admission can revoke a newer grant, or resubmit a model turn. Treat operation outcomes as terminal for the transport retry and exercise one explicit send and cancellation.",
+            "checks": ["desktop-workspace-transport", "model-connection-workflow", "rust-contracts-workers"]
+          }
+        ],
+        "rollback": "Restore immediate native status and proposal admission failure while retaining the captured IPC and held-writer regressions.",
+        "implementation": {
+          "modules": ["ui", "desktop"],
+          "entrypoints": [
+            "apps/desktop/ui/src/model-chat-transport.ts",
+            "apps/desktop/ui/src/model-chat.tsx",
+            "apps/desktop/src-tauri/src/workspace.rs"
+          ],
+          "rules": [
+            {"path": "engineering-contract-v1.json", "pointer": "/ai/model_connections/session_grant"}
+          ],
+          "non_goals": ["Automatic send retries, wider writer admission, configured provider calls and Windows execution in this worktree."],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": ["Single-writer admission, grant revocation, operation outcomes and explicit model send and cancellation."],
+          "change": ["Recover narrowly from explicit native transport contention during status and route review, and report local contention accurately."],
+          "data_plan": "Use a disposable synthetic profile for the native lane and a held writer in the substituted IPC journey.",
+          "cleanup": "Stop retries by deadline or abort and release all fixture holds."
         }
       }
     }

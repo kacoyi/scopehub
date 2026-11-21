@@ -1,0 +1,139 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M4-007",
+  "task_definition_sha256": "ea8e8b4a5a0f7724101d327bd13765e7241d40662d489d164d0fd4019a2e3ecb",
+  "run_id": "20261121T014054.709453Z-24f76bf2",
+  "recorded_at": "2026-11-21T01:44:18.158275+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "26ab8e9538dacd75843437bf2eed308a02cfd03d6a473a554ee5235da691db81",
+    "file_count": 487,
+    "git_head": "2e54c2bcae20a13af87372a17f5babb9b3291930",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "3e31e53b1d4314ee48fb4b4b0ce0414804a6c4394e9bf06be5fce50ab5dc354a",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/projects/scopehub-model-connection/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "model-connection-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/ai-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "55fb303846599b89d4ee9668932abbdc926f116a13c5627cd14993ea12283dd2"
+    },
+    {
+      "id": "model-connection-replay",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-application",
+        "text_connection::tests"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ffdb5e7174a8e817f788d5374aa39adea780be4824505774388315f2f0a576e5"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "de7923a0e4b99c420db75b84e2e559ad903648500d64eeb0b0399be6f1d94324"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "bbb14b66f2fa78e596ce4aeae6e68bbb6c1aff2aba6703ff6a6baaf094d1bf6f"
+    },
+    {
+      "id": "operations-workflow",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-persistence",
+        "--test",
+        "workspace_process",
+        "operations_workflow::"
+      ],
+      "exit_code": 0,
+      "log_sha256": "3411d0706a46651736d7f478fdd12421ef364036e5596d5f038e56a88b88b61c"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-model-connection/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e858bd56dc33230d1defb0a9d04682a4ed94ab670ad118ea27da8c1a5e3b8859"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-model-connection/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c582d06210f026ee365c6f3e6b875019024b02489eb8cdbe70071e69885d3404"
+    }
+  ],
+  "project_definition_sha256": "2be8f0f1b52352b827d56874a14fe953befccd9dce7f74e696ed69471bf07d27",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}
