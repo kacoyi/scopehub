@@ -24,8 +24,17 @@ const MAX_REQUEST_BYTES: u64 = 16 * 1024;
 const MAX_NOTE_REQUEST_BYTES: u64 = 32 * 1024;
 const MAX_BACKUP_REQUEST_BYTES: u64 = 1024 * 1024;
 const MAX_SAMPLE_REQUEST_BYTES: u64 = 256 * 1024;
+// A 64 KiB text result can expand sixfold through JSON escapes, plus the
+// responding model identity and the ordinary poll command.
+const MAX_TEXT_RESULT_BYTES: u64 = 512 * 1024;
 
-fn request_limit(operation: Option<&str>) -> u64 {
+fn request_limit(request: Option<&Value>) -> u64 {
+    if request.is_some_and(|frame| frame["type"] == "ai_text_result") {
+        return MAX_TEXT_RESULT_BYTES;
+    }
+    let operation = request.and_then(|request| {
+        evidence_operation_name(request).or_else(|| request["intent"]["operation"].as_str())
+    });
     match operation {
         Some(DECISION_NOTE_PREVIEW_RESTORE | PRIVATE_RECORD_CHANGE) => MAX_BACKUP_REQUEST_BYTES,
         Some(operation) if DECISION_NOTE_OPERATIONS.contains(&operation) => MAX_NOTE_REQUEST_BYTES,
@@ -110,10 +119,15 @@ fn serve(
             return Ok(());
         }
         if count > max_message_bytes() {
-            return write_frame(
+            if !line.ends_with(b"\n") {
+                // Drain the rest without buffering it before reading another frame.
+                input.skip_until(b'\n')?;
+            }
+            write_frame(
                 &mut output,
                 result_frame(Err(failure(ErrorCode::RESOURCELIMIT))),
-            );
+            )?;
+            continue;
         }
         if !line.ends_with(b"\n") {
             return write_frame(
@@ -191,14 +205,12 @@ fn serve(
             write_frame(&mut output, frame)?;
             continue;
         }
-        let operation = request.as_ref().ok().and_then(|request| {
-            evidence_operation_name(request).or_else(|| request["intent"]["operation"].as_str())
-        });
-        if count as u64 > request_limit(operation) {
-            return write_frame(
+        if count as u64 > request_limit(request.as_ref().ok()) {
+            write_frame(
                 &mut output,
                 result_frame(Err(failure(ErrorCode::RESOURCELIMIT))),
-            );
+            )?;
+            continue;
         }
         if let Ok(request) = &request
             && request["type"] == "snapshot"
@@ -293,6 +305,9 @@ fn serve(
                             && command["intent"]["arguments"]["action"] == "poll"
                     })
                     .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
+                if command.to_string().len() as u64 >= MAX_REQUEST_BYTES {
+                    return Err(failure(ErrorCode::RESOURCELIMIT));
+                }
                 let id = command["intent"]["arguments"]["turn_id"]
                     .as_str()
                     .and_then(|id| uuid::Uuid::parse_str(id).ok())

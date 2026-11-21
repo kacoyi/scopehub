@@ -8078,6 +8078,120 @@
           "cleanup": "Cancel pending work, clear the grant on disconnect or route replacement and start disconnected after process restart. Preserve all existing storage migrations."
         }
       }
+    },
+    {
+      "id": "M4-007",
+      "title": "Preserve the local writer and conversation across text reply boundaries",
+      "milestone": "M4",
+      "status": "active",
+      "depends_on": [
+        "M4-006"
+      ],
+      "scope": [
+        "crates/persistence/src/bin/workspace_bridge.rs",
+        "apps/desktop/ui/src/model-chat.tsx",
+        "apps/desktop/ui/ubuntu-workspace.mjs",
+        "tests"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0009",
+        "0011",
+        "0019"
+      ],
+      "acceptance": [
+        "Deliver a valid large or escaped answer through the real adapter, internal result channel and visible conversation. A rejected or over-limit result leaves the same writer available for an ordinary workspace operation.",
+        "After an interrupted or mismatched poll on a second turn, retain the successful first exchange and actual connection status. Recover the original second-turn outcome exactly once, without sending the user question again or labeling a local transport failure as provider rejection.",
+        "Exercise cancellation, disconnection, an explicitly changed recipient and a distinct profile without transferring old context; demonstrate the bounded recent conversation reaches the actual configured peer."
+      ],
+      "checks": [
+        "model-connection-workflow",
+        "model-connection-replay",
+        "ui-build",
+        "market-workflow",
+        "operations-workflow",
+        "rust-contracts-workers",
+        "python-contracts-workers"
+      ],
+      "next_action": "Reproduce both observations against the real Ubuntu workspace. Repair the response framing and the correlated UI state, then run the two model checks and independent review.",
+      "blocker": null,
+      "closure_reason": null,
+      "evidence": [],
+      "plan": {
+        "outcome": "A user can continue the same conversation and work in the same workspace after a large reply or an interrupted local poll.",
+        "change_types": [
+          "model-connection",
+          "ui",
+          "permissions"
+        ],
+        "context": [
+          "crates/persistence/src/bin/workspace_bridge.rs",
+          "apps/desktop/ui/src/model-chat.tsx",
+          "apps/desktop/ui/ubuntu-workspace.mjs",
+          "contracts/decisions/0019-profile-text-model-route.json"
+        ],
+        "hypotheses": [
+          "Private worker replies need a bounded envelope compatible with accepted connector payloads. Uncertain local observations can be reconciled using the existing job identity and current grant."
+        ],
+        "risks": [
+          {
+            "failure": "An oversized or malformed result blocks unrelated workspace requests or widens the public request limit.",
+            "checks": [
+              "model-connection-workflow",
+              "model-connection-replay"
+            ]
+          },
+          {
+            "failure": "A failed observation loses earlier turns, repeats an outbound question or discloses them after changing route or profile.",
+            "checks": [
+              "model-connection-workflow",
+              "model-connection-replay"
+            ]
+          }
+        ],
+        "rollback": "Keep both baseline observations and boundary fixtures. Restore the previous reader and UI independently if focused checks fail.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "application",
+            "persistence",
+            "worker-host",
+            "worker-runtime"
+          ],
+          "entrypoints": [
+            "crates/persistence/src/bin/workspace_bridge.rs",
+            "apps/desktop/ui/src/model-chat.tsx",
+            "apps/desktop/ui/ubuntu-workspace.mjs",
+            "crates/application/src/workspace/text_connection.rs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ai/model_connections/session_grant"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ai/context_policy"
+            }
+          ],
+          "non_goals": [
+            "Product cloud or voice qualification and changes to private record persistence."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The activated route, recipient and profile boundaries, bounded recent turns and explicit disconnect."
+          ],
+          "change": [
+            "Make valid private result framing interoperable and recover pending turns without a duplicate dispatch."
+          ],
+          "data_plan": "Use disposable synthetic profiles and isolated test recipients. Keep successful ordinary pairs within their existing session.",
+          "cleanup": "Settle or reject each pending turn and remove listeners and retained state when the session ends."
+        }
+      }
     }
   ]
 }

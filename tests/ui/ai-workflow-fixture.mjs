@@ -146,11 +146,11 @@ export async function withWorkspace(browser, profile, use) {
       });
       const page = await context.newPage();
       await page.goto(origin);
-      const dispatch = async frame => {
+      const dispatch = async (frame, padding = 0) => {
         const response = await fetch(origin + workspaceEndpoint, {
           method: 'POST', signal: AbortSignal.timeout(8_000),
           headers: { Origin: origin, 'Content-Type': 'application/json', Authorization: 'Bearer ' + capability },
-          body: JSON.stringify(frame),
+          body: JSON.stringify(frame) + ' '.repeat(padding),
         });
         return response.json();
       };
@@ -207,7 +207,8 @@ export async function withPeer(use) {
       }
       const json = responseMode === 'unavailable'
         ? { error: 'synthetic-peer-internal-error' }
-        : { model: 'synthetic-peer:served', message: { role: 'assistant', content: `Synthetic peer reply ${traffic.length}` }, done: true };
+        : { model: 'synthetic-peer:served', message: { role: 'assistant', content:
+          typeof responseMode === 'object' ? responseMode.text : `Synthetic peer reply ${traffic.length}` }, done: true };
       response.writeHead(responseMode === 'unavailable' ? 503 : 200, { 'Content-Type': 'application/json' });
       response.end(JSON.stringify(json));
     });

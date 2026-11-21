@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import { buildPreview, persistedRows, seedDisplayOnlyChart, withPeer, withProfile, withWorkspace, workspaceEndpoint } from './ai-workflow-fixture.mjs';
 import { control, openPanel } from './workspace-controls.mjs';
+import { checkModelConnectionBoundaries } from './model-connection-boundaries.mjs';
 
 const requestedModel = 'synthetic-peer:requested';
 const respondingModel = 'synthetic-peer:served';
@@ -173,6 +174,165 @@ test('first question offers setup and the explicit offline mock; neither contact
       contentType: 'application/json',
     });
   })));
+});
+
+test('an accepted 20,480-byte answer reaches chat and leaves the same workspace responsive', async ({ browser }, testInfo) => {
+  await withPeer(peer => withProfile(profile => withWorkspace(browser, profile, async (page, dispatch) => {
+    await askBeforeSetup(page);
+    await activateRoute(page, await propose(page, peer.origin));
+    const before = await dispatch({ type: 'snapshot' });
+    expect(before).toMatchObject({ ok: true });
+    const text = 'a'.repeat(20_480);
+    peer.respond({ text });
+    await send(page);
+    const log = chat(page).getByRole('log');
+    await expect.poll(async () => ({
+      answers: await log.getByRole('article').count(),
+      errors: await chat(page).getByRole('alert').count(),
+    })).not.toEqual({ answers: 0, errors: 0 });
+    const after = await dispatch({ type: 'snapshot' });
+    const answers = await log.locator('.model-answer p').allTextContents();
+    await testInfo.attach('ascii-reply-boundary', { body: JSON.stringify({
+      answerBytes: Buffer.byteLength(text), outboundRequests: peer.traffic.length,
+      renderedAnswerBytes: answers.map(answer => Buffer.byteLength(answer)),
+      snapshotAfterPoll: after.ok ? 'ready' : after.error?.code,
+      alert: await chat(page).getByRole('alert').allTextContents(),
+    }), contentType: 'application/json' });
+    expect(after, 'The original writer still serves the same snapshot').toEqual(before);
+    expect(answers).toEqual([text]);
+    expect(peer.traffic).toHaveLength(1);
+  })));
+});
+
+test('escaped UTF-8 reaches chat at its byte limit and an oversized answer fails within the same grant', async ({ browser }, testInfo) => {
+  await withPeer(peer => withProfile(profile => withWorkspace(browser, profile, async (page, dispatch) => {
+    await askBeforeSetup(page);
+    const connectionId = await activateRoute(page, await propose(page, peer.origin));
+    const before = await dispatch({ type: 'snapshot' });
+    expect(before).toMatchObject({ ok: true });
+    // Keep the decoded text at 64 KiB and exercise JSON expansion well beyond 16 KiB.
+    const prefix = '界😀"\\\n';
+    const escaped = prefix + '\x01'.repeat(16_384);
+    const text = escaped + 'a'.repeat(65_536 - Buffer.byteLength(escaped));
+    peer.respond({ text });
+    await send(page);
+    const answers = chat(page).getByRole('log').locator('.model-answer p');
+    await expect(answers).toHaveCount(1);
+    expect(await answers.first().textContent()).toBe(text);
+
+    peer.respond({ text: text + 'x' });
+    await send(page, followUp);
+    await expect(chat(page).getByRole('alert')).toHaveText('The question or response exceeded the text limit.');
+    await expect(chat(page).getByText(/^Ollama connected/)).toBeVisible();
+    expect(await dispatch({ type: 'snapshot' })).toEqual(before);
+
+    // Send a real workspace mutation above its existing public frame limit.
+    const mutation = {
+      protocol_version: '1.1', type: 'request', message_id: randomUUID(),
+      request_id: randomUUID(), timestamp_ms: Date.now(), task_id: null,
+      scope: { workspace_id: 'main', target: { kind: 'chart', object_id: 'main-chart' },
+        expected_workspace_revision: before.result.workspace.revision,
+        expected_selection_revision: before.result.selection_revision, idempotency_key: randomUUID() },
+      intent: { operation: 'chart.setTimeframe', arguments: { timeframe: '5m' } },
+    };
+    const padding = 16_384;
+    const rejectedMutation = await dispatch(mutation, padding);
+    expect(rejectedMutation).toMatchObject({ ok: false, error: { code: 'RESOURCE_LIMIT' } });
+    expect(await dispatch({ type: 'snapshot' })).toEqual(before);
+    const followingMutation = await dispatch({ ...mutation, message_id: randomUUID(), request_id: randomUUID() });
+    expect(followingMutation).toMatchObject({ ok: true, result: { outcome: { state: 'committed',
+      result: { timeframe: '5m', revision: before.result.workspace.revision + 1 } } } });
+
+    peer.respond('success');
+    const next = await observeAction(page, 'send', () => send(page, 'Synthetic request after oversized reply'));
+    await expect(chat(page).getByText('Synthetic peer reply 3', { exact: true })).toBeVisible();
+    expect(next.intent.arguments.connection_id).toBe(connectionId);
+    expect(peer.traffic).toHaveLength(3);
+    expectRequest(peer.traffic[2], [user('Synthetic request after oversized reply')]);
+    await testInfo.attach('escaped-and-oversized-boundaries', { body: JSON.stringify({
+      legalTextBytes: Buffer.byteLength(text),
+      legalEncodedTextBytes: Buffer.byteLength(JSON.stringify(text)),
+      oversizedTextBytes: Buffer.byteLength(text + 'x'),
+      rejectedMutationBytes: Buffer.byteLength(JSON.stringify(mutation)) + padding,
+      rejectedMutationCode: rejectedMutation.error.code,
+      outboundRequests: peer.traffic.length, reusedGrant: true, reusedWriter: true,
+    }), contentType: 'application/json' });
+  })));
+});
+
+for (const fault of ['lost', 'mismatched']) {
+  test('recovers the second turn after a ' + fault + ' terminal poll reply', async ({ browser }, testInfo) => {
+    await withPeer(peer => withProfile(profile => withWorkspace(browser, profile, async page => {
+      await askBeforeSetup(page);
+      const connectionId = await activateRoute(page, await propose(page, peer.origin));
+      await send(page);
+      await expect(chat(page).getByText('Synthetic peer reply 1', { exact: true })).toBeVisible();
+      const workspaceRoute = '**' + workspaceEndpoint;
+      const submissions = [];
+      page.on('request', request => {
+        if (isAction(request, 'send')) submissions.push(request.postDataJSON().request_id);
+      });
+      let interrupted;
+      let injectFault = true;
+      const interruptSecondPoll = async route => {
+        if (!injectFault || !isAction(route.request(), 'poll')) return route.fallback();
+        const response = await route.fetch({ maxRedirects: 0 });
+        const frame = await response.json();
+        const result = frame.result?.outcome?.result;
+        if (result?.turn?.state !== 'completed') return route.fulfill({ response });
+        interrupted = result.turn_id;
+        if (fault === 'lost') {
+          injectFault = false;
+          return route.abort('failed');
+        }
+        result.turn_id = randomUUID();
+        await route.fulfill({ response, json: frame });
+      };
+      await page.route(workspaceRoute, interruptSecondPoll);
+      await send(page, followUp);
+      await expect.poll(() => interrupted).toBeTruthy();
+
+      const observe = async () => ({
+        connected: await chat(page).getByText(/^Ollama connected/).count() === 1,
+        transcript: await chat(page).getByRole('article').allTextContents(),
+        alert: await chat(page).getByRole('alert').allTextContents(),
+        draft: await question(page).inputValue(),
+        sendEnabled: await control(chat(page), 'Send').isEnabled(),
+      });
+      await expect.poll(async () => {
+        const state = await observe();
+        return state.transcript.length === 2 || state.alert.length !== 0;
+      }).toBe(true);
+      const interruptedState = await observe();
+      injectFault = false;
+      await control(chat(page), 'Close').click();
+      await openChat(page);
+      await expect(chat(page).getByText('Synthetic peer reply 2', { exact: true })).toBeVisible();
+      const recoveredState = await observe();
+      await testInfo.attach('second-turn-recovery', { body: JSON.stringify({
+        fault, connectionId, interrupted, submissions, interruptedState, recoveredState,
+        outbound: peer.traffic.map(entry => entry.body),
+      }, null, 2), contentType: 'application/json' });
+      expect(interruptedState.connected).toBe(true);
+      expect(interruptedState.transcript[0]).toContain(firstQuestion);
+      expect(interruptedState.sendEnabled).toBe(false);
+      if (fault === 'mismatched') {
+        expect(interruptedState.alert).toEqual(['The workspace could not confirm this turn. Check its status to continue.']);
+      }
+      expect(recoveredState).toMatchObject({ connected: true, alert: [], draft: '', sendEnabled: false });
+      const conversation = chat(page).getByRole('log');
+      await expect(conversation.locator('.model-question p')).toHaveText([firstQuestion, followUp]);
+      await expect(conversation.locator('.model-answer p')).toHaveText(['Synthetic peer reply 1', 'Synthetic peer reply 2']);
+      expect(submissions).toEqual([interrupted]);
+      expect(peer.traffic).toHaveLength(2);
+      expectRequest(peer.traffic[1], [user(firstQuestion), assistant('Synthetic peer reply 1'), user(followUp)]);
+    })));
+  });
+}
+
+test('sixth turn, changed destination, separate profile and cancellation respect the approved route', async ({ browser }, testInfo) => {
+  await checkModelConnectionBoundaries(browser, testInfo,
+    { openChat, propose, activateRoute, send, observeAction, expectRevoked, expectRequest });
 });
 
 test('one scoped activation delivers two ordinary turns to the owned peer and handles denial, failure and cancellation', async ({ browser }, testInfo) => {
