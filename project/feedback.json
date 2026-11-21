@@ -2307,6 +2307,23 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "indicator-linux-resource-api-fails-windows-types",
+      "source": "Authenticated native Windows M3-005 run 44890490976 on 9558acea6bb09edb9df05bf0e848db55a36aa3ba. The original artifact is retained at .reports/ci/44890490976/windows/test-report.json with SHA-256 159bf9a10203a49d156de32f05cf77b5bf72f28b4328b860ed1754c48423edeb.",
+      "observation": "Native python-types alone failed with five attr-defined errors for prlimit, RLIMIT_AS and RLIM_INFINITY in the unconditionally defined Linux memory helper. The native worker probes passed the memory cap, deadline and owned cleanup checks. On Linux at 4abf35c237d2e7e9aa01ce715e5b70e18eaa3de1, uv run --locked python -m mypy --platform win32 reproduced all five errors. The local failure is retained at .reports/M3-005/windows-python-types/local-win32-red.log with SHA-256 f8e78e18d01e649a2220fb44fd6846e59dd983028f4e83b7b2223dd80fa4203a. After gating the helper definition on Linux, the same command and native Linux mypy both passed all 16 files. Their logs are local-win32-green.log and native-linux-python-types.log in the same directory, both with SHA-256 ca16d6d1a06c6903f5407ba5268cb8b5eb5d8c7811b7532282916ec31807c328. All 14 Linux trusted indicator worker tests passed, including the limit, deadline and cleanup probes, in linux-trusted-indicator.log. Native Windows verification is pending for the corrected source.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M3-005"
+      ],
+      "regression_checks": [
+        "python-types",
+        "python-types-win32",
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

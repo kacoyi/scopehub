@@ -60,6 +60,21 @@
       "timeout_seconds": 900
     },
     {
+      "id": "python-types-win32",
+      "status": "implemented",
+      "purpose": "Check worker and generated Python types against Windows stubs from any development host",
+      "platforms": "all",
+      "command": [
+        "{python}",
+        "-m",
+        "mypy",
+        "--platform",
+        "win32"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
       "id": "python-contracts-workers",
       "status": "implemented",
       "purpose": "Exercise protocol, worker and repository-control failure behavior",

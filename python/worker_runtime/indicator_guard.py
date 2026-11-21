@@ -61,14 +61,15 @@ def reap_adopted(group: int) -> None:
                 return
 
 
-def limit_linux_address_space(pid: int, memory_limit_bytes: int) -> None:
-    import resource
+if sys.platform == 'linux':
+    def limit_linux_address_space(pid: int, memory_limit_bytes: int) -> None:
+        import resource
 
-    # Linux limits virtual address space per process, including ordinary
-    # descendants that inherit the limit. Keep any stricter inherited limit.
-    soft, hard = resource.prlimit(pid, resource.RLIMIT_AS)
-    limit = min(value for value in (memory_limit_bytes, soft, hard) if value != resource.RLIM_INFINITY)
-    resource.prlimit(pid, resource.RLIMIT_AS, (limit, limit))
+        # Linux limits virtual address space per process, including ordinary
+        # descendants that inherit the limit. Keep any stricter inherited limit.
+        soft, hard = resource.prlimit(pid, resource.RLIMIT_AS)
+        limit = min(value for value in (memory_limit_bytes, soft, hard) if value != resource.RLIM_INFINITY)
+        resource.prlimit(pid, resource.RLIMIT_AS, (limit, limit))
 
 
 def supervise(max_bytes: int, memory_limit_bytes: int) -> int:

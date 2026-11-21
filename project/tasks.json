@@ -8394,11 +8394,12 @@
         "rust-lints",
         "python-contracts-workers",
         "python-types",
+        "python-types-win32",
         "ui-build",
         "market-workflow"
       ],
       "evidence": [],
-      "next_action": "Verify the region overlap regression for aligned, missing and valid intrabar ranges. Review and commit the functional correction after coordination, then obtain exact-source task receipts for the corrected candidate.",
+      "next_action": "Obtain exact-source task receipts from hosted Linux and native Windows for the region overlap and Python platform corrections before closing M3-005.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -8428,7 +8429,8 @@
           "The accepted-layer transport cap, chart time-domain projection, and region rendering are three separate restoration boundaries observed in the full PR review.",
           "The first region renderer selects by bar start time. A legal region wholly inside a displayed bar has an empty start-time match even though it intersects the bar interval.",
           "Acceptance skips cancelled and expired jobs before testing whether a delivered result superseded the old preview.",
-          "Python preview staging checks the pending challenge and consumed draft but omits the committed job lookup that declarative preview uses before consulting a draft."
+          "Python preview staging checks the pending challenge and consumed draft but omits the committed job lookup that declarative preview uses before consulting a draft.",
+          "The Linux-only resource API is used in a function mypy analyzes against Windows stubs even though its caller is gated to Linux."
         ],
         "risks": [
           {
@@ -8469,6 +8471,14 @@
               "rust-contracts-workers",
               "indicator-workflow",
               "indicator-declarative-preview"
+            ]
+          },
+          {
+            "failure": "Windows type checking rejects Linux-only resource APIs or the platform guard changes runtime memory enforcement.",
+            "checks": [
+              "python-types",
+              "python-types-win32",
+              "rust-contracts-workers"
             ]
           }
         ],
@@ -8523,7 +8533,7 @@
             "New process or filesystem permissions, a security sandbox, changes to verification job defaults, and changes to existing stored results."
           ],
           "open_questions": [
-            "Native Windows job and timeout enforcement need observed verification.",
+            "Native Windows run 44890490976 observed job and timeout enforcement on 9558acea6bb09edb9df05bf0e848db55a36aa3ba. Observe the same outcomes and a passing native type check on the corrected candidate.",
             "The coordinated UI and transport lane owns restoration design and its focused regression evidence.",
             "A focused runtime contributor owns preview supersession and approved Python replay. Verify the existing removal undo after remount in that coordinated evidence."
           ]
