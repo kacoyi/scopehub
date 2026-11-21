@@ -2,7 +2,8 @@
 
 use rusqlite::{Connection, OptionalExtension, Row, params};
 use scopehub_application::{
-    IndicatorLayerRef, IndicatorLayerUndo, IndicatorVersionRecord, WorkspaceReceipt, failure,
+    IndicatorLayerRef, IndicatorLayerUndo, IndicatorVersionRecord, REMOVE_INDICATOR_LAYER,
+    WorkspaceReceipt, failure,
 };
 use scopehub_domain::protocol::{Error, ErrorCode};
 use serde_json::Value;
@@ -178,6 +179,41 @@ pub(super) fn undo_target(
            )",
         params![workspace, operation, principal, layer_id],
         |row| Ok(IndicatorLayerUndo { before: row.get(0)?, after: row.get(1)? }),
+    ).optional().map_err(store_error)
+}
+
+pub(super) fn latest_removal(
+    conn: &Connection,
+    workspace: &str,
+    dataset: &str,
+    principal: &str,
+) -> Result<Option<(IndicatorLayerRef, WorkspaceReceipt)>, Error> {
+    conn.query_row(
+        "SELECT log.id, log.revision, log.undoable, log.before_timeframe, log.after_timeframe,
+                version.layer_id, version.version_id, version.dataset_id,
+                CASE WHEN json_extract(version.document, '$.source_snapshot.series.provider_id') = 'scopehub.synthetic'
+                     THEN json_extract(version.document, '$.source_snapshot.series.instrument_id') END
+         FROM indicator_versions AS version
+         JOIN indicator_layer_state AS state USING (workspace_id, layer_id)
+         JOIN indicator_layer_operations AS change USING (workspace_id, layer_id)
+         JOIN operation_log AS log ON log.id = change.operation_id AND log.workspace_id = change.workspace_id
+         WHERE version.workspace_id = ?1 AND version.dataset_id = ?2
+           AND log.principal_id = ?3 AND log.operation = ?4
+           AND log.actor = 'user' AND log.paired_client_id = '' AND log.undoable = 1
+           AND change.before_active = 1 AND change.after_active = 0 AND state.active = change.after_active
+           AND NOT EXISTS (
+             SELECT 1 FROM indicator_layer_operations AS later
+             JOIN operation_log AS next ON next.id = later.operation_id
+             WHERE later.workspace_id = change.workspace_id AND later.layer_id = change.layer_id
+               AND next.revision > log.revision
+           )
+           AND NOT EXISTS (SELECT 1 FROM operation_log AS inverse WHERE inverse.undoes = log.id)
+         ORDER BY log.revision DESC LIMIT 1",
+        params![workspace, dataset, principal, REMOVE_INDICATOR_LAYER],
+        |row| Ok((IndicatorLayerRef {
+            layer_id: row.get(5)?, version_id: row.get(6)?, dataset_id: row.get(7)?,
+            sample_instrument: row.get(8)?, active: false,
+        }, crate::receipt(row)?)),
     ).optional().map_err(store_error)
 }
 

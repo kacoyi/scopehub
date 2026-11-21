@@ -1,6 +1,6 @@
 use crate::protocol::Message;
 use serde_json::Value;
-use std::sync::LazyLock;
+use std::{sync::LazyLock, time::Duration};
 
 pub static SCHEMA: LazyLock<Value> = LazyLock::new(|| {
     serde_json::from_str(include_str!(
@@ -35,6 +35,14 @@ pub fn max_message_bytes() -> usize {
     POLICY["max_message_bytes"]
         .as_u64()
         .expect("configured limit") as usize
+}
+
+pub fn indicator_timeout() -> Duration {
+    Duration::from_millis(
+        POLICY["indicator_timeout_ms"]
+            .as_u64()
+            .expect("configured indicator timeout"),
+    )
 }
 
 pub fn normalize_integers(value: &mut Value) {

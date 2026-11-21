@@ -2266,6 +2266,226 @@
         "prevention": "The deterministic Rust regression rejects eager catalog compilation and checks validator isolation, output validity, and cache reuse. The complete M1-026 checks passed on clean 470b4dbef71d9e1a751815c54fe73a0167bb9783 in local run 20261121T085338.850657Z-3269f011 and both authenticated jobs in workflow 44887052675. The original native Windows Playwright check passed in 6.844 seconds including setup and cleanup, with the internal five-second replay deadline preserved. Its log SHA-256 is fcc7d8f12fa58630261a51617dd7eff259ca685fc31f27537a5674216693099f."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "indicator-confirmation-response-grant",
+      "source": "Full PR 22 review of candidate 555387307ffe44a204dd5e66d8a0eefd8a2e1cc8.",
+      "observation": "The indicator confirmation response paths check indicator.runPreview or indicator.acceptVersion and omit the explicit confirmation.respond grant. This authorization precedes approval or denial and, for acceptance, committed receipt lookup. The local candidate regression received CANCELLED for an unauthorized denial. After the repair the same route returns PERMISSION_DENIED before touching the challenge, and the fully authorized approval still succeeds. Both confirmation paths and acceptance replay passed their direct SQLite registry checks.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M3-005"
+      ],
+      "regression_checks": [
+        "operations-workflow",
+        "rust-contracts-workers",
+        "indicator-workflow"
+      ],
+      "resolution": {
+        "cause": "The response handlers authorized the underlying indicator operation without requiring the confirmation response grant.",
+        "correction": "Require both current grants before responding to the challenge or consulting a committed acceptance receipt.",
+        "prevention": "The SQLite registry tests trusted_python_confirmation_requires_both_current_grants and indicator_preview_binds_local_source_grants_and_frozen_input passed locally and in both jobs of run 44892140495. They cover unauthorized approval and denial, subsequent authorized use of the pending challenge, and acceptance replay under current grants."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "trusted-python-memory-policy-not-enforced",
+      "source": "Full PR 22 review of candidate 555387307ffe44a204dd5e66d8a0eefd8a2e1cc8.",
+      "observation": "The generated runtime declares a 512 MiB indicator memory limit. The trusted Python worker launch applies no Linux address-space limit, and its Windows Job Object has only process ownership and cleanup limits. The repaired Linux production entry observes a 512 MiB address-space limit from the actual selected interpreter and returns the independent expected result. A separate 64 MiB test-only run returns RESOURCE_LIMIT, reaps the interpreter and supervisor, and removes scratch storage. Native Windows enforcement remains to be observed.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M3-005"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "python-contracts-workers",
+        "indicator-workflow"
+      ],
+      "resolution": {
+        "cause": "The selected interpreter was launched without applying the configured memory policy to its Linux process or Windows Job Object.",
+        "correction": "Apply the generated 512 MiB cap before forwarding selected code. Linux limits virtual address space per process and ordinary children inherit the limit. Windows limits committed memory across the owned Job Object.",
+        "prevention": "The real interpreter probes approved_interpreter_observes_the_configured_memory_limit and allocation_over_the_test_memory_limit_fails_and_reaps_the_worker passed locally and on both hosts in run 44892140495. A test-only 64 MiB cap admitted the small allocation and rejected the 72 MiB allocation with RESOURCE_LIMIT, process reaping and scratch cleanup."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "trusted-indicator-default-deadline-mismatch",
+      "source": "Full PR 22 review of candidate 555387307ffe44a204dd5e66d8a0eefd8a2e1cc8.",
+      "observation": "The normal native approval route forwards the market configuration with a five-second worker deadline. The application expires running trusted Python jobs after eight seconds. The private CLI reads the canonical indicator_timeout_ms value of 10000.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M3-005"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "indicator-workflow"
+      ],
+      "resolution": {
+        "cause": "Trusted desktop launch inherited the market worker deadline, and application expiry used a separate shorter duration.",
+        "correction": "Use the generated 10000 ms indicator deadline for trusted native launch, the private CLI default and application expiry. Preserve the explicit test deadline and the market worker deadline.",
+        "prevention": "All three task reports passed development_indicator_and_market_use_their_own_deadlines, trusted_job_budget_still_allows_processing_after_eight_seconds and a_deadline_reaps_running_code_without_retry_or_artifact. The trusted browser journey also passed on both hosted platforms."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-layer-reference-reply-budget",
+      "source": "Full PR 22 review of candidate 555387307ffe44a204dd5e66d8a0eefd8a2e1cc8.",
+      "observation": "The allowed 256 accepted indicator layer references exceed the 16 KiB reply limit of the affected restoration path. A real Ubuntu workspace and SQLite fixture returned HTTP 502 with all 256 valid references. A focused run with the dedicated response budget passed with the same layer count. Reports are retained under .reports/M3-005/review/ as layer-reply-red.json and layer-reply-green.json.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M3-005"
+      ],
+      "regression_checks": [
+        "indicator-declarative-preview"
+      ],
+      "resolution": {
+        "cause": "The restore operation shared a small reply budget that could not encode the supported number of accepted layer references.",
+        "correction": "Give the accepted-layer list its own bounded reply budget for the supported reference count.",
+        "prevention": "The 256-reference browser test passed through the workspace transport and seeded SQLite profile locally and in both jobs of run 44892140495."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-restore-points-outside-chart",
+      "source": "Full PR 22 review of candidate 555387307ffe44a204dd5e66d8a0eefd8a2e1cc8.",
+      "observation": "Restoring a narrower sample window exposes saved indicator time points outside the current chart interval. The real chart baseline rendered a marker for an absent bar and a 1,400,000 scale value from an out-of-chart point. The failing browser report is retained at .reports/M3-005/review/restoration-red.json.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M3-005"
+      ],
+      "regression_checks": [
+        "indicator-declarative-preview"
+      ],
+      "resolution": {
+        "cause": "Restored overlay points and markers were projected independently of the bars in the current chart.",
+        "correction": "Project restored overlay points and markers onto the displayed bar timestamps inside the active artifact range.",
+        "prevention": "The browser test for points and markers outside displayed bars passed locally and in both jobs of run 44892140495. It checked marker membership and price labels before and after changing the displayed bars."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-region-only-restore-invisible",
+      "source": "Full PR 22 review of candidate 555387307ffe44a204dd5e66d8a0eefd8a2e1cc8.",
+      "observation": "A valid accepted result containing regions and no series is invisible when restored to the chart. The real trusted Python execution returned valid regions, but the browser measured zero pixels in the expected region band. The failing browser report is retained at .reports/M3-005/review/restoration-red.json.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M3-005"
+      ],
+      "regression_checks": [
+        "indicator-workflow"
+      ],
+      "resolution": {
+        "cause": "Chart presentation coupled region drawing to series output, and the initial region projection could miss overlapping bars.",
+        "correction": "Render accepted regions independently of series and project them onto overlapping displayed bar intervals.",
+        "prevention": "The region-only browser journey ran the actual trusted worker once and observed the painted preview and restored artifact in all three task reports. It verified exact stored artifact bytes and restoration without recomputation."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-cancelled-preview-revives-older-acceptance",
+      "source": "Full PR 22 source review of candidate 555387307ffe44a204dd5e66d8a0eefd8a2e1cc8.",
+      "observation": "The acceptance path skips cancelled or expired jobs before testing delivered newer previews for the dataset. An older delivered preview and outstanding challenge can become acceptable again after a previously superseding preview is cancelled or cleared.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M3-005"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "indicator-workflow",
+        "indicator-declarative-preview"
+      ],
+      "resolution": {
+        "cause": "The supersession check skipped newer delivered previews after they became cancelled or expired.",
+        "correction": "Keep the supersession decision for the lifetime of the previews once a newer result for the same dataset has been delivered.",
+        "prevention": "The SQLite regression delivered_preview_stays_superseded_across_cancel_and_client_retries passed locally and in both jobs of run 44892140495. It checks obsolete acceptance before and after cancelling the newer result and preserves accepted output."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-approved-python-preview-retry-loses-receipt",
+      "source": "Full PR 22 source review of candidate 555387307ffe44a204dd5e66d8a0eefd8a2e1cc8.",
+      "observation": "After approval consumes the selected Python draft, the original matching run command consults that draft and returns STALE_CONTEXT. Python staging checks pending confirmations but omits the existing committed job receipt lookup used by declarative preview.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M3-005"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "indicator-workflow",
+        "indicator-declarative-preview"
+      ],
+      "resolution": {
+        "cause": "Python staging looked for the consumed draft before looking for a matching committed job receipt.",
+        "correction": "Recover a matching approved Python job through its committed receipt under current grants before consulting the draft.",
+        "prevention": "The SQLite regression retry_of_approved_python_run_recovers_only_the_original_authorization passed locally and in both jobs of run 44892140495. It checks original job identity, no extra pending dispatch, and rejection of mismatched or unauthorized retries."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-removal-undo-lost-after-remount",
+      "source": "Full PR 22 review of candidate 555387307ffe44a204dd5e66d8a0eefd8a2e1cc8 and the coordinated Chromium fixture.",
+      "observation": "After removing an accepted indicator, closing and reopening its chart loses the Undo indicator removal control. The real frozen-chart browser baseline failed while waiting for the remounted control. Its report is retained at .reports/M3-005/review/restoration-red.json with SHA-256 8357efd303ba1b510c2767db4d829756fe884b58ce8f722d42cf2b3beab5d286.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M3-005"
+      ],
+      "regression_checks": [
+        "indicator-declarative-preview"
+      ],
+      "resolution": {
+        "cause": "The chart retained the removal receipt in transient view state that was lost on remount.",
+        "correction": "Restore eligible removal receipts through the workspace registry and rehydrate the undo control with the remounted chart.",
+        "prevention": "The frozen-chart browser journey reopened the chart, used the restored Undo indicator removal control and verified the restored version in all three task reports. The SQLite regression reopening_restores_only_live_removal_receipts_for_the_listed_dataset also passed."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-region-inside-displayed-bar-invisible",
+      "source": "Independent PR 22 review of functional candidate 9558acea6bb09edb9df05bf0e848db55a36aa3ba.",
+      "observation": "The original region-only rendering defect persists for a valid region starting 10 seconds and ending 20 seconds inside one displayed one-minute bar. The candidate renderer selects bar start times inside the half-open region. Neither the containing bar's earlier start nor the following bar's later start qualifies, so it drops the band. A focused Chromium baseline ran the actual trusted Python worker, accepted three valid regions, painted the aligned band, and measured zero painted pixels in the intrabar band. The failed report is retained at .reports/M3-005/review/intrabar-region-red.json with SHA-256 f8265eafcf1ce1a530dbf5641af6c905b0a9c65cfcd30c13bbfbdeb75ed4eab9. This refines indicator-region-only-restore-invisible. Clean local task run 20261121T093744.960563Z-4ec20453 passed all 11 selected checks on the candidate, including its previously exercised region case. The exact report and untracked receipt are retained under .reports/M3-005/superseded/9558acea6bb09edb9df05bf0e848db55a36aa3ba. The receipt SHA-256 is 5b2208d12b9218b0fb31bb34586e09917edec5b821a35721eb9991de36a23fd9. The focused follow-up passed three Chromium cases, including painting the intrabar band in both the trusted preview and restored artifact while the gap remained blank. Its report is retained at .reports/M3-005/review/intrabar-region-green.json with SHA-256 03cb341bd9f1255e4baf45fb0e7a9262e11333f573ee0038b7bd28dedbdb4710. The corrected candidate requires fresh matching task evidence.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M3-005"
+      ],
+      "regression_checks": [
+        "indicator-workflow"
+      ],
+      "resolution": {
+        "cause": "The initial renderer selected bar start timestamps inside the half-open region and omitted valid regions wholly within one bar.",
+        "correction": "Select positive overlap with the displayed bar interval and clip to actual covered bars. Leave missing intervals unpainted.",
+        "prevention": "The trusted region-only browser journey painted the aligned and intrabar bands and left the missing gap blank in preview and restore. The separate shortened, missing and irregular bucket regression also passed locally and in both jobs of run 44892140495."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-linux-resource-api-fails-windows-types",
+      "source": "Authenticated native Windows M3-005 run 44890490976 on 9558acea6bb09edb9df05bf0e848db55a36aa3ba. The original artifact is retained at .reports/ci/44890490976/windows/test-report.json with SHA-256 159bf9a10203a49d156de32f05cf77b5bf72f28b4328b860ed1754c48423edeb.",
+      "observation": "Native python-types alone failed with five attr-defined errors for prlimit, RLIMIT_AS and RLIM_INFINITY in the unconditionally defined Linux memory helper. The native worker probes passed the memory cap, deadline and owned cleanup checks. On Linux at 4abf35c237d2e7e9aa01ce715e5b70e18eaa3de1, uv run --locked python -m mypy --platform win32 reproduced all five errors. The local failure is retained at .reports/M3-005/windows-python-types/local-win32-red.log with SHA-256 f8e78e18d01e649a2220fb44fd6846e59dd983028f4e83b7b2223dd80fa4203a. After gating the helper definition on Linux, the same command and native Linux mypy both passed all 16 files. Their logs are local-win32-green.log and native-linux-python-types.log in the same directory, both with SHA-256 ca16d6d1a06c6903f5407ba5268cb8b5eb5d8c7811b7532282916ec31807c328. All 14 Linux trusted indicator worker tests passed, including the limit, deadline and cleanup probes, in linux-trusted-indicator.log. Native Windows verification is pending for the corrected source.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M3-005"
+      ],
+      "regression_checks": [
+        "python-types",
+        "python-types-win32",
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The Linux caller was platform gated but its helper body was still type checked against Windows stubs.",
+        "correction": "Define the resource helper under the recognized Linux platform guard so mypy checks its resource calls against Linux stubs.",
+        "prevention": "The explicit local win32 target reproduced all five errors before the repair and passed after it. Native and win32 mypy checks reported 16 clean source files in both jobs of run 44892140495, and the actual Linux and Windows memory limit probes passed."
+      },
+      "deferral_reason": null
     }
   ]
 }

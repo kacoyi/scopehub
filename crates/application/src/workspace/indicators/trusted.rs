@@ -11,15 +11,14 @@ use scopehub_domain::{
         Error, ErrorCode, FrozenSnapshot, IndicatorCompute11, MutationScope11,
         PythonSnapshotPreview11,
     },
-    wire::max_message_bytes,
+    wire::{indicator_timeout, max_message_bytes},
 };
 use serde_json::{Value, json};
 
 use super::{
-    COMPUTE_DEADLINE, Draft, Input, JOB_TTL, Job, JobResult, OperationRegistry, Preview,
-    RUN_INDICATOR_PREVIEW, WorkspaceAccess, WorkspaceReply, WorkspaceStore, WorkspaceTransaction,
-    check_context, failure, freeze, hash, new_id, operation, outcome, timestamp_ms, validator,
-    workspace_failure,
+    Draft, Input, JOB_TTL, Job, JobResult, OperationRegistry, Preview, RUN_INDICATOR_PREVIEW,
+    WorkspaceAccess, WorkspaceReply, WorkspaceStore, WorkspaceTransaction, check_context, failure,
+    freeze, hash, new_id, operation, outcome, timestamp_ms, validator, workspace_failure,
 };
 
 pub const TRUSTED_PYTHON_ENGINE: &str = "scopehub-trusted-python-1";
@@ -82,9 +81,21 @@ impl PendingPython {
 }
 
 impl RunningPython {
+    fn compute_deadline(started: Instant) -> Instant {
+        started + indicator_timeout()
+    }
+
     pub(super) fn expired(&self, now: Instant) -> bool {
         now > self.deadline
     }
+}
+
+#[test]
+fn trusted_job_budget_still_allows_processing_after_eight_seconds() {
+    let confirmed = Instant::now();
+    let deadline = RunningPython::compute_deadline(confirmed);
+    assert!(confirmed + Duration::from_secs(9) < deadline);
+    assert_eq!(deadline, confirmed + Duration::from_secs(10));
 }
 
 impl<S: WorkspaceStore> OperationRegistry<S> {
@@ -190,7 +201,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
                 .expect("validated request ID"),
         )?;
         let result = (|| {
-            self.authorize_indicator(access, RUN_INDICATOR_PREVIEW)?;
+            self.authorize_indicator_confirmation(access, RUN_INDICATOR_PREVIEW)?;
             let pending = self
                 .indicator_stage
                 .python_approval
@@ -265,7 +276,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
                     visible_times: pending.input.bars.iter().map(|bar| bar.time_ms).collect(),
                     code_hash: pending.code_hash,
                     params_hash: pending.params_hash,
-                    deadline: Instant::now() + COMPUTE_DEADLINE,
+                    deadline: RunningPython::compute_deadline(Instant::now()),
                 }),
             });
             Ok(response)
@@ -356,6 +367,13 @@ pub(super) fn python_source_allowed(
     source: &FrozenSnapshot,
 ) -> Result<(), Error> {
     check_context(tx, scope)?;
+    require_python_source_right(tx, source)
+}
+
+pub(super) fn require_python_source_right(
+    tx: &dyn WorkspaceTransaction,
+    source: &FrozenSnapshot,
+) -> Result<(), Error> {
     if source.series.provider_id != crate::DEMO_PROVIDER
         || !tx.indicator_trusted_python_allowed(&source.series.instrument_id)?
     {

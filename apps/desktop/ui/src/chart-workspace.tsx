@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import type { IndicatorResult, LayoutPanel11 } from '../../../../contracts/generated/protocol';
-import type { ChartCursorMode, ChartStyle, HistoryChartHandle } from './chart-adapter/history';
+import type { LayoutPanel11 } from '../../../../contracts/generated/protocol';
+import type { ChartCursorMode, ChartStyle, HistoryChartHandle, IndicatorChartLayer } from './chart-adapter/history';
 import { DecisionNotes } from './decision-notes';
 import { PrivateRecords } from './private-records';
 import { UnavailableSharedSelection } from './frozen-evidence';
@@ -130,12 +130,12 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   const { result, retryHistory } = useHistory(sample && timeframe ? selected : undefined, timeframe, sampleRevision, date);
   const history = frozen?.history ?? (sample && result.state === 'ready' ? result.value : undefined);
   const indicatorSource = history?.snapshot.content_hash;
-  const [previewLayer, setPreviewLayer] = useState<{ source: string; result: IndicatorResult }>();
-  const [acceptedLayers, setAcceptedLayers] = useState<{ source: string; results: readonly IndicatorResult[] }>();
-  const showPreview = useCallback((result: IndicatorResult | undefined) => {
+  const [previewLayer, setPreviewLayer] = useState<{ source: string; result: IndicatorChartLayer }>();
+  const [acceptedLayers, setAcceptedLayers] = useState<{ source: string; results: readonly IndicatorChartLayer[] }>();
+  const showPreview = useCallback((result: IndicatorChartLayer | undefined) => {
     setPreviewLayer(result && indicatorSource ? { source: indicatorSource, result } : undefined);
   }, [indicatorSource]);
-  const showAccepted = useCallback((results: readonly IndicatorResult[]) => {
+  const showAccepted = useCallback((results: readonly IndicatorChartLayer[]) => {
     setAcceptedLayers(indicatorSource ? { source: indicatorSource, results } : undefined);
   }, [indicatorSource]);
   const acceptingIndicators = Boolean(workspace && history?.bars.length
@@ -325,8 +325,8 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
     plot = <PriceChart key={frozen ? restoredSource?.revision_id : selected.id + ':' + timeframe} instrument={chartInstrument ?? selected}
       history={history} style={style} cursor={cursor} handle={chart} replayBar={sample ? replay?.bar : undefined}
       repairedBars={sample ? repairedBars : undefined} selectedBarTime={selectedBarTime} activateBar={selectBar}
-      indicatorPreview={previewLayer?.source === indicatorSource ? previewLayer?.result : undefined}
-      acceptedIndicators={acceptedLayers?.source === indicatorSource ? acceptedLayers?.results : undefined}
+      indicatorPreview={acceptingIndicators && previewLayer?.source === indicatorSource ? previewLayer?.result : undefined}
+      acceptedIndicators={acceptingIndicators && acceptedLayers?.source === indicatorSource ? acceptedLayers?.results : undefined}
       {...appearance && { appearance }} />;
   }
 

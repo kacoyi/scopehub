@@ -42,6 +42,8 @@ const exportPrivateRecords = 'privateRecord.exportBackup';
 const privateRecordOperations = [readPrivateRecords, changePrivateRecords, exportPrivateRecords];
 const textConnection = 'ai.textConnection';
 const maxNoteRequestBytes = 32 * 1024;
+// Up to 256 layer/version UUID pairs and availability flags, plus the undo hint.
+const maxAcceptedLayersResponseBytes = 32 * 1024;
 const maxResponseBytes = 256 * 1024;
 const maxBackupFrameBytes = 1024 * 1024;
 const startupDeadlineMs = 10_000;
@@ -146,6 +148,7 @@ function requestLimit(operation) {
 
 function responseLimit(operation) {
   if (operation === 'frozen_chart' || operation === previewStatus || operation === acceptedOutput) return 4 * 1024 * 1024 + maxRequestBytes;
+  if (operation === acceptedLayers) return maxAcceptedLayersResponseBytes;
   if (operation === readChartProjection) return maxResponseBytes;
   if (operation === textConnection) return 512 * 1024;
   if (operation === exportBackup || operation === exportPrivateRecords) return maxBackupFrameBytes;
@@ -228,7 +231,11 @@ function validIndicatorOutcome(outcome, job, workspaceId) {
 function validAcceptedIndicatorReply(result, job) {
   if (job.operation === acceptedLayers) return result?.dataset_id === job.revisionId
     && Array.isArray(result.layers) && result.layers.length <= 256
-    && result.layers.every(layer => uuid(layer.layer_id) && uuid(layer.version_id) && typeof layer.available === 'boolean');
+    && result.layers.every(layer => uuid(layer?.layer_id) && uuid(layer.version_id) && typeof layer.available === 'boolean')
+    && (result.undo == null || Object.keys(result.undo).length === 3 && uuid(result.undo.operation_id)
+      && uuid(result.undo.layer_id) && revision(result.undo.committed_workspace_revision)
+      && result.undo.committed_workspace_revision > 0
+      && !result.layers.some(layer => layer.layer_id === result.undo.layer_id));
   return result?.layer_id === job.layerId && uuid(result.version_id)
     && result.document?.artifact?.storage === 'inline' && Array.isArray(result.document.artifact.result?.series);
 }

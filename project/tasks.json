@@ -9170,6 +9170,237 @@
           "cleanup": "Reuse the existing validator builder and remove eager catalog compilation."
         }
       }
+    },
+    {
+      "id": "M3-005",
+      "title": "Enforce indicator execution limits and restore accepted chart artifacts",
+      "milestone": "M3",
+      "status": "done",
+      "depends_on": [
+        "M3-001"
+      ],
+      "scope": [
+        "crates/application/src/workspace.rs",
+        "crates/application/src/workspace/indicators",
+        "crates/persistence/src/indicator_versions.rs",
+        "crates/persistence/src/lib.rs",
+        "crates/persistence/tests/workspace_registry.rs",
+        "crates/persistence/tests/indicator_lifecycle.rs",
+        "tests/fixtures/indicators/confirmation-sample-history.json",
+        "crates/worker-host/src/indicator.rs",
+        "crates/worker-host/tests/trusted_indicator.rs",
+        "python/worker_runtime/indicator_guard.py",
+        "python/worker_runtime/indicator.py",
+        "scripts/windows_job.py",
+        "tests/integration",
+        "project/tasks.json",
+        "project/feedback.json",
+        "crates/domain/src/wire.rs",
+        "crates/worker-host/src/bin/scopehub-indicator-child.rs",
+        "apps/desktop/src-tauri/src/bridge.rs",
+        "apps/desktop/src-tauri/src/workspace.rs",
+        "apps/desktop/ui",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ui"
+      ],
+      "decision_refs": [
+        "0002",
+        "0004",
+        "0007",
+        "0017"
+      ],
+      "acceptance": [
+        "Current local confirmation grants are required alongside the underlying run or acceptance grants for approval, denial and committed acceptance replay. A rejected unauthorized response leaves a valid pending challenge usable.",
+        "The admitted trusted Python path applies the generated 512 MiB memory policy before selected code executes on Linux and Windows, with accurate platform-specific scope and unchanged file and process authority.",
+        "Ordinary synthetic indicator results retain their independent expected values. Bounded positive and negative resource probes observe actual OS enforcement, a typed failure and owned process cleanup.",
+        "The native trusted indicator and private CLI use the configured indicator timeout rather than the market worker default. The application retains an approved trusted calculation for the prescribed runtime duration, and explicit test deadlines continue to apply.",
+        "Valid accepted-layer lists restore through the normal transport at the supported layer count. Output restored through a narrower sample window uses its visible intersection. Region-only results render positive overlaps with displayed bars, including a region wholly inside a single bar. Regions over missing bars remain absent.",
+        "A delivered newer preview permanently supersedes an older preview for the same dataset during the preview lifetime. Cancelling or clearing the newer one cannot revive an obsolete acceptance challenge.",
+        "A matching retry of the original approved Python preview command recovers its existing task receipt without another approval or dispatch, subject to current grants. Indicator removal undo is verified after remount."
+      ],
+      "checks": [
+        "operations-workflow",
+        "indicator-workflow",
+        "indicator-declarative-preview",
+        "rust-contracts-workers",
+        "rust-lints",
+        "python-contracts-workers",
+        "python-types",
+        "python-types-win32",
+        "ui-build",
+        "market-workflow"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M3-005-23e7883574f8da5c.json",
+          "sha256": "ff84e6ea5f62b9bd154a84f233d56d9497a955b7c190e4ab24561716ce7dc964"
+        },
+        {
+          "path": "project/evidence/M3-005-1189472f387b0b81.json",
+          "sha256": "3bace9b2c4d86126d33211df8e4e9f8da387d393510ee2731f28590fb401d791"
+        },
+        {
+          "path": "project/evidence/M3-005-3ee953149f47b304.json",
+          "sha256": "ea3d3759c57ca9e002e4c251824fe274b2a64fb9cb4273d616322e92dc40acab"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "All 12 selected checks passed on clean source 199a7192ad8e3cf41dd8325399e2a43edf902493 in local run 20261121T095903.292622Z-bf640228 and authenticated task workflow 44892140495 on Ubuntu and native Windows. The actual interpreter probes verified the 512 MiB limit on each platform, with per-process virtual address space on Linux and aggregate committed memory across the owned Job Object on Windows. A test-only 64 MiB cap rejected a 72 MiB allocation with the expected resource error and cleanup. The reports also verify the indicator deadline, current-grant and replay rules through SQLite, all 256 layer references, region-only preview and restore across intrabar, window and gap cases, and indicator removal undo after remount.",
+      "plan": {
+        "outcome": "Local indicator confirmations observe current grants and admitted trusted Python obeys the configured memory budget while preserving valid results and owned cleanup. Restore all supported accepted indicator artifacts on the chart after reopening or changing its sample window.",
+        "change_types": [
+          "permissions",
+          "indicators",
+          "ui"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "crates/application/src/workspace/indicators/accepted.rs",
+          "crates/application/src/workspace/indicators/trusted.rs",
+          "crates/worker-host/src/indicator.rs",
+          "python/worker_runtime/indicator_guard.py",
+          "scripts/windows_job.py",
+          "project/feedback.json",
+          "apps/desktop/src-tauri/src/bridge.rs",
+          "apps/desktop/src-tauri/src/workspace.rs",
+          "apps/desktop/ui/src",
+          "tests/ubuntu-preview/workspace.spec.mjs"
+        ],
+        "hypotheses": [
+          "Both indicator resolution paths check only the underlying operation before handling denial or dispatch; the acceptance path also performs receipt replay there.",
+          "The existing Linux owned interpreter launch and Windows Job Object can apply the generated memory policy without new capabilities or dependencies.",
+          "Native trusted execution inherits the five-second market default and application trusted jobs expire after eight seconds, while the private CLI uses the prescribed ten seconds.",
+          "The accepted-layer transport cap, chart time-domain projection, and region rendering are three separate restoration boundaries observed in the full PR review.",
+          "The first region renderer selects by bar start time. A legal region wholly inside a displayed bar has an empty start-time match even though it intersects the bar interval.",
+          "Acceptance skips cancelled and expired jobs before testing whether a delivered result superseded the old preview.",
+          "Python preview staging checks the pending challenge and consumed draft but omits the committed job lookup that declarative preview uses before consulting a draft.",
+          "The Linux-only resource API is used in a function mypy analyzes against Windows stubs even though its caller is gated to Linux."
+        ],
+        "risks": [
+          {
+            "failure": "A caller with a partial grant consumes a challenge, triggers code or a write, or retrieves a committed acceptance receipt.",
+            "checks": [
+              "rust-contracts-workers",
+              "operations-workflow",
+              "indicator-workflow"
+            ]
+          },
+          {
+            "failure": "The limit blocks healthy code, leaves owned work behind, or fails to produce a sanitized resource outcome.",
+            "checks": [
+              "rust-contracts-workers",
+              "python-contracts-workers",
+              "indicator-workflow"
+            ]
+          },
+          {
+            "failure": "A shorter implicit deadline still rejects a valid trusted run, or the indicator correction changes market timing.",
+            "checks": [
+              "rust-contracts-workers",
+              "indicator-workflow",
+              "market-workflow"
+            ]
+          },
+          {
+            "failure": "A valid layer list exceeds its reply budget, a narrower chart exposes points outside its restored bars, a valid intrabar region vanishes, or a range over missing bars is painted as observed.",
+            "checks": [
+              "indicator-declarative-preview",
+              "ui-build",
+              "indicator-workflow"
+            ]
+          },
+          {
+            "failure": "Old acceptance becomes valid again or an approved Python retry loses task identity or dispatches twice.",
+            "checks": [
+              "rust-contracts-workers",
+              "indicator-workflow",
+              "indicator-declarative-preview"
+            ]
+          },
+          {
+            "failure": "Windows type checking rejects Linux-only resource APIs or the platform guard changes runtime memory enforcement.",
+            "checks": [
+              "python-types",
+              "python-types-win32",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain the original review findings and failing probes. Revert a faulty implementation while keeping the task active and verify the platform launch and cleanup outcomes against the retained controls.",
+        "implementation": {
+          "modules": [
+            "application",
+            "persistence",
+            "worker-host",
+            "worker-runtime",
+            "development-tooling",
+            "domain",
+            "desktop",
+            "ui"
+          ],
+          "entrypoints": [
+            "crates/application/src/workspace.rs",
+            "crates/application/src/workspace/indicators/accepted.rs",
+            "crates/application/src/workspace/indicators/trusted.rs",
+            "crates/worker-host/src/indicator.rs",
+            "python/worker_runtime/indicator_guard.py",
+            "python/worker_runtime/indicator.py",
+            "scripts/windows_job.py",
+            "crates/domain/src/wire.rs",
+            "apps/desktop/src-tauri/src/bridge.rs",
+            "apps/desktop/src-tauri/src/workspace.rs",
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/runtime/defaults/indicator_memory_limit_mb"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/indicators/python_mode"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/runtime/defaults/indicator_timeout_ms"
+            }
+          ],
+          "non_goals": [
+            "New process or filesystem permissions, a security sandbox, changes to verification job defaults, and changes to existing stored results."
+          ],
+          "open_questions": [
+            "Native Windows run 44890490976 observed job and timeout enforcement on 9558acea6bb09edb9df05bf0e848db55a36aa3ba. Observe the same outcomes and a passing native type check on the corrected candidate.",
+            "The coordinated UI and transport lane owns restoration design and its focused regression evidence.",
+            "A focused runtime contributor owns preview supersession and approved Python replay. Verify the existing removal undo after remount in that coordinated evidence."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Local human approval, current source rights, durable acceptance replay under current grants and exact successful artifact values.",
+            "The existing ownership, cancellation and cleanup boundaries, trusted code authority, and default verification Job Object settings.",
+            "Market worker timing, explicit test deadlines, accepted artifacts and independent indicator output values."
+          ],
+          "change": [
+            "Require the confirmation response grant before inspecting or consuming challenges and receipts.",
+            "Apply the generated memory policy before forwarding selected code. Linux caps virtual address space per process, with ordinary descendants inheriting the limit. Windows caps committed memory across the existing owned Job Object.",
+            "Use the canonical indicator timeout for trusted native, CLI and application paths.",
+            "Restore valid accepted-layer reference lists and clip their projection to the current sample window. Render region-only results for overlapping displayed bar intervals and keep gaps unpainted.",
+            "Retain preview supersession through cancellation or clearing and recover already approved Python jobs through the existing receipt identity."
+          ],
+          "data_plan": "Use disposable synthetic code, exact frozen inputs and test-only resource probes. Keep existing stored artifacts and checksums.",
+          "cleanup": "Reap the existing owned interpreter and descendants on failure, cancellation and success. Release scratch storage and admission through the existing cleanup path."
+        }
+      }
     }
   ]
 }

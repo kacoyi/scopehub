@@ -513,6 +513,102 @@ function independentEvidenceHash(id, a, b) {
   return result.toString('hex');
 }
 
+test('indicator-preview restores all 256 accepted layer references through the Ubuntu workspace', async () => {
+  const profile = await makeProfile();
+  const revisionId = randomUUID();
+  const first = Date.UTC(2026, 1, 3);
+  const last = Date.UTC(2026, 1, 4);
+  try {
+    await seedFrozenEvidence(profile, revisionId, first, last);
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      const frozen = await (await post(server, {
+        type: 'frozen_chart', request_id: randomUUID(), revision_id: revisionId,
+      })).json();
+      expect(frozen.ok).toBe(true);
+      const source = frozen.result.snapshot;
+      expect(source.content_hash).toBe(independentEvidenceHash(revisionId, first, last));
+
+      // Preload the maximum legal number of active attachments. The fixture
+      // represents separately accepted runs with identical inputs and output.
+      const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+      const parameters = { period: 2 };
+      // Use the canonical key order when hashing the expected artifact.
+      const points = [{ time_ms: first, value: null }, { time_ms: last, value: 37.875 }];
+      const result = {
+        diagnostics: [], markers: [],
+        provenance: {
+          code_hash: 'd'.repeat(64), dataset_id: revisionId, dataset_revision: source.dataset_revision,
+          engine_version: 'scopehub-declarative-3', params_hash: digest(parameters),
+        },
+        regions: [],
+        series: [{ id: 'mean', pane: 'price', points, style: { color: '#123456', width: 2 }, type: 'line' }],
+      };
+      const artifact = { result, result_hash: digest(result), storage: 'inline' };
+      const common = {
+        draft_id: randomUUID(), source_snapshot: source, snapshot: source, warmup_from_ms: null,
+        resolved_parameters: parameters, artifact, calendar_hash: null,
+      };
+      const uuid = index => '00000000-0000-4000-8000-' + index.toString(16).padStart(12, '0');
+      const layers = Array.from({ length: 256 }, (_unused, index) => ({
+        layer_id: uuid(index + 1), version_id: uuid(index + 257), available: true,
+      }));
+      const database = new DatabaseSync(join(profile.root, 'workspace.sqlite3'));
+      try {
+        database.exec('PRAGMA foreign_keys = ON; BEGIN');
+        const record = database.prepare(`INSERT INTO operation_log
+          (id, workspace_id, operation, actor, principal_id, paired_client_id, request_id, committed_at_ms,
+            revision, undoable, before_timeframe, after_timeframe)
+          VALUES (?, ?, 'indicator.acceptVersion', 'user', ?, '', ?, ?, ?, 1, '1m', '1m')`);
+        const version = database.prepare('INSERT INTO indicator_versions VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+        const activate = database.prepare('INSERT INTO indicator_layer_state VALUES (?, ?, 1)');
+        const attachment = database.prepare('INSERT INTO indicator_layer_operations VALUES (?, ?, ?, 0, 1)');
+        for (const [index, layer] of layers.entries()) {
+          const operation = randomUUID();
+          const preview = randomUUID();
+          record.run(operation, workspaceId, profile.id, randomUUID(), Date.now(), index + 1);
+          version.run(workspaceId, layer.layer_id, layer.version_id, preview, randomUUID(), operation, revisionId,
+            JSON.stringify({ ...common, task_id: randomUUID(), preview_id: preview }));
+          activate.run(workspaceId, layer.layer_id);
+          attachment.run(operation, workspaceId, layer.layer_id);
+        }
+        database.prepare('UPDATE workspaces SET revision = ? WHERE id = ?').run(layers.length, workspaceId);
+        database.exec('COMMIT');
+      } finally {
+        database.close();
+      }
+
+      const representative = layers.at(-1);
+      const output = await (await post(server, {
+        type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: representative.layer_id,
+      })).json();
+      expect(output).toMatchObject({ ok: true, result: {
+        layer_id: representative.layer_id, version_id: representative.version_id, document: { artifact },
+      } });
+      const list = async () => {
+        const response = await post(server, {
+          type: 'indicator_accepted_layers', request_id: randomUUID(), revision_id: revisionId,
+        });
+        const listing = await response.json();
+        expect(response.status, JSON.stringify(listing).slice(0, 250)).toBe(200);
+        expect(listing).toMatchObject({ ok: true, result: { dataset_id: revisionId } });
+        return listing.result.layers;
+      };
+      expect(await list()).toEqual(layers);
+
+      // Revocation retains the references and uses the longer false flag.
+      const revoked = new DatabaseSync(join(profile.root, 'workspace.sqlite3'));
+      try {
+        revoked.prepare('INSERT INTO local_dataset_display_revocations (revision_id) VALUES (?)').run(revisionId);
+      } finally {
+        revoked.close();
+      }
+      expect(await list()).toEqual(layers.map(layer => ({ ...layer, available: false })));
+    });
+  } finally {
+    await profile.close();
+  }
+});
+
 test('indicator-preview uses the bound sample calendar through the normal chart', async ({ browser }, testInfo) => {
   const profile = await makeProfile();
   const port = await freePort();
@@ -896,6 +992,17 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
           await expect(accepted).toHaveCount(0);
           await expect(undo).toBeEnabled();
           const removalId = removed.body.result.outcome.receipt.operation_id;
+          expect((await removalLayers.json()).result.undo).toEqual({
+            operation_id: removalId, layer_id: savedLayer.layer_id, committed_workspace_revision: 2,
+          });
+          await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+          await control(page, 'Open published CSV').click();
+          await dialog.getByLabel('Revision ID').fill(id);
+          const reopened = removalRead('indicator_accepted_layers', result => result.dataset_id === id);
+          await dialog.getByRole('button', { name: 'Open frozen chart' }).click();
+          expect((await (await reopened).json()).result.undo?.operation_id).toBe(removalId);
+          await expect(undo).toBeEnabled();
+          await expect(undo).toHaveCount(1);
           const releaseUndo = Promise.withResolvers();
           const undoRoute = `**${endpoint}`;
           let heldUndo;
@@ -997,6 +1104,7 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         await dialog.getByRole('button', { name: 'Open frozen chart' }).click();
         const accepted = dialog.getByRole('region', { name: 'Accepted indicators' });
         await expect(accepted.getByText(savedLayer.version_id)).toBeVisible();
+        await expect(dialog.getByRole('button', { name: 'Undo indicator removal' })).toHaveCount(0);
         await accepted.getByText('Accepted provenance and values').click();
         await expect(accepted.getByText('mean · 3')).toBeVisible();
         expect(reruns).toBe(0);
@@ -1386,6 +1494,307 @@ test('indicator-preview runs trusted Python once after exact local approval and 
     }, { historyTrace: true });
     await testInfo.attach('trusted-indicator', { body: JSON.stringify(observations), contentType: 'application/json' });
   } finally { await profile.close(); }
+});
+
+test('indicator-preview runs trusted Python once for a region-only result and restores it', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  const port = await freePort();
+  const previous = 1704200940000;
+  const next = 1704243600000;
+  const last = next + 240_000;
+  const label = '<img src=x onerror=alert(1)>';
+  const regions = [
+    { from_ms: previous, to_ms: next + 120_000, label, color: '#ff00ff' },
+    { from_ms: next + 190_000, to_ms: next + 200_000, label: 'Inside the fourth minute', color: '#ff8000' },
+    { from_ms: previous + 70_000, to_ms: next - 10_000, label: 'Between sessions', color: '#ffff00' },
+  ];
+  const program = `def compute(bars, params):
+    return {"series": [], "markers": [], "regions": ${JSON.stringify(regions)}, "diagnostics": []}
+`;
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        const history = await sampleStep(page, server, testInfo, 'open sample for a region preview', () => sampleButton(page).click());
+        const original = (await history.existingResponse().json()).result.snapshot;
+        const chart = page.getByRole('region', { name: 'Price chart' });
+        const plot = chart.getByRole('img', { name: /and volume chart/ });
+        const fit = control(page, 'Fit chart');
+        const openIndicators = async () => {
+          const disclosure = chart.locator('details.chart-indicators');
+          if (await disclosure.getAttribute('open', { timeout: 5000 }) === null) {
+            await disclosure.locator(':scope > summary').click({ timeout: 5000 });
+          }
+        };
+        await expect(plot).toBeVisible();
+        await openIndicators();
+        const editor = chart.getByRole('region', { name: 'Indicator preview' });
+        await editor.getByLabel('Indicator type').selectOption('python');
+        await editor.getByLabel('First visible bar').selectOption(String(previous));
+        await editor.getByLabel('Last visible bar').selectOption(String(last));
+        await editor.getByLabel('Select Python file').setInputFiles({
+          name: 'region.py', mimeType: 'text/x-python', buffer: Buffer.from(program),
+        });
+        await editor.getByRole('button', { name: 'Review Python run' }).click();
+        const ready = page.waitForResponse(async response => response.request().postDataJSON()?.type === 'indicator_preview_status'
+          && (await response.json()).result?.status === 'ready');
+        await editor.getByRole('button', { name: 'Run selected Python' }).click();
+        const preview = (await (await ready).json()).result.event.artifact;
+        expect(preview.result).toMatchObject({ series: [], markers: [], regions });
+        await expect(editor.getByText('Preview layers · trusted Python')).toBeVisible();
+        await editor.getByText('Preview provenance and values').click();
+        await expect(editor.getByRole('list', { name: 'Indicator regions' })).toContainText(label);
+        await expect(editor.locator('img')).toHaveCount(0);
+        await fit.click();
+        await expect.poll(async () => (await regionBand(plot))?.intensity ?? 0).toBeGreaterThan(25);
+        const previewBand = await regionBand(plot);
+        await expect.poll(async () => (await regionBand(plot, 'orange'))?.intensity ?? 0).toBeGreaterThan(12);
+        const previewMinute = await regionBand(plot, 'orange');
+        expect(await regionBand(plot, 'yellow')).toBeNull();
+
+        await editor.getByRole('button', { name: 'Accept preview' }).click();
+        const commit = page.waitForResponse(response => response.request().postDataJSON()?.operation === 'confirmation.respond');
+        await editor.getByRole('button', { name: 'Confirm indicator acceptance' }).click();
+        const outcome = (await (await commit).json()).result.outcome;
+        expect(outcome.state).toBe('committed');
+        const output = { type: 'indicator_accepted_output', layer_id: outcome.result.layer_id };
+        const saved = async () => {
+          let body;
+          await expect.poll(async () => {
+            body = await (await post(server, { ...output, request_id: randomUUID() })).json();
+            return body.error?.code;
+          }).not.toBe('BUSY');
+          return body;
+        };
+        expect((await saved()).result.document.artifact).toEqual(preview);
+        const accepted = editor.getByRole('region', { name: 'Accepted indicators' });
+        await expect(accepted.getByText(outcome.result.version_id)).toBeVisible();
+        await expect(editor.getByText('Preview layers · trusted Python')).toHaveCount(0);
+        await expect.poll(async () => (await regionBand(plot))?.intensity ?? 0).toBeGreaterThan(previewBand.intensity + 15);
+        await expect.poll(async () => (await regionBand(plot, 'orange'))?.intensity ?? 0).toBeGreaterThan(previewMinute.intensity + 10);
+        expect(await regionBand(plot, 'yellow')).toBeNull();
+        let reruns = 0;
+        page.on('request', request => {
+          if (request.postDataJSON()?.intent?.operation === 'indicator.runPreview') reruns++;
+        });
+
+        const sources = page.getByRole('complementary', { name: 'Data sources' });
+        const sampleDate = sources.getByLabel('Sample date (UTC)');
+        const cropRequest = sampleHistoryCall();
+        Object.assign(cropRequest.payload, { from_ms: Date.UTC(2024, 0, 3), to_ms: Date.UTC(2024, 0, 4) });
+        await control(page, 'Data sources').click();
+        await sampleStep(page, server, testInfo, 'crop across the accepted region', () => sampleDate.fill('2024-01-03'),
+          { catalog: false, historyCall: cropRequest, bars: 20 });
+        await sources.getByRole('button', { name: 'Close panel' }).click();
+        await fit.click();
+        // The interval includes the final Jan 2 bar and exactly two Jan 3 bars.
+        // In the cropped chart it starts at the left edge and spans 2 of 20 cells.
+        await expect.poll(async () => {
+          const band = await regionBand(plot);
+          return band && { first: Math.round(band.start * 20), span: Math.round((band.end - band.start) * 20) };
+        }).toEqual({ first: 0, span: 2 });
+        await expect.poll(async () => {
+          const band = await regionBand(plot, 'orange');
+          return band && { first: Math.round(band.start * 20), span: Math.round((band.end - band.start) * 20) };
+        }).toEqual({ first: 3, span: 1 });
+        expect(await regionBand(plot, 'yellow')).toBeNull();
+        await openIndicators();
+        await expect(accepted.getByText(outcome.result.version_id)).toBeVisible();
+        await accepted.getByText('Accepted provenance and values').click();
+        await expect(accepted.getByRole('list', { name: 'Indicator regions' })).toContainText(label);
+        await expect(accepted.locator('img')).toHaveCount(0);
+        await control(page, 'Close-price line').click();
+        await expect(plot).toHaveAccessibleName(/Close-price line and volume chart/);
+        await expect.poll(async () => (await regionBand(plot))?.intensity ?? 0).toBeGreaterThan(previewBand.intensity + 15);
+
+        // Request the first replay observation from the same provider. The
+        // dataset identity and the highlighted early bars still match.
+        const later = original.as_of_ms + 15_000;
+        await page.route(`**${operationPath}`, route => {
+          const call = route.request().postDataJSON();
+          if (call?.operation !== 'market.readHistoryPage') return route.continue();
+          return route.continue({ postData: JSON.stringify({ ...call, payload: { ...call.payload, as_of_ms: later } }) });
+        });
+        const laterHistory = page.waitForResponse(response => new URL(response.url()).pathname === operationPath
+          && response.request().postDataJSON()?.operation === 'market.readHistoryPage' && response.status() !== 429,
+        { timeout: 8000 });
+        await control(page, 'Data sources').click();
+        await sampleDate.fill('');
+        const changed = await (await laterHistory).json();
+        expect(changed).toMatchObject({ ok: true, result: { snapshot: {
+          dataset_id: original.dataset_id, dataset_revision: original.dataset_revision, as_of_ms: later, series: original.series,
+        } } });
+        await sources.getByRole('button', { name: 'Close panel' }).click();
+        await openIndicators();
+        await expect(accepted.getByText('Accepted version · different chart observation')).toBeVisible();
+        await expect.poll(() => regionBand(plot)).toBeNull();
+        expect(await regionBand(plot, 'orange')).toBeNull();
+        await accepted.getByText('Accepted provenance and values').click();
+        await expect(accepted.getByRole('list', { name: 'Indicator regions' })).toContainText(label);
+        expect((await saved()).result.document.artifact).toEqual(preview);
+
+        await page.unroute(`**${operationPath}`);
+        await control(page, 'Data sources').click();
+        await sampleStep(page, server, testInfo, 'return to the compatible observation', () => sampleDate.fill('2024-01-03'),
+          { catalog: false, historyCall: cropRequest, bars: 20 });
+        await expect.poll(async () => (await regionBand(plot))?.intensity ?? 0).toBeGreaterThan(previewBand.intensity + 15);
+        await sources.getByRole('button', { name: 'Leave sample' }).click();
+        await expect(plot).toHaveCount(0);
+        expect(await saved()).toMatchObject({ ok: false, error: { code: 'PERMISSION_DENIED' } });
+        expect(reruns).toBe(0);
+      }, [endpoint, '/__scopehub/operation'], { traceSample: true });
+    }, { historyTrace: true });
+  } finally {
+    await profile.close();
+  }
+});
+
+async function regionBand(plot, color = 'magenta') {
+  return plot.locator('canvas').evaluateAll((canvases, color) => {
+    for (const canvas of canvases) {
+      if (!canvas.width || !canvas.height) continue;
+      const values = canvas.getContext('2d').getImageData(0, Math.floor(canvas.height / 2), canvas.width, 1).data;
+      const columns = [];
+      for (let x = 0; x < canvas.width; x++) {
+        const offset = x * 4;
+        const [red, green, blue, alpha] = values.subarray(offset, offset + 4);
+        const matches = color === 'orange' ? red > green + 12 && green > blue + 4
+          : color === 'yellow' ? red > blue + 25 && green > blue + 25 && Math.abs(red - green) < 10
+            : red > green + 25 && blue > green + 25;
+        if (alpha > 0 && matches) columns.push(x);
+      }
+      if (columns.length < 3) continue;
+      const middle = 4 * columns[Math.floor(columns.length / 2)];
+      return { start: columns[0] / canvas.width, end: (columns.at(-1) + 1) / canvas.width,
+        intensity: values[middle] - values[middle + 1] };
+    }
+    return null;
+  }, color);
+}
+
+test('indicator-preview clips region overlap to shortened, missing and irregular buckets', async ({ browser }) => {
+  const profile = await makeProfile();
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        const bands = await page.evaluate(async () => {
+          const { indicatorBarIntervals, clipIndicatorRegions } = await import('/src/chart-adapter/indicator-regions.ts');
+          const start = Date.UTC(2024, 0, 2, 13);
+          const reopen = Date.UTC(2024, 0, 3, 1);
+          const trading_day = '2024-01-03';
+          const minute = 60_000;
+          const bar = (time_ms, is_closed = true) => ({
+            time_ms, trading_day, open: 10, high: 12, low: 9, close: 11, volume: 3, is_closed,
+          });
+          const range = { from_ms: start, to_ms: reopen + 2 * minute };
+          const sessions = [
+            { start_ms: start, end_ms: start + 17 * minute, trading_day },
+            { start_ms: reopen, end_ms: reopen + 2 * minute, trading_day },
+          ];
+          const buckets = indicatorBarIntervals([bar(start), bar(start + 5 * minute), bar(start + 15 * minute),
+            bar(reopen, false)], '5m', reopen + 20_000, true, sessions);
+          const daily = indicatorBarIntervals([bar(start)], '1d', range.to_ms, true, sessions);
+          const irregular = indicatorBarIntervals([bar(start), bar(start + 30_000), bar(reopen)], '1m', undefined, false);
+          const atCutoff = indicatorBarIntervals([bar(start), bar(start + minute, false), bar(start + 2 * minute)],
+            '1m', start + minute, false);
+          const unverified = indicatorBarIntervals([bar(start)], '1m', range.to_ms, true, [sessions[1], sessions[0]]);
+          const match = (intervals, from_ms, to_ms, visible = range) => clipIndicatorRegions(intervals,
+            [{ from_ms, to_ms, label: 'Fixture interval', color: '#446688' }], visible, false)
+            .map(({ first, last }) => [first, last]);
+          return {
+            missingFiveMinuteBar: match(buckets, start + 10 * minute, start + 11 * minute),
+            shortenedFiveMinuteBar: match(buckets, start + 16 * minute, start + 17 * minute),
+            justAfterSession: match(buckets, start + 17 * minute, start + 18 * minute),
+            openFiveMinuteBar: match(buckets, reopen + 10_000, reopen + 20_000),
+            afterObservation: match(buckets, reopen + 20_000, reopen + 30_000),
+            outsideFrozenRange: match(buckets, reopen + 10_000, reopen + 20_000,
+              { ...range, to_ms: reopen + 10_000 }),
+            secondSessionOfDailyBar: match(daily, reopen + 15_000, reopen + 20_000),
+            dailyBreak: match(daily, start + 17 * minute, reopen),
+            clippedAtNextIrregularStart: match(irregular, start + 30_000, start + 45_000),
+            irregularGap: match(irregular, start + 90_000, reopen),
+            startsAtObservation: match(atCutoff, start + minute, start + minute + 1),
+            startsAfterObservation: match(atCutoff, start + 2 * minute, start + 2 * minute + 1),
+            unverifiedBucketInterior: match(unverified, start + 10_000, start + 20_000),
+            unverifiedBarStart: match(unverified, start, start + 1),
+          };
+        });
+        expect(bands).toEqual({
+          missingFiveMinuteBar: [], shortenedFiveMinuteBar: [[2, 2]], justAfterSession: [],
+          openFiveMinuteBar: [[3, 3]], afterObservation: [], outsideFrozenRange: [],
+          secondSessionOfDailyBar: [[0, 0]], dailyBreak: [],
+          clippedAtNextIrregularStart: [[1, 1]], irregularGap: [],
+          startsAtObservation: [[1, 1]], startsAfterObservation: [],
+          unverifiedBucketInterior: [], unverifiedBarStart: [[0, 0]],
+        });
+      });
+    });
+  } finally {
+    await profile.close();
+  }
+});
+
+test('indicator-preview excludes points and markers outside the displayed chart bars', async ({ browser }) => {
+  const profile = await makeProfile();
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        const painted = await page.evaluate(async () => {
+          const { mountHistoryChart } = await import('/src/chart-adapter/history.ts');
+          const element = document.body.appendChild(document.createElement('div'));
+          Object.assign(element.style, { width: '600px', height: '400px' });
+          const point = time_ms => ({
+            time_ms, trading_day: '2024-01-02', open: 10, high: 12, low: 9, close: 11, volume: 3, is_closed: true,
+          });
+          const [before, first, missing, last] = [1704200700000, 1704200760000, 1704200820000, 1704200880000];
+          const bars = [point(first), point(last)];
+          const labels = [];
+          const fillText = CanvasRenderingContext2D.prototype.fillText;
+          CanvasRenderingContext2D.prototype.fillText = function (text, ...args) {
+            if (element.contains(this.canvas)) labels.push(text);
+            return fillText.call(this, text, ...args);
+          };
+          const chart = mountHistoryChart(element, { bars, dataset: { instrument_id: 'FIX', timeframe: '1m', timezone: 'UTC' } },
+            { price_tick: '0.01' }, 'candlestick', () => {});
+          try {
+            const drawLabels = async () => {
+              labels.length = 0;
+              chart.fit();
+              await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+              return [...labels];
+            };
+            const result = {
+              series: [{ id: 'fixture', pane: 'price', type: 'line', style: { color: '#ffff00', width: 1 },
+                points: [{ time_ms: before, value: 900000 }, { time_ms: first, value: 11 }, { time_ms: last, value: 500000 }] }],
+              markers: [
+                { time_ms: first, position: 'above', label: 'First fixture bar', color: '#ff0000' },
+                { time_ms: missing, position: 'above', label: 'Updated fixture bar', color: '#ff0000' },
+              ],
+              regions: [], diagnostics: [],
+            };
+            chart.setIndicatorLayers(undefined, [{ range: { from_ms: before, to_ms: last }, result }]);
+            const initial = await drawLabels();
+            chart.replaceBars([point(missing), point(last)]);
+            return { initial, updated: await drawLabels() };
+          } finally {
+            chart.dispose();
+            element.remove();
+            CanvasRenderingContext2D.prototype.fillText = fillText;
+          }
+        });
+        expect(painted.initial).toContain('First fixture bar');
+        expect(painted.initial).not.toContain('Updated fixture bar');
+        expect(painted.initial).not.toContain('02 Jan, 13:05');
+        expect(painted.updated).toContain('Updated fixture bar');
+        expect(painted.updated).not.toContain('First fixture bar');
+        for (const labels of [painted.initial, painted.updated]) {
+          expect(labels).toContain('11.00');
+          expect(Math.max(...labels.map(Number).filter(Number.isFinite))).toBeLessThan(20);
+        }
+      });
+    });
+  } finally {
+    await profile.close();
+  }
 });
 
 test('private decision notes require consent and retain the dated original separately from outcomes', async ({ browser }) => {

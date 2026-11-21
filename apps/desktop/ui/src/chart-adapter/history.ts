@@ -2,7 +2,8 @@ import {
   CandlestickSeries, ColorType, CrosshairMode, HistogramSeries, LineSeries, createChart, createSeriesMarkers,
   type ISeriesApi, type LineWidth, type SeriesMarker, type Time, type UTCTimestamp,
 } from 'lightweight-charts';
-import type { Bar, DatasetDescriptor, IndicatorResult, Instrument } from '../../../../../contracts/generated/protocol';
+import type { Bar, DatasetDescriptor, FrozenSnapshot, IndicatorResult, Instrument, VisibleRange } from '../../../../../contracts/generated/protocol';
+import { clipIndicatorRegions, indicatorBarIntervals, mountIndicatorRegions } from './indicator-regions';
 
 export type ChartStyle = 'candlestick' | 'line';
 export type ChartCursorMode = 'crosshair' | 'pan';
@@ -17,8 +18,12 @@ const chartThemes = {
 
 export type HistoryChartData = {
   bars: readonly Bar[];
-  dataset: Pick<DatasetDescriptor, 'instrument_id' | 'timeframe' | 'timezone'>;
+  dataset: Pick<DatasetDescriptor, 'instrument_id' | 'timeframe' | 'timezone'> &
+    Partial<Pick<DatasetDescriptor, 'provider_id' | 'provenance'>>;
+  snapshot?: Pick<FrozenSnapshot, 'as_of_ms'>;
 };
+
+export type IndicatorChartLayer = { result: IndicatorResult; range: VisibleRange };
 
 export interface HistoryChartHandle {
   dispose(): void;
@@ -31,7 +36,7 @@ export interface HistoryChartHandle {
   setSelectedBar(time: number | undefined): void;
   replaceBars(bars: readonly Bar[]): void;
   updateLast(bar: Bar): void;
-  setIndicatorLayers(preview: IndicatorResult | undefined, accepted: readonly IndicatorResult[]): void;
+  setIndicatorLayers(preview: IndicatorChartLayer | undefined, accepted: readonly IndicatorChartLayer[]): void;
 }
 
 // Chart-library units and lifecycle stay inside this replaceable adapter.
@@ -109,24 +114,31 @@ export function mountHistoryChart(
     volumes.setData(bars.map(volume));
     chart.panes()[1]?.setHeight(100);
     const markerPositions = { above: 'aboveBar', below: 'belowBar', on: 'inBar' } as const;
+    const timeScale = chart.timeScale();
     let markerPlugin = createSeriesMarkers<Time>(priceSeries, []);
+    const setRegions = mountIndicatorRegions(priceSeries.getPane(), timeScale);
     let indicatorMarkers: SeriesMarker<Time>[] = [];
     let indicatorSeries: (ISeriesApi<'Line'> | ISeriesApi<'Histogram'>)[] = [];
+    let indicatorLayers: (IndicatorChartLayer & { preview: boolean })[] = [];
 
-    function setIndicatorLayers(preview: IndicatorResult | undefined, accepted: readonly IndicatorResult[]) {
+    function renderIndicatorLayers(layers: typeof indicatorLayers) {
       const nextSeries: typeof indicatorSeries = [];
       const panes = new Map<string, number>();
-      const layers = [
-        ...accepted.map(result => ({ result, preview: false })),
-        ...(preview ? [{ result: preview, preview: true }] : []),
-      ];
-      const markers = layers.flatMap(layer => layer.result.markers).sort((a, b) => a.time_ms - b.time_ms).map(marker => ({
-        time: (marker.time_ms / 1000) as UTCTimestamp, position: markerPositions[marker.position],
-        shape: 'circle' as const, color: marker.color, text: marker.label,
-      }));
+      const onChart = (time: number, range: VisibleRange) => time >= range.from_ms && time < range.to_ms && lookup.has(time / 1000);
+      const markers = layers.flatMap(({ result, range }) => result.markers.filter(marker => onChart(marker.time_ms, range)))
+        .sort((a, b) => a.time_ms - b.time_ms).map(marker => ({
+          time: (marker.time_ms / 1000) as UTCTimestamp, position: markerPositions[marker.position],
+          shape: 'circle' as const, color: marker.color, text: marker.label,
+        }));
+      const intervals = layers.some(({ result }) => result.regions.length)
+        ? indicatorBarIntervals(bars, history.dataset.timeframe, history.snapshot?.as_of_ms,
+          history.dataset.provider_id === 'scopehub.synthetic', history.dataset.provenance?.sessions) : [];
+      const regions = layers.flatMap(({ result, range, preview }) => clipIndicatorRegions(intervals, result.regions, range, preview));
       try {
         for (const layer of layers) {
           for (const spec of layer.result.series) {
+            const points = spec.points.filter(point => onChart(point.time_ms, layer.range));
+            if (!points.length) continue;
             const pane = spec.pane === 'price' ? 0 : panes.get(spec.pane) ?? chart.panes().length;
             if (pane !== 0) panes.set(spec.pane, pane);
             const options = { color: spec.style.color, lastValueVisible: false, priceLineVisible: false };
@@ -134,7 +146,7 @@ export function mountHistoryChart(
               ? chart.addSeries(LineSeries, { ...options, lineWidth: spec.style.width as LineWidth, lineStyle: layer.preview ? 2 : 0 }, pane)
               : chart.addSeries(HistogramSeries, options, pane);
             nextSeries.push(series);
-            series.setData(spec.points.map(point => {
+            series.setData(points.map(point => {
               const time = (point.time_ms / 1000) as UTCTimestamp;
               return point.value === null ? { time } : { time, value: point.value };
             }));
@@ -148,9 +160,9 @@ export function mountHistoryChart(
       for (const series of indicatorSeries) chart.removeSeries(series);
       indicatorSeries = nextSeries;
       indicatorMarkers = markers;
+      setRegions(regions);
     }
 
-    const timeScale = chart.timeScale();
     timeScale.fitContent();
 
     function zoom(factor: number) {
@@ -185,6 +197,8 @@ export function mountHistoryChart(
     return {
       dispose() {
         element.style.cursor = originalCursor;
+        setRegions([]);
+        markerPlugin.detach();
         chart.remove();
       },
       fit() {
@@ -253,6 +267,7 @@ export function mountHistoryChart(
         for (const bar of bars) lookup.set(timestamp(bar), bar);
         priceSeries.setData(style === 'candlestick' ? bars.map(candle) : bars.map(linePoint));
         volumes.setData(bars.map(volume));
+        if (indicatorLayers.length) renderIndicatorLayers(indicatorLayers);
         if (!range || (range.from <= 0 && range.to >= lastIndex)) timeScale.fitContent();
         else {
           const shift = range.to >= lastIndex ? bars.length - 1 - lastIndex : 0;
@@ -261,7 +276,12 @@ export function mountHistoryChart(
         const selected = displayedBar();
         if (selected) select(selected);
       },
-      setIndicatorLayers,
+      setIndicatorLayers(preview, accepted) {
+        const layers = accepted.map(layer => ({ ...layer, preview: false }));
+        if (preview) layers.push({ ...preview, preview: true });
+        renderIndicatorLayers(layers);
+        indicatorLayers = layers;
+      },
       updateLast(bar) {
         const previous = bars.at(-1);
         if (bar === previous || bar.time_ms !== previous?.time_ms) return;

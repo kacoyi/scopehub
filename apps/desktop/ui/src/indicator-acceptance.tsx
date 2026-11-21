@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import type {
   ConfirmationChallenge11, FrozenSnapshot, IndicatorAcceptVersionCommand11, IndicatorAcceptVersionReply11,
-  IndicatorRemoveCommand11, IndicatorRemoveReply11, IndicatorResult, InlineIndicatorArtifact11,
+  IndicatorRemoveCommand11, IndicatorRemoveReply11, InlineIndicatorArtifact11,
   MutationScope11, PreviewReady11, TrustedConfirmationDecision11, WorkspaceUndoCommand11, WorkspaceUndoReply11,
 } from '../../../../contracts/generated/protocol';
+import type { IndicatorChartLayer } from './chart-adapter/history';
+import { IndicatorRegionValues } from './indicator-region-values';
 import { displayAccessDenied, type PublishedRevisionAccess } from './published-revision-access';
 import { exchangeWorkspace, type LocalWorkspace } from './use-local-workspace';
 
@@ -12,6 +14,11 @@ type Accepted = Layer & { document?: {
   snapshot: FrozenSnapshot; warmup_from_ms: number | null; resolved_parameters: Record<string, unknown>;
   artifact: InlineIndicatorArtifact11;
 } };
+type RemovalHint = {
+  operation_id: string; layer_id: string; committed_workspace_revision: number;
+};
+type AcceptedLayers = { layers: Accepted[]; undo: RemovalHint | undefined };
+const uuid = (id: unknown) => typeof id === 'string' && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id);
 
 const command = () => ({
   protocol_version: '1.1', type: 'request', message_id: crypto.randomUUID(),
@@ -30,8 +37,8 @@ async function readAccepted<T>(request: Parameters<typeof exchangeWorkspace>[0],
   }
 }
 
-async function readLayers(snapshot: FrozenSnapshot, signal: AbortSignal): Promise<Accepted[]> {
-  const listing = await readAccepted<{ dataset_id: string; layers: Layer[] }>({
+async function readLayers(snapshot: FrozenSnapshot, signal: AbortSignal): Promise<AcceptedLayers> {
+  const listing = await readAccepted<{ dataset_id: string; layers: Layer[]; undo?: RemovalHint | null }>({
     type: 'indicator_accepted_layers', request_id: crypto.randomUUID(), revision_id: snapshot.dataset_id,
   }, signal);
   if (listing.dataset_id !== snapshot.dataset_id) throw new Error();
@@ -46,11 +53,21 @@ async function readLayers(snapshot: FrozenSnapshot, signal: AbortSignal): Promis
     }, signal);
     if (output.layer_id !== layer.layer_id || output.version_id !== layer.version_id
       || output.document.snapshot.dataset_id !== snapshot.dataset_id
-      || output.document.snapshot.dataset_revision !== snapshot.dataset_revision
       || output.document.artifact.storage !== 'inline') throw new Error();
     accepted.push({ ...layer, document: output.document });
   }
-  return accepted;
+  const undo = listing.undo;
+  return { layers: accepted, undo: undo && Object.keys(undo).length === 3
+    && uuid(undo.operation_id) && uuid(undo.layer_id)
+    && Number.isSafeInteger(undo.committed_workspace_revision) && undo.committed_workspace_revision > 0
+    && !accepted.some(layer => layer.layer_id === undo.layer_id) ? undo : undefined };
+}
+
+function matchesChart(input: FrozenSnapshot, chart: FrozenSnapshot) {
+  const { series } = chart;
+  return input.dataset_id === chart.dataset_id && input.dataset_revision === chart.dataset_revision
+    && input.as_of_ms === chart.as_of_ms && Object.entries(series).every(([key, value]) =>
+      input.series[key as keyof FrozenSnapshot['series']] === value);
 }
 
 function bodyOf<T extends IndicatorAcceptVersionReply11 | IndicatorRemoveReply11 | WorkspaceUndoReply11>(
@@ -63,35 +80,46 @@ function bodyOf<T extends IndicatorAcceptVersionReply11 | IndicatorRemoveReply11
 
 export function IndicatorAcceptance({ preview, snapshot, workspace, access, clearPreview, showAccepted }: {
   preview: PreviewReady11 | undefined; snapshot: FrozenSnapshot; workspace: LocalWorkspace;
-  access?: PublishedRevisionAccess | undefined; clearPreview: () => void; showAccepted: (results: readonly IndicatorResult[]) => void;
+  access?: PublishedRevisionAccess | undefined; clearPreview: () => void; showAccepted: (results: readonly IndicatorChartLayer[]) => void;
 }) {
   const [layers, setLayers] = useState<Accepted[]>([]);
   const [challenge, setChallenge] = useState<ConfirmationChallenge11>();
-  const [undo, setUndo] = useState<{ layer: Layer; operationId: string; revision: number }>();
+  const [undo, setUndo] = useState<RemovalHint>();
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<{ text: string; failed?: boolean }>();
   const state = workspace.snapshot;
   const canDisplay = access?.canDisplay;
   const verify = access?.verify;
+  const revoked = access?.revoked.has(snapshot.dataset_id);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    setLayers([]);
+    setUndo(undefined);
+    showAccepted([]);
+    if (revoked) return;
     const abort = new AbortController();
     const signal = AbortSignal.any([abort.signal, AbortSignal.timeout(15_000)]);
-    void readLayers(snapshot, signal).then(restored => {
-      if (canDisplay && !canDisplay(snapshot.dataset_id)) return;
+    void readLayers(snapshot, signal).then(({ layers: restored, undo: hint }) => {
+      if (signal.aborted || canDisplay && !canDisplay(snapshot.dataset_id)) return;
       setLayers(restored);
-      showAccepted(restored.flatMap(layer => layer.document ? [layer.document.artifact.result] : []));
+      setUndo(hint);
+      showAccepted(restored.flatMap(({ document }) => document && matchesChart(document.snapshot, snapshot)
+        ? [{
+          range: {
+            from_ms: Math.max(snapshot.from_ms, document.snapshot.from_ms),
+            to_ms: Math.min(snapshot.to_ms, document.snapshot.to_ms),
+          },
+          result: document.artifact.result,
+        }] : []));
     }).catch(error => {
       if (abort.signal.aborted) return;
       if (displayAccessDenied(error)) {
-        setLayers([]);
-        showAccepted([]);
         void verify?.(snapshot.dataset_id);
       }
       setMessage(previous => previous ?? { text: 'Accepted indicator output could not be restored.', failed: true });
     });
     return () => abort.abort();
-  }, [snapshot, state?.workspace.revision, canDisplay, verify, showAccepted]);
+  }, [snapshot, state?.workspace.revision, state?.selection_revision, canDisplay, verify, revoked, showAccepted]);
 
   function scope(target: MutationScope11['target']): MutationScope11 {
     if (!state) throw new Error();
@@ -160,20 +188,25 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
     void act(async signal => {
       const outcome = bodyOf(await exchangeWorkspace<IndicatorRemoveReply11>(request, signal), request.request_id);
       if (outcome.state !== 'committed') throw new Error();
-      setUndo({ layer, operationId: outcome.receipt.operation_id, revision: outcome.receipt.committed_workspace_revision });
       refreshWorkspace();
       setMessage({ text: 'Accepted layer removed from the chart.' });
     });
   }
 
   function undoRemoval() {
-    if (!undo || !state || state.workspace.revision < undo.revision) return;
+    if (!undo || !state || state.workspace.revision < undo.committed_workspace_revision) return;
     const request: WorkspaceUndoCommand11 = {
-      ...command(), task_id: null, scope: scope({ kind: 'layer', object_id: undo.layer.layer_id }),
-      intent: { operation: 'workspace.undo', arguments: { operation_id: undo.operationId } },
+      ...command(), task_id: null, scope: scope({ kind: 'layer', object_id: undo.layer_id }),
+      intent: { operation: 'workspace.undo', arguments: { operation_id: undo.operation_id } },
     };
     void act(async signal => {
-      const outcome = bodyOf(await exchangeWorkspace<WorkspaceUndoReply11>(request, signal), request.request_id);
+      const reply = await exchangeWorkspace<WorkspaceUndoReply11>(request, signal);
+      if (reply.request_id === request.request_id && reply.outcome.state === 'failed'
+        && reply.outcome.error.code === 'STALE_CONTEXT') {
+        setUndo(undefined);
+        refreshWorkspace();
+      }
+      const outcome = bodyOf(reply, request.request_id);
       if (outcome.state !== 'committed') throw new Error();
       setUndo(undefined);
       refreshWorkspace();
@@ -199,7 +232,9 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
     {layers.length > 0 && <section aria-label="Accepted indicators">
       <h3>Accepted indicators</h3>
       <ul>{layers.map(layer => <li key={layer.layer_id}>
-        <span>{layer.available ? 'Accepted version' : 'Accepted version · source unavailable'} </span>
+        <span>{!layer.available ? 'Accepted version · source unavailable'
+          : layer.document && !matchesChart(layer.document.snapshot, snapshot) ? 'Accepted version · different chart observation'
+            : 'Accepted version'} </span>
         <code>{layer.version_id}</code>
         {layer.document && <details>
           <summary>Accepted provenance and values</summary>
@@ -210,11 +245,12 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
           <ul>{layer.document.artifact.result.series.map(series => <li key={series.id}>
             {series.id} · {series.points.slice(0, 20).map(point => point.value ?? 'Unknown').join(', ')}
           </li>)}</ul>
+          <IndicatorRegionValues regions={layer.document.artifact.result.regions} />
         </details>}
         <button type="button" className="secondary-button" disabled={blocked} onClick={() => remove(layer)}>Remove accepted layer</button>
       </li>)}</ul>
     </section>}
-    {undo && <button type="button" className="secondary-button" disabled={blocked || !state || state.workspace.revision < undo.revision}
+    {undo && <button type="button" className="secondary-button" disabled={blocked || !state || state.workspace.revision < undo.committed_workspace_revision}
       onClick={undoRemoval}>Undo indicator removal</button>}
   </>;
 }

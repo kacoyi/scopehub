@@ -61,7 +61,18 @@ def reap_adopted(group: int) -> None:
                 return
 
 
-def supervise(max_bytes: int) -> int:
+if sys.platform == 'linux':
+    def limit_linux_address_space(pid: int, memory_limit_bytes: int) -> None:
+        import resource
+
+        # Linux limits virtual address space per process, including ordinary
+        # descendants that inherit the limit. Keep any stricter inherited limit.
+        soft, hard = resource.prlimit(pid, resource.RLIMIT_AS)
+        limit = min(value for value in (memory_limit_bytes, soft, hard) if value != resource.RLIM_INFINITY)
+        resource.prlimit(pid, resource.RLIMIT_AS, (limit, limit))
+
+
+def supervise(max_bytes: int, memory_limit_bytes: int) -> int:
     env = dict(os.environ)
     interpreter = sys.executable
     job = None
@@ -72,7 +83,8 @@ def supervise(max_bytes: int) -> int:
         # selected code until the process belongs to the private Job.
         interpreter = sys._base_executable  # type: ignore[attr-defined]
         env['__PYVENV_LAUNCHER__'] = sys.executable
-        job = WindowsJob()
+        # Windows caps committed memory across the whole owned job.
+        job = WindowsJob(memory_limit_bytes=memory_limit_bytes)
     else:
         enable_subreaper()
 
@@ -80,13 +92,15 @@ def supervise(max_bytes: int) -> int:
         argv = [interpreter, '-P', '-s', '-B', '-X', 'utf8', '-m', 'worker_runtime.indicator']
         process = subprocess.Popen(argv, env=env, stdin=subprocess.PIPE, stdout=sys.stdout.buffer,
                                    stderr=subprocess.DEVNULL, start_new_session=job is None)
-        if job is not None:
-            try:
+        try:
+            if job is not None:
                 job.assign(process.pid)
-            except OSError:
-                process.kill()
-                process.wait()
-                raise
+            elif sys.platform == 'linux':
+                limit_linux_address_space(process.pid, memory_limit_bytes)
+        except OSError:
+            process.kill()
+            process.wait()
+            raise
         finished = False
         try:
             assert process.stdin is not None
@@ -108,6 +122,6 @@ def supervise(max_bytes: int) -> int:
 
 if __name__ == '__main__':
     try:
-        raise SystemExit(supervise(int(sys.argv[1])))
+        raise SystemExit(supervise(int(sys.argv[1]), int(sys.argv[2])))
     except OSError:
         raise SystemExit(ABANDONED) from None

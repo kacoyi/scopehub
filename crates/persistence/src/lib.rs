@@ -796,6 +796,19 @@ impl WorkspaceTransaction for SqliteTransaction<'_> {
         )
     }
 
+    fn latest_indicator_removal(
+        &self,
+        revision_id: &str,
+        principal_id: &str,
+    ) -> Result<Option<(IndicatorLayerRef, WorkspaceReceipt)>, Error> {
+        indicator_versions::latest_removal(
+            self.connection,
+            &self.binding.workspace_id,
+            revision_id,
+            principal_id,
+        )
+    }
+
     fn indicator_confirmation_receipt(
         &self,
         challenge_id: &str,
