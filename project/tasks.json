@@ -8218,7 +8218,7 @@
         "0007"
       ],
       "acceptance": [
-        "A worktree with active harness or editable-runtime consumers, a live linked-file type change, unique local evidence in generated layouts, or an unrecoverable per-worktree reference is held. An inactive globally configured Git filter does not block a genuinely eligible checkout.",
+        "A worktree with active harness or editable-runtime consumers, a live linked-file type change, unique local evidence in generated layouts, or an unrecoverable per-worktree reference is held. An inactive globally configured Git filter does not block a genuinely eligible checkout. Python library directory case aliases do not duplicate reported editable consumers.",
         "A retained blocked diagnostic must verify the observation artifacts explicitly bound by its report. Checkout-local report selection from a subdirectory and independently supplied compatible reports preserve the established evidence semantics and reject a cross-worktree report dependency.",
         "The read-only host inventory and the retained M4 diagnostic still resolve after integrating the upstream worktree and storage identity repairs. The command never removes a worktree or its files.",
         "New operational source and workflow changes cannot introduce cross-checkout diagnostic paths. Windows linked consumers and independent retained files are identified using the host path and file identity semantics.",

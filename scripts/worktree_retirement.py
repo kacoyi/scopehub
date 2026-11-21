@@ -299,7 +299,9 @@ def dependency_patterns(consumer, candidates, directories, *, absolute=False):
 
 def editable_python_paths(checkout, mounts):
     # Python reads startup path files directly from these virtual environment locations.
-    paths = [checkout / '.venv']
+    environment = checkout / '.venv'
+    library_names = {'lib', 'lib64', 'Lib'}
+    paths = [environment]
     while paths:
         path = paths.pop()
         info = worktree.entry_info(path)
@@ -317,12 +319,14 @@ def editable_python_paths(checkout, mounts):
                 if entry.suffix in {'.pth', '.egg-link'} or (
                         entry.name.startswith('__editable__') and entry.name.endswith('_finder.py')):
                     yield entry, True
-        elif path.name == '.venv':
-            paths.extend(path / name for name in ('lib', 'lib64', 'Lib'))
+        elif path == environment:
+            # Preserve actual spellings without revisiting aliases on case-insensitive volumes.
+            paths.extend(entry for entry in path.iterdir() if entry.name in library_names or
+                         (os.name == 'nt' and entry.name.casefold() in library_names))
             config = path / 'pyvenv.cfg'
             if worktree.entry_info(config) is not None:
                 yield config, True
-        elif path.name in {'lib', 'lib64', 'Lib'}:
+        elif path.parent == environment:
             paths.append(path / 'site-packages')
             paths.extend(entry for entry in path.iterdir()
                          if re.fullmatch(r'python\d+\.\d+[a-z]*', entry.name))

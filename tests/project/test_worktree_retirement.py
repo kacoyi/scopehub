@@ -498,6 +498,31 @@ class WorktreeRetirementTests(unittest.TestCase):
         self.assertEqual(row['details']['downstream_path_consumer'],
                          [f'{downstream}: {startup.relative_to(downstream).as_posix()}'])
 
+    def test_editable_python_libraries_are_enumerated_from_actual_directory_entries(self):
+        environment = self.candidate / '.venv'
+        first = environment / 'Lib/site-packages/example.pth'
+        first.parent.mkdir(parents=True)
+        first.write_text('# fixture\n', encoding='utf-8')
+
+        with patch.object(worktree, 'entry_info', wraps=worktree.entry_info) as lookup:
+            self.assertEqual(list(worktree_retirement.editable_python_paths(self.candidate, {})), [(first, True)])
+        # On Linux, detect the same spelling guesses that silently revisit a file on Windows.
+        library_lookups = [call.args[0].name for call in lookup.call_args_list
+                           if call.args[0].parent == environment and call.args[0].name != 'pyvenv.cfg']
+        self.assertEqual(library_lookups, ['Lib'])
+
+        second = environment / 'lib/python3.12/site-packages/example.pth'
+        if not (environment / 'lib').exists():
+            second.parent.mkdir(parents=True)
+            second.write_text('# separate fixture\n', encoding='utf-8')
+            linked = environment / 'lib64'
+            try:
+                linked.symlink_to('lib', target_is_directory=True)
+            except (NotImplementedError, OSError) as error:
+                self.skipTest(f'The fixture cannot create a library symlink: {error}')
+            observed = set(worktree_retirement.editable_python_paths(self.candidate, {}))
+            self.assertEqual(observed, {(first, True), (second, True), (linked, False)})
+
     def test_cargo_generated_outputs_are_distinguished_from_unique_build_data(self):
         self.commit(self.candidate, '.gitignore', 'target/\n')
         head = self.commit(self.candidate, 'Cargo.lock', '# fixture lock\n')
