@@ -1269,6 +1269,38 @@
         "prevention": "Regression tests cover repository identity, explicit branch and base, reuse, interruptions and storage eligibility. All 43 original worktrees matched Git and retained evidence after relocation. Host verification exercised the actual client build, four Rust/Python handshake cases, fresh worktree creation, Herdr routing, and an offline cache fallback. Process-death tests exercise kernel-released creation locks, including a Git child which outlives the launcher. The installed host alias resumed after a forced process exit."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "linked-worktree-registration-identity",
+      "source": "PR 25 review and disposable native Git reproductions.",
+      "observation": "The worktree helper accepted a Git file borrowed from a sibling linked checkout on the same branch. It also accepted a copied Git directory outside the native registry when its common directory, backlink and branch matched. New checkout creation reported success after a native hook switched HEAD to another branch.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-034"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "managed-worktree-foreign-checkout-admission",
+      "source": "PR 25 review and disposable native Git and Cargo cache reproductions.",
+      "observation": "Storage inventory admitted a managed root nested in a foreign Git checkout that the worktree manager would reject. When a foreign repository appeared after inventory, collection deleted a fixture artifact under the foreign checkout. The legacy sibling rule also permitted that nesting.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-034"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-001",
+  "focus_task_id": "M0-034",
   "tasks": [
     {
       "id": "M0-001",
@@ -6814,6 +6814,106 @@
           ],
           "data_plan": "Move on the same filesystem wherever possible; verify copied archives before cutover and keep source revisions and evidence addressable.",
           "cleanup": "Keep the mapping for legacy paths and retain fallbacks for active checkouts. Validate the new entrypoints under the actual host layout."
+        }
+      }
+    },
+    {
+      "id": "M0-034",
+      "title": "Verify linked checkout identity and shared managed-root admission",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-030"
+      ],
+      "scope": [
+        "scripts/worktree.py",
+        "scripts/storage.py",
+        "tests/project/test_storage.py",
+        "tests/project/test_worktree.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Creating, locating or reusing a worktree verifies both directions of the Git registration and the actual branch at its path. Another linked worktree in the same repository cannot satisfy its identity.",
+        "The worktree manager and Cargo maintenance agree on the permitted dedicated managed root; a tree nested in any foreign checkout is protected."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Retain the review findings, reproduce each boundary in an isolated fixture, repair the normal entrypoints, and verify local and hosted checks before integration.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Verify linked checkout identity and shared managed-root admission with independent regression fixtures.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/worktree.py",
+          "scripts/storage.py",
+          "tests/project/test_storage.py",
+          "tests/project/test_worktree.py",
+          "project/delivery.json",
+          "project/development.json"
+        ],
+        "hypotheses": [
+          "Independent identity checks and fail-closed admission can preserve supported maintenance without weakening existing checks."
+        ],
+        "risks": [
+          {
+            "failure": "Two related Git directories are confused and the wrong checkout is selected.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A cache in another enclosing repository is admitted for deletion.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the previous verified revision and host configuration. Use read-only inventory while uncertain, disable automatic maintenance during the transition, and preserve diagnostic material.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/worktree.py",
+            "scripts/storage.py",
+            "tests/project/test_storage.py",
+            "tests/project/test_worktree.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Product features, changing host repository locations or deleting real worktrees."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Current native worktree identities, source, user profiles, retained evidence, safe local builds and reports."
+          ],
+          "change": [
+            "Creating, locating or reusing a worktree verifies both directions of the Git registration and the actual branch at its path. Another linked worktree in the same repository cannot satisfy its identity.",
+            "The worktree manager and Cargo maintenance agree on the permitted dedicated managed root; a tree nested in any foreign checkout is protected."
+          ],
+          "data_plan": "Use temporary Git and filesystem fixtures. No persistent product data needs migration.",
+          "cleanup": "Keep worktree.py and storage.py independently runnable as pinned host helpers. Verify admission parity at the CLI boundary and recheck admissibility before collection."
         }
       }
     }

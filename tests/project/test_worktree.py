@@ -383,6 +383,65 @@ sys.exit(0 if resume.exists() else 1)
         self.assertEqual(self.branch(replaced), 'unrelated')
         self.assertEqual((replaced / 'fixture.txt').read_text(encoding='utf-8'), 'unrelated work')
 
+    def test_reject_a_same_branch_gitdir_from_another_linked_checkout(self):
+        first, second = self.managed / 'first', self.managed / 'second'
+        self.git('worktree', 'add', '--quiet', '-b', 'task', str(first), 'HEAD')
+        self.git('worktree', 'add', '--quiet', '--force', str(second), 'task')
+        marker = first / '.git'
+        original = marker.read_bytes()
+        borrowed = (second / '.git').read_bytes()
+        self.assertNotEqual(original, borrowed)
+        marker.write_bytes(borrowed)
+
+        self.assertEqual(self.branch(first), 'task')
+        self.assertEqual(self.git('rev-parse', '--absolute-git-dir', cwd=first).stdout,
+                         self.git('rev-parse', '--absolute-git-dir', cwd=second).stdout)
+        self.assert_rejected('use', 'first')
+        self.assert_rejected('create', 'first', '--branch', 'task')
+        self.assertEqual(marker.read_bytes(), borrowed)
+        self.assertEqual(Path(self.cli('use', 'second').stdout.strip()), second)
+
+    def test_reject_gitdir_outside_native_worktree_registry_with_matching_backlink(self):
+        linked = self.managed / 'task'
+        self.git('worktree', 'add', '--quiet', '-b', 'task', str(linked), 'HEAD')
+        git_dir = Path(self.git('rev-parse', '--absolute-git-dir', cwd=linked).stdout.strip())
+        copied_dir = shutil.copytree(git_dir, self.directory / 'copied admin directory')
+        (copied_dir / 'commondir').write_bytes(os.fsencode(self.common.as_posix()) + b'\n')
+        marker = linked / '.git'
+        marker.write_bytes(b'gitdir: ' + os.fsencode(copied_dir.as_posix()) + b'\n')
+
+        self.assertEqual(Path(os.fsdecode((copied_dir / 'gitdir').read_bytes()).strip()), marker)
+        self.assertEqual(self.branch(linked), 'task')
+        self.assertEqual(Path(self.git('rev-parse', '--absolute-git-dir', cwd=linked).stdout.strip()), copied_dir)
+        self.assert_rejected('use', 'task')
+        self.assert_rejected('create', 'task', '--branch', 'task')
+
+    def test_new_checkout_reports_branch_changed_by_native_hook(self):
+        hook_dir = self.directory / 'hooks'
+        hook_dir.mkdir()
+        self.git('config', '--local', 'core.hooksPath', str(hook_dir))
+        self.git('branch', 'hook-branch')
+        hook = hook_dir / 'post-checkout'
+        hook.write_text('#!/bin/sh\nexec git symbolic-ref HEAD refs/heads/hook-branch\n',
+                        encoding='utf-8', newline='\n')
+        hook.chmod(0o755)
+
+        self.assert_rejected('create', 'task', '--new-branch', 'task', '--base', 'HEAD')
+        linked = self.managed / 'task'
+        self.assertEqual(self.branch(linked), 'hook-branch')
+        self.assertEqual(self.head(linked), self.head(self.primary))
+        self.assertEqual(self.branch(self.primary), 'main')
+
+    def test_use_accepts_a_detached_worktree_with_relative_git_paths(self):
+        linked = self.managed / 'detached'
+        result = self.git('worktree', 'add', '--quiet', '--relative-paths', '--detach', str(linked), 'HEAD',
+                          check=False)
+        if 'unknown option' in result.stderr:
+            self.skipTest('Git does not support relative worktree paths.')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.git('symbolic-ref', '--quiet', 'HEAD', cwd=linked, check=False).returncode, 1)
+        self.assertEqual(Path(self.cli('use', 'detached').stdout.strip()), linked)
+
     def test_pinned_git_alias_works_from_an_older_checkout_with_home_default(self):
         older = self.directory / 'older checkout'
         old_head = self.head(self.primary)

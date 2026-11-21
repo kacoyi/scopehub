@@ -84,19 +84,50 @@ def worktrees(root):
             yield Path(fields[0].removeprefix('worktree ')), {field.split(' ', 1)[0] for field in fields[1:]}
 
 
-def managed_worktree_directory(current, registered):
+def dedicated_worktree_directory(current, common, registered, directory):
+    # Match worktree.py's admission rule for existing roots. Both helpers also run standalone.
+    if (not directory.is_absolute() or directory == directory.parent or
+            directory.resolve(strict=True) != directory or directory.is_relative_to(common) or
+            any(directory.is_relative_to(path) for path, _ in registered)):
+        return False
+    info = directory.lstat()
+    if not stat.S_ISDIR(info.st_mode) or reparse(info):
+        return False
+    for parent in (directory, *directory.parents):
+        marker = parent / '.git'
+        try:
+            marker.lstat()
+        except FileNotFoundError:
+            continue
+        try:
+            git(current, 'rev-parse', '--resolve-git-dir', str(marker))
+        except subprocess.CalledProcessError as error:
+            if error.returncode != 128:
+                raise
+        else:
+            return False
+    return True
+
+
+def managed_worktree_directory(current, common, registered):
     try:
         values = git(current, 'config', '--local', '--null', '--type=path', '--get-all',
                      'scopehub.worktreeRoot').removesuffix('\0').split('\0')
         if len(values) != 1:
             return None
         directory = Path(values[0])
-        if (directory.is_absolute() and directory != directory.parent and
-                directory.resolve(strict=True) == directory and
-                not any(directory.is_relative_to(path) for path, _ in registered)):
-            info = directory.lstat()
-            if stat.S_ISDIR(info.st_mode) and not reparse(info):
-                return directory
+        if dedicated_worktree_directory(current, common, registered, directory):
+            return directory
+    except (OSError, RuntimeError, subprocess.SubprocessError):
+        pass
+    return None
+
+
+def legacy_worktree_directory(current, common, registered):
+    directory = registered[0][0].parent
+    try:
+        if dedicated_worktree_directory(current, common, registered, directory):
+            return directory
     except (OSError, RuntimeError, subprocess.SubprocessError):
         pass
     return None
@@ -718,7 +749,8 @@ def collect_target(target, root, common, context, progress, deadline):
         flags = dict(registered).get(root)
         if flags is None or flags & {'locked', 'bare', 'prunable'}:
             return 'worktree_registration_changed'
-        if root.parent != registered[0][0].parent and root.parent != managed_worktree_directory(root, registered):
+        if (root.parent != legacy_worktree_directory(root, common, registered) and
+                root.parent != managed_worktree_directory(root, common, registered)):
             return 'worktree_directory_changed'
         refreshed = linux_context(deadline)
         if refreshed.mounts != context.mounts:
@@ -860,10 +892,9 @@ def inspect_repository(current, common, configured, context, mounts, blocked,
     registered = list(worktrees(current))
     if not registered or current not in dict(registered):
         raise StorageError('current checkout is missing from Git worktree registration')
-    managed = managed_worktree_directory(current, registered)
-    worktree_directories = {registered[0][0].parent}
-    if managed is not None:
-        worktree_directories.add(managed)
+    managed = managed_worktree_directory(current, common, registered)
+    legacy = legacy_worktree_directory(current, common, registered)
+    worktree_directories = {managed, legacy} - {None}
     rows = []
     candidates = []
     seen = set()

@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import select
+import shutil
 import struct
 import subprocess
 import sys
@@ -171,6 +172,36 @@ class StorageReportTests(RepositoryFixture):
 
         self.assertIsNone(result['managed_worktree_root'])
         self.assertIsNone(self.report_entry(result, nested / 'target')['allocated_bytes'])
+
+    def test_bootstrap_cli_excludes_managed_root_in_foreign_checkout(self):
+        foreign_primary = self.directory / 'foreign primary'
+        self.initialize(foreign_primary)
+        foreign = self.directory / 'foreign linked checkout'
+        self.git(foreign_primary, 'worktree', 'add', '--quiet', '--detach', str(foreign), 'HEAD')
+        managed = foreign / 'tools' / 'managed'
+        nested = self.worktree(managed / 'nested')
+        artifact = self.cargo_cache(nested)
+        self.git(self.root, 'config', '--local', 'scopehub.worktreeRoot', str(managed))
+        before = artifact.read_bytes()
+        pinned = self.directory / 'pinned tools'
+        pinned.mkdir()
+        storage_script = shutil.copyfile(SCRIPT, pinned / 'storage.py')
+
+        process = subprocess.run([sys.executable, '-I', '-S', str(storage_script)], cwd=self.root,
+                                 capture_output=True, encoding='utf-8', timeout=10)
+        self.assertEqual(process.returncode, 0, process.stderr)
+        result = json.loads(process.stdout)
+        self.assertIsNone(result['managed_worktree_root'])
+        self.assertIsNone(self.report_entry(result, nested / 'target')['allocated_bytes'])
+        self.assertEqual(artifact.read_bytes(), before)
+
+        worktree_script = SCRIPT.with_name('worktree.py')
+        create = subprocess.run([sys.executable, '-I', '-S', str(worktree_script),
+                                 'create', 'another', '--new-branch', 'another', '--base', 'HEAD'],
+                                cwd=self.root, capture_output=True, encoding='utf-8', timeout=10)
+        self.assertNotEqual(create.returncode, 0, create.stdout)
+        self.assertIn('outside every Git checkout', create.stderr)
+        self.assertFalse((managed / 'another').exists())
 
     @unittest.skipUnless(sys.platform == 'linux', 'Allocated block counts are checked on Linux.')
     def test_sparse_files_are_reported_as_allocated_blocks(self):
@@ -339,8 +370,8 @@ class CollectionTests(RepositoryFixture):
         artifact = self.cargo_cache(self.worktree(managed / 'managed-member'))
         managed_directory = storage.managed_worktree_directory
 
-        def unset_after_snapshot(current, registered):
-            directory = managed_directory(current, registered)
+        def unset_after_snapshot(current, common, registered):
+            directory = managed_directory(current, common, registered)
             if directory is not None:
                 self.git(self.root, 'config', '--local', '--unset', 'scopehub.worktreeRoot')
             return directory
@@ -351,6 +382,42 @@ class CollectionTests(RepositoryFixture):
         self.assertEqual(result['collected'], [])
         self.assertEqual(self.report_entry(result, artifact.parents[2])['reason'], 'worktree_directory_changed')
         self.assertTrue(artifact.is_file())
+
+    def test_collection_preserves_managed_cache_in_new_foreign_checkout(self):
+        foreign = self.directory / 'foreign'
+        managed = foreign / 'tools' / 'managed'
+        self.git(self.root, 'config', '--local', 'scopehub.worktreeRoot', str(managed))
+        artifact = self.cargo_cache(self.worktree(managed / 'member'))
+        control = self.cargo_cache(self.worktree('legacy'))
+        cargo_layout = storage.cargo_layout
+        before = artifact.read_bytes()
+
+        def start_foreign_checkout_after_inventory(target):
+            layout = cargo_layout(target)
+            if target == artifact.parents[2] and not (foreign / '.git').exists():
+                self.git(foreign, 'init', '--quiet')
+            return layout
+
+        with patch.object(storage, 'cargo_layout', side_effect=start_foreign_checkout_after_inventory):
+            result = self.collect()
+
+        self.assertEqual(Path(result['managed_worktree_root']), managed)
+        self.assertEqual(self.report_entry(result, artifact.parents[2])['reason'], 'worktree_directory_changed')
+        self.assertEqual(artifact.read_bytes(), before)
+        self.assertFalse(control.exists(), result)
+
+    def test_legacy_sibling_does_not_bypass_foreign_checkout_protection(self):
+        artifact = self.cargo_cache(self.worktree('legacy'))
+        self.git(self.checkouts, 'init', '--quiet')
+        self.git(self.root, 'config', '--local', 'scopehub.worktreeRoot', str(self.checkouts))
+        before = artifact.read_bytes()
+
+        result = self.collect()
+
+        self.assertIsNone(result['managed_worktree_root'])
+        self.assertIsNone(self.report_entry(result, artifact.parents[2])['allocated_bytes'])
+        self.assertEqual(result['collected'], [])
+        self.assertEqual(artifact.read_bytes(), before)
 
     def test_held_cargo_locks_exclude_only_their_cache(self):
         import fcntl
