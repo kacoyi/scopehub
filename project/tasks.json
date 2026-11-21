@@ -7877,6 +7877,14 @@
         {
           "path": "project/evidence/M2-011-ec1f69ef216071b4.json",
           "sha256": "b69474c224b9315ee2abc377ba6813a37a74b8ab0811cda7c0f00f8bd7cbbf48"
+        },
+        {
+          "path": "project/evidence/M2-011-20f1c7f5a60c604a.json",
+          "sha256": "19d6190a0557c6e865ce38fd813651fa16db4ef0937b95b654a4055f58123dbb"
+        },
+        {
+          "path": "project/evidence/M2-011-4c97599cecddceeb.json",
+          "sha256": "f9ebe69c19a13fb324365f0855033fd0cef779aa4af482043186be5eb0928bec"
         }
       ],
       "next_action": "Run pnpm check --task M2-011 on Windows against the matching integrated source to execute workspace-timeframe and private-record-lifecycle. Retain the report and logs, archive them with pnpm project:record M2-011, and close the task and peer-rename feedback after the Windows receipt validates.",
@@ -7890,6 +7898,7 @@
         ],
         "context": [
           "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ubuntu-preview/workspace.config.mjs",
           "apps/desktop/ui/src/private-records.tsx",
           ".github/workflows/verify.yml",
           "scripts/integration.py",
@@ -7898,7 +7907,8 @@
         "hypotheses": [
           "The archived Windows waiter expired without identifying the peer action or origin read. The original Windows trigger remains unknown.",
           "An admitted focus read occupies the single preview producer. In the controlled Linux reproduction the authorized peer then received HTTP 429 BUSY and the old panel reported only a generic failure.",
-          "Windows run 44616706526 finished verification and artifact upload at 41 minutes, then reached the 45-minute job deadline during cache cleanup. Its full selection omitted the task-cadence private-record-lifecycle check. Use an explicit task selection and a bounded 60-minute ordinary Windows job limit."
+          "Windows run 44616706526 finished verification and artifact upload at 41 minutes, then reached the 45-minute job deadline during cache cleanup. Its full selection omitted the task-cadence private-record-lifecycle check. Use an explicit task selection and a bounded 60-minute ordinary Windows job limit.",
+          "Windows task run 44852116487 reached the published revocation case's 60-second deadline before recording published revisions. The fixture runs a 90-second Cargo build inside that deadline. Delay only the local_import_bridge build on the baseline and repaired source to test the budget mismatch independently of browser behavior."
         ],
         "risks": [
           {
@@ -7918,6 +7928,12 @@
             "failure": "A task dispatch supersedes the protected PR verification or masks its result during integration inspection.",
             "checks": [
               "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A cold bridge build consumes the published revocation case's behavior deadline or a setup timeout obscures which command failed.",
+            "checks": [
+              "workspace-timeframe"
             ]
           }
         ],
@@ -7946,7 +7962,7 @@
             "Changing the check catalog, artifact admission, protected check contexts or release selection."
           ],
           "open_questions": [
-            "Can the coordinator obtain a source-matched Windows task receipt covering both workspace-timeframe and private-record-lifecycle after the workflow repair?"
+            "Can the coordinator obtain a source-matched Windows task receipt covering both workspace-timeframe and private-record-lifecycle after isolating the revocation build budget?"
           ]
         },
         "evolution": {
@@ -7958,7 +7974,8 @@
           "change": [
             "Expose a real BUSY as contention in the private records panel.",
             "Observe the peer read, review, approval and stored correction independently of the origin focus and exact deletion retry. Prove shared-producer contention separately from the two-service recovery.",
-            "Route an optional dispatch task ID to the existing harness on both operating systems. Distinguish task jobs from protected checks, group task concurrency by ref and task ID, and select only pull request runs for PR integration. Describe manual CI status in terms of the selection recorded by that run."
+            "Route an optional dispatch task ID to the existing harness on both operating systems. Distinguish task jobs from protected checks, group task concurrency by ref and task ID, and select only pull request runs for PR integration. Describe manual CI status in terms of the selection recorded by that run.",
+            "Give only the published revocation case's bridge build a separate bounded setup budget. Keep fixture publication, application behavior and assertions within their existing deadline."
           ],
           "data_plan": "Use only synthetic records in disposable profiles.",
           "cleanup": "Release the test-owned read observer, writer transaction and browser contexts on every outcome."
@@ -8515,9 +8532,13 @@
         {
           "path": "project/evidence/M3-002-0e9290f77dbdcc7c.json",
           "sha256": "de56564013777cde00051957137d833c2c32106d45ca840f5171437853fc9843"
+        },
+        {
+          "path": "project/evidence/M3-002-0c0006cb80d4b959.json",
+          "sha256": "e95002f408ef7dfac2e53985f4fbc2f53e9dc333caa77851a84466a68d28bf50"
         }
       ],
-      "next_action": "Run matching hosted Windows verification for the corrected revision, inspect the correlated sample history stages and archive the task report before closing the feedback.",
+      "next_action": "Run the M3-002 hosted task on the integrated PR21 fixture checkpoint. Verify both platforms and the full workspace-timeframe check, inspect the indicator request stages and archive passing source-matched reports before closing the feedback.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
