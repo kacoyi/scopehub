@@ -8723,6 +8723,94 @@
           "cleanup": "Clear the stale selection requirement when the user selects a bar or starts a fresh question."
         }
       }
+    },
+    {
+      "id": "M4-011",
+      "title": "Restore explicit refresh after shared selection contention",
+      "milestone": "M4",
+      "status": "active",
+      "depends_on": [
+        "M4-010"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/frozen-evidence.tsx",
+        "apps/desktop/ui/src/use-local-workspace.ts",
+        "tests/ui/local-import.spec.mjs",
+        "tests/ui/ai-workflow.spec.mjs"
+      ],
+      "decision_refs": [
+        "0004",
+        "0021"
+      ],
+      "acceptance": [
+        "After two BUSY responses for one clear request, keep the unavailable selection visible and offer both manual clear and explicit refresh. A refresh reads the current snapshot once and preserves the chosen revisions library.",
+        "A fresh manual clear uses the refreshed selection revision and succeeds once the writer is available. A transient BUSY still retries the original request once with identical contents."
+      ],
+      "checks": [
+        "local-import-ui",
+        "model-connection-workflow",
+        "ui-build",
+        "market-workflow"
+      ],
+      "next_action": "Verify the published CSV recovery and existing transient chart case on the integrated UI, then archive their results.",
+      "blocker": null,
+      "closure_reason": null,
+      "evidence": [],
+      "plan": {
+        "outcome": "Let a user recover an unavailable shared selection from the published CSV library after the bounded retry still encounters contention.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/frozen-evidence.tsx",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "tests/ui/local-import.spec.mjs",
+          "tests/ui/ai-workflow.spec.mjs"
+        ],
+        "hypotheses": [
+          "The bounded retry correctly leaves Clear available. The unavailable-selection view gates Refresh only on a blocking error and omits the recoverable contention notice."
+        ],
+        "risks": [
+          {
+            "failure": "A refresh silently repeats a mutation, a retry changes request identity or stale workspace state replaces the selected library.",
+            "checks": [
+              "local-import-ui",
+              "model-connection-workflow"
+            ]
+          }
+        ],
+        "rollback": "Retain the failure trace and existing bounded selection retry while isolating the refresh control in the unavailable-selection view.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/frozen-evidence.tsx",
+            "apps/desktop/ui/src/use-local-workspace.ts"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ai/tool_policy"
+            }
+          ],
+          "non_goals": [
+            "Changes to model transport, selection authority or existing accepted task definitions."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The exact selection request on one bounded retry, explicit user actions, and library selection during workspace reads."
+          ],
+          "change": [
+            "Show the existing snapshot refresh action after persistent contention when the shared selection is unavailable."
+          ],
+          "data_plan": "Use the existing synthetic workspace and substituted native IPC for the held writer.",
+          "cleanup": "Release held test responses in the existing fixture teardown."
+        }
+      }
     }
   ]
 }

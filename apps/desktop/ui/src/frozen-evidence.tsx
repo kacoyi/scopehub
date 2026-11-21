@@ -114,9 +114,8 @@ export function UnavailableSharedSelection({ workspace }: { workspace: LocalWork
     <button type="button" className="secondary-button" disabled={Boolean(workspace.pending || workspace.error)}
       onClick={() => workspace.chooseEvidence(null)}>Clear shared selection</button>
     {workspace.selectionNotice && <span role="status">{workspace.selectionNotice}</span>}
-    {workspace.error && <>
-      <span role="alert">{workspace.error}</span>
-      <button type="button" className="secondary-button" onClick={workspace.reload}>Refresh shared selection</button>
-    </>}
+    {workspace.error && <span role="alert">{workspace.error}</span>}
+    {(workspace.error || workspace.selectionNotice) &&
+      <button type="button" className="secondary-button" onClick={workspace.reload}>Refresh shared selection</button>}
   </div>;
 }

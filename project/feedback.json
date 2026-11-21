@@ -2165,6 +2165,22 @@
         "prevention": "On integrated source 9d74a0b7cd9b57efce47547477663186cb6e7797, the selected-chart browser cases checked a single revision advance, a blocked draft after reopen, recovery by reselection and a fresh ordinary turn. All ten model browser cases passed. The M4-010 receipt binds the workflow log to run 20261121T021619.919507Z-29a53872."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "unavailable-selection-refresh-after-busy",
+      "source": "PR 23 Ubuntu job, run 44853597299, local-import-ui.log at 9be6c8c. Reproduced on clean 44d7fed8fc4bba3f9bd08eb198ab4c4e33ff2e6e in .reports/M4-011-44d7fed-red/local-import-ui/browser-results.json (SHA-256 601cfc213bc4899b3af790428a486dfdb56e142405d70a4896a52ee5174e12ee).",
+      "observation": "After persistent BUSY on Clear shared selection, the published CSV dialog displayed the busy notice and enabled Clear but omitted Refresh shared selection. The existing startup and refresh case timed out locating that button.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M4-011"
+      ],
+      "regression_checks": [
+        "local-import-ui",
+        "model-connection-workflow"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
