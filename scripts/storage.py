@@ -22,6 +22,7 @@ LOW_BYTES = 32 * 1024**3
 AUTO_SECONDS = 30
 COLD_DEPENDENCY_NS = 24 * 60 * 60 * 10**9
 CARGO_TAG = b'Signature: 8a477f597d28d172789f06886806bc55'
+CARGO_RUSTC_INFO_MAX = 1024 * 1024
 CARGO_LOCKS = {'.cargo-lock', '.cargo-build-lock', '.cargo-artifact-lock'}
 CARGO_DIRECTORY_VARS = ('CARGO_TARGET_DIR', 'CARGO_BUILD_TARGET_DIR', 'CARGO_BUILD_BUILD_DIR')
 LOCAL_FILESYSTEMS = {'ext4', 'xfs', 'btrfs', 'f2fs', 'ext3', 'tmpfs'}
@@ -63,13 +64,20 @@ class LinuxContext:
 
 
 @dataclass(frozen=True)
+class DirectoryHandle:
+    fd: int
+    ctime_ns: int
+
+
+@dataclass(frozen=True)
 class CacheSnapshot:
     path: Path
-    root: os.stat_result
-    outer: os.stat_result
-    directory: os.stat_result
-    debug: os.stat_result
-    rustc_info: os.stat_result | None = None
+    root: DirectoryHandle
+    outer: DirectoryHandle
+    directory: DirectoryHandle
+    debug: DirectoryHandle
+    mount_id: str
+    rustc_info: tuple[int, bytes] | None
 
 
 def git(root, *args):
@@ -108,7 +116,7 @@ def dedicated_worktree_directory(current, common, registered, directory):
     for parent in (directory, *directory.parents):
         marker = parent / '.git'
         try:
-            marker.lstat()
+            marker_info = marker.lstat()
         except FileNotFoundError:
             continue
         try:
@@ -116,6 +124,12 @@ def dedicated_worktree_directory(current, common, registered, directory):
         except subprocess.CalledProcessError as error:
             if error.returncode != 128:
                 raise
+            # Only a readable, empty directory proves that this marker contains no Git metadata.
+            if not stat.S_ISDIR(marker_info.st_mode) or reparse(marker_info):
+                return False
+            with os.scandir(marker) as entries:
+                if next(entries, None) is not None:
+                    return False
         else:
             return False
     return True
@@ -275,7 +289,7 @@ def inventory(path, mounts, deadline, seen, active_inodes=()):
     newest_debug = 0
     protected = None
     debug = path / 'debug'
-    debug_info = None
+    debug_found = False
     while pending:
         budget(deadline)
         entry = pending.pop()
@@ -297,7 +311,7 @@ def inventory(path, mounts, deadline, seen, active_inodes=()):
             newest_debug = max(newest_debug, info.st_mtime_ns)
         if stat.S_ISDIR(info.st_mode):
             if entry == debug:
-                debug_info = info
+                debug_found = True
             pending.extend(entry.iterdir())
         elif info.st_nlink > 1:
             key = (info.st_dev, info.st_ino)
@@ -305,7 +319,7 @@ def inventory(path, mounts, deadline, seen, active_inodes=()):
                 continue
             seen.add(key)
         total += allocated(info)
-    return total, newest_debug, protected, debug_info
+    return total, newest_debug, protected, debug_found
 
 
 def lock_names(debug):
@@ -430,10 +444,15 @@ def read_marker(fd, name, maximum):
     with ExitStack() as stack:
         marker = open_regular(fd, name)
         stack.callback(os.close, marker)
-        info = os.fstat(marker)
-        if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid() or info.st_size > maximum):
-            return b''
-        return os.read(marker, maximum + 1)
+        return marker_contents(marker, maximum)
+
+
+def marker_contents(fd, maximum):
+    info = os.fstat(fd)
+    if not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid() or info.st_size > maximum:
+        return b''
+    contents = os.pread(fd, maximum + 1, 0)
+    return contents if len(contents) == info.st_size else b''
 
 
 def cargo_test_marker(fd, group, name):
@@ -732,27 +751,92 @@ def filesystem(path, mounts):
     return next((mounts[parent] for parent in (path, *path.parents) if parent in mounts), None)
 
 
-def cache_is_current(cache, root, root_fd, outer_fd, target_fd, debug_fd):
-    directories = [(root, None, root_fd, cache.root), ('target', root_fd, outer_fd, cache.outer),
-                   ('debug', target_fd, debug_fd, cache.debug)]
-    if cache.rustc_info is not None:
-        directories.append((cache.path.name, outer_fd, target_fd, cache.directory))
+def collection_filesystem(root, mounts):
+    fs = filesystem(root, mounts)
+    return fs if fs in LOCAL_FILESYSTEMS and root not in mounts else None
+
+
+def child_cache_name(name):
+    return not (name.startswith('.') or name in NON_CACHE_CHILDREN or TARGET_TRIPLE.fullmatch(name))
+
+
+def observe_directory(stack, name, parent_fd=None, mount_id=None):
+    fd = anchored_directory(stack, name, parent_fd, mount_id)
+    info = os.fstat(fd)
+    if info.st_uid != os.geteuid():
+        raise StorageError('directory has a different owner')
+    return DirectoryHandle(fd, info.st_ctime_ns)
+
+
+def observe_caches(stack, root, target, mounts, deadline):
+    if collection_filesystem(root, mounts) is None:
+        return {}
     try:
-        for name, parent_fd, fd, observed in directories:
-            current = os.fstat(fd)
-            # An inode number can be reused once the inventoried directory is removed.
-            if (not os.path.samestat(current, observed) or current.st_ctime_ns != observed.st_ctime_ns or
-                    not same_entry(name, parent_fd, current)):
+        worktree = observe_directory(stack, root)
+        mount_id = mount_number(worktree.fd)
+        outer = observe_directory(stack, 'target', worktree.fd, mount_id)
+        with os.scandir(outer.fd) as entries:
+            children = sorted(entry.name for entry in entries
+                              if child_cache_name(entry.name) and entry.is_dir(follow_symlinks=False))
+    except (OSError, StorageError):
+        return {}
+
+    observed = {}
+    for path in (target, *(target / name for name in children)):
+        budget(deadline)
+        if any(mount.is_relative_to(path) for mount in mounts):
+            continue
+        with ExitStack() as handles:
+            try:
+                directory = outer
+                rustc_info = None
+                if path != target:
+                    directory = observe_directory(handles, path.name, outer.fd, mount_id)
+                    marker = open_regular(directory.fd, '.rustc_info.json')
+                    handles.callback(os.close, marker)
+                    contents = marker_contents(marker, CARGO_RUSTC_INFO_MAX)
+                    if not contents or mount_number(marker) != mount_id:
+                        continue
+                    rustc_info = marker, contents
+                debug = observe_directory(handles, 'debug', directory.fd, mount_id)
+                if not valid_cache_tag(read_marker(directory.fd, 'CACHEDIR.TAG', 4096)):
+                    continue
+                lock_names(debug.fd)
+            except (OSError, StorageError):
+                continue
+            observed[path] = CacheSnapshot(path, worktree, outer, directory, debug, mount_id, rustc_info)
+            stack.enter_context(handles.pop_all())
+    return observed
+
+
+def cache_is_current(cache, root):
+    # The inventory handles keep the original inodes alive. Resolve from the worktree
+    # again and compare live descriptors before using the retained debug handle.
+    try:
+        with ExitStack() as handles:
+            root_fd = anchored_directory(handles, root, mount_id=cache.mount_id)
+            outer_fd = anchored_directory(handles, 'target', root_fd, cache.mount_id)
+            target_fd = outer_fd
+            if cache.rustc_info is not None:
+                target_fd = anchored_directory(handles, cache.path.name, outer_fd, cache.mount_id)
+            debug_fd = anchored_directory(handles, 'debug', target_fd, cache.mount_id)
+            for fd, observed in zip((root_fd, outer_fd, target_fd, debug_fd),
+                                    (cache.root, cache.outer, cache.directory, cache.debug)):
+                current = os.fstat(fd)
+                if (not os.path.samestat(current, os.fstat(observed.fd)) or
+                        current.st_ctime_ns != observed.ctime_ns or current.st_uid != os.geteuid()):
+                    return False
+            if not valid_cache_tag(read_marker(target_fd, 'CACHEDIR.TAG', 4096)):
                 return False
-        if cache.rustc_info is None:
-            return True
-        # The marker is provenance for a custom target. An in-place rewrite also invalidates it.
-        current = os.stat('.rustc_info.json', dir_fd=target_fd, follow_symlinks=False)
-        observed = cache.rustc_info
-        return (stat.S_ISREG(current.st_mode) and os.path.samestat(current, observed) and
-                current.st_size == observed.st_size and current.st_mtime_ns == observed.st_mtime_ns and
-                current.st_ctime_ns == observed.st_ctime_ns)
-    except FileNotFoundError:
+            if cache.rustc_info is None:
+                return True
+            original, contents = cache.rustc_info
+            marker = open_regular(target_fd, '.rustc_info.json')
+            handles.callback(os.close, marker)
+            return (os.path.samestat(os.fstat(marker), os.fstat(original)) and
+                    mount_number(marker) == cache.mount_id and
+                    marker_contents(marker, CARGO_RUSTC_INFO_MAX) == contents)
+    except (OSError, StorageError):
         return False
 
 
@@ -762,19 +846,13 @@ def collect_target(cache, root, common, context, progress, deadline):
         return 'active_process'
     if any(mount.is_relative_to(target) for mount in context.mounts):
         return 'mount_boundary'
-    fs = filesystem(root, context.mounts)
-    if fs not in LOCAL_FILESYSTEMS or root in context.mounts:
+    fs = collection_filesystem(root, context.mounts)
+    if fs is None:
         return 'unsupported_filesystem_or_mount'
     with ExitStack() as stack:
-        root_fd = anchored_directory(stack, root)
-        mount_id = mount_number(root_fd)
-        outer_fd = anchored_directory(stack, 'target', root_fd, mount_id)
-        custom = target != root / 'target'
-        target_fd = anchored_directory(stack, target.name, outer_fd, mount_id) if custom else outer_fd
-        debug_fd = anchored_directory(stack, 'debug', target_fd, mount_id)
-        if any(os.fstat(fd).st_uid != os.geteuid() for fd in (root_fd, outer_fd, target_fd, debug_fd)):
-            return 'different_owner'
-        if not cache_is_current(cache, root, root_fd, outer_fd, target_fd, debug_fd):
+        mount_id = cache.mount_id
+        debug_fd = cache.debug.fd
+        if not cache_is_current(cache, root):
             return 'cache_identity_changed'
         locks = [take_lock(stack, debug_fd, name, mount_id) for name in lock_names(debug_fd)]
         # Recheck registration, tracking, process paths, and directory identities under the locks.
@@ -797,9 +875,8 @@ def collect_target(cache, root, common, context, progress, deadline):
             _, _, boundary, _ = inventory(target, refreshed.mounts, deadline, set(), refreshed.active_inodes)
             if boundary:
                 return boundary
-        if (not valid_cache_tag(read_marker(target_fd, 'CACHEDIR.TAG', 4096)) or
-                any(not same_entry(name, debug_fd, info) for name, info in locks) or
-                not cache_is_current(cache, root, root_fd, outer_fd, target_fd, debug_fd)):
+        if (any(not same_entry(name, debug_fd, info) for name, info in locks) or
+                not cache_is_current(cache, root)):
             return 'cache_identity_changed'
         completed_only = bool(context.inaccessible_processes or refreshed.inaccessible_processes)
         if completed_only and {name for name, _ in locks} != CARGO_LOCKS:
@@ -810,7 +887,7 @@ def collect_target(cache, root, common, context, progress, deadline):
     return 'collected' if progress['files'] or progress['released_bytes'] else 'no_recognized_intermediates'
 
 
-def inspect(root, worktree_directories, current, common, flags, mounts, deadline, seen, context, configured):
+def inspect(root, worktree_directories, current, common, flags, mounts, deadline, seen, context, configured, handles):
     target = root / 'target'
     row = {'path': str(target), 'allocated_bytes': None, 'reason': None}
     if not root.is_absolute() or root.parent not in worktree_directories or flags & {'bare', 'prunable'}:
@@ -834,27 +911,38 @@ def inspect(root, worktree_directories, current, common, flags, mounts, deadline
         if not hasattr(target_info, 'st_blocks'):
             row['reason'] = 'allocated_blocks_unavailable'
             return row, []
-        row['allocated_bytes'], newest, boundary, debug_info = inventory(
+        protected = None
+        if root == current:
+            protected = 'current_worktree'
+        elif any(path.is_relative_to(target) or target.is_relative_to(path) for path in configured):
+            protected = 'current_configured_target'
+        elif 'locked' in flags:
+            protected = 'git_worktree_locked'
+        active = context and active_worktree(root, context)
+        directory = stat.S_ISDIR(target_info.st_mode) and not reparse(target_info)
+        tracked_target = None
+        snapshots = {}
+        if handles is not None and directory and not (protected or active):
+            tracked_target = tracked(root)
+            if not tracked_target:
+                snapshots = observe_caches(handles, root, target, mounts, deadline)
+        row['allocated_bytes'], newest, boundary, debug_found = inventory(
             target, mounts, deadline, seen, context.active_inodes if context else (),
         )
-        if root == current:
-            row['reason'] = 'current_worktree'
-        elif any(path.is_relative_to(target) or target.is_relative_to(path) for path in configured):
-            row['reason'] = 'current_configured_target'
-        elif 'locked' in flags:
-            row['reason'] = 'git_worktree_locked'
+        if protected:
+            row['reason'] = protected
         elif boundary:
             row['reason'] = boundary
-        elif context and active_worktree(root, context):
+        elif active:
             row['reason'] = 'active_process'
-        elif tracked(root):
+        elif tracked_target or (tracked_target is None and tracked(root)):
             row['reason'] = 'tracked_target'
         else:
             row['reason'] = 'unknown_cargo_layout'
-            if not stat.S_ISDIR(target_info.st_mode) or reparse(target_info):
+            if not directory:
                 return row, []
-            caches = list(child_caches(target, root_info, target_info, mounts, deadline))
-            if debug_info is None:
+            caches = list(child_caches(target, snapshots, mounts, deadline))
+            if not debug_found:
                 return row, caches
             try:
                 cargo_layout(target)
@@ -866,7 +954,7 @@ def inspect(root, worktree_directories, current, common, flags, mounts, deadline
             except (OSError, StorageError):
                 return row, caches
             row['reason'] = 'candidate'
-            caches.append((row, newest, CacheSnapshot(target, root_info, target_info, target_info, debug_info)))
+            caches.append((row, newest, snapshots.get(target)))
             return row, caches
         return row, []
     except (OSError, subprocess.SubprocessError):
@@ -874,7 +962,7 @@ def inspect(root, worktree_directories, current, common, flags, mounts, deadline
         return row, []
 
 
-def child_caches(target, root_info, target_info, mounts, deadline):
+def child_caches(target, snapshots, mounts, deadline):
     # An independently configured target directory has its own rustc metadata.
     # Never search inside an unknown child or a cross-compiled target triple.
     try:
@@ -883,7 +971,7 @@ def child_caches(target, root_info, target_info, mounts, deadline):
         return
     for child in children:
         budget(deadline)
-        if child.name.startswith('.') or child.name in NON_CACHE_CHILDREN or TARGET_TRIPLE.fullmatch(child.name):
+        if not child_cache_name(child.name):
             continue
         try:
             child_info = child.lstat()
@@ -893,14 +981,14 @@ def child_caches(target, root_info, target_info, mounts, deadline):
             if not stat.S_ISREG(rustc_info.st_mode) or reparse(rustc_info):
                 continue
             cargo_layout(child)
-            size, newest, boundary, debug_info = inventory(child, mounts, deadline, set())
+            size, newest, boundary, debug_found = inventory(child, mounts, deadline, set())
         except TimeLimit:
             raise
         except (OSError, StorageError):
             continue
-        if not boundary and debug_info is not None:
+        if not boundary and debug_found:
             row = {'path': str(child), 'included_in': str(target), 'allocated_bytes': size, 'reason': 'candidate'}
-            yield row, newest, CacheSnapshot(child, root_info, target_info, child_info, debug_info, rustc_info)
+            yield row, newest, snapshots.get(child)
 
 
 def run(root, *, collect=False, high_bytes=HIGH_BYTES, low_bytes=LOW_BYTES, deadline=None):
@@ -932,11 +1020,12 @@ def run(root, *, collect=False, high_bytes=HIGH_BYTES, low_bytes=LOW_BYTES, dead
             except OSError as error:
                 blocked = str(error)
         return inspect_repository(current, common, configured, context, mounts, blocked,
-                                  collect, high_bytes, low_bytes, deadline)
+                                  collect, high_bytes, low_bytes, deadline,
+                                  stack if collect and context and not blocked else None)
 
 
 def inspect_repository(current, common, configured, context, mounts, blocked,
-                       collect, high_bytes, low_bytes, deadline):
+                       collect, high_bytes, low_bytes, deadline, pins):
     registered = list(worktrees(current))
     if not registered or current not in dict(registered):
         raise StorageError('current checkout is missing from Git worktree registration')
@@ -965,28 +1054,38 @@ def inspect_repository(current, common, configured, context, mounts, blocked,
     try:
         for path, flags in registered if report['inventory_complete'] else ():
             budget(deadline)
-            row, caches = inspect(
-                path, worktree_directories, current, common, flags, mounts, deadline, seen, context, configured,
-            )
-            if row is None:
-                continue
-            rows.append(row)
-            total += row['allocated_bytes'] or 0
-            rows.extend(child for child, _, _ in caches if child is not row)
-            for cache, modified, snapshot in caches:
-                if partial:
-                    try:
-                        preview = preview_partial_cache(snapshot.path, mounts, deadline)
-                    except TimeLimit:
-                        raise
-                    except (OSError, StorageError):
-                        preview = {}
-                    cache.update(preview)
-                    if not any(cache.get(key, 0) for key in (
-                            'completed_sessions', 'cold_dependency_files', 'cold_test_harnesses')):
-                        cache['reason'] = 'no_partial_visibility_candidates'
-                        continue
-                candidates.append((modified, cache['path'], path, cache, snapshot))
+            with ExitStack() as handles:
+                row, caches = inspect(
+                    path, worktree_directories, current, common, flags, mounts, deadline, seen, context, configured,
+                    handles if pins is not None else None,
+                )
+                if row is None:
+                    continue
+                rows.append(row)
+                total += row['allocated_bytes'] or 0
+                rows.extend(child for child, _, _ in caches if child is not row)
+                before = len(candidates)
+                for cache, modified, snapshot in caches:
+                    if partial:
+                        try:
+                            preview = preview_partial_cache(Path(cache['path']), mounts, deadline)
+                        except TimeLimit:
+                            raise
+                        except (OSError, StorageError):
+                            preview = {}
+                        cache.update(preview)
+                        if not any(cache.get(key, 0) for key in (
+                                'completed_sessions', 'cold_dependency_files', 'cold_test_harnesses')):
+                            cache['reason'] = 'no_partial_visibility_candidates'
+                            continue
+                    if snapshot is not None:
+                        candidates.append((modified, cache['path'], path, cache, snapshot))
+                    elif pins is not None:
+                        cache['reason'] = ('unsupported_filesystem_or_mount' if collection_filesystem(path, mounts) is None
+                                           else 'cache_identity_unavailable')
+                if pins is not None and len(candidates) > before:
+                    # Keep the observed worktree and its admitted caches until this run ends.
+                    pins.enter_context(handles.pop_all())
     except TimeLimit as error:
         report.update(inventory_complete=False, collection_blocked=str(error))
     remaining = total

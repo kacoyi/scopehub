@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import select
 import shutil
+import stat
 import struct
 import subprocess
 import sys
@@ -407,6 +408,42 @@ class CollectionTests(RepositoryFixture):
         self.assertEqual(artifact.read_bytes(), before)
         self.assertFalse(control.exists(), result)
 
+    def test_collection_preserves_foreign_tracked_file_when_git_marker_becomes_unresolvable(self):
+        foreign = self.directory / 'foreign'
+        managed = foreign / 'managed'
+        artifact = self.cargo_cache(self.worktree(managed / 'member'))
+        control = self.cargo_cache(self.worktree('legacy'))
+        metadata = self.directory / 'foreign metadata'
+        self.git(foreign, 'init', '--quiet', '--separate-git-dir', str(metadata))
+        tracked_path = artifact.relative_to(foreign).as_posix()
+        # Seed the enclosing index explicitly because normal add skips nested worktrees.
+        blob = self.git(foreign, 'hash-object', '-w', '--', tracked_path).stdout.decode('ascii').strip()
+        self.git(foreign, 'update-index', '--add', '--cacheinfo', f'100644,{blob},{tracked_path}')
+        self.git(foreign, '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+                 'commit', '--quiet', '-m', 'Track original file')
+        before = self.git(foreign, 'show', f'HEAD:{tracked_path}').stdout
+        self.assertEqual(artifact.read_bytes(), before)
+        marker = foreign / '.git'
+        marker.unlink()
+        self.git(self.root, 'config', '--local', 'scopehub.worktreeRoot', str(managed))
+        take_lock = storage.take_lock
+        foreign_debug = artifact.parents[1].stat()
+
+        def reveal_unavailable_foreign_repo(stack, debug_fd, name, mount_id):
+            taken = take_lock(stack, debug_fd, name, mount_id)
+            if os.path.samestat(os.fstat(debug_fd), foreign_debug) and not marker.exists():
+                marker.write_bytes(b'gitdir: missing-metadata\n')
+            return taken
+
+        with patch.object(storage, 'take_lock', side_effect=reveal_unavailable_foreign_repo):
+            result = self.collect()
+
+        self.assertEqual(Path(result['managed_worktree_root']), managed)
+        self.assertEqual(self.report_entry(result, artifact.parents[2])['reason'], 'worktree_directory_changed')
+        self.assertEqual(artifact.read_bytes(), before)
+        self.assertFalse(control.exists(), result)
+        self.assertIsNone(storage.run(self.root)['managed_worktree_root'])
+
     def test_legacy_sibling_does_not_bypass_foreign_checkout_protection(self):
         artifact = self.cargo_cache(self.worktree('legacy'))
         self.git(self.checkouts, 'init', '--quiet')
@@ -647,6 +684,80 @@ class CollectionTests(RepositoryFixture):
         self.assertEqual(result['collected'], [])
         self.assertEqual(self.report_entry(result, artifact.parents[2])['reason'], 'cache_identity_changed')
         self.assertTrue(artifact.is_file(), result)
+
+    def test_live_directory_handles_distinguish_a_replacement_with_the_same_sampled_stat(self):
+        original = self.cargo_cache(self.worktree('linked'), target_dir='target/custom')
+        debug = original.parents[1]
+        replacement = self.cargo_cache(self.directory / 'replacement')
+        replacement.write_bytes(b'other fixture directory')
+        replacement_debug = replacement.parents[1]
+        previous_debug = debug.with_name('older-debug')
+        lstat = Path.lstat
+        fstat = os.fstat
+        staged_info = lstat(replacement_debug)
+        self.assertNotEqual(lstat(debug).st_ino, staged_info.st_ino)
+        collect_target = storage.collect_target
+        swapped = False
+
+        class CoarseDirectoryStat:
+            st_ctime_ns = 1000
+
+            def __init__(self, info):
+                self.info = info
+
+            def __getattr__(self, name):
+                return getattr(self.info, name)
+
+        def coarse(info):
+            return CoarseDirectoryStat(info) if stat.S_ISDIR(info.st_mode) else info
+
+        def sample_path(path):
+            # Model a saved path stat indistinguishable from the eventual replacement.
+            return coarse(staged_info if path == debug and not swapped else lstat(path))
+
+        def swap_after_inventory(*args, **kwargs):
+            nonlocal swapped
+            debug.rename(previous_debug)
+            replacement_debug.rename(debug)
+            swapped = True
+            return collect_target(*args, **kwargs)
+
+        with (patch.object(Path, 'lstat', sample_path),
+              patch.object(storage.os, 'fstat', side_effect=lambda fd: coarse(fstat(fd))),
+              patch.object(storage, 'collect_target', side_effect=swap_after_inventory)):
+            result = self.collect()
+
+        self.assertTrue(swapped)
+        self.assertEqual(result['collected'], [], result)
+        self.assertEqual(self.report_entry(result, original.parents[2])['reason'], 'cache_identity_changed')
+        self.assertEqual((previous_debug / original.relative_to(debug)).read_bytes(), b'\x01' * 16_384)
+        self.assertEqual(original.read_bytes(), b'other fixture directory')
+
+    def test_inventory_closes_candidate_handles_on_noop_and_interruption(self):
+        artifact = self.cargo_cache(self.worktree('linked'))
+        observed = []
+        observe_directory = storage.observe_directory
+
+        def record_handle(*args, **kwargs):
+            handle = observe_directory(*args, **kwargs)
+            observed.append(handle.fd)
+            return handle
+
+        context = storage.LinuxContext({Path('/'): 'ext4'}, set())
+        with (patch.object(storage, 'observe_directory', side_effect=record_handle),
+              patch.object(storage, 'linux_context', return_value=context)):
+            storage.run(self.root)
+            self.assertEqual(observed, [])
+            storage.run(self.root, collect=True)
+            self.assertTrue(observed)
+            with patch.object(storage, 'collect_target', side_effect=storage.TimeLimit('fixture deadline')):
+                outcome = storage.run(self.root, collect=True, high_bytes=1, low_bytes=0)
+            self.assertEqual(outcome['collection_blocked'], 'fixture deadline')
+        for fd in observed:
+            with self.assertRaises(OSError) as closed:
+                os.fstat(fd)
+            self.assertEqual(closed.exception.errno, errno.EBADF)
+        self.assertTrue(artifact.is_file())
 
     def require_exclusive_leases(self):
         import fcntl

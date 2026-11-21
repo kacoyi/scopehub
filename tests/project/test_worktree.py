@@ -334,6 +334,23 @@ sys.exit(0 if resume.exists() else 1)
                 self.assertFalse(unsafe.exists())
         self.assertEqual(self.git('branch', '--list', 'task').stdout, '')
 
+    def test_reject_managed_root_when_an_ancestor_git_marker_cannot_be_resolved(self):
+        enclosing = self.directory / 'unavailable checkout'
+        enclosing.mkdir()
+        self.git('init', '--quiet', '--separate-git-dir', str(self.directory / 'foreign metadata'), cwd=enclosing)
+        marker = enclosing / '.git'
+        marker.unlink()
+        marker.write_bytes(b'gitdir: missing-metadata\n')
+        managed = enclosing / 'tools' / 'managed'
+        self.git('config', '--local', ROOT_CONFIG, str(managed))
+
+        result = self.cli('create', 'task', '--new-branch', 'task', '--base', 'HEAD', check=False)
+
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertIn(str(marker), result.stderr)
+        self.assertFalse(managed.exists())
+        self.assertEqual(self.git('branch', '--list', 'task').stdout, '')
+
     def test_reject_relative_root_and_multiple_local_roots(self):
         self.git('config', '--local', ROOT_CONFIG, '../surprise')
         self.assert_rejected('create', 'task', '--new-branch', 'task', '--base', 'HEAD')
@@ -391,6 +408,8 @@ sys.exit(0 if resume.exists() else 1)
         original = marker.read_bytes()
         borrowed = (second / '.git').read_bytes()
         self.assertNotEqual(original, borrowed)
+        # Git for Windows marks its .git files hidden, which prevents in-place truncation.
+        marker.unlink()
         marker.write_bytes(borrowed)
 
         self.assertEqual(self.branch(first), 'task')
@@ -408,6 +427,7 @@ sys.exit(0 if resume.exists() else 1)
         copied_dir = shutil.copytree(git_dir, self.directory / 'copied admin directory')
         (copied_dir / 'commondir').write_bytes(os.fsencode(self.common.as_posix()) + b'\n')
         marker = linked / '.git'
+        marker.unlink()
         marker.write_bytes(b'gitdir: ' + os.fsencode(copied_dir.as_posix()) + b'\n')
 
         self.assertEqual(Path(os.fsdecode((copied_dir / 'gitdir').read_bytes()).strip()), marker)

@@ -95,8 +95,17 @@ def regular_file(path):
 
 def has_git_metadata(cwd, directory):
     marker = directory / '.git'
-    return (entry_info(marker) is not None
-            and git(cwd, 'rev-parse', '--resolve-git-dir', str(marker), allowed=(0, 128)).returncode == 0)
+    info = entry_info(marker)
+    if info is None:
+        return False
+    if git(cwd, 'rev-parse', '--resolve-git-dir', str(marker), allowed=(0, 128)).returncode == 0:
+        return True
+    # Git uses the same exit code for an empty directory and unavailable repository metadata.
+    if stat.S_ISDIR(info.st_mode) and not reparse_point(info):
+        with os.scandir(marker) as entries:
+            if next(entries, None) is None:
+                return False
+    raise WorktreeError(f'Cannot verify ancestor Git marker {marker}. Inspect its repository before using this root.')
 
 
 def managed_root(cwd, common, registered):
