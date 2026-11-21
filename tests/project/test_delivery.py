@@ -3,6 +3,7 @@
 from contextlib import redirect_stdout
 from io import StringIO
 import json
+import os
 import shutil
 import base64
 import subprocess
@@ -38,7 +39,7 @@ class DeliveryTests(ProjectFixture):
     def run_harness(self, args=(), before_check=None, system='Linux'):
         def execute(name, command, env, run_dir, timeout):
             if before_check:
-                before_check(name)
+                before_check(name, env)
             log = run_dir / f'{name}.log'
             log.write_text('Synthetic harness fixture, not product acceptance.\n')
             return {'id': name, 'status': 'passed', 'command': command, 'exit_code': 0,
@@ -567,7 +568,7 @@ class DeliveryTests(ProjectFixture):
                 self.assertFalse(readiness(self.root)['release_ready'])
 
     def test_decision_change_during_run_fails_the_report(self):
-        code, report = self.run_harness(before_check=lambda name: self.edit_decision() if name == 'project-state' else None)
+        code, report = self.run_harness(before_check=lambda name, _: self.edit_decision() if name == 'project-state' else None)
         self.assertEqual(1, code)
         self.assertTrue(report['source_unchanged'])
         self.assertFalse(report['project_unchanged'])
@@ -575,7 +576,7 @@ class DeliveryTests(ProjectFixture):
         self.assertFalse(report['product_complete'])
 
     def test_invalid_state_at_end_is_recorded_as_failure(self):
-        def invalidate(name):
+        def invalidate(name, _):
             if name == 'project-state':
                 ledger = self.ledger()
                 ledger['focus_task_id'] = None
@@ -595,6 +596,37 @@ class DeliveryTests(ProjectFixture):
         self.assertFalse(report['product_complete'])
         with self.assertRaisesRegex(ProjectError, 'Required check did not pass'):
             archive_evidence(self.root, 'M0-001', self.root / '.reports/test-report.json')
+
+    def test_storage_maintenance_precedes_task_and_fast_verification(self):
+        for selection in (['--task', 'M0-001'], ['--profile', 'fast']):
+            with self.subTest(selection=selection), patch.object(harness, 'maintain_automatically') as maintain:
+                code, report = self.run_harness(selection, before_check=lambda *_: maintain.assert_called_once_with(self.root))
+                self.assertEqual(0, code)
+                self.assertEqual('passed', report['status'])
+                maintain.assert_called_once_with(self.root)
+
+    def test_cargo_incremental_defaults_only_in_local_verification_children(self):
+        base_env = {key: value for key, value in os.environ.items()
+                    if key not in {'CARGO_INCREMENTAL', 'CI', 'GITHUB_ACTIONS'}}
+        cases = [({}, '0'), ({'CARGO_INCREMENTAL': '1'}, '1'), ({'CARGO_INCREMENTAL': ''}, ''),
+                 ({'CI': 'true'}, None), ({'GITHUB_ACTIONS': 'true'}, None)]
+        for overrides, expected in cases:
+            child_values = []
+            with (self.subTest(overrides=overrides), patch.dict(os.environ, base_env | overrides, clear=True),
+                  patch.object(harness, 'ci_provenance', return_value=None),
+                  patch.object(harness, 'maintain_automatically')):
+                code, _ = self.run_harness(
+                    ['--profile', 'fast'], before_check=lambda _, env: child_values.append(env.get('CARGO_INCREMENTAL')))
+                self.assertEqual(0, code)
+                self.assertTrue(child_values)
+                self.assertEqual([expected] * len(child_values), child_values)
+                self.assertEqual(overrides.get('CARGO_INCREMENTAL'), os.environ.get('CARGO_INCREMENTAL'))
+
+    def test_invalid_verification_selection_skips_storage_maintenance(self):
+        with patch.object(harness, 'maintain_automatically') as maintain:
+            with self.assertRaisesRegex(ProjectError, 'Unknown task'):
+                self.run_harness(['--task', 'M0-999'])
+            maintain.assert_not_called()
 
     def test_selecting_planned_work_returns_blocked_and_nonzero(self):
         code, report = self.run_harness(['--task', 'M1-002'])

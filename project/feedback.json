@@ -1946,6 +1946,46 @@
         "prevention": "Both workspace-timeframe reports from run 44616706526 recorded host admission, a held pre-header disconnect and two closes for the controlled reopen, followed by Chromium net::ERR_EMPTY_RESPONSE and a client fetch rejection before the visible disconnect assertion. An explicit retry after restoration completed HTTP 200 and rendered the chart. The normal sample opens and both market-workflow checks passed."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "local-worktree-build-cache-growth",
+      "source": "Owner storage review and repository-scoped allocated-block inventory on 2026-11-20.",
+      "observation": "Across 45 existing worktrees, Cargo target directories occupied approximately 178.4 GiB of 194.8 GiB measured. Repeated local builds had no repository-wide retention budget.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-029"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "project-state"
+      ],
+      "resolution": {
+        "cause": "Each development worktree accumulated independent Cargo debug outputs. Completed incremental sessions and old dependencies or test executables continued occupying physical blocks after verification.",
+        "correction": "Inventory repository-owned caches, collect positively identified idle artifacts above the budget, and default ordinary local verification to non-incremental builds. On the affected host Cargo outputs fell from 178.44 GiB to 81.05 GiB. A user timer runs the same pinned collector for checkouts on older revisions.",
+        "prevention": "Regression fixtures cover non-destructive reporting, occupied files and executables, repository boundaries, threshold behavior and Cargo rebuilding after interruption. All 45 original Git heads and status snapshots, metadata for 31,290 retained evidence or diagnostic files, and 10,803 file digests matched after both sweeps. Active and unclassified artifacts can keep usage above the soft budget."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "cargo-storage-review-admission-boundaries",
+      "source": "Independent reviews of PR 24 at 98506a29aa50f82f9ff8b08417a3323d2949aa41, cbab3a9ec47a3c2611fcdebeafa46717dad7cc6f and 001dcd753ef31ca3a244cf058dff955134938a1a, and disposable M0-033 regression fixtures.",
+      "observation": "The Linux process scan skipped other UIDs, allowing removal without a lease while a foreign process could be holding a dependency open. Collection accepted replacements at inventoried child cache paths, including changed debug directories and absent, replaced or edited .rustc_info.json markers. The first repair compared indistinguishable directory stat samples on filesystems with coarse timestamps and inode reuse. The live-handle repair protected those caches, then a review with RLIMIT_NOFILE=32 found descriptor exhaustion prevented all nine revalidations and was reported as an identity change. A regular file at target raised NotADirectoryError during child discovery and interrupted the repository-wide review.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-033"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "project-state"
+      ],
+      "resolution": {
+        "cause": "The process audit skipped processes by UID. Cache admission used directory names and then sampled inode metadata as proof. Retained handles could exhaust the descriptors required by revalidation. Child discovery also assumed that every target entry was a directory.",
+        "correction": "Observe all visible processes and use the partial-visibility policy whenever one cannot be observed. Bind guarded observations to live directory handles and revalidate fresh paths and Cargo provenance under the locks. Reserve transient descriptors and report resource-limited candidates. Inventory ordinary target files without attempting child discovery.",
+        "prevention": "Disposable fixtures reproduce held foreign dependencies, replacements with indistinguishable sampled metadata, changed child markers, ordinary files and resource pressure at RLIMIT_NOFILE=32. The offline Cargo fixture verifies a group interruption, retained files and rebuilding. The exact functional head passed local verification and the Linux and Windows jobs in run 44889925831."
+      },
+      "deferral_reason": null
     }
   ]
 }

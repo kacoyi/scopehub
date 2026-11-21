@@ -25,11 +25,13 @@ try:
         from .doctor import tool_version
         from .processes import log_tail, run_logged
         from .project import ProjectError, file_digest, load_project, project_definition_hash, product_progress, source_identity, task_definition_hash, validate_model, verify_primary_model, windows_x64
+        from .storage import maintain_automatically
         from .verification_evidence import FIELD_ACTIONS, SESSION_CHECKS, field_observation, collect_session, integration_validation, release_artifacts
     else:
         from doctor import tool_version
         from processes import log_tail, run_logged
         from project import ProjectError, file_digest, load_project, project_definition_hash, product_progress, source_identity, task_definition_hash, validate_model, verify_primary_model, windows_x64
+        from storage import maintain_automatically
         from verification_evidence import FIELD_ACTIONS, SESSION_CHECKS, field_observation, collect_session, integration_validation, release_artifacts
 except Exception as error:
     if __name__ != '__main__':
@@ -123,11 +125,14 @@ def main():
     selected = select_checks(project, profile=args.profile, task_id=args.task)
     source = source_identity(ROOT)
     ci = ci_provenance(source, os.environ, ROOT)
+    maintain_automatically(ROOT)
     project_hash = project_definition_hash(project)
     run_id = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ') + '-' + uuid4().hex[:8]
     run_dir = REPORTS / 'runs' / run_id
     run_dir.mkdir(parents=True)
     env = dict(os.environ)
+    if not (env.get('CI') or env.get('GITHUB_ACTIONS')):
+        env.setdefault('CARGO_INCREMENTAL', '0')
     env['SCOPEHUB_RUN_DIR'] = str(run_dir)
     env['PYTHONPATH'] = os.pathsep.join([str(ROOT), str(ROOT / 'python')])
     env['SCOPEHUB_PYTHON'] = sys.executable
