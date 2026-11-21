@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M4-009",
+  "focus_task_id": "M3-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -7855,7 +7855,7 @@
       "id": "M4-009",
       "title": "Recover native text setup during initial workspace admission",
       "milestone": "M4",
-      "status": "active",
+      "status": "done",
       "depends_on": ["M4-007"],
       "scope": [
         "apps/desktop/ui/src/model-chat-transport.ts",
@@ -7877,10 +7877,15 @@
         "rust-contracts-workers",
         "ui-build"
       ],
-      "next_action": "Run the held-writer task checks and review the native Windows rerun of source commit cd047ab.",
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M4-009-15ee7224844b6c58.json",
+          "sha256": "90ee7ba334e5b7c385fe7818c893580f4396ff0bb35562a94183b4cb8e98e070"
+        }
+      ],
       "plan": {
         "outcome": "An immediate Ask AI and route review can complete after the first private workspace snapshot releases the native writer.",
         "change_types": ["model-connection", "ui"],

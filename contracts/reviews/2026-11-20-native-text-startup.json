@@ -1,0 +1,178 @@
+{
+  "task": "M4-009",
+  "scope": "Native Windows cold-start setup and a three-turn, user-authorized conversation with a synthetic loopback model peer.",
+  "environment": "Windows 11 Enterprise Evaluation, WebView2 in the native MSVC desktop, a non-elevated disposable profile and no VM network adapter.",
+  "build": {
+    "source": "cd047ab2436f4f4df7dd6d1a53873635e7dd1a65",
+    "source_archive_sha256": "24c2a6f35340c64b30a1ea7477e18e769014fa5822528d0229d704d3ffbc1048",
+    "exe_sha256": "061bb7218e68b0d50344708c46172d6544111dd5326357e273331199b57ba3ef",
+    "exe_bytes": 33565696,
+    "manifest": {
+      "path": "run/native-fixed-build-cd047ab/MAPEXE.JSON",
+      "sha256": "321a2885d757ee916f24bb7c3e633a9bac790f09fb22c4638c78b065ae08615b"
+    },
+    "build_log": {
+      "path": "run/native-fixed-build-cd047ab/MAPBUILD.TXT",
+      "sha256": "f0a2bf9c97619d9941096cda43eccc7cce2533985b36adb8afdcf44ba8634541"
+    }
+  },
+  "baseline": {
+    "first_attempt": {
+      "outcome": "failed",
+      "source": "a3033ce5db0277d917b65f9ca9784ef51c09d968",
+      "exe_sha256": "815fb250b5a0f8156e6ac68d5b253be5283779f73247de26c16265a057251aca",
+      "report": {
+        "path": "run/gui-first-a3033ce/WSDIAG.JSON",
+        "sha256": "5ab7ebe4cad212532cea7238d98ba01af2e6676507a51bde9bf7737d5be0bc33"
+      },
+      "peer_requests": 0,
+      "screenshot": {
+        "path": "run/gui-first-a3033ce/FAIL.PNG",
+        "sha256": "a533d5e1445c322a061ca63d287e68b26fe42d06d87d58982250bbbba7a784ad"
+      },
+      "admission_busy": {}
+    },
+    "rejected_status_and_review": {
+      "outcome": "failed",
+      "source": "a3033ce5db0277d917b65f9ca9784ef51c09d968",
+      "exe_sha256": "815fb250b5a0f8156e6ac68d5b253be5283779f73247de26c16265a057251aca",
+      "report": {
+        "path": "run/gui-observed-busy-a3033ce/WSDIAG.JSON",
+        "sha256": "e305a6ae0963082ab44d6450e80a724cbb5566d6a47c615440bb8adf9b439b82"
+      },
+      "first_review_alert": "An answer is already in progress for this connection.",
+      "peer_requests": 0,
+      "screenshot": {
+        "path": "run/gui-observed-busy-a3033ce/FAIL.PNG",
+        "sha256": "1f9cba8ad07886d18f320863d4948abac986a379f7f18970e0f32199b0113f98"
+      },
+      "admission_busy": {
+        "propose": 2,
+        "status": 1
+      }
+    },
+    "retry_after_opening": {
+      "outcome": "passed",
+      "source": "a3033ce5db0277d917b65f9ca9784ef51c09d968",
+      "exe_sha256": "815fb250b5a0f8156e6ac68d5b253be5283779f73247de26c16265a057251aca",
+      "report": {
+        "path": "run/native-open-timing-a3033ce/WSDIAG.JSON",
+        "sha256": "4a6af0f26730254423b647199186ef4173c8a214a68fcd9142a89d6701b23dbe"
+      },
+      "first_review_alert": "An answer is already in progress for this connection.",
+      "peer_requests": 3,
+      "rendered_large_bytes": 20480,
+      "verified": [
+        "Three native turns reached one owned HTTP recipient after one activation.",
+        "The 20,480-byte reply rendered and the private workspace remained usable.",
+        "Disconnect cleared the old route and conversation."
+      ],
+      "screenshot": {
+        "path": "run/native-open-timing-a3033ce/CHAT.PNG",
+        "sha256": "d1899419f724a2eba5a26a7a3946a335a38acc1e371381ff9a85f01f0159fa08"
+      },
+      "visible_ready_before_asking": false,
+      "admission_busy": {
+        "propose": 1,
+        "status": 1
+      },
+      "initial_observation": {
+        "attached_ms": 219,
+        "ready_ms": null,
+        "observed_ms": 417,
+        "observed_ipc_count": 2,
+        "longest_observed_ipc": {
+          "start_ms": 262,
+          "end_ms": 269,
+          "duration_ms": 7
+        }
+      },
+      "observation_after_ready": {
+        "attached_ms": 219,
+        "ready_ms": 3201,
+        "observed_ms": 3209,
+        "observed_ipc_count": 3,
+        "longest_observed_ipc": {
+          "start_ms": 121,
+          "end_ms": 3195,
+          "duration_ms": 3074
+        }
+      }
+    }
+  },
+  "candidate": {
+    "cold": {
+      "outcome": "passed",
+      "source": "cd047ab2436f4f4df7dd6d1a53873635e7dd1a65",
+      "exe_sha256": "061bb7218e68b0d50344708c46172d6544111dd5326357e273331199b57ba3ef",
+      "report": {
+        "path": "run/fixed-cold-cd047ab/WSDIAG.JSON",
+        "sha256": "e4bf954cb8354a9a5714234d5781cfe257684b8c67af24cc941c8e99fd144484"
+      },
+      "peer_requests": 3,
+      "rendered_large_bytes": 20480,
+      "verified": [
+        "Three native turns reached one owned HTTP recipient after one activation.",
+        "The 20,480-byte reply rendered and the private workspace remained usable.",
+        "Disconnect cleared the old route and conversation."
+      ],
+      "screenshot": {
+        "path": "run/fixed-cold-cd047ab/CHAT.PNG",
+        "sha256": "ccada0b5aa5b5ba390fc3908c3dce6ca3b7bd7b8b0ded3ecb83eaae77284494c"
+      },
+      "visible_ready_before_asking": false,
+      "admission_busy": {
+        "status": 24
+      },
+      "retried_commands_kept_request_and_message_ids": true,
+      "initial_observation": {
+        "attached_ms": 597,
+        "ready_ms": 3153,
+        "observed_ms": 3620,
+        "observed_ipc_count": 27,
+        "longest_observed_ipc": {
+          "start_ms": 72,
+          "end_ms": 3147,
+          "duration_ms": 3075
+        }
+      }
+    },
+    "ready": {
+      "outcome": "passed",
+      "source": "cd047ab2436f4f4df7dd6d1a53873635e7dd1a65",
+      "exe_sha256": "061bb7218e68b0d50344708c46172d6544111dd5326357e273331199b57ba3ef",
+      "report": {
+        "path": "run/fixed-ready-cd047ab/WSDIAG.JSON",
+        "sha256": "1fc7318c2e187b31ece20d7f3c2d255cf63640787a38198744ef48e35781b15b"
+      },
+      "peer_requests": 3,
+      "rendered_large_bytes": 20480,
+      "verified": [
+        "Three native turns reached one owned HTTP recipient after one activation.",
+        "The 20,480-byte reply rendered and the private workspace remained usable.",
+        "Disconnect cleared the old route and conversation."
+      ],
+      "screenshot": {
+        "path": "run/fixed-ready-cd047ab/CHAT.PNG",
+        "sha256": "ccada0b5aa5b5ba390fc3908c3dce6ca3b7bd7b8b0ded3ecb83eaae77284494c"
+      },
+      "visible_ready_before_asking": true,
+      "admission_busy": {},
+      "initial_observation": {
+        "attached_ms": 210,
+        "ready_ms": 3227,
+        "observed_ms": 3553,
+        "observed_ipc_count": 3,
+        "longest_observed_ipc": {
+          "start_ms": 97,
+          "end_ms": 3219,
+          "duration_ms": 3122
+        }
+      }
+    }
+  },
+  "task_renumbering": {
+    "commit": "01f35df025e22c6bdd70ddd70f5ca08c18e1ab0d",
+    "runtime_sources_and_locks_unchanged": true
+  }
+}

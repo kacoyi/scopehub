@@ -1995,10 +1995,14 @@
       "source": "Native Windows QA at a3033ce. Captured IPC and startup timings are retained in gui-observed-busy-a3033ce/WSDIAG.JSON and native-open-timing-a3033ce/WSDIAG.JSON under ../scopehub-model-native-qa/.reports/native-recovery/run.",
       "observation": "First status and route proposals were rejected before the registry with retryable transport BUSY and zero outbound requests. The UI reported an answer in progress before a question had been sent. The timed initial workspace snapshot took 3,074 ms. The same executable completed three ordinary turns, including a 20,480-byte answer, once the workspace was ready.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": ["M4-009"],
       "regression_checks": ["desktop-workspace-transport", "rust-contracts-workers"],
-      "resolution": null,
+      "resolution": {
+        "cause": "The initial workspace snapshot held the native writer while provisioning the profile and opening SQLite. The UI presented an outer transport admission rejection as an active model turn.",
+        "correction": "Retry only an explicitly retryable native transport BUSY for status and route review with the original command and a four-second deadline. Show local workspace contention separately from a registry turn outcome. Send and cancel still require their original explicit actions.",
+        "prevention": "Linux task run 20261121T015125.698826Z-5a471bb9 exercised the real native writer admission through portable Rust and held the initial writer for 3,073 ms in the built UI with substituted IPC. It recovered status and route review with the same correlation, stopped when the deadline elapsed, admitted one explicit send and one cancellation, and recorded zero network requests in that substitute journey. Native cold and ready runs on cd047ab each completed three explicit sends to the synthetic peer and rendered the 20,480-byte answer. The cold run recovered from 24 status rejections using the same request and message IDs. See contracts/reviews/2026-11-20-native-text-startup.json."
+      },
       "deferral_reason": null
     }
   ]
