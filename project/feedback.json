@@ -2013,6 +2013,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "indicator-sample-dom-checked-before-transport",
+      "source": "Authenticated Windows workspace-timeframe artifact from PR 22 run 44618659846 at head 6f2d3d16e7e7e5759f53c87116aac012322b3659 and CI checkout 131a94e1f516b00d205859520478626b990acfe3.",
+      "observation": "Both sample-backed indicator tests hit their five-second chart assertion before any indicator action. Both screenshots show Loading synthetic history with the 1m futures sample selected. The calendar screenshot shows the intended January 3 date and the Python screenshot shows the populated catalog. The browser result SHA-256 is 43d8e2c6ff98c511b4569f92badce5188327c4d9c59bb187ecd667b38740b708. The original tests did not record the terminal network or host stages for these requests. In the controlled Linux red (.reports/M3-002-red/probe/workspace-timeframe/results.json, SHA-256 63423073d4bd55afddd7a9311a6affc995eb20e461aa2b39190bafbdc6085f56), each old assertion failed while the real preview held its response for about 5.5 seconds. Both requests then finished with HTTP 200 and the expected 20 and 40 bars. The later indicator assertions passed. In the integrated Linux green (.reports/runs/20261121T014049.808424Z-f59da1d8/workspace-timeframe/results.json, SHA-256 8f686c96d75b49b68c181e67cceda23912c840bc5df447b863cbca3833b9246a), the delayed date selection completed through the response body and chart. The Python preview and restart each loaded the verified sample and all 31 workspace cases passed. Matching hosted Windows verification remains open.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M3-002"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

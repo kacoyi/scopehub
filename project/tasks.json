@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-011",
+  "focus_task_id": "M3-002",
   "tasks": [
     {
       "id": "M0-001",
@@ -7813,6 +7813,109 @@
           ],
           "data_plan": "Use only synthetic records in disposable profiles.",
           "cleanup": "Release the test-owned read observer, writer transaction and browser contexts on every outcome."
+        }
+      }
+    },
+    {
+      "id": "M3-002",
+      "title": "Verify sample history readiness before running indicator browser assertions",
+      "milestone": "M3",
+      "status": "active",
+      "depends_on": [
+        "M3-001"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0018"
+      ],
+      "acceptance": [
+        "Reproduce the early chart assertion failure with a delayed, valid history response through the real preview service and retain the observed Windows failure.",
+        "Observe the exact selected history request, its transport outcome and rendered chart before the calendar and trusted Python assertions, including a fresh browser restoring the bound sample.",
+        "Retain the independent calendar, values, approval, failure isolation and accepted output restoration assertions. Verify the integrated workspace browser check on Linux and the corrected hosted Windows source."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "indicator-declarative-preview",
+        "indicator-workflow",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M3-002-0e9290f77dbdcc7c.json",
+          "sha256": "de56564013777cde00051957137d833c2c32106d45ca840f5171437853fc9843"
+        }
+      ],
+      "next_action": "Run matching hosted Windows verification for the corrected revision, inspect the correlated sample history stages and archive the task report before closing the feedback.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Both indicator journeys proceed from a verified frozen sample and distinguish history transport failures from rendering or indicator failures.",
+        "change_types": [
+          "tooling",
+          "indicators"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ui/sample-startup.mjs",
+          "tests/ui/selected-history.mjs",
+          "apps/desktop/ui/ubuntu-preview.mjs"
+        ],
+        "hypotheses": [
+          "The Windows screenshots show admitted sample mode and a loading chart at the five-second cutoff. A real selected history response held beyond that cutoff can reproduce the premature DOM assertion even if valid data arrives within the existing preview operation budget.",
+          "The original artifacts do not record the pending requests' final outcomes. Exact request, browser and host evidence can distinguish recurrence from an actual timeout, abort or chart defect."
+        ],
+        "risks": [
+          {
+            "failure": "A wait that accepts an unrelated response, old revision or incomplete response can incorrectly pass chart readiness.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A deadline extension could hide a transport or indicator failure without validating the source window and chart independently.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Keep the hosted artifact and controlled Linux red. Revert the test changes if they weaken the existing indicator assertions or obscure a transport failure.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Product timing, sample data, workspace authority and indicator semantics."
+          ],
+          "open_questions": [
+            "What terminal outcome does the corrected test observe for the exact selected request on hosted Windows?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Frozen chart source selection, calendar and numeric expectations, explicit Python approval, and restoration of already accepted output."
+          ],
+          "change": [
+            "Observe selected sample responses within the preview operation budget before asserting that the corresponding chart has rendered. Exercise a successful delayed loopback response."
+          ],
+          "data_plan": "Use the existing synthetic data and disposable workspace profiles.",
+          "cleanup": "Release browser routes, pending response timers and observers on every outcome. Retain red and green reports without private handoff credentials."
         }
       }
     }
