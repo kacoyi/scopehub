@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-011",
+  "focus_task_id": "M2-002",
   "tasks": [
     {
       "id": "M0-001",
@@ -7463,7 +7463,7 @@
       "id": "M2-011",
       "title": "Verify a deletion receipt after a peer corrects the original private record",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-001"
       ],
@@ -7511,11 +7511,23 @@
         {
           "path": "project/evidence/M2-011-4c97599cecddceeb.json",
           "sha256": "f9ebe69c19a13fb324365f0855033fd0cef779aa4af482043186be5eb0928bec"
+        },
+        {
+          "path": "project/evidence/M2-011-e69c505897f077a2.json",
+          "sha256": "3072ee6aa0fde04601369a44e960be5e4b034a16d4675eba3c18843ec442533a"
+        },
+        {
+          "path": "project/evidence/M2-011-459e39b0bf9d6978.json",
+          "sha256": "c271c70406e1c3af981b9973c956e6b8d90b516670b48a076049a8ae9f9afa3b"
+        },
+        {
+          "path": "project/evidence/M2-011-5fe022830b51dac1.json",
+          "sha256": "6601c269078dcb3502e0a0e3e61966811d5187f67594f3dd8910ff1ea155961a"
         }
       ],
-      "next_action": "Run pnpm check --task M2-011 on Windows against the matching integrated source to execute workspace-timeframe and private-record-lifecycle. Retain the report and logs, archive them with pnpm project:record M2-011, and close the task and peer-rename feedback after the Windows receipt validates.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The local Linux task run and both authenticated jobs in run 44853953507 passed the required checks on a8a622e. Both hosted peer-rename journeys observed a pre-commit BUSY, a committed authorized correction, a stale retry of the original receipt, and revision 2 intact with zero deletions. The published revocation case passed within its behavior budget after independently bounded bridge setup. Windows skipped the POSIX signal case as expected.",
       "plan": {
         "outcome": "A user can resolve an uncertain deletion after another authorized window edits the same record and see the correct outcome. A hosted Windows task run can verify and upload both required recovery checks with time for job cleanup.",
         "change_types": [

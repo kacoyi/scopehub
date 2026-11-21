@@ -1,0 +1,135 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M2-011",
+  "task_definition_sha256": "e4c85f34c7071d832a16863ab41acf6250d2574f12ee15307a0ec6b3d377630c",
+  "run_id": "20261121T020926.459292Z-7124feb8",
+  "recorded_at": "2026-11-21T02:18:17.421258+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "ef9f6564ee184f5245744f885c9cdc6267c478701ddb69aac79086f7fb5629c2",
+    "file_count": 425,
+    "git_head": "a8a622e9b7235601e62d78232db684e0bc8fb18d",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "5fe022830b51dac1eeb1c3b30e93123fb3683bfb37baea1dbd07f51699036601",
+  "environment": {
+    "system": "Windows",
+    "release": "2025Server",
+    "machine": "AMD64",
+    "python": "3.12.10",
+    "python_executable": "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (5411378eb 2026-10-08 x86_64-pc-windows-msvc)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "705b13f4249994c11964336654e081fb18b82a35ccbc29bbc8598ee1b97165f1"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3fb5fc730c84ca1201310b86a3b16ee8852a4be2ddad44f41fd87793d8dd5a9"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e04dfe8382464d4f966119daa3308a0a61cd1fb4fa0cf2e92da40feb62bc50e1"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "b403c62def108edf621d924144f08910531acde528be879b5dd28d5de89acbd2"
+    },
+    {
+      "id": "workspace-timeframe",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "b85ab93f42535594a4e35470f3a33af8180e73404b3fb388e2ee8268fb34f39d"
+    },
+    {
+      "id": "private-record-lifecycle",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-application",
+        "-p",
+        "scopehub-persistence",
+        "private_record"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f701efa1dac2958d5af88ef9434a31964ce5c57578a436283784a130a7b3b4e7"
+    }
+  ],
+  "project_definition_sha256": "acec5a7fb359c721634b476b2ad3a0fdb1c32bc29ea66518e713ea417037796b",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "ci": {
+    "provider": "github-actions",
+    "repository": "kacoyi/scopehub",
+    "run_id": "44853953507",
+    "run_attempt": "1",
+    "event": "workflow_dispatch",
+    "head_sha": "a8a622e9b7235601e62d78232db684e0bc8fb18d",
+    "checkout_sha": "a8a622e9b7235601e62d78232db684e0bc8fb18d",
+    "run_url": "https://github.com/kacoyi/scopehub/actions/runs/44853953507"
+  }
+}
