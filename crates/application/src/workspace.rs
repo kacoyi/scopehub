@@ -286,6 +286,11 @@ pub trait WorkspaceTransaction {
         principal_id: &str,
         layer_id: &str,
     ) -> Result<Option<IndicatorLayerUndo>, Error>;
+    fn latest_indicator_removal(
+        &self,
+        revision_id: &str,
+        principal_id: &str,
+    ) -> Result<Option<(IndicatorLayerRef, WorkspaceReceipt)>, Error>;
     fn indicator_confirmation_receipt(
         &self,
         challenge_id: &str,

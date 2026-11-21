@@ -56,6 +56,28 @@ const BYTE_BUDGET: &str = r#"def compute(bars, params):
     return {'series': series, 'markers': [], 'regions': [], 'diagnostics': []}
 "#;
 
+#[cfg(any(target_os = "linux", windows))]
+const OBSERVE_MEMORY_LIMIT: &str = r#"    import sys
+    if sys.platform == 'linux':
+        import resource
+        assert resource.getrlimit(resource.RLIMIT_AS) == (512 << 20, 512 << 20)
+    else:
+        import ctypes
+        from ctypes import wintypes
+        from scripts.windows_job import ExtendedLimits
+
+        # A null handle queries this interpreter's immediate job, including
+        # inside the outer hosted verification job.
+        query = ctypes.WinDLL('kernel32', use_last_error=True).QueryInformationJobObject
+        query.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p,
+                          wintypes.DWORD, ctypes.c_void_p]
+        query.restype = wintypes.BOOL
+        limits = ExtendedLimits()
+        assert query(None, 9, ctypes.byref(limits), ctypes.sizeof(limits), None)
+        assert limits.basic.flags & 0x0200
+        assert limits.job_memory == 512 << 20
+    assert len(bytearray(1 << 20)) == 1 << 20"#;
+
 fn repo() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../..")
@@ -154,6 +176,17 @@ fn assert_result(reply: &Value, request: &IndicatorCompute11) {
 #[tokio::test]
 async fn executes_exact_utf8_code_on_ordered_bars_and_hashes_the_typed_result() {
     let request = request(SOURCE);
+    let reply = compute(&config(), &request, future::pending())
+        .await
+        .unwrap();
+    assert_result(&serde_json::to_value(reply).unwrap(), &request);
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[tokio::test]
+async fn approved_interpreter_observes_the_configured_memory_limit() {
+    let source = SOURCE.replace("    print(\"synthetic stdout\")", OBSERVE_MEMORY_LIMIT);
+    let request = request(&source);
     let reply = compute(&config(), &request, future::pending())
         .await
         .unwrap();
@@ -262,6 +295,26 @@ def start_sleeping():
         fixture
     }
 
+    #[cfg(any(target_os = "linux", windows))]
+    fn use_test_memory_limit(&self) {
+        let guard = self
+            .directory
+            .join("python/worker_runtime/indicator_guard.py");
+        fs::rename(&guard, guard.with_file_name("indicator_guard_original.py")).unwrap();
+        fs::write(
+            guard,
+            r#"import runpy
+import sys
+from pathlib import Path
+
+assert int(sys.argv[2]) == 512 << 20
+sys.argv[2] = str(64 << 20)
+runpy.run_path(str(Path(__file__).with_name('indicator_guard_original.py')), run_name='__main__')
+"#,
+        )
+        .unwrap();
+    }
+
     async fn witness(&self) -> (u32, u32, PathBuf) {
         timeout(Duration::from_secs(8), async {
             loop {
@@ -312,6 +365,24 @@ def start_sleeping():
         .await
         .expect("the spawned child must have entered its synthetic calculation")
     }
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[tokio::test]
+async fn allocation_over_the_test_memory_limit_fails_and_reaps_the_worker() {
+    let fixture = Fixture::observe_real_worker();
+    fixture.use_test_memory_limit();
+    let source = SOURCE.replace(
+        "    print(\"synthetic stdout\")",
+        "    assert len(bytearray(1 << 20)) == 1 << 20\n    budget = bytearray(72 << 20)",
+    );
+    let failure = compute(&fixture.config, &request(&source), future::pending())
+        .await
+        .unwrap_err();
+    assert_eq!(failure.code, ErrorCode::RESOURCELIMIT);
+    assert!(!failure.retryable && failure.details.is_empty());
+    let (pid, parent, scratch) = fixture.witness().await;
+    fixture.assert_reaped(pid, parent, scratch);
 }
 
 fn process_exists(pid: u32) -> bool {

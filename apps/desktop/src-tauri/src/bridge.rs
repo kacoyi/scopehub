@@ -14,7 +14,10 @@ use scopehub_application::{
     READ_LOCAL_IMPORT_SOURCE_ROW, REVOKE_LOCAL_FOLDER_REVISION, REVOKE_LOCAL_IMPORT_REVISION,
     RUN_INDICATOR_PREVIEW, SAVE_LOCAL_IMPORT_MAPPING, failure, is_sample_indicator_preview,
 };
-use scopehub_domain::protocol::{Error, ErrorCode};
+use scopehub_domain::{
+    protocol::{Error, ErrorCode},
+    wire::indicator_timeout,
+};
 use scopehub_platform::local_folder::LocalFolderHost;
 use scopehub_worker_host::market::{MarketWorker, WorkerConfig};
 use serde_json::Value;
@@ -68,6 +71,23 @@ fn development_config() -> Option<WorkerConfig> {
     ));
     #[cfg(not(debug_assertions))]
     None
+}
+
+fn development_indicator_config() -> Option<WorkerConfig> {
+    development_config().map(|mut config| {
+        config.deadline = indicator_timeout();
+        config
+    })
+}
+
+#[cfg(all(test, debug_assertions))]
+#[test]
+fn development_indicator_and_market_use_their_own_deadlines() {
+    let market = development_config().unwrap();
+    let indicator = development_indicator_config().unwrap();
+    assert_eq!(market.deadline, Duration::from_secs(5));
+    assert_eq!(indicator.deadline, Duration::from_secs(10));
+    assert_eq!(indicator.python, market.python);
 }
 
 pub fn state() -> State {
@@ -127,7 +147,7 @@ impl State {
                     while jobs.try_join_next().is_some() {}
                     jobs.spawn(async move {
                         let task = work.request.task_id.clone();
-                        let response = if let Some(config) = development_config() {
+                        let response = if let Some(config) = development_indicator_config() {
                             scopehub_worker_host::indicator::compute(
                                 &config,
                                 &work.request,

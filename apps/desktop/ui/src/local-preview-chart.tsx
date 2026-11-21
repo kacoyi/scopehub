@@ -1,8 +1,8 @@
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type {
-  Bar, FolderRefreshSource, IndicatorResult, LocalImportPreviewOutput, LocalImportRowLocator, PreviewSeries, ReadLocalFolderRevisionOutput,
+  Bar, FolderRefreshSource, LocalImportPreviewOutput, LocalImportRowLocator, PreviewSeries, ReadLocalFolderRevisionOutput,
 } from '../../../../contracts/generated/protocol';
-import type { ChartStyle, HistoryChartHandle } from './chart-adapter/history';
+import type { ChartStyle, HistoryChartHandle, IndicatorChartLayer } from './chart-adapter/history';
 import { FrozenEvidenceControls, type FrozenChartResult } from './frozen-evidence';
 import { hasLocalCsvPicker, readLocalFolderSourceRow, readLocalImportSourceRow } from './local-import-transport';
 import { IndicatorPreview } from './indicator-preview';
@@ -19,8 +19,8 @@ type ChartProps = {
   bars: readonly Bar[] | undefined;
   emptyMessage?: string;
   controls?: ReactNode;
-  indicatorPreview?: IndicatorResult | undefined;
-  acceptedIndicators?: readonly IndicatorResult[] | undefined;
+  indicatorPreview?: IndicatorChartLayer | undefined;
+  acceptedIndicators?: readonly IndicatorChartLayer[] | undefined;
 };
 
 function LocalBarChart({ title, label, styleLabel, series, symbol, bars, emptyMessage, controls, indicatorPreview, acceptedIndicators }: ChartProps) {
@@ -93,13 +93,15 @@ export function LocalPreviewChart({ result }: { result: LocalImportPreviewOutput
 export function FrozenLocalChart({ result, workspace, access }: {
   result: FrozenChartResult; workspace: LocalWorkspace | undefined; access: PublishedRevisionAccess;
 }) {
-  const [indicatorPreview, setIndicatorPreview] = useState<IndicatorResult>();
-  const [acceptedIndicators, setAcceptedIndicators] = useState<readonly IndicatorResult[]>([]);
+  const [indicatorPreview, setIndicatorPreview] = useState<IndicatorChartLayer>();
+  const [acceptedIndicators, setAcceptedIndicators] = useState<readonly IndicatorChartLayer[]>([]);
   const { revision, bars: events } = result;
   const bars = useMemo(() => events.map(event => event.bar), [events]);
+  const showIndicators = result.snapshot && workspace && access.canDisplay(revision.revision_id);
   return <>
     <LocalBarChart title="Frozen chart" label="Frozen local CSV chart" styleLabel="Frozen chart style"
-      series={revision.series} symbol={revision.symbol} bars={bars} indicatorPreview={indicatorPreview} acceptedIndicators={acceptedIndicators} />
+      series={revision.series} symbol={revision.symbol} bars={bars} indicatorPreview={showIndicators ? indicatorPreview : undefined}
+      acceptedIndicators={showIndicators ? acceptedIndicators : undefined} />
     {result.snapshot && workspace && <IndicatorPreview snapshot={result.snapshot} bars={bars} workspace={workspace}
       access={access} showResult={setIndicatorPreview} showAccepted={setAcceptedIndicators} />}
     {result.snapshot && workspace && <FrozenEvidenceControls snapshot={result.snapshot} bars={bars} workspace={workspace} access={access} />}

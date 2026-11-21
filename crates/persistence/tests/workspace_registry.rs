@@ -427,6 +427,7 @@ fn indicator_preview_binds_local_source_grants_and_frozen_input() {
             CREATE_INDICATOR_DRAFT,
             RUN_INDICATOR_PREVIEW,
             ACCEPT_INDICATOR_VERSION,
+            INDICATOR_CONFIRMATION,
         ],
         ..support::access()
     };
@@ -536,6 +537,23 @@ fn indicator_preview_binds_local_source_grants_and_frozen_input() {
         "message_id": Uuid::new_v4().to_string(), "request_id": Uuid::new_v4().to_string(),
         "timestamp_ms": 0, "challenge_id": challenge["challenge_id"], "decision": "approve",
     });
+    for operations in [
+        &[ACCEPT_INDICATOR_VERSION][..],
+        &[INDICATOR_CONFIRMATION][..],
+    ] {
+        let limited = WorkspaceAccess {
+            operations,
+            ..access()
+        };
+        for decision in ["deny", "approve"] {
+            let mut attempt = approval.clone();
+            attempt["decision"] = json!(decision);
+            assert_failed(
+                &registry.execute_workspace(&limited, attempt).unwrap(),
+                "PERMISSION_DENIED",
+            );
+        }
+    }
     conn.execute_batch(
         "CREATE TRIGGER refuse_indicator_artifact BEFORE INSERT ON indicator_versions
          BEGIN SELECT raise(ABORT, 'synthetic indicator write failure'); END;",
@@ -584,6 +602,23 @@ fn indicator_preview_binds_local_source_grants_and_frozen_input() {
     drop(registry);
 
     let mut registry = OperationRegistry::new(store(&profile.0));
+    for operations in [
+        &[ACCEPT_INDICATOR_VERSION][..],
+        &[INDICATOR_CONFIRMATION][..],
+    ] {
+        assert_failed(
+            &registry
+                .execute_workspace(
+                    &WorkspaceAccess {
+                        operations,
+                        ..access()
+                    },
+                    approval.clone(),
+                )
+                .unwrap(),
+            "PERMISSION_DENIED",
+        );
+    }
     assert_eq!(
         registry.execute_workspace(&access(), approval).unwrap()["outcome"],
         committed
@@ -630,6 +665,128 @@ fn indicator_preview_binds_local_source_grants_and_frozen_input() {
             .revision,
         1
     );
+}
+
+#[test]
+fn trusted_python_confirmation_requires_both_current_grants() {
+    use scopehub_application::{
+        CREATE_INDICATOR_DRAFT, INDICATOR_CONFIRMATION, RUN_INDICATOR_PREVIEW,
+    };
+    use scopehub_domain::protocol::IndicatorBarsInput11;
+    use serde_json::Value;
+
+    let profile = Profile::new();
+    let mut registry = OperationRegistry::new(store(&profile.0));
+    let owner = WorkspaceAccess {
+        operations: &[
+            CREATE_INDICATOR_DRAFT,
+            RUN_INDICATOR_PREVIEW,
+            INDICATOR_CONFIRMATION,
+        ],
+        ..access()
+    };
+    let selected = registry
+        .select_workspace_source(
+            &owner,
+            &json!({
+                "type": "workspace_source", "request_id": Uuid::new_v4().to_string(),
+                "expected_selection_revision": 0,
+                "source": {"kind": "sample", "instrument_id": "SIM.CN.FUTURE.001"},
+            }),
+        )
+        .unwrap();
+    assert_eq!(selected["selection_revision"], 1);
+    let page: Value = serde_json::from_str(include_str!(
+        "../../../tests/fixtures/indicators/confirmation-sample-history.json"
+    ))
+    .unwrap();
+    let code = include_str!("../../../tests/fixtures/indicators/two-bar-mean.py");
+    let mut create = support::command(
+        CREATE_INDICATOR_DRAFT,
+        0,
+        Uuid::new_v4(),
+        json!({"language": "python", "source": code, "params": {}}),
+    );
+    create["scope"]["expected_selection_revision"] = json!(1);
+    let draft = registry.execute_workspace(&owner, create).unwrap();
+    let draft_id = draft["outcome"]["result"]["draft_id"].as_str().unwrap();
+    let snapshot = &page["snapshot"];
+    let mut run = support::command(
+        RUN_INDICATOR_PREVIEW,
+        0,
+        Uuid::new_v4(),
+        json!({"draft_id": draft_id, "snapshot": snapshot, "python_params": {"divisor": 2}}),
+    );
+    run["scope"]["expected_selection_revision"] = json!(1);
+    run["scope"]["target"] = json!({
+        "kind": "chart_interval", "snapshot": snapshot,
+        "range": {"from_ms": 1704200400000_i64, "to_ms": 1704200520000_i64},
+    });
+    let challenge = registry
+        .execute_sample_indicator_preview(&owner, run, page)
+        .unwrap()["outcome"]["challenge"]
+        .clone();
+    let task_id = challenge["task_id"].as_str().unwrap();
+    let approval = json!({
+        "type": "request", "protocol_version": "1.1", "operation": INDICATOR_CONFIRMATION,
+        "message_id": Uuid::new_v4().to_string(), "request_id": Uuid::new_v4().to_string(),
+        "timestamp_ms": 0, "challenge_id": challenge["challenge_id"], "decision": "approve",
+    });
+    for operations in [&[RUN_INDICATOR_PREVIEW][..], &[INDICATOR_CONFIRMATION][..]] {
+        let limited = WorkspaceAccess {
+            operations,
+            ..owner
+        };
+        for decision in ["deny", "approve"] {
+            let mut attempt = approval.clone();
+            attempt["decision"] = json!(decision);
+            assert_failed(
+                &registry.execute_workspace(&limited, attempt).unwrap(),
+                "PERMISSION_DENIED",
+            );
+        }
+    }
+    assert!(
+        registry
+            .take_approved_python(&owner, task_id)
+            .unwrap()
+            .is_none()
+    );
+    let reply = registry.execute_workspace(&owner, approval).unwrap();
+    assert_eq!(reply["outcome"]["result"]["task_id"], task_id);
+    let dispatch = registry
+        .take_approved_python(&owner, task_id)
+        .unwrap()
+        .unwrap();
+    assert_eq!(dispatch.request.resolved_params["divisor"], 2);
+    let IndicatorBarsInput11::InlineIndicatorBars11(input) = dispatch.request.input else {
+        panic!("expected the approved frozen bars")
+    };
+    assert_eq!(
+        input.bars.iter().map(|bar| bar.close).collect::<Vec<_>>(),
+        [3499.2, 3499.8]
+    );
+    assert!(
+        registry
+            .take_approved_python(&owner, task_id)
+            .unwrap()
+            .is_none()
+    );
+    registry
+        .finish_trusted_python(
+            &owner,
+            task_id,
+            Err(scopehub_application::failure(ErrorCode::RESOURCELIMIT)),
+        )
+        .unwrap();
+    let terminal = registry.indicator_preview_status(&owner, task_id).unwrap();
+    assert_eq!(terminal["status"], "terminal");
+    assert_eq!(terminal["event"]["outcome"]["status"], "failed");
+    assert_eq!(
+        terminal["event"]["outcome"]["error"]["code"],
+        "RESOURCE_LIMIT"
+    );
+    assert_eq!(terminal["event"]["committed_effects"], json!([]));
 }
 
 #[test]

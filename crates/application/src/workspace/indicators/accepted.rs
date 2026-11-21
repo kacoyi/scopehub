@@ -152,7 +152,7 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             .expect("validated request ID");
         let reply = WorkspaceReply::new(op, request_id)?;
         let result = (|| {
-            self.authorize_indicator(access, ACCEPT_INDICATOR_VERSION)?;
+            self.authorize_indicator_confirmation(access, ACCEPT_INDICATOR_VERSION)?;
             let challenge_id = request["challenge_id"]
                 .as_str()
                 .expect("validated challenge ID");
@@ -253,9 +253,6 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         let deadline = Instant::now();
         let mut newer = std::collections::HashSet::new();
         for job in self.indicator_stage.jobs.iter().rev() {
-            if job.expires <= deadline || job.is_cancelled() {
-                continue;
-            }
             let status = job.state.lock().expect("indicator job state");
             let JobResult::Ready(preview) = &*status else {
                 continue;
@@ -264,10 +261,14 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
                 continue;
             }
             if preview.id != preview_id {
+                // Delivery supersedes older jobs even if the delivered result
+                // is cleared. Jobs age out and are evicted in insertion order.
                 newer.insert(&job.source.dataset_id);
                 continue;
             }
-            if newer.contains(&job.source.dataset_id)
+            if job.expires <= deadline
+                || job.is_cancelled()
+                || newer.contains(&job.source.dataset_id)
                 || preview.artifact["result_hash"] != args["result_hash"]
                 || job.scope.target != scope.target
                 || job.scope.expected_workspace_revision != scope.expected_workspace_revision
@@ -364,7 +365,19 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
                 let available = retention_allowed(tx, &layer.dataset_id, layer.sample_instrument.as_deref())?;
                 layers.push(json!({"layer_id": layer.layer_id, "version_id": layer.version_id, "available": available}));
             }
-            Ok(json!({"dataset_id": revision_id, "layers": layers}))
+            let mut result = json!({"dataset_id": revision_id, "layers": layers});
+            if access.operations.contains(&super::super::UNDO)
+                && let Some((layer, receipt)) = tx.latest_indicator_removal(revision_id, access.principal_id)?
+                && retention_allowed(tx, &layer.dataset_id, layer.sample_instrument.as_deref())?
+                && tx.active_indicator_count()? < MAX_ACTIVE_INDICATOR_LAYERS
+            {
+                result["undo"] = json!({
+                    "operation_id": receipt.operation_id,
+                    "layer_id": layer.layer_id,
+                    "committed_workspace_revision": receipt.revision,
+                });
+            }
+            Ok(result)
         })
     }
 

@@ -294,6 +294,19 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             let identity = hash(&json!([scope, args]))?;
             if name == CREATE_INDICATOR_DRAFT {
                 self.create_indicator_draft(&reply, &scope, args, identity, now)
+            } else if let Some(job) = self
+                .indicator_stage
+                .jobs
+                .iter()
+                .find(|job| job.key == scope.idempotency_key)
+            {
+                if job.python.is_some() {
+                    // An issued task receipt does not need a fresh selection
+                    // revision, but its source must still permit trusted use.
+                    self.port
+                        .inspect(|tx| trusted::require_python_source_right(tx, &job.source))?;
+                }
+                replay(&reply, &job.identity, &identity, &job.receipt)
             } else if args.get("python_params").is_some() {
                 self.stage_python_preview(access, &reply, scope, args, identity, sample_history)
             } else {
@@ -331,6 +344,15 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             return Err(failure(ErrorCode::PERMISSIONDENIED));
         }
         Ok(())
+    }
+
+    fn authorize_indicator_confirmation(
+        &self,
+        access: &WorkspaceAccess<'_>,
+        operation: &str,
+    ) -> Result<(), Error> {
+        self.authorize_indicator(access, INDICATOR_CONFIRMATION)?;
+        self.authorize_indicator(access, operation)
     }
 
     fn create_indicator_draft(
@@ -396,14 +418,6 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         now: Instant,
         sample_history: Option<Value>,
     ) -> Result<Value, Error> {
-        if let Some(job) = self
-            .indicator_stage
-            .jobs
-            .iter()
-            .find(|job| job.key == scope.idempotency_key)
-        {
-            return replay(reply, &job.identity, &identity, &job.receipt);
-        }
         let args: SnapshotPreview11 = serde_json::from_value(args.clone())
             .map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
         let draft = self

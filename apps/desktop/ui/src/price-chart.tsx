@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState, type RefObject } from 'react';
-import { defaultChartAppearance, mountHistoryChart, type ChartAppearance, type ChartCursorMode, type ChartStyle, type HistoryChartData, type HistoryChartHandle } from './chart-adapter/history';
-import type { IndicatorResult } from '../../../../contracts/generated/protocol';
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import {
+  defaultChartAppearance, mountHistoryChart, type ChartAppearance, type ChartCursorMode,
+  type ChartStyle, type HistoryChartData, type HistoryChartHandle, type IndicatorChartLayer,
+} from './chart-adapter/history';
 import type { Bar, Instrument } from './market';
 
 type ChartInstrument = Pick<Instrument, 'id' | 'name' | 'display_symbol' | 'asset_class' | 'price_tick'> & Partial<Pick<Instrument, 'currency'>>;
@@ -10,8 +12,8 @@ type Props = {
   handle: RefObject<HistoryChartHandle | null>;
   replayBar: Bar | undefined;
   repairedBars: readonly Bar[] | undefined;
-  indicatorPreview?: IndicatorResult | undefined;
-  acceptedIndicators?: readonly IndicatorResult[] | undefined;
+  indicatorPreview?: IndicatorChartLayer | undefined;
+  acceptedIndicators?: readonly IndicatorChartLayer[] | undefined;
   appearance?: ChartAppearance;
   selectedBarTime?: number | undefined;
   activateBar?: ((bar: Bar) => void) | undefined;
@@ -27,7 +29,7 @@ export function PriceChart({ instrument, history, style, cursor, handle, replayB
   const [failed, setFailed] = useState(false);
   const [indicatorFailed, setIndicatorFailed] = useState(false);
   useEffect(() => { onActivate.current = activateBar; }, [activateBar]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!container.current) return;
     setSelected(history.bars.at(-1));
     setFailed(false);
@@ -42,13 +44,7 @@ export function PriceChart({ instrument, history, style, cursor, handle, replayB
   useEffect(() => { handle.current?.setCursor(cursor); }, [cursor, history, handle]);
   useEffect(() => { handle.current?.setAppearance(appearance); }, [appearance, history, handle]);
   useEffect(() => { handle.current?.setSelectedBar(selectedBarTime); }, [selectedBarTime, history, handle]);
-  useEffect(() => {
-    try {
-      handle.current?.setIndicatorLayers(indicatorPreview, acceptedIndicators ?? []);
-      setIndicatorFailed(false);
-    } catch { setIndicatorFailed(true); }
-  }, [indicatorPreview, acceptedIndicators, history, handle]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const chart = handle.current;
     if (!chart) return;
     try {
@@ -60,6 +56,12 @@ export function PriceChart({ instrument, history, style, cursor, handle, replayB
       if (last) chart.updateLast(last);
     } catch { setFailed(true); }
   }, [replayBar, bars, history, handle]);
+  useLayoutEffect(() => {
+    try {
+      handle.current?.setIndicatorLayers(indicatorPreview, acceptedIndicators ?? []);
+      setIndicatorFailed(false);
+    } catch { setIndicatorFailed(true); }
+  }, [indicatorPreview, acceptedIndicators, history, handle]);
   return <div className="history" data-instrument={history.dataset.instrument_id} data-timeframe={history.dataset.timeframe} data-bars={bars.length}>
     <div className="chart-legend">
       <div className="legend-title"><span className={'asset-mark ' + instrument.asset_class} aria-hidden="true">

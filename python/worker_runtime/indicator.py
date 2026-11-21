@@ -106,10 +106,14 @@ def serve(wire: BinaryIO) -> int:
     assert source['language'] == 'python' and inputs['mode'] == 'inline'
     try:
         output = evaluate(source['source'], inputs['bars'], request['resolved_params'])
+    except MemoryError:
+        return RESOURCE_LIMIT
     except BaseException:
         return COMPUTATION_FAILED
     try:
         frame = response(request, output)
+    except MemoryError:
+        return RESOURCE_LIMIT
     except ProtocolError as error:
         return RESOURCE_LIMIT if str(error) == 'RESOURCE_LIMIT' else INVALID_OUTPUT
     except BaseException:
@@ -130,4 +134,8 @@ def main() -> int:
 if __name__ == '__main__':
     # The supervisor owns the execution tree. Skip interpreter finalizers
     # that would otherwise join surviving multiprocessing children.
-    os._exit(main())
+    try:
+        status = main()
+    except MemoryError:
+        status = RESOURCE_LIMIT
+    os._exit(status)

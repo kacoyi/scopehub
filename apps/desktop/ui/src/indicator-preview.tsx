@@ -2,9 +2,11 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from
 import type {
   Bar, CancelTaskReply11, ConfirmationChallenge11, DeclarativeDraft11, FrozenSnapshot, IndicatorCreateDraftCommand11,
   IndicatorCreateDraftReply11, IndicatorRunPreviewCommand11, IndicatorRunPreviewReply11,
-  IndicatorResult, Metadata, MutationScope11, PreviewReady11, TaskTerminalEvent11, TrustedConfirmationDecision11,
+  Metadata, MutationScope11, PreviewReady11, TaskTerminalEvent11, TrustedConfirmationDecision11,
 } from '../../../../contracts/generated/protocol';
+import type { IndicatorChartLayer } from './chart-adapter/history';
 import { IndicatorAcceptance } from './indicator-acceptance';
+import { IndicatorRegionValues } from './indicator-region-values';
 import { displayAccessDenied, type PublishedRevisionAccess } from './published-revision-access';
 import { exchangeWorkspace, type LocalWorkspace } from './use-local-workspace';
 
@@ -99,8 +101,8 @@ function describeError(error: unknown, mode: 'declarative' | 'python') {
 
 type Props = {
   snapshot: FrozenSnapshot; bars: readonly Bar[]; workspace: LocalWorkspace; access?: PublishedRevisionAccess | undefined;
-  showResult: (result: IndicatorResult | undefined) => void;
-  showAccepted: (results: readonly IndicatorResult[]) => void;
+  showResult: (result: IndicatorChartLayer | undefined) => void;
+  showAccepted: (results: readonly IndicatorChartLayer[]) => void;
 };
 
 export function IndicatorPreview({ snapshot, bars, workspace, access, showResult, showAccepted }: Props) {
@@ -122,6 +124,7 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
   const displayed = useRef<string | undefined>(undefined);
   const workspaceRevision = workspace.snapshot?.workspace.revision;
   const selectionRevision = workspace.snapshot?.selection_revision;
+  const revoked = access?.revoked.has(snapshot.dataset_id);
 
   const invalidateJobs = useCallback(() => {
     const attempt = active.current;
@@ -141,7 +144,7 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
   useEffect(() => invalidateJobs, [invalidateJobs]);
   useLayoutEffect(() => {
     clearPreview();
-  }, [snapshot.content_hash, workspaceRevision, selectionRevision, clearPreview]);
+  }, [snapshot.content_hash, workspaceRevision, selectionRevision, revoked, clearPreview]);
 
   async function preview() {
     const state = workspace.snapshot;
@@ -268,7 +271,7 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
             : status.resolved_parameters.period !== requestedPeriod)) throw new Error();
         if (access && !access.canDisplay(snapshot.dataset_id)) return;
         displayed.current = id;
-        showResult(event.artifact.result);
+        showResult({ range: event.snapshot, result: event.artifact.result });
         setResult(status);
         return;
       }
@@ -413,6 +416,7 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
             <td>{points[1]?.points[index]?.value ?? 'Unknown'}</td>
           </tr>)}</tbody>
         </table>}
+        {output && <IndicatorRegionValues regions={output.regions} />}
       </details>
     </div>}
     {(access || sample) && <IndicatorAcceptance preview={access || mode === 'python' ? result?.event : undefined} snapshot={snapshot} workspace={workspace} access={access}

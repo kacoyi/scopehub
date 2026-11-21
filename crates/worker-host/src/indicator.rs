@@ -169,6 +169,14 @@ fn command(config: &WorkerConfig, scratch: &Scratch) -> Result<Command, Error> {
             "worker_runtime.indicator_guard",
         ])
         .arg(max_message_bytes().to_string())
+        .arg(
+            (POLICY["indicator_memory_limit_mb"]
+                .as_u64()
+                .expect("configured indicator memory limit")
+                * 1024
+                * 1024)
+                .to_string(),
+        )
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::null());
@@ -182,7 +190,7 @@ async fn exchange(
     frame: &[u8],
 ) -> Result<IndicatorComputed11, Error> {
     let mut output = BufReader::new(child.stdout.take().expect("piped stdout"));
-    let hello = read_frame(&mut output).await.map_err(protocol_failure)?;
+    let hello = receive_frame(&mut output, child).await?;
     let negotiated = negotiate_worker(&hello, "indicator", &[COMPUTE]).map_err(protocol_failure)?;
     if negotiated.version != "1.1"
         || negotiated.capabilities != [COMPUTE]
@@ -195,13 +203,7 @@ async fn exchange(
     }
     input.write_all(frame).await.map_err(worker_io)?;
 
-    let terminal = match read_frame(&mut output).await {
-        Ok(frame) => decode_response(&frame, request)?,
-        Err(ProtocolError::WorkerExited) => {
-            return Err(exit_failure(child.wait().await.map_err(worker_io)?));
-        }
-        Err(failure) => return Err(protocol_failure(failure)),
-    };
+    let terminal = decode_response(&receive_frame(&mut output, child).await?, request)?;
     if !output.fill_buf().await.map_err(worker_io)?.is_empty() {
         return Err(error(ErrorCode::OUTPUTINVALID));
     }
@@ -209,6 +211,19 @@ async fn exchange(
         return Err(error(ErrorCode::WORKEREXITED));
     }
     Ok(terminal)
+}
+
+async fn receive_frame(
+    output: &mut BufReader<tokio::process::ChildStdout>,
+    child: &mut Child,
+) -> Result<Vec<u8>, Error> {
+    match read_frame(output).await {
+        Ok(frame) => Ok(frame),
+        Err(ProtocolError::WorkerExited) => {
+            Err(exit_failure(child.wait().await.map_err(worker_io)?))
+        }
+        Err(failure) => Err(protocol_failure(failure)),
+    }
 }
 
 #[derive(Deserialize)]

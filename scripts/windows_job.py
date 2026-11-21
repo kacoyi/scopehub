@@ -37,7 +37,7 @@ class Accounting(ctypes.Structure):
 
 
 class WindowsJob:
-    def __init__(self) -> None:
+    def __init__(self, *, memory_limit_bytes: int | None = None) -> None:
         if sys.platform != 'win32':
             raise OSError('Windows Job Objects require Windows')
         self.api = ctypes.WinDLL('kernel32', use_last_error=True)
@@ -56,6 +56,9 @@ class WindowsJob:
         self.handle: int | None = self.require(self.api.CreateJobObjectW(None, None))
         limits = ExtendedLimits()
         limits.basic.flags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE; no breakaway.
+        if memory_limit_bytes is not None:
+            limits.basic.flags |= 0x0200  # JOB_OBJECT_LIMIT_JOB_MEMORY
+            limits.job_memory = memory_limit_bytes
         try:
             self.require(self.api.SetInformationJobObject(self.handle, 9, ctypes.byref(limits), ctypes.sizeof(limits)))
         except OSError:

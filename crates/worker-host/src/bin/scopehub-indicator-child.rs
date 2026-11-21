@@ -1,6 +1,7 @@
-use std::{ffi::OsStr, path::PathBuf, process::ExitCode, time::Duration};
+use std::{ffi::OsStr, path::PathBuf, process::ExitCode};
 
-use scopehub_worker_host::{POLICY, indicator::run_child, market::WorkerConfig};
+use scopehub_domain::wire::indicator_timeout;
+use scopehub_worker_host::{indicator::run_child, market::WorkerConfig};
 
 fn main() -> ExitCode {
     let args: Vec<_> = std::env::args_os().skip(1).collect();
@@ -12,10 +13,6 @@ fn main() -> ExitCode {
         return ExitCode::from(2);
     }
     let mut config = WorkerConfig::development(&root);
-    config.deadline = Duration::from_millis(
-        POLICY["indicator_timeout_ms"]
-            .as_u64()
-            .expect("configured indicator timeout"),
-    );
+    config.deadline = indicator_timeout();
     run_child(&config)
 }
