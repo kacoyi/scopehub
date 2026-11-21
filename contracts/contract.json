@@ -963,7 +963,7 @@
     "information": false,
     "financial_services": false
   },
-  "development_data": "Explicit synthetic demo and development samples. The scoped local CSV preview can use a trusted user-selected directory. External API adapters remain unimplemented.",
+  "development_data": "Explicit synthetic demo and development samples. The scoped local CSV preview can use a trusted user-selected directory. External market-data API adapters remain unimplemented.",
   "service_capabilities": "Users can bring their own connections and independently select eligible ScopeHub software, AI or licensed data services. Internal model adapters and external AI clients have separate connection and authorization requirements. Production services and client access are unconfigured.",
   "product_requirements": [
     "engineering-contract-v1.json#/product/data_onboarding",

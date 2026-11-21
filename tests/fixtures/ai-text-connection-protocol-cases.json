@@ -258,5 +258,196 @@
         }
       }
     }
+  },
+  {
+    "name": "review OpenAI Responses with an explicit model",
+    "operation": "ai.textConnection",
+    "direction": "input",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-0000-0000-000000000001",
+      "request_id": "00000000-0000-0000-0000-000000000002",
+      "timestamp_ms": 100,
+      "type": "request",
+      "scope": {
+        "workspace_id": "main"
+      },
+      "intent": {
+        "operation": "ai.textConnection",
+        "arguments": {
+          "action": "propose",
+          "route": {
+            "kind": "openai_responses",
+            "model": "synthetic-openai-model"
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "OpenAI route cannot supply a destination",
+    "operation": "ai.textConnection",
+    "direction": "input",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-0000-0000-000000000001",
+      "request_id": "00000000-0000-0000-0000-000000000002",
+      "timestamp_ms": 100,
+      "type": "request",
+      "scope": {
+        "workspace_id": "main"
+      },
+      "intent": {
+        "operation": "ai.textConnection",
+        "arguments": {
+          "action": "propose",
+          "route": {
+            "kind": "openai_responses",
+            "model": "synthetic-openai-model",
+            "origin": "https://elsewhere.invalid"
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "OpenAI public route cannot supply a credential or reference",
+    "operation": "ai.textConnection",
+    "direction": "input",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-0000-0000-000000000001",
+      "request_id": "00000000-0000-0000-0000-000000000002",
+      "timestamp_ms": 100,
+      "type": "request",
+      "scope": {
+        "workspace_id": "main"
+      },
+      "intent": {
+        "operation": "ai.textConnection",
+        "arguments": {
+          "action": "propose",
+          "route": {
+            "kind": "openai_responses",
+            "model": "synthetic-openai-model",
+            "credential_ref": "synthetic-only"
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "OpenAI route cannot request chart tools",
+    "operation": "ai.textConnection",
+    "direction": "input",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-0000-0000-000000000001",
+      "request_id": "00000000-0000-0000-0000-000000000002",
+      "timestamp_ms": 100,
+      "type": "request",
+      "scope": {
+        "workspace_id": "main"
+      },
+      "intent": {
+        "operation": "ai.textConnection",
+        "arguments": {
+          "action": "propose",
+          "route": {
+            "kind": "openai_responses",
+            "model": "synthetic-openai-model",
+            "chart_tools": true
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "disclose the fixed OpenAI route and account cost basis",
+    "operation": "ai.textConnection",
+    "direction": "output",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-0000-0000-000000000001",
+      "request_id": "00000000-0000-0000-0000-000000000002",
+      "timestamp_ms": 100,
+      "type": "response",
+      "outcome": {
+        "state": "completed",
+        "operation": "ai.textConnection",
+        "result": {
+          "action": "propose",
+          "proposal_id": "00000000-0000-0000-0000-000000000004",
+          "route": {
+            "kind": "openai_responses",
+            "destination": "https://api.openai.com/v1/responses",
+            "model": "synthetic-openai-model",
+            "scope": "conversation_text",
+            "charge_basis": "openai_api_account"
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "OpenAI disclosure cannot claim free usage",
+    "operation": "ai.textConnection",
+    "direction": "output",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-0000-0000-000000000001",
+      "request_id": "00000000-0000-0000-0000-000000000002",
+      "timestamp_ms": 100,
+      "type": "response",
+      "outcome": {
+        "state": "completed",
+        "operation": "ai.textConnection",
+        "result": {
+          "action": "propose",
+          "proposal_id": "00000000-0000-0000-0000-000000000004",
+          "route": {
+            "kind": "openai_responses",
+            "destination": "https://api.openai.com/v1/responses",
+            "model": "synthetic-openai-model",
+            "scope": "conversation_text",
+            "charge_basis": "none"
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "OpenAI disclosure cannot name a different endpoint",
+    "operation": "ai.textConnection",
+    "direction": "output",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-0000-0000-000000000001",
+      "request_id": "00000000-0000-0000-0000-000000000002",
+      "timestamp_ms": 100,
+      "type": "response",
+      "outcome": {
+        "state": "completed",
+        "operation": "ai.textConnection",
+        "result": {
+          "action": "propose",
+          "proposal_id": "00000000-0000-0000-0000-000000000004",
+          "route": {
+            "kind": "openai_responses",
+            "destination": "https://elsewhere.invalid/v1/responses",
+            "model": "synthetic-openai-model",
+            "scope": "conversation_text",
+            "charge_basis": "openai_api_account"
+          }
+        }
+      }
+    }
   }
 ]

@@ -326,3 +326,129 @@ fn offline_mock_has_no_worker_and_input_cannot_include_credentials() {
         "STALE_CONTEXT"
     );
 }
+
+#[test]
+fn openai_is_bound_to_its_disclosed_route_and_current_profile_key() {
+    let mut registry = registry();
+    let cloud = json!({"kind": "openai_responses", "model": "synthetic-selected"});
+    assert_eq!(
+        propose(&mut registry, cloud.clone())["error"]["code"],
+        "PROVIDER_NOT_CONFIGURED"
+    );
+    let revision = Uuid::new_v4();
+    let other_profile = WorkspaceAccess {
+        profile_id: "other-profile",
+        ..access()
+    };
+    assert_eq!(
+        registry
+            .refresh_openai_credential(&other_profile, Some(revision))
+            .unwrap_err()
+            .code,
+        ErrorCode::PERMISSIONDENIED,
+    );
+    assert_eq!(
+        propose(&mut registry, cloud.clone())["error"]["code"],
+        "PROVIDER_NOT_CONFIGURED"
+    );
+    registry
+        .refresh_openai_credential(&access(), Some(revision))
+        .unwrap();
+    let reviewed = propose(&mut registry, cloud.clone());
+    assert_eq!(
+        reviewed["result"]["route"],
+        json!({
+            "kind": "openai_responses", "model": "synthetic-selected",
+            "destination": "https://api.openai.com/v1/responses", "scope": "conversation_text",
+            "charge_basis": "openai_api_account",
+        })
+    );
+    let replacement = Uuid::new_v4();
+    registry
+        .refresh_openai_credential(&access(), Some(replacement))
+        .unwrap();
+    assert_eq!(
+        activate(&mut registry, &reviewed)["error"]["code"],
+        "CONFIRMATION_REQUIRED"
+    );
+    let reviewed = propose(&mut registry, cloud.clone());
+    let enabled = activate(&mut registry, &reviewed);
+    let connection = &enabled["result"]["connection"]["connection_id"];
+    let submitted = registry
+        .execute_workspace(
+            &access(),
+            send(connection, "Synthetic first cloud question."),
+        )
+        .unwrap();
+    let turn = &submitted["outcome"]["result"]["turn_id"];
+    let work = registry
+        .take_text_model_work(&access(), parse_id(turn))
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        work.provider(),
+        TextModelProvider::OpenAiResponses {
+            credential_revision: replacement
+        }
+    );
+    assert_eq!(work.destination(), "https://api.openai.com/v1/responses");
+    work.finish(Ok(
+        json!({"model": "synthetic-answer", "text": "Synthetic cloud answer."}),
+    ));
+    assert_eq!(
+        poll(&mut registry, connection, turn)["result"]["turn"]["state"],
+        "completed"
+    );
+
+    let submitted = registry
+        .execute_workspace(
+            &access(),
+            send(connection, "Synthetic next cloud question."),
+        )
+        .unwrap();
+    let turn = &submitted["outcome"]["result"]["turn_id"];
+    let work = registry
+        .take_text_model_work(&access(), parse_id(turn))
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        work.request(),
+        &json!({
+            "model": "synthetic-selected", "stream": false,
+            "messages": [
+                {"role": "user", "content": "Synthetic first cloud question."},
+                {"role": "assistant", "content": "Synthetic cloud answer."},
+                {"role": "user", "content": "Synthetic next cloud question."}
+            ],
+        })
+    );
+    let reviewed_local = propose(&mut registry, route());
+    assert!(work.is_cancelled());
+    assert_eq!(
+        poll(&mut registry, connection, turn)["error"]["code"],
+        "STALE_CONTEXT"
+    );
+    registry.refresh_openai_credential(&access(), None).unwrap();
+    let connected_local = activate(&mut registry, &reviewed_local);
+    let local_id = &connected_local["result"]["connection"]["connection_id"];
+    let submitted = registry
+        .execute_workspace(&access(), send(local_id, "Synthetic local question."))
+        .unwrap();
+    let work = registry
+        .take_text_model_work(
+            &access(),
+            parse_id(&submitted["outcome"]["result"]["turn_id"]),
+        )
+        .unwrap()
+        .unwrap();
+    assert_eq!(work.provider(), TextModelProvider::Ollama);
+    assert_eq!(
+        work.request()["messages"],
+        json!([{"role": "user", "content": "Synthetic local question."}])
+    );
+    assert_eq!(
+        propose(&mut registry, cloud)["error"]["code"],
+        "PROVIDER_NOT_CONFIGURED"
+    );
+    assert!(!work.is_cancelled());
+}

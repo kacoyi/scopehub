@@ -8,18 +8,40 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use tokio::{sync::oneshot, time::timeout};
 
-use super::{MAX_FRAME_BYTES, complete, error, worker_exited};
+use super::{MAX_FRAME_BYTES, complete, complete_openai, error, worker_exited};
 use crate::market::WorkerConfig;
 
 #[derive(Deserialize)]
+#[serde(untagged)]
+enum Input {
+    Ollama(OllamaInput),
+    OpenAi(OpenAiInput),
+}
+
+#[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Input {
+struct OllamaInput {
     destination: String,
     request: Value,
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OpenAiInput {
+    #[serde(rename = "provider")]
+    _provider: OpenAiProvider,
+    request: Value,
+    credential: String,
+}
+
+#[derive(Deserialize)]
+enum OpenAiProvider {
+    #[serde(rename = "openai_responses")]
+    Responses,
+}
+
 /// The preview host keeps stdin open after writing the frame. Closing it
-/// signals cancellation or parent loss, allowing the child to reap Python.
+/// signals cancellation or parent loss, allowing the child to stop transport.
 pub fn run_child(config: &WorkerConfig) -> ExitCode {
     let result = run(config).unwrap_or_else(|failure| json!({"error": failure}));
     let mut output = io::stdout().lock();
@@ -57,10 +79,17 @@ fn run(config: &WorkerConfig) -> Result<Value, Error> {
                 .await
                 .map_err(|_| error(ErrorCode::TIMEOUT))?
                 .map_err(|_| worker_exited())??;
-            complete(config, &input.destination, &input.request, async {
+            let cancelled = async {
                 let _ = eof.await;
-            })
-            .await
+            };
+            match input {
+                Input::Ollama(input) => {
+                    complete(config, &input.destination, &input.request, cancelled).await
+                }
+                Input::OpenAi(input) => {
+                    complete_openai(&input.request, &input.credential, cancelled).await
+                }
+            }
         })
 }
 

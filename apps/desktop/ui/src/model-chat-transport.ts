@@ -1,7 +1,7 @@
 import type {
   AiTextChartEvidence, AiTextConnectionCommand11, AiTextConnectionInput, AiTextConnectionOutput, AiTextConnectionReply11, VisibleRange,
 } from '../../../../contracts/generated/protocol';
-import { exchangeWorkspace } from './use-local-workspace';
+import { exchangeOpenAiCredential, exchangeWorkspace } from './use-local-workspace';
 
 export type ModelResult<Action extends AiTextConnectionInput['action']> =
   Extract<AiTextConnectionOutput, { action: Action }>;
@@ -13,6 +13,12 @@ export type ModelChartSelection = {
   datasetRevision: string;
   range: VisibleRange;
 };
+export type OpenAiCredential = {
+  configured: boolean;
+  lifetime: 'session' | 'windows_credential_manager';
+};
+
+export const openAiDestination = 'https://api.openai.com/v1/responses';
 
 export function modelErrorCode(error: unknown) {
   return error && typeof error === 'object' && 'code' in error ? error.code : undefined;
@@ -22,7 +28,18 @@ function validRoute(route: ModelRoute | null | undefined) {
   return route && typeof route.destination === 'string' && typeof route.model === 'string'
     && (route.kind === 'ollama' && route.charge_basis === 'endpoint_operator'
       && (route.scope === 'conversation_text' || route.scope === 'conversation_text_and_sample_closes')
+      || route.kind === 'openai_responses' && route.destination === openAiDestination
+        && route.charge_basis === 'openai_api_account' && route.scope === 'conversation_text'
       || route.kind === 'offline_mock' && route.charge_basis === 'none' && route.scope === 'conversation_text');
+}
+
+export async function openAiCredential(args: Parameters<typeof exchangeOpenAiCredential>[0],
+  signal: AbortSignal,
+): Promise<OpenAiCredential> {
+  const reply = await exchangeOpenAiCredential<OpenAiCredential>(args, signal);
+  if (typeof reply?.configured !== 'boolean'
+    || reply.lifetime !== 'session' && reply.lifetime !== 'windows_credential_manager') throw { code: 'OUTPUT_INVALID' };
+  return { configured: reply.configured, lifetime: reply.lifetime };
 }
 
 function validConnection(connection: ModelConnection | null | undefined) {

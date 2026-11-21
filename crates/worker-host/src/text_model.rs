@@ -20,7 +20,9 @@ use crate::{
 };
 
 mod carrier;
+mod openai;
 pub use carrier::run_child;
+pub use openai::complete_openai;
 
 pub const TURN_DEADLINE: Duration = Duration::from_secs(45);
 const MAX_FRAME_BYTES: usize = 512 * 1024;
@@ -213,6 +215,7 @@ fn error(code: ErrorCode) -> Error {
     let message = match code {
         ErrorCode::INVALIDARGUMENT => "The selected text model request is invalid.",
         ErrorCode::DATAUNAVAILABLE => "The selected text model route is unavailable.",
+        ErrorCode::PERMISSIONDENIED => "OpenAI rejected the credential or account access.",
         ErrorCode::OUTPUTINVALID => "The selected text model returned an invalid reply.",
         ErrorCode::RESOURCELIMIT => "The text model turn exceeded its size limit.",
         ErrorCode::TIMEOUT => "The text model did not reply before the deadline.",

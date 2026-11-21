@@ -96,7 +96,24 @@ export async function exchangeWorkspace<T>(body: LocalRequest, signal: AbortSign
     signal.throwIfAborted();
     return value;
   }
-  const response = await fetch('/__scopehub/workspace', {
+  return postWorkspace<T>('/__scopehub/workspace', body, signal);
+}
+
+export async function exchangeOpenAiCredential<T>(body: {
+  action: 'status' | 'remove';
+} | { action: 'replace'; secret: string }, signal: AbortSignal): Promise<T> {
+  if (nativeModel) {
+    signal.throwIfAborted();
+    const value = await invoke<T>('configure_openai_credential', body);
+    signal.throwIfAborted();
+    return value;
+  }
+  if (!launchCapability) throw { code: 'PERMISSION_DENIED' };
+  return postWorkspace<T>('/__scopehub/model-credential', body, signal);
+}
+
+async function postWorkspace<T>(path: string, body: object, signal: AbortSignal): Promise<T> {
+  const response = await fetch(path, {
     method: 'POST', mode: 'same-origin', credentials: 'omit', redirect: 'error', signal,
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${launchCapability}` }, body: JSON.stringify(body),
   });

@@ -13,11 +13,14 @@ use scopehub_application::{
     PUBLISH_LOCAL_IMPORT, READ_LOCAL_FOLDER_REVISION, READ_LOCAL_FOLDER_SOURCE_ROW,
     READ_LOCAL_IMPORT_REVISION, READ_LOCAL_IMPORT_SOURCE_ROW, REVOKE_LOCAL_FOLDER_REVISION,
     REVOKE_LOCAL_IMPORT_REVISION, RUN_INDICATOR_PREVIEW, SAVE_LOCAL_IMPORT_MAPPING,
-    SELECT_EVIDENCE, failure, is_sample_evidence_selection, is_sample_indicator_preview,
+    SELECT_EVIDENCE, TextModelProvider, TextModelWork, failure, is_sample_evidence_selection,
+    is_sample_indicator_preview,
 };
 use scopehub_domain::protocol::{Error, ErrorCode};
 use scopehub_platform::local_folder::LocalFolderHost;
+use scopehub_platform::model_credentials::OpenAiCredentials;
 use scopehub_worker_host::market::{MarketWorker, WorkerConfig};
+use scopehub_worker_host::text_model;
 use serde_json::Value;
 #[cfg(windows)]
 use tauri::ipc::Channel;
@@ -25,7 +28,10 @@ use tokio::sync::{Mutex, MutexGuard, oneshot};
 #[cfg(windows)]
 use {scopehub_worker_host::market::run_subscription, serde_json::json};
 
-use crate::{local_import::LocalImport, workspace::WorkspaceBridge};
+use crate::{
+    local_import::LocalImport,
+    workspace::{WorkspaceBridge, credential_failure},
+};
 
 pub struct State {
     reads: Mutex<MarketRegistry<MarketWorker>>,
@@ -89,8 +95,8 @@ fn state_with_profile(app_local_data: Option<&Path>, enable_workspace: bool) -> 
     State {
         reads: Mutex::new(MarketRegistry::new(MarketWorker::new(development_config()))),
         local_import: LocalImport::new(development_config()),
-        workspace: WorkspaceBridge::development(
-            app_local_data.filter(|_| cfg!(debug_assertions)),
+        workspace: WorkspaceBridge::local(
+            app_local_data,
             enable_workspace && cfg!(debug_assertions),
         ),
         trusted_jobs: Mutex::new(tokio::task::JoinSet::new()),
@@ -125,25 +131,11 @@ impl State {
                 // holds the SQLite admission slot while awaiting the network.
                 let mut jobs = self.trusted_jobs.lock().await;
                 let (reply, work) = self.workspace.dispatch_text_connection(payload).await?;
-                if let Some(work) = work {
+                if let Some((profile_id, work)) = work {
                     while jobs.try_join_next().is_some() {}
+                    let credentials = self.workspace.openai_credentials();
                     jobs.spawn(async move {
-                        let response = if let Some(mut config) = development_config() {
-                            config.deadline = scopehub_worker_host::text_model::TURN_DEADLINE;
-                            scopehub_worker_host::text_model::complete(
-                                &config,
-                                work.destination(),
-                                work.request(),
-                                async {
-                                    while !work.is_cancelled() {
-                                        tokio::time::sleep(Duration::from_millis(25)).await;
-                                    }
-                                },
-                            )
-                            .await
-                        } else {
-                            Err(failure(ErrorCode::PROVIDERNOTCONFIGURED))
-                        };
+                        let response = complete_text_work(&work, &credentials, &profile_id).await;
                         work.finish(response);
                     });
                 }
@@ -212,6 +204,19 @@ impl State {
                     .await
             }
         }
+    }
+
+    #[cfg(any(windows, test))]
+    async fn configure_openai_credential(
+        &self,
+        window_label: &str,
+        action: String,
+        secret: Option<String>,
+    ) -> Result<Value, Error> {
+        authorize_window(window_label)?;
+        self.workspace
+            .configure_openai_credential(action, secret)
+            .await
     }
 
     /// Native launcher/picker entry. Webview operation payloads have no access
@@ -404,12 +409,58 @@ impl State {
     }
 }
 
+async fn complete_text_work(
+    work: &TextModelWork,
+    credentials: &OpenAiCredentials,
+    profile_id: &str,
+) -> Result<Value, Error> {
+    let cancelled = async {
+        while !work.is_cancelled() {
+            tokio::time::sleep(Duration::from_millis(25)).await;
+        }
+    };
+    match work.provider() {
+        TextModelProvider::Ollama => {
+            let mut config =
+                development_config().ok_or_else(|| failure(ErrorCode::PROVIDERNOTCONFIGURED))?;
+            config.deadline = text_model::TURN_DEADLINE;
+            text_model::complete(&config, work.destination(), work.request(), cancelled).await
+        }
+        TextModelProvider::OpenAiResponses {
+            credential_revision,
+        } => {
+            if work.is_cancelled() {
+                return Err(failure(ErrorCode::CANCELLED));
+            }
+            let credential = credentials
+                .resolve(profile_id, &credential_revision.to_string())
+                .map_err(credential_failure)?
+                .ok_or_else(|| failure(ErrorCode::PROVIDERNOTCONFIGURED))?;
+            text_model::complete_openai(work.request(), credential.as_bearer_token(), cancelled)
+                .await
+        }
+    }
+}
+
 fn authorize_window(label: &str) -> Result<(), Error> {
     if label == "main" {
         Ok(())
     } else {
         Err(failure(ErrorCode::PERMISSIONDENIED))
     }
+}
+
+#[cfg(windows)]
+#[tauri::command]
+pub async fn configure_openai_credential(
+    window: tauri::WebviewWindow,
+    state: tauri::State<'_, State>,
+    action: String,
+    secret: Option<String>,
+) -> Result<Value, Error> {
+    state
+        .configure_openai_credential(window.label(), action, secret)
+        .await
 }
 
 #[cfg(windows)]

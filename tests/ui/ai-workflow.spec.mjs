@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
-import { buildPreview, persistedRows, seedDisplayOnlyChart, withPeer, withProfile, withWorkspace, workspaceEndpoint } from './ai-workflow-fixture.mjs';
+import { buildPreview, credentialEndpoint, persistedRows, seedDisplayOnlyChart, withPeer, withProfile, withWorkspace, workspaceEndpoint } from './ai-workflow-fixture.mjs';
 import { control, openPanel } from './workspace-controls.mjs';
 import { checkModelConnectionBoundaries } from './model-connection-boundaries.mjs';
 
@@ -35,6 +35,9 @@ const cancelled = 'Turn cancelled. Connect and enable again to send another ques
 const chat = page => page.getByRole('dialog', { name: 'Ask AI' });
 const settings = page => page.getByRole('dialog', { name: 'AI settings' });
 const question = page => chat(page).getByLabel('Question');
+const selectedModel = page => settings(page).getByLabel('Model', { exact: true });
+const provider = page => settings(page).getByLabel('Provider', { exact: true });
+const apiKey = page => settings(page).getByLabel('OpenAI API key', { exact: true });
 const user = content => ({ role: 'user', content });
 const assistant = content => ({ role: 'assistant', content });
 
@@ -75,14 +78,14 @@ async function propose(page, origin, chartAccess = false) {
   return activation;
 }
 
-async function activateRoute(page, button) {
+async function activateRoute(page, button, name = 'Ollama') {
   const [reply] = await Promise.all([
     page.waitForResponse(response => isAction(response.request(), 'activate')),
     button.click(),
   ]);
   const frame = await reply.json();
   expect(frame).toMatchObject({ ok: true, result: { outcome: { state: 'completed' } } });
-  await expect(chat(page).getByText(/^Ollama connected/)).toBeVisible();
+  await expect(chat(page).getByText(new RegExp(`^${name} connected`))).toBeVisible();
   return frame.result.outcome.result.connection.connection_id;
 }
 
@@ -95,6 +98,45 @@ function isAction(request, name) {
   if (new URL(request.url()).pathname !== workspaceEndpoint) return false;
   const intent = request.postDataJSON()?.intent;
   return intent?.operation === 'ai.textConnection' && intent.arguments?.action === name;
+}
+
+function modelCommand(args) {
+  return {
+    protocol_version: '1.1', type: 'request', request_id: randomUUID(), message_id: randomUUID(),
+    timestamp_ms: Date.now(), scope: { workspace_id: 'main' },
+    intent: { operation: 'ai.textConnection', arguments: args },
+  };
+}
+
+async function assertCloudRevoked(dispatch, connectionId) {
+  const status = await dispatch(modelCommand({ action: 'status' }));
+  expect(status).toMatchObject({ ok: true, result: { outcome: {
+    state: 'completed', result: { connection: null, turn_id: null },
+  } } });
+  // A stale disconnect checks the grant without sending a question to the provider.
+  const previous = await dispatch(modelCommand({ action: 'disconnect', connection_id: connectionId }));
+  expect(previous).toMatchObject({ ok: true, result: { outcome: { state: 'failed', error: { code: 'STALE_CONTEXT' } } } });
+}
+
+function assertKeyAbsent(value, keys) {
+  const serialized = JSON.stringify(value);
+  expect(keys.some(key => serialized.includes(key)), 'The reply contains no synthetic API key').toBe(false);
+}
+
+async function updateCloudKey(page, action, label, keys, secret) {
+  if (secret) await apiKey(page).fill(secret);
+  const [response] = await Promise.all([
+    page.waitForResponse(reply => new URL(reply.url()).pathname === credentialEndpoint
+      && reply.request().postDataJSON()?.action === action),
+    control(settings(page), label).click(),
+  ]);
+  expect(response.status()).toBe(200);
+  expect(response.headers()['cache-control']).toBe('no-store');
+  const reply = await response.json();
+  assertKeyAbsent(reply, keys);
+  expect(reply).toEqual({ ok: true, result: { configured: action === 'replace', lifetime: 'session' } });
+  await expect(apiKey(page)).toBeEnabled();
+  expect(await apiKey(page).inputValue() === '', 'The password field is cleared after submission').toBe(true);
 }
 
 async function observeAction(page, name, action) {
@@ -661,4 +703,102 @@ test('rotating a pending chart selection blocks tool data and cancellation disca
       await retainTraffic(testInfo, peer.traffic);
     }
   })));
+});
+
+test('OpenAI settings manage a scoped session key and leave the Ollama route usable', async ({ browser }, testInfo) => {
+  const cloudModel = 'synthetic-cloud-text-1';
+  const keys = [0, 1].map(() => `synthetic-key-${randomUUID()}`);
+  const cloudChoice = { kind: 'openai_responses', model: cloudModel };
+  let openAiTurnsSubmitted;
+  let deniedStatus;
+  let unsupportedStatus;
+  let restartLifetime;
+  await withPeer(peer => withProfile(async profile => {
+    await withWorkspace(browser, profile, async (page, dispatch, dispatchCredential) => {
+      let sends = 0;
+      page.on('request', request => { if (isAction(request, 'send')) sends += 1; });
+      await askBeforeSetup(page);
+      await provider(page).selectOption('openai_responses');
+      await expect(settings(page)).toContainText('This key is available only for this app session.');
+      await expect(settings(page)).toContainText('No OpenAI API key configured.');
+      await expect(selectedModel(page)).toHaveValue('');
+      await expect(settings(page).getByLabel('Server origin')).toHaveCount(0);
+      await selectedModel(page).fill(cloudModel);
+      await expect(control(settings(page), 'Review connection')).toBeDisabled();
+
+      const denied = await dispatchCredential({ action: 'replace', secret: keys[0] }, false);
+      deniedStatus = denied.status;
+      assertKeyAbsent(denied, keys);
+      expect(denied).toMatchObject({ status: 403, cacheControl: 'no-store', body: { ok: false, error: { code: 'PERMISSION_DENIED' } } });
+      const unsupported = await dispatchCredential({ action: 'read' });
+      unsupportedStatus = unsupported.status;
+      expect(unsupported).toMatchObject({ status: 400, cacheControl: 'no-store', body: { ok: false, error: { code: 'INVALID_ARGUMENT' } } });
+      const absent = await dispatch(modelCommand({ action: 'propose', route: cloudChoice }));
+      expect(absent).toMatchObject({ ok: true, result: { outcome: {
+        state: 'failed', error: { code: 'PROVIDER_NOT_CONFIGURED' },
+      } } });
+
+      async function enableCloud() {
+        await control(settings(page), 'Review connection').click();
+        const review = settings(page).getByRole('region', { name: 'Review model connection' });
+        await expect(review.getByText('OpenAI Responses', { exact: true })).toBeVisible();
+        await expect(review.getByText('https://api.openai.com/v1/responses', { exact: true })).toBeVisible();
+        await expect(review.getByText(cloudModel, { exact: true })).toBeVisible();
+        await expect(review).toContainText('Typed questions and up to four earlier question and answer pairs in this session.');
+        await expect(review).toContainText('OpenAI meters use under the API account or project associated with your key.');
+        return activateRoute(page, control(review, 'Connect and enable'), 'OpenAI Responses');
+      }
+
+      await updateCloudKey(page, 'replace', 'Save API key', keys, keys[0]);
+      const first = await enableCloud();
+      await control(chat(page), 'AI settings').click();
+      await updateCloudKey(page, 'replace', 'Replace API key', keys, keys[1]);
+      await assertCloudRevoked(dispatch, first);
+
+      const second = await enableCloud();
+      await control(chat(page), 'AI settings').click();
+      await updateCloudKey(page, 'remove', 'Remove API key', keys);
+      await expect(settings(page)).toContainText('No OpenAI API key configured.');
+      await assertCloudRevoked(dispatch, second);
+
+      await updateCloudKey(page, 'replace', 'Save API key', keys, keys[1]);
+      await enableCloud();
+      await control(chat(page), 'AI settings').click();
+      await control(settings(page), 'Change connection').click();
+      await provider(page).selectOption('ollama');
+      await expect(selectedModel(page)).toHaveValue('');
+      await activateRoute(page, await propose(page, peer.origin));
+      openAiTurnsSubmitted = sends;
+      expect(openAiTurnsSubmitted, 'No send was submitted on either route before the ordinary Ollama turn').toBe(0);
+      expect(peer.traffic).toEqual([]);
+      await send(page);
+      await expect(chat(page).getByText('Synthetic peer reply 1', { exact: true })).toBeVisible();
+      expect(sends).toBe(1);
+      expect(peer.traffic).toHaveLength(1);
+      expectRequest(peer.traffic[0], [user(firstQuestion)]);
+      assertKeyAbsent(peer.traffic, keys);
+    }, keys);
+
+    await withWorkspace(browser, profile, async (page, dispatch, dispatchCredential) => {
+      await askBeforeSetup(page);
+      await provider(page).selectOption('openai_responses');
+      await expect(settings(page)).toContainText('No OpenAI API key configured.');
+      await expect(selectedModel(page)).toHaveValue('');
+      const restarted = await dispatchCredential({ action: 'status' });
+      assertKeyAbsent(restarted, keys);
+      expect(restarted).toEqual({ status: 200, cacheControl: 'no-store', body: { ok: true, result: { configured: false, lifetime: 'session' } } });
+      restartLifetime = restarted.body.result.lifetime;
+      const status = await dispatch(modelCommand({ action: 'status' }));
+      expect(status).toMatchObject({ ok: true, result: { outcome: {
+        state: 'completed', result: { connection: null, turn_id: null },
+      } } });
+    }, keys);
+
+    await testInfo.attach('synthetic-cloud-settings', {
+      body: JSON.stringify({ deniedStatus, unsupportedStatus, replacedAndRemovedGrantsRevoked: true,
+        configuredAfterRestart: false, restartLifetime, openAiTurnsSubmitted,
+        ollamaTurns: peer.traffic.length, ollamaAuthorizationPresent: peer.traffic[0].authorizationPresent }),
+      contentType: 'application/json',
+    });
+  }));
 });

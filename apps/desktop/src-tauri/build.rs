@@ -3,6 +3,7 @@ fn main() {
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(
         tauri_build::AppManifest::new().commands(&[
             "execute_operation",
+            "configure_openai_credential",
             "execute_market_subscription",
             "cancel_market_subscription",
             "prepare_market_subscription",

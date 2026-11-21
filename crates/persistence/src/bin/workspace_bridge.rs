@@ -10,8 +10,8 @@ use std::{
 use scopehub_application::{
     AI_TEXT_CONNECTION, Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE,
     LOCAL_WORKSPACE_OPERATIONS, OperationRegistry, PRIVATE_RECORD_CHANGE,
-    READ_LOCAL_IMPORT_REVISION, TextModelWork, WorkspaceAccess, WorkspaceBinding,
-    evidence_operation_name, failure,
+    READ_LOCAL_IMPORT_REVISION, TextModelProvider, TextModelWork, WorkspaceAccess,
+    WorkspaceBinding, evidence_operation_name, failure,
 };
 use scopehub_domain::{
     protocol::{Error, ErrorCode},
@@ -213,6 +213,38 @@ fn serve(
             continue;
         }
         if let Ok(request) = &request
+            && request["type"] == "ai_openai_credential_changed"
+        {
+            // The authenticated preview owns the session key. The writer
+            // receives only its opaque revision on this private pipe.
+            let result = (|| {
+                let invalid = || failure(ErrorCode::INVALIDARGUMENT);
+                let (_, revision) = request
+                    .as_object()
+                    .filter(|frame| frame.len() == 2)
+                    .and_then(|frame| frame.get_key_value("revision"))
+                    .ok_or_else(invalid)?;
+                let revision = if revision.is_null() {
+                    None
+                } else {
+                    Some(
+                        revision
+                            .as_str()
+                            .and_then(|id| uuid::Uuid::parse_str(id).ok())
+                            .ok_or_else(invalid)?,
+                    )
+                };
+                registry.refresh_openai_credential(access, revision)?;
+                if model_work
+                    .as_ref()
+                    .is_some_and(|(_, work)| work.is_cancelled())
+                {
+                    model_work = None;
+                }
+                Ok(Value::Null)
+            })();
+            write_frame(&mut output, result_frame(result))?;
+        } else if let Ok(request) = &request
             && request["type"] == "snapshot"
         {
             // Private stdio control frame, separate from registered 1.1 commands.
@@ -359,12 +391,18 @@ fn serve(
                     Value::String(serde_json::to_string(&work.request).map_err(io::Error::other)?);
             }
             if let Some((id, work)) = next_model_work {
-                frame["text_model_work"] = Value::String(
-                    json!({
+                let projection = match work.provider() {
+                    TextModelProvider::Ollama => json!({
                         "destination": work.destination(), "request": work.request(),
-                    })
-                    .to_string(),
-                );
+                    }),
+                    TextModelProvider::OpenAiResponses {
+                        credential_revision,
+                    } => json!({
+                        "provider": "openai_responses", "credential_revision": credential_revision.to_string(),
+                        "request": work.request(),
+                    }),
+                };
+                frame["text_model_work"] = Value::String(projection.to_string());
                 model_work = Some((id, work));
             }
             write_frame(&mut output, frame)?;

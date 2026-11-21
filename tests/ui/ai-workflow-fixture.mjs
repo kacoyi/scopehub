@@ -29,6 +29,7 @@ const service = `
 `;
 
 export const workspaceEndpoint = '/__scopehub/workspace';
+export const credentialEndpoint = '/__scopehub/model-credential';
 
 export async function buildPreview() {
   await exec('cargo', ['build', '--locked', '--target-dir', 'target',
@@ -97,7 +98,7 @@ export function persistedRows(profile) {
   }
 }
 
-export async function withWorkspace(browser, profile, use) {
+export async function withWorkspace(browser, profile, use, protectedValues = []) {
   const child = spawn(process.execPath, ['--input-type=module', '--eval', service, vite], {
     cwd: ui,
     env: {
@@ -110,9 +111,14 @@ export async function withWorkspace(browser, profile, use) {
   });
   const closed = once(child, 'close');
   let output = '';
+  let keyLogged = false;
   for (const stream of [child.stdout, child.stderr]) {
     stream.setEncoding('utf8');
-    stream.on('data', chunk => { output = (output + chunk).slice(-4000); });
+    stream.on('data', chunk => {
+      const next = output + chunk;
+      keyLogged ||= protectedValues.some(value => next.includes(value));
+      output = next.slice(-4000);
+    });
   }
   try {
     const [port] = await Promise.race([
@@ -145,16 +151,22 @@ export async function withWorkspace(browser, profile, use) {
         return route.abort();
       });
       const page = await context.newPage();
+      page.on('console', message => { keyLogged ||= protectedValues.some(value => message.text().includes(value)); });
       await page.goto(origin);
-      const dispatch = async (frame, padding = 0) => {
-        const response = await fetch(origin + workspaceEndpoint, {
-          method: 'POST', signal: AbortSignal.timeout(8_000),
-          headers: { Origin: origin, 'Content-Type': 'application/json', Authorization: 'Bearer ' + capability },
-          body: JSON.stringify(frame) + ' '.repeat(padding),
-        });
-        return response.json();
+      const post = (path, frame, authorized = true, padding = 0) => fetch(origin + path, {
+        method: 'POST', signal: AbortSignal.timeout(8_000),
+        headers: {
+          Origin: origin, 'Content-Type': 'application/json',
+          ...(authorized ? { Authorization: 'Bearer ' + capability } : {}),
+        },
+        body: JSON.stringify(frame) + ' '.repeat(padding),
+      });
+      const dispatch = async (frame, padding = 0) => (await post(workspaceEndpoint, frame, true, padding)).json();
+      const dispatchCredential = async (frame, authorized) => {
+        const response = await post(credentialEndpoint, frame, authorized);
+        return { status: response.status, cacheControl: response.headers.get('cache-control'), body: await response.json() };
       };
-      await use(page, dispatch);
+      await use(page, dispatch, dispatchCredential);
       expect(browserSends, 'Browser requests use only the local workspace transport').toEqual([]);
       expect(output.includes(capability), 'The preview never logs the workspace capability').toBe(false);
     } finally {
@@ -166,6 +178,7 @@ export async function withWorkspace(browser, profile, use) {
     try {
       const [code] = await closed;
       expect(code, 'The owned preview exits cleanly').toBe(0);
+      expect(keyLogged, 'The preview and browser console never log a synthetic API key').toBe(false);
     } finally {
       clearTimeout(grace);
     }

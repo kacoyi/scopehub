@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=165474d03e9c67983014341715fa9f74707123ee613aab05cc5603c42ca35c5c. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=b3c912e00eecfbc651c92c3b6750679f8bd66dd6160830b6d8bd2d0713f19dc0. Do not edit.
 // Structural types and literal discriminators: validate schema refinements before deserializing.
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -5079,10 +5079,17 @@ pub struct AiTextOfflineMockChoice {
     pub kind: AiTextOfflineMockChoiceKind,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextOpenAiChoice {
+    pub kind: AiTextOpenAiChoiceKind,
+    pub model: String,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]
 pub enum AiTextRouteChoice {
     AiTextOllamaChoice(Box<AiTextOllamaChoice>),
     AiTextOfflineMockChoice(Box<AiTextOfflineMockChoice>),
+    AiTextOpenAiChoice(Box<AiTextOpenAiChoice>),
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -5103,10 +5110,20 @@ pub struct AiTextOfflineMockRoute {
     pub charge_basis: AiTextOfflineMockRouteChargeBasis,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiTextOpenAiRoute {
+    pub kind: AiTextOpenAiRouteKind,
+    pub destination: AiTextOpenAiRouteDestination,
+    pub model: String,
+    pub scope: AiTextOpenAiRouteScope,
+    pub charge_basis: AiTextOpenAiRouteChargeBasis,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]
 pub enum AiTextRoute {
     AiTextOllamaRoute(Box<AiTextOllamaRoute>),
     AiTextOfflineMockRoute(Box<AiTextOfflineMockRoute>),
+    AiTextOpenAiRoute(Box<AiTextOpenAiRoute>),
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -11081,6 +11098,18 @@ impl AiTextOfflineMockChoiceKind {
     }
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextOpenAiChoiceKind {
+    #[serde(rename = "openai_responses")]
+    Value,
+}
+impl AiTextOpenAiChoiceKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "openai_responses",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum AiTextOllamaRouteKind {
     #[serde(rename = "ollama")]
     Value,
@@ -11176,6 +11205,54 @@ impl AiTextOfflineMockRouteChargeBasis {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Value => "none",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextOpenAiRouteKind {
+    #[serde(rename = "openai_responses")]
+    Value,
+}
+impl AiTextOpenAiRouteKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "openai_responses",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextOpenAiRouteDestination {
+    #[serde(rename = "https://api.openai.com/v1/responses")]
+    Value,
+}
+impl AiTextOpenAiRouteDestination {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "https://api.openai.com/v1/responses",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextOpenAiRouteScope {
+    #[serde(rename = "conversation_text")]
+    Value,
+}
+impl AiTextOpenAiRouteScope {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "conversation_text",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AiTextOpenAiRouteChargeBasis {
+    #[serde(rename = "openai_api_account")]
+    Value,
+}
+impl AiTextOpenAiRouteChargeBasis {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "openai_api_account",
         }
     }
 }

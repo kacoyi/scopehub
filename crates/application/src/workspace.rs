@@ -29,7 +29,9 @@ mod source;
 pub use source::{FrozenWorkspaceSourceStatus, WorkspaceSourcePreference, WorkspaceSourceView};
 mod text_connection;
 pub(crate) use text_connection::TextConnection;
-pub use text_connection::{AI_TEXT_CONNECTION, TextModelWork};
+pub use text_connection::{
+    AI_TEXT_CONNECTION, OPENAI_RESPONSES_DESTINATION, TextModelProvider, TextModelWork,
+};
 
 pub(crate) use indicators::IndicatorStage;
 pub use indicators::{

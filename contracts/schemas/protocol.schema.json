@@ -16030,6 +16030,9 @@
         },
         {
           "$ref": "#/$defs/AiTextOfflineMockChoice"
+        },
+        {
+          "$ref": "#/$defs/AiTextOpenAiChoice"
         }
       ]
     },
@@ -16040,6 +16043,9 @@
         },
         {
           "$ref": "#/$defs/AiTextOfflineMockRoute"
+        },
+        {
+          "$ref": "#/$defs/AiTextOpenAiRoute"
         }
       ]
     },
@@ -16295,6 +16301,59 @@
         "charge_basis": {
           "type": "string",
           "const": "none"
+        }
+      },
+      "required": [
+        "kind",
+        "destination",
+        "model",
+        "scope",
+        "charge_basis"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextOpenAiChoice": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "openai_responses"
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "kind",
+        "model"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextOpenAiRoute": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "openai_responses"
+        },
+        "destination": {
+          "type": "string",
+          "const": "https://api.openai.com/v1/responses"
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "scope": {
+          "type": "string",
+          "const": "conversation_text"
+        },
+        "charge_basis": {
+          "type": "string",
+          "const": "openai_api_account"
         }
       },
       "required": [

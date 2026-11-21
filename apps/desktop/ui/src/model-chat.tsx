@@ -1,6 +1,10 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import type { AiTextChartEvidence, AiTextRouteChoice, VisibleRange } from '../../../../contracts/generated/protocol';
-import { exchangeModel, modelErrorCode, type ModelChartSelection, type ModelConnection, type ModelResult, type ModelRoute } from './model-chat-transport';
+import { CloudCredentialSettings, providerName, RouteDisclosure } from './model-chat-settings';
+import {
+  exchangeModel, modelErrorCode, openAiCredential, openAiDestination,
+  type ModelChartSelection, type ModelConnection, type ModelResult, type OpenAiCredential,
+} from './model-chat-transport';
 import './model-chat.css';
 
 export type ModelChatView = 'question' | 'settings';
@@ -24,6 +28,7 @@ type CompletedTurn = {
 };
 
 const unavailableModel = 'The model could not answer. Check the configured server and try again.';
+const missingOpenAiKey = 'Enter an OpenAI API key in AI settings, then review the connection again.';
 const unknownTurn = 'The workspace could not confirm this turn. Check its status to continue.';
 const deniedChart = 'Selected chart data is unavailable to this model connection.';
 const staleChart = 'The chart selection changed. Send the question again for the current selection.';
@@ -49,21 +54,31 @@ function modelFailure(error: unknown) {
   }
 }
 
-function RouteDisclosure({ route }: { route: ModelRoute }) {
-  return <>
-    <dl className="model-route">
-      <dt>Provider</dt><dd>{route.kind === 'ollama' ? 'Ollama' : 'Offline mock'}</dd>
-      <dt>Destination</dt><dd><bdi>{route.destination}</bdi></dd>
-      <dt>Model</dt><dd><bdi>{route.model}</bdi></dd>
-      <dt>Scope</dt><dd>Typed questions and up to four earlier question and answer pairs in this session.{' '}
-        {route.scope === 'conversation_text_and_sample_closes'
-          ? 'The model can request close prices and times from the selected interval of the offline sample. CSV data and saved private records stay local.'
-          : 'Chart data and saved private records stay local.'}</dd>
-      <dt>Charges</dt><dd>{route.charge_basis === 'none' ? 'None' : 'Set by the server operator. Check its fees before enabling.'}</dd>
-    </dl>
-    <p className="model-muted">This connection lasts for this app session. Enable it again after restarting ScopeHub.</p>
-    {route.kind === 'ollama' && <p className="model-muted">The server operator may process or forward requests, even at a loopback address. Disconnect in AI settings to stop future sends.</p>}
-  </>;
+function routeSetupFailure(error: unknown, kind: AiTextRouteChoice['kind'] | undefined) {
+  if (kind === 'openai_responses') {
+    switch (modelErrorCode(error)) {
+      case 'INVALID_ARGUMENT': return 'Enter a valid OpenAI model ID.';
+      case 'PROVIDER_NOT_CONFIGURED': return missingOpenAiKey;
+    }
+  }
+  return modelFailure(error);
+}
+
+function textTurnFailure(connection: ModelConnection, error: unknown) {
+  const code = modelErrorCode(error);
+  if (connection.route.kind === 'openai_responses') {
+    if (code === 'PROVIDER_NOT_CONFIGURED') return missingOpenAiKey;
+    if (code === 'PERMISSION_DENIED') {
+      return 'OpenAI rejected the API key or account permissions. Update the key in AI settings and review the connection again.';
+    }
+    if (code === 'INVALID_ARGUMENT') {
+      return 'OpenAI could not use the selected model for this request. Check the model ID in AI settings and try again.';
+    }
+    if (['DATA_UNAVAILABLE', 'WORKER_EXITED', 'OUTPUT_INVALID'].includes(String(code))) {
+      return 'OpenAI could not answer. Check that the selected model is available to your API account and try again.';
+    }
+  }
+  return code === 'PROVIDER_NOT_CONFIGURED' ? unavailableModel : modelFailure(error);
 }
 
 function intervalLabel(range: VisibleRange) {
@@ -111,8 +126,11 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection }: {
   const [connection, setConnection] = useState<ModelConnection>();
   const [proposal, setProposal] = useState<Proposal>();
   const [changing, setChanging] = useState(false);
+  const [provider, setProvider] = useState<'ollama' | 'openai_responses'>('ollama');
   const [origin, setOrigin] = useState('');
-  const [model, setModel] = useState('');
+  const [ollamaModel, setOllamaModel] = useState('');
+  const [openAiModel, setOpenAiModel] = useState('');
+  const [credential, setCredential] = useState<OpenAiCredential>();
   const [chartTools, setChartTools] = useState(false);
   const [question, setQuestion] = useState('');
   const [turns, setTurns] = useState<CompletedTurn[]>([]);
@@ -122,13 +140,17 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection }: {
   const cancellable = trackedTurn?.observation === 'checking-send' ? undefined : trackedTurn;
   const visible = view !== undefined;
   const selection = connection?.route.scope === 'conversation_text_and_sample_closes' ? chartSelection : undefined;
+  const usingOpenAi = provider === 'openai_responses';
+  const model = usingOpenAi ? openAiModel : ollamaModel;
 
   useEffect(() => () => {
     action.current?.abort();
     pollController.current?.abort();
   }, []);
 
-  async function perform(work: (id: string, signal: AbortSignal) => Promise<void>, clearFeedback = true) {
+  async function perform(work: (id: string, signal: AbortSignal) => Promise<void>, clearFeedback = true,
+    routeKind?: AiTextRouteChoice['kind'],
+  ) {
     if (!workspaceId || action.current) return;
     const controller = new AbortController();
     action.current = controller;
@@ -144,8 +166,8 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection }: {
       await work(workspaceId, controller.signal);
     } catch (failure) {
       if (controller.signal.aborted) return;
-      setError(modelFailure(failure));
       const code = modelErrorCode(failure);
+      setError(routeSetupFailure(failure, routeKind));
       if (code === 'CONFIRMATION_REQUIRED') setProposal(undefined);
     } finally {
       if (action.current === controller) action.current = undefined;
@@ -185,11 +207,25 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection }: {
     }
   }
 
+  async function loadCredential(signal: AbortSignal) {
+    try {
+      setCredential(await openAiCredential({ action: 'status' }, signal));
+    } catch (failure) {
+      if (signal.aborted) return;
+      setCredential(undefined);
+      setError(modelErrorCode(failure) === 'BUSY' ? 'The workspace is busy. Check OpenAI key status again.'
+        : 'ScopeHub could not check the OpenAI API key. Check the local workspace and try again.');
+    }
+  }
+
   function refresh() {
     void perform(async (id, signal) => {
       try {
         const status = await exchangeModel(id, { action: 'status' }, signal);
         applyStatus(status);
+        if (view === 'settings' && (usingOpenAi || status.connection?.route.kind === 'openai_responses')) {
+          await loadCredential(signal);
+        }
       } catch {
         if (!signal.aborted) {
           setError(trackedTurn ? unknownTurn : 'The workspace could not check the model connection.');
@@ -247,7 +283,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection }: {
         if (turn.state === 'failed') {
           setError(selected && turn.error.code === 'STALE_CONTEXT' ? staleChart
             : selected && turn.error.code === 'PERMISSION_DENIED' ? deniedChart
-            : turn.error.code === 'PROVIDER_NOT_CONFIGURED' ? unavailableModel : modelFailure(turn.error));
+            : textTurnFailure(active, turn.error));
           return;
         }
         setError(undefined);
@@ -293,11 +329,19 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection }: {
       } else {
         setProposal(candidate);
       }
-    });
+    }, true, route.kind);
   }
 
-  function validateOrigin(event: FormEvent) {
+  function reviewSettings(event: FormEvent) {
     event.preventDefault();
+    if (usingOpenAi) {
+      if (!credential?.configured) {
+        setError(missingOpenAiKey);
+        return;
+      }
+      review({ kind: 'openai_responses', model: model.trim() });
+      return;
+    }
     const candidate = origin.trim();
     let url: URL | undefined;
     try { url = new URL(candidate); } catch { /* Report the invalid field below. */ }
@@ -315,7 +359,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection }: {
       setConnection(reply.connection);
       setProposal(undefined);
       show('question');
-    });
+    }, true, candidate.route.kind);
   }
 
   function disconnect(active: ModelConnection) {
@@ -323,6 +367,34 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection }: {
       await exchangeModel(id, { action: 'disconnect', connection_id: active.connection_id }, signal);
       clearSession();
       setNotice('Disconnected.');
+    });
+  }
+
+  function checkCredential() {
+    void perform((_id, signal) => loadCredential(signal));
+  }
+
+  function openSettings() {
+    show('settings');
+    if (usingOpenAi || connection?.route.kind === 'openai_responses') checkCredential();
+  }
+
+  function updateCredential(args: { action: 'replace'; secret: string } | { action: 'remove' }) {
+    void perform(async (_id, signal) => {
+      try {
+        setCredential(await openAiCredential(args, signal));
+        if (connection?.route.kind === 'openai_responses') {
+          clearSession();
+          setProvider('openai_responses');
+        }
+        if (proposal?.route.kind === 'openai_responses') setProposal(undefined);
+        setNotice(args.action === 'remove' ? 'OpenAI API key removed.' : 'OpenAI API key saved.');
+      } catch (failure) {
+        if (signal.aborted) return;
+        setError(modelErrorCode(failure) === 'INVALID_ARGUMENT' ? 'Enter a valid OpenAI API key.'
+          : 'ScopeHub could not update the OpenAI API key. Check its status and try again.');
+        setCredential(undefined);
+      }
     });
   }
 
@@ -341,7 +413,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection }: {
     if (!connection) {
       setError(undefined);
       setNotice(undefined);
-      show('settings');
+      openSettings();
       return;
     }
     const active = connection;
@@ -381,13 +453,18 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection }: {
   }
 
   if (!view) return null;
+  const cloudCredentialSettings = workspaceId && view === 'settings' && !proposal
+    && (connection && !changing ? connection.route.kind === 'openai_responses' : usingOpenAi)
+    ? <CloudCredentialSettings credential={credential} working={working} reload={checkCredential}
+      replace={secret => updateCredential({ action: 'replace', secret })} remove={() => updateCredential({ action: 'remove' })} />
+    : undefined;
   return <dialog ref={dialog} className="symbol-dialog decision-dialog model-dialog" data-layout-theme={theme}
     aria-labelledby={heading} onCancel={event => { event.preventDefault(); if (!working) leaveSettings(undefined); }}>
     <div className="dialog-heading">
       <h2 id={heading}>{view === 'question' ? 'Ask AI' : 'AI settings'}</h2>
       <div className="model-actions">
         {view === 'question' && <button type="button" className="secondary-button" disabled={working}
-          onClick={() => show('settings')}>AI settings</button>}
+          onClick={openSettings}>AI settings</button>}
         <button type="button" className="secondary-button" disabled={working} onClick={() => leaveSettings(undefined)}>Close</button>
       </div>
     </div>
@@ -396,7 +473,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection }: {
       {notice && <p role="status">{notice}</p>}
       {view === 'question' ? <>
         <p className="model-muted" role="status">{connection?.route.kind === 'offline_mock' ? 'Offline mock enabled'
-          : connection ? <>Ollama connected · <bdi>{connection.route.model}</bdi></> : 'No model connected'}</p>
+          : connection ? <>{providerName(connection.route.kind)} connected · <bdi>{connection.route.model}</bdi></> : 'No model connected'}</p>
         <div ref={transcript} className="model-transcript" role="log" aria-label="Conversation">
           {turns.map(turn => <article key={turn.id} className="model-turn">
             {turn.question && <div className="model-question"><h3>You</h3><p dir="auto">{turn.question}</p></div>}
@@ -426,26 +503,48 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection }: {
             <button type="button" className="primary" disabled={working} onClick={() => activate(proposal)}>Connect and enable</button>
             <button type="button" className="secondary-button" disabled={working} onClick={() => setProposal(undefined)}>Edit connection</button>
           </div>
-        </section> : connection && !changing ? <section className="model-card" aria-label="Active model connection">
-          <RouteDisclosure route={connection.route} />
-          <div className="model-actions">
-            <button type="button" className="secondary-button" disabled={working} onClick={() => disconnect(connection)}>Disconnect</button>
-            <button type="button" className="secondary-button" disabled={working} onClick={() => setChanging(true)}>Change connection</button>
-          </div>
-        </section> : <>
-          <form className="model-form model-card" onSubmit={validateOrigin}>
-            <h3>Ollama text server</h3>
-            <p className="model-muted">Use a server you control that accepts requests without sign-in. Use HTTPS for a remote server.</p>
-            <label>Server origin<input type="url" required autoComplete="off" spellCheck={false} maxLength={512}
-              placeholder="http://127.0.0.1:11434" value={origin} disabled={!workspaceId || working}
-              onChange={event => setOrigin(event.currentTarget.value)} /></label>
-            <label>Model<input required autoComplete="off" spellCheck={false} maxLength={128}
-              placeholder="Model name on the server" value={model} disabled={!workspaceId || working}
-              onChange={event => setModel(event.currentTarget.value)} /></label>
-            <label className="model-checkbox"><input type="checkbox" checked={chartTools} disabled={!workspaceId || working}
-              onChange={event => setChartTools(event.currentTarget.checked)} />Allow the selected offline sample’s close prices and times</label>
+        </section> : connection && !changing ? <>
+          <section className="model-card" aria-label="Active model connection">
+            <RouteDisclosure route={connection.route} />
             <div className="model-actions">
-              <button type="submit" className="primary" disabled={!workspaceId || working || !origin.trim() || !model.trim()}>Review connection</button>
+              <button type="button" className="secondary-button" disabled={working} onClick={() => disconnect(connection)}>Disconnect</button>
+              <button type="button" className="secondary-button" disabled={working} onClick={() => {
+                if (connection.route.kind !== 'offline_mock') setProvider(connection.route.kind);
+                setChanging(true);
+              }}>Change connection</button>
+            </div>
+          </section>
+          {cloudCredentialSettings}
+        </> : <>
+          <div className="model-form">
+            <label>Provider<select value={provider} disabled={!workspaceId || working} onChange={event => {
+              const cloud = event.currentTarget.value === 'openai_responses';
+              setProvider(cloud ? 'openai_responses' : 'ollama');
+              setError(undefined);
+              setNotice(undefined);
+              if (cloud) checkCredential();
+            }}>
+              <option value="openai_responses">OpenAI Responses</option>
+              <option value="ollama">Ollama</option>
+            </select></label>
+          </div>
+          {cloudCredentialSettings}
+          <form className="model-form model-card" onSubmit={reviewSettings}>
+            <h3>{usingOpenAi ? 'OpenAI Responses' : 'Ollama text server'}</h3>
+            {usingOpenAi ? <p className="model-muted">Use a model available to your OpenAI API account. Your first question sends a request to <bdi>{openAiDestination}</bdi>.</p>
+              : <p className="model-muted">Use a server you control that accepts requests without sign-in. Use HTTPS for a remote server.</p>}
+            {!usingOpenAi && <label>Server origin<input type="url" required autoComplete="off" spellCheck={false} maxLength={512}
+              placeholder="http://127.0.0.1:11434" value={origin} disabled={!workspaceId || working}
+              onChange={event => setOrigin(event.currentTarget.value)} /></label>}
+            <label>Model<input required autoComplete="off" spellCheck={false} maxLength={128}
+              placeholder={usingOpenAi ? 'Model ID on your API account' : 'Model name on the server'}
+              value={model} disabled={!workspaceId || working}
+              onChange={event => (usingOpenAi ? setOpenAiModel : setOllamaModel)(event.currentTarget.value)} /></label>
+            {!usingOpenAi && <label className="model-checkbox"><input type="checkbox" checked={chartTools} disabled={!workspaceId || working}
+              onChange={event => setChartTools(event.currentTarget.checked)} />Allow the selected offline sample’s close prices and times</label>}
+            <div className="model-actions">
+              <button type="submit" className="primary" disabled={!workspaceId || working || !model.trim()
+                || (usingOpenAi ? !credential?.configured : !origin.trim())}>Review connection</button>
             </div>
           </form>
           <section className="model-card" aria-label="Offline demonstration">
