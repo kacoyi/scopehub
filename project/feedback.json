@@ -1229,6 +1229,22 @@
         "prevention": "Hosted run 44589094507 passed the three-instrument journey, eight replay tests and twenty quality cases on Windows and Ubuntu. The controlled lost response recovers the same eight 5-minute bars and original final close 12.15 and volume 510. The healthy assertion fails immediately on an unexpected current terminal."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "local-worktree-build-cache-growth",
+      "source": "Owner storage review and repository-scoped allocated-block inventory on 2026-11-20.",
+      "observation": "Across 45 existing worktrees, Cargo target directories occupied approximately 178.4 GiB of 194.8 GiB measured. Repeated local builds had no repository-wide retention budget.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-029"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "project-state"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

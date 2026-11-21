@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-001",
+  "focus_task_id": "M0-029",
   "tasks": [
     {
       "id": "M0-001",
@@ -6581,6 +6581,107 @@
           ],
           "data_plan": "Use the existing simulated source and disposable local fixtures.",
           "cleanup": "Keep failed and successful logs and remove temporary listeners with their request scopes."
+        }
+      }
+    },
+    {
+      "id": "M0-029",
+      "title": "Bound local Cargo cache growth across ScopeHub worktrees",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-025"
+      ],
+      "scope": [
+        "scripts",
+        "tests/project",
+        "package.json",
+        "project/tasks.json",
+        "project/feedback.json",
+        "AGENTS.md"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Report allocated development cache usage for this Git repository and identify retained items. A read-only invocation must never remove files.",
+        "Normal local verification or Herdr activity enforces a documented high and low watermark for eligible idle Cargo caches. Active or unidentifiable caches, retained evidence, release artifacts, profiles, source and other repositories stay protected.",
+        "On the affected Linux host, measure the actual space recovered and verify retained work and acceptance evidence after collection."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Audit recovered space and retained evidence on the affected Linux host, then archive acceptance evidence.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Reclaim rebuildable build intermediates and keep a multi-worktree development loop within a bounded cache budget whenever idle candidates are available.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/development.json",
+          "project/delivery.json",
+          "scripts/storage.py",
+          "scripts/herdr.py",
+          "scripts/check.py",
+          "package.json"
+        ],
+        "hypotheses": [
+          "Repeated independent Cargo debug builds dominate the measured physical usage. Removing proven idle intermediates can recover substantial space while preserving sources and diagnostic artifacts."
+        ],
+        "risks": [
+          {
+            "failure": "A live build, unrelated checkout or irreplaceable observation is removed.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A dry run, repeated collection or a normal development entrypoint behaves differently than the budget policy.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Disable the maintenance entrypoint if safety or accounting is uncertain. Rebuild removed intermediates using the pinned toolchain. Keep any unclassified material and the original evidence.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/storage.py",
+            "scripts/herdr.py",
+            "scripts/check.py",
+            "package.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changes to product workflows, shared package or Docker stores, host-wide cleanup, and retention changes to user data, release artifacts or existing acceptance evidence."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Independent per-worktree outputs, established release and diagnostic retention, and uncommitted work."
+          ],
+          "change": [
+            "Inventory Git-registered worktrees and independently identified first-level Cargo cache directories with 64 GiB and 32 GiB watermarks.",
+            "With partial Linux process visibility, require Cargo and rustc session locks for completed incremental caches and exclusive kernel leases for cold single-link dependencies or positively identified idle ELF test harnesses.",
+            "Default local verification subprocesses to non-incremental compilation while honoring explicit overrides."
+          ],
+          "data_plan": "Inspect filesystem metadata and repository identity locally. Product data and credentials remain outside the collection scope.",
+          "cleanup": "Leave protected or active items in place and make any unmet budget visible. Repeated collection uses fresh eligibility checks."
         }
       }
     }
