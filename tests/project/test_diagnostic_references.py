@@ -192,15 +192,24 @@ class DiagnosticReferenceTests(ProjectFixture):
     def test_history_checks_new_application_native_and_workflow_report_paths(self):
         paths = {
             'apps/desktop/replay.ts': "const replayPath = '{path}';\n",
+            'apps/desktop/ui/index.html': '<script src="{path}"></script>\n',
+            'crates/persistence/src/initial.sql': "ATTACH DATABASE '{path}' AS replay;\n",
             'packages/core/consumer.rs': 'const REPLAY_PATH: &str = "{path}";\n',
             '.github/workflows/windows.yml': "jobs:\n  replay:\n    steps:\n      - run: cat '{path}'\n",
         }
-        inherited = self.root / 'apps/desktop/inherited.ts'
-        inherited.parent.mkdir(parents=True)
-        inherited.write_text("const inheritedPath = '../legacy/.reports/replay.json';\n", encoding='utf-8')
+        inherited_paths = {
+            'apps/desktop/inherited.ts': paths['apps/desktop/replay.ts'],
+            'apps/desktop/ui/inherited.html': paths['apps/desktop/ui/index.html'],
+            'crates/persistence/src/inherited.sql': paths['crates/persistence/src/initial.sql'],
+        }
+        for relative, template in inherited_paths.items():
+            inherited = self.root / relative
+            inherited.parent.mkdir(parents=True, exist_ok=True)
+            inherited.write_text(template.format(path='../legacy/.reports/replay.json'), encoding='utf-8')
         base = self.commit()
-        with inherited.open('a', encoding='utf-8') as existing:
-            existing.write("const localPath = '.reports/local.json';\n")
+        for relative, template in inherited_paths.items():
+            with (self.root / relative).open('a', encoding='utf-8') as existing:
+                existing.write(template.format(path='.reports/local.json'))
         for relative in ('apps/desktop/node_modules/dep/index.ts', 'packages/core/generated/replay.rs',
                          'python/fixtures/consumer.py'):
             fixture = self.root / relative
@@ -222,3 +231,25 @@ class DiagnosticReferenceTests(ProjectFixture):
                     review_history(self.root, base)
                 source.write_text(template.format(path='.reports/replay.json'), encoding='utf-8')
                 self.assertEqual('passed', review_history(self.root, base)['status'])
+
+    def test_history_checks_changed_executable_catalog_commands(self):
+        path = self.root / 'project/checks.json'
+        catalog = read_json(path)
+        checks = {item['id']: item for item in catalog['checks']}
+        checks['rust-lints']['command'] = ['{python}', '../legacy/.reports/replay.py']
+        path.write_bytes(json_bytes(catalog))
+        base = self.commit()
+
+        # Reformatting the catalog does not change an inherited command.
+        path.write_text(json.dumps(catalog), encoding='utf-8')
+        self.assertEqual('passed', review_history(self.root, base)['status'])
+        checks['project-state']['command'] = ['{python}', 'replay.py', '../sibling/.reports/replay.json']
+        path.write_bytes(json_bytes(catalog))
+        with self.assertRaisesRegex(ProjectError, 'project-state.*project/checks.json.*nonlocal report path'):
+            review_history(self.root, base)
+        self.commit()
+        with self.assertRaisesRegex(ProjectError, 'project-state.*project/checks.json.*nonlocal report path'):
+            review_history(self.root, base)
+        checks['project-state']['command'][-1] = '.reports/replay.json'
+        path.write_bytes(json_bytes(catalog))
+        self.assertEqual('passed', review_history(self.root, base)['status'])

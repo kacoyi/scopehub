@@ -9,7 +9,7 @@ ROOT_CONFIGS = ('.gitmodules', 'Cargo.toml', 'package.json', 'pnpm-workspace.yam
 OPERATIONAL_PATHS = (*SOURCE_ROOTS, '.github', '.cargo', *ROOT_CONFIGS)
 SOURCE_SUFFIXES = {
     '.py', '.sh', '.bash', '.fish', '.nu', '.ps1', '.cmd', '.bat',
-    '.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.mts', '.cts', '.rs',
+    '.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.mts', '.cts', '.html', '.rs', '.sql',
 }
 SOURCE_CONFIGS = {'Cargo.toml', 'package.json', 'pyproject.toml', 'tauri.conf.json', 'tsconfig.json'}
 NON_OPERATIONAL_DIRS = {

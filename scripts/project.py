@@ -920,6 +920,11 @@ def review_history(root=ROOT, base=None):
     review_operational_report_paths(root, resolved)
     compared = []
     catalog = previous('project/checks.json')
+    previous_commands = {check['id']: check.get('command') for check in catalog['checks']} if catalog else {}
+    for key, check in project['checks'].items():
+        command = check['command']
+        if command and command != previous_commands.get(key):
+            require_portable_report_paths(root, command, f'Check {key} in project/checks.json')
     replaced = {}
     if catalog:
         established = set(catalog.get('required_change_checks', [

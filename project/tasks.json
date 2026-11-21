@@ -8186,7 +8186,8 @@
         "The read-only host inventory and the retained M4 diagnostic still resolve after integrating the upstream worktree and storage identity repairs. The command never removes a worktree or its files.",
         "New operational source and workflow changes cannot introduce cross-checkout diagnostic paths. Windows linked consumers and independent retained files are identified using the host path and file identity semantics.",
         "A checkout whose only outstanding hold is partial global process visibility enters human review intake while remaining held. Specific dependencies, activity, unverified evidence or Git state continue to disqualify intake.",
-        "Standard scoped pnpm projections into a verified checkout-local virtual store are rebuildable. Unresolved or foreign projections remain holds."
+        "Standard scoped pnpm projections into a verified checkout-local virtual store are rebuildable. Unresolved or foreign projections remain holds.",
+        "Nested manifests and checkout-local linked runtime registries keep their downstream dependencies. Unique data buried in Cargo intermediate directories remains protected, and added executable HTML, SQL and harness commands are reviewed for nonlocal report paths."
       ],
       "checks": [
         "project-state",
@@ -8264,7 +8265,8 @@
           "change": [
             "Check the real consumers, private Git state and bound observation files missed in the independent review. Restrict generated-data and filter exclusions to the observations that justify them.",
             "Cover changed operational sources and workflows in history validation, preserve Windows path and file identity, and expose a separate human review intake for otherwise clear checkouts under partial process visibility.",
-            "Identify standard scoped pnpm links by their local lockfile, install metadata and resolved virtual-store target."
+            "Identify standard scoped pnpm links by their local lockfile, install metadata and resolved virtual-store target.",
+            "Resolve literal dependency paths relative to their declaring manifest, read linked registries within their checkout and distinguish Cargo intermediate artifacts by their generated layout."
           ],
           "data_plan": "Inspect repository metadata and retained development evidence locally. Opt in to archive access only for explicit verification.",
           "cleanup": "Keep the existing locator and queue entrypoints and remove overly broad assumptions under deterministic regression fixtures."

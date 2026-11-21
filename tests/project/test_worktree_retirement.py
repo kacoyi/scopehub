@@ -378,6 +378,42 @@ class WorktreeRetirementTests(unittest.TestCase):
                 self.commit(downstream, record, document.replace(json.dumps(str(path))[1:-1], 'scripts/check.py'))
                 self.assert_candidate(self.row(IDLE))
 
+    def test_nested_manifest_resolves_its_dependency_relative_to_the_manifest(self):
+        manifest = 'crates/application/Cargo.toml'
+        destination = self.candidate / 'crates/domain'
+        head = self.commit(self.candidate, 'crates/domain/Cargo.toml', '[package]\nname = "domain"\n')
+        self.git('update-ref', 'refs/remotes/origin/main', head)
+        downstream = self.add_worktree('downstream')
+        current = downstream / manifest
+        candidate_relative = Path(os.path.relpath(destination, current.parent)).as_posix()
+        self.assertEqual(candidate_relative, '../../../candidate/crates/domain')
+        for reference in (candidate_relative, destination.as_posix()):
+            self.commit(downstream, manifest, f'[dependencies]\ndomain = {{ path = "{reference}" }}\n')
+            row = self.row(IDLE)
+            self.assert_held(row, 'downstream_path_consumer')
+            self.assertEqual(row['details']['downstream_path_consumer'], [f'{downstream}: {manifest}'])
+
+        self.commit(downstream, manifest, '[dependencies]\ndomain = { path = "../domain" }\n')
+        self.assert_candidate(self.row(IDLE))
+
+    def test_registry_symlink_within_checkout_keeps_its_command_dependencies(self):
+        downstream = self.add_worktree('downstream')
+        expected = str(self.candidate / 'scripts/check.py')
+        registry = downstream / 'project/checks.json'
+        target = 'project/checks.linux.json'
+        self.commit(downstream, target, json.dumps({'checks': [{'command': ['{python}', expected]}]}))
+        try:
+            registry.symlink_to('checks.linux.json')
+        except (NotImplementedError, OSError) as error:
+            self.skipTest(f'The fixture cannot create a file symlink: {error}')
+        row = self.row(IDLE)
+        self.assert_held(row, 'downstream_path_consumer')
+        self.assertEqual(row['details']['downstream_path_consumer'],
+                         [f'{downstream}: project/checks.json'])
+
+        self.commit(downstream, target, json.dumps({'checks': [{'command': ['{python}', 'scripts/check.py']}]}))
+        self.assert_candidate(self.row(IDLE))
+
     def test_indexed_regular_file_replaced_by_link_protects_its_live_target(self):
         downstream = self.add_worktree('downstream')
         relative = 'scripts/check.py'
@@ -457,6 +493,46 @@ class WorktreeRetirementTests(unittest.TestCase):
         preserved = self.row(IDLE, archive_root=self.archive)
         self.assert_candidate(preserved)
         self.assertEqual(preserved['local_evidence']['verified_retained_files'], 1)
+
+    def test_unknown_cargo_intermediate_files_hold_retirement_and_review_intake(self):
+        checkout = self.candidate
+        self.commit(checkout, '.gitignore', 'target/\n')
+        head = self.commit(checkout, 'Cargo.lock', '# fixture lock\n')
+        self.git('update-ref', 'refs/remotes/origin/main', head)
+        debug = checkout / 'target/debug'
+        deps = debug / 'deps'
+        fingerprint = debug / '.fingerprint/fixture-0123456789abcdef'
+        incremental = debug / 'incremental/fixture-0123456789abc/s-abc-def-0123456789abc'
+        for directory in (deps, fingerprint, incremental):
+            directory.mkdir(parents=True)
+        (debug.parent / 'CACHEDIR.TAG').write_bytes(worktree_retirement.storage.CARGO_TAG + b'\n')
+        for product in (
+                deps / 'libfixture-0123456789abcdef.rlib',
+                deps / 'fixture-0123456789abcdef.d',
+                deps / 'fixture-0123456789abcdef.exe',
+                fingerprint / 'lib-fixture.json',
+                incremental / 'dep-graph.bin',
+                incremental.parent / 's-abc-def.lock'):
+            product.write_bytes(b'' if product.suffix == '.lock' else b'fixture Cargo output')
+
+        partial = (set(), ['process_observation_incomplete'])
+        self.assert_candidate(self.row(IDLE))
+        self.assertTrue(self.row(partial)['review_intake'])
+
+        notes = (deps / 'one-off.log', fingerprint / 'unique.json', incremental / 'unique.log')
+        for note in notes:
+            with self.subTest(path=note.relative_to(checkout)):
+                note.write_text('Unique local diagnostic\n', encoding='utf-8')
+                row = self.row(partial)
+                self.assert_held(row, 'unretained_local_evidence')
+                self.assertFalse(row['review_intake'])
+                self.assertEqual(row['details']['unretained_local_evidence'], [str(note.relative_to(checkout))])
+                destination = self.archive / 'worktrees' / head / 'files' / note.relative_to(checkout)
+                destination.parent.mkdir(parents=True)
+                destination.write_bytes(note.read_bytes())
+                self.assert_candidate(self.row(IDLE, archive_root=self.archive))
+                self.assertTrue(self.row(partial, archive_root=self.archive)['review_intake'])
+                note.unlink()
 
     def test_scoped_pnpm_projection_requires_a_local_lock_and_package_identity(self):
         checkout = self.candidate

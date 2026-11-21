@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 import hashlib
-from itertools import dropwhile
+from itertools import dropwhile, islice
 import json
 import os
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -31,6 +31,10 @@ GIT_OPERATIONS = (
 PRIVATE_REF_ROOTS = ('refs/bisect', 'refs/worktree', 'refs/rewritten')
 WORKTREE_ADMIN_FILES = {'HEAD', 'index', 'commondir', 'gitdir', 'COMMIT_EDITMSG', 'locked'}
 FILTER_COMMAND = re.compile(r'filter\.(.+)\.(?:clean|process)\Z')
+CARGO_LINK_OUTPUT = re.compile(
+    storage.HASHED + r'\.(?:a|lib|dll|dll\.(?:a|exp|lib)|exe|pdb|so|dylib|dwp)'
+)
+CARGO_INCREMENTAL_LOCK = re.compile(r's-[a-z0-9]+-[a-z0-9]+\.lock')
 MAX_EVIDENCE_DETAILS = 8
 MAX_CONSUMER_ENTRIES = 20_000
 PROJECT_RECORDS = (
@@ -261,18 +265,19 @@ def path_is_under(value, path):
             comparable_path(value.resolve()).is_relative_to(path))
 
 
-def dependency_patterns(consumer, git_dir, candidates):
-    # Project references can be relative to either the checkout or its project record.
+def dependency_patterns(consumer, candidates, directories, *, absolute=False):
     patterns = {}
     for path in candidates:
         if path == consumer:
             continue
-        variants = {path.as_posix()}
-        for directory in (consumer, consumer / 'project', consumer / 'scripts', git_dir):
+        variants = {path.as_posix()} if absolute else set()
+        for directory in directories:
             try:
                 variants.add(Path(os.path.relpath(path, directory)).as_posix())
             except ValueError:  # Windows paths on different drives.
                 pass
+        if not variants:
+            continue
         parts = '|'.join(re.escape(value) for value in sorted(variants, key=len, reverse=True))
         patterns[path] = re.compile(rf'(?:(?<![\w./-])|(?<=file://)|(?<=file:///))(?:{parts})'
                                     rf'(?=$|[/\s\x00\x22\x27`):,;\]])',
@@ -314,12 +319,25 @@ def editable_python_paths(checkout, mounts):
 
 
 def observe_dependencies(consumer, candidates, common, git_dir, config, ignored, mounts):
-    patterns = dependency_patterns(consumer, git_dir, candidates)
+    common_directories = {consumer, consumer / 'project', consumer / 'scripts', git_dir}
+    patterns = dependency_patterns(consumer, candidates, common_directories, absolute=True)
+    nested_checkout = any(path.is_relative_to(consumer) for path in patterns)
+    relative_patterns = {}
     observed = defaultdict(set)
 
-    def observe_text(value, name):
+    def observe_text(value, name, directory=None):
         value = value.replace('\\', '/') if os.name == 'nt' else value
         for target, pattern in patterns.items():
+            if pattern.search(value):
+                observed[target].add(name)
+        if directory is None or directory in common_directories:
+            return
+        depth = len(directory.relative_to(consumer).parts)
+        if not nested_checkout and '../' * (depth + 1) not in value:
+            return
+        if directory not in relative_patterns:
+            relative_patterns[directory] = dependency_patterns(consumer, candidates, (directory,))
+        for target, pattern in relative_patterns[directory].items():
             if pattern.search(value):
                 observed[target].add(name)
 
@@ -328,11 +346,14 @@ def observe_dependencies(consumer, candidates, common, git_dir, config, ignored,
         info = worktree.entry_info(path)
         if info is None:
             continue
-        if storage.reparse(info):
-            observe_symlink(path, patterns, observed)
-            continue
-        for value in strings(json.loads(read_control(path))):
-            observe_text(value, name)
+        observe_symlink(path, patterns, observed)
+        source = path.resolve(strict=True)
+        if not source.is_relative_to(consumer) or any(
+                part in mounts or (not mounts and part.is_mount())
+                for part in (source, *source.parents) if part != consumer and part.is_relative_to(consumer)):
+            raise OSError(f'Project registry is outside its checkout filesystem: {path}')
+        for value in strings(json.loads(read_control(source))):
+            observe_text(value, name, source.parent)
 
     # Effective Git configuration may include external files or checkout-specific overrides.
     observe_text(config, 'Git configuration')
@@ -356,7 +377,7 @@ def observe_dependencies(consumer, candidates, common, git_dir, config, ignored,
     for name in set(controls.split('\0')) - {''}:
         path = consumer / name
         if (name == 'AGENTS.md' or is_operational_path(name)) and worktree.regular_file(path):
-            observe_text(path.read_text(encoding='utf-8', errors='surrogateescape'), name)
+            observe_text(path.read_text(encoding='utf-8', errors='surrogateescape'), name, path.parent)
     untracked = os.fsdecode(git(consumer, 'ls-files', '--others', '--exclude-standard', '-z').stdout)
     for name in untracked.split('\0'):
         if name:
@@ -449,6 +470,32 @@ def cargo_build_output(parts):
     return parts[4] == 'out' and re.fullmatch(r'[0-9a-f]{16}-.+\.(?:o|obj)', parts[5]) is not None
 
 
+def cargo_generated_file(parts, info):
+    if not stat.S_ISREG(info.st_mode):
+        return False
+    name = parts[-1]
+    if len(parts) == 2:
+        return name in {'CACHEDIR.TAG', '.rustc_info.json'}
+    if len(parts) < 3 or parts[1] != 'debug':
+        return False
+    if len(parts) == 3:
+        return name in storage.CARGO_LOCKS
+    group = parts[2]
+    if group == 'build':
+        return cargo_build_output(parts)
+    if group == 'deps' and len(parts) == 4:
+        return bool(storage.DEP_FILE.fullmatch(name) or CARGO_LINK_OUTPUT.fullmatch(name) or
+                    (info.st_mode & 0o111 and storage.TEST_BINARY.fullmatch(name)))
+    if group == '.fingerprint' and len(parts) == 5:
+        return bool(re.fullmatch(storage.HASHED, parts[3]) and storage.FINGERPRINT_FILE.fullmatch(name))
+    if group == 'incremental' and len(parts) in {5, 6} and storage.INCREMENTAL_CRATE.fullmatch(parts[3]):
+        if len(parts) == 5:
+            return bool(CARGO_INCREMENTAL_LOCK.fullmatch(name) and info.st_size == 0)
+        return bool(storage.INCREMENTAL_SESSION.fullmatch(parts[4]) and
+                    (storage.INCREMENTAL_FILE.fullmatch(name) or name == 'dep-graph.part.bin'))
+    return False
+
+
 def scoped_pnpm_projection(path, checkout, mounts):
     scope = path.parent.name
     modules = path.parent.parent
@@ -496,7 +543,7 @@ def scoped_pnpm_projection(path, checkout, mounts):
         return False
 
 
-def rebuildable(path, checkout, info, mounts):
+def rebuildable(path, checkout, info, mounts, cargo_cache):
     # Ignore only known generated layouts, even when broader Git ignore rules apply.
     relative = path.relative_to(checkout)
     if (path.parent.name == '__pycache__' and stat.S_ISREG(info.st_mode) and not storage.reparse(info) and
@@ -513,13 +560,8 @@ def rebuildable(path, checkout, info, mounts):
         return (cache_tag(checkout / '.uv-cache') and
                 (path.name in {'.gitignore', '.lock', 'CACHEDIR.TAG'} or
                  bool(re.fullmatch(r'(?:archive|builder|interpreter|sdists|simple|wheels)-v\d+', path.name))))
-    if relative.parts[0] == 'target' and (checkout / 'Cargo.lock').is_file() and cache_tag(checkout / 'target'):
-        if len(relative.parts) == 2:
-            return path.name in {'CACHEDIR.TAG', '.rustc_info.json'}
-        if relative.parts[1:3] == ('debug', 'build'):
-            return stat.S_ISREG(info.st_mode) and cargo_build_output(relative.parts)
-        if len(relative.parts) == 3 and relative.parts[1] == 'debug':
-            return path.name in {'deps', '.fingerprint', 'incremental', *storage.CARGO_LOCKS}
+    if relative.parts[0] == 'target' and cargo_cache:
+        return cargo_generated_file(relative.parts, info)
     if path.parent.name == 'node_modules':
         root_modules = checkout / 'node_modules'
         if ((checkout / 'pnpm-lock.yaml').is_file() and (root_modules / '.modules.yaml').is_file() and
@@ -532,6 +574,11 @@ def rebuildable(path, checkout, info, mounts):
 
 
 def ignored_files(checkout, paths, mounts, *, include_generated_links=False, exclusions=None):
+    target = checkout / 'target'
+    target_info = worktree.entry_info(target)
+    cargo_cache = (target_info is not None and stat.S_ISDIR(target_info.st_mode) and
+                   not storage.reparse(target_info) and worktree.regular_file(checkout / 'Cargo.lock') and
+                   cache_tag(target))
     pending = sorted(paths, reverse=True)
     inspected = 0
     while pending:
@@ -544,18 +591,29 @@ def ignored_files(checkout, paths, mounts, *, include_generated_links=False, exc
             if include_generated_links:
                 raise OSError(f'Consumer path crosses a mount boundary: {path}')
             yield path, False
-        elif rebuildable(path, checkout, info, mounts):
+        elif rebuildable(path, checkout, info, mounts, cargo_cache):
             if exclusions is not None:
                 exclusions.append(path)
             if include_generated_links and path.is_symlink():
                 yield path, False
             elif include_generated_links and path == checkout / '.venv/bin':
-                pending.extend(sorted(path.iterdir(), reverse=True))
+                queue_directory(path, pending, inspected)
             continue
         elif stat.S_ISDIR(info.st_mode) and not storage.reparse(info):
-            pending.extend(sorted(path.iterdir(), reverse=True))
+            queue_directory(path, pending, inspected)
         else:
             yield path, stat.S_ISREG(info.st_mode) and not storage.reparse(info)
+
+
+def queue_directory(path, pending, inspected):
+    remaining = MAX_CONSUMER_ENTRIES - inspected - len(pending)
+    if remaining < 0:
+        raise OSError('Ignored path inventory exceeded the observation budget')
+    with os.scandir(path) as entries:
+        paths = [Path(entry.path) for entry in islice(entries, remaining + 1)]
+    if len(paths) > remaining:
+        raise OSError('Ignored path inventory exceeded the observation budget')
+    pending.extend(sorted(paths, reverse=True))
 
 
 def hash_file(path):
