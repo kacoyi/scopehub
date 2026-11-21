@@ -353,7 +353,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
         candidate = await exchangeModel(id, { action: 'propose', route }, signal);
       } catch (failure) {
         const code = modelErrorCode(failure);
-        if (code === 'INVALID_ARGUMENT') throw failure;
+        if (code === 'INVALID_ARGUMENT' || code === 'PROVIDER_NOT_CONFIGURED') throw failure;
         const status = await checkConnectionAfterChange(id, signal);
         if (!status) return;
         if (status.connection) throw failure;
@@ -444,9 +444,27 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
     });
   }
 
-  function cancel(turn: PendingTurn) {
+  function cancel(turn: TrackedTurn) {
     void perform(async (id, signal) => {
-      await exchangeModel(id, { action: 'cancel', connection_id: turn.connection.connection_id, turn_id: turn.id }, signal);
+      try {
+        await exchangeModel(id, { action: 'cancel', connection_id: turn.connection.connection_id, turn_id: turn.id }, signal);
+      } catch (failure) {
+        signal.throwIfAborted();
+        const status = await exchangeModel(id, { action: 'status' }, signal).catch(() => undefined);
+        signal.throwIfAborted();
+        if (!status) {
+          setTrackedTurn({ ...turn, observation: 'checking-poll' });
+          setError(unknownTurn);
+          return;
+        }
+        if (status.connection) {
+          applyStatus(status, turn);
+          throw failure;
+        }
+        clearSession(true);
+        setNotice('The model connection ended. Connect and enable again to send another question.');
+        return;
+      }
       clearSession(true);
       setNotice('Turn cancelled. Connect and enable again to send another question.');
     });

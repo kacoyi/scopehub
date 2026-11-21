@@ -473,8 +473,9 @@ test('one scoped activation delivers two ordinary turns to the owned peer and ha
         await send(page, cancelledQuestion);
         await expect.poll(() => peer.traffic.length).toBe(4);
         expectRequest(peer.traffic[3], [...completed, user(cancelledQuestion)]);
-        await control(chat(page), 'Cancel turn').click();
-        await expect(chat(page).getByText(cancelled, { exact: true })).toBeVisible();
+        await loseConnectionReply(page, 'cancel', () => control(chat(page), 'Cancel turn').click());
+        await expect(chat(page).getByText('The model connection ended. Connect and enable again to send another question.',
+          { exact: true })).toBeVisible();
         await expect(control(chat(page), 'Send')).toHaveCount(0);
         await expect(chat(page).getByRole('log').locator('.model-answer p')).toHaveText([
           'Synthetic peer reply 1', 'Synthetic peer reply 2',
