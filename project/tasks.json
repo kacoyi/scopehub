@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M4-012",
+  "focus_task_id": "M4-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -10708,7 +10708,7 @@
       "id": "M4-012",
       "title": "Isolate the model workflow browser network guard from local route faults",
       "milestone": "M4",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M4-006"
       ],
@@ -10735,10 +10735,23 @@
         "model-connection-workflow",
         "model-connection-replay"
       ],
-      "next_action": "Run the local fast and selected M4-012 checks on the private repair checkpoint. The coordinator must obtain approved matching native Windows task verification and archive the task evidence before closing this task and its feedback.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
-      "evidence": [],
+      "closure_reason": "All five selected checks passed on clean f7a0e469b1e106ff964f07b614deb3ae4c963bc5 in local run 20261121T163430.561237Z-3628a053 and authenticated Ubuntu and native Windows workflow 44923738119 attempt 1. Each run passed the ten original Chromium cases, the new guard regression and all three Rust replay tests. On native Windows the guard regression passed in 455 ms and the previously failing consent and cancellation case passed in 5.4 seconds on its first attempt.",
+      "evidence": [
+        {
+          "path": "project/evidence/M4-012-3118f4e8cb3a8405.json",
+          "sha256": "e37ef8c6a2fe415861c69cc461d8aa221e928f7d073daf97e31ea1567e5e4af4"
+        },
+        {
+          "path": "project/evidence/M4-012-fb663e46f145e649.json",
+          "sha256": "1e99982599e19f60ec81b8798522b33295780ddde09547a4cb2a39fb1fd993e3"
+        },
+        {
+          "path": "project/evidence/M4-012-32ef7cc03e2519b9.json",
+          "sha256": "24169ea177bf814d705783703cd51f5308cdec3b2d22ca02c3cbdfcb9e2eb7b3"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "20261121T153210.808612Z-2e7176fe",

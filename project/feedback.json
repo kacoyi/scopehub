@@ -2743,14 +2743,18 @@
         }
       ],
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M4-012"
       ],
       "regression_checks": [
         "model-connection-workflow"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "A page handler fell back to a context observer that held a same-origin request. Removing the final matching page route let Playwright resolve the request while the observer was still active. When the observer fell back, the legacy context-wide guard tried to continue the resolved route and Playwright rejected the duplicate terminal action.",
+        "correction": "Match only browser requests whose origin differs from the exact preview origin. Record and abort each matched request and fail the assertion if any were recorded. Same-origin requests stay with normal browser handling or an explicit page fault.",
+        "prevention": "The registered Chromium regression holds the observer through route removal, observes one local service arrival and verifies that an attempted second loopback origin has zero arrivals and fails the guard assertion. It reproduced the legacy error three times and passed three times with the repair. The full browser workflow and Rust replay passed locally and on authenticated Ubuntu and native Windows workflow 44923738119 attempt 1 at f7a0e469b1e106ff964f07b614deb3ae4c963bc5."
+      },
       "deferral_reason": null
     }
   ]
