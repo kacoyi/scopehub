@@ -8010,10 +8010,15 @@
         "python-types",
         "architecture"
       ],
-      "next_action": "Verify the settings, credential lifecycle, route changes and two-turn HTTPS projection with synthetic credentials. Retain local evidence and hand off the native Windows runtime boundary and real account qualification separately.",
+      "next_action": "On the integrated source, retain native Windows x64 evidence for the synthetic Credential Manager lifecycle and packaged desktop runtime. Real-account cloud text qualification remains under M4-002 with explicit account and spend authorization.",
       "blocker": null,
       "closure_reason": null,
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M4-008-137f40b60682285f.json",
+          "sha256": "3b476e871c33daeadff659d0ed1cedcc7d1e5219f8269fd233289ce45548cd6c"
+        }
+      ],
       "plan": {
         "outcome": "An end user can select a capable cloud provider and supply their own API credential from ScopeHub, with a named recipient and no silent fallback.",
         "change_types": [
