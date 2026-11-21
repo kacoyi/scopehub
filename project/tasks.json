@@ -7762,7 +7762,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Retain the exact local task report and matching hosted Linux and Windows reports for PR 24, then close the review feedback and verify the closure head.",
+      "next_action": "Verify the live-handle repair locally, retain matching hosted Linux and Windows task reports for PR 24, then close the review feedback and verify the closure head.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -7778,7 +7778,7 @@
           "project/development.json"
         ],
         "hypotheses": [
-          "Independent identity checks and fail-closed admission can preserve supported maintenance without weakening existing checks."
+          "Holding observed cache directories through admission and verifying reopened paths against those handles can preserve supported maintenance, including on filesystems that reuse inodes or expose coarse timestamps."
         ],
         "risks": [
           {
@@ -7823,7 +7823,7 @@
             "Current native worktree identities, source, user profiles, retained evidence, safe local builds and reports."
           ],
           "change": [
-            "Treat unobservable processes, including other-user activity, as partial visibility and preserve active files. Prove directory identity and child Cargo provenance across inventory and destructive collection.",
+            "Treat unobservable processes, including other-user activity, as partial visibility and preserve active files. Bind directories to live handles during guarded inventory and revalidate child Cargo provenance immediately before deletion.",
             "An unexpected ordinary file at target does not abort a repository inventory. Interrupted collection leaves rebuildable or correctly retained state and preserves unrelated files."
           ],
           "data_plan": "Use temporary Git and filesystem fixtures. No persistent product data needs migration.",
