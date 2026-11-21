@@ -5,9 +5,11 @@ import os
 from pathlib import Path
 import shlex
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 
 
@@ -25,6 +27,8 @@ class WorktreeTests(unittest.TestCase):
         self.primary = self.directory / 'projects' / 'scopehub'
         self.primary.mkdir(parents=True)
         self.managed = self.directory / 'managed checkouts'
+        self.common = self.primary / '.git'
+        self.creation_lock = self.common / 'scopehub-worktree-create.lock'
         self.env = {
             **{key: value for key, value in os.environ.items() if not key.startswith('GIT_')},
             'HOME': str(self.home),
@@ -72,6 +76,21 @@ class WorktreeTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0, result.stdout)
         self.assertTrue(result.stderr.strip())
 
+    def wait_for_marker(self, marker, process):
+        deadline = time.monotonic() + 10
+        while not marker.exists() and process.poll() is None and time.monotonic() < deadline:
+            time.sleep(0.01)
+        self.assertTrue(marker.exists(), f'Child process did not reach {marker.name}.')
+
+    def retry_create_after_lock_release(self, *args, cwd=None):
+        deadline = time.monotonic() + 10
+        while True:
+            result = self.cli(*args, cwd=cwd, check=False)
+            if 'already running' not in result.stderr or time.monotonic() >= deadline:
+                self.assertEqual(result.returncode, 0, result.stderr)
+                return
+            time.sleep(0.01)
+
     def test_create_and_reuse_preserve_primary_and_dirty_linked_checkout(self):
         primary_head = self.head(self.primary)
         # A non-Git marker in an ancestor does not make the managed root a checkout.
@@ -113,6 +132,123 @@ class WorktreeTests(unittest.TestCase):
         self.assertEqual(registration.count('branch refs/heads/codex/task'), 1)
         self.assertEqual(len(list(self.managed.iterdir())), 1)
 
+    def test_abrupt_lock_holder_death_allows_create_on_same_lock_file(self):
+        older = self.directory / 'older checkout'
+        self.git('worktree', 'add', '--quiet', '--detach', str(older), 'HEAD')
+        legacy_lock = self.common / 'scopehub-worktree.lock'
+        legacy_lock.mkdir()
+        self.creation_lock.write_bytes(b'preserved lock bytes')
+        lock_before = self.creation_lock.stat()
+        ready = self.directory / 'lock-ready'
+        child_script = """\
+import runpy
+import sys
+from pathlib import Path
+
+creation_lock = runpy.run_path(sys.argv[1])['creation_lock']
+with creation_lock(Path(sys.argv[2])):
+    Path(sys.argv[3]).touch()
+    sys.stdin.read(1)
+"""
+        args = [sys.executable, '-I', '-S', '-c', child_script, str(SCRIPT), str(self.common), str(ready)]
+        create_args = ('create', 'task', '--new-branch', 'codex/task', '--base', 'HEAD')
+        with subprocess.Popen(args, cwd=older, env=self.env, stdin=subprocess.PIPE) as holder:
+            try:
+                self.wait_for_marker(ready, holder)
+                collision = self.cli(*create_args, cwd=older, check=False)
+                self.assertNotEqual(collision.returncode, 0, collision.stdout)
+                self.assertIn('retry', collision.stderr.lower())
+                self.assertFalse(self.managed.exists())
+                self.assertEqual(self.git('branch', '--list', 'codex/task').stdout, '')
+            finally:
+                if holder.poll() is None:
+                    holder.kill()
+                holder.wait(timeout=10)
+            self.assertNotEqual(holder.returncode, 0)
+
+        self.retry_create_after_lock_release(*create_args, cwd=older)
+        self.assertEqual(self.branch(self.managed / 'task'), 'codex/task')
+        self.assertTrue(os.path.samestat(lock_before, self.creation_lock.stat()))
+        self.assertEqual(self.creation_lock.read_bytes(), b'preserved lock bytes')
+        self.assertTrue(legacy_lock.is_dir())
+
+    def test_native_add_retains_lock_while_running_after_cli_is_killed(self):
+        self.assert_native_add_retains_lock(subprocess.Popen.kill)
+
+    @unittest.skipUnless(os.name == 'posix', 'A targeted SIGINT is available on POSIX.')
+    def test_native_add_retains_lock_after_targeted_cli_interrupt(self):
+        self.assert_native_add_retains_lock(lambda process: process.send_signal(signal.SIGINT))
+
+    def assert_native_add_retains_lock(self, interrupt):
+        ready = self.directory / 'checkout-ready'
+        resume = self.directory / 'checkout-resume'
+        hook_dir = self.directory / 'hooks'
+        hook_dir.mkdir()
+        self.git('config', '--local', 'core.hooksPath', str(hook_dir))
+        hook_script = """\
+import sys
+import time
+from pathlib import Path
+
+ready, resume = map(Path, sys.argv[1:])
+ready.touch()
+deadline = time.monotonic() + 20
+while not resume.exists() and time.monotonic() < deadline:
+    time.sleep(0.01)
+sys.exit(0 if resume.exists() else 1)
+"""
+        hook = hook_dir / 'post-checkout'
+        command = shlex.join([sys.executable, '-I', '-S', '-c', hook_script, str(ready), str(resume)])
+        hook.write_text(f'#!/bin/sh\nexec {command}\n', encoding='utf-8', newline='\n')
+        hook.chmod(0o755)
+        first = ('create', 'first', '--new-branch', 'codex/first', '--base', 'HEAD')
+        second = ('create', 'second', '--new-branch', 'codex/second', '--base', 'HEAD')
+        args = [sys.executable, '-I', '-S', str(SCRIPT), *first]
+        with subprocess.Popen(args, cwd=self.primary, env=self.env, stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL) as creator:
+            try:
+                self.wait_for_marker(ready, creator)
+                interrupt(creator)
+                creator.wait(timeout=10)
+                collision = self.cli(*second, check=False)
+                self.assertNotEqual(collision.returncode, 0, collision.stdout)
+                self.assertIn('already running', collision.stderr)
+                self.assertFalse((self.managed / 'second').exists())
+            finally:
+                resume.touch()
+                if creator.poll() is None:
+                    creator.kill()
+                    creator.wait(timeout=10)
+
+        self.retry_create_after_lock_release(*second)
+        self.cli(*first)
+        self.assertEqual(self.branch(self.managed / 'first'), 'codex/first')
+        self.assertEqual(self.branch(self.managed / 'second'), 'codex/second')
+
+    def test_reject_symlink_at_creation_lock_without_touching_target(self):
+        target = self.directory / 'unrelated file'
+        target.write_bytes(b'keep this file')
+        try:
+            self.creation_lock.symlink_to(target)
+        except (NotImplementedError, OSError) as error:
+            self.skipTest(f'Fixture cannot create a file symlink: {error}')
+        self.assert_rejected('create', 'task', '--new-branch', 'codex/task', '--base', 'HEAD')
+        self.assertEqual(target.read_bytes(), b'keep this file')
+        self.assertTrue(self.creation_lock.is_symlink())
+        self.assertFalse(self.managed.exists())
+
+    def test_reject_hardlink_at_creation_lock_without_touching_target(self):
+        target = self.directory / 'unrelated file'
+        target.write_bytes(b'keep this file')
+        try:
+            os.link(target, self.creation_lock)
+        except (NotImplementedError, OSError) as error:
+            self.skipTest(f'Fixture cannot create a file hardlink: {error}')
+        self.assert_rejected('create', 'task', '--new-branch', 'codex/task', '--base', 'HEAD')
+        self.assertEqual(target.read_bytes(), b'keep this file')
+        self.assertTrue(os.path.samefile(target, self.creation_lock))
+        self.assertFalse(self.managed.exists())
+
     def test_create_new_integration_branch_at_deliberate_base(self):
         base = self.head(self.primary)
         self.git('branch', 'reviewed-base', base)
@@ -126,6 +262,42 @@ class WorktreeTests(unittest.TestCase):
         self.cli(*args, '--base', base)
         self.assert_rejected(*args, '--base', primary_head)
         self.assertEqual(self.head(linked), linked_head)
+        self.assertEqual(self.head(self.primary), primary_head)
+
+    def test_interrupted_registration_reports_initialization_without_changing_checkout(self):
+        create_args = ('create', 'task', '--new-branch', 'codex/task', '--base', 'HEAD')
+        self.cli(*create_args)
+        linked = self.managed / 'task'
+        preserved = linked / 'untracked.txt'
+        preserved.write_text('keep fixture work', encoding='utf-8')
+        self.git('worktree', 'lock', '--reason', 'initializing', str(linked))
+
+        for args in (('use', 'task'), create_args):
+            with self.subTest(args=args):
+                result = self.cli(*args, check=False)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('initializ', result.stderr.lower())
+                self.assertEqual(self.branch(linked), 'codex/task')
+                self.assertEqual(preserved.read_text(encoding='utf-8'), 'keep fixture work')
+
+        self.git('worktree', 'unlock', str(linked))
+        self.git('worktree', 'lock', '--reason', 'keep fixture registered', str(linked))
+        self.cli(*create_args)
+        self.assertEqual(Path(self.cli('use', 'task').stdout.strip()), linked)
+        self.assertEqual(preserved.read_text(encoding='utf-8'), 'keep fixture work')
+
+    def test_branch_only_from_interrupted_add_can_be_retried_as_existing(self):
+        base = self.head(self.primary)
+        self.git('branch', 'codex/task', base)
+        primary_head = self.commit(self.primary, 'unrelated primary progress')
+        create_args = ('create', 'task', '--new-branch', 'codex/task', '--base', 'HEAD')
+        result = self.cli(*create_args, check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('--branch codex/task', result.stderr)
+        self.assertFalse((self.managed / 'task').exists())
+
+        self.cli('create', 'task', '--branch', 'codex/task')
+        self.assertEqual(self.head(self.managed / 'task'), base)
         self.assertEqual(self.head(self.primary), primary_head)
 
     def test_reject_path_traversal_occupied_paths_and_branch_conflicts(self):

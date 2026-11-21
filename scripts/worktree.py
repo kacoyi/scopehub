@@ -3,6 +3,7 @@
 import argparse
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
+import errno
 import os
 from pathlib import Path
 import re
@@ -12,6 +13,7 @@ import sys
 
 
 ROOT_CONFIG = 'scopehub.worktreeRoot'
+CREATION_LOCK = 'scopehub-worktree-create.lock'
 PORTABLE_NAME = re.compile(r'[A-Za-z0-9][A-Za-z0-9._-]*')
 RESERVED_NAMES = {'AUX', 'CON', 'NUL', 'PRN', *(f'{prefix}{n}' for prefix in ('COM', 'LPT') for n in range(10))}
 
@@ -25,12 +27,31 @@ class Registration:
     path: Path
     branch: str | None
     flags: frozenset[str]
+    lock_reason: str | None
 
 
-def git(cwd, *args, allowed=(0,)):
+def git(cwd, *args, allowed=(0,), lock_fd=None):
     # In particular, ignore an inherited alternate worktree, index or config.
     env = {key: value for key, value in os.environ.items() if not key.startswith('GIT_')}
-    result = subprocess.run(['git', *args], cwd=cwd, env=env, stdin=subprocess.DEVNULL, capture_output=True)
+    command = ['git', *args]
+    options = dict(cwd=cwd, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if lock_fd is None:
+        result = subprocess.run(command, **options)
+    else:
+        env['LC_ALL'] = 'C'  # Git records its initialization lock reason in the child's locale.
+        # This child retains the lock through Git's exit if the original CLI is killed.
+        # Git and its hooks start without the lock handle.
+        runner = (
+            'import subprocess, sys\n'
+            'sys.exit(subprocess.call(sys.argv[1:], stdin=sys.stdin, stdout=sys.stdout, '
+            'stderr=sys.stderr, close_fds=True))'
+        )
+        with inherit_lock(lock_fd) as inheritance:
+            # subprocess.run would kill the lock holder on Python-side interruption.
+            with subprocess.Popen([sys.executable, '-I', '-S', '-c', runner, *command],
+                                  **inheritance, **options) as process:
+                stdout, stderr = process.communicate()
+                result = subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
     if result.returncode not in allowed:
         detail = os.fsdecode(result.stderr).strip()
         raise WorktreeError(detail or f'git {args[0]} exited with status {result.returncode}')
@@ -47,7 +68,7 @@ def registrations(cwd):
     for record in records.split('\0\0'):
         fields = dict(field.partition(' ')[::2] for field in record.split('\0') if field)
         if 'worktree' in fields:
-            yield Registration(Path(fields['worktree']), fields.get('branch'), frozenset(fields))
+            yield Registration(Path(fields['worktree']), fields.get('branch'), frozenset(fields), fields.get('locked'))
 
 
 def entry_mode(path):
@@ -94,6 +115,12 @@ def destination(root, name):
 
 
 def verify_checkout(cwd, common, entry):
+    if entry.lock_reason == 'initializing':
+        raise WorktreeError(
+            f'Git has not completed checkout at {entry.path} (locked: initializing). '
+            'Wait for Git to exit and inspect git worktree list --porcelain before retrying. '
+            'Use another name and branch if the incomplete checkout must be preserved.'
+        )
     if (entry.flags & {'bare', 'prunable'} or entry.path.resolve() != entry.path
             or not (entry.path / '.git').exists()):
         raise WorktreeError(f'Git worktree is unavailable at {entry.path}. Inspect git worktree list --porcelain.')
@@ -101,24 +128,103 @@ def verify_checkout(cwd, common, entry):
         raise WorktreeError(f'Git worktree at {entry.path} does not belong to {cwd}.')
 
 
+def open_windows_lock(path):
+    import ctypes
+    from ctypes import wintypes
+    import msvcrt
+
+    kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+    create_file = kernel.CreateFileW
+    create_file.argtypes = (
+        wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, wintypes.LPVOID,
+        wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE,
+    )
+    create_file.restype = wintypes.HANDLE
+    kernel.CloseHandle.argtypes = (wintypes.HANDLE,)
+    kernel.CloseHandle.restype = wintypes.BOOL
+    # GENERIC_READ | GENERIC_WRITE, exclusive sharing, OPEN_ALWAYS, OPEN_REPARSE_POINT.
+    handle = create_file(str(path), 0xC0000000, 0, None, 4, 0x00200000, None)
+    if handle == ctypes.c_void_p(-1).value:
+        error = ctypes.WinError(ctypes.get_last_error())
+        if error.winerror == 32:  # ERROR_SHARING_VIOLATION
+            raise BlockingIOError(errno.EAGAIN, 'exclusive file is open', path) from error
+        raise error
+    try:
+        return msvcrt.open_osfhandle(handle, os.O_RDWR | os.O_BINARY | os.O_NOINHERIT)
+    except BaseException:
+        kernel.CloseHandle(handle)
+        raise
+
+
+@contextmanager
+def inherit_lock(fd):
+    if os.name != 'nt':
+        yield {'pass_fds': (fd,)}
+        return
+    import msvcrt
+
+    handle = msvcrt.get_osfhandle(fd)
+    os.set_handle_inheritable(handle, True)
+    try:
+        yield {'startupinfo': subprocess.STARTUPINFO(lpAttributeList={'handle_list': [handle]})}
+    finally:
+        os.set_handle_inheritable(handle, False)
+
+
+def check_lock_file(path, info):
+    if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1
+            or getattr(info, 'st_file_attributes', 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT):
+        raise WorktreeError(f'Unsafe worktree creation lock at {path}. Expected a single-link regular file.')
+
+
 @contextmanager
 def creation_lock(common):
-    # Git's branch-in-use check and registration can race across two worktree adds.
-    lock = common / 'scopehub-worktree.lock'
+    # All creates share one inode. Closing its last handle releases the OS lock.
+    path = common / CREATION_LOCK
+    fd = None
     try:
-        lock.mkdir()
-    except FileExistsError as error:
-        raise WorktreeError(
-            f'Worktree creation is locked at {lock}. Retry once the other creation finishes. '
-            'After an interruption, confirm creation has stopped before removing the empty lock directory.'
-        ) from error
-    try:
-        yield
+        try:
+            if os.name == 'nt':
+                fd = open_windows_lock(path)
+                check_lock_file(path, os.fstat(fd))
+            else:
+                import fcntl
+
+                try:
+                    check_lock_file(path, path.lstat())
+                except FileNotFoundError:
+                    pass
+                flags = os.O_RDWR | os.O_CREAT | os.O_NONBLOCK | getattr(os, 'O_NOFOLLOW', 0)
+                fd = os.open(path, flags, 0o600)
+                opened = os.fstat(fd)
+                check_lock_file(path, opened)
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                current = path.lstat()
+                check_lock_file(path, current)
+                if not os.path.samestat(opened, current):
+                    raise WorktreeError(f'Worktree creation lock changed at {path}. Inspect the path and retry.')
+        except BlockingIOError as error:
+            raise WorktreeError(
+                f'Worktree creation is already running. Retry when it finishes. Lock file: {path}'
+            ) from error
+        yield fd
     finally:
-        lock.rmdir()
+        if fd is not None:
+            os.close(fd)
 
 
-def create(cwd, common, root, registered, path, args):
+def add_worktree(cwd, lock_fd, path, branch, base):
+    branch_args = ('-b', branch, '--', str(path), base) if base else ('--', str(path), branch)
+    try:
+        git(cwd, 'worktree', 'add', '--no-guess-remote', *branch_args, lock_fd=lock_fd)
+    except WorktreeError as error:
+        raise WorktreeError(
+            f'{error}\nInspect git worktree list --porcelain and retry the request if the checkout completed. '
+            'If only the branch was created, verify its tip before retrying with --branch.'
+        ) from error
+
+
+def create(cwd, common, root, registered, path, args, lock_fd):
     branch = args.branch if args.branch is not None else args.new_branch
     if git(cwd, 'check-ref-format', '--branch', branch).stdout != os.fsencode(branch) + b'\n':
         raise WorktreeError(f'Supply a literal local branch name: {branch}')
@@ -143,13 +249,15 @@ def create(cwd, common, root, registered, path, args):
 
     exists = git(cwd, 'show-ref', '--verify', '--quiet', '--', ref, allowed=(0, 1)).returncode == 0
     if base and exists:
-        raise WorktreeError(f'Local branch {branch} already exists. Use --branch {branch} to check it out.')
+        raise WorktreeError(
+            f'Local branch {branch} already exists. Verify its tip against {args.base}, '
+            f'then use --branch {branch} to check it out.'
+        )
     if not base and not exists:
         raise WorktreeError(f'Local branch {branch} does not exist. Use --new-branch {branch} --base <commit-ish> to create it.')
 
     root.mkdir(parents=True, exist_ok=True)
-    branch_args = ('-b', branch, '--', str(path), base) if base else ('--', str(path), branch)
-    git(cwd, 'worktree', 'add', '--no-guess-remote', *branch_args)
+    add_worktree(cwd, lock_fd, path, branch, base)
     return 'Created'
 
 
@@ -171,7 +279,7 @@ def main():
     try:
         cwd = git_path(Path.cwd(), '--show-toplevel')
         common = git_path(cwd, '--git-common-dir')
-        with (creation_lock(common) if args.action == 'create' else nullcontext()):
+        with (creation_lock(common) if args.action == 'create' else nullcontext()) as lock_fd:
             registered = list(registrations(cwd))
             root = managed_root(cwd, common, registered)
             if args.action == 'list':
@@ -184,7 +292,7 @@ def main():
             else:
                 path = destination(root, args.name)
                 if args.action == 'create':
-                    outcome = create(cwd, common, root, registered, path, args)
+                    outcome = create(cwd, common, root, registered, path, args, lock_fd)
                     print(f'{outcome} {path}\nUse "use {args.name}" to print its path.')
                 else:
                     entry = next((entry for entry in registered if entry.path == path), None)
@@ -192,6 +300,8 @@ def main():
                         raise WorktreeError(f'No registered checkout at {path}. Use list or create.')
                     verify_checkout(cwd, common, entry)
                     print(path)
+    except KeyboardInterrupt:
+        parser.exit(130, 'ScopeHub worktree: Interrupted. Wait for Git to exit before retrying.\n')
     except (OSError, RuntimeError) as error:
         parser.exit(1, f'ScopeHub worktree: {error}\n')
 
