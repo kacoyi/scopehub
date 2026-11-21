@@ -8116,7 +8116,12 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-032-62e00e69f7d90432.json",
+          "sha256": "d0dd84e353c3431ddc6ff73f27d03e0be65f1533ef8de30a96c3ceed02b47720"
+        }
+      ],
       "next_action": "Wait for the coordinator to confirm PRs 24 and 25 are merged and product verification is paused, with the exact primary and helper commits. Refresh the private checkpoint, execute the canonical move and smoke, resume cache scheduling after proving its read-only retirement edge, then hand off Herdr and move each of the seven enrolled siblings when its specific consumers are ready.",
       "blocker": null,
       "closure_reason": null,
