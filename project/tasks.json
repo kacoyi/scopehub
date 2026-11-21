@@ -9620,6 +9620,96 @@
           "cleanup": "Retire task-created staging after verification and retain the minimal rollback payload. Record any held runtime and required alias with its release condition. Leave existing compatibility entries under coordinator control."
         }
       }
+    },
+    {
+      "id": "M0-038",
+      "title": "Close synthetic workspace preview fixtures when their parent disconnects",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Reproduce loss of the parent IPC channel of the current synthetic Vite fixture or retain evidence that the existing source already handles it.",
+        "The fixture releases its listener and real synthetic workspace writer after parent IPC loss, and preserves normal explicit close, history interruption and native terminal cleanup.",
+        "The cross-platform workspace-timeframe check covers the interruption without leaking a child on test failure. Retain the before and after observations and verify local and hosted applicable checks."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "evidence": [],
+      "next_action": "Review the retained local reproduction and verification for the isolated candidate and run the owner-dispatched hosted task verification before acceptance.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "An interrupted Playwright owner releases its test-only workspace preview and Rust writer without an operator stopping orphan processes.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ubuntu-preview/workspace.config.mjs",
+          "tests/ubuntu-preview/workspace_test_writer.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The IPC-owned Vite process only handles a close message, so losing the parent can bypass the normal server teardown."
+        ],
+        "risks": [
+          {
+            "failure": "The parent disappears during setup or while a synthetic request is held.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "Cleanup races a normal close, disrupts a terminal-signal journey or leaves a writer behind.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Revert the fixture change if a normal, interrupted or signal-driven journey regresses. Preserve the original host evidence and the reproduction.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ubuntu-preview/workspace.config.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Product processes, trading, user profiles and protocol behavior."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Explicit close, terminal signals, interrupted-history behavior, private synthetic profiles and existing workspace assertions."
+          ],
+          "change": [
+            "Make loss of the parent IPC channel close the owned preview and writer."
+          ],
+          "data_plan": "Use test-only temporary synthetic profiles and the retained operator observation.",
+          "cleanup": "Assert release of the port and child process and clean the synthetic fixture after every test exit."
+        }
+      }
     }
   ]
 }

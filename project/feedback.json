@@ -2573,6 +2573,21 @@
         "prevention": "Isolated native fixtures exercised canonical history and desktop CSV launches with the old path unavailable, plus restoration and interrupted promotion recovery. Independent host acceptance verified 25 synthetic history searches and 11 desktop CSV previews through actual canonical Python processes across 26 unchanged clean source revisions. It also checked 216 Cargo metadata records and five untouched variants. The readback verified 4,731,718,784 original bytes and 4,769,921,616 installed bytes. The private host verification SHA-256 is 142ef56a12a9d8cefb88258a4b166e2593f52fb1fdb7c33d7b255df22f6691c2. After three historical symlinks were parked, the independent history rollup matched the exact three expected instrument IDs for every bridge and the CSV rollup passed all previews through canonical Python. The private rollup SHA-256 values are 0e63d06344321d619a6f611b4f7ff89fd3b399c2114094b5e0b176229b4afbaa for history and 0b2b204d8400510feb1c20e045dc63a590dc2d88bafe98fb9064ebcbe309ff3b for desktop CSV."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "preview-fixtures-survive-parent-disconnect",
+      "source": "Primary relocation host observation on 2026-11-21, preserved private evidence SHA-256 f07b858853bd4ce3cc31c85e0303bc5830b6d381ab69ee210be06cee1c1e1463.",
+      "observation": "Two Vite synthetic history fixtures and their workspace writers survived for hours after their original owner exited. They held two listening ports and a historical checkout, with no connected clients. Ordinary termination of the two verified fixture parents released both listeners and their writers.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-038"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
