@@ -159,6 +159,55 @@ class CargoStorageTests(RepositoryFixture):
         archived = [evidence, evidence_library]
         self.assertEqual({path: original[path] for path in archived}, self.file_state(archived))
 
+    def test_interruption_inside_incremental_session_preserves_binary_and_allows_rebuild(self):
+        linked = self.crate_worktree(
+            b'pub fn message() -> &\'static str { "initial fixture" }\n',
+            b'fn main() { println!("{}", scopehub_fixture::message()); }\n',
+        )
+        self.run_cargo(linked, 'build')
+        debug = linked / 'target/debug'
+        binary = debug / 'scopehub-fixture'
+        evidence = self.write(linked, '.reports/runs/fixture/result.json')
+        unrelated = self.write(debug, 'incremental/manual/notes.txt')
+        retained = [binary, evidence, unrelated, *(debug / 'incremental').glob('*/*.lock')]
+        original = self.file_state(retained)
+        context = storage.LinuxContext({Path('/'): 'ext4'}, set(), inaccessible_processes=1)
+        unlink = os.unlink
+        removed_marker = None
+
+        def interrupt_during_unlink(name, *, dir_fd):
+            nonlocal removed_marker
+            if removed_marker is not None:
+                raise InterruptedError(errno.EINTR, 'fixture interrupted inside a session')
+            unlink(name, dir_fd=dir_fd)
+            if name in {'dep-graph.bin', 'query-cache.bin', 'work-products.bin'}:
+                removed_marker = Path(os.readlink(f'/proc/self/fd/{dir_fd}')) / name
+
+        with patch.object(storage, 'linux_context', return_value=context):
+            with patch.object(storage.os, 'unlink', side_effect=interrupt_during_unlink):
+                interrupted = storage.run(self.root, collect=True, high_bytes=1, low_bytes=0)
+            row = self.report_entry(interrupted, linked / 'target')
+            self.assertEqual('collection_interrupted', row['reason'], interrupted)
+            self.assertIn('fixture interrupted inside a session', row['detail'])
+            self.assertIsNotNone(removed_marker)
+            self.assertFalse(removed_marker.exists())
+            remainder = list(removed_marker.parent.iterdir())
+            self.assertTrue(remainder)
+            torn_session = self.file_state(remainder)
+            self.assertTrue(interrupted['collected'])
+            self.assertEqual(original, self.file_state(retained))
+            self.run_binary(binary, 'initial fixture')
+
+            storage.run(self.root, collect=True, high_bytes=1, low_bytes=0)
+            self.assertEqual(set(remainder), set(removed_marker.parent.iterdir()))
+            self.assertEqual(torn_session, self.file_state(remainder))
+
+        self.write(linked, 'src/lib.rs', b'pub fn message() -> &\'static str { "rebuilt fixture" }\n')
+        self.run_cargo(linked, 'build')
+        self.run_binary(binary, 'rebuilt fixture')
+        self.assertEqual({path: original[path] for path in (evidence, unrelated)},
+                         self.file_state([evidence, unrelated]))
+
     def test_real_cold_test_harness_waits_for_exit_and_closed_readers(self):
         linked = self.crate_worktree(b'''\
 #[cfg(test)]

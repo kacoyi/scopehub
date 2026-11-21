@@ -1,5 +1,6 @@
 """Storage regression fixtures use only disposable repositories and worktrees."""
 
+from contextlib import contextmanager
 import errno
 import json
 import os
@@ -568,6 +569,81 @@ class CollectionTests(RepositoryFixture):
             with self.subTest(cache=cache):
                 self.assertTrue(queries[cache].is_file(), result)
 
+    def test_regular_target_does_not_abort_inventory_or_collection(self):
+        unusual = self.worktree('ordinary-target')
+        target = self.write(unusual, 'target', b'ordinary target file')
+        artifact = self.cargo_cache(self.worktree('valid-cache'))
+
+        result = self.collect()
+
+        self.assertTrue(result['inventory_complete'], result)
+        self.assertEqual(self.report_entry(result, target)['allocated_bytes'], target.stat().st_blocks * 512)
+        self.assertEqual(b'ordinary target file', target.read_bytes())
+        self.assertFalse(artifact.exists(), result)
+
+    def test_child_cache_rejects_replacement_or_provenance_changes_after_inventory(self):
+        retained = {}
+        for change in ('outer', 'child', 'debug', 'marker_missing', 'marker_replaced', 'marker_edited'):
+            tree = self.worktree(change)
+            retained[change] = self.cargo_cache(tree, target_dir='target/custom')
+        disposable = self.cargo_cache(self.worktree('valid-cache'), target_dir='target/custom')
+        collect_target = storage.collect_target
+        changed = False
+
+        def replace_after_inventory(*args, **kwargs):
+            nonlocal changed
+            if not changed:
+                changed = True
+                for change, artifact in retained.items():
+                    child = artifact.parents[2]
+                    marker = child / '.rustc_info.json'
+                    if change in {'outer', 'child', 'debug'}:
+                        directory = {'outer': child.parent, 'child': child, 'debug': child / 'debug'}[change]
+                        directory.rename(directory.with_name(directory.name + '-previous'))
+                        if change == 'debug':
+                            self.cargo_cache(self.directory / 'replacement').parents[1].rename(directory)
+                        else:
+                            self.cargo_cache(artifact.parents[4], target_dir='target/custom')
+                    elif change == 'marker_missing':
+                        marker.unlink()
+                    elif change == 'marker_replaced':
+                        marker.rename(marker.with_suffix('.previous'))
+                        marker.write_bytes(b'{}')
+                    else:
+                        info = marker.stat()
+                        marker.write_bytes(b'[]')
+                        os.utime(marker, ns=(info.st_atime_ns, info.st_mtime_ns))
+            return collect_target(*args, **kwargs)
+
+        with patch.object(storage, 'collect_target', side_effect=replace_after_inventory):
+            result = self.collect()
+
+        self.assertFalse(disposable.exists(), result)
+        for change, artifact in retained.items():
+            with self.subTest(change=change):
+                self.assertEqual(artifact.read_bytes(), b'\x01' * 16_384)
+                self.assertEqual(self.report_entry(result, artifact.parents[2])['reason'], 'cache_identity_changed')
+
+    def test_child_cache_rechecks_provenance_after_acquiring_locks(self):
+        artifact = self.cargo_cache(self.worktree('linked'), target_dir='target/custom')
+        marker = artifact.parents[2] / '.rustc_info.json'
+        context = storage.LinuxContext({Path('/'): 'ext4'}, set())
+
+        def lose_provenance(deadline):
+            marker.unlink()
+            return context
+
+        with patch.object(storage, 'linux_context') as observe:
+            def recheck(deadline):
+                return context if observe.call_count == 1 else lose_provenance(deadline)
+
+            observe.side_effect = recheck
+            result = storage.run(self.root, collect=True, high_bytes=1, low_bytes=0)
+
+        self.assertEqual(result['collected'], [])
+        self.assertEqual(self.report_entry(result, artifact.parents[2])['reason'], 'cache_identity_changed')
+        self.assertTrue(artifact.is_file(), result)
+
     def require_exclusive_leases(self):
         import fcntl
 
@@ -717,12 +793,14 @@ sys.exit(1)
             with self.subTest(artifact=artifact):
                 self.assertEqual(artifact.read_bytes(), elf)
 
-    def test_process_permission_denial_keeps_auditing_visible_processes(self):
+    @contextmanager
+    def proc_fixture(self, *, foreign_denied=False):
         proc = self.directory / 'proc'
         denied, visible = [proc / str(os.getpid() + offset) for offset in (1, 2)]
         uid = os.geteuid()
         for process in (denied, visible):
-            self.write(process, 'status', f'Uid:\t{uid}\t{uid}\t{uid}\t{uid}\n'.encode('ascii'))
+            owner = uid + int(foreign_denied or process == visible)
+            self.write(process, 'status', f'Uid:\t{owner}\t{owner}\t{owner}\t{owner}\n'.encode('ascii'))
             self.write(process, 'cmdline', b'')
             self.write(process, 'maps', b'')
             (process / 'fd').mkdir()
@@ -746,10 +824,30 @@ sys.exit(1)
         with (patch.object(storage, 'Path', side_effect=lambda path: proc_paths.get(path, Path(path))),
               patch.object(storage.os, 'readlink', side_effect=observe),
               patch.object(storage, 'mount_table', return_value=(mounts, [('proc', '/')]))):
+            yield
+
+    def test_process_permission_denial_keeps_auditing_visible_processes(self):
+        with self.proc_fixture():
             context = storage.linux_context()
 
         self.assertEqual(context.inaccessible_processes, 1)
         self.assertIn(self.root, context.active_paths)
+
+    def test_inaccessible_foreign_process_prevents_lease_free_dependency_removal(self):
+        self.require_exclusive_leases()
+        tree = self.worktree('linked')
+        held = self.cargo_cache(tree, stamp=1000)
+        idle = self.write(held.parent, 'libidle-aaaaaaaaaaaaaaaa.rlib')
+        os.utime(idle, (1000, 1000))
+
+        with self.proc_fixture(foreign_denied=True), held.open('rb') as reader:
+            result = storage.run(self.root, collect=True, high_bytes=1, low_bytes=0)
+            self.assertEqual(reader.read(), b'\x01' * 16_384)
+
+        self.assertEqual(result['process_visibility'], 'partial')
+        self.assertEqual(result['inaccessible_processes'], 1)
+        self.assertTrue(held.is_file(), result)
+        self.assertFalse(idle.exists(), result)
 
     def test_collection_cannot_keep_full_scope_when_visibility_degrades_after_lock(self):
         tree = self.worktree('linked')
