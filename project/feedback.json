@@ -2102,6 +2102,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "indicator-undo-fixture-assumed-producer-ownership",
+      "source": "Authenticated Windows task workflow 44861828416 on head and checkout 031b5e1f40b30e3450b2486a74462658d2d78848.",
+      "observation": "The corrected eight-stage sample case passed in 56635 ms, with the last history completed and rendered. The real disconnect and recovery case passed in 53985 ms. The sole unexpected workspace-timeframe result was the frozen CSV indicator journey at workspace.spec.mjs:902. The exact Undo request returned HTTP 429 with ok false and retryable BUSY, although an unqualified read probe also saw 429 while the writer was suspended. The screenshot showed the generic failed change and the Undo button remained available. The Windows browser result SHA-256 is 65368ac732bb1192224487e6e7b7d798d9a12e417da29d8d61456d43297021cf. A competing producer explains the possible probe mismatch, and the original occupier was not recorded. The local wrong-owner reproduction gave the producer to an authorized snapshot at revision 2, then forwarded the identified Undo while that read was still admitted. The actual Undo returned retryable HTTP 429, the accepted region stayed hidden and the snapshot returned revision 2. The local read-first run completed a revision 2 snapshot before forwarding the held Undo. The undo-first run received the real revision 3 receipt before inspecting revision 3 through an independent snapshot, then delivered the captured receipt to the browser. Both restored the exact document with one Undo request. In a later ordered post-visibility probe, a stale accepted-output read owned the producer and eventually returned STALE_CONTEXT. The first identified snapshot was explicitly refused with retryable HTTP 429. After resuming and draining the producer, the single new snapshot returned HTTP 200 at revision 3. The output probe observed 429 and then verified the exact HTTP 200 document. Raw reports and probe sources are retained under .reports/M3-004-undo. Browser result SHA-256 is 3fe2741951df243c69fc5baedacdaa34a2ef89154eb79ff9947d56e03624e339 for wrong-owner, 61606f2eac10955a1d83525ea3b6e3b327f10c807f9d9d96c272f0029df371c3 for read-first, 5fe7407cd5ffdcf51142660b58ac363c3662c1b89bbb458ced796e550a8573b2 for undo-first and d7a2f7b1fe9df5670c05e7d98123ae266a95996bb9473c60dd7b011447650edd for stale-reader. Three repeats of the delivered fixture passed with browser result SHA-256 4d1995abb2dabaf053024d8a31a563002e53594d3cbef7f98596c172843cf493.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M3-004"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

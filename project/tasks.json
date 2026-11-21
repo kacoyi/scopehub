@@ -8118,6 +8118,7 @@
       "acceptance": [
         "Retain the original Windows cutoff evidence. Use the same pacing schedule between completed stages to show the 60-second whole-test cutoff failing and the 90-second journey completing.",
         "Preserve all eight history, private undo, source, revision and accepted-layer assertions and the individual history response budgets. Verify the separate real disconnect and explicit recovery control.",
+        "Resolve the observed competing-read defect in the integrated indicator undo test fixture. Observe removal refresh completion, gate the exact undo and retain its commit and the exact restored document.",
         "Archive one matching hosted workspace run that passes this task's required checks."
       ],
       "checks": [
@@ -8125,8 +8126,17 @@
         "python-contracts-workers",
         "workspace-timeframe"
       ],
-      "evidence": [],
-      "next_action": "Obtain one source-matched hosted workspace report with all named checks, inspect the final restore and recovery stages, and archive passing evidence before closing the feedback.",
+      "evidence": [
+        {
+          "path": "project/evidence/M3-004-cab56358da60cfd7.json",
+          "sha256": "f85f8a868d90a283c4ea5335aa465a7e985cb1116503bfbbeeaa239e23781d2a"
+        },
+        {
+          "path": "project/evidence/M3-004-1fa65710c5178145.json",
+          "sha256": "a27a8a7367c230e937471f08361d427659f57963b96b7f5231600896fc8aa2e2"
+        }
+      ],
+      "next_action": "Run one matching hosted workspace task with the deadline and correlated undo fixture together. Inspect the eight sample stages, real disconnect recovery, undo receipt and exact restored output before closing both scoped feedback items.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -8142,11 +8152,18 @@
         ],
         "hypotheses": [
           "The 60-second enclosing budget can expire during an otherwise valid sequence of eight independently bounded chart stages.",
-          "The hosted stage attachment ended with the eighth request admitted and fetching. The later disconnect screenshot cannot establish when that request settled."
+          "The hosted stage attachment ended with the eighth request admitted and fetching. The later disconnect screenshot cannot establish when that request settled.",
+          "The separate indicator undo fixture used a generic 429 probe as evidence of mutation admission. Any occupied producer can cause the probe to return 429, including a read that makes the actual mutation return BUSY."
         ],
         "risks": [
           {
             "failure": "An expanded whole-test deadline hides an individual history transport failure or weakens private undo and source assertions.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A competing refresh owns the producer and the fixture attributes that admission to Undo or retries a mutation without a known outcome.",
             "checks": [
               "workspace-timeframe"
             ]
@@ -8170,7 +8187,7 @@
             "Product timeouts, market workers, individual request budgets, the global test timeout and market replay recovery."
           ],
           "open_questions": [
-            "Does the matching hosted workspace run finish the eighth requested history and the private undo assertions within the adjusted budget?"
+            "The matching 031b5e1 Windows report finished all eight history stages and recovery. A separate indicator undo fixture failed on a correlated 429. Can both pass in the same hosted workspace report after fixing fixture ownership?"
           ]
         },
         "evolution": {
@@ -8179,7 +8196,8 @@
             "The 18-second individual test wait, 15-second preview watchdog, healthy response requirements, explicit disconnect recovery and all private undo and source assertions."
           ],
           "change": [
-            "Align only this whole journey with the adjacent 90-second recovery case."
+            "Align only this whole journey with the adjacent 90-second recovery case.",
+            "Wait for the removal's workspace snapshot and empty accepted-layer list. Gate the exact undo before forwarding it once. Keep the independent post-visibility BUSY read probe."
           ],
           "data_plan": "Use the existing synthetic sample and disposable profile.",
           "cleanup": "Retain the comparison diagnostic only in the ignored report directory. Keep sleeps out of the delivered test."
