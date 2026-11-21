@@ -4,6 +4,7 @@ import argparse
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
 import errno
+import json
 import os
 from pathlib import Path
 import re
@@ -28,6 +29,7 @@ class Registration:
     branch: str | None
     flags: frozenset[str]
     lock_reason: str | None
+    head: str | None = None
 
 
 def git(cwd, *args, allowed=(0,), lock_fd=None):
@@ -68,7 +70,8 @@ def registrations(cwd):
     for record in records.split('\0\0'):
         fields = dict(field.partition(' ')[::2] for field in record.split('\0') if field)
         if 'worktree' in fields:
-            yield Registration(Path(fields['worktree']), fields.get('branch'), frozenset(fields), fields.get('locked'))
+            yield Registration(Path(fields['worktree']), fields.get('branch'), frozenset(fields), fields.get('locked'),
+                               fields.get('HEAD'))
 
 
 def entry_mode(path):
@@ -273,6 +276,10 @@ def main():
     use_parser = actions.add_parser('use', help='Print the absolute path of a named checkout.', allow_abbrev=False)
     use_parser.add_argument('name')
     actions.add_parser('list', help='List registered worktrees and their branches.', allow_abbrev=False)
+    retirement = actions.add_parser('retirement', help='Report observed retirement candidates without changing worktrees.',
+                                    allow_abbrev=False)
+    retirement.add_argument('--archive-root', type=Path, help='Absolute path to a host archive outside the checkouts.')
+    retirement.add_argument('--dispositions', metavar='COMMIT:PATH', help='Committed disposition records for exact heads.')
     args = parser.parse_args()
     if args.action == 'create' and (args.new_branch is None) != (args.base is None):
         create_parser.error('--new-branch and --base must be supplied together.')
@@ -281,6 +288,17 @@ def main():
         common = git_path(cwd, '--git-common-dir')
         with (creation_lock(common) if args.action == 'create' else nullcontext()) as lock_fd:
             registered = list(registrations(cwd))
+            if args.action == 'retirement':
+                sys.dont_write_bytecode = True
+                if __package__:
+                    from .worktree_retirement import retirement_report
+                else:
+                    # The offline command uses -I -S. Keep create, use and list usable as a pinned single file.
+                    sys.path.append(str(Path(__file__).resolve().parent))
+                    from worktree_retirement import retirement_report
+                print(json.dumps(retirement_report(cwd, common, registered, archive_root=args.archive_root,
+                                                   dispositions=args.dispositions), indent=2))
+                return
             root = managed_root(cwd, common, registered)
             if args.action == 'list':
                 print(f'Managed root: {root}')

@@ -20,6 +20,33 @@
       ],
       "additionalProperties": false
     },
+    "DiagnosticReports": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+          },
+          "source_commit": {
+            "type": "string",
+            "pattern": "^(?:[a-f0-9]{40}|[a-f0-9]{64})$"
+          },
+          "report_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "run_id",
+          "source_commit",
+          "report_sha256"
+        ],
+        "additionalProperties": false
+      },
+      "uniqueItems": true
+    },
     "Task": {
       "type": "object",
       "properties": {
@@ -90,6 +117,9 @@
           "items": {
             "$ref": "#/$defs/EvidenceRef"
           }
+        },
+        "diagnostic_reports": {
+          "$ref": "#/$defs/DiagnosticReports"
         },
         "next_action": {
           "type": [
@@ -1038,6 +1068,9 @@
               "observation": {
                 "type": "string",
                 "minLength": 1
+              },
+              "diagnostic_reports": {
+                "$ref": "#/$defs/DiagnosticReports"
               },
               "severity": {
                 "enum": [

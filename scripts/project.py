@@ -12,6 +12,11 @@ import subprocess
 
 from jsonschema import Draft202012Validator, FormatChecker
 
+if __package__:
+    from .diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
+else:
+    from diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
+
 ROOT = Path(__file__).resolve().parents[1]
 # These records describe work and evidence; they are not executable test inputs.
 # Validate them afresh on every status/check command. Excluding them prevents a
@@ -23,6 +28,11 @@ INPUT_EXCLUSIONS = [
 TASK_DEFINITION_FIELDS = [
     'id', 'title', 'milestone', 'depends_on', 'scope', 'decision_refs', 'acceptance', 'checks',
 ]
+PATH_TOKEN = re.compile(r"""[^\s'"\x60<>()\[\]{},;|]+""")
+DIAGNOSTIC_FILENAMES = {'test-report.json', 'diagnostic.json'}
+LOGICAL_ARCHIVE_PATH = re.compile(
+    r'archives/(?:runs/([^/]+)/test-report\.json|recovery/([^/]+)/diagnostic\.json)'
+)
 
 
 class ProjectError(ValueError):
@@ -51,10 +61,9 @@ def file_digest(path):
 
 def task_definition_hash(task):
     definition = {key: task[key] for key in TASK_DEFINITION_FIELDS}
-    if 'delivery' in task:
-        definition['delivery'] = task['delivery']
-    if 'plan' in task:
-        definition['plan'] = task['plan']
+    for key in ('delivery', 'plan', 'diagnostic_reports'):
+        if key in task:
+            definition[key] = task[key]
     return digest(json.dumps(definition, sort_keys=True, separators=(',', ':')).encode('utf-8'))
 
 
@@ -76,6 +85,96 @@ def local_path(root, relative):
     if not candidate.resolve().is_relative_to(root.resolve()):
         raise ProjectError(f'Path escapes repository: {relative}')
     return candidate
+
+
+def checkout_report_path(root, path, *, reports_only=False):
+    checkout = root.resolve()
+    directory = (checkout / '.reports').resolve() if reports_only else checkout
+    candidate = (checkout / path).resolve()
+    if ((reports_only and directory == checkout) or not directory.is_relative_to(checkout)
+            or not candidate.is_relative_to(directory) or candidate == directory):
+        suffix = ' under .reports/' if reports_only else ''
+        raise ProjectError(f'Expected a checkout-local report file{suffix}')
+    return candidate
+
+
+def report_text(value):
+    if isinstance(value, dict):
+        for entry in value.values():
+            yield from report_text(entry)
+    elif isinstance(value, list):
+        for entry in value:
+            yield from report_text(entry)
+    elif isinstance(value, str):
+        yield value
+
+
+def require_portable_report_paths(root, value, label, run_ids=()):
+    """Check literal report paths while leaving ordinary prose and web URLs alone."""
+    for line in report_text(value):
+        for match in PATH_TOKEN.finditer(line):
+            literal = match[0].split('=', 1)[-1].partition('#')[0].rstrip('.!?:')
+            token = literal.replace('\\', '/')
+            token = re.sub(r':\d+(?::\d+)?$', '', token)
+            if token.startswith(('http://', 'https://')):
+                continue
+            archive_path = LOGICAL_ARCHIVE_PATH.fullmatch(literal)
+            if archive_path and (archive_path[1] or archive_path[2]) in run_ids:
+                continue
+            parts = token.split('/')
+            report_directory = any(part.casefold() == '.reports' for part in parts)
+            if not report_directory and (len(parts) == 1 or parts[-1].casefold() not in DIAGNOSTIC_FILENAMES):
+                continue
+            relative = token.removeprefix('./')
+            # Explicit checkout-relative files and the conventional report directory
+            # are distinct from sibling checkout names and logical archive hints.
+            if '..' not in parts and not relative.startswith('archives/'):
+                try:
+                    local = local_path(root, relative)
+                    if (relative == '.reports' or relative.startswith('.reports/')
+                            or not report_directory and (token.startswith('./') or local.is_file())):
+                        continue
+                except ProjectError:
+                    pass
+            raise ProjectError(f'{label} depends on a nonlocal report path {token!r}; use diagnostic_reports')
+
+
+def validate_report_references(root, record, label):
+    locators = record.get('diagnostic_reports', ())
+    for locator in locators:
+        try:
+            validate_locator(locator)
+        except DiagnosticArchiveError as error:
+            raise ProjectError(f'{label}: {error}') from error
+    require_portable_report_paths(root, record, label, {locator['run_id'] for locator in locators})
+
+
+def review_script_report_paths(root, base):
+    # Inspect new lines and untracked scripts, leaving inherited scripts and test fixtures alone.
+    diff = subprocess.run(
+        ['git', 'diff', '--no-color', '--no-ext-diff', '--no-textconv', '--no-renames', '--unified=0',
+         base, '--', 'scripts/'], cwd=root, capture_output=True, check=True,
+    ).stdout.decode(errors='replace')
+    path = ''
+    in_hunk = False
+    for line in diff.splitlines():
+        if line.startswith('diff --git '):
+            in_hunk = False
+        elif line.startswith('+++ ') and not in_hunk:
+            path = line[4:]
+        elif line.startswith('@@ '):
+            in_hunk = True
+        elif line.startswith('+') and in_hunk:
+            require_portable_report_paths(root, line[1:], f'Script {path}')
+    untracked = subprocess.run(
+        ['git', 'ls-files', '--others', '--exclude-standard', '-z', '--', 'scripts/'],
+        cwd=root, capture_output=True, check=True,
+    ).stdout
+    for relative in os.fsdecode(untracked).split('\0'):
+        if relative:
+            path = local_path(root, relative)
+            if path.is_file() and not path.is_symlink():
+                require_portable_report_paths(root, path.read_text(errors='replace'), f'Script {relative}')
 
 
 def source_identity(root=ROOT):
@@ -213,6 +312,8 @@ def load_project(root=ROOT):
             replacements[predecessor] = decision['id']
     validate_graph({key: item['depends_on'] for key, item in tasks.items()}, 'Task dependencies')
     for task in tasks.values():
+        if task['status'] not in {'done', 'cancelled'}:
+            validate_report_references(root, task, f"Task {task['id']}")
         require_refs([task['milestone']], gates, f"Task {task['id']}")
         require_refs(task['checks'], checks, f"Task {task['id']}")
         require_refs(task['decision_refs'], decisions, f"Task {task['id']}")
@@ -361,6 +462,8 @@ def validate_delivery(root, project):
         if any(checks[key]['status'] == 'retired' for key in scenario['checks']):
             raise ProjectError(f"Scenario uses a retired check: {scenario['id']}")
     for item in items.values():
+        if item['status'] != 'addressed':
+            validate_report_references(root, item, f"Feedback {item['id']}")
         require_refs(item['task_ids'], tasks, f"Feedback {item['id']}")
         require_refs(item['regression_checks'], checks, f"Feedback {item['id']}")
         if item['status'] == 'addressed':
@@ -438,11 +541,14 @@ def workfront(root=ROOT, *, report_path=None):
         from development import evidence_view
     project = load_project(root)
     source = source_identity(root)
-    report_path = report_path or root / '.reports/test-report.json'
+    report_path = report_path or '.reports/test-report.json'
+    report_available = False
     report_error = None
     report = None
     try:
-        if report_path.is_file():
+        report_path = checkout_report_path(root, report_path)
+        report_available = report_path.is_file()
+        if report_available:
             report = read_json(report_path)
             validate_model(root, 'HarnessReport', report)
     except ProjectError as error:
@@ -467,7 +573,7 @@ def workfront(root=ROOT, *, report_path=None):
         'proposed_decisions': [item['id'] for item in project['decisions'].values() if item['status'] == 'proposed'],
         'decision_replacements': project['replacements'],
         'dependency_maintenance': maintenance_status(root),
-        'verification': {'report_available': report_path.is_file(), 'matches_current_execution_inputs': inputs_current,
+        'verification': {'report_available': report_available, 'matches_current_execution_inputs': inputs_current,
                          'matches_current_task_definitions': tasks_current,
                          'matches_current_project_definitions': definitions_current, 'current': current,
                          'report_error': report_error,
@@ -709,10 +815,7 @@ def verified_candidate_files(root, project, report, results, source, report_path
 
 def readiness(root=ROOT, *, report_path=None, artifact_root=None, candidate=None):
     project = load_project(root)
-    report_path = (root / (report_path or '.reports/test-report.json')).resolve()
-    reports_root = (root / '.reports').resolve()
-    if not report_path.is_relative_to(reports_root):
-        raise ProjectError('Release reports must be retained under .reports/')
+    report_path = checkout_report_path(root, report_path or '.reports/test-report.json', reports_only=True)
     state = workfront(root, report_path=report_path)
     current = state['verification']['current']
     report = read_json(report_path) if current else {}
@@ -779,6 +882,17 @@ def review_history(root=ROOT, base=None):
         return json.loads(result.stdout) if result.returncode == 0 else None
 
     ledger = previous('project/tasks.json')
+    old_tasks = indexed(ledger['tasks'], 'previous task') if ledger else {}
+    for key, task in project['tasks'].items():
+        old = old_tasks.get(key, {})
+        if old.get('status') not in {'done', 'cancelled'}:
+            validate_report_references(root, task, f'Task {key}')
+    old_feedback = previous('project/feedback.json')
+    old_items = indexed(old_feedback['items'], 'previous feedback') if old_feedback else {}
+    for item in project['feedback']['items']:
+        if item != old_items.get(item['id']):
+            validate_report_references(root, item, f"Feedback {item['id']}")
+    review_script_report_paths(root, resolved)
     compared = []
     catalog = previous('project/checks.json')
     replaced = {}
@@ -845,7 +959,12 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
     if task_id not in project['tasks']:
         raise ProjectError(f'Unknown task: {task_id}')
     task = project['tasks'][task_id]
-    report = read_json(report_path)
+    report_path = checkout_report_path(root, report_path)
+    report_bytes = report_path.read_bytes()
+    try:
+        report = json.loads(report_bytes.decode('utf-8'))
+    except ValueError as error:
+        raise ProjectError(f'Cannot read JSON record {report_path}: {error}') from error
     if not isinstance(report, dict):
         raise ProjectError('Expected a structured verification report')
     if report.get('report_version') != '2.0' or not report.get('source_unchanged'):
@@ -929,7 +1048,7 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
     receipt = {
         'schema_version': '1.0', 'task_id': task_id, 'task_definition_sha256': task_definition_hash(task),
         'run_id': report['run_id'], 'recorded_at': datetime.now(timezone.utc).isoformat(),
-        'source': report['source'], 'report_sha256': digest(report_path.read_bytes()),
+        'source': report['source'], 'report_sha256': digest(report_bytes),
         'environment': report['environment'], 'checks': selected,
         'project_definition_sha256': report['project_definition_sha256'],
         'claim_scope': 'Completed task at the recorded execution inputs; not a release or current-worktree guarantee.',
@@ -979,6 +1098,15 @@ def main():
     record.add_argument('task_id')
     record.add_argument('--report', type=Path, default=ROOT / '.reports/test-report.json')
     record.add_argument('--artifact-root', type=Path, help='Isolated downloaded artifact directory containing runs/')
+    diagnostic = sub.add_parser('diagnostic', help='Identify or explicitly verify a retained diagnostic')
+    diagnostic_commands = diagnostic.add_subparsers(dest='diagnostic_command', required=True)
+    identify = diagnostic_commands.add_parser('identify', help='Derive a portable locator from a report')
+    identify.add_argument('report', type=Path)
+    resolve = diagnostic_commands.add_parser('resolve', help='Verify an original diagnostic and its bound files')
+    resolve.add_argument('run_id')
+    resolve.add_argument('source_commit')
+    resolve.add_argument('report_sha256')
+    resolve.add_argument('--archive-root', type=Path, help='Host archive root (defaults to SCOPEHUB_ARCHIVE_ROOT)')
     args = parser.parse_args()
     try:
         if args.command == 'check':
@@ -1018,6 +1146,16 @@ def main():
                 result['previous_checkpoint'] = review_history(ROOT, checkpoint_base)
         elif args.command == 'checkpoint':
             result = checkpoint()
+        elif args.command == 'diagnostic':
+            try:
+                if args.diagnostic_command == 'identify':
+                    result = diagnostic_locator(args.report)
+                else:
+                    locator = {key: getattr(args, key) for key in ('run_id', 'source_commit', 'report_sha256')}
+                    archive_root = args.archive_root or os.environ.get('SCOPEHUB_ARCHIVE_ROOT')
+                    result = resolve_diagnostic(locator, archive_root)
+            except DiagnosticArchiveError as error:
+                raise ProjectError(str(error)) from error
         else:
             result = archive_evidence(ROOT, args.task_id, args.report, args.artifact_root)
         print(json.dumps(result, indent=2))
