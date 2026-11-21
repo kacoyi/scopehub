@@ -9400,6 +9400,8 @@
       "scope": [
         "apps/desktop/ui/src/use-local-workspace.ts",
         "apps/desktop/ui/src/indicator-acceptance.tsx",
+        "apps/desktop/ui/src/market-admission.ts",
+        "apps/desktop/ui/src/abortable-delay.ts",
         "tests/ubuntu-preview/workspace.spec.mjs",
         "project/tasks.json",
         "project/feedback.json"
@@ -9419,9 +9421,10 @@
         "market-workflow",
         "indicator-workflow",
         "indicator-declarative-preview",
-        "workspace-timeframe"
+        "workspace-timeframe",
+        "market-worker-interruption"
       ],
-      "next_action": "Reproduce an actual busy snapshot following the committed removal and compare the application state, browser observations and persisted revision.",
+      "next_action": "Verify the committed recovery and durable single-dispatch undo on Ubuntu and native Windows, then archive exact-source local and authenticated hosted receipts.",
       "blocker": null,
       "closure_reason": null,
       "evidence": [],
@@ -9439,7 +9442,8 @@
           "contracts/decisions/0017-indicator-acceptance-and-restore.json"
         ],
         "hypotheses": [
-          "The removal can commit while its follow-up authoritative snapshot encounters retryable BUSY. The UI then retains the previous accepted layer until another refresh. A lost browser observation is a competing explanation."
+          "The original Windows receipt and stale browser view could indicate a rejected snapshot or a lost browser observation. On unchanged product code, a real concurrent authorized snapshot held the lane while the first post-removal UI snapshot returned HTTP 429 BUSY. Eight seconds later the view still showed the old layer although an independent read reported revision 2, no layers and the matching durable undo.",
+          "Repeating only eligible side-effect-free snapshot reads after the committed receipt should converge, while terminal errors, aborted views and invalid workspace state should stop without repeating a mutation."
         ],
         "risks": [
           {
@@ -9455,6 +9459,13 @@
               "market-workflow",
               "indicator-workflow",
               "ui-build"
+            ]
+          },
+          {
+            "failure": "Sharing the abort-aware timer changes market-worker cleanup or rearms reads after a view is released.",
+            "checks": [
+              "workspace-timeframe",
+              "market-worker-interruption"
             ]
           }
         ],
@@ -9486,7 +9497,7 @@
             "Changing workspace write admission, increasing Playwright deadlines, adding new operations, and altering stored indicator results."
           ],
           "open_questions": [
-            "Capture the mutation receipt, the first actual response to the snapshot, and what the view shows until the writer is available."
+            "Does the complete browser journey observe a committed revision and undo on native Windows within its existing eight-second observation?"
           ]
         },
         "evolution": {
