@@ -8088,6 +8088,481 @@
       }
     },
     {
+      "id": "M0-036",
+      "title": "Bound Windows desktop fixture ACL preparation",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M2-011"
+      ],
+      "scope": [
+        "apps/desktop/src-tauri/src/bridge_tests.rs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Real Windows desktop fixture root preparation, including copy setup, occupies one short-lived slot that is released on success, error, and unwind.",
+        "The desktop bridge still runs its native profile, identity, authorization, cleanup, and concurrency assertions with the existing ACL routine and timeout.",
+        "The failed Windows report, raw log digest and exact tested Git tree are retained. Focused fixture tests and the native full Rust task pass on the corrective source."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "rust-format",
+        "rust-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-036-2263a63bf3b1a326.json",
+          "sha256": "ebb6e7b9f08407173cb20a792df59ef4205377b50b5124ac8f09e41120f165c8"
+        },
+        {
+          "path": "project/evidence/M0-036-bede1e0b8b042a8b.json",
+          "sha256": "951c8dee010667c741ccee98c4a3cf61e6f6d0e933dd5076dd1b6e0a49ce2076"
+        },
+        {
+          "path": "project/evidence/M0-036-48a1ce86d7f1472b.json",
+          "sha256": "a741e3de3b2ef8b9b9c336e8334f90b5c80303814a745a9b5e031115f34e2bfc"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Bound Windows desktop test profile preparation and preserve native ACL and concurrent bridge coverage.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "apps/desktop/src-tauri/src/bridge_tests.rs",
+          "crates/persistence/src/storage.rs",
+          "crates/persistence/src/storage_acl.ps1",
+          "scripts/rust_workspace.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The simultaneous Windows fixture preparations may contend for PowerShell startup or ACL work on a hosted runner. Serializing only explicit fixture setup can reduce that contention. The retained report does not distinguish CPU scheduling, process startup and I/O."
+        ],
+        "risks": [
+          {
+            "failure": "A fixture error or panic prevents later profile preparation.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A test fixture change bypasses native ACL checks or suppresses concurrent bridge assertions.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the test-only scheduling change if native focused or standard checks reveal a regression. Preserve the original report, raw log and exact Git tree.",
+        "implementation": {
+          "modules": [
+            "desktop",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "apps/desktop/src-tauri/src/bridge_tests.rs",
+            "scripts/rust_workspace.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changes to application ACL checks, timeout policy, product scheduling or existing product assertions."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The native ACL path and refusal mapping, process timeout and cleanup, concurrent bridge behavior, isolated test directories and existing test assertions."
+          ],
+          "change": [
+            "Admit one explicit Windows desktop fixture profile-root preparation at a time."
+          ],
+          "data_plan": "Use synthetic temporary profiles and the retained hosted artifacts. No product data changes are required.",
+          "cleanup": "Test release of the fixture slot on success, error and unwind. Verify real profile construction and directory cleanup."
+        }
+      }
+    },
+    {
+      "id": "M1-026",
+      "title": "Keep cold operation validation within the market replay recovery budget",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-019"
+      ],
+      "scope": [
+        "crates/application/src/lib.rs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "A cold operation lookup and authorization do not compile unrelated validators. Each used payload still uses its canonical schema and repeated validation reuses it.",
+        "The real Windows interruption check observes one accepted chart subscription, recovery from the confirmed checkpoint, the exact final closed bar and the original frozen history within the existing replay deadline.",
+        "Existing cancellation, bounded restart, invalid replacement and independent chart and wire assertions continue to pass."
+      ],
+      "checks": [
+        "rust-contracts-workers",
+        "rust-lints",
+        "market-worker-interruption",
+        "market-recovery",
+        "market-recovery-ui",
+        "market-live-stream",
+        "market-fixtures",
+        "ui-build"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-026-43fae6f230c6c013.json",
+          "sha256": "3daea3eefd00fa59774724505092bd13401801b4ecfd533be725a369bd110539"
+        },
+        {
+          "path": "project/evidence/M1-026-813a5ffafcfaf38c.json",
+          "sha256": "8ea6929864d659f504a5682d75e64a044964270bda240884733ba8d5b960071a"
+        },
+        {
+          "path": "project/evidence/M1-026-c4d1d5ad29897cda.json",
+          "sha256": "e0dd181253635729781627134dd08a6088fbe35067e57ed92515cdd824dc7f92"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A cold preview bridge finishes real worker interruption recovery on Windows within the existing five-second subscription budget.",
+        "change_types": [
+          "market",
+          "stream-slice"
+        ],
+        "context": [
+          "crates/application/src/lib.rs",
+          "crates/application/src/replay.rs",
+          "crates/worker-host/src/market.rs",
+          "tests/ubuntu-preview/worker-interruption.spec.mjs"
+        ],
+        "hypotheses": [
+          "Both Windows jobs reached the verified replacement before the five-second subscription deadline. A local cold lookup isolated the eager cost, and the same real-worker interruption probe completed after deferring operation payload validators."
+        ],
+        "risks": [
+          {
+            "failure": "Deferred compilation skips canonical checks, compiles unrelated schemas, or rebuilds a used validator on each request.",
+            "checks": [
+              "rust-contracts-workers",
+              "rust-lints"
+            ]
+          },
+          {
+            "failure": "Replay still times out after resumption or stops preserving the confirmed state and frozen history.",
+            "checks": [
+              "market-worker-interruption",
+              "market-recovery",
+              "market-recovery-ui",
+              "market-live-stream"
+            ]
+          }
+        ],
+        "rollback": "Retain the original hosted failure and cold-bridge comparison. Revert the validator change if validation behavior regresses. Verify the remaining Windows risk with the matching hosted result.",
+        "implementation": {
+          "modules": [
+            "application",
+            "worker-host"
+          ],
+          "entrypoints": [
+            "crates/application/src/lib.rs",
+            "crates/worker-host/src/market.rs",
+            "tests/ubuntu-preview/worker-interruption.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/runtime"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Deadline increases, worker retry changes, protocol changes, and changes to other pull requests."
+          ],
+          "open_questions": [
+            "The retained Windows artifacts identify the terminal stage. A matching native Windows run is needed to verify the repaired budget on that runner."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Canonical request and response validation, actor permissions, recovery timing, cancellation, monotonic checkpoints, and independent expected outputs."
+          ],
+          "change": [
+            "Build only the payload validators needed by the current bridge traffic."
+          ],
+          "data_plan": "Keep compiler caches in process memory and use the existing synthetic replay and retained diagnostic artifacts.",
+          "cleanup": "Reuse the existing validator builder and remove eager catalog compilation."
+        }
+      }
+    },
+    {
+      "id": "M0-031",
+      "title": "Resolve archived diagnostic runs and qualify idle worktrees for retirement",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-030"
+      ],
+      "scope": [
+        "AGENTS.md",
+        "contracts/schemas",
+        "package.json",
+        "project",
+        "scripts",
+        "tests/project"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Active and newly edited report dependencies survive a change of checkout path. The archive locator binds the run ID, source commit and report SHA-256 and can resolve the preserved diagnostic without treating blocked checks as acceptance. Existing historical records and checkout-local reports remain readable.",
+        "A read-only command lists retirement candidates and explains why a registered worktree is held. Eligibility requires an integrated or explicitly disposed result, recoverable Git references, a clean and idle checkout, retained verified non-rebuildable evidence, and no dependent path consumers. Missing or uncertain evidence holds the worktree.",
+        "Exercise positive and negative fixtures and run the read-only report against the actual multi-worktree repository without removing any worktree, branch or retained file."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-031-d51e47fee17aab36.json",
+          "sha256": "f8ee6182855c8f39fb27140c6be500db9039fa403637bdabbb8798cfe6d4d2a0"
+        },
+        {
+          "path": "project/evidence/M0-031-8eb3cae8bcc11b37.json",
+          "sha256": "8292ca36f4681e27d18cfcfebcaf4beba23ab76f3dfe7617f520febd3eb94579"
+        },
+        {
+          "path": "project/evidence/M0-031-2fdbf9b203996243.json",
+          "sha256": "1819dc1b02f6b22bed786df4fd2eadec66341667602383b3583b226b7c4e355d"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Linux fixtures exercised eligible and held worktrees. The host observation held all 50 registered entries, found 10 tips reachable from the observed origin/main, and reported missing verified retention, active paths, downstream consumers and incomplete process visibility. The archived diagnostic run 20261121T015908.326119Z-721f69a6 retained its blocked outcome with 13 selected checks passed and two blocked. Its 13 logs and archive checksum manifest verified.",
+      "plan": {
+        "outcome": "Retain diagnostic runs across relocation and expose idle, recoverable task checkouts ready for a separately reviewed retirement.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "AGENTS.md",
+          "scripts/project.py",
+          "scripts/storage.py",
+          "scripts/worktree.py",
+          "project/delivery.json",
+          "project/development.json"
+        ],
+        "hypotheses": [
+          "The source commit, run ID and report digest can locate and authenticate a complete previously archived diagnostic without coupling tasks to their checkout names.",
+          "Observed Git, retained file and activity evidence can qualify completed checkouts while keeping uncertain work recoverable."
+        ],
+        "risks": [
+          {
+            "failure": "A path escape, hash mismatch, or blocked run is mistaken for authenticated passing evidence.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A dirty or active checkout, a local-only commit, or a diagnostic or path consumer is overlooked.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep source and archived files available; the report only observes eligibility. Investigate discrepancies using original immutable task records and Git metadata.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/worktree.py",
+            "scripts/storage.py",
+            "scripts/project.py",
+            "scripts/diagnostic_archive.py",
+            "scripts/worktree_retirement.py",
+            "project/tasks.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/herdr"
+            }
+          ],
+          "non_goals": [
+            "Automatic deletion, host relocation, product changes and retrospective modification of accepted tasks or ADRs."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Original diagnostic status, checkout-local evidence, immutable completed records, independently addressable Git worktrees, and protected worktree contents."
+          ],
+          "change": [
+            "Identify externally retained reports by run and content identity and report worktree retirement eligibility from observable facts."
+          ],
+          "data_plan": "Read local development artifacts and Git references. Keep archive configuration host-local and do not upload raw diagnostics.",
+          "cleanup": "Allow operators to re-run the read-only classification before native Git removal in a separate operation; leave active, unverified and unrecoverable checkouts in place."
+        }
+      }
+    },
+    {
+      "id": "M0-035",
+      "title": "Preserve unresolved worktree dependencies and diagnostic evidence during retirement review",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-031"
+      ],
+      "scope": [
+        "scripts",
+        "tests/project",
+        "AGENTS.md",
+        "project/feedback.json",
+        "project/tasks.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "A worktree with active harness or editable-runtime consumers, a live linked-file type change, unique local evidence in generated layouts, or an unrecoverable per-worktree reference is held. An inactive globally configured Git filter does not block a genuinely eligible checkout. Python library directory case aliases do not duplicate reported editable consumers.",
+        "A retained blocked diagnostic must verify the observation artifacts explicitly bound by its report. Checkout-local report selection from a subdirectory and independently supplied compatible reports preserve the established evidence semantics and reject a cross-worktree report dependency.",
+        "The read-only host inventory and the retained M4 diagnostic still resolve after integrating the upstream worktree and storage identity repairs. The command never removes a worktree or its files.",
+        "New operational source and workflow changes cannot introduce cross-checkout diagnostic paths. Windows linked consumers and independent retained files are identified using the host path and file identity semantics.",
+        "A checkout whose only outstanding hold is partial global process visibility enters human review intake while remaining held. Specific dependencies, activity, unverified evidence or Git state continue to disqualify intake.",
+        "Scoped pnpm projections are rebuildable when they are backed by the owning workspace\u2019s locked dependency or a public root hoist and resolve into its verified local virtual store. Unknown or foreign projections remain holds.",
+        "Nested manifests and checkout-local linked runtime registries keep their downstream dependencies. Unique data buried in Cargo intermediate directories remains protected, and added executable HTML, SQL and harness commands are reviewed for nonlocal report paths."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-035-282a743acdb6179e.json",
+          "sha256": "48cf3d6a8499c158cf64835ba0c038063ba313ed20412c997cabb96bf9463ad9"
+        },
+        {
+          "path": "project/evidence/M0-035-8eb3cae8bcc11b37.json",
+          "sha256": "b500578df1c68d7fdc63398020f54d4968687ce61d4067c4675651c55be72cf2"
+        },
+        {
+          "path": "project/evidence/M0-035-2fdbf9b203996243.json",
+          "sha256": "9aac0588227f283352639d4fd765938608f0ea2abe4a1a58e2200812b803d70a"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Local and native Ubuntu and Windows task checks passed at 320946e, with source, task identity and log digests verified. The stable read-only host observation classified two of 50 registrations for human review and found zero retirement candidates.",
+      "plan": {
+        "outcome": "Keep worktrees with irreplaceable evidence or dependent consumers off the retirement list and preserve legitimate evidence lookup behavior.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/worktree_retirement.py",
+          "scripts/diagnostic_archive.py",
+          "scripts/project.py",
+          "scripts/storage.py",
+          "scripts/worktree.py",
+          "project/feedback.json",
+          "scripts/operational_paths.py"
+        ],
+        "hypotheses": [
+          "The preliminary candidate report treats a generated directory as proof that all contained files are rebuildable and checks the index type instead of the live path at some consumer boundaries.",
+          "The retainer can verify an incomplete field-observation archive, and normal report arguments were re-anchored away from the caller's working directory."
+        ],
+        "risks": [
+          {
+            "failure": "Incomplete process, private-reference, path dependency, or archive observation qualifies a worktree that cannot be retired safely.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A legitimate local or offline diagnostic is newly rejected, or an incomplete archived observation claims integrity.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep prior receipts immutable and preserve every checkout and source report. Report incomplete observations as holds while repairing the read-only logic.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/project.py",
+            "scripts/worktree.py",
+            "scripts/worktree_retirement.py",
+            "scripts/diagnostic_archive.py",
+            "scripts/operational_paths.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/herdr"
+            }
+          ],
+          "non_goals": [
+            "No real worktree removal, live host relocation, raw diagnostic uploads or broad changes to Git/user configuration."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Original accepted tasks and their receipts, diagnostic status, read-only operation, existing archive layout and in-checkout report callers."
+          ],
+          "change": [
+            "Check the real consumers, private Git state and bound observation files missed in the independent review. Restrict generated-data and filter exclusions to the observations that justify them.",
+            "Cover changed operational sources and workflows in history validation, preserve Windows path and file identity, and expose a separate human review intake for otherwise clear checkouts under partial process visibility.",
+            "Identify standard scoped pnpm links by the owning workspace lock importer or a recorded public root hoist, and verify the resolved local package target.",
+            "Parse and normalize Cargo dependency paths relative to the declaring manifest, retain lexical and physical targets, read linked registries within their checkout and distinguish Cargo intermediate artifacts by their generated layout."
+          ],
+          "data_plan": "Inspect repository metadata and retained development evidence locally. Opt in to archive access only for explicit verification.",
+          "cleanup": "Keep the existing locator and queue entrypoints and remove overly broad assumptions under deterministic regression fixtures."
+        }
+      }
+    },
+    {
       "id": "M0-032",
       "title": "Relocate the primary ScopeHub checkout while preserving verified development workflows",
       "milestone": "M0",
