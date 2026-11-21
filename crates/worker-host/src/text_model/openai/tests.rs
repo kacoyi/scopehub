@@ -133,6 +133,23 @@ async fn captures_two_turns_and_rejects_unauthorized_or_redirected_requests() {
         .refresh_openai_credential(&access(Actor::User), Some(credential_revision))
         .unwrap();
     let cloud = activate(&mut registry, proposal);
+    let selected = command(json!({
+        "action": "send", "connection_id": cloud, "selection_revision": 1,
+        "question": "What is the selected close?",
+    }));
+    let request_id = Uuid::parse_str(selected["request_id"].as_str().unwrap()).unwrap();
+    let access = access(Actor::User);
+    let denied = registry.execute_workspace(&access, selected).unwrap();
+    assert_eq!(denied["outcome"]["error"]["code"], "PERMISSION_DENIED");
+    let status = operate(&mut registry, Actor::User, json!({"action": "status"}));
+    assert_eq!(status["result"]["connection"]["connection_id"], cloud);
+    assert_eq!(status["result"]["turn_id"], Value::Null);
+    assert!(
+        registry
+            .take_text_model_work(&access, request_id)
+            .unwrap()
+            .is_none()
+    );
     let result = cloud_turn(
         &mut registry,
         &client,
@@ -290,15 +307,18 @@ fn access(actor: Actor) -> WorkspaceAccess<'static> {
     }
 }
 
-fn operate(registry: &mut OperationRegistry<BoundProfile>, actor: Actor, args: Value) -> Value {
-    let envelope = json!({
+fn command(args: Value) -> Value {
+    json!({
         "protocol_version": "1.1", "type": "request", "message_id": Uuid::new_v4().to_string(),
         "request_id": Uuid::new_v4().to_string(), "timestamp_ms": 1,
         "scope": {"workspace_id": WORKSPACE},
         "intent": {"operation": AI_TEXT_CONNECTION, "arguments": args},
-    });
+    })
+}
+
+fn operate(registry: &mut OperationRegistry<BoundProfile>, actor: Actor, args: Value) -> Value {
     registry
-        .execute_workspace(&access(actor), envelope)
+        .execute_workspace(&access(actor), command(args))
         .unwrap()["outcome"]
         .clone()
 }

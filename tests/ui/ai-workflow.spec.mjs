@@ -446,6 +446,9 @@ test('one scoped activation delivers two ordinary turns to the owned peer and ha
         await control(chat(page), 'Cancel turn').click();
         await expect(chat(page).getByText(cancelled, { exact: true })).toBeVisible();
         await expect(control(chat(page), 'Send')).toHaveCount(0);
+        await expect(chat(page).getByRole('log').locator('.model-answer p')).toHaveText([
+          'Synthetic peer reply 1', 'Synthetic peer reply 2',
+        ]);
         await expect.poll(() => peer.traffic[3].closedWithoutReply).toBe(true);
         await expectRevoked(dispatch, firstCommand);
         await question(page).fill('Synthetic question after revoke');
@@ -627,11 +630,50 @@ test('selected chart conversation negotiates the bounded tool through the owned 
         const beforeB = persistedRows(profile);
         await openChat(page);
         const correction = 'Use the corrected selected interval and tell me its close.';
+        // Lose the accepted send and first tool-continuation poll. Subsequent
+        // terminal replies carry a valid shape but the wrong frozen revision.
+        let lostSend = false;
+        let lostPoll = false;
+        let corruptEvidence = true;
+        const path = '**' + workspaceEndpoint;
+        const interrupt = async route => {
+          const request = route.request();
+          if (isAction(request, 'send') && !lostSend) {
+            const admitted = await route.fetch({ maxRedirects: 0 });
+            expect((await admitted.json()).result.outcome.result.turn_id).toBe(request.postDataJSON().request_id);
+            lostSend = true;
+            return route.abort('failed');
+          }
+          if (!isAction(request, 'poll')) return route.fallback();
+          const response = await route.fetch({ maxRedirects: 0 });
+          const frame = await response.json();
+          const turn = frame.result?.outcome?.result?.turn;
+          if (!lostPoll && turn?.state === 'running') {
+            lostPoll = true;
+            return route.abort('failed');
+          }
+          if (corruptEvidence && turn?.chart_evidence) {
+            turn.chart_evidence.revision = 'wrong-synthetic-revision';
+            turn.text = 'Uncorrelated chart answer.';
+            return route.fulfill({ response, json: frame });
+          }
+          return route.fulfill({ response });
+        };
+        await page.route(path, interrupt);
         await send(page, correction);
+        await expect(control(chat(page), 'Check turn status')).toBeVisible();
+        await expect(chat(page).getByRole('article')).toHaveCount(1);
+        await expect(chat(page)).not.toContainText('Uncorrelated chart answer.');
+        await expectChartAnswer(page, intervalA);
+        expect(lostSend && lostPoll).toBe(true);
+        corruptEvidence = false;
+        await control(chat(page), 'Check turn status').click();
         await expect.poll(() => peer.traffic.length, { timeout: 10_000 }).toBe(4);
         expectRequest(peer.traffic[2], [user(correction)], { tools: chartTools });
         observation.projections.push(expectToolResult(peer.traffic[3], correction, intervalB));
         await expectChartAnswer(page, intervalB);
+        await page.unroute(path, interrupt);
+        await expect(chat(page).getByRole('article')).toHaveCount(2);
         await expect(chat(page).getByText(closeAnswer(intervalA), { exact: true })).toBeVisible();
         expect(persistedRows(profile), 'Tool turn B leaves all persisted table rows unchanged').toEqual(beforeB);
         await testInfo.attach('two-selected-intervals', { body: await page.screenshot(), contentType: 'image/png' });
@@ -717,12 +759,15 @@ test('OpenAI settings manage a scoped session key and leave the Ollama route usa
     await withWorkspace(browser, profile, async (page, dispatch, dispatchCredential) => {
       let sends = 0;
       page.on('request', request => { if (isAction(request, 'send')) sends += 1; });
+      await openSampleChart(page);
+      const selected = await selectChartBar(page, intervalA);
       await askBeforeSetup(page);
       await provider(page).selectOption('openai_responses');
       await expect(settings(page)).toContainText('This key is available only for this app session.');
       await expect(settings(page)).toContainText('No OpenAI API key configured.');
       await expect(selectedModel(page)).toHaveValue('');
       await expect(settings(page).getByLabel('Server origin')).toHaveCount(0);
+      await expect(settings(page).getByLabel(chartAccessLabel)).toHaveCount(0);
       await selectedModel(page).fill(cloudModel);
       await expect(control(settings(page), 'Review connection')).toBeDisabled();
 
@@ -751,6 +796,11 @@ test('OpenAI settings manage a scoped session key and leave the Ollama route usa
 
       await updateCloudKey(page, 'replace', 'Save API key', keys, keys[0]);
       const first = await enableCloud();
+      const chartAttempt = await dispatch(modelCommand({ action: 'send', connection_id: first,
+        question: 'Synthetic selected close?', selection_revision: selected.selection_revision }));
+      expect(chartAttempt).toMatchObject({ ok: true, result: { outcome: { state: 'failed', error: { code: 'PERMISSION_DENIED' } } } });
+      const statusAfterDenial = await dispatch(modelCommand({ action: 'status' }));
+      expect(statusAfterDenial.result.outcome.result).toMatchObject({ connection: { connection_id: first }, turn_id: null });
       await control(chat(page), 'AI settings').click();
       await updateCloudKey(page, 'replace', 'Replace API key', keys, keys[1]);
       await assertCloudRevoked(dispatch, first);
