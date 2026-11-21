@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M3-004",
+  "focus_task_id": "M4-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -8101,7 +8101,7 @@
       "id": "M3-004",
       "title": "Give the eight-stage sample and private undo journey its own test budget",
       "milestone": "M3",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M3-002",
         "M3-003"
@@ -8134,11 +8134,23 @@
         {
           "path": "project/evidence/M3-004-1fa65710c5178145.json",
           "sha256": "a27a8a7367c230e937471f08361d427659f57963b96b7f5231600896fc8aa2e2"
+        },
+        {
+          "path": "project/evidence/M3-004-247a9fb37149097f.json",
+          "sha256": "1d27e748c8cc1f559d5a77cfda76297fa224963b6cc206c7d633f017224717c7"
+        },
+        {
+          "path": "project/evidence/M3-004-3ac7a16758a26365.json",
+          "sha256": "eaf7dd7021b75414533ffa4bf6d8c22e8b1d7d459781fc5d8f77b9d00f8bf2fa"
+        },
+        {
+          "path": "project/evidence/M3-004-16a996167556e4e2.json",
+          "sha256": "57b19c8096f6257efeaaff843da3c8458467dd4327310e1cec9d035e06c3d740"
         }
       ],
-      "next_action": "Run one matching hosted workspace task with the deadline and correlated undo fixture together. Inspect the eight sample stages, real disconnect recovery, undo receipt and exact restored output before closing both scoped feedback items.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The complete local workspace task and both authenticated jobs in workflow dispatch 44864057222 passed all named checks on clean source b9fc86eba525cb66c61c3538f7e104d654107b72. The eight sample stages completed with preserved private undo, accepted-layer selection and explicit disconnect recovery. The frozen indicator journey observed the removal reads, committed the exact gated undo at revision 3 and restored the exact original document after the separate typed BUSY read. Earlier successful receipts and the Windows partial pass and failure remain recorded for their observed source.",
       "plan": {
         "outcome": "The eight-step browser journey can finish evaluating independently bounded history reads and private undo on the hosted runner.",
         "change_types": [
