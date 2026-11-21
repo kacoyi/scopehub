@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-001",
+  "focus_task_id": "M0-030",
   "tasks": [
     {
       "id": "M0-001",
@@ -6695,6 +6695,108 @@
           ],
           "data_plan": "Inspect filesystem metadata and repository identity locally. Product data and credentials remain outside the collection scope.",
           "cleanup": "Leave protected or active items in place and make any unmet budget visible. Repeated collection uses fresh eligibility checks."
+        }
+      }
+    },
+    {
+      "id": "M0-030",
+      "title": "Give long-lived ScopeHub development a stable worktree layout",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-029"
+      ],
+      "scope": [
+        "AGENTS.md",
+        "package.json",
+        "scripts",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "New parallel implementation checkouts are created under one repository-specific task root. Creating or reusing a checkout preserves branch identity, deliberate base selection and the primary checkout.",
+        "The storage policy recognizes legitimate registered worktrees in the managed root while retaining its identity, activity and filesystem protections. Older checkouts and normal product entrypoints remain usable.",
+        "Move eligible existing worktrees with verified source, working state and evidence. Preserve active sessions. Place heavy host archives separately on the optional storage volume while keeping normal source and build workflows available on the primary filesystem."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Validate host relocation, pinned alias and Herdr reuse, evidence retention, and optional archive routing before closure.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Keep one stable primary checkout, group task worktrees in a persistent location and separate large archived development files from working source.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/storage.py",
+          "scripts/herdr.py",
+          "AGENTS.md",
+          "project/development.json",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "Native Git worktree moves on the source filesystem preserve branch and working state. A repository-local worktree root and a separate optional archive volume can avoid future sibling sprawl without binding source availability to the volume."
+        ],
+        "risks": [
+          {
+            "failure": "An occupied or unrelated tree is moved, a configured collector loses coverage, or an unsafe path is accepted.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          },
+          {
+            "failure": "Absolute environment paths or retained evidence stop working after a move.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Record original paths and identities. Reverse individual Git moves when needed, keep evidence and source bytes, and use the unchanged primary checkout and local targets when optional storage is unavailable.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "package.json",
+          "scripts/worktree.py",
+            "scripts/storage.py",
+            "scripts/herdr.py"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/herdr"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Product features, merging feature branches, changes to shared host caches, and mandatory external storage for product use or development."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "The primary checkout, branch heads, dirty work, live Herdr sessions, local targets, and retained acceptance evidence."
+          ],
+          "change": [
+            "Give new worktrees a stable managed root and route large optional host archives independently."
+          ],
+          "data_plan": "Move on the same filesystem wherever possible; verify copied archives before cutover and keep source revisions and evidence addressable.",
+          "cleanup": "Keep the mapping for legacy paths and retain fallbacks for active checkouts. Validate the new entrypoints under the actual host layout."
         }
       }
     }

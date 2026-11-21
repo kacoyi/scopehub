@@ -1249,6 +1249,22 @@
         "prevention": "Regression fixtures cover non-destructive reporting, occupied files and executables, repository boundaries, threshold behavior and Cargo rebuilding after interruption. All 45 original Git heads and status snapshots, metadata for 31,290 retained evidence or diagnostic files, and 10,803 file digests matched after both sweeps. Active and unclassified artifacts can keep usage above the soft budget."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "development-worktree-directory-sprawl",
+      "source": "Owner review and registered worktree inventory on 2026-11-20.",
+      "observation": "The projects directory contained the ScopeHub primary checkout and 43 sibling task worktrees. Shared storage maintenance only recognized the primary checkout directory, and retained build archives occupied the same source filesystem.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-030"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
