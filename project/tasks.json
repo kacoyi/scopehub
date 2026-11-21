@@ -7470,6 +7470,11 @@
       "scope": [
         "tests/ubuntu-preview/workspace.spec.mjs",
         "apps/desktop/ui/src/private-records.tsx",
+        ".github/workflows/verify.yml",
+        "scripts/ci.py",
+        "scripts/integration.py",
+        "tests/project/test_ci.py",
+        "tests/project/test_integration.py",
         "project/tasks.json",
         "project/feedback.json"
       ],
@@ -7504,7 +7509,7 @@
       "blocker": null,
       "closure_reason": null,
       "plan": {
-        "outcome": "A user can resolve an uncertain deletion after another authorized window edits the same record and see the correct outcome.",
+        "outcome": "A user can resolve an uncertain deletion after another authorized window edits the same record and see the correct outcome. A hosted Windows task run can verify and upload both required recovery checks with time for job cleanup.",
         "change_types": [
           "tooling",
           "ui"
@@ -7512,11 +7517,14 @@
         "context": [
           "tests/ubuntu-preview/workspace.spec.mjs",
           "apps/desktop/ui/src/private-records.tsx",
+          ".github/workflows/verify.yml",
+          "scripts/integration.py",
           "project/delivery.json"
         ],
         "hypotheses": [
           "The archived Windows waiter expired without identifying the peer action or origin read. The original Windows trigger remains unknown.",
-          "An admitted focus read occupies the single preview producer. In the controlled Linux reproduction the authorized peer then received HTTP 429 BUSY and the old panel reported only a generic failure."
+          "An admitted focus read occupies the single preview producer. In the controlled Linux reproduction the authorized peer then received HTTP 429 BUSY and the old panel reported only a generic failure.",
+          "Windows run 44616706526 finished verification and artifact upload at 41 minutes, then reached the 45-minute job deadline during cache cleanup. Its full selection omitted the task-cadence private-record-lifecycle check. Use an explicit task selection and a bounded 60-minute ordinary Windows job limit."
         ],
         "risks": [
           {
@@ -7531,9 +7539,15 @@
               "workspace-timeframe",
               "private-record-lifecycle"
             ]
+          },
+          {
+            "failure": "A task dispatch supersedes the protected PR verification or masks its result during integration inspection.",
+            "checks": [
+              "python-contracts-workers"
+            ]
           }
         ],
-        "rollback": "Keep the original Windows artifact and the independently reproduced failure. Revert an ineffective change without weakening receipt, authorization or deletion assertions.",
+        "rollback": "Keep the original Windows artifact and the independently reproduced failure. Revert an ineffective change without weakening receipt, authorization or deletion assertions. If the dispatch cannot produce matching Windows evidence, retain its diagnostic results and keep the task open.",
         "implementation": {
           "modules": [
             "development-tooling",
@@ -7541,7 +7555,11 @@
           ],
           "entrypoints": [
             "tests/ubuntu-preview/workspace.spec.mjs",
-            "apps/desktop/ui/src/private-records.tsx"
+            "apps/desktop/ui/src/private-records.tsx",
+            ".github/workflows/verify.yml",
+            "scripts/check.py",
+            "scripts/ci.py",
+            "scripts/integration.py"
           ],
           "rules": [
             {
@@ -7550,20 +7568,23 @@
             }
           ],
           "non_goals": [
-            "Changing deletion policy, granting a new reader, or replaying a mutation automatically."
+            "Changing deletion policy, granting a new reader, or replaying a mutation automatically.",
+            "Changing the check catalog, artifact admission, protected check contexts or release selection."
           ],
           "open_questions": [
-            "Does the staged recovery and the shared-producer negative control pass on the integrated Windows source?"
+            "Can the coordinator obtain a source-matched Windows task receipt covering both workspace-timeframe and private-record-lifecycle after the workflow repair?"
           ]
         },
         "evolution": {
           "kind": "refactor",
           "preserve": [
-            "Body-free recovery, explicit confirmation, original operation identity, peer access checks, stale revision handling and single tombstones."
+            "Body-free recovery, explicit confirmation, original operation identity, peer access checks, stale revision handling and single tombstones.",
+            "Keep the automatic PR and main push selections, full and release behavior, check deadlines, artifact trust and prior receipts."
           ],
           "change": [
             "Expose a real BUSY as contention in the private records panel.",
-            "Observe the peer read, review, approval and stored correction independently of the origin focus and exact deletion retry. Prove shared-producer contention separately from the two-service recovery."
+            "Observe the peer read, review, approval and stored correction independently of the origin focus and exact deletion retry. Prove shared-producer contention separately from the two-service recovery.",
+            "Route an optional dispatch task ID to the existing harness on both operating systems. Distinguish task jobs from protected checks, group task concurrency by ref and task ID, and select only pull request runs for PR integration. Describe manual CI status in terms of the selection recorded by that run."
           ],
           "data_plan": "Use only synthetic records in disposable profiles.",
           "cleanup": "Release the test-owned read observer, writer transaction and browser contexts on every outcome."
