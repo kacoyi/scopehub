@@ -8583,6 +8583,96 @@
           "cleanup": "Release browser routes, pending response timers and observers on every outcome. Retain red and green reports without private handoff credentials."
         }
       }
+    },
+    {
+      "id": "M4-010",
+      "title": "Recover a selected chart question after contention or a cleared selection",
+      "milestone": "M4",
+      "status": "active",
+      "depends_on": [
+        "M4-006"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/use-local-workspace.ts",
+        "apps/desktop/ui/src/model-chat.tsx",
+        "apps/desktop/ui/src/main.tsx",
+        "tests/ui/ai-workflow.spec.mjs"
+      ],
+      "decision_refs": [
+        "0004",
+        "0019",
+        "0021"
+      ],
+      "acceptance": [
+        "After a pre-admission BUSY, retry the original selection operation with unchanged identity and advance its revision once.",
+        "Reopen a draft after another client clears its selected bar. Keep its text, disable Send until reselection, and allow a fresh ordinary question without chart context."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "model-connection-workflow",
+        "model-connection-replay"
+      ],
+      "next_action": "Retain the integrated selected-chart regression and attach its passing receipt.",
+      "blocker": null,
+      "closure_reason": null,
+      "evidence": [],
+      "plan": {
+        "outcome": "Close the reproduced contention and stale-draft defects in the selected-sample slice of M4-001.",
+        "change_types": [
+          "ui",
+          "model-connection"
+        ],
+        "context": [
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "apps/desktop/ui/src/model-chat.tsx",
+          "apps/desktop/ui/src/main.tsx",
+          "tests/ui/ai-workflow.spec.mjs"
+        ],
+        "hypotheses": [
+          "The workspace selection request owns its retry identity. The visible question draft can retain its selection requirement through a dialog reopen."
+        ],
+        "risks": [
+          {
+            "failure": "Contention replays an admitted selection or a cleared selection silently permits Send.",
+            "checks": [
+              "model-connection-workflow"
+            ]
+          }
+        ],
+        "rollback": "Retain the reproductions and hold selected-chart sending until an explicit bar selection is current.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/use-local-workspace.ts",
+            "apps/desktop/ui/src/model-chat.tsx",
+            "apps/desktop/ui/src/main.tsx"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ai/model_connections/session_grant"
+            }
+          ],
+          "non_goals": [
+            "Broader assisted operations, private excerpts and live provider qualification."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing route authorization, prior conversation and explicit ordinary text."
+          ],
+          "change": [
+            "Retain retry identity and stale intent across selection and dialog recovery."
+          ],
+          "data_plan": "Use the existing synthetic chart and owned HTTP recipient.",
+          "cleanup": "Clear the stale selection requirement when the user selects a bar or starts a fresh question."
+        }
+      }
     }
   ]
 }
