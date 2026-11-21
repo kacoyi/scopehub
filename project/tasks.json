@@ -7762,7 +7762,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Validate the boundary repairs locally with automatic maintenance disabled, merge the coordinator's verified main revision, and retain matching Linux and Windows evidence for PR 24.",
+      "next_action": "Retain the exact local task report and matching hosted Linux and Windows reports for PR 24, then close the review feedback and verify the closure head.",
       "blocker": null,
       "closure_reason": null,
       "plan": {

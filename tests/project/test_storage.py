@@ -407,7 +407,8 @@ class CollectionTests(RepositoryFixture):
 
     def test_child_cache_rejects_replacement_or_provenance_changes_after_inventory(self):
         retained = {}
-        for change in ('outer', 'child', 'debug', 'marker_missing', 'marker_replaced', 'marker_edited'):
+        for change in ('outer', 'child', 'debug', 'child_moved_back',
+                       'marker_missing', 'marker_replaced', 'marker_edited'):
             tree = self.worktree(change)
             retained[change] = self.cargo_cache(tree, target_dir='target/custom')
         disposable = self.cargo_cache(self.worktree('valid-cache'), target_dir='target/custom')
@@ -428,6 +429,9 @@ class CollectionTests(RepositoryFixture):
                             self.cargo_cache(self.directory / 'replacement').parents[1].rename(directory)
                         else:
                             self.cargo_cache(artifact.parents[4], target_dir='target/custom')
+                    elif change == 'child_moved_back':
+                        moved = child.rename(child.with_name('moved'))
+                        moved.rename(child)
                     elif change == 'marker_missing':
                         marker.unlink()
                     elif change == 'marker_replaced':
@@ -453,13 +457,13 @@ class CollectionTests(RepositoryFixture):
         marker = artifact.parents[2] / '.rustc_info.json'
         context = storage.LinuxContext({Path('/'): 'ext4'}, set())
 
-        def lose_provenance(deadline):
-            marker.unlink()
-            return context
-
         with patch.object(storage, 'linux_context') as observe:
             def recheck(deadline):
-                return context if observe.call_count == 1 else lose_provenance(deadline)
+                if observe.call_count > 1:
+                    info = marker.stat()
+                    marker.write_bytes(b'[]')
+                    os.utime(marker, ns=(info.st_atime_ns, info.st_mtime_ns))
+                return context
 
             observe.side_effect = recheck
             result = storage.run(self.root, collect=True, high_bytes=1, low_bytes=0)
