@@ -126,6 +126,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
   const [connection, setConnection] = useState<ModelConnection>();
+  const [connectionUnconfirmed, setConnectionUnconfirmed] = useState(false);
   const [proposal, setProposal] = useState<Proposal>();
   const [changing, setChanging] = useState(false);
   const [provider, setProvider] = useState<'ollama' | 'openai_responses'>('ollama');
@@ -137,7 +138,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
   const [question, setQuestion] = useState('');
   const [turns, setTurns] = useState<CompletedTurn[]>([]);
   const [trackedTurn, setTrackedTurn] = useState<TrackedTurn>();
-  const pending = trackedTurn?.observation === 'polling' ? trackedTurn : undefined;
+  const pending = !connectionUnconfirmed && trackedTurn?.observation === 'polling' ? trackedTurn : undefined;
   const unconfirmed = trackedTurn !== undefined && pending === undefined;
   const cancellable = trackedTurn?.observation === 'checking-send' ? undefined : trackedTurn;
   const [staleSelectionRevision, setStaleSelectionRevision] = useState<number>();
@@ -183,6 +184,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
 
   function clearSession(preserveOutput = false) {
     setConnection(undefined);
+    setConnectionUnconfirmed(false);
     if (!preserveOutput) setTurns([]);
     setTrackedTurn(undefined);
     if (trackedTurn?.question !== undefined) setQuestion('');
@@ -196,6 +198,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
       && active.connection_id === attempted.connection.connection_id;
     if (connection?.connection_id !== active?.connection_id) clearSession(!active && !!attempted);
     setConnection(active);
+    setConnectionUnconfirmed(false);
     if (active && status.turn_id && (!attempted || recovered) && status.turn_id !== lastTurn.current) {
       setTrackedTurn({ id: status.turn_id, connection: active, question: recovered ? attempted.question : undefined,
         selection: recovered ? attempted.selection : undefined, observation: 'polling' });
@@ -225,8 +228,26 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
     }
   }
 
+  async function checkConnectionAfterChange(id: string, signal: AbortSignal) {
+    if (signal.aborted) return undefined;
+    setConnectionUnconfirmed(true);
+    try {
+      const status = await exchangeModel(id, { action: 'status' }, signal);
+      if (status.connection) applyStatus(status);
+      else clearSession();
+      return status;
+    } catch {
+      // Wait for a confirmed grant before showing a recipient or enabling sends.
+      return undefined;
+    }
+  }
+
   function refresh() {
     void perform(async (id, signal) => {
+      if (connectionUnconfirmed) {
+        await checkConnectionAfterChange(id, signal);
+        return;
+      }
       try {
         const status = await exchangeModel(id, { action: 'status' }, signal);
         applyStatus(status);
@@ -248,8 +269,8 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
   }, [visible]);
 
   useEffect(() => {
-    if (view === 'question' && !working && !trackedTurn) questionField.current?.focus();
-  }, [view, working, trackedTurn]);
+    if (view === 'question' && !working && !connectionUnconfirmed && !trackedTurn) questionField.current?.focus();
+  }, [view, working, connectionUnconfirmed, trackedTurn]);
 
   useEffect(() => {
     const log = transcript.current;
@@ -327,7 +348,18 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
 
   function review(route: AiTextRouteChoice) {
     void perform(async (id, signal) => {
-      const candidate = await exchangeModel(id, { action: 'propose', route }, signal);
+      let candidate: Proposal;
+      try {
+        candidate = await exchangeModel(id, { action: 'propose', route }, signal);
+      } catch (failure) {
+        const code = modelErrorCode(failure);
+        if (code === 'INVALID_ARGUMENT') throw failure;
+        const status = await checkConnectionAfterChange(id, signal);
+        if (!status) return;
+        if (status.connection) throw failure;
+        setError('The workspace could not confirm the review. Review the connection again before enabling it.');
+        return;
+      }
       clearSession();
       setChanging(false);
       if (candidate.route.kind === 'offline_mock') {
@@ -372,8 +404,14 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
 
   function disconnect(active: ModelConnection) {
     void perform(async (id, signal) => {
-      await exchangeModel(id, { action: 'disconnect', connection_id: active.connection_id }, signal);
-      clearSession();
+      try {
+        await exchangeModel(id, { action: 'disconnect', connection_id: active.connection_id }, signal);
+        clearSession();
+      } catch (failure) {
+        const status = await checkConnectionAfterChange(id, signal);
+        if (!status) return;
+        if (status.connection) throw failure;
+      }
       setNotice('Disconnected.');
     });
   }
@@ -417,7 +455,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
   function submit(event: FormEvent) {
     event.preventDefault();
     const submitted = question.trim();
-    if (!submitted || trackedTurn || working || mustReselect) return;
+    if (!submitted || trackedTurn || working || mustReselect || connectionUnconfirmed) return;
     if (!connection) {
       setError(undefined);
       setNotice(undefined);
@@ -495,7 +533,12 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
     <div className="model-body">
       {feedback && <p className="model-error" role="alert">{feedback}</p>}
       {notice && <p role="status">{notice}</p>}
-      {view === 'question' ? <>
+      {connectionUnconfirmed ? <>
+        <p role="status">The workspace could not confirm which model connection is active.</p>
+        <div className="model-actions">
+          <button type="button" className="secondary-button" disabled={working} onClick={refresh}>Check connection status</button>
+        </div>
+      </> : view === 'question' ? <>
         <p className="model-muted" role="status">{connection?.route.kind === 'offline_mock' ? 'Offline mock enabled'
           : connection ? <>{providerName(connection.route.kind)} connected · <bdi>{connection.route.model}</bdi></> : 'No model connected'}</p>
         <div ref={transcript} className="model-transcript" role="log" aria-label="Conversation">

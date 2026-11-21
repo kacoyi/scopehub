@@ -8114,7 +8114,7 @@
         "rust-contracts-workers",
         "python-contracts-workers"
       ],
-      "next_action": "Reproduce both observations against the real Ubuntu workspace. Repair the response framing and the correlated UI state, then run the two model checks and independent review.",
+      "next_action": "Finish the existing Ubuntu boundary cases, reconcile lost route-change acknowledgements with the local grant, and record passing formal task evidence.",
       "blocker": null,
       "closure_reason": null,
       "evidence": [],
@@ -8132,7 +8132,8 @@
           "contracts/decisions/0019-profile-text-model-route.json"
         ],
         "hypotheses": [
-          "Private worker replies need a bounded envelope compatible with accepted connector payloads. Uncertain local observations can be reconciled using the existing job identity and current grant."
+          "Private worker replies need a bounded envelope compatible with accepted connector payloads. Uncertain local observations can be reconciled using the existing job identity and current grant.",
+          "A read of the current grant can reconcile a lost disconnect or route review reply without repeating the command or enabling a recipient."
         ],
         "risks": [
           {
@@ -8186,7 +8187,8 @@
             "The activated route, recipient and profile boundaries, bounded recent turns and explicit disconnect."
           ],
           "change": [
-            "Make valid private result framing interoperable and recover pending turns without a duplicate dispatch."
+            "Make valid private result framing interoperable and recover pending turns without a duplicate dispatch.",
+            "Reconcile an interrupted disconnect or route review with the local grant before allowing another send."
           ],
           "data_plan": "Use disposable synthetic profiles and isolated test recipients. Keep successful ordinary pairs within their existing session.",
           "cleanup": "Settle or reject each pending turn and remove listeners and retained state when the session ends."
