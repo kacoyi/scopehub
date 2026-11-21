@@ -2550,6 +2550,13 @@ async fn new_history_loads_while_preparation_is_held_and_only_its_owner_can_canc
 
 struct AppLocalData(PathBuf);
 
+fn with_profile_preparation<T>(slot: &std::sync::Mutex<()>, prepare: impl FnOnce() -> T) -> T {
+    let _permit = slot
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    prepare()
+}
+
 impl AppLocalData {
     fn new() -> Self {
         use std::{
@@ -2570,8 +2577,21 @@ impl AppLocalData {
             "scopehub-desktop-test-{}-{stamp}-{sequence}",
             std::process::id(),
         ));
-        scopehub_persistence::SqliteWorkspace::prepare_profile_root(&path).unwrap();
+        Self::prepare(&path);
         Self(path)
+    }
+
+    fn prepare(path: &std::path::Path) {
+        let prepare = || scopehub_persistence::SqliteWorkspace::prepare_profile_root(path);
+        #[cfg(windows)]
+        let result = {
+            // Bound explicit fixture setup. Bridge calls still run outside this slot.
+            static SLOT: std::sync::Mutex<()> = std::sync::Mutex::new(());
+            with_profile_preparation(&SLOT, prepare)
+        };
+        #[cfg(not(windows))]
+        let result = prepare();
+        result.unwrap();
     }
 
     fn database(&self) -> PathBuf {
@@ -2583,6 +2603,45 @@ impl Drop for AppLocalData {
     fn drop(&mut self) {
         std::fs::remove_dir_all(&self.0).unwrap();
     }
+}
+
+#[test]
+fn desktop_fixture_preparation_slot_releases_on_success_error_and_unwind() {
+    use std::{panic::catch_unwind, sync::TryLockError};
+
+    let slot = std::sync::Mutex::new(());
+    let assert_held = || assert!(matches!(slot.try_lock(), Err(TryLockError::WouldBlock)));
+    let prepared = with_profile_preparation(&slot, || {
+        assert_held();
+        Ok::<_, &str>(())
+    });
+    assert_eq!(prepared, Ok(()));
+    assert!(slot.try_lock().is_ok());
+
+    let failed = with_profile_preparation(&slot, || {
+        assert_held();
+        Err::<(), _>("test preparation error")
+    });
+    assert_eq!(failed, Err("test preparation error"));
+    assert!(slot.try_lock().is_ok());
+
+    let unwound = catch_unwind(|| {
+        with_profile_preparation(&slot, || {
+            assert_held();
+            panic!("test preparation panic");
+        });
+    });
+    assert!(unwound.is_err());
+    with_profile_preparation(&slot, assert_held);
+}
+
+#[test]
+fn desktop_fixture_prepares_and_removes_its_profile_root() {
+    let profile = AppLocalData::new();
+    let root = profile.0.clone();
+    assert!(root.is_dir());
+    drop(profile);
+    assert!(!root.exists());
 }
 
 fn uuid(number: u64) -> String {
@@ -2827,7 +2886,7 @@ async fn copied_workspace_bytes_cannot_enable_a_grant_or_cross_native_profiles()
 
     let other = AppLocalData::new();
     let copy = other.database();
-    scopehub_persistence::SqliteWorkspace::prepare_profile_root(copy.parent().unwrap()).unwrap();
+    AppLocalData::prepare(copy.parent().unwrap());
     std::fs::copy(first.database(), &copy).unwrap();
     let before = std::fs::read(&copy).unwrap();
     let foreign = state_with_development_workspace(Some(&other.0));
