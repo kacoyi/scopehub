@@ -1,5 +1,7 @@
 """Report this repository's Cargo storage. Use --collect to reclaim idle debug intermediates."""
 
+from __future__ import annotations
+
 import argparse
 from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass, field
@@ -107,6 +109,61 @@ def worktrees(root):
         fields = record.split('\0')
         if fields[0].startswith('worktree '):
             yield Path(fields[0].removeprefix('worktree ')), {field.split(' ', 1)[0] for field in fields[1:]}
+
+
+def dedicated_worktree_directory(current, common, registered, directory):
+    # Match worktree.py's admission rule for existing roots. Both helpers also run standalone.
+    if (not directory.is_absolute() or directory == directory.parent or
+            directory.resolve(strict=True) != directory or directory.is_relative_to(common) or
+            any(directory.is_relative_to(path) for path, _ in registered)):
+        return False
+    info = directory.lstat()
+    if not stat.S_ISDIR(info.st_mode) or reparse(info):
+        return False
+    for parent in (directory, *directory.parents):
+        marker = parent / '.git'
+        try:
+            marker_info = marker.lstat()
+        except FileNotFoundError:
+            continue
+        try:
+            git(current, 'rev-parse', '--resolve-git-dir', str(marker))
+        except subprocess.CalledProcessError as error:
+            if error.returncode != 128:
+                raise
+            # Only a readable, empty directory proves that this marker contains no Git metadata.
+            if not stat.S_ISDIR(marker_info.st_mode) or reparse(marker_info):
+                return False
+            with os.scandir(marker) as entries:
+                if next(entries, None) is not None:
+                    return False
+        else:
+            return False
+    return True
+
+
+def managed_worktree_directory(current, common, registered):
+    try:
+        values = git(current, 'config', '--local', '--null', '--type=path', '--get-all',
+                     'scopehub.worktreeRoot').removesuffix('\0').split('\0')
+        if len(values) != 1:
+            return None
+        directory = Path(values[0])
+        if dedicated_worktree_directory(current, common, registered, directory):
+            return directory
+    except (OSError, RuntimeError, subprocess.SubprocessError):
+        pass
+    return None
+
+
+def legacy_worktree_directory(current, common, registered):
+    directory = registered[0][0].parent
+    try:
+        if dedicated_worktree_directory(current, common, registered, directory):
+            return directory
+    except (OSError, RuntimeError, subprocess.SubprocessError):
+        pass
+    return None
 
 
 def tracked(root):
@@ -701,6 +758,11 @@ def filesystem(path, mounts):
     return next((mounts[parent] for parent in (path, *path.parents) if parent in mounts), None)
 
 
+def collection_filesystem(root, mounts):
+    fs = filesystem(root, mounts)
+    return fs if fs in LOCAL_FILESYSTEMS and root not in mounts else None
+
+
 def child_cache_name(name):
     return not (name.startswith('.') or name in NON_CACHE_CHILDREN or TARGET_TRIPLE.fullmatch(name))
 
@@ -722,7 +784,7 @@ def reserve_collection_descriptors(count):
 
 
 def observe_caches(stack, root, target, mounts, deadline):
-    if filesystem(root, mounts) not in LOCAL_FILESYSTEMS or root in mounts:
+    if collection_filesystem(root, mounts) is None:
         return {}, False
     try:
         reserve_collection_descriptors(2)
@@ -786,7 +848,7 @@ def cache_is_current(cache, root):
                 target_fd = anchored_directory(handles, cache.path.name, outer_fd, cache.mount_id)
             debug_fd = anchored_directory(handles, 'debug', target_fd, cache.mount_id)
             for fd, observed in zip((root_fd, outer_fd, target_fd, debug_fd),
-                                    (cache.root, cache.outer, cache.directory, cache.debug), strict=True):
+                                    (cache.root, cache.outer, cache.directory, cache.debug)):
                 current = os.fstat(fd)
                 if (not os.path.samestat(current, os.fstat(observed.fd)) or
                         current.st_ctime_ns != observed.ctime_ns or current.st_uid != os.geteuid()):
@@ -815,8 +877,8 @@ def collect_target(cache, root, common, context, progress, deadline):
         return 'active_process'
     if any(mount.is_relative_to(target) for mount in context.mounts):
         return 'mount_boundary'
-    fs = filesystem(root, context.mounts)
-    if fs not in LOCAL_FILESYSTEMS or root in context.mounts:
+    fs = collection_filesystem(root, context.mounts)
+    if fs is None:
         return 'unsupported_filesystem_or_mount'
     with ExitStack() as stack:
         mount_id = cache.mount_id
@@ -827,9 +889,13 @@ def collect_target(cache, root, common, context, progress, deadline):
         # Recheck registration, tracking, process paths, and directory identities under the locks.
         if identity(root) != (root, common) or tracked(root):
             return 'worktree_or_index_changed'
-        flags = dict(worktrees(root)).get(root)
+        registered = list(worktrees(root))
+        flags = dict(registered).get(root)
         if flags is None or flags & {'locked', 'bare', 'prunable'}:
             return 'worktree_registration_changed'
+        if (root.parent != legacy_worktree_directory(root, common, registered) and
+                root.parent != managed_worktree_directory(root, common, registered)):
+            return 'worktree_directory_changed'
         refreshed = linux_context(deadline)
         if refreshed.mounts != context.mounts:
             return 'mount_table_changed'
@@ -852,14 +918,17 @@ def collect_target(cache, root, common, context, progress, deadline):
     return 'collected' if progress['files'] or progress['released_bytes'] else 'no_recognized_intermediates'
 
 
-def inspect(root, primary, current, common, flags, mounts, deadline, seen, context, configured, handles):
+def inspect(root, worktree_directories, current, common, flags, mounts, deadline, seen, context, configured, handles):
     target = root / 'target'
     row = {'path': str(target), 'allocated_bytes': None, 'reason': None}
-    if (not root.is_absolute() or root.parent != primary.parent or root.resolve() != root or
-            flags & {'bare', 'prunable'}):
-        row['reason'] = 'outside_primary_worktree_directory_or_unavailable'
+    if not root.is_absolute() or root.parent not in worktree_directories or flags & {'bare', 'prunable'}:
+        row['reason'] = 'outside_worktree_directories_or_unavailable'
         return row, [], False
     try:
+        root_info = root.lstat()
+        if root.resolve(strict=True) != root or reparse(root_info):
+            row['reason'] = 'outside_worktree_directories_or_unavailable'
+            return row, [], False
         if identity(root) != (root, common):
             row['reason'] = 'different_repository'
             return row, [], False
@@ -871,7 +940,7 @@ def inspect(root, primary, current, common, flags, mounts, deadline, seen, conte
             raise
         row['reason'] = 'worktree_unavailable'
         return row, [], False
-    except (StorageError, subprocess.SubprocessError):
+    except (RuntimeError, subprocess.SubprocessError):
         row['reason'] = 'worktree_unavailable'
         return row, [], False
     try:
@@ -1009,6 +1078,9 @@ def inspect_repository(current, common, configured, context, mounts, blocked,
     registered = list(worktrees(current))
     if not registered or current not in dict(registered):
         raise StorageError('current checkout is missing from Git worktree registration')
+    managed = managed_worktree_directory(current, common, registered)
+    legacy = legacy_worktree_directory(current, common, registered)
+    worktree_directories = {managed, legacy} - {None}
     rows = []
     candidates = []
     descriptor_limited = []
@@ -1019,7 +1091,8 @@ def inspect_repository(current, common, configured, context, mounts, blocked,
     report = {
         'mode': 'collect' if collect else 'report', 'repository': str(common),
         'current_worktree': str(current), 'high_bytes': high_bytes, 'low_bytes': low_bytes,
-        'scope': 'Git-registered targets in the primary worktree directory.',
+        'scope': 'Git-registered targets alongside the primary checkout or directly in the managed worktree root.',
+        'managed_worktree_root': str(managed) if managed is not None else None,
         'accounting': 'Allocated blocks with per-inode deduplication. Child caches are included in their parent. Released bytes are estimates.',
         'process_visibility': ('partial' if partial else 'full') if context else 'unavailable',
         'inaccessible_processes': context.inaccessible_processes if context else None,
@@ -1033,7 +1106,7 @@ def inspect_repository(current, common, configured, context, mounts, blocked,
             budget(deadline)
             with ExitStack() as handles:
                 row, caches, descriptor_limit = inspect(
-                    path, registered[0][0], current, common, flags, mounts, deadline, seen, context, configured,
+                    path, worktree_directories, current, common, flags, mounts, deadline, seen, context, configured,
                     handles if pins is not None else None,
                 )
                 if row is None:
@@ -1067,7 +1140,8 @@ def inspect_repository(current, common, configured, context, mounts, blocked,
                         cache['reason'] = 'file_descriptor_limit'
                         descriptor_limited.append(cache['path'])
                     elif pins is not None:
-                        cache['reason'] = 'cache_identity_unavailable'
+                        cache['reason'] = ('unsupported_filesystem_or_mount' if collection_filesystem(path, mounts) is None
+                                           else 'cache_identity_unavailable')
                 if pins is not None and len(candidates) > before:
                     # Keep the observed worktree and its admitted caches until this run ends.
                     pins.enter_context(handles.pop_all())
