@@ -7338,7 +7338,7 @@
       "id": "M2-010",
       "title": "Verify recovery of a disconnected sample history read from the private workspace",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-009"
       ],
@@ -7371,11 +7371,23 @@
         {
           "path": "project/evidence/M2-010-a11a7bfa1fb61b67.json",
           "sha256": "5222a7d86e483307c0bc28437d81fe776be1b2127a3d1d47dbae8c993a955efa"
+        },
+        {
+          "path": "project/evidence/M2-010-4079ff43267eb2f9.json",
+          "sha256": "045951b2ed091be58995a84cd7926cbb1ec8a29698c5414bcbc3244bc40faefc"
+        },
+        {
+          "path": "project/evidence/M2-010-0acc282c90acc287.json",
+          "sha256": "7348a7cc3767f6e3fd3c524656f0aab58bac9694875c6578cd04f47698d9169f"
+        },
+        {
+          "path": "project/evidence/M2-010-6f8b1653b73db8e7.json",
+          "sha256": "42e40f86f14e58dd3c04ddf28b474497f2a5926b35ac3bd5c4d7f5a4127e547d"
         }
       ],
-      "next_action": "Verify the integrated execution inputs on hosted Ubuntu and Windows, inspect both stage reports and archive matching evidence before closing M2-010.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "All required checks passed in the integrated local task run and in the authenticated Ubuntu and Windows verification reports from PR 21 run 44616706526. Both hosted browser reports verified healthy opens and refreshes, explicit recovery after a controlled transport loss, distinct denials, and preserved private undo. The Windows verification report passed and was uploaded before the PR job was cancelled during post-cache. The initiating cause of the original hosted incident remains unknown.",
       "plan": {
         "outcome": "A user can identify a disconnected history read and recover the explicitly selected offline sample while retaining the private workspace timeframe and undo.",
         "change_types": [
@@ -7488,7 +7500,7 @@
           "sha256": "b69474c224b9315ee2abc377ba6813a37a74b8ab0811cda7c0f00f8bd7cbbf48"
         }
       ],
-      "next_action": "Run the workspace-timeframe and private-record-lifecycle gates on the integrated source, retain matching Linux and Windows evidence, and close the peer-rename feedback when verified.",
+      "next_action": "Run pnpm check --task M2-011 on Windows against the matching integrated source to execute workspace-timeframe and private-record-lifecycle. Retain the report and logs, archive them with pnpm project:record M2-011, and close the task and peer-rename feedback after the Windows receipt validates.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
