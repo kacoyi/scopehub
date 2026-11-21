@@ -8254,7 +8254,7 @@
       "id": "M4-008",
       "title": "Connect a profile-owned cloud text credential to the selected model",
       "milestone": "M4",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M4-006"
       ],
@@ -8297,13 +8297,17 @@
         "python-types",
         "architecture"
       ],
-      "next_action": "Verify the packaged desktop runtime on the release candidate. The source-bound Windows x64 synthetic Credential Manager lifecycle passed as recorded in contracts/reviews/2026-11-20-native-openai-credential.json. Real-account cloud text qualification remains under M4-002 with explicit account and spend authorization.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The controlled OpenAI Responses acceptance passed on the integrated source, including two ordinary TLS turns on one grant, chart denial before admission, credential revocation and continued Ollama use. The source-bound native Windows credential lifecycle is retained in contracts/reviews/2026-11-20-native-openai-credential.json. Real account qualification remains under M4-002. Packaged Windows acceptance remains a release gate under ADR 0020.",
       "evidence": [
         {
           "path": "project/evidence/M4-008-137f40b60682285f.json",
           "sha256": "3b476e871c33daeadff659d0ed1cedcc7d1e5219f8269fd233289ce45548cd6c"
+        },
+        {
+          "path": "project/evidence/M4-008-6b49e685c77a34ae.json",
+          "sha256": "4c39b1294a09ccbca69fba9df8745b7d6454c47336b67c913fdc44fd51052bb0"
         }
       ],
       "plan": {
@@ -8609,7 +8613,7 @@
       "id": "M4-010",
       "title": "Recover a selected chart question after contention or a cleared selection",
       "milestone": "M4",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M4-006"
       ],
@@ -8634,10 +8638,15 @@
         "model-connection-workflow",
         "model-connection-replay"
       ],
-      "next_action": "Retain the integrated selected-chart regression and attach its passing receipt.",
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M4-010-6b49e685c77a34ae.json",
+          "sha256": "899b9a4093dfec3eb7e7df6305fe7af437e68685a5b57799c8aa34ec441566c6"
+        }
+      ],
       "plan": {
         "outcome": "Close the reproduced contention and stale-draft defects in the selected-sample slice of M4-001.",
         "change_types": [
