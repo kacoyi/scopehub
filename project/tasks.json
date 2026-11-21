@@ -8088,6 +8088,237 @@
       }
     },
     {
+      "id": "M0-036",
+      "title": "Bound Windows desktop fixture ACL preparation",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M2-011"
+      ],
+      "scope": [
+        "apps/desktop/src-tauri/src/bridge_tests.rs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Real Windows desktop fixture root preparation, including copy setup, occupies one short-lived slot that is released on success, error, and unwind.",
+        "The desktop bridge still runs its native profile, identity, authorization, cleanup, and concurrency assertions with the existing ACL routine and timeout.",
+        "The failed Windows report, raw log digest and exact tested Git tree are retained. Focused fixture tests and the native full Rust task pass on the corrective source."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "rust-format",
+        "rust-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-036-2263a63bf3b1a326.json",
+          "sha256": "ebb6e7b9f08407173cb20a792df59ef4205377b50b5124ac8f09e41120f165c8"
+        },
+        {
+          "path": "project/evidence/M0-036-bede1e0b8b042a8b.json",
+          "sha256": "951c8dee010667c741ccee98c4a3cf61e6f6d0e933dd5076dd1b6e0a49ce2076"
+        },
+        {
+          "path": "project/evidence/M0-036-48a1ce86d7f1472b.json",
+          "sha256": "a741e3de3b2ef8b9b9c336e8334f90b5c80303814a745a9b5e031115f34e2bfc"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Bound Windows desktop test profile preparation and preserve native ACL and concurrent bridge coverage.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "apps/desktop/src-tauri/src/bridge_tests.rs",
+          "crates/persistence/src/storage.rs",
+          "crates/persistence/src/storage_acl.ps1",
+          "scripts/rust_workspace.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The simultaneous Windows fixture preparations may contend for PowerShell startup or ACL work on a hosted runner. Serializing only explicit fixture setup can reduce that contention. The retained report does not distinguish CPU scheduling, process startup and I/O."
+        ],
+        "risks": [
+          {
+            "failure": "A fixture error or panic prevents later profile preparation.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A test fixture change bypasses native ACL checks or suppresses concurrent bridge assertions.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the test-only scheduling change if native focused or standard checks reveal a regression. Preserve the original report, raw log and exact Git tree.",
+        "implementation": {
+          "modules": [
+            "desktop",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "apps/desktop/src-tauri/src/bridge_tests.rs",
+            "scripts/rust_workspace.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changes to application ACL checks, timeout policy, product scheduling or existing product assertions."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The native ACL path and refusal mapping, process timeout and cleanup, concurrent bridge behavior, isolated test directories and existing test assertions."
+          ],
+          "change": [
+            "Admit one explicit Windows desktop fixture profile-root preparation at a time."
+          ],
+          "data_plan": "Use synthetic temporary profiles and the retained hosted artifacts. No product data changes are required.",
+          "cleanup": "Test release of the fixture slot on success, error and unwind. Verify real profile construction and directory cleanup."
+        }
+      }
+    },
+    {
+      "id": "M1-026",
+      "title": "Keep cold operation validation within the market replay recovery budget",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-019"
+      ],
+      "scope": [
+        "crates/application/src/lib.rs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "A cold operation lookup and authorization do not compile unrelated validators. Each used payload still uses its canonical schema and repeated validation reuses it.",
+        "The real Windows interruption check observes one accepted chart subscription, recovery from the confirmed checkpoint, the exact final closed bar and the original frozen history within the existing replay deadline.",
+        "Existing cancellation, bounded restart, invalid replacement and independent chart and wire assertions continue to pass."
+      ],
+      "checks": [
+        "rust-contracts-workers",
+        "rust-lints",
+        "market-worker-interruption",
+        "market-recovery",
+        "market-recovery-ui",
+        "market-live-stream",
+        "market-fixtures",
+        "ui-build"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-026-43fae6f230c6c013.json",
+          "sha256": "3daea3eefd00fa59774724505092bd13401801b4ecfd533be725a369bd110539"
+        },
+        {
+          "path": "project/evidence/M1-026-813a5ffafcfaf38c.json",
+          "sha256": "8ea6929864d659f504a5682d75e64a044964270bda240884733ba8d5b960071a"
+        },
+        {
+          "path": "project/evidence/M1-026-c4d1d5ad29897cda.json",
+          "sha256": "e0dd181253635729781627134dd08a6088fbe35067e57ed92515cdd824dc7f92"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A cold preview bridge finishes real worker interruption recovery on Windows within the existing five-second subscription budget.",
+        "change_types": [
+          "market",
+          "stream-slice"
+        ],
+        "context": [
+          "crates/application/src/lib.rs",
+          "crates/application/src/replay.rs",
+          "crates/worker-host/src/market.rs",
+          "tests/ubuntu-preview/worker-interruption.spec.mjs"
+        ],
+        "hypotheses": [
+          "Both Windows jobs reached the verified replacement before the five-second subscription deadline. A local cold lookup isolated the eager cost, and the same real-worker interruption probe completed after deferring operation payload validators."
+        ],
+        "risks": [
+          {
+            "failure": "Deferred compilation skips canonical checks, compiles unrelated schemas, or rebuilds a used validator on each request.",
+            "checks": [
+              "rust-contracts-workers",
+              "rust-lints"
+            ]
+          },
+          {
+            "failure": "Replay still times out after resumption or stops preserving the confirmed state and frozen history.",
+            "checks": [
+              "market-worker-interruption",
+              "market-recovery",
+              "market-recovery-ui",
+              "market-live-stream"
+            ]
+          }
+        ],
+        "rollback": "Retain the original hosted failure and cold-bridge comparison. Revert the validator change if validation behavior regresses. Verify the remaining Windows risk with the matching hosted result.",
+        "implementation": {
+          "modules": [
+            "application",
+            "worker-host"
+          ],
+          "entrypoints": [
+            "crates/application/src/lib.rs",
+            "crates/worker-host/src/market.rs",
+            "tests/ubuntu-preview/worker-interruption.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/runtime"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Deadline increases, worker retry changes, protocol changes, and changes to other pull requests."
+          ],
+          "open_questions": [
+            "The retained Windows artifacts identify the terminal stage. A matching native Windows run is needed to verify the repaired budget on that runner."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Canonical request and response validation, actor permissions, recovery timing, cancellation, monotonic checkpoints, and independent expected outputs."
+          ],
+          "change": [
+            "Build only the payload validators needed by the current bridge traffic."
+          ],
+          "data_plan": "Keep compiler caches in process memory and use the existing synthetic replay and retained diagnostic artifacts.",
+          "cleanup": "Reuse the existing validator builder and remove eager catalog compilation."
+        }
+      }
+    },
+    {
       "id": "M0-031",
       "title": "Resolve archived diagnostic runs and qualify idle worktrees for retirement",
       "milestone": "M0",

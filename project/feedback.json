@@ -2048,6 +2048,49 @@
       "deferral_reason": null
     },
     {
+      "id": "windows-desktop-fixture-acl-preparation-timeout",
+      "source": "PR 25 Windows verification 44890879647 attempt 1 at 2531786a5bb7318efee63669b209ce7d292c9024. The failed report SHA-256 is db3c44c7ab15c340db7105b82fbe7a9e9f9b14237993d07d5da336738b3ff9ff. The raw Rust check log SHA-256 is 1458cdae990c8712d5a531726faa447137ee62a9598bb91fe24f261caf464933. The retained diagnostic receipt is .reports/m0-036/failure-receipt.json.",
+      "observation": "Three desktop bridge tests hit prepare powershell-timeout at AppLocalData::new and returned Database before their assertions. The binary finished in 36.24 seconds with 20 of 23 tests passing. The #21 postmerge run 44887276464 used identical storage and desktop test sources and passed 23 tests in 21.25 seconds. PR 23 run 44888619266 used identical storage and ACL sources and passed 24 desktop tests in 23.47 seconds, including the same three fixture users. PR 24 run 44890626095 used identical storage and desktop fixture sources and passed 23 tests in 29.76 seconds. The timeout identifies a running PowerShell process and provides no explicit ACL refusal exit or measurement of the contention mechanism.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-036"
+      ],
+      "regression_checks": [
+        "project-state",
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Three independent test profile preparations exceeded the existing 10-second PowerShell deadline during the same parallel desktop test run. The original task logs and three matched-source controls identify timeouts before product assertions. Contention is a hypothesis and the data does not isolate process startup, scheduling, or filesystem work.",
+        "correction": "Serialize the explicit Windows test fixture preparations, including the copied profile directory, through one slot held only during the real ACL call. Keep the application ACL checks, path and refusal diagnostics, deadline and process cleanup intact. Bridge operations keep their original concurrency.",
+        "prevention": "Two focused tests cover release on success, error and unwind and real directory construction and cleanup. Native Windows run 44894164773 at 3a2b558cd190b4b49e15a7add91123ea7ee5c803 passed all 25 desktop tests in 45.68 seconds, including the original three. The matching hosted Ubuntu and byte-identical local task runs also passed."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-cold-market-replay-deadline",
+      "source": "PR 22 Windows run 44865759620 job 136728999464 at 620bdfb8ebec5bd9f8e4c48a605142f59e23e213 and PR 23 Windows run 44865929513 job 136729455019 at 0aabf05ee5085d1568828ce7ee3699458b1f3651.",
+      "observation": "Both Windows interruption checks reached playing and verified replacement resumption before the five-second subscription returned TIMEOUT. The original PR 22 artifact is retained under .reports/ci/44865759620/windows. Locally the first and second reads in the same debug bridge took 1.426 and 0.026 seconds before the repair and 0.200 and 0.032 seconds after it. The old cold registry compiled 90 payload validators for 45 operations. A controlled hold of 2.6 seconds after the first real worker's confirmed sequence 1 reproduced resumption followed by TIMEOUT with the eager bridge. Under the same hold the repaired bridge resumed at sequence 1 and completed with the expected sequence 2 closed bar at 4.258 seconds. A deterministic catalog regression fails with eager compilation and passes with lazy per-payload compilation. The local diagnostics are retained under .reports/M1-026.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-026"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "market-worker-interruption",
+        "market-recovery",
+        "market-recovery-ui",
+        "market-live-stream"
+      ],
+      "resolution": {
+        "cause": "The cold Rust operation registry compiled 90 payload validators for 45 operations during the single five-second subscription budget. An isolated local lookup median fell from 1289.0 to 3.8 milliseconds after removing eager compilation. In the retained controlled old-bridge replay, the replacement was verified at 4.885 seconds and the terminal TIMEOUT arrived at 5.017 seconds before the next paced frame.",
+        "correction": "Compile each canonical operation payload validator on its first use and cache it in the bridge process. Preserve the existing five-second subscription deadline, worker pacing, bounded restart, cancellation, and verified checkpoint progression.",
+        "prevention": "The deterministic Rust regression rejects eager catalog compilation and checks validator isolation, output validity, and cache reuse. The complete M1-026 checks passed on clean 470b4dbef71d9e1a751815c54fe73a0167bb9783 in local run 20261121T085338.850657Z-3269f011 and both authenticated jobs in workflow 44887052675. The original native Windows Playwright check passed in 6.844 seconds including setup and cleanup, with the internal five-second replay deadline preserved. Its log SHA-256 is fcc7d8f12fa58630261a51617dd7eff259ca685fc31f27537a5674216693099f."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "cross-checkout-diagnostic-dependency-and-retirement",
       "source": "Owner worktree review and separate read-only reproductions by the development supervisor during M0-031 on 2026-11-21.",
       "observation": "The owner identified that M4-001 referenced its blocked diagnostic through another checkout and requested criteria for worktree retirement. Moving or retiring that checkout could make the diagnostic unavailable. During implementation the development supervisor reproduced two false retirement candidates in temporary Git worktrees. One still supplied a report to a committed operational script in another checkout. The other appeared to retain its only diagnostic because an archive root above the checkout resolved back to the original file.",
