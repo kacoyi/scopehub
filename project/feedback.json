@@ -2076,7 +2076,7 @@
     },
     {
       "id": "retirement-observation-and-diagnostic-review-gaps",
-      "source": "Independent Herdr review of PR 27 on 2026-11-21, supervisor reproductions and authenticated Ubuntu and Windows run 44887586115 reports retained in the current checkout.",
+      "source": "Independent Herdr reviews of PR 27 and read-only host observations on 2026-11-21, plus authenticated failed Ubuntu and Windows runs 44887586115 and 44891186224 now verified in the permanent development archive.",
       "observation": "Independent fixtures exposed missed check registry, live symlink, editable Python and Cargo build output dependencies, lost worktree-private Git recovery references, incomplete observation artifact verification, caller-relative and exported report regressions, and an unused clean filter holding idle checkouts. Hosted Python checks failed on both platforms under globally configured Git LFS. Windows also missed untracked and ignored symlinks and rejected an independent archived file. The supervisor reproduced cross-checkout diagnostic paths escaping history checks in app, workflow and crate sources and requested a human review intake for the otherwise clear checkouts affected only by partial process visibility. A read-only inventory of the integrated PR 21 checkout showed that six standard scoped pnpm links were treated as unretained files despite resolving to its own locked virtual store. Follow-up reviews reproduced false candidates from nested Cargo paths with and without dot components, a linked harness registry and a sole diagnostic under Cargo deps. They found nonlocal report references accepted in HTML, SQL and harness commands and a manually placed root pnpm link misclassified as rebuildable. The first exact native Windows retry passed the original LFS, symlink and archive cases, and exposed duplicate attribution of one editable Python path through case-insensitive Lib and lib aliases.",
       "diagnostic_reports": [
         {
@@ -2096,7 +2096,7 @@
         }
       ],
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-035"
       ],
@@ -2104,7 +2104,11 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The original observation relied on directory classifications, incomplete path and Git state enumeration, and configured rather than effective clean filters. Report selection and verification also omitted established caller and artifact bindings. The first corrected Windows run exposed a second spelling for the same virtual environment library directory.",
+        "correction": "Verify declaring runtime paths, worktree-private object recovery, scoped pnpm placement and Cargo output ownership. Read editable libraries from actual directory entries, observe effective filters with external drivers disabled, restore caller-relative and independent report imports, and verify bound field and session artifacts. Surface human review intake while preserving the sole partial-process hold.",
+        "prevention": "Local and hosted task verification matched the clean 320946e execution inputs. Ubuntu ran 438 Python tests and Windows ran the same suite with 45 platform skips. The stable host read-only snapshot found two intake rows and zero candidates among 50 registrations. One intake row verified 17 retained files, while the integrated product checkout verified 999 and remained held for additional unarchived files. The three failure reports retain their original failed outcomes and verified manifests. The retained M4 run still records 13 passed checks and two blocked."
+      },
       "deferral_reason": null
     }
   ]

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-035",
+  "focus_task_id": "M2-002",
   "tasks": [
     {
       "id": "M0-001",
@@ -8120,6 +8120,14 @@
         {
           "path": "project/evidence/M0-031-d51e47fee17aab36.json",
           "sha256": "f8ee6182855c8f39fb27140c6be500db9039fa403637bdabbb8798cfe6d4d2a0"
+        },
+        {
+          "path": "project/evidence/M0-031-8eb3cae8bcc11b37.json",
+          "sha256": "8292ca36f4681e27d18cfcfebcaf4beba23ab76f3dfe7617f520febd3eb94579"
+        },
+        {
+          "path": "project/evidence/M0-031-2fdbf9b203996243.json",
+          "sha256": "1819dc1b02f6b22bed786df4fd2eadec66341667602383b3583b226b7c4e355d"
         }
       ],
       "next_action": null,
@@ -8202,7 +8210,7 @@
       "id": "M0-035",
       "title": "Preserve unresolved worktree dependencies and diagnostic evidence during retirement review",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-031"
       ],
@@ -8230,10 +8238,23 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Reproduce the independent PR review findings, repair the affected observations and verify the public entrypoints against the combined upstream.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-035-282a743acdb6179e.json",
+          "sha256": "48cf3d6a8499c158cf64835ba0c038063ba313ed20412c997cabb96bf9463ad9"
+        },
+        {
+          "path": "project/evidence/M0-035-8eb3cae8bcc11b37.json",
+          "sha256": "b500578df1c68d7fdc63398020f54d4968687ce61d4067c4675651c55be72cf2"
+        },
+        {
+          "path": "project/evidence/M0-035-2fdbf9b203996243.json",
+          "sha256": "9aac0588227f283352639d4fd765938608f0ea2abe4a1a58e2200812b803d70a"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Local and native Ubuntu and Windows task checks passed at 320946e, with source, task identity and log digests verified. The stable read-only host observation classified two of 50 registrations for human review and found zero retirement candidates.",
       "plan": {
         "outcome": "Keep worktrees with irreplaceable evidence or dependent consumers off the retirement list and preserve legitimate evidence lookup behavior.",
         "change_types": [
