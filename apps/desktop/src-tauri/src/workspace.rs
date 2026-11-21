@@ -815,6 +815,54 @@ mod tests {
         }
     }
 
+    #[cfg(any(target_os = "linux", windows))]
+    #[tokio::test]
+    async fn native_text_setup_contention_is_retryable_before_registry_admission() {
+        let profile = std::env::temp_dir().join(format!("scopehub-text-{}", uuid::Uuid::new_v4()));
+        let bridge = WorkspaceBridge::development(Some(&profile), true);
+        let command = |arguments| {
+            json!({
+                "protocol_version": "1.1", "type": "request", "timestamp_ms": 1763600000000_u64,
+                "request_id": uuid::Uuid::new_v4().to_string(), "message_id": uuid::Uuid::new_v4().to_string(),
+                "scope": {"workspace_id": WORKSPACE_ID},
+                "intent": {"operation": AI_TEXT_CONNECTION, "arguments": arguments},
+            })
+        };
+        let status = command(json!({"action": "status"}));
+        let proposal = command(json!({"action": "propose", "route": {
+            "kind": "ollama", "origin": "http://127.0.0.1:1", "model": "synthetic:start"
+        }}));
+
+        let startup = bridge.admit().unwrap();
+        for request in [&status, &proposal] {
+            let error = bridge
+                .dispatch_text_connection(request.clone())
+                .await
+                .err()
+                .expect("the held writer rejects before a registry outcome");
+            assert_eq!(error.code, ErrorCode::BUSY);
+            assert!(error.retryable);
+        }
+        WorkspaceBridge::with_bound(startup, true, |bound| bound.dispatch(Request::Snapshot))
+            .await
+            .unwrap()
+            .expect("the initial workspace snapshot opens the writer");
+
+        let (reply, work) = bridge.dispatch_text_connection(status).await.unwrap();
+        assert_eq!(reply["outcome"]["result"]["action"], "status");
+        assert!(reply["outcome"]["result"]["connection"].is_null());
+        assert!(work.is_none());
+        let (reply, work) = bridge.dispatch_text_connection(proposal).await.unwrap();
+        assert_eq!(reply["outcome"]["result"]["action"], "propose");
+        assert_eq!(
+            reply["outcome"]["result"]["route"]["destination"],
+            "http://127.0.0.1:1/api/chat"
+        );
+        assert!(work.is_none());
+        bridge.shutdown().await;
+        std::fs::remove_dir_all(profile).unwrap();
+    }
+
     #[tokio::test]
     async fn shutdown_waits_for_the_admitted_slot_and_closes_the_lane() {
         let bridge = WorkspaceBridge::development(None, true);
