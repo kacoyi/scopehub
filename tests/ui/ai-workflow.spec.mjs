@@ -521,9 +521,27 @@ test('rotating a pending chart selection blocks tool data and cancellation disca
       expect(peer.traffic, 'A stale opening selection does not send a question').toHaveLength(1);
       expect(persistedRows(profile)).toEqual(beforeStaleSend);
 
+      const clearedByOtherClient = await dispatch({
+        type: 'request', protocol_version: '1.1', operation: 'workspace.selectEvidence',
+        request_id: randomUUID(), message_id: randomUUID(), timestamp_ms: Date.now(),
+        workspace_id: first.workspace_id, expected_selection_revision: corrected.selection_revision + 1, target: null,
+      });
+      expect(clearedByOtherClient).toMatchObject({ ok: true, result: { selection: {
+        selection_revision: corrected.selection_revision + 2, target: null,
+      } } });
       await control(chat(page), 'Close').click();
-      await control(page.getByRole('complementary', { name: 'Data window' }), `Select bar at ${new Date(intervalB.time_ms).toISOString()}`).click();
+      const data = page.getByRole('complementary', { name: 'Data window' });
+      await control(data, `Select bar at ${new Date(intervalB.time_ms).toISOString()}`).click();
       await control(page, 'Reload workspace state').click();
+      await expect(control(data, 'Clear chart selection')).toHaveCount(0);
+      await openChat(page);
+      await expect(question(page)).toHaveValue(next);
+      await expect(control(chat(page), 'Send')).toBeDisabled();
+      await expect(chat(page).getByRole('alert')).toHaveText(reselect);
+      await expect(control(chat(page), 'Start a text-only question')).toBeEnabled();
+      expect(peer.traffic, 'Reload and reopen without a bar do not convert the draft to ordinary text').toHaveLength(1);
+
+      await control(chat(page), 'Close').click();
       await selectChartBar(page, intervalB);
       const before = persistedRows(profile);
       await openChat(page);
@@ -539,6 +557,20 @@ test('rotating a pending chart selection blocks tool data and cancellation disca
       await expect(chat(page).getByText(lateAnswer, { exact: true })).toHaveCount(0);
       await expect(chat(page).getByRole('region', { name: 'Chart evidence used' })).toHaveCount(0);
       expect(persistedRows(profile), 'Rotate and cancel created no writes beyond the manual selection').toEqual(before);
+
+      await control(chat(page), 'Close').click();
+      const cleared = await operation(page, 'workspace.selectEvidence', () => control(data, 'Clear chart selection').click());
+      expect(cleared.selection.target).toBeNull();
+      await openChat(page);
+      const fresh = 'Synthetic fresh text-only question after cancellation.';
+      await question(page).fill(fresh);
+      await control(chat(page), 'Ask').click();
+      await activateRoute(page, await propose(page, peer.origin, true));
+      peer.respond(chartReply);
+      await send(page);
+      await expect(chat(page).getByText('Ordinary text received.', { exact: true })).toBeVisible();
+      expect(peer.traffic).toHaveLength(4);
+      expectRequest(peer.traffic[3], [user(fresh)]);
     } finally {
       initial.resolve(providerToolCall);
       final.resolve(assistant(lateAnswer));

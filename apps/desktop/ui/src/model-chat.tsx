@@ -87,13 +87,14 @@ function ChartEvidence({ evidence }: { evidence: AiTextChartEvidence }) {
   </section>;
 }
 
-export function ModelChat({ workspaceId, theme, view, show, chartSelection, chartSelectionChanged }: {
+export function ModelChat({ workspaceId, theme, view, show, chartSelection, invalidChartSelectionRevision, discardChartSelection }: {
   workspaceId: string | undefined;
   theme: 'light' | 'dark' | undefined;
   view: ModelChatView | undefined;
   show: (view: ModelChatView | undefined) => void;
   chartSelection: ModelChartSelection | undefined;
-  chartSelectionChanged: boolean;
+  invalidChartSelectionRevision: number | undefined;
+  discardChartSelection: () => void;
 }) {
   const heading = useId();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -120,8 +121,14 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
   const visible = view !== undefined;
   const chartScope = connection?.route.scope === 'conversation_text_and_sample_closes';
   const selection = chartScope ? chartSelection : undefined;
-  const mustReselect = chartScope && (chartSelectionChanged
-    || selection !== undefined && selection.selectionRevision === staleSelectionRevision);
+  const invalidSelectionRevision = chartScope ? invalidChartSelectionRevision : undefined;
+  const staleChartDraft = staleSelectionRevision !== undefined
+    && (selection === undefined || selection.selectionRevision === staleSelectionRevision);
+  const mustReselect = Boolean(connection) && (invalidSelectionRevision !== undefined || staleChartDraft);
+
+  useEffect(() => {
+    if (invalidSelectionRevision !== undefined && question.trim()) setStaleSelectionRevision(invalidSelectionRevision);
+  }, [invalidSelectionRevision, question]);
 
   useEffect(() => () => {
     action.current?.abort();
@@ -162,7 +169,6 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
     setTurns([]);
     setPending(undefined);
     setUnconfirmed(undefined);
-    setStaleSelectionRevision(undefined);
     lastTurn.current = undefined;
   }
 
@@ -249,7 +255,10 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
         setTurns(previous => [...previous, {
           id, question: submitted, model: turn.model, text: turn.text, evidence, chartRequested: Boolean(selected),
         }]);
-        if (submitted !== undefined) setQuestion('');
+        if (submitted !== undefined) {
+          setQuestion('');
+          setStaleSelectionRevision(undefined);
+        }
       } catch (failure) {
         if (superseded || action.current) return;
         if (modelErrorCode(failure) === 'BUSY' && busyPolls < busyPollLimit) {
@@ -278,6 +287,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
       if (candidate.route.kind === 'offline_mock') {
         const reply = await exchangeModel(id, { action: 'activate', proposal_id: candidate.proposal_id }, signal);
         setConnection(reply.connection);
+        setStaleSelectionRevision(undefined);
         show('question');
       } else {
         setProposal(candidate);
@@ -302,6 +312,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
     void perform(async (id, signal) => {
       const reply = await exchangeModel(id, { action: 'activate', proposal_id: candidate.proposal_id }, signal);
       setConnection(reply.connection);
+      setStaleSelectionRevision(undefined);
       setProposal(undefined);
       show('question');
     });
@@ -353,13 +364,13 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
             signal.throwIfAborted();
             return undefined;
           });
+          setStaleSelectionRevision(selection.selectionRevision);
           if (status && status.connection?.connection_id !== active.connection_id) {
             applyStatus(status, undefined);
             setError(status.connection ? 'The model connection changed. Review the active route in AI settings.'
               : modelFailure(failure));
             return;
           }
-          setStaleSelectionRevision(selection.selectionRevision);
           setError(staleChart);
           return;
         }
@@ -374,6 +385,14 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
         }
       }
     });
+  }
+
+  function startTextQuestion() {
+    discardChartSelection();
+    setStaleSelectionRevision(undefined);
+    setQuestion('');
+    setError(undefined);
+    questionField.current?.focus();
   }
 
   function leaveSettings(next: ModelChatView | undefined) {
@@ -418,6 +437,8 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
             disabled={Boolean(pending || unconfirmed) || working} onChange={event => setQuestion(event.currentTarget.value)} /></label>
           <div className="model-actions">
             <button type="submit" className="primary" disabled={Boolean(pending || unconfirmed) || working || mustReselect || !question.trim()}>{connection ? 'Send' : 'Ask'}</button>
+            {mustReselect && <button type="button" className="secondary-button" disabled={Boolean(pending || unconfirmed) || working}
+              onClick={startTextQuestion}>Start a text-only question</button>}
             {unconfirmed && <button type="button" className="secondary-button" disabled={working} onClick={refresh}>Check turn status</button>}
             {pending && <><button type="button" className="secondary-button" disabled={working} onClick={() => cancel(pending)}>Cancel turn</button>
               <span role="status">Waiting for the model…</span></>}
