@@ -2592,6 +2592,26 @@
         "prevention": "The workspace-timeframe check exercises an established writer, a held response, startup disconnect and duplicate close. The final native Linux and Windows task artifacts bind the exact source and regression observations. An independent process-level comparison on Linux confirmed a real parent exit leaked the listener and writer at the integrated baseline and released both at the corrected source."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "committed-indicator-removal-busy-workspace-snapshot",
+      "source": "Main workflow 44906026863, native Windows job 136851666782, artifact 14709052375, ZIP SHA-256 7a6997e80910061bc0299139d6638a009d3ec9bfe763771f410c5f4e366f3531. The same product tree passed PR workflow 44902878648.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "At workspace.spec.mjs line 980, the eight-second wait for workspace revision 2 expired. The retained browser image shows a successful removal message, the previous disabled accepted layer and a busy workspace. The embedded removal-stage attachment did not record a completed snapshot.",
+      "task_ids": [
+        "M3-006"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "indicator-declarative-preview"
+      ],
+      "resolution": {
+        "cause": "A committed indicator change refreshed the workspace through a one-shot snapshot. A genuine admission refusal left the old view and a persistent busy state even after the writer was available. In the unmodified product, the eight-second observer expired while an independent authorized read returned the correct stored layer state and undo.",
+        "correction": "After an indicator commit, compare the authoritative snapshot with the receipt's workspace and minimum revision. Retry only eligible, side-effect-free snapshot reads within a four-second retry-start budget, cancel on view teardown and queue the read behind an active workspace operation. Each admitted request keeps its original transport deadline.",
+        "prevention": "The real frozen-chart regression retains its eight-second observation, forces a true first-read HTTP 429 and validates persistent remove and undo counts, request identities and the recovered workspace. Local targeted negative checks also cover non-retryable BUSY, terminal cancellation, wrong workspace, lagging revision and teardown during backoff for both buttons. The selected market-worker checks and both hosted jobs in 44913291282 passed."
+      },
+      "deferral_reason": null
     }
   ]
 }

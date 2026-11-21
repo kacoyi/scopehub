@@ -9727,6 +9727,143 @@
           "cleanup": "Assert release of the port and child process and clean the synthetic fixture after every test exit."
         }
       }
+    },
+    {
+      "id": "M3-006",
+      "title": "Recover the workspace view after a committed indicator removal encounters read contention",
+      "milestone": "M3",
+      "status": "done",
+      "depends_on": [
+        "M3-005"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/use-local-workspace.ts",
+        "apps/desktop/ui/src/indicator-acceptance.tsx",
+        "apps/desktop/ui/src/market-admission.ts",
+        "apps/desktop/ui/src/abortable-delay.ts",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0017"
+      ],
+      "acceptance": [
+        "Preserve the original native Windows failure and exercise a verified committed indicator removal with a genuinely contending authorized read.",
+        "After the writer drains, the existing view observes revision 2, an empty accepted-layer list and the matching durable undo. Removal and user-requested undo each dispatch exactly once.",
+        "Retry transient read contention within a bounded interval. Preserve terminal and cancelled outcomes and verify the repaired journey through its normal Ubuntu and native Windows entries."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "indicator-workflow",
+        "indicator-declarative-preview",
+        "workspace-timeframe",
+        "market-worker-interruption"
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "All eight selected checks passed on clean source 5e3de366955a943b0ea4c056e4fffcfe7c4fb3fc in local run 20261121T141635.785800Z-34c7e7ed and authenticated Ubuntu and native Windows workflow 44913291282. The browser journey observed the real first HTTP 429 BUSY response after a committed removal and recovered its authoritative revision 2 at 281 ms on Ubuntu and 558 ms on Windows. Both found zero layers and the matching durable undo, then verified one removal and one user-requested undo in both the dispatch log and storage. The existing eight-second observation and original market-worker interruption checks passed.",
+      "evidence": [
+        {
+          "path": "project/evidence/M3-006-6cbff9c4f86a1de8.json",
+          "sha256": "a7479a05f508187c3fc41cfe10ab75a6343dd3e89fa74b281568a7e49ad90b68"
+        },
+        {
+          "path": "project/evidence/M3-006-9816b8d821032d5f.json",
+          "sha256": "ac7ae3e8100b30c2e877062da8be8397a110d921ddbbb6cd11f6edc2aeeb8e00"
+        },
+        {
+          "path": "project/evidence/M3-006-b078e51d08a3bb49.json",
+          "sha256": "7484ee1217f1a34b601d5aa6996e0cf1cd09497b96a03f6fe71eab23255732cd"
+        }
+      ],
+      "plan": {
+        "outcome": "The accepted indicator and its undo converge to the committed workspace revision after a transient read-side conflict.",
+        "change_types": [
+          "ui",
+          "indicators"
+        ],
+        "context": [
+          "apps/desktop/ui/src/indicator-acceptance.tsx",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "apps/desktop/ui/ubuntu-workspace.mjs",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "contracts/decisions/0017-indicator-acceptance-and-restore.json"
+        ],
+        "hypotheses": [
+          "The original Windows receipt and stale browser view could indicate a rejected snapshot or a lost browser observation. On unchanged product code, a real concurrent authorized snapshot held the lane while the first post-removal UI snapshot returned HTTP 429 BUSY. Eight seconds later the view still showed the old layer although an independent read reported revision 2, no layers and the matching durable undo.",
+          "Repeating only eligible side-effect-free snapshot reads after the committed receipt should converge, while terminal errors, aborted views and invalid workspace state should stop without repeating a mutation."
+        ],
+        "risks": [
+          {
+            "failure": "A mutation repeats or a stale snapshot falsely restores a removed layer.",
+            "checks": [
+              "workspace-timeframe",
+              "indicator-declarative-preview"
+            ]
+          },
+          {
+            "failure": "Changing the read path hides lasting denial, delays cancellation or changes unrelated chart and indicator outcomes.",
+            "checks": [
+              "market-workflow",
+              "indicator-workflow",
+              "ui-build"
+            ]
+          },
+          {
+            "failure": "Sharing the abort-aware timer changes market-worker cleanup or rearms reads after a view is released.",
+            "checks": [
+              "workspace-timeframe",
+              "market-worker-interruption"
+            ]
+          }
+        ],
+        "rollback": "Retain the signed-off prior evidence and both original hosted reports. Restore the prior bounded reader if another workspace behavior regresses and keep this task open until the real contention case recovers.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/indicator-acceptance.tsx",
+            "apps/desktop/ui/src/use-local-workspace.ts",
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/authorization"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "contracts/decisions/0017-indicator-acceptance-and-restore.json",
+              "pointer": ""
+            }
+          ],
+          "non_goals": [
+            "Changing workspace write admission, increasing Playwright deadlines, adding new operations, and altering stored indicator results."
+          ],
+          "open_questions": [
+            "Does the complete browser journey observe a committed revision and undo on native Windows within its existing eight-second observation?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Each explicit mutation uses its existing approval, scope, request and idempotency identity. Existing storage and authorization rules remain authoritative."
+          ],
+          "change": [
+            "Recover from a transient read-side conflict after an acknowledged indicator mutation."
+          ],
+          "data_plan": "Use disposable synthetic frozen chart data and existing workspace records. The accepted receipt and undo remain under the existing single-writer lifecycle.",
+          "cleanup": "Release read attempts, timers, route handlers and the synthetic producer on completion, cancellation or failure."
+        }
+      }
     }
   ]
 }

@@ -978,8 +978,39 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         const remove = preview.getByRole('button', { name: 'Remove accepted layer' });
         const undo = preview.getByRole('button', { name: 'Undo indicator removal' });
         const undoStages = { reads: [], competing_attempts: [] };
+        const removalStart = performance.now();
+        const removalEvents = [];
+        const record = (stage, fields = {}) => removalEvents.push({
+          stage, elapsed_ms: Math.round(performance.now() - removalStart), ...fields,
+        });
+        const writer = await writerPid(server);
+        const whileWriterPaused = async action => {
+          try {
+            await writerPid(server, 'suspend', writer);
+            return await action();
+          } finally {
+            await writerPid(server, 'resume', writer);
+          }
+        };
+        const admissionBusy = ({ http, body }) =>
+          http === 429 && body?.ok === false && body.error?.code === 'BUSY' && body.error?.retryable === true;
         const isLayerMutation = (payload, operation) => payload?.intent?.operation === operation
           && payload.scope?.target?.kind === 'layer' && payload.scope.target.object_id === savedLayer.layer_id;
+        const explicitMutations = [];
+        const snapshotAttempts = new Map();
+        let observingRemovalReads = true;
+        const observeRemovalRequests = request => {
+          if (new URL(request.url()).pathname !== endpoint) return;
+          const payload = request.postDataJSON();
+          if (['indicator.remove', 'workspace.undo'].includes(payload?.intent?.operation)) {
+            explicitMutations.push(payload);
+            record('mutation-dispatched', { request: payload });
+          } else if (payload?.type === 'snapshot' && observingRemovalReads && explicitMutations.length > 0) {
+            const attempt = snapshotAttempts.size + 1;
+            snapshotAttempts.set(request, attempt);
+            record('browser-snapshot-dispatched', { attempt });
+          }
+        };
         const layerMutation = async (operation, action) => {
           const matches = request => new URL(request.url()).pathname === endpoint
             && isLayerMutation(request.postDataJSON(), operation);
@@ -991,23 +1022,105 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
           if (new URL(response.url()).pathname !== endpoint || response.status() !== 200
             || response.request().postDataJSON()?.type !== type) return false;
           const body = await response.json().catch(() => undefined);
-          return body?.ok === true && matches(body.result);
+          return body?.ok === true && matches(body.result, response.request());
         }, { timeout: 8_000 });
         const readOutput = async () => {
           const request = outputRequest();
           const response = await post(server, request, {}, AbortSignal.timeout(3_000));
           return { request, http: response.status, body: await response.json() };
         };
+        const removeWithContendedSnapshot = async () => {
+          const routePattern = `**${endpoint}`;
+          const permission = Promise.withResolvers();
+          const holderAbort = new AbortController();
+          let firstSnapshot;
+          let holder;
+          const gateFirstSnapshot = async route => {
+            const request = route.request();
+            if (!explicitMutations.length || firstSnapshot || request.postDataJSON()?.type !== 'snapshot') {
+              return route.fallback();
+            }
+            firstSnapshot = request;
+            if (await permission.promise) await route.continue();
+            else await route.abort();
+          };
+          await page.route(routePattern, gateFirstSnapshot);
+          try {
+            const removed = await layerMutation('indicator.remove', () => remove.click());
+            undoStages.removal = removed;
+            record('removal-receipt', removed);
+            expect(removed).toMatchObject({ http: 200, body: { ok: true, result: {
+              request_id: removed.request.request_id,
+              outcome: { state: 'committed', receipt: { committed_workspace_revision: 2, undoable: true } },
+            } } });
+            await expect.poll(() => Boolean(firstSnapshot), { timeout: 3_000 }).toBe(true);
+            await expect.poll(() => postStatus(server, admissionProbe), { timeout: 3_000 }).toBe(400);
+            const refused = await whileWriterPaused(async () => {
+              // An independently authorized read occupies the real admission slot.
+              // The malformed probe cannot reach the writer even if it wins a race.
+              holder = post(server, snapshot, {}, AbortSignal.any([holderAbort.signal, AbortSignal.timeout(5_000)]))
+                .then(async response => ({ http: response.status, body: await response.json() }))
+                .catch(error => ({ error: error.message }));
+              await expect.poll(() => postStatus(server, admissionProbe), { timeout: 3_000 }).toBe(429);
+              record('snapshot-holder-admitted');
+              return duringPageEvent(page, 'response', response => response.request() === firstSnapshot, async () => {
+                permission.resolve(true);
+              }, 3_000, request => request === firstSnapshot);
+            });
+            const first = {
+              attempt: snapshotAttempts.get(firstSnapshot), request: firstSnapshot.postDataJSON(),
+              http: refused.status(), body: await refused.json(),
+            };
+            record('first-browser-snapshot', first);
+            const held = await holder;
+            record('snapshot-holder-completed', held);
+            expect(first).toMatchObject({ attempt: 1, http: 429, body: busy });
+            expect(held).toMatchObject({ http: 200, body: { ok: true, result: { workspace: { revision: 2 } } } });
+            return removed;
+          } finally {
+            permission.resolve(false);
+            holderAbort.abort();
+            await page.unroute(routePattern, gateFirstSnapshot);
+            await holder;
+          }
+        };
+        const durableLayerMutations = () => {
+          const database = new DatabaseSync(join(profile.root, 'workspace.sqlite3'), { readOnly: true });
+          try {
+            return database.prepare(`
+              SELECT log.operation, log.id, log.request_id, log.revision, log.undoes, layer.before_active, layer.after_active
+              FROM operation_log AS log JOIN indicator_layer_operations AS layer ON layer.operation_id = log.id
+              WHERE log.workspace_id = ? AND layer.layer_id = ? AND log.operation IN ('indicator.remove', 'workspace.undo')
+              ORDER BY log.revision
+            `).all(workspaceId, savedLayer.layer_id);
+          } finally {
+            database.close();
+          }
+        };
+        page.on('request', observeRemovalRequests);
         try {
-          const [removalSnapshot, removalLayers, removed] = await Promise.all([
-            removalRead('snapshot', result => result.workspace?.revision === 2),
-            removalRead('indicator_accepted_layers', result => result.dataset_id === id && result.layers?.length === 0),
-            layerMutation('indicator.remove', () => remove.click()),
+          const [snapshotResult, layersResult, removalResult] = await Promise.allSettled([
+            removalRead('snapshot', (result, request) => {
+              const attempt = snapshotAttempts.get(request);
+              if (!attempt) return false;
+              if (result.workspace?.revision !== 2) return false;
+              record('browser-authoritative-snapshot', { attempt, revision: result.workspace.revision });
+              return true;
+            }),
+            removalRead('indicator_accepted_layers', (result, request) => {
+              if (result.dataset_id !== id || result.layers?.length !== 0) return false;
+              record('browser-accepted-layers', { request_id: request.postDataJSON().request_id, layers: result.layers, undo: result.undo });
+              return true;
+            }),
+            removeWithContendedSnapshot(),
           ]);
-          expect(removed).toMatchObject({ http: 200, body: { ok: true, result: {
-            request_id: removed.request.request_id,
-            outcome: { state: 'committed', receipt: { committed_workspace_revision: 2, undoable: true } },
-          } } });
+          observingRemovalReads = false;
+          if (removalResult.status === 'rejected') throw removalResult.reason;
+          if (snapshotResult.status === 'rejected') throw snapshotResult.reason;
+          if (layersResult.status === 'rejected') throw layersResult.reason;
+          const { value: removalSnapshot } = snapshotResult;
+          const { value: removalLayers } = layersResult;
+          const { value: removed } = removalResult;
           undoStages.removal_reads = {
             snapshot: (await removalSnapshot.json()).result.workspace.revision,
             layers: (await removalLayers.json()).result.layers,
@@ -1057,6 +1170,7 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
             await page.unroute(undoRoute, holdUndo);
           }
           undoStages.undo = undone;
+          record('undo-receipt', undone);
           expect(undone.request.request_id).toBe(undoStages.held_undo.request_id);
           expect(undone.request.intent.arguments).toEqual({ operation_id: removalId });
           expect(undone).toMatchObject({ http: 200, body: { ok: true, result: {
@@ -1067,14 +1181,6 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
           await expect(accepted.getByText(savedLayer.version_id, { exact: true })).toBeVisible();
 
           // Reproduce read contention after the exact layer is visible with a real authorized snapshot.
-          const writer = await writerPid(server);
-          const whileWriterPaused = async action => {
-            await writerPid(server, 'suspend', writer);
-            try { return await action(); }
-            finally { await writerPid(server, 'resume', writer); }
-          };
-          const admissionBusy = ({ http, body }) =>
-            http === 429 && body?.ok === false && body.error?.code === 'BUSY' && body.error?.retryable === true;
           const contendWithSnapshot = async () => {
             const attempt = {};
             undoStages.competing_attempts.push(attempt);
@@ -1110,8 +1216,50 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
           }, { timeout: 3_000, message: 'The restored indicator output read cleared preview admission' }).toBe(false);
           expect(output).toMatchObject({ http: 200, body: { ok: true } });
           expect(output.body.result).toEqual(savedOutput);
+          expect(explicitMutations.map(request => request.intent.operation)).toEqual(['indicator.remove', 'workspace.undo']);
+          const durable = durableLayerMutations();
+          record('durable-layer-mutations', { operations: durable });
+          expect(durable).toEqual([
+            { operation: 'indicator.remove', id: removalId, request_id: removed.request.request_id,
+              revision: 2, undoes: null, before_active: 1, after_active: 0 },
+            { operation: 'workspace.undo', id: undone.body.result.outcome.receipt.operation_id, request_id: undone.request.request_id,
+              revision: 3, undoes: removalId, before_active: 0, after_active: 1 },
+          ]);
+          record('mutation-counts', { remove: 1, undo: 1 });
+        } catch (error) {
+          record('failure', { message: error.message });
+          if (undoStages.removal?.body?.result?.outcome?.state === 'committed') {
+            try {
+              record('durable-layer-mutations', { operations: durableLayerMutations() });
+              const request = { type: 'indicator_accepted_layers', request_id: randomUUID(), revision_id: id };
+              const response = await post(server, request, {}, AbortSignal.timeout(3_000));
+              record('independent-accepted-layers', { request, http: response.status, body: await response.json() });
+            } catch (diagnosticError) {
+              record('persistence-diagnostic-error', { message: diagnosticError.message });
+            }
+            try {
+              record('browser-view-at-failure', {
+                accepted_visible: await accepted.isVisible(), remove_disabled: await remove.isDisabled({ timeout: 1_000 }).catch(() => null),
+                removal_message: await preview.getByText('Accepted layer removed from the chart.', { exact: true }).isVisible(),
+                workspace_busy: await page.getByText('The local workspace is busy.', { exact: true }).first().isVisible(),
+              });
+              await testInfo.attach('indicator-removal-failure', {
+                body: await page.screenshot({ timeout: 2_000 }), contentType: 'image/png',
+              });
+            } catch (diagnosticError) {
+              record('browser-diagnostic-error', { message: diagnosticError.message });
+            }
+          }
+          throw error;
         } finally {
-          await testInfo.attach('indicator-undo-stages', { body: JSON.stringify(undoStages), contentType: 'application/json' });
+          page.off('request', observeRemovalRequests);
+          const failed = removalEvents.some(event => event.stage === 'failure');
+          try {
+            await testInfo.attach('indicator-removal-events', { body: JSON.stringify(removalEvents), contentType: 'application/json' });
+            await testInfo.attach('indicator-undo-stages', { body: JSON.stringify(undoStages), contentType: 'application/json' });
+          } catch (attachmentError) {
+            if (!failed) throw attachmentError;
+          }
         }
         observation.preview = { initial: first.event.snapshot, warmed: warmed.event.snapshot, cancelled, withheld, committed };
 

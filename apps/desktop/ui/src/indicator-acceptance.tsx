@@ -140,10 +140,6 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
     } finally { setPending(false); }
   }
 
-  function refreshWorkspace() {
-    workspace.reload();
-  }
-
   function requestAcceptance() {
     if (preview?.artifact.storage !== 'inline') return;
     const request: IndicatorAcceptVersionCommand11 = {
@@ -175,7 +171,7 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
       const outcome = bodyOf(reply, request.request_id);
       if (outcome.state !== 'committed') throw new Error();
       clearPreview();
-      refreshWorkspace();
+      workspace.refreshAfterIndicatorCommit(outcome.receipt);
       setMessage({ text: 'Indicator version accepted.' });
     });
   }
@@ -188,7 +184,7 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
     void act(async signal => {
       const outcome = bodyOf(await exchangeWorkspace<IndicatorRemoveReply11>(request, signal), request.request_id);
       if (outcome.state !== 'committed') throw new Error();
-      refreshWorkspace();
+      workspace.refreshAfterIndicatorCommit(outcome.receipt);
       setMessage({ text: 'Accepted layer removed from the chart.' });
     });
   }
@@ -204,12 +200,12 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
       if (reply.request_id === request.request_id && reply.outcome.state === 'failed'
         && reply.outcome.error.code === 'STALE_CONTEXT') {
         setUndo(undefined);
-        refreshWorkspace();
+        workspace.reload();
       }
       const outcome = bodyOf(reply, request.request_id);
       if (outcome.state !== 'committed') throw new Error();
       setUndo(undefined);
-      refreshWorkspace();
+      workspace.refreshAfterIndicatorCommit(outcome.receipt);
       setMessage({ text: 'Accepted layer restored.' });
     });
   }
