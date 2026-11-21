@@ -6,6 +6,7 @@ the normal-exit race of traversing descendants only after their parent exits.
 
 import ctypes
 from ctypes import wintypes
+import sys
 import time
 
 
@@ -36,7 +37,9 @@ class Accounting(ctypes.Structure):
 
 
 class WindowsJob:
-    def __init__(self):
+    def __init__(self, *, memory_limit_bytes: int | None = None) -> None:
+        if sys.platform != 'win32':
+            raise OSError('Windows Job Objects require Windows')
         self.api = ctypes.WinDLL('kernel32', use_last_error=True)
         signatures = {
             'CreateJobObjectW': ([ctypes.c_void_p, wintypes.LPCWSTR], wintypes.HANDLE),
@@ -50,9 +53,12 @@ class WindowsJob:
         for name, (arguments, result) in signatures.items():
             function = getattr(self.api, name)
             function.argtypes, function.restype = arguments, result
-        self.handle = self.require(self.api.CreateJobObjectW(None, None))
+        self.handle: int | None = self.require(self.api.CreateJobObjectW(None, None))
         limits = ExtendedLimits()
         limits.basic.flags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE; no breakaway.
+        if memory_limit_bytes is not None:
+            limits.basic.flags |= 0x0200  # JOB_OBJECT_LIMIT_JOB_MEMORY
+            limits.job_memory = memory_limit_bytes
         try:
             self.require(self.api.SetInformationJobObject(self.handle, 9, ctypes.byref(limits), ctypes.sizeof(limits)))
         except OSError:
@@ -60,12 +66,14 @@ class WindowsJob:
             raise
 
     @staticmethod
-    def require(result):
+    def require(result: int | None) -> int:
         if not result:
-            raise ctypes.WinError(ctypes.get_last_error())
+            if sys.platform == 'win32':
+                raise ctypes.WinError(ctypes.get_last_error())
+            raise OSError('Windows Job API failed')
         return result
 
-    def assign(self, pid):
+    def assign(self, pid: int) -> None:
         # PROCESS_SET_QUOTA | PROCESS_TERMINATE: the documented assignment rights.
         process = self.require(self.api.OpenProcess(0x0100 | 0x0001, False, pid))
         try:
@@ -73,7 +81,7 @@ class WindowsJob:
         finally:
             self.api.CloseHandle(process)
 
-    def stop(self):
+    def stop(self) -> None:
         self.require(self.api.TerminateJobObject(self.handle, 1))
         deadline = time.monotonic() + 10
         while True:
@@ -86,7 +94,7 @@ class WindowsJob:
                 raise OSError('Windows job still has active verification descendants')
             time.sleep(.01)
 
-    def close(self):
+    def close(self) -> None:
         if self.handle is not None:
             self.require(self.api.CloseHandle(self.handle))
             self.handle = None
@@ -97,7 +105,6 @@ if __name__ == '__main__':
     # job handle, including when an outstanding stdio request is interrupted.
     import os
     import subprocess
-    import sys
 
     job = WindowsJob()
     job.assign(os.getpid())

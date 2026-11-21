@@ -452,3 +452,93 @@ async fn paged_worker_replays_pinned_input_and_registry_verifies_digest_and_iden
     );
     core.shutdown().await.unwrap();
 }
+
+#[tokio::test]
+async fn indicator_window_distinguishes_a_provider_scheduled_closure_from_missing_buckets() {
+    use scopehub_domain::{
+        indicator::{BucketCalendar, Program},
+        protocol::{IndicatorProvenance, MarketHistoryPageOutput},
+    };
+
+    let mut core = MarketRegistry::new(MarketWorker::new(Some(WorkerConfig::development(&root()))));
+    let mut query = paged_input();
+    let normal: MarketHistoryPageOutput = serde_json::from_value(
+        core.execute(Actor::User, "market.readHistoryPage", query.clone())
+            .await
+            .unwrap(),
+    )
+    .unwrap();
+    query["expected_revision"] = json!("scopehub-synthetic-v1:20241013:gapped");
+    let gapped: MarketHistoryPageOutput = serde_json::from_value(
+        core.execute(Actor::User, "market.readHistoryPage", query)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
+    core.shutdown().await.unwrap();
+
+    let program = Program::prepare(serde_json::from_value(json!({
+        "parameters": [],
+        "outputs": [{
+            "kind": "line", "id": "mean", "pane": "price", "style": {"color": "#123456", "width": 1},
+            "value": {"op": "rolling_mean", "value": {"op": "field", "field": "close"}, "window": {"periods": 2}}
+        }],
+    })).unwrap(), &[]).unwrap();
+    let run = |page: &MarketHistoryPageOutput, calendar: &BucketCalendar| {
+        program
+            .evaluate_with_calendar(
+                &page.bars,
+                0,
+                calendar,
+                || false,
+                IndicatorProvenance {
+                    dataset_id: page.snapshot.dataset_id.clone(),
+                    dataset_revision: page.snapshot.dataset_revision.clone(),
+                    code_hash: "1".repeat(64),
+                    params_hash: "2".repeat(64),
+                    engine_version: "fixture".into(),
+                },
+            )
+            .unwrap()
+    };
+
+    let result_for = |page: &MarketHistoryPageOutput| {
+        let sessions: Vec<_> =
+            serde_json::from_value(page.dataset.provenance["sessions"].clone()).unwrap();
+        let calendar =
+            BucketCalendar::from_sessions(&page.snapshot.series.timeframe, &sessions).unwrap();
+        run(page, &calendar)
+    };
+    let normal_result = result_for(&normal);
+    let gapped_result = result_for(&gapped);
+    let unknown = run(&normal, &BucketCalendar::unverified(60_000).unwrap());
+    // The last expected bar of session one closes at 3500.2, and the
+    // first bar of session two closes at 3500.8. Their two-bucket mean is 3500.5.
+    // In the gapped revision the source explicitly identifies the last expected
+    // bucket of session one as missing. The same first bar of session two has no mean.
+    let after_closure = 1_704_243_600_000_i64;
+    let value_at = |result: &scopehub_domain::protocol::IndicatorResult| {
+        result.series[0]
+            .points
+            .iter()
+            .find(|point| point.time_ms == after_closure)
+            .unwrap()
+            .value
+    };
+    assert_eq!(value_at(&normal_result), Some(3500.5));
+    assert_eq!(value_at(&gapped_result), None);
+    assert_eq!(value_at(&unknown), None);
+    let codes = |result: &scopehub_domain::protocol::IndicatorResult| {
+        result
+            .diagnostics
+            .iter()
+            .map(|diagnostic| diagnostic.code.clone())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(codes(&normal_result), ["session_schedule_applied"]);
+    assert_eq!(
+        codes(&gapped_result),
+        ["session_schedule_applied", "missing_expected_buckets"]
+    );
+    assert_eq!(codes(&unknown), ["calendar_unverified"]);
+}

@@ -1,0 +1,179 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M3-001",
+  "task_definition_sha256": "fd3097b66666da2f0cd4cd24097ba811a5d0cc49136e1ea8e38e8f758608f12c",
+  "run_id": "20261119T203631.678985Z-b83478c7",
+  "recorded_at": "2026-11-19T20:42:17.321758+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "a1e4680eda9ca4f37bf3c5e705ce693f0e5ab1132c4c80be74796dea92415bc9",
+    "file_count": 465,
+    "git_head": "362e5dcaaddfce6665795555b0df18b1d1037c03",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "7a8f067e6328e769a57bbdf00aee292a86283fdb00eec5a79d8df7010fb745b0",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/projects/scopehub-indicator-preview/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "indicator-declarative-preview",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs",
+        "--grep",
+        "indicator-preview",
+        "--grep-invert",
+        "runs trusted Python once"
+      ],
+      "exit_code": 0,
+      "log_sha256": "1a6fcba48d8de8c095a2609add9b1d36b5120941af1b8d0480c86b811b1f4530"
+    },
+    {
+      "id": "indicator-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs",
+        "--grep",
+        "indicator-preview runs trusted Python once"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8d87c9b0a53629d01fad67ef8c5c0dd921764bbd98f01d4888dfdd59225cb252"
+    },
+    {
+      "id": "generated-contracts",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-indicator-preview/.venv/bin/python",
+        "scripts/generate_contracts.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "83fc97a9537b97e194db9d6744d525a0e3420d9cc840601fbb073afeacb6a700"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f4f12bc97ef8ba3a2c0ecb240db7742424da79325b0836a6e423473a3750dbae"
+    },
+    {
+      "id": "operations-workflow",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-persistence",
+        "--test",
+        "workspace_process",
+        "operations_workflow::"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5ab4aaf59af8065cd05ce7697d0052f6f5cae268f9ca662b391c1d9d7e6c0d54"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-indicator-preview/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "692557faa66999467370663af58c2ca473b6887f6b5dd7fad3cccde9f23529b0"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-indicator-preview/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "1c72f0f16972fd12ba655dcf320794ef3031bcbe2484f0c1232496050299e97a"
+    },
+    {
+      "id": "state-migrations",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-persistence"
+      ],
+      "exit_code": 0,
+      "log_sha256": "1029e1bb03f583f89df26bf6ec23e80a47e3d0f99c73a81eabb7472536c3f19a"
+    },
+    {
+      "id": "typescript-contracts",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "check:contracts"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9c4e983950d1a22a7c28386c2697c8096ad294b5f1078278b27453e7d4a5e895"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8bff8cb61a28d4f72257a01c83adfcefbff83011baab7c5306872cdc97d2d92c"
+    }
+  ],
+  "project_definition_sha256": "cb3378b6e2aab04b19abeb722976cfe35aa2f77dfb93f413d2a055690e5f7b86",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

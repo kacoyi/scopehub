@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { ChartCursorMode, ChartStyle, HistoryChartHandle } from './chart-adapter/history';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import type { LayoutPanel11 } from '../../../../contracts/generated/protocol';
+import type { ChartCursorMode, ChartStyle, HistoryChartHandle, IndicatorChartLayer } from './chart-adapter/history';
 import { DecisionNotes } from './decision-notes';
 import { PrivateRecords } from './private-records';
 import { UnavailableSharedSelection } from './frozen-evidence';
 import { instrumentName, symbol } from './instrument-display';
-import { isClosedBarGapRevision, sampleRevisionInstrument, type ChartHistory, type Instrument, type SampleRevision } from './market';
+import { IndicatorPreview } from './indicator-preview';
+import type { PublishedRevisionAccess } from './published-revision-access';
+import { isClosedBarGapRevision, sampleRevisionInstrument, type Bar, type ChartHistory, type Instrument, type SampleRevision } from './market';
 import { ReplayGapDetails, replayGapReason } from './market-quality';
 import { PriceChart } from './price-chart';
 import { narrowScreen, readSampleView, saveSampleView } from './sample-view';
@@ -13,10 +16,15 @@ import type { LocalWorkspace } from './use-local-workspace';
 import { useHistory, useSampleCatalog } from './use-market-data';
 import { useSampleReplay } from './use-sample-replay';
 import { WorkspaceIcon, type WorkspaceIconName } from './workspace-icons';
+import { layoutDocks, useWorkspaceLayout, WorkspaceLayoutEditor, WorkspaceLayoutReview } from './workspace-layout';
+import { LayoutDock, PinnedComparison, useLayoutDocks } from './workspace-layout-view';
 import { LocalSourceButtons, WorkspacePanel, panelLabels, type LocalSourceActions, type Panel } from './workspace-panels';
+import './workspace-layout.css';
 
 const panelIcons: Record<Panel, WorkspaceIconName> = { watchlist: 'watchlist', data: 'table', sources: 'database' };
-const panelOrder: Panel[] = ['watchlist', 'data', 'sources'];
+const panelOrder = ['watchlist', 'data'] as const;
+const layoutPanel = { watchlist: 'watchlist', data: 'inspection' } as const;
+const workspacePanel = { watchlist: 'watchlist', inspection: 'data' } as const;
 const noInstruments: Instrument[] = [];
 const replayLabels = {
   starting: 'Preparing synthetic replay…',
@@ -53,23 +61,39 @@ function HistoryStatus({ history, repaired }: { history: ChartHistory; repaired:
   return history.bars.length ? <span className="history-status" role="status">History ready</span> : null;
 }
 
-export function ChartWorkspace({ sample, leaveSample, localActions, workspace, openPublished }: {
+export type RestoredChartSource = {
+  kind: 'frozen';
+  revision_id: string;
+  status: 'loading' | 'ready' | 'revoked' | 'unavailable';
+  chart?: { instrument: Instrument; history: ChartHistory };
+  label?: string;
+};
+
+export function ChartWorkspace({ sample, leaveSample, localActions, workspace, openPublished, restoredSource, restoredSampleInstrument, chooseSampleInstrument, onOpenSample, retryRestoredSource, revisionAccess }: {
   sample: boolean; leaveSample: () => void; localActions: LocalSourceActions | undefined;
   workspace: LocalWorkspace | undefined;
+  revisionAccess: PublishedRevisionAccess;
   openPublished: (() => void) | undefined;
+  restoredSource?: RestoredChartSource | undefined;
+  restoredSampleInstrument?: string | undefined;
+  onOpenSample?: (() => void) | undefined;
+  retryRestoredSource?: (() => void) | undefined;
+  chooseSampleInstrument?: ((id: string) => Promise<void>) | undefined;
 }) {
   const [saved] = useState(() => sample ? readSampleView() : undefined);
-  const [chosenId, setChosenId] = useState(saved?.symbol ?? '');
+  const [chosenId, setChosenId] = useState(restoredSampleInstrument ?? saved?.symbol ?? '');
   const [sampleTimeframe, setSampleTimeframe] = useState(saved?.timeframe ?? '1m');
-  const timeframe = workspace ? workspace.snapshot?.workspace.timeframe ?? '' : sampleTimeframe;
+  const frozen = !sample && restoredSource?.status === 'ready' ? restoredSource.chart : undefined;
+  const timeframe = sample ? sampleTimeframe : frozen?.history.dataset.timeframe ?? (workspace ? workspace.snapshot?.workspace.timeframe ?? '' : sampleTimeframe);
   const workspaceBusy = Boolean(workspace?.pending);
-  const timeframeBlocked = Boolean(workspace && (!workspace.snapshot || workspaceBusy || workspace.error));
+  const workspaceBlocked = Boolean(workspace && (!workspace.snapshot || workspaceBusy || workspace.error));
+  const timeframeBlocked = !sample && (workspaceBlocked || restoredSource !== undefined);
   const [revision, setRevision] = useState<SampleRevision>(saved?.sampleRevision ?? 'normal');
   const [date, setDate] = useState(saved?.sampleDate ?? '');
   const [style, setStyle] = useState<ChartStyle>(saved?.style ?? 'candlestick');
   const [cursor, setCursor] = useState<ChartCursorMode>(saved?.cursor ?? 'crosshair');
+  const [narrow, setNarrow] = useState(() => window.matchMedia(narrowScreen).matches);
   const [panel, setPanel] = useState<Panel | null>(() => {
-    const narrow = window.matchMedia(narrowScreen).matches;
     return saved?.narrow === narrow && saved.panel !== undefined ? saved.panel : narrow ? null : 'watchlist';
   });
   const [focusChart, setFocusChart] = useState(saved?.chartOnly ?? false);
@@ -77,20 +101,64 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   const [notesOpen, setNotesOpen] = useState(false);
   const [recordsOpen, setRecordsOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
+  const layoutTrigger = useRef<HTMLButtonElement>(null);
+  const sourceTrigger = useRef<HTMLButtonElement>(null);
+  const choosingInstrument = useRef(false);
   const chart = useRef<HistoryChartHandle | null>(null);
   const dock = useRef<HTMLElement>(null);
+  const layout = useWorkspaceLayout(workspace);
+  const definition = layout.layout?.definition;
+  const docks = useLayoutDocks(definition, narrow);
+  const appearance = definition && { theme: definition.theme, gain: definition.gain_color, loss: definition.loss_color };
   const { catalog, retryCatalog } = useSampleCatalog(sample);
-  const instruments = catalog.state === 'ready' ? catalog.value : noInstruments;
-  const selected = instruments.find(item => item.id === chosenId) ?? instruments[0];
+  const sampleInstruments = sample && catalog.state === 'ready' ? catalog.value : noInstruments;
+  const instruments = frozen ? [frozen.instrument] : sampleInstruments;
+  const selected = frozen?.instrument ?? sampleInstruments.find(item => item.id === chosenId) ?? sampleInstruments[0];
   const chartInstrument = useMemo(() => selected && ({
     ...selected, name: instrumentName(selected), display_symbol: symbol(selected),
   }), [selected]);
   const sampleRevision = selected?.id === sampleRevisionInstrument && (timeframe === '1m' || !isClosedBarGapRevision(revision))
     ? revision : 'normal';
-  const { result, retryHistory } = useHistory(timeframe ? selected : undefined, timeframe, sampleRevision, date);
-  const history = result.state === 'ready' ? result.value : undefined;
+  const { result, retryHistory } = useHistory(sample && timeframe ? selected : undefined, timeframe, sampleRevision, date);
+  const history = frozen?.history ?? (sample && result.state === 'ready' ? result.value : undefined);
+  const indicatorSource = history?.snapshot.content_hash;
+  const [previewLayer, setPreviewLayer] = useState<{ source: string; result: IndicatorChartLayer }>();
+  const [acceptedLayers, setAcceptedLayers] = useState<{ source: string; results: readonly IndicatorChartLayer[] }>();
+  const showPreview = useCallback((result: IndicatorChartLayer | undefined) => {
+    setPreviewLayer(result && indicatorSource ? { source: indicatorSource, result } : undefined);
+  }, [indicatorSource]);
+  const showAccepted = useCallback((results: readonly IndicatorChartLayer[]) => {
+    setAcceptedLayers(indicatorSource ? { source: indicatorSource, results } : undefined);
+  }, [indicatorSource]);
+  const acceptingIndicators = Boolean(workspace && history?.bars.length
+    && (frozen || sample && workspace.snapshot?.source?.kind === 'sample'));
+  const [lastInspected, setLastInspected] = useState<ChartHistory>();
+  const [sampleBar, setSampleBar] = useState<{ snapshot: string; time: number }>();
+  const inspectionHistory = sample && definition?.link_selection === false && lastInspected?.dataset.mode === 'simulated'
+    ? lastInspected : history;
+  useEffect(() => {
+    if (sample && history && (definition?.link_selection !== false || !lastInspected)) setLastInspected(history);
+  }, [sample, history, definition?.link_selection, lastInspected]);
+  const evidence = workspace?.snapshot?.chart_evidence;
+  const sharedBar = frozen && evidence && 'revision_id' in evidence && evidence.revision_id === frozen.history.snapshot.dataset_id
+    && evidence.range.to_ms === evidence.range.from_ms + 1 ? evidence.range.from_ms : undefined;
+  const selectedBarTime = definition?.link_selection ? frozen ? sharedBar
+    : sampleBar?.snapshot === history?.snapshot.content_hash ? sampleBar?.time : undefined : undefined;
+  const selectBar = definition?.link_selection && history ? (bar: Bar) => {
+    if (sample) {
+      setSampleBar({ snapshot: history.snapshot.content_hash, time: bar.time_ms });
+    } else if (frozen && workspace?.snapshot && !workspace.pending && !workspace.error) {
+      workspace.chooseEvidence({
+        kind: 'chart_interval', snapshot: history.snapshot, range: { from_ms: bar.time_ms, to_ms: bar.time_ms + 1 },
+      });
+    }
+  } : undefined;
+  const clearBar = selectedBarTime !== undefined ? () => {
+    if (sample) setSampleBar(undefined);
+    else if (workspace?.snapshot && !workspace.pending && !workspace.error) workspace.chooseEvidence(null);
+  } : undefined;
   const failure = catalog.state === 'error' ? catalog.failure : result.state === 'error' ? result.failure : undefined;
-  const { replay, start, stop } = useSampleReplay(history);
+  const { replay, start, stop } = useSampleReplay(sample ? history : undefined);
   const workerRecovery = replay?.state === 'reconnecting' || replay?.state === 'resumed' ? replay.state : undefined;
   const playing = replay?.state === 'starting' || replay?.state === 'playing' || workerRecovery !== undefined;
   const replayFailure = replay?.state === 'failed' ? replay.failure : undefined;
@@ -98,19 +166,33 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   const repairedBars = replay?.repairedBars;
   const replayLabel = replay?.state === 'failed' ? `Replay failed. ${replay.failure.message}`
     : repairedBars ? 'Closed-bar gap repaired in chart' : replay && replayLabels[replay.state];
-  const visiblePanel = focusChart ? null : panel;
+  const visiblePanel = panel === 'sources' || (!definition && !focusChart) ? panel : null;
+  const activeDocks = focusChart ? [] : layoutDocks.flatMap(dockName => {
+    const { panels, active } = docks.selected(dockName);
+    return active ? [{ dockName, panels, active }] : [];
+  });
+  const plotSize = Object.fromEntries(activeDocks.map(({ dockName, active }) => [`--layout-${dockName}`, `${active.size}px`])) as CSSProperties;
   const lastBar = history?.bars.at(-1);
   const canInspect = Boolean(lastBar);
-  const canReplay = lastBar && !lastBar.is_closed && history?.quality_state.freshness !== 'stale'
+  const canReplay = sample && lastBar && !lastBar.is_closed && history?.quality_state.freshness !== 'stale'
     && (!replayFailure || replayFailure.retryable);
   const savedSymbol = selected?.id ?? chosenId;
   const savedRevision = selected ? sampleRevision : revision;
+  useEffect(() => {
+    if (sample && restoredSampleInstrument) setChosenId(restoredSampleInstrument);
+  }, [sample, restoredSampleInstrument]);
   useEffect(() => {
     if (sample) saveSampleView({
       symbol: savedSymbol, timeframe: sampleTimeframe, style, cursor, panel, chartOnly: focusChart,
       sampleRevision: savedRevision, sampleDate: date, narrow: window.matchMedia(narrowScreen).matches,
     });
   }, [sample, savedSymbol, sampleTimeframe, style, cursor, panel, focusChart, savedRevision, date]);
+
+  const hadLayoutPreview = useRef(false);
+  useEffect(() => {
+    if (hadLayoutPreview.current && !layout.preview && !layout.editing) layoutTrigger.current?.focus();
+    hadLayoutPreview.current = Boolean(layout.preview);
+  }, [layout.preview, layout.editing]);
 
   const searchWasOpen = useRef(false);
   useEffect(() => {
@@ -119,17 +201,36 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   }, [searchQuery]);
   const closeSearch = () => setSearchQuery(null);
   const closePanel = useCallback(() => {
-    dock.current?.querySelector<HTMLButtonElement>('[aria-expanded="true"]')?.focus();
+    if (visiblePanel === 'sources') sourceTrigger.current?.focus();
+    else dock.current?.querySelector<HTMLButtonElement>('[aria-expanded="true"]')?.focus();
     setPanel(null);
-  }, []);
+  }, [visiblePanel]);
+  const closeDock = (placement: LayoutPanel11) => {
+    dock.current?.querySelector<HTMLButtonElement>(`[data-layout-toggle="${placement.panel}"]`)?.focus();
+    docks.setDock(placement.dock, null);
+  };
   const choose = (item: Instrument) => {
-    setChosenId(item.id);
-    if (item.id !== sampleRevisionInstrument) setRevision('normal');
+    if (choosingInstrument.current || workspaceBusy) return;
     if (searchQuery !== null) closeSearch();
-    if (window.matchMedia(narrowScreen).matches) closePanel();
+    const finish = () => {
+      if (sample) {
+        setChosenId(item.id);
+        if (item.id !== sampleRevisionInstrument) setRevision('normal');
+      }
+      if (narrow) {
+        if (visiblePanel) closePanel();
+        else if (definition) docks.collapse();
+      }
+    };
+    if (sample && chooseSampleInstrument) {
+      choosingInstrument.current = true;
+      void chooseSampleInstrument(item.id).then(finish, () => {}).finally(() => { choosingInstrument.current = false; });
+    } else {
+      finish();
+    }
   };
   const chooseTimeframe = (value: string) => {
-    if (workspace) {
+    if (!sample && workspace) {
       workspace.chooseTimeframe(value);
       return;
     }
@@ -141,15 +242,19 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   }, [timeframe, revision]);
   useEffect(() => {
     const media = window.matchMedia(narrowScreen);
-    const changed = () => { if (media.matches) setPanel(null); };
+    const changed = () => {
+      setNarrow(media.matches);
+      if (media.matches) setPanel(null);
+    };
     media.addEventListener('change', changed);
     return () => media.removeEventListener('change', changed);
   }, []);
   useEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.isComposing || searchQuery !== null || notesOpen || recordsOpen) return;
+      if (event.defaultPrevented || event.isComposing || searchQuery !== null || notesOpen || recordsOpen || layout.editing) return;
       if (event.key === 'Escape') {
-        if (focusChart) setFocusChart(false);
+        if (visiblePanel === 'sources') closePanel();
+        else if (focusChart) setFocusChart(false);
         else if (visiblePanel) closePanel();
         return;
       }
@@ -162,43 +267,69 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
     };
     window.addEventListener('keydown', keyboard);
     return () => window.removeEventListener('keydown', keyboard);
-  }, [searchQuery, notesOpen, recordsOpen, focusChart, visiblePanel, closePanel]);
-  const openSample = () => { window.location.hash = 'demo'; };
+  }, [searchQuery, notesOpen, recordsOpen, layout.editing, focusChart, visiblePanel, closePanel]);
+  const openSample = onOpenSample ?? (() => { window.location.hash = 'demo'; });
 
   let plot: ReactNode;
-  if (!sample) {
+  if (!sample && !frozen && restoredSource) {
+    const reason = restoredSource.status === 'loading' ? 'Restoring published CSV…' : restoredSource.status === 'revoked'
+      ? 'Access to this published CSV was revoked.' : 'The published CSV is unavailable.';
+    plot = <PlotMessage title={reason} error={restoredSource.status !== 'loading'}>
+      <p>Revision <code>{restoredSource.revision_id}</code></p>
+      {restoredSource.status === 'unavailable' && retryRestoredSource && <button type="button" className="secondary-button"
+        onClick={retryRestoredSource}>Retry source</button>}
+      {restoredSource.status !== 'loading' && visiblePanel !== 'sources' && (localActions ? <LocalSourceButtons actions={localActions} /> : openPublished &&
+        <button type="button" className="secondary-button" aria-haspopup="dialog" onClick={openPublished}>Open published CSV</button>)}
+    </PlotMessage>;
+  } else if (!sample && !frozen) {
     plot = <PlotMessage title="Open a chart">
       {localActions ? <LocalSourceButtons actions={localActions} /> : openPublished &&
         <button type="button" className="secondary-button" aria-haspopup="dialog" onClick={openPublished}>Open published CSV</button>}
       <p>Explore three instruments with offline sample data.</p>
       <button type="button" className="primary" onClick={openSample}>Open offline sample <WorkspaceIcon name="arrow" /></button></PlotMessage>;
-  } else if (failure) {
+  } else if (sample && failure) {
     const catalogFailed = catalog.state === 'error';
     plot = <PlotMessage title={failure.message} error>{failure.retryable && <button type="button" className="primary"
       onClick={catalogFailed ? retryCatalog : retryHistory}>{catalogFailed ? 'Retry demo' : 'Retry history'}</button>}</PlotMessage>;
-  } else if (catalog.state === 'ready' && !selected) {
+  } else if (sample && catalog.state === 'ready' && !selected) {
     plot = <PlotMessage title="No instruments in this sample." />;
   } else if (!selected || !history) {
     plot = <PlotMessage title="Loading synthetic history…" />;
   } else if (!history.bars.length) {
     plot = <div className="history" data-instrument={selected.id} data-timeframe={timeframe} data-bars={0}>
-      <PlotMessage title="No bars in this sample range." /></div>;
+      <PlotMessage title={sample ? 'No bars in this sample range.' : 'The published CSV has no bars in this revision.'} /></div>;
   } else {
-    plot = <PriceChart key={selected.id + ':' + timeframe} instrument={chartInstrument ?? selected} history={history} style={style} cursor={cursor}
-      handle={chart} replayBar={replay?.bar} repairedBars={repairedBars} />;
+    plot = <PriceChart key={frozen ? restoredSource?.revision_id : selected.id + ':' + timeframe} instrument={chartInstrument ?? selected}
+      history={history} style={style} cursor={cursor} handle={chart} replayBar={sample ? replay?.bar : undefined}
+      repairedBars={sample ? repairedBars : undefined} selectedBarTime={selectedBarTime} activateBar={selectBar}
+      indicatorPreview={acceptingIndicators && previewLayer?.source === indicatorSource ? previewLayer?.result : undefined}
+      acceptedIndicators={acceptingIndicators && acceptedLayers?.source === indicatorSource ? acceptedLayers?.results : undefined}
+      {...appearance && { appearance }} />;
   }
 
-  return <main className={'workstation' + (focusChart ? ' chart-only' : '')}>
+  const panelProps = {
+    sample, selected, instruments, failureKind: (failure ?? replayFailure)?.kind, workerRecovery, replayGap,
+    filters: { revision: sampleRevision, timeframe, date, setRevision, setDate }, choose, leave: leaveSample,
+    choosingInstrument: workspaceBusy,
+    localActions: sample || restoredSource ? localActions : undefined,
+    openPublished: (sample || restoredSource) && !localActions ? openPublished : undefined,
+    openSample: !sample && restoredSource ? openSample : undefined,
+  };
+  const savedLayouts = workspace?.snapshot?.layouts;
+  const pinned = definition?.pinned_instrument;
+  return <main className={'workstation' + (focusChart ? ' chart-only' : '')} style={appearance && {
+    '--layout-gain': appearance.gain, '--layout-loss': appearance.loss,
+  } as CSSProperties} data-layout-theme={definition?.theme}>
     <header className="topbar">
       <div className="brand" aria-label="ScopeHub"><span className="brand-mark" aria-hidden="true">S</span><strong>ScopeHub</strong></div>
       <div className="toolbar-group symbol-group"><button type="button" ref={trigger} className="symbol-trigger" aria-label="Search symbols"
         aria-haspopup="dialog" title="Search symbols (/)" onClick={() => setSearchQuery('')}>
         <WorkspaceIcon name="search" /><strong>{selected ? symbol(selected) : 'Symbol search'}</strong><WorkspaceIcon name="chevron" /></button></div>
-      <div className="toolbar-group periods" role="group" aria-label="Timeframe" aria-busy={workspaceBusy || undefined}>
+      <div className="toolbar-group periods" role="group" aria-label="Timeframe" aria-busy={!sample && workspaceBusy || undefined}>
         {['1m', '5m', '1d'].map(value => <button type="button" key={value} className="period"
           aria-pressed={timeframe === value} disabled={timeframeBlocked}
           onClick={() => chooseTimeframe(value)}>{value}</button>)}
-        {workspace && <button type="button" className="period" aria-label="Undo timeframe change"
+        {!sample && workspace && <button type="button" className="period" aria-label="Undo timeframe change"
           disabled={timeframeBlocked || !workspace.snapshot?.undo} onClick={workspace.undoTimeframe}>Undo</button>}
       </div>
       <div className="toolbar-group chart-styles" role="group" aria-label="Chart style">
@@ -206,12 +337,22 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
         <Tool name="Close-price line" icon="line" active={style === 'line'} onClick={() => setStyle('line')} />
       </div>
       {workspace && <div className="toolbar-group"><button type="button" className="period notes-trigger"
-        aria-haspopup="dialog" disabled={timeframeBlocked} onClick={() => setNotesOpen(true)}>Decision notes</button>
+        aria-haspopup="dialog" disabled={workspaceBlocked} onClick={() => setNotesOpen(true)}>Decision notes</button>
         <button type="button" className="period notes-trigger" aria-haspopup="dialog"
-          disabled={timeframeBlocked} onClick={() => setRecordsOpen(true)}>Private records</button></div>}
-      <span className={'connection' + (sample ? ' sample' : '')} role="status"><i aria-hidden="true" />{sample ? <><span>Offline sample</span><b>Simulated</b></> : 'No data source'}</span>
+          disabled={workspaceBlocked} onClick={() => setRecordsOpen(true)}>Private records</button></div>}
+      <span className={'connection' + (sample ? ' sample' : '')} role="status"><i aria-hidden="true" />{sample
+        ? <><span>Offline sample</span><b>Simulated</b></> : restoredSource ? frozen ? restoredSource.label ?? 'Published CSV'
+          : restoredSource.status === 'revoked' ? 'Access revoked' : restoredSource.status === 'loading' ? 'Restoring CSV' : 'Source unavailable'
+          : 'No data source'}</span>
+      <button type="button" ref={sourceTrigger} className="icon-button" title="Data sources" aria-label="Data sources"
+        aria-expanded={visiblePanel === 'sources'} aria-controls={visiblePanel === 'sources' ? 'workspace-panel' : undefined}
+        onClick={() => setPanel(visiblePanel === 'sources' ? null : 'sources')}><WorkspaceIcon name="database" /></button>
+      {workspace && <button type="button" ref={layoutTrigger} className="period notes-trigger" aria-haspopup="dialog"
+        disabled={!savedLayouts || Boolean(workspace.pending) || layout.busy || Boolean(layout.preview)}
+        onClick={() => layout.open()}>Edit layout</button>}
       <Tool name={focusChart ? 'Exit chart-only view' : 'Chart-only view'} icon={focusChart ? 'collapse' : 'expand'} active={focusChart} onClick={() => setFocusChart(!focusChart)} />
     </header>
+    {savedLayouts && <WorkspaceLayoutReview active={savedLayouts.active} state={layout} />}
     <div className={'workbody' + (visiblePanel ? ' with-' + visiblePanel : '')}>
       {!focusChart && <nav className="chart-tools" aria-label="Chart tools">
         <Tool name="Crosshair" icon="crosshair" active={cursor === 'crosshair'} onClick={() => setCursor('crosshair')} />
@@ -221,8 +362,10 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
         <Tool name="Zoom out" icon="zoomOut" disabled={!canInspect} onClick={() => chart.current?.zoomOut()} />
         <Tool name="Fit chart" icon="fit" disabled={!canInspect} onClick={() => chart.current?.fit()} />
       </nav>}
-      <section className="plot-workspace" aria-label="Price chart">
+      <div className={definition ? 'plot-layout layout-grid' : 'plot-layout'} style={plotSize}>
+        <section className="plot-workspace" aria-label="Price chart">
         {plot}
+        {!focusChart && pinned && <PinnedComparison key={pinned} id={pinned} instrument={sampleInstruments.find(item => item.id === pinned)} chartReady={Boolean(history)} />}
         <footer className="chart-footer"><span>{sample ? (date ? date + ' UTC' : 'Jan 2024') : 'ScopeHub'}</span>
           <UnavailableSharedSelection workspace={workspace} />
           {workspace?.pending && <span role="status">{workspace.pending === 'open' ? 'Loading local workspace…'
@@ -234,29 +377,53 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
           {canReplay && <button type="button" className="secondary-button replay-button" onClick={playing ? stop : start}>
             {playing ? 'Stop replay' : replayFailure ? 'Retry replay' : 'Play sample updates'}
           </button>}
-          {replay && replayLabel && (!replayGap || replayFailure) && <span role={replayFailure ? 'alert' : 'status'}
+          {sample && replay && replayLabel && (!replayGap || replayFailure) && <span role={replayFailure ? 'alert' : 'status'}
             className={'replay-status ' + replay.state}>{replayLabel}</span>}
-          {replayGap && <>
+          {sample && replayGap && <>
             <span role="status" className="replay-status gap">Replay gap. {replayGapReason(replayGap)}</span>
             <ReplayGapDetails gap={replayGap} />
           </>}
           <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">Charts by TradingView Lightweight Charts™</a></footer>
-      </section>
+        {acceptingIndicators && workspace && history && <details className="chart-indicators">
+          <summary>Indicators</summary>
+          <IndicatorPreview key={history.snapshot.content_hash} snapshot={history.snapshot} bars={history.bars}
+            workspace={workspace} access={frozen ? revisionAccess : undefined}
+            showResult={showPreview} showAccepted={showAccepted} />
+        </details>}
+        </section>
+        {activeDocks.map(({ dockName, panels, active }) => <LayoutDock key={dockName} dock={dockName} panels={panels}
+          active={active.panel} select={value => docks.setDock(dockName, value)} close={() => closeDock(active)}>
+          <WorkspacePanel {...panelProps} layoutPanel={active.panel} panel={workspacePanel[active.panel]}
+            history={active.panel === 'inspection' ? inspectionHistory : history} close={() => closeDock(active)}
+            selectedBarTime={selectedBarTime} selectBar={selectBar} clearBar={clearBar}
+            selectionBlocked={Boolean(frozen && (workspace?.pending || workspace?.error))} />
+        </LayoutDock>)}
+      </div>
+      {narrow && !visiblePanel && activeDocks.length > 0 && <button type="button" className="panel-scrim" aria-label="Dismiss side panel"
+        onClick={() => { const active = activeDocks[0]?.active; if (active) closeDock(active); }} />}
       {visiblePanel && <>
-        <button type="button" className="panel-scrim" aria-label="Dismiss side panel" onClick={closePanel} />
-        <WorkspacePanel panel={visiblePanel} sample={sample} selected={selected} instruments={instruments} history={history}
-          failureKind={(failure ?? replayFailure)?.kind} workerRecovery={workerRecovery} replayGap={replayGap}
-          filters={{ revision: sampleRevision, timeframe, date, setRevision, setDate }}
-          choose={choose} close={closePanel} leave={leaveSample} localActions={sample ? localActions : undefined} />
+        <button type="button" className={definition ? 'panel-scrim layout-source-scrim' : 'panel-scrim'} aria-label="Dismiss side panel" onClick={closePanel} />
+        <WorkspacePanel {...panelProps} panel={visiblePanel} history={history} close={closePanel} layoutSource={Boolean(definition)} />
       </>}
-      {!focusChart && <nav className="side-tools" aria-label="Workspace panels" ref={dock}>{panelOrder.map(key =>
-        <button type="button" className="icon-button" key={key} title={panelLabels[key]} aria-label={panelLabels[key]}
-          aria-expanded={visiblePanel === key} aria-controls={visiblePanel === key ? 'workspace-panel' : undefined}
-          onClick={() => setPanel(visiblePanel === key ? null : key)}><WorkspaceIcon name={panelIcons[key]} /></button>)}</nav>}
+      {!focusChart && <nav className="side-tools" aria-label="Workspace panels" ref={dock}>{panelOrder.map(key => {
+        const placement = definition?.panels.find(value => value.panel === layoutPanel[key]);
+        const expanded = placement ? docks.selected(placement.dock).active?.panel === placement.panel : visiblePanel === key;
+        return <button type="button" className="icon-button" key={key} title={panelLabels[key]} aria-label={panelLabels[key]}
+          data-layout-toggle={placement?.panel} aria-expanded={expanded}
+          aria-controls={expanded ? placement ? `workspace-panel-${placement.panel}` : 'workspace-panel' : undefined}
+          onClick={() => {
+            if (placement) {
+              if (visiblePanel === 'sources') setPanel(null);
+              docks.setDock(placement.dock, expanded ? null : placement.panel);
+            } else setPanel(expanded ? null : key);
+          }}><WorkspaceIcon name={panelIcons[key]} /></button>;
+      })}</nav>}
     </div>
     {searchQuery !== null && <SymbolSearch instruments={instruments} initialQuery={searchQuery} sample={sample}
       onChoose={choose} onClose={closeSearch} openSample={openSample} />}
     {recordsOpen && workspace?.snapshot && <PrivateRecords workspace={workspace} onClose={() => setRecordsOpen(false)} />}
     {notesOpen && workspace?.snapshot && <DecisionNotes workspace={workspace} onClose={() => setNotesOpen(false)} />}
+    {layout.editing && layout.draft && savedLayouts && <WorkspaceLayoutEditor state={{ ...layout, draft: layout.draft }}
+      layouts={savedLayouts} instruments={sampleInstruments} />}
   </main>;
 }

@@ -2,10 +2,13 @@
 
 import os
 from pathlib import Path
-import signal
 import subprocess
 import sys
-import time
+
+if __package__:
+    from .process_tree import stop_tree
+else:
+    from process_tree import stop_tree
 
 WINDOWS_LAUNCHER = '''
 import subprocess, sys
@@ -13,36 +16,6 @@ if sys.stdin.buffer.read(1) != b'1':
     raise SystemExit(125)
 raise SystemExit(subprocess.call(sys.argv[1:], stdin=subprocess.DEVNULL))
 '''
-
-
-def running_group(group):
-    """Linux zombies cannot execute or write; wait for all live group members."""
-    for path in Path('/proc').glob('[0-9]*/stat'):
-        try:
-            fields = path.read_text().rsplit(')', 1)[1].split()
-            if int(fields[2]) == group and fields[0] not in {'Z', 'X'}:
-                return True
-        except (FileNotFoundError, ProcessLookupError):
-            continue
-    return False
-
-
-def stop_tree(process, job=None):
-    """Checks are trusted local programs, not a sandbox for hostile code."""
-    if os.name == 'nt':
-        job.stop()
-    else:
-        try:
-            os.killpg(process.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
-    process.wait(timeout=10)
-    if sys.platform == 'linux':
-        deadline = time.monotonic() + 10
-        while running_group(process.pid):
-            if time.monotonic() >= deadline:
-                raise OSError('Verification process group still has live members')
-            time.sleep(.01)
 
 
 def run_logged(argv, *, cwd, env, log_path, timeout):

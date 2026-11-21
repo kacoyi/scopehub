@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0",
+  "id": "0018",
+  "title": "Read expected indicator buckets from the bound frozen sample",
+  "status": "accepted",
+  "recorded_at": "2026-11-19",
+  "context": "A chart may hide earlier warm-up bars behind a date filter. The offline provider declares explicit session windows, while a published native CSV may only name a calendar. The two cases require different continuity rules.",
+  "decision": "For an explicitly bound offline sample, re-read its revision and observation cutoff through the existing Rust market registry. Reconstruct the displayed snapshot hash and verify it before evaluating the selected interval and warm-up. Derive expected buckets from the adapter's explicit sessions and bind the schedule hash to the calculation identity. The browser sends only the chart snapshot and indicator intent.",
+  "authority": "M3-001 and the engineering contract's indicator window semantics require schedule evidence and immutable inputs. ADR 0007 delegates local composition and compatibility verification.",
+  "alternatives": [
+    {
+      "option": "Infer closures from timestamp gaps or a named CSV calendar.",
+      "reason": "The same gap can be a planned closure or a missing expected bucket. A calendar name alone cannot resolve it."
+    },
+    {
+      "option": "Accept market bars and claimed sessions from the view.",
+      "reason": "The registry must confirm the frozen chart revision and current source-purpose authorization using trusted data."
+    }
+  ],
+  "consequences": [
+    "A scheduled closure does not interrupt a complete window. A missing expected bucket leaves dependent windows unknown.",
+    "Native CSV keeps conservative period continuity until its adapter has verified session evidence. The chart explains that policy.",
+    "A sample source change invalidates its staged preview. The browser's internal data route is limited to the existing offline provider. The SQLite v9 and v10 layouts are unchanged."
+  ],
+  "supersedes": [],
+  "related_decisions": ["0002", "0007", "0016", "0017"],
+  "revisit_when": "Another source declares verifiable schedules or accepted synthetic artifacts require a retained source entitlement."
+}

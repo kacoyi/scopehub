@@ -82,7 +82,7 @@ fn populated_v4_dataset_migration_is_atomic_and_preserves_existing_state() {
         SCHEMA_VERSION
     );
     assert_eq!(ledger(&writer.connection), current_ledger());
-    let state = writer.snapshot(None, false).unwrap().0;
+    let state = writer.snapshot(None, false).unwrap().state;
     assert_eq!(
         (state.revision, state.timeframe),
         (2, Timeframe::FiveMinutes)
@@ -101,7 +101,7 @@ fn populated_v4_dataset_migration_is_atomic_and_preserves_existing_state() {
     fs::write(restored_profile.db(), backup).unwrap();
     let restored = restored_profile.open().unwrap();
     assert_eq!(restored.load_mapping(SOURCE_KEY).unwrap(), Some(mapping));
-    assert_eq!(restored.snapshot(None, false).unwrap().0.revision, 2);
+    assert_eq!(restored.snapshot(None, false).unwrap().state.revision, 2);
     assert_eq!(
         restored.read_notes(Some("note"), 0).unwrap().outcomes[0].outcome_id,
         "outcome"
@@ -922,8 +922,12 @@ fn chart_evidence_migrates_populated_v5_and_rechecks_scope_grants_and_frozen_tar
     );
     assert_eq!(
         (
-            store.snapshot(None, false).unwrap().0.revision,
-            store.snapshot(None, false).unwrap().0.selection_revision
+            store.snapshot(None, false).unwrap().state.revision,
+            store
+                .snapshot(None, false)
+                .unwrap()
+                .state
+                .selection_revision
         ),
         (3, 10)
     );
