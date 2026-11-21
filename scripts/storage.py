@@ -740,7 +740,9 @@ def cache_is_current(cache, root, root_fd, outer_fd, target_fd, debug_fd):
     try:
         for name, parent_fd, fd, observed in directories:
             current = os.fstat(fd)
-            if not os.path.samestat(current, observed) or not same_entry(name, parent_fd, current):
+            # An inode number can be reused once the inventoried directory is removed.
+            if (not os.path.samestat(current, observed) or current.st_ctime_ns != observed.st_ctime_ns or
+                    not same_entry(name, parent_fd, current)):
                 return False
         if cache.rustc_info is None:
             return True

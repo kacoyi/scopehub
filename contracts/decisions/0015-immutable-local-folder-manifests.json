@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0",
+  "id": "0015",
+  "title": "Persist reviewed folder manifests as immutable profile revisions",
+  "status": "accepted",
+  "recorded_at": "2026-11-19",
+  "context": "The v5 revision format describes one original CSV. The v6 profile can reference that revision in shared chart evidence. A reviewed folder refresh can retain several files, aliases and competing source rows while selecting one economic bar at each start time.",
+  "decision": "Add version 7 tables to the existing Rust-owned SQLite writer. Store each reviewed folder revision as a complete source manifest and a chosen bar projection with source-qualified row locators. Anchor the lineage to its original single-file revision and reviewed mapping. Reuse the profile's content-addressed original byte store and keep each alias path independently attributable. Commit the manifest and its scoped retry receipt together behind the live-source guard. Preserve the existing single-file revision and chart evidence formats.",
+  "authority": "M1-008 requires reviewable local refreshes, retained provenance and tested transactional recovery. ADR 0007 delegates the storage design and migration sequencing to the development AI.",
+  "alternatives": [
+    {
+      "option": "Rewrite v5 revisions to fit a multi-file manifest.",
+      "reason": "Existing v5 content and v6 evidence carry single-file semantics and must remain directly readable."
+    },
+    {
+      "option": "Store only the accepted normalized bars and a directory fingerprint.",
+      "reason": "That would discard alias paths, original bytes, attributable row positions and the basis for reviewing later withdrawals."
+    }
+  ],
+  "consequences": [
+    "Migrating a v6 profile creates empty folder tables and preserves the previous migration rows, application records and frozen originals. Each folder revision independently retains display rights; its v5 anchor and prior immutable folder revision record lineage.",
+    "Canonical reviewed input identifies content across traversal orders. A committed retry with the same bound principal, workspace and key recovers the entitled revision without staging a write. A different input with that key is rejected.",
+    "The native store accepts resolved input from the trusted application. Review confirmation, checked selection and source permissions remain the responsibility of the publishing operation, which must bind ADR 0014 at final commit. Folder chart projection, selection and public commands are subsequent application work."
+  ],
+  "supersedes": [],
+  "related_decisions": ["0007", "0008", "0014"],
+  "revisit_when": "A shared chart must select folder evidence, or the product requires another mapping or explicitly authorized folder lineage."
+}

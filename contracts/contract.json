@@ -61,7 +61,8 @@
       ],
       "input": "ChartSetTimeframeInput",
       "output": "ChartSetTimeframeOutput",
-      "implementation": "planned",
+      "implementation": "implemented",
+      "implementation_scope": "The private protocol 1.1 workspace registry updates the registered main chart. New writes check both revision tokens. A scoped on-device AI intent with selected CSV evidence requires access to that interval. Replay returns the persisted chart-only receipt under current workspace disclosure.",
       "wire_bindings": {
         "1.1": {
           "input": "ChartSetTimeframeCommand11",
@@ -213,7 +214,8 @@
       ],
       "input": "WorkspaceUndoInput",
       "output": "WorkspaceUndoOutput",
-      "implementation": "planned",
+      "implementation": "implemented",
+      "implementation_scope": "The private protocol 1.1 workspace registry can reverse an eligible main-chart timeframe operation in the initiating principal and client scope. Current revisions and the chart's recorded after-state are checked. A committed inverse has its own replayable receipt.",
       "wire_bindings": {
         "1.1": {
           "input": "WorkspaceUndoCommand11",
@@ -301,6 +303,306 @@
       }
     },
     {
+      "name": "market.previewLocalImport",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "LocalImportPreviewInput",
+      "output": "LocalImportPreviewOutput",
+      "implementation": "implemented",
+      "implementation_scope": "Local human preview of a CSV in the current trusted folder selection through the desktop development worker. Raw records, diagnostics and eligible normalized bars bind to the read file digest. Publication and refresh are separate work.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "LocalImportPreviewRequest",
+          "output": "LocalImportPreviewReply11"
+        }
+      }
+    },
+    {
+      "name": "market.saveLocalImportMapping",
+      "effect": "workspace",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "SaveLocalImportMappingInput",
+      "output": "SaveLocalImportMappingOutput",
+      "implementation": "implemented",
+      "implementation_scope": "Explicit local human save of a reviewed CSV mapping and its source header association through the profile-bound Rust SQLite writer.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "SaveLocalImportMappingRequest",
+          "output": "SaveLocalImportMappingReply11"
+        }
+      }
+    },
+    {
+      "name": "market.loadLocalImportMapping",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "LoadLocalImportMappingInput",
+      "output": "LoadLocalImportMappingOutput",
+      "implementation": "implemented",
+      "implementation_scope": "Local human retrieval of a reviewed CSV mapping for the authorized source in the active profile, with review required when its header changes.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "LoadLocalImportMappingRequest",
+          "output": "LoadLocalImportMappingReply11"
+        }
+      }
+    },
+    {
+      "name": "market.publishLocalImport",
+      "effect": "persist",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "PublishLocalImportInput",
+      "output": "PublishLocalImportOutput",
+      "implementation": "implemented",
+      "implementation_scope": "A local human explicitly publishes one complete reviewed native CSV series. The Rust registry binds the current selected file, complete source checksum and saved mapping; the authenticated profile writer retains the original bytes and immutable source row provenance.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "PublishLocalImportRequest",
+          "output": "PublishLocalImportReply11"
+        }
+      }
+    },
+    {
+      "name": "market.listLocalImportRevisions",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "ListLocalImportRevisionsInput",
+      "output": "ListLocalImportRevisionsOutput",
+      "implementation": "implemented",
+      "implementation_scope": "Return a bounded summary page of displayable frozen CSV revisions for the active local human profile. Ascending revision IDs provide a stable exclusive cursor. A caller can opt in to the frozen venue, the first and final bars' trading days, and the final bar's close. The default reply retains its original fields. Listing needs no source directory, returns no source grant or raw content and does not replace read-time authorization.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "ListLocalImportRevisionsRequest",
+          "output": "ListLocalImportRevisionsReply11"
+        }
+      }
+    },
+    {
+      "name": "market.readLocalImportRevision",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "ReadLocalImportRevisionInput",
+      "output": "ReadLocalImportRevisionOutput",
+      "implementation": "implemented",
+      "implementation_scope": "Return immutable bars and source row provenance by revision ID in the entitled local human profile. This read requires no directory access and neither refreshes the revision nor grants other data access.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "ReadLocalImportRevisionRequest",
+          "output": "ReadLocalImportRevisionReply11"
+        }
+      }
+    },
+    {
+      "name": "market.readLocalImportSourceRow",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "ReadLocalImportSourceRowInput",
+      "output": "ReadLocalImportSourceRowOutput",
+      "implementation": "implemented",
+      "implementation_scope": "A local human reads one source record for a displayable single-file frozen CSV revision in the active profile. Resolve the exact published locator and parse the retained bytes using the revision's reviewed encoding and delimiter. Return the source digest, locator, and aligned headers and original field values in source order. The successful result is limited to 64 KiB of UTF-8 JSON. This read uses profile storage and remains available after source removal.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "ReadLocalImportSourceRowRequest",
+          "output": "ReadLocalImportSourceRowReply11"
+        }
+      }
+    },
+    {
+      "name": "market.previewLocalFolderRefresh",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "PreviewLocalFolderRefreshInput",
+      "output": "PreviewLocalFolderRefreshOutput",
+      "implementation": "implemented",
+      "implementation_scope": "A trusted local human previews the current authorized directory against an entitled frozen single-file or folder revision from that directory. Reuse its saved mapping for compatible complete native bars. Retain all attributable locators for equal bars and surface competing values, replaced files and withdrawal candidates for review. Staging has no publication effect.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "PreviewLocalFolderRefreshRequest",
+          "output": "PreviewLocalFolderRefreshReply11"
+        }
+      }
+    },
+    {
+      "name": "market.prepareLocalFolderPublication",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "PrepareLocalFolderPublicationInput",
+      "output": "PrepareLocalFolderPublicationOutput",
+      "implementation": "implemented",
+      "implementation_scope": "Build the canonical candidate for one live reviewed preview after the local human chooses every competing bar and acknowledges every withdrawn path and bar. Return the candidate fingerprint and counts.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "PrepareLocalFolderPublicationRequest",
+          "output": "PrepareLocalFolderPublicationReply11"
+        }
+      }
+    },
+    {
+      "name": "market.publishLocalFolderRefresh",
+      "effect": "persist",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "PublishLocalFolderRefreshInput",
+      "output": "PublishLocalFolderRefreshOutput",
+      "implementation": "implemented",
+      "implementation_scope": "An explicit local human action publishes the prepared candidate in one guarded profile transaction. Revalidate current complete files and the selected root. Within the same profile, workspace and root association, an entitled replay matches the idempotency key and canonical candidate digest and returns the committed revision without rereading source content. The renewed local folder grant and the transport request or preview identifiers do not define the durable receipt.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "PublishLocalFolderRefreshRequest",
+          "output": "PublishLocalFolderRefreshReply11"
+        }
+      }
+    },
+    {
+      "name": "market.listLocalFolderRevisions",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "ListLocalFolderRevisionsInput",
+      "output": "ListLocalFolderRevisionsOutput",
+      "implementation": "implemented",
+      "implementation_scope": "List entitled immutable folder revisions in stable revision ID order within the local human profile. Listing needs no directory grant.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "ListLocalFolderRevisionsRequest",
+          "output": "ListLocalFolderRevisionsReply11"
+        }
+      }
+    },
+    {
+      "name": "market.readLocalFolderRevision",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "ReadLocalFolderRevisionInput",
+      "output": "ReadLocalFolderRevisionOutput",
+      "implementation": "implemented",
+      "implementation_scope": "Open an entitled frozen folder revision, chosen bars and source-qualified row locators without reopening the directory. A summary-only request omits file and bar details.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "ReadLocalFolderRevisionRequest",
+          "output": "ReadLocalFolderRevisionReply11"
+        }
+      }
+    },
+    {
+      "name": "market.readLocalFolderSourceRow",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "ReadLocalFolderSourceRowInput",
+      "output": "ReadLocalFolderSourceRowOutput",
+      "implementation": "implemented",
+      "implementation_scope": "Read one original CSV record through a displayable frozen folder revision in the active local human profile. Require the exact chosen source path, content digest and record locator in that manifest. Parse retained bytes with the historical reviewed mapping and return aligned headers and original field values. The result is limited to 64 KiB of UTF-8 JSON and remains available after source removal.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "ReadLocalFolderSourceRowRequest",
+          "output": "ReadLocalFolderSourceRowReply11"
+        }
+      }
+    },
+    {
+      "name": "market.revokeLocalFolderRevision",
+      "effect": "persist",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "RevokeLocalFolderRevisionInput",
+      "output": "RevokeLocalFolderRevisionOutput",
+      "implementation": "implemented",
+      "implementation_scope": "An explicit local human action removes display rights for a folder revision. Its stored data and separately entitled lineage remain in the profile.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "RevokeLocalFolderRevisionRequest",
+          "output": "RevokeLocalFolderRevisionReply11"
+        }
+      }
+    },
+    {
+      "name": "market.revokeLocalImportRevision",
+      "effect": "persist",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "RevokeLocalImportRevisionInput",
+      "output": "RevokeLocalImportRevisionOutput",
+      "implementation": "implemented",
+      "implementation_scope": "An explicit local human action withdraws the active profile's right to display this immutable revision. Repeat requests return the same revision ID. The original and provenance remain in the profile.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "RevokeLocalImportRevisionRequest",
+          "output": "RevokeLocalImportRevisionReply11"
+        }
+      }
+    },
+    {
       "name": "workspace.readChartProjection",
       "effect": "read",
       "confirmation": false,
@@ -311,7 +613,8 @@
       ],
       "input": "ProjectedChartArguments11",
       "output": "ProjectedChart11",
-      "implementation": "planned",
+      "implementation": "implemented",
+      "implementation_scope": "Current authorized selection of a published local CSV interval. Return only the requested entitled fields and opaque revision references. Production admission is local profile display. A trusted on-device analysis intent requires separate recipient, revision, interval and field authorization; no connected or external recipient is enabled.",
       "wire_since": "1.1",
       "wire_bindings": {
         "1.1": {
@@ -331,12 +634,223 @@
       ],
       "input": "SelectEvidenceArguments11",
       "output": "SharedSelection11",
-      "implementation": "planned",
+      "implementation": "implemented",
+      "implementation_scope": "Explicit chart interval or null through the shared Rust registry for an entitled published local CSV snapshot. The profile-bound SQLite writer updates only the target reference and selection revision. Workspace object, table row and document passage targets are pending.",
       "wire_since": "1.1",
       "wire_bindings": {
         "1.1": {
           "input": "SharedSelectionRequest11",
           "output": "SelectEvidenceReply11"
+        }
+      }
+    },
+    {
+      "name": "decisionNote.save",
+      "effect": "persist",
+      "confirmation": true,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input": "DecisionNoteSaveInput",
+      "output": "DecisionNoteReceipt11",
+      "implementation": "implemented",
+      "implementation_scope": "Explicitly enabled local workspace and bound profile. Local human action through the Rust registry.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "DecisionNoteSaveCommand11",
+          "output": "DecisionNoteSaveReply11"
+        }
+      }
+    },
+    {
+      "name": "decisionNote.read",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input": "DecisionNoteReadInput",
+      "output": "DecisionNoteReadOutput",
+      "implementation": "implemented",
+      "implementation_scope": "Explicitly enabled local workspace and bound profile. Local human action through the Rust registry.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "DecisionNoteReadCommand11",
+          "output": "DecisionNoteReadReply11"
+        }
+      }
+    },
+    {
+      "name": "decisionNote.appendOutcome",
+      "effect": "persist",
+      "confirmation": true,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input": "DecisionNoteAppendOutcomeInput",
+      "output": "DecisionNoteReceipt11",
+      "implementation": "implemented",
+      "implementation_scope": "Explicitly enabled local workspace and bound profile. Local human action through the Rust registry.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "DecisionNoteAppendOutcomeCommand11",
+          "output": "DecisionNoteAppendOutcomeReply11"
+        }
+      }
+    },
+    {
+      "name": "decisionNote.delete",
+      "effect": "persist",
+      "confirmation": true,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input": "DecisionNoteDeleteInput",
+      "output": "DecisionNoteReceipt11",
+      "implementation": "implemented",
+      "implementation_scope": "Explicitly enabled local workspace and bound profile. Local human action through the Rust registry.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "DecisionNoteDeleteCommand11",
+          "output": "DecisionNoteDeleteReply11"
+        }
+      }
+    },
+    {
+      "name": "decisionNote.exportBackup",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input": "DecisionNoteExportBackupInput",
+      "output": "DecisionNoteBackupV1",
+      "implementation": "implemented",
+      "implementation_scope": "Explicitly enabled local workspace and bound profile. Decision-note backup and staged restore through the Rust registry.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "DecisionNoteExportBackupCommand11",
+          "output": "DecisionNoteExportBackupReply11"
+        }
+      }
+    },
+    {
+      "name": "decisionNote.previewRestore",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input": "DecisionNotePreviewRestoreInput",
+      "output": "DecisionNoteRestoreSummary",
+      "implementation": "implemented",
+      "implementation_scope": "Explicitly enabled local workspace and bound profile. Decision-note backup and staged restore through the Rust registry.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "DecisionNotePreviewRestoreCommand11",
+          "output": "DecisionNotePreviewRestoreReply11"
+        }
+      }
+    },
+    {
+      "name": "decisionNote.restoreBackup",
+      "effect": "persist",
+      "confirmation": true,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input": "DecisionNoteRestoreBackupInput",
+      "output": "OperationReceipt11",
+      "implementation": "implemented",
+      "implementation_scope": "Explicitly enabled local workspace and bound profile. Decision-note backup and staged restore through the Rust registry.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "DecisionNoteRestoreBackupCommand11",
+          "output": "DecisionNoteRestoreBackupReply11"
+        }
+      }
+    },
+    {
+      "name": "privateRecord.read",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input": "PrivateRecordReadInput",
+      "output": "PrivateRecordReadOutput",
+      "implementation": "implemented",
+      "implementation_scope": "Local human in the bound native or explicitly enabled Ubuntu workspace. Saving and backup grant no model or paired-client access.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "PrivateRecordReadCommand11",
+          "output": "PrivateRecordReadReply11"
+        }
+      }
+    },
+    {
+      "name": "privateRecord.change",
+      "effect": "persist",
+      "confirmation": true,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input": "PrivateRecordChangeInput",
+      "output": "PrivateRecordReceipt11",
+      "implementation": "implemented",
+      "implementation_scope": "Local human in the bound native or explicitly enabled Ubuntu workspace. Saving and backup grant no model or paired-client access.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "PrivateRecordChangeCommand11",
+          "output": "PrivateRecordChangeReply11"
+        }
+      }
+    },
+    {
+      "name": "privateRecord.exportBackup",
+      "effect": "read",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input": "PrivateRecordExportInput",
+      "output": "PrivateRecordBackupV1",
+      "implementation": "implemented",
+      "implementation_scope": "Local human in the bound native or explicitly enabled Ubuntu workspace. Saving and backup grant no model or paired-client access.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "PrivateRecordExportCommand11",
+          "output": "PrivateRecordExportReply11"
         }
       }
     }
@@ -346,7 +860,9 @@
     "heartbeat response",
     "unsupported request error",
     "cancel terminal response",
-    "The opt-in market worker supports instrument.search and market.getBars for compatible legacy callers. Negotiated 1.1 adds market.readHistoryPage and finite market.subscribe replay. Workers launched without the sample advertise no market operations."
+    "The opt-in market worker supports instrument.search and market.getBars for compatible legacy callers. Negotiated 1.1 adds market.readHistoryPage and finite market.subscribe replay. The generic market worker launched without the sample advertises no market operations.",
+    "The dedicated local import worker accepts bounded NDJSON frames containing Rust-read CSV bytes and the selected mapping. The shared local preview operation runs through the application registry.",
+    "Trusted local users can publish a complete native CSV as an immutable profile-local revision, read its bars and source row locators, and remove its display permission through the application registry. Publication uses the profile-bound Rust SQLite writer."
   ],
   "clarifications": [
     "Workspace revisions are non-negative safe integers; dataset revisions are opaque provider-owned strings.",
@@ -356,7 +872,8 @@
     "Schema definitions are canonical. Small per-operation schemas and all language types are generated from them.",
     "Metadata, params, provenance and error details are explicit data bags; they never confer authority.",
     "Schema validation is structural. Cross-field market invariants, AST budgets, role authorization and response correlation require application validation.",
-    "Specifying a payload does not expose or implement that operation. Unsupported operations fail closed."
+    "Specifying a payload does not expose or implement that operation. Unsupported operations fail closed.",
+    "Decision-note commands and operation-specific replies use the private local workspace transport. The core checks current profile access and issues short-lived confirmations for writes."
   ],
   "entrypoint": "pnpm check",
   "report": ".reports/test-report.json",
@@ -378,7 +895,7 @@
     "information": false,
     "financial_services": false
   },
-  "development_data": "Explicit synthetic demo and owner-supplied test samples only; local/API adapters remain unimplemented.",
+  "development_data": "Explicit synthetic demo and development samples. The scoped local CSV preview can use a trusted user-selected directory. External API adapters remain unimplemented.",
   "service_capabilities": "Users can bring their own connections and independently select eligible ScopeHub software, AI or licensed data services. Internal model adapters and external AI clients have separate connection and authorization requirements. Production services and client access are unconfigured.",
   "product_requirements": [
     "engineering-contract-v1.json#/product/data_onboarding",

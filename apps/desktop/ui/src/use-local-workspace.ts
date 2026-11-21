@@ -2,17 +2,30 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import type {
   ChartSetTimeframeCommand11, ChartSetTimeframeReply11, OperationReceipt11, Workspace,
+  DecisionNoteAppendOutcomeCommand11, DecisionNoteDeleteCommand11, DecisionNoteReadCommand11, DecisionNoteSaveCommand11,
+  DecisionNoteExportBackupCommand11, DecisionNotePreviewRestoreCommand11, DecisionNoteRestoreBackupCommand11,
+  ChartInterval11, ReadProjectedChart11, SharedSelectionRequest11, SelectEvidenceReply11, VisibleRange,
+  PrivateRecordChangeCommand11, PrivateRecordExportCommand11, PrivateRecordReadCommand11,
   WorkspaceUndoCommand11, WorkspaceUndoReply11,
 } from '../../../../contracts/generated/protocol';
 
 type Intent = ChartSetTimeframeCommand11['intent'] | WorkspaceUndoCommand11['intent'];
 type Command = Omit<ChartSetTimeframeCommand11, 'intent'> & { intent: Intent };
-type LocalRequest = { type: 'snapshot' } | Command;
+type LocalRequest = { type: 'snapshot' } | Command | DecisionNoteReadCommand11 | DecisionNoteSaveCommand11
+  | DecisionNoteAppendOutcomeCommand11 | DecisionNoteDeleteCommand11 | DecisionNoteExportBackupCommand11
+  | DecisionNotePreviewRestoreCommand11 | DecisionNoteRestoreBackupCommand11
+  | PrivateRecordChangeCommand11 | PrivateRecordExportCommand11 | PrivateRecordReadCommand11
+  | SharedSelectionRequest11 | ReadProjectedChart11
+  | { type: 'frozen_chart' | 'frozen_chart_status'; request_id: string; revision_id: string };
 type UndoTarget = Pick<OperationReceipt11, 'operation_id' | 'committed_workspace_revision'>;
-type Snapshot = { workspace: Workspace; selection_revision: number; undo: UndoTarget | null };
+type ChartEvidence = { revision_id: string; range: VisibleRange } | { unavailable: true };
+type Snapshot = {
+  workspace: Workspace; selection_revision: number; undo: UndoTarget | null;
+  chart_evidence?: ChartEvidence | null;
+};
 type View = {
   snapshot: Snapshot | undefined;
-  pending: 'open' | 'save' | undefined;
+  pending: 'open' | 'save' | 'evidence' | undefined;
   error: string | undefined;
 };
 
@@ -39,6 +52,7 @@ function describeFailure(error: unknown) {
   switch (errorCode(error)) {
     case 'STALE_CONTEXT': return 'The workspace changed. Reload its current state.';
     case 'BUSY': return 'The local workspace is busy.';
+    case 'SNAPSHOT_UNAVAILABLE': return 'This frozen chart is no longer available.';
     case 'PERMISSION_DENIED': return nativeWorkspace ? 'This workspace action is no longer authorized.'
       : 'Open the private workspace link for this session.';
     case 'OUTPUT_INVALID': return 'The workspace reply could not be verified.';
@@ -46,10 +60,10 @@ function describeFailure(error: unknown) {
   }
 }
 
-async function exchange<T>(body: LocalRequest, signal: AbortSignal): Promise<T> {
-  if (nativeWorkspace) {
+export async function exchangeWorkspace<T>(body: LocalRequest, signal: AbortSignal): Promise<T> {
+  if (nativeWorkspace || desktop && body.type === 'frozen_chart_status') {
     signal.throwIfAborted();
-    const operation = body.type === 'snapshot' ? null : body.intent.operation;
+    const operation = body.type === 'request' ? 'operation' in body ? body.operation : body.intent.operation : null;
     const value = await invoke<T>('execute_operation', { operation, payload: body });
     signal.throwIfAborted();
     return value;
@@ -59,6 +73,7 @@ async function exchange<T>(body: LocalRequest, signal: AbortSignal): Promise<T> 
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${launchCapability}` }, body: JSON.stringify(body),
   });
   const reply = await response.json();
+  signal.throwIfAborted();
   if (reply?.ok === false && errorCode(reply.error)) throw reply.error;
   if (!response.ok || reply?.ok !== true || !reply.result) throw { code: 'OUTPUT_INVALID' };
   return reply.result as T;
@@ -69,14 +84,44 @@ function validWorkspace(value: Workspace | undefined) {
     && value.revision >= 0 && ['1m', '5m', '1d'].includes(value.timeframe);
 }
 
-async function restore(signal: AbortSignal): Promise<Snapshot> {
-  const snapshot = await exchange<Snapshot>({ type: 'snapshot' }, signal);
+export async function readWorkspaceSnapshot(signal: AbortSignal): Promise<Snapshot> {
+  const snapshot = await exchangeWorkspace<Snapshot>({ type: 'snapshot' }, signal);
+  const evidence = snapshot.chart_evidence;
+  const validEvidence = evidence == null || ('unavailable' in evidence ? evidence.unavailable === true
+    : typeof evidence.revision_id === 'string' && Number.isSafeInteger(evidence.range?.from_ms)
+      && Number.isSafeInteger(evidence.range?.to_ms) && evidence.range.from_ms < evidence.range.to_ms);
   if (!validWorkspace(snapshot.workspace) || !Number.isSafeInteger(snapshot.selection_revision)
-    || snapshot.selection_revision < 0 || snapshot.undo !== null && (
+    || snapshot.selection_revision < 0 || !validEvidence || snapshot.undo !== null && (
       typeof snapshot.undo?.operation_id !== 'string'
-      || snapshot.undo.committed_workspace_revision !== snapshot.workspace.revision
+      || !Number.isSafeInteger(snapshot.undo.committed_workspace_revision)
+      || snapshot.undo.committed_workspace_revision < 1
+      || snapshot.undo.committed_workspace_revision > snapshot.workspace.revision
     )) throw { code: 'OUTPUT_INVALID' };
   return snapshot;
+}
+
+async function selectEvidence(snapshot: Snapshot, target: ChartInterval11 | null, signal: AbortSignal): Promise<Snapshot> {
+  const request: SharedSelectionRequest11 = {
+    protocol_version: '1.1', type: 'request', operation: 'workspace.selectEvidence',
+    message_id: crypto.randomUUID(), request_id: crypto.randomUUID(), timestamp_ms: Date.now(),
+    workspace_id: snapshot.workspace.id, expected_selection_revision: snapshot.selection_revision, target,
+  };
+  const reply = await exchangeWorkspace<SelectEvidenceReply11>(request, signal);
+  if (reply.request_id !== request.request_id || reply.operation !== request.operation
+    || reply.type !== 'response' || reply.protocol_version !== '1.1') throw { code: 'OUTPUT_INVALID' };
+  if ('error' in reply) throw reply.error;
+  const selection = reply.selection;
+  if (selection.workspace_id !== snapshot.workspace.id || selection.selection_revision !== snapshot.selection_revision + 1
+    || (target === null ? selection.target !== null : selection.target?.kind !== 'chart_interval'
+      || selection.target.snapshot.content_hash !== target.snapshot.content_hash
+      || selection.target.snapshot.dataset_id !== target.snapshot.dataset_id
+      || selection.target.range.from_ms !== target.range.from_ms || selection.target.range.to_ms !== target.range.to_ms)) {
+    throw { code: 'OUTPUT_INVALID' };
+  }
+  return {
+    ...snapshot, selection_revision: selection.selection_revision,
+    chart_evidence: target && { revision_id: target.snapshot.dataset_id, range: target.range },
+  };
 }
 
 async function mutate(snapshot: Snapshot, intent: Intent, signal: AbortSignal): Promise<Snapshot> {
@@ -96,7 +141,7 @@ async function mutate(snapshot: Snapshot, intent: Intent, signal: AbortSignal): 
     },
     intent,
   } as const;
-  const reply = await exchange<ChartSetTimeframeReply11 | WorkspaceUndoReply11>(request, signal);
+  const reply = await exchangeWorkspace<ChartSetTimeframeReply11 | WorkspaceUndoReply11>(request, signal);
   if (reply.protocol_version !== '1.1' || reply.type !== 'response'
     || reply.request_id !== request.request_id || typeof reply.message_id !== 'string') {
     throw { code: 'OUTPUT_INVALID' };
@@ -110,8 +155,8 @@ async function mutate(snapshot: Snapshot, intent: Intent, signal: AbortSignal): 
     || typeof outcome.receipt.operation_id !== 'string') throw { code: 'OUTPUT_INVALID' };
   const { receipt } = outcome;
   return {
+    ...snapshot,
     workspace: outcome.result,
-    selection_revision: snapshot.selection_revision,
     undo: receipt.undoable ? {
       operation_id: receipt.operation_id, committed_workspace_revision: receipt.committed_workspace_revision,
     } : null,
@@ -136,7 +181,7 @@ export function useLocalWorkspace() {
       if (active.current === controller) active.current = null;
     });
   }, []);
-  const reload = useCallback(() => run(restore, 'open'), [run]);
+  const reload = useCallback(() => run(readWorkspaceSnapshot, 'open'), [run]);
   useEffect(() => {
     if (!enabled) return;
     reload();
@@ -150,6 +195,9 @@ export function useLocalWorkspace() {
   };
   return {
     ...view, reload,
+    chooseEvidence(target: ChartInterval11 | null) {
+      if (snapshot && !view.error) run(signal => selectEvidence(snapshot, target, signal), 'evidence');
+    },
     chooseTimeframe(timeframe: string) {
       if (snapshot?.workspace.timeframe !== timeframe) {
         submit({ operation: 'chart.setTimeframe', arguments: { timeframe } });

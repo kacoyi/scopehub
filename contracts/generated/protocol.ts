@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=00d5588197a5635a218a3f20f558086ee5336b4d0663fe40557e3abe3a6b950a. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=4576d2b324362ebb7627c676c80d174dfd8e3527af6a33321cb7c875cb99cd37. Do not edit.
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type OpaqueId = string;
 export type Uuid = string;
@@ -8,7 +8,7 @@ export type Metadata = Record<string, JsonValue>;
 export type WorkerRole = "market" | "ai" | "indicator";
 export type ProtocolVersion = "1.0";
 export type ErrorCode = "INVALID_ARGUMENT" | "UNSUPPORTED_CAPABILITY" | "PERMISSION_DENIED" | "CONFIRMATION_REQUIRED" | "CANCELLED" | "TIMEOUT" | "WORKER_EXITED" | "PROTOCOL_MISMATCH" | "DATA_UNAVAILABLE" | "STALE_CONTEXT" | "RESOURCE_LIMIT" | "OUTPUT_INVALID" | "PROVIDER_NOT_CONFIGURED" | "INTERNAL_ERROR" | "BUSY" | "SNAPSHOT_UNAVAILABLE";
-export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "workspace.readChartProjection" | "workspace.selectEvidence";
+export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "market.previewLocalImport" | "market.saveLocalImportMapping" | "market.loadLocalImportMapping" | "market.listLocalImportRevisions" | "market.readLocalImportRevision" | "market.readLocalImportSourceRow" | "market.previewLocalFolderRefresh" | "market.prepareLocalFolderPublication" | "market.publishLocalFolderRefresh" | "market.listLocalFolderRevisions" | "market.readLocalFolderRevision" | "market.readLocalFolderSourceRow" | "market.revokeLocalFolderRevision" | "market.revokeLocalImportRevision" | "market.publishLocalImport" | "workspace.readChartProjection" | "workspace.selectEvidence" | "decisionNote.save" | "decisionNote.read" | "decisionNote.appendOutcome" | "decisionNote.delete" | "decisionNote.exportBackup" | "decisionNote.previewRestore" | "decisionNote.restoreBackup" | "privateRecord.read" | "privateRecord.change" | "privateRecord.exportBackup";
 export type ChartStyle = "candlestick" | "line";
 export type TaskStatus = "queued" | "running" | "awaiting_confirmation" | "completed" | "failed" | "cancelled";
 export type Tradability = "non_tradable" | "unknown";
@@ -729,6 +729,486 @@ export type MarketStreamGapEvent = {
   event: "market.stream_gap";
   payload: MarketStreamGap;
 };
+export type LocalImportPreviewRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.previewLocalImport";
+  payload: LocalImportPreviewInput;
+};
+export type LocalImportPreviewResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.previewLocalImport";
+  ok: true;
+  result: LocalImportPreviewOutput;
+  error: null;
+};
+export type LocalImportPreviewError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.previewLocalImport";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type SaveLocalImportMappingRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.saveLocalImportMapping";
+  payload: SaveLocalImportMappingInput;
+};
+export type SaveLocalImportMappingResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.saveLocalImportMapping";
+  ok: true;
+  result: SaveLocalImportMappingOutput;
+  error: null;
+};
+export type SaveLocalImportMappingError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.saveLocalImportMapping";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type LoadLocalImportMappingRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.loadLocalImportMapping";
+  payload: LoadLocalImportMappingInput;
+};
+export type LoadLocalImportMappingResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.loadLocalImportMapping";
+  ok: true;
+  result: LoadLocalImportMappingOutput;
+  error: null;
+};
+export type LoadLocalImportMappingError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.loadLocalImportMapping";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type ListLocalImportRevisionsRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.listLocalImportRevisions";
+  payload: ListLocalImportRevisionsInput;
+};
+export type ListLocalImportRevisionsResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.listLocalImportRevisions";
+  ok: true;
+  result: ListLocalImportRevisionsOutput;
+  error: null;
+};
+export type ListLocalImportRevisionsError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.listLocalImportRevisions";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type ReadLocalImportRevisionRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.readLocalImportRevision";
+  payload: ReadLocalImportRevisionInput;
+};
+export type ReadLocalImportRevisionResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.readLocalImportRevision";
+  ok: true;
+  result: ReadLocalImportRevisionOutput;
+  error: null;
+};
+export type ReadLocalImportRevisionError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.readLocalImportRevision";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type ReadLocalImportSourceRowRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.readLocalImportSourceRow";
+  payload: ReadLocalImportSourceRowInput;
+};
+export type ReadLocalImportSourceRowResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.readLocalImportSourceRow";
+  ok: true;
+  result: ReadLocalImportSourceRowOutput;
+  error: null;
+};
+export type ReadLocalImportSourceRowError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.readLocalImportSourceRow";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type PreviewLocalFolderRefreshRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.previewLocalFolderRefresh";
+  payload: PreviewLocalFolderRefreshInput;
+};
+export type PreviewLocalFolderRefreshResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.previewLocalFolderRefresh";
+  ok: true;
+  result: PreviewLocalFolderRefreshOutput;
+  error: null;
+};
+export type PreviewLocalFolderRefreshError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.previewLocalFolderRefresh";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type PrepareLocalFolderPublicationRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.prepareLocalFolderPublication";
+  payload: PrepareLocalFolderPublicationInput;
+};
+export type PrepareLocalFolderPublicationResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.prepareLocalFolderPublication";
+  ok: true;
+  result: PrepareLocalFolderPublicationOutput;
+  error: null;
+};
+export type PrepareLocalFolderPublicationError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.prepareLocalFolderPublication";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type PublishLocalFolderRefreshRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.publishLocalFolderRefresh";
+  payload: PublishLocalFolderRefreshInput;
+};
+export type PublishLocalFolderRefreshResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.publishLocalFolderRefresh";
+  ok: true;
+  result: PublishLocalFolderRefreshOutput;
+  error: null;
+};
+export type PublishLocalFolderRefreshError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.publishLocalFolderRefresh";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type ListLocalFolderRevisionsRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.listLocalFolderRevisions";
+  payload: ListLocalFolderRevisionsInput;
+};
+export type ListLocalFolderRevisionsResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.listLocalFolderRevisions";
+  ok: true;
+  result: ListLocalFolderRevisionsOutput;
+  error: null;
+};
+export type ListLocalFolderRevisionsError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.listLocalFolderRevisions";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type ReadLocalFolderRevisionRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.readLocalFolderRevision";
+  payload: ReadLocalFolderRevisionInput;
+};
+export type ReadLocalFolderRevisionResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.readLocalFolderRevision";
+  ok: true;
+  result: ReadLocalFolderRevisionOutput;
+  error: null;
+};
+export type ReadLocalFolderRevisionError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.readLocalFolderRevision";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type ReadLocalFolderSourceRowRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.readLocalFolderSourceRow";
+  payload: ReadLocalFolderSourceRowInput;
+};
+export type ReadLocalFolderSourceRowResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.readLocalFolderSourceRow";
+  ok: true;
+  result: ReadLocalFolderSourceRowOutput;
+  error: null;
+};
+export type ReadLocalFolderSourceRowError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.readLocalFolderSourceRow";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type RevokeLocalFolderRevisionRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.revokeLocalFolderRevision";
+  payload: RevokeLocalFolderRevisionInput;
+};
+export type RevokeLocalFolderRevisionResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.revokeLocalFolderRevision";
+  ok: true;
+  result: RevokeLocalFolderRevisionOutput;
+  error: null;
+};
+export type RevokeLocalFolderRevisionError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.revokeLocalFolderRevision";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type RevokeLocalImportRevisionRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.revokeLocalImportRevision";
+  payload: RevokeLocalImportRevisionInput;
+};
+export type RevokeLocalImportRevisionResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.revokeLocalImportRevision";
+  ok: true;
+  result: RevokeLocalImportRevisionOutput;
+  error: null;
+};
+export type RevokeLocalImportRevisionError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.revokeLocalImportRevision";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
+export type PublishLocalImportRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.publishLocalImport";
+  payload: PublishLocalImportInput;
+};
+export type PublishLocalImportResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.publishLocalImport";
+  ok: true;
+  result: PublishLocalImportOutput;
+  error: null;
+};
+export type PublishLocalImportError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.publishLocalImport";
+  ok: false;
+  result: null;
+  error: MarketPageFault;
+};
 export type WorkerHello11 = {
   protocol_version: ProtocolVersion11;
   message_id: Uuid;
@@ -1018,7 +1498,7 @@ export type CancelTaskError11 = {
   request_id: Uuid;
   error: WorkspaceFault11;
 };
-export type Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat | MarketHistoryPageRequest | MarketHistoryPageResponse | MarketHistoryPageError | MarketSubscriptionRequest | MarketSubscriptionResponse | MarketSubscriptionError | MarketBarUpdateEvent | MarketBarCorrectionEvent | MarketStreamGapEvent | WorkerHello11 | ScopedMutationRequest11 | ScopedMutationResponse11 | TrustedConfirmationDecision11 | PreviewReady11 | ArtifactChunk11 | TaskTerminalEvent11 | TaskCancelRequest11 | CancelMemberRequest11 | ReadProjectedChart11 | ProjectedChartResponse11 | SharedSelectionEvent11 | SharedSelectionRequest11 | AiToolRequest11 | AiToolResultDelivery11 | AiToolResultAck11 | ProjectedChartError11 | IndicatorCompute11 | IndicatorComputed11 | IndicatorInputSegment11 | SharedSelectionResponse11 | SharedSelectionError11 | SharedContextRequest11 | SharedContextResponse11 | SharedContextError11 | CancelTaskResponse11 | CancelTaskError11;
+export type Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat | MarketHistoryPageRequest | MarketHistoryPageResponse | MarketHistoryPageError | MarketSubscriptionRequest | MarketSubscriptionResponse | MarketSubscriptionError | LocalImportPreviewRequest | LocalImportPreviewResponse | LocalImportPreviewError | SaveLocalImportMappingRequest | SaveLocalImportMappingResponse | SaveLocalImportMappingError | LoadLocalImportMappingRequest | LoadLocalImportMappingResponse | LoadLocalImportMappingError | ListLocalImportRevisionsRequest | ListLocalImportRevisionsResponse | ListLocalImportRevisionsError | ReadLocalImportRevisionRequest | ReadLocalImportRevisionResponse | ReadLocalImportRevisionError | ReadLocalImportSourceRowRequest | ReadLocalImportSourceRowResponse | ReadLocalImportSourceRowError | PreviewLocalFolderRefreshRequest | PreviewLocalFolderRefreshResponse | PreviewLocalFolderRefreshError | PrepareLocalFolderPublicationRequest | PrepareLocalFolderPublicationResponse | PrepareLocalFolderPublicationError | PublishLocalFolderRefreshRequest | PublishLocalFolderRefreshResponse | PublishLocalFolderRefreshError | ListLocalFolderRevisionsRequest | ListLocalFolderRevisionsResponse | ListLocalFolderRevisionsError | ReadLocalFolderRevisionRequest | ReadLocalFolderRevisionResponse | ReadLocalFolderRevisionError | ReadLocalFolderSourceRowRequest | ReadLocalFolderSourceRowResponse | ReadLocalFolderSourceRowError | RevokeLocalFolderRevisionRequest | RevokeLocalFolderRevisionResponse | RevokeLocalFolderRevisionError | RevokeLocalImportRevisionRequest | RevokeLocalImportRevisionResponse | RevokeLocalImportRevisionError | PublishLocalImportRequest | PublishLocalImportResponse | PublishLocalImportError | MarketBarUpdateEvent | MarketBarCorrectionEvent | MarketStreamGapEvent | WorkerHello11 | ScopedMutationRequest11 | ScopedMutationResponse11 | TrustedConfirmationDecision11 | PreviewReady11 | ArtifactChunk11 | TaskTerminalEvent11 | TaskCancelRequest11 | CancelMemberRequest11 | ReadProjectedChart11 | ProjectedChartResponse11 | SharedSelectionEvent11 | SharedSelectionRequest11 | AiToolRequest11 | AiToolResultDelivery11 | AiToolResultAck11 | ProjectedChartError11 | IndicatorCompute11 | IndicatorComputed11 | IndicatorInputSegment11 | SharedSelectionResponse11 | SharedSelectionError11 | SharedContextRequest11 | SharedContextResponse11 | SharedContextError11 | CancelTaskResponse11 | CancelTaskError11;
 export type ProtocolVersion11 = "1.1";
 export type WorkspaceObject11 = {
   kind: "chart" | "layer" | "layout" | "dataset" | "workspace";
@@ -1642,3 +2122,861 @@ export type WorkspaceUndoReply11 = {
   outcome: WorkspaceUndoOutcome11;
 };
 export type HistoryPageReply11 = MarketHistoryPageResponse | MarketHistoryPageError;
+export type CsvColumnMappingV1 = {
+  symbol?: string;
+  timestamp?: string;
+  trading_day?: string;
+  open?: string;
+  high?: string;
+  low?: string;
+  close?: string;
+  volume?: (string | null);
+};
+export type CsvMappingV1 = {
+  version: number;
+  revision: string;
+  encoding: string;
+  delimiter: string;
+  record_kind: string;
+  columns?: CsvColumnMappingV1;
+  instrument_kind?: string;
+  venue?: string;
+  timeframe?: string;
+  calendar_id?: string;
+  session_scope?: string;
+  timezone?: string;
+  quantity_unit?: string;
+  price_adjustment?: string;
+  roll_method?: string;
+  volume_semantics?: string;
+  timestamp_convention?: string;
+  timestamp_format?: string;
+  trading_day_format?: string;
+  daily_start_time?: string;
+};
+export type PreviewIssue = {
+  code: string;
+  field: (string | null);
+  message: string;
+};
+export type RawOnlyColumn = {
+  column: string;
+  reason: string;
+};
+export type PreviewSeries = {
+  instrument_kind: string;
+  venue: string;
+  timeframe: string;
+  calendar_id: string;
+  session_scope: string;
+  timezone: string;
+  quantity_unit: string;
+  price_adjustment: string;
+  roll_method: (string | null);
+};
+export type PreviewRow = {
+  record_number: number;
+  line_start: number;
+  line_end: number;
+  raw_fields: Array<string>;
+  raw_text: (string | null);
+  symbol: (string | null);
+  normalized: (Bar | null);
+  issues: Array<PreviewIssue>;
+};
+export type CsvPreview = {
+  file_sha256: Hash;
+  mapping_version: (number | null);
+  mapping_revision: (string | null);
+  header: Array<string>;
+  raw_header_text: (string | null);
+  rows: Array<PreviewRow>;
+  issues: Array<PreviewIssue>;
+  raw_only_columns: Array<RawOnlyColumn>;
+  series: (PreviewSeries | null);
+  truncated: boolean;
+};
+export type LocalImportPreviewInput = {
+  version: number;
+  folder_id: Uuid;
+  file_id: Uuid;
+  expected_sha256?: Hash;
+  mapping: CsvMappingV1;
+  row_limit?: number;
+};
+export type LocalImportPreviewOutput = {
+  version: number;
+  folder_id: Uuid;
+  file_id: Uuid;
+  relative_path: string;
+  display_name: string;
+  byte_count: number;
+  sha256: Hash;
+  preview: CsvPreview;
+};
+export type LocalImportPreviewReply11 = LocalImportPreviewResponse | LocalImportPreviewError;
+export type SavedLocalImportMapping = {
+  review_revision: number;
+  header_sha256: Hash;
+  mapping: CsvMappingV1;
+};
+export type SaveLocalImportMappingInput = {
+  version: number;
+  folder_id: Uuid;
+  file_id: Uuid;
+  expected_sha256: Hash;
+  mapping: CsvMappingV1;
+  row_limit?: number;
+};
+export type SaveLocalImportMappingOutput = {
+  version: number;
+  record: SavedLocalImportMapping;
+};
+export type LoadLocalImportMappingInput = {
+  version: number;
+  folder_id: Uuid;
+  file_id: Uuid;
+};
+export type LoadLocalImportMappingOutput = {
+  version: number;
+  status: "saved" | "not_saved" | "review_required";
+  record: (SavedLocalImportMapping | null);
+  source_sha256: (Hash | null);
+};
+export type SaveLocalImportMappingReply11 = SaveLocalImportMappingResponse | SaveLocalImportMappingError;
+export type LoadLocalImportMappingReply11 = LoadLocalImportMappingResponse | LoadLocalImportMappingError;
+export type DecisionNoteUuid11 = string;
+export type DecisionNoteDate = string;
+export type DecisionNoteEvidenceRef = {
+  source_id: string;
+  source_revision: string;
+  locator: string;
+};
+export type DecisionNoteOriginal = {
+  note_id: DecisionNoteUuid11;
+  decided_on: DecisionNoteDate;
+  thesis: string;
+  evidence_refs: Array<DecisionNoteEvidenceRef>;
+  choice: string;
+};
+export type DecisionNoteSummary = {
+  note_id: DecisionNoteUuid11;
+  decided_on: DecisionNoteDate;
+};
+export type DecisionNoteOutcome = {
+  outcome_id: DecisionNoteUuid11;
+  observed_on: DecisionNoteDate;
+  outcome: string;
+};
+export type DecisionNoteReadOutput = {
+  note: (DecisionNoteOriginal | null);
+  notes: Array<DecisionNoteSummary>;
+  outcomes: Array<DecisionNoteOutcome>;
+  next_offset: (Revision | null);
+};
+export type DecisionNoteTarget = {
+  kind: "decision_note";
+  object_id: DecisionNoteUuid11;
+};
+export type PrivateRecordUuid11 = string;
+export type PrivateRecordReadScope11 = {
+  workspace_id: OpaqueId;
+};
+export type PrivateRecordChangeScope11 = {
+  workspace_id: OpaqueId;
+  expected_workspace_revision: Revision;
+  idempotency_key: PrivateRecordUuid11;
+};
+export type PrivateRecordKind = "conversation" | "memory" | "strategy";
+export type PrivateRecordTurn = {
+  speaker: "user" | "assistant";
+  text: string;
+};
+export type PrivateRecordConversation = {
+  kind: "conversation";
+  title: string;
+  turns: Array<PrivateRecordTurn>;
+};
+export type PrivateRecordMemory = {
+  kind: "memory";
+  title: string;
+  text: string;
+};
+export type PrivateRecordStrategy = {
+  kind: "strategy";
+  title: string;
+  text: string;
+};
+export type PrivateRecordContent = PrivateRecordConversation | PrivateRecordMemory | PrivateRecordStrategy;
+export type PrivateRecordEntry = {
+  record_id: PrivateRecordUuid11;
+  revision: Revision;
+  content: PrivateRecordContent;
+};
+export type PrivateRecordSummary = {
+  record_id: PrivateRecordUuid11;
+  revision: Revision;
+  kind: PrivateRecordKind;
+  title: string;
+};
+export type PrivateRecordArchiveEntry = {
+  record_id: PrivateRecordUuid11;
+  content: PrivateRecordContent;
+};
+export type PrivateRecordBackupV1 = {
+  format: "scopehub.private-records";
+  version: number;
+  profile_binding: string;
+  records: Array<PrivateRecordArchiveEntry>;
+  deletions: Array<PrivateRecordUuid11>;
+};
+export type PrivateRecordReadInput = {
+  record_id: (PrivateRecordUuid11 | null);
+};
+export type PrivateRecordReadOutput = {
+  workspace_revision: Revision;
+  record: (PrivateRecordEntry | null);
+  records: Array<PrivateRecordSummary>;
+};
+export type PrivateRecordSaveInput = {
+  action: "save";
+  record_id: PrivateRecordUuid11;
+  expected_record_revision: (Revision | null);
+  content: PrivateRecordContent;
+};
+export type PrivateRecordDeleteInput = {
+  action: "delete";
+  record_id: PrivateRecordUuid11;
+  expected_record_revision: Revision;
+};
+export type PrivateRecordRestoreInput = {
+  action: "restore";
+  backup: PrivateRecordBackupV1;
+};
+export type PrivateRecordResolveInput = {
+  action: "resolve";
+  challenge_id: PrivateRecordUuid11;
+  decision: "approve" | "decline";
+};
+export type PrivateRecordChangeInput = PrivateRecordSaveInput | PrivateRecordDeleteInput | PrivateRecordRestoreInput | PrivateRecordResolveInput;
+export type PrivateRecordChangeSummary = {
+  added: number;
+  corrected: number;
+  removed: number;
+  kept: number;
+  suppressed: number;
+  imported_deletions: number;
+};
+export type PrivateRecordReceipt11 = {
+  operation_id: PrivateRecordUuid11;
+  workspace_id: OpaqueId;
+  record_id: (PrivateRecordUuid11 | null);
+  committed_workspace_revision: Revision;
+  undoable: false;
+};
+export type PrivateRecordExportInput = {
+};
+export type PrivateRecordReadIntent11 = {
+  operation: "privateRecord.read";
+  arguments: PrivateRecordReadInput;
+};
+export type PrivateRecordReadCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: PrivateRecordUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: PrivateRecordUuid11;
+  scope: PrivateRecordReadScope11;
+  intent: PrivateRecordReadIntent11;
+};
+export type PrivateRecordReadCompleted11 = {
+  state: "completed";
+  operation: "privateRecord.read";
+  result: PrivateRecordReadOutput;
+};
+export type PrivateRecordReadOutcome11 = PrivateRecordReadCompleted11 | ScopedFailure11;
+export type PrivateRecordReadReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: PrivateRecordUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: PrivateRecordUuid11;
+  outcome: PrivateRecordReadOutcome11;
+};
+export type PrivateRecordChangeIntent11 = {
+  operation: "privateRecord.change";
+  arguments: PrivateRecordChangeInput;
+};
+export type PrivateRecordChangeCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: PrivateRecordUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: PrivateRecordUuid11;
+  scope: PrivateRecordChangeScope11;
+  intent: PrivateRecordChangeIntent11;
+};
+export type PrivateRecordChangeCommitted11 = {
+  state: "committed";
+  operation: "privateRecord.change";
+  receipt: PrivateRecordReceipt11;
+};
+export type PrivateRecordChangeConfirmationRequired11 = {
+  state: "confirmation_required";
+  operation: "privateRecord.change";
+  challenge_id: PrivateRecordUuid11;
+  expires_at_ms: Timestamp;
+  summary: PrivateRecordChangeSummary;
+};
+export type PrivateRecordChangeOutcome11 = PrivateRecordChangeCommitted11 | PrivateRecordChangeConfirmationRequired11 | ScopedFailure11;
+export type PrivateRecordChangeReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: PrivateRecordUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: PrivateRecordUuid11;
+  outcome: PrivateRecordChangeOutcome11;
+};
+export type PrivateRecordExportIntent11 = {
+  operation: "privateRecord.exportBackup";
+  arguments: PrivateRecordExportInput;
+};
+export type PrivateRecordExportCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: PrivateRecordUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: PrivateRecordUuid11;
+  scope: PrivateRecordReadScope11;
+  intent: PrivateRecordExportIntent11;
+};
+export type PrivateRecordExportCompleted11 = {
+  state: "completed";
+  operation: "privateRecord.exportBackup";
+  result: PrivateRecordBackupV1;
+};
+export type PrivateRecordExportOutcome11 = PrivateRecordExportCompleted11 | ScopedFailure11;
+export type PrivateRecordExportReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: PrivateRecordUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: PrivateRecordUuid11;
+  outcome: PrivateRecordExportOutcome11;
+};
+export type DecisionNoteReceipt11 = {
+  operation_id: DecisionNoteUuid11;
+  workspace_id: OpaqueId;
+  target: DecisionNoteTarget;
+  committed_workspace_revision: Revision;
+  undoable: false;
+};
+export type DecisionNoteReadScope11 = {
+  workspace_id: OpaqueId;
+};
+export type DecisionNoteWriteScope11 = {
+  workspace_id: OpaqueId;
+  target: DecisionNoteTarget;
+  expected_workspace_revision: Revision;
+  idempotency_key: DecisionNoteUuid11;
+};
+export type DecisionNoteConfirmation11 = {
+  challenge_id: DecisionNoteUuid11;
+  decision: "approve" | "decline";
+};
+export type DecisionNoteSaveInput = {
+  decided_on: DecisionNoteDate;
+  thesis: string;
+  evidence_refs: Array<DecisionNoteEvidenceRef>;
+  choice: string;
+};
+export type DecisionNoteSaveIntent11 = {
+  operation: "decisionNote.save";
+  arguments: DecisionNoteSaveInput;
+};
+export type DecisionNoteSaveCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: DecisionNoteUuid11;
+  scope: DecisionNoteWriteScope11;
+  intent: DecisionNoteSaveIntent11;
+  confirmation: (DecisionNoteConfirmation11 | null);
+};
+export type DecisionNoteSaveCommitted11 = {
+  state: "committed";
+  operation: "decisionNote.save";
+  receipt: DecisionNoteReceipt11;
+};
+export type DecisionNoteSaveConfirmationRequired11 = {
+  state: "confirmation_required";
+  operation: "decisionNote.save";
+  challenge_id: DecisionNoteUuid11;
+  expires_at_ms: Timestamp;
+};
+export type DecisionNoteSaveOutcome11 = DecisionNoteSaveCommitted11 | DecisionNoteSaveConfirmationRequired11 | ScopedFailure11;
+export type DecisionNoteSaveReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: DecisionNoteUuid11;
+  outcome: DecisionNoteSaveOutcome11;
+};
+export type DecisionNoteReadInput = {
+  note_id: (DecisionNoteUuid11 | null);
+  offset: Revision;
+};
+export type DecisionNoteReadIntent11 = {
+  operation: "decisionNote.read";
+  arguments: DecisionNoteReadInput;
+};
+export type DecisionNoteReadCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: DecisionNoteUuid11;
+  scope: DecisionNoteReadScope11;
+  intent: DecisionNoteReadIntent11;
+};
+export type DecisionNoteReadCompleted11 = {
+  state: "completed";
+  operation: "decisionNote.read";
+  result: DecisionNoteReadOutput;
+};
+export type DecisionNoteReadOutcome11 = DecisionNoteReadCompleted11 | ScopedFailure11;
+export type DecisionNoteReadReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: DecisionNoteUuid11;
+  outcome: DecisionNoteReadOutcome11;
+};
+export type DecisionNoteAppendOutcomeInput = {
+  observed_on: DecisionNoteDate;
+  outcome: string;
+};
+export type DecisionNoteAppendOutcomeIntent11 = {
+  operation: "decisionNote.appendOutcome";
+  arguments: DecisionNoteAppendOutcomeInput;
+};
+export type DecisionNoteAppendOutcomeCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: DecisionNoteUuid11;
+  scope: DecisionNoteWriteScope11;
+  intent: DecisionNoteAppendOutcomeIntent11;
+  confirmation: (DecisionNoteConfirmation11 | null);
+};
+export type DecisionNoteAppendOutcomeCommitted11 = {
+  state: "committed";
+  operation: "decisionNote.appendOutcome";
+  receipt: DecisionNoteReceipt11;
+};
+export type DecisionNoteAppendOutcomeConfirmationRequired11 = {
+  state: "confirmation_required";
+  operation: "decisionNote.appendOutcome";
+  challenge_id: DecisionNoteUuid11;
+  expires_at_ms: Timestamp;
+};
+export type DecisionNoteAppendOutcomeOutcome11 = DecisionNoteAppendOutcomeCommitted11 | DecisionNoteAppendOutcomeConfirmationRequired11 | ScopedFailure11;
+export type DecisionNoteAppendOutcomeReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: DecisionNoteUuid11;
+  outcome: DecisionNoteAppendOutcomeOutcome11;
+};
+export type DecisionNoteDeleteInput = {
+};
+export type DecisionNoteDeleteIntent11 = {
+  operation: "decisionNote.delete";
+  arguments: DecisionNoteDeleteInput;
+};
+export type DecisionNoteDeleteCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: DecisionNoteUuid11;
+  scope: DecisionNoteWriteScope11;
+  intent: DecisionNoteDeleteIntent11;
+  confirmation: (DecisionNoteConfirmation11 | null);
+};
+export type DecisionNoteDeleteCommitted11 = {
+  state: "committed";
+  operation: "decisionNote.delete";
+  receipt: DecisionNoteReceipt11;
+};
+export type DecisionNoteDeleteConfirmationRequired11 = {
+  state: "confirmation_required";
+  operation: "decisionNote.delete";
+  challenge_id: DecisionNoteUuid11;
+  expires_at_ms: Timestamp;
+};
+export type DecisionNoteDeleteOutcome11 = DecisionNoteDeleteCommitted11 | DecisionNoteDeleteConfirmationRequired11 | ScopedFailure11;
+export type DecisionNoteDeleteReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: DecisionNoteUuid11;
+  outcome: DecisionNoteDeleteOutcome11;
+};
+export type DecisionNoteBackupEntry = {
+  original: DecisionNoteOriginal;
+  outcomes: Array<DecisionNoteOutcome>;
+};
+export type DecisionNoteBackupDeletion = {
+  note_id: DecisionNoteUuid11;
+  deleted_at_ms: Timestamp;
+};
+export type DecisionNoteBackupV1 = {
+  format: "scopehub.decision-notes";
+  version: number;
+  profile_binding: string;
+  captured_workspace_revision: Revision;
+  notes: Array<DecisionNoteBackupEntry>;
+  deletions: Array<DecisionNoteBackupDeletion>;
+};
+export type DecisionNoteRestoreScope11 = {
+  workspace_id: OpaqueId;
+  expected_workspace_revision: Revision;
+  idempotency_key: DecisionNoteUuid11;
+};
+export type DecisionNoteRestoreSummary = {
+  added_notes: Revision;
+  added_outcomes: Revision;
+  removed_notes: Revision;
+  suppressed_notes: Revision;
+  imported_deletions: Revision;
+  independent_copy_warning: boolean;
+};
+export type DecisionNoteExportBackupInput = {
+};
+export type DecisionNotePreviewRestoreInput = {
+  backup: DecisionNoteBackupV1;
+};
+export type DecisionNoteRestoreBackupInput = {
+  stage_id: DecisionNoteUuid11;
+  decision: "approve" | "decline";
+};
+export type DecisionNoteExportBackupIntent11 = {
+  operation: "decisionNote.exportBackup";
+  arguments: DecisionNoteExportBackupInput;
+};
+export type DecisionNoteExportBackupCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: DecisionNoteUuid11;
+  scope: DecisionNoteReadScope11;
+  intent: DecisionNoteExportBackupIntent11;
+};
+export type DecisionNoteExportBackupCompleted11 = {
+  state: "completed";
+  operation: "decisionNote.exportBackup";
+  result: DecisionNoteBackupV1;
+};
+export type DecisionNoteExportBackupOutcome11 = DecisionNoteExportBackupCompleted11 | ScopedFailure11;
+export type DecisionNoteExportBackupReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: DecisionNoteUuid11;
+  outcome: DecisionNoteExportBackupOutcome11;
+};
+export type DecisionNotePreviewRestoreIntent11 = {
+  operation: "decisionNote.previewRestore";
+  arguments: DecisionNotePreviewRestoreInput;
+};
+export type DecisionNotePreviewRestoreCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: DecisionNoteUuid11;
+  scope: DecisionNoteRestoreScope11;
+  intent: DecisionNotePreviewRestoreIntent11;
+};
+export type DecisionNotePreviewRestoreConfirmationRequired11 = {
+  state: "confirmation_required";
+  operation: "decisionNote.previewRestore";
+  stage_id: DecisionNoteUuid11;
+  expires_at_ms: Timestamp;
+  summary: DecisionNoteRestoreSummary;
+};
+export type DecisionNotePreviewRestoreOutcome11 = DecisionNotePreviewRestoreConfirmationRequired11 | ScopedFailure11;
+export type DecisionNotePreviewRestoreReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: DecisionNoteUuid11;
+  outcome: DecisionNotePreviewRestoreOutcome11;
+};
+export type DecisionNoteRestoreBackupIntent11 = {
+  operation: "decisionNote.restoreBackup";
+  arguments: DecisionNoteRestoreBackupInput;
+};
+export type DecisionNoteRestoreBackupCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: DecisionNoteUuid11;
+  scope: DecisionNoteRestoreScope11;
+  intent: DecisionNoteRestoreBackupIntent11;
+};
+export type DecisionNoteRestoreBackupCommitted11 = {
+  state: "committed";
+  operation: "decisionNote.restoreBackup";
+  receipt: OperationReceipt11;
+};
+export type DecisionNoteRestoreBackupOutcome11 = DecisionNoteRestoreBackupCommitted11 | ScopedFailure11;
+export type DecisionNoteRestoreBackupReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: DecisionNoteUuid11;
+  outcome: DecisionNoteRestoreBackupOutcome11;
+};
+export type LocalImportRowLocator = {
+  record_number: number;
+  line_start: number;
+  line_end: number;
+};
+export type PublishedLocalImportBar = {
+  bar: Bar;
+  locators: Array<LocalImportRowLocator>;
+};
+export type PublishedLocalImportRevision = {
+  revision_id: Uuid;
+  relative_path: string;
+  source_sha256: Hash;
+  mapping_sha256: Hash;
+  review_revision: number;
+  symbol: string;
+  series: PreviewSeries;
+  bar_count: number;
+  source_record_count: number;
+};
+export type PublishLocalImportInput = {
+  version: number;
+  folder_id: Uuid;
+  file_id: Uuid;
+  expected_sha256: Hash;
+  review_revision: number;
+};
+export type PublishLocalImportOutput = {
+  version: number;
+  revision: PublishedLocalImportRevision;
+};
+export type LocalImportRevisionBarSummary = {
+  venue: string;
+  first_trading_day: string;
+  final_trading_day: string;
+  final_close: number;
+};
+export type LocalImportRevisionListEntry = {
+  revision_id: CanonicalRevisionCursor;
+  relative_path: string;
+  symbol: string;
+  bar_count: number;
+  source_record_count: number;
+  source_sha256: Hash;
+  timeframe: string;
+  bar_summary?: LocalImportRevisionBarSummary;
+};
+export type CanonicalRevisionCursor = string;
+export type ListLocalImportRevisionsInput = {
+  version: number;
+  after_revision_id: (CanonicalRevisionCursor | null);
+  limit: number;
+  include_bar_summary?: boolean;
+};
+export type ListLocalImportRevisionsOutput = {
+  version: number;
+  revisions: Array<LocalImportRevisionListEntry>;
+  next_after_revision_id: (CanonicalRevisionCursor | null);
+};
+export type ListLocalImportRevisionsReply11 = ListLocalImportRevisionsResponse | ListLocalImportRevisionsError;
+export type ReadLocalImportRevisionInput = {
+  version: number;
+  revision_id: Uuid;
+};
+export type ReadLocalImportRevisionOutput = {
+  version: number;
+  revision: PublishedLocalImportRevision;
+  bars: Array<PublishedLocalImportBar>;
+};
+export type PublishLocalImportReply11 = PublishLocalImportResponse | PublishLocalImportError;
+export type ReadLocalImportRevisionReply11 = ReadLocalImportRevisionResponse | ReadLocalImportRevisionError;
+export type ReadLocalImportSourceRowInput = {
+  version: number;
+  revision_id: Uuid;
+  locator: LocalImportRowLocator;
+};
+export type ReadLocalImportSourceRowOutput = {
+  version: number;
+  revision_id: Uuid;
+  source_sha256: Hash;
+  locator: LocalImportRowLocator;
+  header: Array<string>;
+  raw_fields: Array<string>;
+};
+export type ReadLocalImportSourceRowReply11 = ReadLocalImportSourceRowResponse | ReadLocalImportSourceRowError;
+export type RevokeLocalImportRevisionInput = {
+  version: number;
+  revision_id: Uuid;
+};
+export type RevokeLocalImportRevisionReply11 = RevokeLocalImportRevisionResponse | RevokeLocalImportRevisionError;
+export type RevokeLocalImportRevisionOutput = {
+  version: number;
+  revision_id: Uuid;
+};
+export type FolderRefreshFile = {
+  relative_path: string;
+  source_sha256: (Hash | null);
+  prior_sha256: (Hash | null);
+  change: "unchanged" | "added" | "replaced" | "removed" | "unverified";
+  alias_of: (string | null);
+  review: "compatible" | "header_changed" | "series_mismatch" | "invalid_rows" | "unavailable" | "removed";
+  detail: (string | null);
+};
+export type FolderRefreshSource = {
+  relative_path: string;
+  source_sha256: Hash;
+  record_number: number;
+  line_start: number;
+  line_end: number;
+};
+export type FolderRefreshAlternative = {
+  bar: Bar;
+  sources: Array<FolderRefreshSource>;
+};
+export type FolderRefreshBar = {
+  time_ms: Timestamp;
+  status: "unchanged" | "addition" | "conflict" | "withdrawal" | "unverified";
+  accepted: (AcceptedFolderRefreshBar | null);
+  alternatives: Array<FolderRefreshAlternative>;
+};
+export type PreviewLocalFolderRefreshInput = {
+  version: number;
+  folder_id: Uuid;
+  revision_id: Uuid;
+};
+export type PreviewLocalFolderRefreshOutput = {
+  version: number;
+  base?: PublishedLocalImportRevision;
+  files: Array<FolderRefreshFile>;
+  bars: Array<FolderRefreshBar>;
+  folder_base?: PublishedLocalFolderRevision;
+  review_id?: Hash;
+  publication_allowed?: boolean;
+};
+export type PreviewLocalFolderRefreshReply11 = PreviewLocalFolderRefreshResponse | PreviewLocalFolderRefreshError;
+export type FolderPublicationConflictChoice = {
+  time_ms: Timestamp;
+  alternative_index: number;
+};
+export type PublishedLocalFolderRevision = {
+  revision_id: Uuid;
+  base_revision_id: Uuid;
+  parent_revision_id: (Uuid | null);
+  origin_path: string;
+  symbol: string;
+  series: PreviewSeries;
+  source_count: number;
+  bar_count: number;
+  bar_summary?: LocalImportRevisionBarSummary;
+};
+export type PublishedLocalFolderSource = {
+  relative_path: string;
+  source_sha256: Hash;
+  record_count: number;
+};
+export type PrepareLocalFolderPublicationInput = {
+  version: number;
+  folder_id: Uuid;
+  review_id: Hash;
+  conflicts: Array<FolderPublicationConflictChoice>;
+  withdraw_bars: Array<Timestamp>;
+  withdraw_sources: Array<string>;
+};
+export type PrepareLocalFolderPublicationOutput = {
+  version: number;
+  review_id: Hash;
+  candidate_sha256: Hash;
+  parent_revision_id: Uuid;
+  source_count: number;
+  bar_count: number;
+};
+export type PublishLocalFolderRefreshInput = {
+  version: number;
+  folder_id: Uuid;
+  review_id: Hash;
+  candidate_sha256: Hash;
+  idempotency_key: Uuid;
+};
+export type PublishLocalFolderRefreshOutput = {
+  version: number;
+  revision: PublishedLocalFolderRevision;
+};
+export type ListLocalFolderRevisionsInput = {
+  version: number;
+  after_revision_id: (CanonicalRevisionCursor | null);
+  limit: number;
+};
+export type ListLocalFolderRevisionsOutput = {
+  version: number;
+  revisions: Array<PublishedLocalFolderRevision>;
+  next_after_revision_id: (CanonicalRevisionCursor | null);
+};
+export type ReadLocalFolderRevisionInput = {
+  version: number;
+  revision_id: Uuid;
+  include_details?: boolean;
+};
+export type ReadLocalFolderRevisionOutput = {
+  version: number;
+  revision: PublishedLocalFolderRevision;
+  files: Array<PublishedLocalFolderSource>;
+  bars: Array<FolderRefreshAlternative>;
+};
+export type RevokeLocalFolderRevisionInput = {
+  version: number;
+  revision_id: Uuid;
+};
+export type RevokeLocalFolderRevisionOutput = {
+  version: number;
+  revision_id: Uuid;
+};
+export type PrepareLocalFolderPublicationReply11 = PrepareLocalFolderPublicationResponse | PrepareLocalFolderPublicationError;
+export type PublishLocalFolderRefreshReply11 = PublishLocalFolderRefreshResponse | PublishLocalFolderRefreshError;
+export type ListLocalFolderRevisionsReply11 = ListLocalFolderRevisionsResponse | ListLocalFolderRevisionsError;
+export type ReadLocalFolderRevisionReply11 = ReadLocalFolderRevisionResponse | ReadLocalFolderRevisionError;
+export type ReadLocalFolderSourceRowInput = {
+  version: number;
+  revision_id: Uuid;
+  source: FolderRefreshSource;
+};
+export type ReadLocalFolderSourceRowOutput = {
+  version: number;
+  revision_id: Uuid;
+  source: FolderRefreshSource;
+  header: Array<string>;
+  raw_fields: Array<string>;
+};
+export type ReadLocalFolderSourceRowReply11 = ReadLocalFolderSourceRowResponse | ReadLocalFolderSourceRowError;
+export type RevokeLocalFolderRevisionReply11 = RevokeLocalFolderRevisionResponse | RevokeLocalFolderRevisionError;
+export type AcceptedFolderRefreshBar = PublishedLocalImportBar | FolderRefreshAlternative;

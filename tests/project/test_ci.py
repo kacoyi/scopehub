@@ -1,5 +1,6 @@
 """Reject stale hosted results and preserve provenance when importing native evidence."""
 
+import json
 import shutil
 import subprocess
 import unittest
@@ -45,6 +46,17 @@ class HostedStatusTests(unittest.TestCase):
         self.assertEqual('blocked', ci.classify_runs([self.run_record()], self.head, dirty=True)['status'])
         self.assertEqual('blocked', ci.classify_runs([self.run_record()], self.head, selected=True)['status'])
         self.assertEqual('passed', ci.classify_runs([self.run_record()], self.head)['status'])
+
+    def test_manual_status_covers_the_recorded_selection(self):
+        source = {'git_head': self.head, 'working_tree_dirty': False}
+        runs = {'workflow_runs': [self.run_record(event='workflow_dispatch')]}
+        with (patch.object(ci, 'github_identity', return_value='fixture/scopehub'),
+              patch.object(ci, 'source_identity', return_value=source),
+              patch.object(ci, 'command', return_value=json.dumps(runs)) as command):
+            result = ci.status()
+        self.assertEqual('passed', result['status'])
+        self.assertIn('selection recorded in this manual run', result['claim_scope'])
+        command.assert_called_once()
 
 
 class HostedEvidenceTests(ProjectFixture):

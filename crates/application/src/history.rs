@@ -45,7 +45,13 @@ fn put_text(hash: &mut Sha256, text: &str) {
 }
 
 fn initial_hash(result: &MarketHistoryPageOutput) -> [u8; 32] {
-    let snapshot = &result.snapshot;
+    snapshot_seed(&result.snapshot, &result.dataset.timezone)
+}
+
+pub(crate) fn snapshot_seed(
+    snapshot: &scopehub_domain::protocol::FrozenSnapshot,
+    timezone: &str,
+) -> [u8; 32] {
     let key = &snapshot.series;
     let mut hash = Sha256::new();
     hash.update(b"ScopeHub/history-chain-v1\0");
@@ -59,7 +65,7 @@ fn initial_hash(result: &MarketHistoryPageOutput) -> [u8; 32] {
         &key.quantity_unit,
         &snapshot.dataset_id,
         &snapshot.dataset_revision,
-        &result.dataset.timezone,
+        timezone,
     ] {
         put_text(&mut hash, text);
     }
@@ -78,7 +84,7 @@ fn put_number(hash: &mut Sha256, value: f64) {
     hash.update((if value == 0.0 { 0.0 } else { value }).to_be_bytes());
 }
 
-fn add_bar(prefix: [u8; 32], bar: &Bar) -> [u8; 32] {
+pub(crate) fn add_bar(prefix: [u8; 32], bar: &Bar) -> [u8; 32] {
     let mut hash = Sha256::new();
     hash.update(prefix);
     hash.update(bar.time_ms.to_be_bytes());
