@@ -2368,6 +2368,190 @@
         "prevention": "The explicit local win32 target reproduced all five errors before the repair and passed after it. Native and win32 mypy checks reported 16 clean source files in both jobs of run 44892140495, and the actual Linux and Windows memory limit probes passed."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "local-worktree-build-cache-growth",
+      "source": "Owner storage review and repository-scoped allocated-block inventory on 2026-11-20.",
+      "observation": "Across 45 existing worktrees, Cargo target directories occupied approximately 178.4 GiB of 194.8 GiB measured. Repeated local builds had no repository-wide retention budget.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-029"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "project-state"
+      ],
+      "resolution": {
+        "cause": "Each development worktree accumulated independent Cargo debug outputs. Completed incremental sessions and old dependencies or test executables continued occupying physical blocks after verification.",
+        "correction": "Inventory repository-owned caches, collect positively identified idle artifacts above the budget, and default ordinary local verification to non-incremental builds. On the affected host Cargo outputs fell from 178.44 GiB to 81.05 GiB. A user timer runs the same pinned collector for checkouts on older revisions.",
+        "prevention": "Regression fixtures cover non-destructive reporting, occupied files and executables, repository boundaries, threshold behavior and Cargo rebuilding after interruption. All 45 original Git heads and status snapshots, metadata for 31,290 retained evidence or diagnostic files, and 10,803 file digests matched after both sweeps. Active and unclassified artifacts can keep usage above the soft budget."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "development-worktree-directory-sprawl",
+      "source": "Owner review and registered worktree inventory on 2026-11-20.",
+      "observation": "The projects directory contained the ScopeHub primary checkout and 43 sibling task worktrees. Shared storage maintenance only recognized the primary checkout directory, and retained build archives occupied the same source filesystem.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-030"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Parallel and historical checkouts were created as project-directory siblings. The previous collector only admitted siblings, and generated runtime shims held absolute checkout paths.",
+        "correction": "Provide a shared repository-local managed root and portable creation or reuse commands. On the affected host, move 36 idle checkouts, defer seven live sessions, retain three observed legacy mappings, and place the verified historical build archive on its optional volume. Ordinary source and build workflows remain on the source filesystem.",
+        "prevention": "Regression tests cover repository identity, explicit branch and base, reuse, interruptions and storage eligibility. All 43 original worktrees matched Git and retained evidence after relocation. Host verification exercised the actual client build, four Rust/Python handshake cases, fresh worktree creation, Herdr routing, and an offline cache fallback. Process-death tests exercise kernel-released creation locks, including a Git child which outlives the launcher. The installed host alias resumed after a forced process exit."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "linked-worktree-registration-identity",
+      "source": "PR 25 review and disposable native Git reproductions.",
+      "observation": "The worktree helper accepted a Git file borrowed from a sibling linked checkout on the same branch. It also accepted a copied Git directory outside the native registry when its common directory, backlink and branch matched. New checkout creation reported success after a native hook switched HEAD to another branch.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-034"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Several checkouts share the same Git common directory. The previous verification trusted the top level and shared metadata, and a successful native add did not prove the requested branch survived the checkout hook.",
+        "correction": "Require a unique registration, the checkout-specific directory in the common worktree registry, its backlink to the checkout Git file, and the current symbolic branch. Recheck the requested branch after a native add.",
+        "prevention": "Disposable native Git fixtures cover a borrowed Git file from the same branch, copied metadata, a branch-changing hook, detached relative registrations, and the standalone pinned host helper. The Ubuntu and Windows task runs pass these fixtures."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "managed-worktree-foreign-checkout-admission",
+      "source": "PR 25 review and disposable native Git and Cargo cache reproductions.",
+      "observation": "Storage inventory admitted a managed root nested in a foreign Git checkout that the worktree manager would reject. When a foreign repository appeared after inventory, collection deleted a fixture artifact under the foreign checkout. The legacy sibling rule also permitted that nesting. Re-review reproduced both worktree creation and collection under a foreign .git file that Git could not resolve, including collection of an enclosing repository's tracked file after Cargo locks had been acquired. The existing M0-030 fixture additionally caught a change to the mounted-worktree diagnostic while combining the root and cache handle safeguards.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-034"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Storage used a narrower ancestry check than the worktree manager. Git used exit 128 for both an empty marker directory and unresolved foreign metadata, which both callers could interpret as permission to proceed.",
+        "correction": "Check foreign and unresolved ancestor Git markers at admission and under Cargo locks. Preserve mounted-worktree diagnostics and keep both host helpers independently runnable.",
+        "prevention": "Independent disposable repositories exercise foreign linked ancestry, missing marker targets, and an outer Git repository’s committed file surviving collection after the locks. The existing mount and relocation fixtures continue to pass."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "cargo-storage-review-admission-boundaries",
+      "source": "Independent reviews of PR 24 at 98506a29aa50f82f9ff8b08417a3323d2949aa41, cbab3a9ec47a3c2611fcdebeafa46717dad7cc6f and 001dcd753ef31ca3a244cf058dff955134938a1a, and disposable M0-033 regression fixtures.",
+      "observation": "The Linux process scan skipped other UIDs, allowing removal without a lease while a foreign process could be holding a dependency open. Collection accepted replacements at inventoried child cache paths, including changed debug directories and absent, replaced or edited .rustc_info.json markers. The first repair compared indistinguishable directory stat samples on filesystems with coarse timestamps and inode reuse. The live-handle repair protected those caches, then a review with RLIMIT_NOFILE=32 found descriptor exhaustion prevented all nine revalidations and was reported as an identity change. A regular file at target raised NotADirectoryError during child discovery and interrupted the repository-wide review.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-033"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "project-state"
+      ],
+      "resolution": {
+        "cause": "The process audit skipped processes by UID. Cache admission used directory names and then sampled inode metadata as proof. Retained handles could exhaust the descriptors required by revalidation. Child discovery also assumed that every target entry was a directory.",
+        "correction": "Observe all visible processes and use the partial-visibility policy whenever one cannot be observed. Bind guarded observations to live directory handles and revalidate fresh paths and Cargo provenance under the locks. Reserve transient descriptors and report resource-limited candidates. Inventory ordinary target files without attempting child discovery.",
+        "prevention": "Disposable fixtures reproduce held foreign dependencies, replacements with indistinguishable sampled metadata, changed child markers, ordinary files and resource pressure at RLIMIT_NOFILE=32. The offline Cargo fixture verifies a group interruption, retained files and rebuilding. The exact functional head passed local verification and the Linux and Windows jobs in run 44889925831."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-desktop-fixture-acl-preparation-timeout",
+      "source": "PR 25 Windows verification 44890879647 attempt 1 at 2531786a5bb7318efee63669b209ce7d292c9024. The failed report SHA-256 is db3c44c7ab15c340db7105b82fbe7a9e9f9b14237993d07d5da336738b3ff9ff. The raw Rust check log SHA-256 is 1458cdae990c8712d5a531726faa447137ee62a9598bb91fe24f261caf464933. The retained diagnostic receipt is .reports/m0-036/failure-receipt.json.",
+      "observation": "Three desktop bridge tests hit prepare powershell-timeout at AppLocalData::new and returned Database before their assertions. The binary finished in 36.24 seconds with 20 of 23 tests passing. The #21 postmerge run 44887276464 used identical storage and desktop test sources and passed 23 tests in 21.25 seconds. PR 23 run 44888619266 used identical storage and ACL sources and passed 24 desktop tests in 23.47 seconds, including the same three fixture users. PR 24 run 44890626095 used identical storage and desktop fixture sources and passed 23 tests in 29.76 seconds. The timeout identifies a running PowerShell process and provides no explicit ACL refusal exit or measurement of the contention mechanism.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-036"
+      ],
+      "regression_checks": [
+        "project-state",
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Three independent test profile preparations exceeded the existing 10-second PowerShell deadline during the same parallel desktop test run. The original task logs and three matched-source controls identify timeouts before product assertions. Contention is a hypothesis and the data does not isolate process startup, scheduling, or filesystem work.",
+        "correction": "Serialize the explicit Windows test fixture preparations, including the copied profile directory, through one slot held only during the real ACL call. Keep the application ACL checks, path and refusal diagnostics, deadline and process cleanup intact. Bridge operations keep their original concurrency.",
+        "prevention": "Two focused tests cover release on success, error and unwind and real directory construction and cleanup. Native Windows run 44894164773 at 3a2b558cd190b4b49e15a7add91123ea7ee5c803 passed all 25 desktop tests in 45.68 seconds, including the original three. The matching hosted Ubuntu and byte-identical local task runs also passed."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "cross-checkout-diagnostic-dependency-and-retirement",
+      "source": "Owner worktree review and separate read-only reproductions by the development supervisor during M0-031 on 2026-11-21.",
+      "observation": "The owner identified that M4-001 referenced its blocked diagnostic through another checkout and requested criteria for worktree retirement. Moving or retiring that checkout could make the diagnostic unavailable. During implementation the development supervisor reproduced two false retirement candidates in temporary Git worktrees. One still supplied a report to a committed operational script in another checkout. The other appeared to retain its only diagnostic because an archive root above the checkout resolved back to the original file.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261121T015908.326119Z-721f69a6",
+          "source_commit": "dc9b28315e2943d02360520140e8473e5b3d5a81",
+          "report_sha256": "75be30f5055c501458d1709ef604dc3253a687e8e6c85da3f5876684cad80d8e"
+        }
+      ],
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-031"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The report dependency used a checkout location as its identity. The initial retirement observation did not cover operational script consumers and could resolve a claimed archive copy inside the checkout it was evaluating.",
+        "correction": "Record portable diagnostic locators and reject nonlocal report paths in active and newly reviewed records and operational scripts. Keep archive reads explicit and verify original report bytes and associated files. Hold worktrees when a downstream consumer exists, retention is unverified, or an observation is incomplete.",
+        "prevention": "M0-031's recorded Linux checks passed positive and negative Git fixtures, including tracked and untracked script consumers, an overlapping archive root, an archive symlink back into the checkout, independent retained copies and incomplete activity visibility. The actual host report held all 50 registrations, including 10 tips reachable from the observed origin/main. Explicit resolution of the M4 diagnostic verified 13 logs and the archive checksum manifest and preserved the blocked outcome with 13 selected checks passed and two blocked."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "retirement-observation-and-diagnostic-review-gaps",
+      "source": "Independent Herdr reviews of PR 27 and read-only host observations on 2026-11-21, plus authenticated failed Ubuntu and Windows runs 44887586115 and 44891186224 now verified in the permanent development archive.",
+      "observation": "Independent fixtures exposed missed check registry, live symlink, editable Python and Cargo build output dependencies, lost worktree-private Git recovery references, incomplete observation artifact verification, caller-relative and exported report regressions, and an unused clean filter holding idle checkouts. Hosted Python checks failed on both platforms under globally configured Git LFS. Windows also missed untracked and ignored symlinks and rejected an independent archived file. The supervisor reproduced cross-checkout diagnostic paths escaping history checks in app, workflow and crate sources and requested a human review intake for the otherwise clear checkouts affected only by partial process visibility. A read-only inventory of the integrated PR 21 checkout showed that six standard scoped pnpm links were treated as unretained files despite resolving to its own locked virtual store. Follow-up reviews reproduced false candidates from nested Cargo paths with and without dot components, a linked harness registry and a sole diagnostic under Cargo deps. They found nonlocal report references accepted in HTML, SQL and harness commands and a manually placed root pnpm link misclassified as rebuildable. The first exact native Windows retry passed the original LFS, symlink and archive cases, and exposed duplicate attribution of one editable Python path through case-insensitive Lib and lib aliases.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261121T090216.542762Z-df265eff",
+          "source_commit": "75bddf88fa31fbc7ba0e5aae447b64ca862941e1",
+          "report_sha256": "5698e691bb3353fdbb8eed307e484270c6d20a6fa3fe43ce67c7420585b2ea2f"
+        },
+        {
+          "run_id": "20261121T090454.861752Z-508c4df7",
+          "source_commit": "75bddf88fa31fbc7ba0e5aae447b64ca862941e1",
+          "report_sha256": "3eda674b61ec2e3332f797b9a4ba74abd1f621fde59d3ad6beea6913c0de6d82"
+        },
+        {
+          "run_id": "20261121T095108.047949Z-7e2c661e",
+          "source_commit": "8cf77de55bcecab5a59042a1c24886aaad75633d",
+          "report_sha256": "79028b0f0c60c0736132c3cf03b6fb81e322bf2b8ad02ad0b0e0a7f09f4adece"
+        }
+      ],
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-035"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The original observation relied on directory classifications, incomplete path and Git state enumeration, and configured rather than effective clean filters. Report selection and verification also omitted established caller and artifact bindings. The first corrected Windows run exposed a second spelling for the same virtual environment library directory.",
+        "correction": "Verify declaring runtime paths, worktree-private object recovery, scoped pnpm placement and Cargo output ownership. Read editable libraries from actual directory entries, observe effective filters with external drivers disabled, restore caller-relative and independent report imports, and verify bound field and session artifacts. Surface human review intake while preserving the sole partial-process hold.",
+        "prevention": "Local and hosted task verification matched the clean 320946e execution inputs. Ubuntu ran 438 Python tests and Windows ran the same suite with 45 platform skips. The stable host read-only snapshot found two intake rows and zero candidates among 50 registrations. One intake row verified 17 retained files, while the integrated product checkout verified 999 and remained held for additional unarchived files. The three failure reports retain their original failed outcomes and verified manifests. The retained M4 run still records 13 passed checks and two blocked."
+      },
+      "deferral_reason": null
     }
   ]
 }
