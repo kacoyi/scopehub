@@ -1,15 +1,28 @@
 import type {
   AiTextConnectionCommand11, AiTextConnectionInput, AiTextConnectionOutput, AiTextConnectionReply11,
 } from '../../../../contracts/generated/protocol';
-import { exchangeWorkspace } from './use-local-workspace';
+import { exchangeWorkspace, nativeTextWorkspaceId } from './use-local-workspace';
 
 export type ModelResult<Action extends AiTextConnectionInput['action']> =
   Extract<AiTextConnectionOutput, { action: Action }>;
 export type ModelConnection = NonNullable<ModelResult<'status'>['connection']>;
 export type ModelRoute = ModelConnection['route'];
 
+// SQLite allows up to three seconds at startup for a busy database. Leave time
+// for the opening snapshot to finish and release the native admission slot.
+const nativeControlAdmissionMs = 4000;
+
 export function modelErrorCode(error: unknown) {
   return error && typeof error === 'object' && 'code' in error ? error.code : undefined;
+}
+
+function isRetryableBusy(error: unknown): error is { code: 'BUSY'; retryable: true } {
+  return error !== null && typeof error === 'object'
+    && 'code' in error && error.code === 'BUSY' && 'retryable' in error && error.retryable === true;
+}
+
+export function isModelWorkspaceBusy(error: unknown) {
+  return isRetryableBusy(error) && 'preAdmission' in error && error.preAdmission === true;
 }
 
 function validRoute(route: ModelRoute | null | undefined) {
@@ -51,7 +64,25 @@ export async function exchangeModel<Input extends AiTextConnectionInput>(
     scope: { workspace_id: workspaceId },
     intent: { operation: 'ai.textConnection', arguments: args },
   };
-  const reply = await exchangeWorkspace<AiTextConnectionReply11>(command, signal);
+  const mayWait = nativeTextWorkspaceId !== undefined && (args.action === 'status' || args.action === 'propose');
+  const deadline = performance.now() + nativeControlAdmissionMs;
+  let reply: AiTextConnectionReply11;
+  for (let delay = 25; ; delay = Math.min(2 * delay, 100)) {
+    try {
+      reply = await exchangeWorkspace<AiTextConnectionReply11>(command, signal);
+      break;
+    } catch (failure) {
+      signal.throwIfAborted();
+      if (!isRetryableBusy(failure)) throw failure;
+      // An operation outcome is decoded below, outside this admission retry.
+      const busy = { code: 'BUSY', retryable: true, preAdmission: true };
+      const remaining = deadline - performance.now();
+      if (!mayWait || remaining <= 0) throw busy;
+      await new Promise<void>(resolve => window.setTimeout(resolve, Math.min(delay, remaining)));
+      signal.throwIfAborted();
+      if (performance.now() >= deadline) throw busy;
+    }
+  }
   if (reply.protocol_version !== '1.1' || reply.type !== 'response' || reply.request_id !== command.request_id) {
     throw { code: 'OUTPUT_INVALID' };
   }
