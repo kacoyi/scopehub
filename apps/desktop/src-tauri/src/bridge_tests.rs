@@ -44,6 +44,56 @@ impl Drop for ImportFixture {
     }
 }
 
+#[cfg(target_os = "linux")]
+#[tokio::test]
+async fn native_text_key_is_window_and_profile_bound_and_clears_on_restart() {
+    let profile = ImportFixture::new();
+    let other_profile = ImportFixture::new();
+    let host = state_with_local_profile(Some(&profile.0));
+    let denied = host
+        .configure_openai_credential(
+            "secondary",
+            "replace".into(),
+            Some("synthetic-cross-window".into()),
+        )
+        .await
+        .unwrap_err();
+    assert_eq!(denied.code, ErrorCode::PERMISSIONDENIED);
+    assert_eq!(
+        host.configure_openai_credential("main", "status".into(), None)
+            .await
+            .unwrap(),
+        json!({"configured": false, "lifetime": "session"})
+    );
+    assert_eq!(
+        host.configure_openai_credential(
+            "main",
+            "replace".into(),
+            Some("synthetic-native-bridge-key".into()),
+        )
+        .await
+        .unwrap(),
+        json!({"configured": true, "lifetime": "session"})
+    );
+    let other = state_with_local_profile(Some(&other_profile.0));
+    assert_eq!(
+        other
+            .configure_openai_credential("main", "status".into(), None)
+            .await
+            .unwrap()["configured"],
+        false
+    );
+    host.shutdown().await;
+    let restarted = state_with_local_profile(Some(&profile.0));
+    assert_eq!(
+        restarted
+            .configure_openai_credential("main", "status".into(), None)
+            .await
+            .unwrap(),
+        json!({"configured": false, "lifetime": "session"})
+    );
+}
+
 #[cfg(any(target_os = "linux", windows))]
 fn import_request(
     catalog: &scopehub_platform::local_folder::FolderCatalog,

@@ -3,7 +3,8 @@
 use std::io::{BufRead, Read, Write};
 
 use scopehub_application::{
-    Actor, MarketRegistry, READ_INDICATOR_SAMPLE_HISTORY, SUBSCRIBE, failure,
+    Actor, MarketRegistry, READ_INDICATOR_SAMPLE_HISTORY, READ_SAMPLE_EVIDENCE_HISTORY, SUBSCRIBE,
+    failure,
 };
 use scopehub_domain::protocol::ErrorCode;
 use scopehub_worker_host::{
@@ -75,6 +76,11 @@ async fn main() {
             Ok(request) if request.operation == READ_INDICATOR_SAMPLE_HISTORY => {
                 registry
                     .read_sample_indicator_history(request.payload)
+                    .await
+            }
+            Ok(request) if request.operation == READ_SAMPLE_EVIDENCE_HISTORY => {
+                registry
+                    .read_sample_evidence_history(&request.payload)
                     .await
             }
             Ok(request) => {

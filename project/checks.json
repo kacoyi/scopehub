@@ -672,6 +672,54 @@
       ],
       "timeout_seconds": 900,
       "cadence": "change"
+    },
+    {
+      "id": "model-connection-workflow",
+      "status": "implemented",
+      "purpose": "Exercise local text settings and explicit offline mock, OpenAI credential entry and ordinary-text disclosure, ordinary turns, bounded selected-chart tool calls, corrected and denied intervals, and pending-reply invalidation through the Rust registry and real Ollama adapter against an owned synthetic HTTP peer. Verify that the browser guard allows local route removal and blocks and reports a different loopback origin.",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/ai-workflow.config.mjs"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
+      "id": "model-connection-replay",
+      "status": "implemented",
+      "purpose": "Replay profile, actor, disclosure, context isolation, credential revision, expiry, duplicate send and cancellation boundaries without using a provider or opening a storage transaction.",
+      "platforms": "all",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-application",
+        "text_connection::tests"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
+      "id": "openai-responses-transport",
+      "status": "implemented",
+      "purpose": "Capture the final fixed-destination OpenAI Responses HTTPS requests for two reconstructed turns with synthetic credentials and an isolated TLS peer. Verify redacted authorization failure, local denial and redirect rejection without a real account.",
+      "platforms": "all",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-worker-host",
+        "text_model::openai"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
     }
   ],
   "milestones": [

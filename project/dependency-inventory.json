@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0",
-  "observed_at": "2026-11-19T16:48:42.767844+00:00",
+  "observed_at": "2026-11-19T21:35:46.695218+00:00",
   "lock_sha256": {
-    "Cargo.lock": "d68ef8e6cac6071a75489e21a73ace1a6d58a2d37a2947c348df41980da96232",
+    "Cargo.lock": "16864ccb889d1b39314addcb48908413fa6fbc97167145bfdf29069ee4d406db",
     "uv.lock": "628c3231c45d1c644d8909dcf009367266104f5978d3d87976af6760c78c2842",
     "pnpm-lock.yaml": "baa4c0c5c4776cdb58bb3e654f5cadd4e681c9b45f82312b3cfa7a88376ddcfc"
   },
@@ -941,6 +941,13 @@
     {
       "ecosystem": "crates.io",
       "name": "getrandom",
+      "version": "0.2.17",
+      "license": "MIT OR Apache-2.0",
+      "metadata_url": "https://crates.io/crates/getrandom/0.2.17"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "getrandom",
       "version": "0.3.4",
       "license": "MIT OR Apache-2.0",
       "metadata_url": "https://crates.io/crates/getrandom/0.3.4"
@@ -1098,6 +1105,13 @@
       "version": "1.12.0",
       "license": "MIT",
       "metadata_url": "https://crates.io/crates/hyper/1.12.0"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "hyper-rustls",
+      "version": "0.27.10",
+      "license": "Apache-2.0 OR ISC OR MIT",
+      "metadata_url": "https://crates.io/crates/hyper-rustls/0.27.10"
     },
     {
       "ecosystem": "crates.io",
@@ -1287,6 +1301,20 @@
       "version": "0.21.1",
       "license": "MIT/Apache-2.0",
       "metadata_url": "https://crates.io/crates/jni/0.21.1"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "jni",
+      "version": "0.22.4",
+      "license": "MIT OR Apache-2.0",
+      "metadata_url": "https://crates.io/crates/jni/0.22.4"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "jni-macros",
+      "version": "0.22.4",
+      "license": "MIT OR Apache-2.0",
+      "metadata_url": "https://crates.io/crates/jni-macros/0.22.4"
     },
     {
       "ecosystem": "crates.io",
@@ -1717,6 +1745,13 @@
     },
     {
       "ecosystem": "crates.io",
+      "name": "openssl-probe",
+      "version": "0.2.2",
+      "license": "MIT OR Apache-2.0",
+      "metadata_url": "https://crates.io/crates/openssl-probe/0.2.2"
+    },
+    {
+      "ecosystem": "crates.io",
       "name": "option-ext",
       "version": "0.2.0",
       "license": "MPL-2.0",
@@ -2018,6 +2053,13 @@
     },
     {
       "ecosystem": "crates.io",
+      "name": "ring",
+      "version": "0.17.14",
+      "license": "Apache-2.0 AND ISC",
+      "metadata_url": "https://crates.io/crates/ring/0.17.14"
+    },
+    {
+      "ecosystem": "crates.io",
       "name": "rusqlite",
       "version": "0.43.0",
       "license": "MIT",
@@ -2039,6 +2081,48 @@
     },
     {
       "ecosystem": "crates.io",
+      "name": "rustls",
+      "version": "0.23.46",
+      "license": "Apache-2.0 OR ISC OR MIT",
+      "metadata_url": "https://crates.io/crates/rustls/0.23.46"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "rustls-native-certs",
+      "version": "0.8.5",
+      "license": "Apache-2.0 OR ISC OR MIT",
+      "metadata_url": "https://crates.io/crates/rustls-native-certs/0.8.5"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "rustls-pki-types",
+      "version": "1.16.0",
+      "license": "MIT OR Apache-2.0",
+      "metadata_url": "https://crates.io/crates/rustls-pki-types/1.16.0"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "rustls-platform-verifier",
+      "version": "0.7.1",
+      "license": "MIT OR Apache-2.0",
+      "metadata_url": "https://crates.io/crates/rustls-platform-verifier/0.7.1"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "rustls-platform-verifier-android",
+      "version": "0.2.0",
+      "license": "MIT OR Apache-2.0",
+      "metadata_url": "https://crates.io/crates/rustls-platform-verifier-android/0.2.0"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "rustls-webpki",
+      "version": "0.103.17",
+      "license": "ISC",
+      "metadata_url": "https://crates.io/crates/rustls-webpki/0.103.17"
+    },
+    {
+      "ecosystem": "crates.io",
       "name": "rustversion",
       "version": "1.0.23",
       "license": "MIT OR Apache-2.0",
@@ -2050,6 +2134,13 @@
       "version": "1.0.6",
       "license": "Unlicense/MIT",
       "metadata_url": "https://crates.io/crates/same-file/1.0.6"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "schannel",
+      "version": "0.1.30",
+      "license": "MIT",
+      "metadata_url": "https://crates.io/crates/schannel/0.1.30"
     },
     {
       "ecosystem": "crates.io",
@@ -2085,6 +2176,20 @@
       "version": "1.2.0",
       "license": "MIT OR Apache-2.0",
       "metadata_url": "https://crates.io/crates/scopeguard/1.2.0"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "security-framework",
+      "version": "3.7.0",
+      "license": "MIT OR Apache-2.0",
+      "metadata_url": "https://crates.io/crates/security-framework/3.7.0"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "security-framework-sys",
+      "version": "2.17.0",
+      "license": "MIT OR Apache-2.0",
+      "metadata_url": "https://crates.io/crates/security-framework-sys/2.17.0"
     },
     {
       "ecosystem": "crates.io",
@@ -2228,6 +2333,20 @@
     },
     {
       "ecosystem": "crates.io",
+      "name": "simd_cesu8",
+      "version": "1.2.0",
+      "license": "Apache-2.0 OR MIT",
+      "metadata_url": "https://crates.io/crates/simd_cesu8/1.2.0"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "simdutf8",
+      "version": "0.1.5",
+      "license": "MIT OR Apache-2.0",
+      "metadata_url": "https://crates.io/crates/simdutf8/0.1.5"
+    },
+    {
+      "ecosystem": "crates.io",
       "name": "siphasher",
       "version": "1.0.4",
       "license": "MIT OR Apache-2.0",
@@ -2316,6 +2435,13 @@
       "version": "0.28.0",
       "license": "MIT",
       "metadata_url": "https://crates.io/crates/strum_macros/0.28.0"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "subtle",
+      "version": "2.6.1",
+      "license": "BSD-3-Clause",
+      "metadata_url": "https://crates.io/crates/subtle/2.6.1"
     },
     {
       "ecosystem": "crates.io",
@@ -2529,6 +2655,13 @@
     },
     {
       "ecosystem": "crates.io",
+      "name": "tokio-rustls",
+      "version": "0.26.6",
+      "license": "MIT OR Apache-2.0",
+      "metadata_url": "https://crates.io/crates/tokio-rustls/0.26.6"
+    },
+    {
+      "ecosystem": "crates.io",
       "name": "tokio-util",
       "version": "0.7.20",
       "license": "MIT",
@@ -2687,6 +2820,13 @@
       "version": "1.13.3",
       "license": "MIT OR Apache-2.0",
       "metadata_url": "https://crates.io/crates/unicode-segmentation/1.13.3"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "untrusted",
+      "version": "0.9.0",
+      "license": "ISC",
+      "metadata_url": "https://crates.io/crates/untrusted/0.9.0"
     },
     {
       "ecosystem": "crates.io",
@@ -2872,6 +3012,13 @@
     },
     {
       "ecosystem": "crates.io",
+      "name": "webpki-root-certs",
+      "version": "1.0.12",
+      "license": "CDLA-Permissive-2.0",
+      "metadata_url": "https://crates.io/crates/webpki-root-certs/1.0.12"
+    },
+    {
+      "ecosystem": "crates.io",
       "name": "webview2-com",
       "version": "0.39.1",
       "license": "MIT",
@@ -3006,6 +3153,13 @@
     {
       "ecosystem": "crates.io",
       "name": "windows-sys",
+      "version": "0.52.0",
+      "license": "MIT OR Apache-2.0",
+      "metadata_url": "https://crates.io/crates/windows-sys/0.52.0"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "windows-sys",
       "version": "0.61.2",
       "license": "MIT OR Apache-2.0",
       "metadata_url": "https://crates.io/crates/windows-sys/0.61.2"
@@ -3016,6 +3170,13 @@
       "version": "0.42.2",
       "license": "MIT OR Apache-2.0",
       "metadata_url": "https://crates.io/crates/windows-targets/0.42.2"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "windows-targets",
+      "version": "0.52.6",
+      "license": "MIT OR Apache-2.0",
+      "metadata_url": "https://crates.io/crates/windows-targets/0.52.6"
     },
     {
       "ecosystem": "crates.io",
@@ -3040,10 +3201,24 @@
     },
     {
       "ecosystem": "crates.io",
+      "name": "windows_aarch64_gnullvm",
+      "version": "0.52.6",
+      "license": "MIT OR Apache-2.0",
+      "metadata_url": "https://crates.io/crates/windows_aarch64_gnullvm/0.52.6"
+    },
+    {
+      "ecosystem": "crates.io",
       "name": "windows_aarch64_msvc",
       "version": "0.42.2",
       "license": "MIT OR Apache-2.0",
       "metadata_url": "https://crates.io/crates/windows_aarch64_msvc/0.42.2"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "windows_aarch64_msvc",
+      "version": "0.52.6",
+      "license": "MIT OR Apache-2.0",
+      "metadata_url": "https://crates.io/crates/windows_aarch64_msvc/0.52.6"
     },
     {
       "ecosystem": "crates.io",
@@ -3054,10 +3229,31 @@
     },
     {
       "ecosystem": "crates.io",
+      "name": "windows_i686_gnu",
+      "version": "0.52.6",
+      "license": "MIT OR Apache-2.0",
+      "metadata_url": "https://crates.io/crates/windows_i686_gnu/0.52.6"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "windows_i686_gnullvm",
+      "version": "0.52.6",
+      "license": "MIT OR Apache-2.0",
+      "metadata_url": "https://crates.io/crates/windows_i686_gnullvm/0.52.6"
+    },
+    {
+      "ecosystem": "crates.io",
       "name": "windows_i686_msvc",
       "version": "0.42.2",
       "license": "MIT OR Apache-2.0",
       "metadata_url": "https://crates.io/crates/windows_i686_msvc/0.42.2"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "windows_i686_msvc",
+      "version": "0.52.6",
+      "license": "MIT OR Apache-2.0",
+      "metadata_url": "https://crates.io/crates/windows_i686_msvc/0.52.6"
     },
     {
       "ecosystem": "crates.io",
@@ -3068,6 +3264,13 @@
     },
     {
       "ecosystem": "crates.io",
+      "name": "windows_x86_64_gnu",
+      "version": "0.52.6",
+      "license": "MIT OR Apache-2.0",
+      "metadata_url": "https://crates.io/crates/windows_x86_64_gnu/0.52.6"
+    },
+    {
+      "ecosystem": "crates.io",
       "name": "windows_x86_64_gnullvm",
       "version": "0.42.2",
       "license": "MIT OR Apache-2.0",
@@ -3075,10 +3278,24 @@
     },
     {
       "ecosystem": "crates.io",
+      "name": "windows_x86_64_gnullvm",
+      "version": "0.52.6",
+      "license": "MIT OR Apache-2.0",
+      "metadata_url": "https://crates.io/crates/windows_x86_64_gnullvm/0.52.6"
+    },
+    {
+      "ecosystem": "crates.io",
       "name": "windows_x86_64_msvc",
       "version": "0.42.2",
       "license": "MIT OR Apache-2.0",
       "metadata_url": "https://crates.io/crates/windows_x86_64_msvc/0.42.2"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "windows_x86_64_msvc",
+      "version": "0.52.6",
+      "license": "MIT OR Apache-2.0",
+      "metadata_url": "https://crates.io/crates/windows_x86_64_msvc/0.52.6"
     },
     {
       "ecosystem": "crates.io",
@@ -3163,6 +3380,13 @@
       "version": "0.1.8",
       "license": "Unicode-3.0",
       "metadata_url": "https://crates.io/crates/zerofrom-derive/0.1.8"
+    },
+    {
+      "ecosystem": "crates.io",
+      "name": "zeroize",
+      "version": "1.9.2",
+      "license": "Apache-2.0 OR MIT",
+      "metadata_url": "https://crates.io/crates/zeroize/1.9.2"
     },
     {
       "ecosystem": "crates.io",

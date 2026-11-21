@@ -1,0 +1,58 @@
+{
+  "source": "9be6c8c70d0032d8d50e3cec1f21c3d5651216a6",
+  "exe_sha256": "7bafa9bc161df21b63385487c027d26b9105f2477cb57af3c1de7c1c79aa6a2a",
+  "exe_bytes": 38327808,
+  "source_archive_sha256": "d52f0d50904e9649a9fa40ee4172d011717dc30f13657c35862bec7c956884fd",
+  "build_log": {
+    "path": "run/build-combined-9be6c8c/MAPBUILD.TXT",
+    "sha256": "55316e3d8953eec3587c897cddf8d6216e3f5f20fd9b09da9a0eb3c9025601b2"
+  },
+  "build_manifest": {
+    "path": "run/build-combined-9be6c8c/MAPEXE.JSON",
+    "sha256": "6890001c17e37a625efb34150a231e36767f56d16483d7f58ab716ac79cd788e"
+  },
+  "environment": "Non-elevated disposable Windows 11 Enterprise Evaluation QA account, MSVC native desktop with WebView2 and no VM network adapter.",
+  "scope": "Ordinary user-selected Ollama connection against one synthetic local HTTP peer on the integrated application source.",
+  "cold_start": {
+    "result": "passed",
+    "provider": "Ollama",
+    "chart_access": false,
+    "provider_activation_count": 1,
+    "recipient_http_requests": 3,
+    "largest_rendered_answer_bytes": 20480,
+    "workspace_timeframe_after_disconnect": "5m",
+    "transcript_empty_after_disconnect": true,
+    "transport_busy_before_admission": 28,
+    "same_request_identity_on_busy_retries": true,
+    "window_unloaded_without_owned_debug_listeners": true,
+    "report": {
+      "path": "run/combined-cold-9be6c8c/WSDIAG.JSON",
+      "sha256": "5a1e6ffd09351ba0b3b74d31e42b9e3a8bc1665f8ebf853f30af41b606f94e1d"
+    },
+    "screenshot": {
+      "path": "run/combined-cold-9be6c8c/CHAT.PNG",
+      "sha256": "ccada0b5aa5b5ba390fc3908c3dce6ca3b7bd7b8b0ded3ecb83eaae77284494c"
+    }
+  },
+  "workspace_ready": {
+    "result": "passed",
+    "provider": "Ollama",
+    "chart_access": false,
+    "provider_activation_count": 1,
+    "recipient_http_requests": 3,
+    "largest_rendered_answer_bytes": 20480,
+    "workspace_timeframe_after_disconnect": "5m",
+    "transcript_empty_after_disconnect": true,
+    "transport_busy_before_admission": 0,
+    "same_request_identity_on_busy_retries": null,
+    "window_unloaded_without_owned_debug_listeners": true,
+    "report": {
+      "path": "run/combined-ready-9be6c8c/WSDIAG.JSON",
+      "sha256": "1499ec6ebb78d38c5a11aaf91f5bc5e53ee99adc4708f5707e6789d0c8eef57c"
+    },
+    "screenshot": {
+      "path": "run/combined-ready-9be6c8c/CHAT.PNG",
+      "sha256": "4419833aa1a9ab3fac35193dac70ef42d8ea7e32e50d5605a5a858f2af441c70"
+    }
+  }
+}

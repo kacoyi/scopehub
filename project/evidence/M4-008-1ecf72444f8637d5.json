@@ -1,0 +1,205 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M4-008",
+  "task_definition_sha256": "c2fb5e4fc8f1b75a9a0ad34897eb05fb462b9076c65be4cdbef2a80e54394756",
+  "run_id": "20261121T024804.477217Z-bde0f1b5",
+  "recorded_at": "2026-11-21T03:10:15.103733+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "976b8065aa2b1a21280889598a7dda640fecad851b10ca389769d2e7d8ae3edc",
+    "file_count": 497,
+    "git_head": "ad75744a1ef9351f7d04456276adee9d77dbf45c",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "1ecf72444f8637d5ba1ee93720a6e6f9a22e0debbdc88c25ba7b94a48ffd78e2",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-1020-azure",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "model-connection-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/ai-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c8b002770e427d69b37d95ae951967f824082380fcf9d24e556edecebcfcb75b"
+    },
+    {
+      "id": "model-connection-replay",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-application",
+        "text_connection::tests"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a22bf186f16677c44a9268eb44469906ce270345e8493a35793056d25133db99"
+    },
+    {
+      "id": "openai-responses-transport",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-worker-host",
+        "text_model::openai"
+      ],
+      "exit_code": 0,
+      "log_sha256": "08dd917a66d254a7918d20ba13299c1ef62ee54bfd49b162e426f0f6a9fd3629"
+    },
+    {
+      "id": "operations-workflow",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-persistence",
+        "--test",
+        "workspace_process",
+        "operations_workflow::"
+      ],
+      "exit_code": 0,
+      "log_sha256": "bf0eeaeb7710995bf2887cc6dcba011c7518569b0c3d0d107f207c1205df2c68"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "fadc16281a184dab5ebfe33f5b1d9ed27968568590559ea433740ef51456c59e"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e744377b23f4111ed1053134de97b9d03673de41d27972f56d6fa04ea8aa402e"
+    },
+    {
+      "id": "generated-contracts",
+      "status": "passed",
+      "command": [
+        "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+        "scripts/generate_contracts.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "25ddfb4aac890e3c2356d1fbeca76e2a08aae37d9dddead107b25b3654f822e5"
+    },
+    {
+      "id": "typescript-contracts",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "check:contracts"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9a28bfee105d0f8b07a6916cae65b7805c865a92b9743fc9d6961a154608ce52"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "bdcaa13655629dd15ba0edd6432a4e867cc51e0a3374fbf31a8211b14e7a9d8f"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "1d06ac51d519a09c597b50c849f5136c5cd4cb59f05852e7a92f330b4882a129"
+    },
+    {
+      "id": "python-types",
+      "status": "passed",
+      "command": [
+        "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+        "-m",
+        "mypy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "df31673ff938e9a6a603c56cfd13949b42c1b8edcba9d2688c7f771f48c449d9"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d76751401560d79ff91f1f165e3144dcaadde6bd223ed272dcdf335e2a4c428d"
+    }
+  ],
+  "project_definition_sha256": "0a13d424988b0e169fd1e2c132076e9122b4f30ea103430f820ba730e9eaf133",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "ci": {
+    "provider": "github-actions",
+    "repository": "kacoyi/scopehub",
+    "run_id": "44857760870",
+    "run_attempt": "1",
+    "event": "workflow_dispatch",
+    "head_sha": "ad75744a1ef9351f7d04456276adee9d77dbf45c",
+    "checkout_sha": "ad75744a1ef9351f7d04456276adee9d77dbf45c",
+    "run_url": "https://github.com/kacoyi/scopehub/actions/runs/44857760870"
+  }
+}

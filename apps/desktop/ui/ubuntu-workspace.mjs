@@ -1,10 +1,14 @@
 import { spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { realpathSync, statSync } from 'node:fs';
 import { basename, isAbsolute, relative, resolve, sep } from 'node:path';
-import { PreviewFailure, assertLocalJsonRequest, failureResponse, maxRequestBytes, readIndicatorSampleHistory, readLocalJson } from './ubuntu-preview.mjs';
+import { PreviewFailure, assertLocalJsonRequest, failureResponse, maxRequestBytes, readIndicatorSampleHistory, readLocalJson, readSampleEvidenceHistory } from './ubuntu-preview.mjs';
 import { issueWorkspaceAccess } from './ubuntu-workspace-access.mjs';
 
 const route = '/__scopehub/workspace';
+const modelCredentialRoute = '/__scopehub/model-credential';
+const credentialChange = 'ai_openai_credential_changed';
+const maxCredentialRequestBytes = 8192;
 const rawFiles = '/@fs/';
 const privateFile = /^(?:workspace\.sqlite3(?:-(?:wal|shm|journal))?|\.?workspace-access-\d+\.html(?:-[\da-f-]+)?)$/i;
 const chartId = 'main-chart';
@@ -36,6 +40,7 @@ const readPrivateRecords = 'privateRecord.read';
 const changePrivateRecords = 'privateRecord.change';
 const exportPrivateRecords = 'privateRecord.exportBackup';
 const privateRecordOperations = [readPrivateRecords, changePrivateRecords, exportPrivateRecords];
+const textConnection = 'ai.textConnection';
 const maxNoteRequestBytes = 32 * 1024;
 // Up to 256 layer/version UUID pairs and availability flags, plus the undo hint.
 const maxAcceptedLayersResponseBytes = 32 * 1024;
@@ -127,7 +132,8 @@ function validSnapshot(state, workspaceId) {
   const evidence = state?.chart_evidence;
   const validEvidence = evidence === null || evidence?.unavailable === true || uuid(evidence?.revision_id)
     && Number.isSafeInteger(evidence.range?.from_ms) && Number.isSafeInteger(evidence.range?.to_ms)
-    && evidence.range.from_ms < evidence.range.to_ms;
+    && evidence.range.from_ms < evidence.range.to_ms
+    && (evidence.snapshot_hash === undefined || /^[a-f0-9]{64}$/.test(evidence.snapshot_hash));
   return validWorkspace(state?.workspace, workspaceId) && revision(state.selection_revision)
     && validUndo(state.undo, state.workspace) && validEvidence && validSource && (state.layouts == null
       || validNamedLayout(state.layouts.active) && Array.isArray(state.layouts.saved)
@@ -144,6 +150,7 @@ function responseLimit(operation) {
   if (operation === 'frozen_chart' || operation === previewStatus || operation === acceptedOutput) return 4 * 1024 * 1024 + maxRequestBytes;
   if (operation === acceptedLayers) return maxAcceptedLayersResponseBytes;
   if (operation === readChartProjection) return maxResponseBytes;
+  if (operation === textConnection) return 512 * 1024;
   if (operation === exportBackup || operation === exportPrivateRecords) return maxBackupFrameBytes;
   return noteOperations.includes(operation) || privateRecordOperations.includes(operation) ? maxResponseBytes : maxRequestBytes;
 }
@@ -171,7 +178,8 @@ function requestFrame(command, workspaceId) {
   const evidence = evidenceOperations.includes(command?.operation);
   const control = [cancelIndicator, indicatorConfirmation].includes(command?.operation);
   const name = evidence || control ? command.operation : command?.intent?.operation;
-  if (!evidence && !control && !indicatorOperations.includes(name) && !mutations.includes(name) && !noteOperations.includes(name) && !privateRecordOperations.includes(name)) throw new PreviewFailure(403, 'PERMISSION_DENIED');
+  if (!evidence && !control && !indicatorOperations.includes(name) && !mutations.includes(name) && !noteOperations.includes(name)
+      && !privateRecordOperations.includes(name) && name !== textConnection) throw new PreviewFailure(403, 'PERMISSION_DENIED');
   if (!control && (evidence ? command.workspace_id : command?.scope?.workspace_id) !== workspaceId) throw new PreviewFailure(403, 'PERMISSION_DENIED');
   if (command.protocol_version !== '1.1' || command.type !== 'request'
       || !uuid(command.request_id) || !uuid(command.message_id)) {
@@ -241,7 +249,9 @@ function validEvidenceReply(reply, job, workspaceId) {
       && (selection.target === null || selection.target?.kind === 'chart_interval');
   }
   const result = reply.result;
-  return uuid(result?.source_reference) && uuid(result.revision) && Array.isArray(result.fields)
+  return uuid(result?.source_reference) && typeof result.revision === 'string'
+    && (uuid(result.revision) || /^scopehub-synthetic-v1:[a-z0-9:_-]+$/.test(result.revision))
+    && Array.isArray(result.fields)
     && Array.isArray(result.rows) && result.rows.length <= 1000;
 }
 
@@ -299,13 +309,12 @@ function validPrivateRecordOutcome(outcome, job, workspaceId) {
     && receipt.committed_workspace_revision === job.workspaceRevision + 1;
 }
 
-function launchTrustedIndicator(root, wireRequest) {
-  const executable = process.platform === 'win32' ? 'scopehub-indicator-child.exe' : 'scopehub-indicator-child';
+function launchTrustedWorker(root, program, wireRequest, frameBytes, failureMessage, env = process.env) {
+  const executable = process.platform === 'win32' ? program + '.exe' : program;
   const child = spawn(resolve(root, 'target/debug', executable), ['--root', root], {
-    cwd: root, stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true,
+    cwd: root, stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true, env,
   });
-  const frameBytes = 4 * 1024 * 1024;
-  const workerFault = code => JSON.stringify({ error: { code, retryable: false, message: 'Trusted indicator execution failed.', details: {} } });
+  const workerFault = code => JSON.stringify({ error: { code, retryable: false, message: failureMessage, details: {} } });
   const finished = Promise.withResolvers();
   const chunks = [];
   let length = 0;
@@ -358,6 +367,8 @@ function startWriter(root, { path, profileId, workspaceId }) {
   let ready = false;
   let snapshotRequestId = 0;
   let pending;
+  let model;
+  let credential;
   const python = new Map();
   const stoppingPython = new Set();
 
@@ -368,6 +379,16 @@ function startWriter(root, { path, profileId, workspaceId }) {
     stoppingPython.add(run.result);
     void run.result.then(() => stoppingPython.delete(run.result));
     python.delete(task);
+  }
+
+  function stopModel() {
+    if (!model) return;
+    const run = model.run;
+    model = undefined;
+    if (!run) return;
+    run.cancel();
+    stoppingPython.add(run.result);
+    void run.result.then(() => stoppingPython.delete(run.result));
   }
   let remainder = Buffer.alloc(0);
 
@@ -385,6 +406,8 @@ function startWriter(root, { path, profileId, workspaceId }) {
 
   function stop(reason) {
     fail(reason);
+    stopModel();
+    credential = undefined;
     for (const task of python.keys()) stopPython(task);
     if (killTimer || child.exitCode !== null || child.signalCode !== null) return;
     child.stdin.end();
@@ -405,7 +428,9 @@ function startWriter(root, { path, profileId, workspaceId }) {
     const job = pending;
     if (!job) throw invalidReply();
     const validFailure = frame?.ok === false && typeof frame.error?.code === 'string';
-    if (job.operation === 'snapshot') {
+    if (job.operation === credentialChange) {
+      if (!(validFailure || frame?.ok === true && frame.result === null)) throw invalidReply();
+    } else if (job.operation === 'snapshot') {
       if (frame?.request_id !== job.requestId
           || !(validFailure || frame.ok === true && validSnapshot(frame.result, workspaceId))) throw invalidReply();
       // Keep correlation internal to the trusted stdio transport.
@@ -452,6 +477,9 @@ function startWriter(root, { path, profileId, workspaceId }) {
         if (!validNoteOutcome(outcome, job, workspaceId)) throw invalidReply();
       } else if (privateRecordOperations.includes(job.operation)) {
         if (!validPrivateRecordOutcome(outcome, job, workspaceId)) throw invalidReply();
+      } else if (job.operation === textConnection) {
+        if (outcome?.state !== 'completed' || outcome.operation !== textConnection
+          || outcome.result?.action !== job.modelAction) throw invalidReply();
       } else if (job.operation === previewLayout) {
         if (outcome?.state !== 'previewed' || outcome.operation !== job.operation
             || !validNamedLayout(outcome.result?.layout)
@@ -482,9 +510,44 @@ function startWriter(root, { path, profileId, workspaceId }) {
         if (run.completed) python.delete(id);
         else stopPython(id);
       }
-      const run = launchTrustedIndicator(root, wireRequest);
+      const run = launchTrustedWorker(root, 'scopehub-indicator-child', wireRequest,
+        4 * 1024 * 1024, 'Trusted indicator execution failed.');
       python.set(task, run);
       void run.result.then(result => { run.completed = result; });
+    }
+    const modelRequest = frame.text_model_work;
+    delete frame.text_model_work;
+    if (frame.text_model_cancelled === true) stopModel();
+    delete frame.text_model_cancelled;
+    if (job.operation === textConnection && frame.result?.outcome?.state === 'completed') {
+      if (['propose', 'disconnect', 'cancel'].includes(job.modelAction)) stopModel();
+      if (job.deliveredModel) model = undefined;
+    }
+    if (modelRequest !== undefined) {
+      const textResult = frame.result?.outcome?.result;
+      const turn = textResult?.turn_id;
+      const currentTurn = job.modelAction === 'send' && turn === job.requestId
+        || job.modelAction === 'poll' && job.deliveredModel && turn === job.modelTurn
+          && textResult.turn?.state === 'running';
+      if (job.operation !== textConnection || !currentTurn
+        || typeof modelRequest !== 'string' || model) throw invalidReply();
+      const projection = JSON.parse(modelRequest);
+      const cloud = projection.provider === 'openai_responses';
+      if (cloud && (!uuid(projection.credential_revision) || !credential
+          || credential.revision !== projection.credential_revision)) {
+        model = { turn, connection: job.modelConnection, cloud, run: null, result: '{"error":{"code":"PROVIDER_NOT_CONFIGURED","message":"OpenAI API key unavailable.","retryable":false,"details":{}}}' };
+      } else {
+        const wire = cloud ? JSON.stringify({
+          provider: projection.provider, request: projection.request, credential: credential.secret,
+        }) : modelRequest;
+        // The one-shot cloud carrier needs no inherited developer environment.
+        const env = cloud ? (process.platform === 'win32' ? { SystemRoot: process.env.SystemRoot } : {}) : process.env;
+        const run = launchTrustedWorker(root, 'scopehub-text-model-child', wire,
+          512 * 1024, 'Trusted text model execution failed.', env);
+        const current = { turn, connection: job.modelConnection, cloud, run, result: undefined };
+        model = current;
+        void run.result.then(result => { current.result = result; });
+      }
     }
     if (job.operation === cancelIndicator && frame.result?.outcome?.status === 'cancelled'
         || job.operation === previewStatus && frame.result?.status === 'terminal') {
@@ -536,7 +599,7 @@ function startWriter(root, { path, profileId, workspaceId }) {
 
   return {
     ready: startup.promise,
-    async handle(body, signal) {
+    async handle(body, signal, trustedCredentialChange = false) {
       await startup.promise;
       signal.throwIfAborted();
       if (failure) throw failure;
@@ -544,16 +607,22 @@ function startWriter(root, { path, profileId, workspaceId }) {
       const snapshot = body?.type === 'snapshot';
       if (snapshot && Object.keys(body).length !== 1) throw new PreviewFailure(400, 'INVALID_ARGUMENT');
       const requestId = snapshot ? ++snapshotRequestId : body?.request_id;
-      let line = snapshot ? JSON.stringify({ type: 'snapshot', request_id: requestId }) + '\n'
+      let line = trustedCredentialChange ? JSON.stringify(body) + '\n'
+        : snapshot ? JSON.stringify({ type: 'snapshot', request_id: requestId }) + '\n'
         : requestFrame(body, workspaceId);
-      if (body?.intent?.operation === 'indicator.runPreview'
-          && body.intent.arguments?.snapshot?.series?.provider_id === 'scopehub.synthetic') {
-        const history = await readIndicatorSampleHistory(root, body, signal);
+      const sampleIndicator = body?.intent?.operation === 'indicator.runPreview'
+        && body.intent.arguments?.snapshot?.series?.provider_id === 'scopehub.synthetic';
+      const sampleSelection = body?.operation === selectEvidence
+        && body.target?.snapshot?.series?.provider_id === 'scopehub.synthetic';
+      if (sampleIndicator || sampleSelection) {
+        const history = sampleSelection ? await readSampleEvidenceHistory(root, body, signal)
+          : await readIndicatorSampleHistory(root, body, signal);
         if (history.ok === false) return history;
         signal.throwIfAborted();
         if (failure) throw failure;
         if (pending) throw new PreviewFailure(429, 'BUSY');
-        line = JSON.stringify({ type: 'indicator_sample_preview', command: body, history: history.result }) + '\n';
+        const type = sampleSelection ? 'sample_evidence_selection' : 'indicator_sample_preview';
+        line = JSON.stringify({ type, command: body, history: history.result }) + '\n';
         if (Buffer.byteLength(line) > 256 * 1024) throw new PreviewFailure(413, 'RESOURCE_LIMIT');
       }
       const finishedPython = body.type === previewStatus && python.get(body.task_id)?.completed;
@@ -563,9 +632,18 @@ function startWriter(root, { path, profileId, workspaceId }) {
           : '{"error":{"code":"RESOURCE_LIMIT","retryable":false,"message":"Trusted indicator output exceeded its limit.","details":{}}}';
         line = header.slice(0, -1) + ',"worker":' + worker + '}\n';
       }
+      const textArgs = body.type === 'request' && body.intent?.operation === textConnection
+        ? body.intent.arguments : undefined;
+      const finishedModel = textArgs?.action === 'poll' && model?.turn === textArgs.turn_id
+        && model.connection === textArgs.connection_id && model.result;
+      if (finishedModel) {
+        line = JSON.stringify({
+          type: 'ai_text_result', command: body, worker: JSON.parse(finishedModel),
+        }) + '\n';
+      }
       const reply = Promise.withResolvers();
       const noteId = body?.scope?.target?.object_id ?? body?.intent?.arguments?.note_id;
-      const operation = snapshot || body.type === sourceMutation || frozenChartControls.includes(body.type) || indicatorReads.includes(body.type)
+      const operation = trustedCredentialChange || snapshot || body.type === sourceMutation || frozenChartControls.includes(body.type) || indicatorReads.includes(body.type)
         ? body.type : body.operation ?? body.intent?.operation;
       pending = {
         ...reply, requestId, messageId: body.message_id, operation,
@@ -575,6 +653,8 @@ function startWriter(root, { path, profileId, workspaceId }) {
         recordId: typeof body.intent?.arguments?.record_id === 'string'
           ? body.intent.arguments.record_id.toLowerCase() : body.intent?.arguments?.record_id,
         recordAction: body.intent?.arguments?.action, workspaceRevision: body.scope?.expected_workspace_revision,
+        modelAction: textArgs?.action, modelTurn: textArgs?.turn_id, modelConnection: textArgs?.connection_id,
+        deliveredModel: Boolean(finishedModel),
         layoutTarget: body.scope?.target?.kind === 'layout' && body.scope.target.object_id === layoutId,
         noteId: typeof noteId === 'string' ? noteId.toLowerCase() : noteId,
         timer: setTimeout(() => stop(timeout()), commandDeadlineMs),
@@ -583,6 +663,30 @@ function startWriter(root, { path, profileId, workspaceId }) {
       // discards delivery, while the producer is drained without resubmission.
       child.stdin.write(line);
       return reply.promise;
+    },
+    async configureCredential(body, signal) {
+      await startup.promise;
+      signal.throwIfAborted();
+      if (failure) throw failure;
+      if (pending) throw new PreviewFailure(429, 'BUSY');
+      const { action, secret } = body ?? {};
+      const fields = Object.keys(body ?? {});
+      if (action === 'replace' && fields.length === 2 && typeof secret === 'string'
+          && secret.length >= 1 && secret.length <= 2048 && !/[^A-Za-z0-9._~+/=-]/.test(secret)) {
+        const next = { revision: randomUUID(), secret };
+        const reply = await this.handle({ type: credentialChange, revision: next.revision }, signal, true);
+        if (!reply.ok) return reply;
+        credential = next;
+        if (model?.cloud) stopModel();
+      } else if (action === 'remove' && fields.length === 1) {
+        const reply = await this.handle({ type: credentialChange, revision: null }, signal, true);
+        if (!reply.ok) return reply;
+        credential = undefined;
+        if (model?.cloud) stopModel();
+      } else if (action !== 'status' || fields.length !== 1) {
+        throw new PreviewFailure(400, 'INVALID_ARGUMENT');
+      }
+      return { ok: true, result: { configured: credential !== undefined, lifetime: 'session' } };
     },
     async close() {
       stop(unavailable());
@@ -628,9 +732,11 @@ export function ubuntuWorkspace() {
           response.writeHead(404, { 'Cache-Control': 'no-store', 'Content-Length': '0' }).end();
           return;
         }
-        if (request.url !== route) return next();
+        const credentialRequest = request.url === modelCredentialRoute;
+        if (request.url !== route && !credentialRequest) return next();
+        const requestBytes = credentialRequest ? maxCredentialRequestBytes : maxBackupFrameBytes;
         try {
-          assertLocalJsonRequest(request, http, maxBackupFrameBytes);
+          assertLocalJsonRequest(request, http, requestBytes);
           if (!access?.permits(request.headers.authorization)) throw new PreviewFailure(403, 'PERMISSION_DENIED');
           if (active) throw new PreviewFailure(429, 'BUSY');
           if (!writer) throw unavailable();
@@ -647,8 +753,9 @@ export function ubuntuWorkspace() {
           failureResponse(request, response, reason);
         }, requestDeadlineMs);
         try {
-          const body = await readLocalJson(request, maxBackupFrameBytes, requestLimit);
-          const reply = await writer.handle(body, controller.signal);
+          const body = await readLocalJson(request, requestBytes, credentialRequest ? undefined : requestLimit);
+          const reply = credentialRequest ? await writer.configureCredential(body, controller.signal)
+            : await writer.handle(body, controller.signal);
           if (!controller.signal.aborted) {
             response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
             response.end(JSON.stringify(reply));

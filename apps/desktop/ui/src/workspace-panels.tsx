@@ -114,7 +114,7 @@ function DataWindow({ history, instrument, selectedBarTime, selectBar, clearBar,
 }
 
 type SampleFilters = {
-  revision: SampleRevision; timeframe: string; date: string;
+  revision: SampleRevision; timeframe: string; date: string; blocked: boolean;
   setRevision: (value: SampleRevision) => void; setDate: (value: string) => void;
 };
 
@@ -124,19 +124,20 @@ type MarketStatus = {
   replayGap: ReplayGap | undefined;
 };
 
-function DataSources({ sample, selected, history, failureKind, workerRecovery, replayGap, filters, leave, localActions, openPublished, openSample }: MarketStatus & {
+function DataSources({ sample, selected, history, failureKind, workerRecovery, replayGap, filters, leave, localActions, openPublished, openSample, openModelSettings }: MarketStatus & {
   sample: boolean; selected: Instrument | undefined; history: ChartHistory | undefined;
   filters: SampleFilters; leave: () => void;
   localActions: LocalSourceActions | undefined;
   openPublished?: (() => void) | undefined;
   openSample?: (() => void) | undefined;
+  openModelSettings: () => void;
 }) {
   return <div className="source-details">
     {sample && <section><h3>Historical sample</h3><p>Generated prices and volume from fixed sessions in January 2024.</p>
       <div className="sample-filters">
         {selected?.id === sampleRevisionInstrument && <>
           <label htmlFor="sample-revision">Sample revision</label>
-          <select id="sample-revision" value={filters.revision} onChange={event => {
+          <select id="sample-revision" value={filters.revision} disabled={filters.blocked} onChange={event => {
             const value = event.currentTarget.value;
             if (isSampleRevision(value)) filters.setRevision(value);
           }}>
@@ -145,7 +146,8 @@ function DataSources({ sample, selected, history, failureKind, workerRecovery, r
           </select>
         </>}
         <label htmlFor="sample-date">Sample date (UTC)</label>
-        <input id="sample-date" type="date" max="9999-12-31" value={filters.date} aria-describedby="sample-date-help" onChange={event => {
+        <input id="sample-date" type="date" max="9999-12-31" value={filters.date} disabled={filters.blocked}
+          aria-describedby="sample-date-help" onChange={event => {
           const value = event.currentTarget.value;
           if (value === '' || sampleDateStart(value) !== undefined) filters.setDate(value);
         }} />
@@ -160,8 +162,9 @@ function DataSources({ sample, selected, history, failureKind, workerRecovery, r
       aria-haspopup="dialog" onClick={openPublished}>Open published CSV</button></section>}
     {openSample && <section><h3>Historical sample</h3><button type="button" className="secondary-button"
       onClick={openSample}>Open offline sample</button></section>}
-    <section><h3>Your connections</h3><p>Connect your own market data, AI and information services as integrations become available. Service subscriptions are separate.</p>
-      <dl className="facts"><dt>Market data</dt><dd>Not configured</dd><dt>AI model</dt><dd>Not configured</dd><dt>Information</dt><dd>Not configured</dd></dl>
+    <section><h3>Your connections</h3>
+      <dl className="facts"><dt>Market data service</dt><dd>Not configured</dd><dt>Information service</dt><dd>Not configured</dd></dl>
+      <button type="button" className="secondary-button" aria-haspopup="dialog" onClick={openModelSettings}>AI settings</button>
     </section>
   </div>;
 }
@@ -176,9 +179,10 @@ type Props = MarketStatus & BarSelection & {
   layoutSource?: boolean;
   openPublished?: (() => void) | undefined;
   openSample?: (() => void) | undefined;
+  openModelSettings: () => void;
 };
 export function WorkspacePanel({ panel, sample, instruments, selected, history, failureKind, workerRecovery, replayGap, filters,
-  choose, close, leave, choosingInstrument, localActions, layoutPanel, layoutSource, openPublished, openSample, ...selection }: Props) {
+  choose, close, leave, choosingInstrument, localActions, layoutPanel, layoutSource, openPublished, openSample, openModelSettings, ...selection }: Props) {
   return <aside id={layoutPanel ? `workspace-panel-${layoutPanel}` : 'workspace-panel'}
     className={`workspace-panel panel-${panel}${layoutSource ? ' layout-source-panel' : ''}`}
     data-layout-panel={layoutPanel} aria-label={panelLabels[panel]}>
@@ -189,6 +193,6 @@ export function WorkspacePanel({ panel, sample, instruments, selected, history, 
     {panel === 'data' && <DataWindow history={history} instrument={selected} {...selection} />}
     {panel === 'sources' && <DataSources history={history} sample={sample} selected={selected}
       failureKind={failureKind} workerRecovery={workerRecovery} replayGap={replayGap} filters={filters} leave={leave}
-      localActions={localActions} openPublished={openPublished} openSample={openSample} />}
+      localActions={localActions} openPublished={openPublished} openSample={openSample} openModelSettings={openModelSettings} />}
   </aside>;
 }

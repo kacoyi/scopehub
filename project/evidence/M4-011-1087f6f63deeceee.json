@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M4-011",
+  "task_definition_sha256": "aedd4ca1a3b89abb60e62d2caa39af08fa10b4eca66246ef0a699facc0255b7f",
+  "run_id": "20261121T023334.574343Z-f0bb7cc5",
+  "recorded_at": "2026-11-21T02:35:31.106167+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "976b8065aa2b1a21280889598a7dda640fecad851b10ca389769d2e7d8ae3edc",
+    "file_count": 497,
+    "git_head": "ad75744a1ef9351f7d04456276adee9d77dbf45c",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "1087f6f63deeceeeb8be456f60358ce0941fd615297f2bfe78a15ccff75fdeb5",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/projects/scopehub-ai-integration/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "local-import-ui",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/local-import.playwright.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "1c1eacee45747546be7db96a8b31125f496f06760e3e25242bb15bb482d40dd4"
+    },
+    {
+      "id": "model-connection-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/ai-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ae084161cb964e444c2398c036a33d455767416b9b86ce588dc928dfca31a42f"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e5d50110e4b77bc1bdac7cb06832f51a5b340045825a456a306a5c972fb5d30d"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "0655de509bbe23ffdfa22a7886ca6858de3eccd325ba9a4d2f4754fa0acb7004"
+    }
+  ],
+  "project_definition_sha256": "0a13d424988b0e169fd1e2c132076e9122b4f30ea103430f820ba730e9eaf133",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

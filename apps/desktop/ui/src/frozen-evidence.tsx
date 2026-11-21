@@ -100,6 +100,7 @@ export function FrozenEvidenceControls({ snapshot, bars, workspace, access }: {
         onClick={() => { setInspection(undefined); reload(); }}>Refresh shared selection</button>
     </div>
     {workspace.error && <p role="alert" className="workspace-error">{workspace.error}</p>}
+    {workspace.selectionNotice && <p role="status">{workspace.selectionNotice}</p>}
     {current && inspection && inspection.revision === state?.selection_revision &&
       <p role={inspection.failed ? 'alert' : 'status'}>{inspection.message}</p>}
   </section>;
@@ -112,9 +113,9 @@ export function UnavailableSharedSelection({ workspace }: { workspace: LocalWork
     <span role="status">The shared selection is unavailable.</span>
     <button type="button" className="secondary-button" disabled={Boolean(workspace.pending || workspace.error)}
       onClick={() => workspace.chooseEvidence(null)}>Clear shared selection</button>
-    {workspace.error && <>
-      <span role="alert">{workspace.error}</span>
-      <button type="button" className="secondary-button" onClick={workspace.reload}>Refresh shared selection</button>
-    </>}
+    {workspace.selectionNotice && <span role="status">{workspace.selectionNotice}</span>}
+    {workspace.error && <span role="alert">{workspace.error}</span>}
+    {(workspace.error || workspace.selectionNotice) &&
+      <button type="button" className="secondary-button" onClick={workspace.reload}>Refresh shared selection</button>}
   </div>;
 }

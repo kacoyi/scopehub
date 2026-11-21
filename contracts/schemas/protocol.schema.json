@@ -107,7 +107,8 @@
         "privateRecord.change",
         "privateRecord.exportBackup",
         "workspace.previewLayout",
-        "workspace.applyLayout"
+        "workspace.applyLayout",
+        "ai.textConnection"
       ]
     },
     "ChartStyle": {
@@ -16021,6 +16022,781 @@
         "outcome"
       ],
       "additionalProperties": false
+    },
+    "AiTextRouteChoice": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/AiTextOllamaChoice"
+        },
+        {
+          "$ref": "#/$defs/AiTextOfflineMockChoice"
+        },
+        {
+          "$ref": "#/$defs/AiTextOpenAiChoice"
+        }
+      ]
+    },
+    "AiTextRoute": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/AiTextOllamaRoute"
+        },
+        {
+          "$ref": "#/$defs/AiTextOfflineMockRoute"
+        },
+        {
+          "$ref": "#/$defs/AiTextOpenAiRoute"
+        }
+      ]
+    },
+    "AiTextGrant": {
+      "type": "object",
+      "properties": {
+        "connection_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "route": {
+          "$ref": "#/$defs/AiTextRoute"
+        }
+      },
+      "required": [
+        "connection_id",
+        "route"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextTurn": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/AiTextRunningTurn"
+        },
+        {
+          "$ref": "#/$defs/AiTextCompletedTurn"
+        },
+        {
+          "$ref": "#/$defs/AiTextFailedTurn"
+        }
+      ]
+    },
+    "AiTextConnectionInput": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/AiTextStatusInput"
+        },
+        {
+          "$ref": "#/$defs/AiTextProposeInput"
+        },
+        {
+          "$ref": "#/$defs/AiTextActivateInput"
+        },
+        {
+          "$ref": "#/$defs/AiTextDisconnectInput"
+        },
+        {
+          "$ref": "#/$defs/AiTextSendInput"
+        },
+        {
+          "$ref": "#/$defs/AiTextPollInput"
+        },
+        {
+          "$ref": "#/$defs/AiTextCancelInput"
+        }
+      ]
+    },
+    "AiTextConnectionOutput": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/AiTextStatusOutput"
+        },
+        {
+          "$ref": "#/$defs/AiTextProposeOutput"
+        },
+        {
+          "$ref": "#/$defs/AiTextActivateOutput"
+        },
+        {
+          "$ref": "#/$defs/AiTextDisconnectOutput"
+        },
+        {
+          "$ref": "#/$defs/AiTextSendOutput"
+        },
+        {
+          "$ref": "#/$defs/AiTextPollOutput"
+        },
+        {
+          "$ref": "#/$defs/AiTextCancelOutput"
+        }
+      ]
+    },
+    "AiTextConnectionCommand11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/AiTextConnectionScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/AiTextConnectionIntent11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "scope",
+        "intent"
+      ],
+      "additionalProperties": false,
+      "description": "Private local workspace human entry. Route grants, proposals and turns are scoped to the owning profile session."
+    },
+    "AiTextConnectionReply11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "outcome": {
+          "$ref": "#/$defs/AiTextConnectionOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextOllamaChoice": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "ollama"
+        },
+        "origin": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "chart_tools": {
+          "type": "boolean",
+          "const": true
+        }
+      },
+      "required": [
+        "kind",
+        "origin",
+        "model"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextOfflineMockChoice": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "offline_mock"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextOllamaRoute": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "ollama"
+        },
+        "destination": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 528
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "scope": {
+          "type": "string",
+          "enum": [
+            "conversation_text",
+            "conversation_text_and_sample_closes"
+          ]
+        },
+        "charge_basis": {
+          "type": "string",
+          "const": "endpoint_operator"
+        }
+      },
+      "required": [
+        "kind",
+        "destination",
+        "model",
+        "scope",
+        "charge_basis"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextOfflineMockRoute": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "offline_mock"
+        },
+        "destination": {
+          "type": "string",
+          "const": "This app (offline)"
+        },
+        "model": {
+          "type": "string",
+          "const": "ScopeHub offline mock"
+        },
+        "scope": {
+          "type": "string",
+          "const": "conversation_text"
+        },
+        "charge_basis": {
+          "type": "string",
+          "const": "none"
+        }
+      },
+      "required": [
+        "kind",
+        "destination",
+        "model",
+        "scope",
+        "charge_basis"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextOpenAiChoice": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "openai_responses"
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "kind",
+        "model"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextOpenAiRoute": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "openai_responses"
+        },
+        "destination": {
+          "type": "string",
+          "const": "https://api.openai.com/v1/responses"
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "scope": {
+          "type": "string",
+          "const": "conversation_text"
+        },
+        "charge_basis": {
+          "type": "string",
+          "const": "openai_api_account"
+        }
+      },
+      "required": [
+        "kind",
+        "destination",
+        "model",
+        "scope",
+        "charge_basis"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextRunningTurn": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "running"
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextChartClose": {
+      "type": "object",
+      "properties": {
+        "time_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "close": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "time_ms",
+        "close"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextChartEvidence": {
+      "type": "object",
+      "properties": {
+        "source_reference": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "revision": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "range": {
+          "$ref": "#/$defs/VisibleRange"
+        },
+        "rows": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 200,
+          "items": {
+            "$ref": "#/$defs/AiTextChartClose"
+          }
+        }
+      },
+      "required": [
+        "source_reference",
+        "revision",
+        "range",
+        "rows"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextCompletedTurn": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "completed"
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "chart_evidence": {
+          "$ref": "#/$defs/AiTextChartEvidence"
+        }
+      },
+      "required": [
+        "state",
+        "model",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextFailedTurn": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "failed"
+        },
+        "error": {
+          "$ref": "#/$defs/WorkspaceFault11"
+        }
+      },
+      "required": [
+        "state",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextStatusInput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "status"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextProposeInput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "propose"
+        },
+        "route": {
+          "$ref": "#/$defs/AiTextRouteChoice"
+        }
+      },
+      "required": [
+        "action",
+        "route"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextActivateInput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "activate"
+        },
+        "proposal_id": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "action",
+        "proposal_id"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextDisconnectInput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "disconnect"
+        },
+        "connection_id": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "action",
+        "connection_id"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextSendInput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "send"
+        },
+        "connection_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "question": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "selection_revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "action",
+        "connection_id",
+        "question"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextPollInput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "poll"
+        },
+        "connection_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "turn_id": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "action",
+        "connection_id",
+        "turn_id"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextCancelInput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "cancel"
+        },
+        "connection_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "turn_id": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "action",
+        "connection_id",
+        "turn_id"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextStatusOutput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "status"
+        },
+        "connection": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AiTextGrant"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "turn_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "action",
+        "connection",
+        "turn_id"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextProposeOutput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "propose"
+        },
+        "proposal_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "route": {
+          "$ref": "#/$defs/AiTextRoute"
+        }
+      },
+      "required": [
+        "action",
+        "proposal_id",
+        "route"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextActivateOutput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "activate"
+        },
+        "connection": {
+          "$ref": "#/$defs/AiTextGrant"
+        }
+      },
+      "required": [
+        "action",
+        "connection"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextDisconnectOutput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "disconnect"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextSendOutput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "send"
+        },
+        "turn_id": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "action",
+        "turn_id"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextPollOutput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "poll"
+        },
+        "turn_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "turn": {
+          "$ref": "#/$defs/AiTextTurn"
+        }
+      },
+      "required": [
+        "action",
+        "turn_id",
+        "turn"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextCancelOutput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "cancel"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextConnectionScope11": {
+      "type": "object",
+      "properties": {
+        "workspace_id": {
+          "$ref": "#/$defs/OpaqueId"
+        }
+      },
+      "required": [
+        "workspace_id"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextConnectionIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "ai.textConnection"
+        },
+        "arguments": {
+          "$ref": "#/$defs/AiTextConnectionInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextConnectionCompleted11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "completed"
+        },
+        "operation": {
+          "type": "string",
+          "const": "ai.textConnection"
+        },
+        "result": {
+          "$ref": "#/$defs/AiTextConnectionOutput"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "AiTextConnectionOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/AiTextConnectionCompleted11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
     }
   }
 }

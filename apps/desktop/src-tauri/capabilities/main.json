@@ -1,9 +1,10 @@
 {
   "identifier": "main",
-  "description": "Local main window may call the shared operation registry and open the native local CSV folder picker.",
+  "description": "Local main window may call the shared operation registry, configure its own OpenAI credential and open the native local CSV folder picker.",
   "windows": ["main"],
   "permissions": [
     "allow-execute-operation",
+    "allow-configure-openai-credential",
     "allow-execute-market-subscription",
     "allow-cancel-market-subscription",
     "allow-prepare-market-subscription",
