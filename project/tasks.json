@@ -9047,6 +9047,116 @@
           "cleanup": "Retain the comparison diagnostic only in the ignored report directory. Keep sleeps out of the delivered test."
         }
       }
+    },
+    {
+      "id": "M1-026",
+      "title": "Keep cold operation validation within the market replay recovery budget",
+      "milestone": "M1",
+      "status": "active",
+      "depends_on": [
+        "M1-019"
+      ],
+      "scope": [
+        "crates/application/src/lib.rs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "A cold operation lookup and authorization do not compile unrelated validators. Each used payload still uses its canonical schema and repeated validation reuses it.",
+        "The real Windows interruption check observes one accepted chart subscription, recovery from the confirmed checkpoint, the exact final closed bar and the original frozen history within the existing replay deadline.",
+        "Existing cancellation, bounded restart, invalid replacement and independent chart and wire assertions continue to pass."
+      ],
+      "checks": [
+        "rust-contracts-workers",
+        "rust-lints",
+        "market-worker-interruption",
+        "market-recovery",
+        "market-recovery-ui",
+        "market-live-stream",
+        "market-fixtures",
+        "ui-build"
+      ],
+      "evidence": [],
+      "next_action": "Verify the functional checkpoint in the matching hosted Linux and native Windows jobs, then archive matching evidence before closure.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A cold preview bridge finishes real worker interruption recovery on Windows within the existing five-second subscription budget.",
+        "change_types": [
+          "market",
+          "stream-slice"
+        ],
+        "context": [
+          "crates/application/src/lib.rs",
+          "crates/application/src/replay.rs",
+          "crates/worker-host/src/market.rs",
+          "tests/ubuntu-preview/worker-interruption.spec.mjs"
+        ],
+        "hypotheses": [
+          "Both Windows jobs reached the verified replacement before the five-second subscription deadline. A local cold lookup isolated the eager cost, and the same real-worker interruption probe completed after deferring operation payload validators."
+        ],
+        "risks": [
+          {
+            "failure": "Deferred compilation skips canonical checks, compiles unrelated schemas, or rebuilds a used validator on each request.",
+            "checks": [
+              "rust-contracts-workers",
+              "rust-lints"
+            ]
+          },
+          {
+            "failure": "Replay still times out after resumption or stops preserving the confirmed state and frozen history.",
+            "checks": [
+              "market-worker-interruption",
+              "market-recovery",
+              "market-recovery-ui",
+              "market-live-stream"
+            ]
+          }
+        ],
+        "rollback": "Retain the original hosted failure and cold-bridge comparison. Revert the validator change if validation behavior regresses. Verify the remaining Windows risk with the matching hosted result.",
+        "implementation": {
+          "modules": [
+            "application",
+            "worker-host"
+          ],
+          "entrypoints": [
+            "crates/application/src/lib.rs",
+            "crates/worker-host/src/market.rs",
+            "tests/ubuntu-preview/worker-interruption.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/runtime"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Deadline increases, worker retry changes, protocol changes, and changes to other pull requests."
+          ],
+          "open_questions": [
+            "The retained Windows artifacts identify the terminal stage. A matching native Windows run is needed to verify the repaired budget on that runner."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Canonical request and response validation, actor permissions, recovery timing, cancellation, monotonic checkpoints, and independent expected outputs."
+          ],
+          "change": [
+            "Build only the payload validators needed by the current bridge traffic."
+          ],
+          "data_plan": "Keep compiler caches in process memory and use the existing synthetic replay and retained diagnostic artifacts.",
+          "cleanup": "Reuse the existing validator builder and remove eager catalog compilation."
+        }
+      }
     }
   ]
 }

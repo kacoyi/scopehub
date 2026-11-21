@@ -162,11 +162,34 @@ pub struct MarketStatus {
 struct Operation {
     name: String,
     actors: Vec<String>,
-    input: jsonschema::Validator,
-    output: jsonschema::Validator,
+    input: OperationValidator,
+    output: OperationValidator,
     wire: Option<WireBinding>,
     confirmation_required: bool,
     undoable: bool,
+}
+
+struct OperationValidator {
+    definition: String,
+    compiled: OnceLock<jsonschema::Validator>,
+}
+
+impl OperationValidator {
+    fn new(definition: &Value) -> Self {
+        Self {
+            definition: definition
+                .as_str()
+                .expect("operation schema definition")
+                .into(),
+            compiled: OnceLock::new(),
+        }
+    }
+
+    fn is_valid(&self, value: &Value) -> bool {
+        self.compiled
+            .get_or_init(|| validator(&self.definition))
+            .is_valid(value)
+    }
 }
 
 struct WireBinding {
@@ -227,7 +250,9 @@ fn validator(definition: &str) -> jsonschema::Validator {
         .expect("embedded operation schema")
 }
 
-static OPERATIONS: LazyLock<Vec<Operation>> = LazyLock::new(|| {
+static OPERATIONS: LazyLock<Vec<Operation>> = LazyLock::new(load_operations);
+
+fn load_operations() -> Vec<Operation> {
     let manifest: Value = serde_json::from_str(include_str!("../../../contracts/contract.json"))
         .expect("embedded operation catalog");
     let protocol = manifest["protocol_version"]
@@ -240,8 +265,8 @@ static OPERATIONS: LazyLock<Vec<Operation>> = LazyLock::new(|| {
         .map(|op| Operation {
             name: op["name"].as_str().expect("operation name").into(),
             actors: serde_json::from_value(op["actors"].clone()).expect("actor list"),
-            input: validator(op["input"].as_str().expect("input definition")),
-            output: validator(op["output"].as_str().expect("output definition")),
+            input: OperationValidator::new(&op["input"]),
+            output: OperationValidator::new(&op["output"]),
             wire: op["wire_bindings"][protocol]
                 .as_object()
                 .map(|binding| WireBinding {
@@ -259,7 +284,50 @@ static OPERATIONS: LazyLock<Vec<Operation>> = LazyLock::new(|| {
             undoable: op["undoable"].as_bool().expect("undo policy"),
         })
         .collect()
-});
+}
+
+#[cfg(test)]
+#[test]
+fn operation_catalog_compiles_only_payloads_used_for_validation() {
+    let operations = load_operations();
+    let replay = operations.iter().find(|op| op.name == SUBSCRIBE).unwrap();
+    replay.authorize(Actor::User).unwrap();
+    assert!(
+        operations
+            .iter()
+            .all(|op| op.input.compiled.get().is_none() && op.output.compiled.get().is_none()),
+        "loading the catalog and authorizing replay must leave payload validators cold"
+    );
+
+    assert!(!replay.input.is_valid(&json!({})));
+    assert!(replay.input.compiled.get().is_some());
+    assert!(replay.output.compiled.get().is_none());
+
+    let accepted = json!({
+        "status": "accepted",
+        "from_position": {
+            "stream_id": "2abe27c1-8b1d-4108-87c0-569896fbf495",
+            "epoch": "synthetic-replay-v1",
+            "sequence": 1
+        }
+    });
+    assert!(replay.output.is_valid(&accepted));
+    let compiled = replay.output.compiled.get().unwrap();
+    let mut invalid = accepted;
+    invalid["from_position"]["sequence"] = json!(-1);
+    assert!(!replay.output.is_valid(&invalid));
+    assert!(std::ptr::eq(
+        compiled,
+        replay.output.compiled.get().unwrap()
+    ));
+    assert!(
+        operations
+            .iter()
+            .filter(|op| op.name != SUBSCRIBE)
+            .all(|op| op.input.compiled.get().is_none() && op.output.compiled.get().is_none()),
+        "validating replay must leave every unrelated payload validator cold"
+    );
+}
 
 fn operation(name: &str) -> Result<&'static Operation, Error> {
     OPERATIONS

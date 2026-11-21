@@ -2243,6 +2243,25 @@
         "prevention": "The ordered read-first and undo-first controls restored the original exact document after one committed Undo. A separate earlier stale read refused the first contender and the single new snapshot succeeded after drain. The final workspace reports passed the exact version, document, cancellation, failure, revocation and restart assertions."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-cold-market-replay-deadline",
+      "source": "PR 22 Windows run 44865759620 job 136728999464 at 620bdfb8ebec5bd9f8e4c48a605142f59e23e213 and PR 23 Windows run 44865929513 job 136729455019 at 0aabf05ee5085d1568828ce7ee3699458b1f3651.",
+      "observation": "Both Windows interruption checks reached playing and verified replacement resumption before the five-second subscription returned TIMEOUT. The original PR 22 artifact is retained under .reports/ci/44865759620/windows. Locally the first and second reads in the same debug bridge took 1.426 and 0.026 seconds before the repair and 0.200 and 0.032 seconds after it. The old cold registry compiled 90 payload validators for 45 operations. A controlled hold of 2.6 seconds after the first real worker's confirmed sequence 1 reproduced resumption followed by TIMEOUT with the eager bridge. Under the same hold the repaired bridge resumed at sequence 1 and completed with the expected sequence 2 closed bar at 4.258 seconds. A deterministic catalog regression fails with eager compilation and passes with lazy per-payload compilation. The local diagnostics are retained under .reports/M1-026. Matching native Windows verification is pending.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-026"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "market-worker-interruption",
+        "market-recovery",
+        "market-recovery-ui",
+        "market-live-stream"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
