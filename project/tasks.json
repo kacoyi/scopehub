@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M3-006",
+  "focus_task_id": "M4-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -9732,7 +9732,7 @@
       "id": "M3-006",
       "title": "Recover the workspace view after a committed indicator removal encounters read contention",
       "milestone": "M3",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M3-005"
       ],
@@ -9763,10 +9763,23 @@
         "workspace-timeframe",
         "market-worker-interruption"
       ],
-      "next_action": "Verify the committed recovery and durable single-dispatch undo on Ubuntu and native Windows, then archive exact-source local and authenticated hosted receipts.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
-      "evidence": [],
+      "closure_reason": "All eight selected checks passed on clean source 5e3de366955a943b0ea4c056e4fffcfe7c4fb3fc in local run 20261121T141635.785800Z-34c7e7ed and authenticated Ubuntu and native Windows workflow 44913291282. The browser journey observed the real first HTTP 429 BUSY response after a committed removal and recovered its authoritative revision 2 at 281 ms on Ubuntu and 558 ms on Windows. Both found zero layers and the matching durable undo, then verified one removal and one user-requested undo in both the dispatch log and storage. The existing eight-second observation and original market-worker interruption checks passed.",
+      "evidence": [
+        {
+          "path": "project/evidence/M3-006-6cbff9c4f86a1de8.json",
+          "sha256": "a7479a05f508187c3fc41cfe10ab75a6343dd3e89fa74b281568a7e49ad90b68"
+        },
+        {
+          "path": "project/evidence/M3-006-9816b8d821032d5f.json",
+          "sha256": "ac7ae3e8100b30c2e877062da8be8397a110d921ddbbb6cd11f6edc2aeeb8e00"
+        },
+        {
+          "path": "project/evidence/M3-006-b078e51d08a3bb49.json",
+          "sha256": "7484ee1217f1a34b601d5aa6996e0cf1cd09497b96a03f6fe71eab23255732cd"
+        }
+      ],
       "plan": {
         "outcome": "The accepted indicator and its undo converge to the committed workspace revision after a transient read-side conflict.",
         "change_types": [
