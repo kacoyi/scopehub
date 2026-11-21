@@ -1272,8 +1272,8 @@
     },
     {
       "id": "cross-checkout-diagnostic-dependency-and-retirement",
-      "source": "Owner development worktree review and read-only retirement reproductions on 2026-11-21.",
-      "observation": "M4-001 referenced its blocked diagnostic through another checkout. Moving or retiring that checkout could make the diagnostic unavailable. The owner also reproduced two false retirement candidates in temporary Git worktrees. One still supplied a report to a committed operational script in another checkout. The other appeared to retain its only diagnostic because an archive root above the checkout resolved back to the original file.",
+      "source": "Owner worktree review and separate read-only reproductions by the development supervisor during M0-031 on 2026-11-21.",
+      "observation": "The owner identified that M4-001 referenced its blocked diagnostic through another checkout and requested criteria for worktree retirement. Moving or retiring that checkout could make the diagnostic unavailable. During implementation the development supervisor reproduced two false retirement candidates in temporary Git worktrees. One still supplied a report to a committed operational script in another checkout. The other appeared to retain its only diagnostic because an archive root above the checkout resolved back to the original file.",
       "diagnostic_reports": [
         {
           "run_id": "20261121T015908.326119Z-721f69a6",
