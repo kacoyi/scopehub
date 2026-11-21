@@ -9388,6 +9388,345 @@
           "cleanup": "Keep the existing locator and queue entrypoints and remove overly broad assumptions under deterministic regression fixtures."
         }
       }
+    },
+    {
+      "id": "M0-032",
+      "title": "Relocate the primary ScopeHub checkout while preserving verified development workflows",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-030"
+      ],
+      "scope": [
+        "scripts",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Preserve and verify local Git references, linked checkout identity and working states, retained original diagnostics, and host configuration backups before a same-filesystem primary checkout move.",
+        "Update host worktree, maintenance and development launch entries to resolve the relocated primary checkout. Keep archive lookup independently configured. Scheduled cache maintenance must not trigger a worktree move.",
+        "On the affected host verify native Git links in both directions, the primary pinned Python worker, Rust and UI entrypoints, a real Herdr launch, and retained diagnostic checksums at the new location. Demonstrate a tested rollback path before marking this task done.",
+        "Retain verified private recovery copies of primary and enrolled legacy checkout inputs on independent storage. Move each enrolled sibling only after its owners and path consumers are accounted for, and verify its reverse path and any required compatibility link.",
+        "Pin the verified host tooling and prove that scheduled footprint maintenance refreshes the read-only retirement observation without scheduling worktree moves or removals. Re-enable recurring cache maintenance after canonical smoke verification."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-032-62e00e69f7d90432.json",
+          "sha256": "d0dd84e353c3431ddc6ff73f27d03e0be65f1533ef8de30a96c3ceed02b47720"
+        },
+        {
+          "path": "project/evidence/M0-032-3066734d1ddd7db1.json",
+          "sha256": "53f2b054842553eeec32bb9bd440cb463bdccf7b9e526e3ded8e172653920f6a"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Completed the verified primary and seven individual relocations at integrated main a374d747. All 49 live Git registrations and 27 enrolled runtime rebuilds were verified, along with independent normal HTTP synthetic search. Independent host acceptance confirmed all 85 installed executable entries had canonical roots and preserved three original untracked receipts, the original stash and separately archived diagnostics. The recurring cache schedule was restored with a read-only retirement refresh and verified against all 49 registrations. Eight verified cold runtime duplicates released 31,812,624,384 allocated bytes from NVMe after recoverability and native consumer checks. The one temporary primary compatibility alias remains under a confirmed live coordinator. An independent same-session watcher is armed for the natural release, with guarded retirement after owner handoff. The private native and independent host receipt SHA-256 values are ee4f49966e4544e5db6249c4a62bc1bf42e32ff7affb9ed134937a31eda3d821 and f0984252cd6265d09a883d3b9b00d5912455c59ac58312ebb2397e8f338f1e30.",
+      "plan": {
+        "outcome": "The primary checkout is durably addressable on the NVMe, existing linked worktrees keep their source and state, and ordinary development and evidence retrieval work from the new primary.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/primary_relocation.py",
+          "scripts/worktree.py",
+          "scripts/storage.py",
+          "scripts/herdr.py",
+          "project/development.json",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "A single same-filesystem primary rename with Git worktree repair can preserve the existing task worktrees. Host-local aliases and maintenance units need a replaceable primary reference."
+        ],
+        "risks": [
+          {
+            "failure": "A live process, local-only change, or retained receipt becomes unreachable after a path or configuration change.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A stale environment launcher or scheduled migration silently breaks the primary after cutover.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep a private checksum-verified copy of the primary and host settings. Rehearse the reverse rename, repair native Git worktree links and restore the named maintenance files and aliases. Preserve the disabled timer state and retain failed observations.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/primary_relocation.py",
+            "scripts/worktree.py",
+            "scripts/storage.py",
+            "scripts/herdr.py",
+            "scripts/check.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/herdr"
+            }
+          ],
+          "non_goals": [
+            "Product feature changes, forced worktree retirement, releases or relocation of private product profiles."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "All Git history and working states, exact archived reports, private profiles and the optional nature of the secondary volume."
+          ],
+          "change": [
+            "Give the primary checkout an independent stable home and remove scheduled migration from cache maintenance.",
+            "Refresh retirement observations through scheduled footprint maintenance and move seven named legacy siblings through individual reviewed native Git operations."
+          ],
+          "data_plan": "Keep host inventories and exact private backups outside the checkouts. Verify independent archive copies of irreplaceable local inputs and preserve source and rollback copies. Use only synthetic fixtures in versioned tests.",
+          "cleanup": "Use a temporary compatibility link for the original coordinating Herdr terminal. Switch the coordinator to a new canonical Herdr space, retire the old folder entry and link after checking live terminal paths, and verify the normal entrypoints again."
+        }
+      }
+    },
+    {
+      "id": "M0-037",
+      "title": "Recover history and local CSV bridges in previously relocated managed worktrees",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-030"
+      ],
+      "scope": [
+        "scripts",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Bind the 36 observed history and local CSV entries across 26 prior managed worktrees to their native Git registrations and exact checkout revisions. Confirm Git identity and working state, protected owner and worker activity, and Cargo consumers before touching each approved runtime. Record explicit holds wherever availability or exact source cannot be established.",
+        "Build the affected history and local CSV bridge targets against the approved checkout's exact canonical source and locked Python and Cargo inputs. Stage and verify replacement files before any promotion. Retain checksum-verified originals and replace only the approved installed artifacts while the checkout and relevant build consumers are idle.",
+        "From each repaired canonical path, repeat the relevant synthetic instrument.search or desktop-routed CSV preview and observe the actual child working directory and Python interpreter. Verify the normalized CSV close, volume and source digest. Track the earlier CSV protocol mismatch separately from obsolete path routing. Run with any obsolete path unavailable where the owner can release it. Keep the checkout pending if another live consumer still requires an alias and an independent probe cannot establish canonical operation.",
+        "On isolated native fixtures, repeat the move and recovery of both bridge kinds with the old path unavailable, restore the previous installed bytes and relevant metadata, and verify canonical operation after a second recovery. Preserve all source, Git identities, ignored non-build files and original diagnostics and receipts.",
+        "Run the listed repository checks and keep the actual-host results separately in a private, source-bound receipt. Record exact artifact digests, canonical child launch observations and rollback verification there before counting any repaired runtime as accepted."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "rust-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-037-647258ffc2b6c6d9.json",
+          "sha256": "880b93e3e736b6cf12b67ebf631933dc7eaba5555d4f83b553a8f97c60a7f4a8"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Scoped repository checks passed. The linked feedback records independent native acceptance for the 36 repaired bridge entries and tested byte-preserving recovery.",
+      "plan": {
+        "outcome": "Previously relocated managed worktrees can run their installed synthetic history and desktop CSV flows through the Python interpreter at their registered canonical paths, with reversible recovery of the original installed artifacts.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "crates/worker-host/examples/history_bridge.rs",
+          "apps/desktop/src-tauri/examples/local_import_bridge.rs",
+          "scripts/check_local_import_publication.py",
+          "scripts/worktree.py",
+          "scripts/storage.py",
+          "project/development.json",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "Cached history and desktop bridges can retain the absolute source root embedded by CARGO_MANIFEST_DIR. Rebuilding from exact canonical source and locked dependencies can restore launches without an old checkout entry and align the desktop bridge and CSV worker protocol. Confirm protocol compatibility by running the actual preview.",
+          "An isolated Cargo build can reuse safe inputs while the deployed runtime changes are limited to artifacts verified for the canonical checkout. Sequential staging can bound disk use."
+        ],
+        "risks": [
+          {
+            "failure": "A bridge probe appears to pass through an old alias, a different Python interpreter or source from another checkout, or routes correctly while CSV preview still fails at the worker protocol.",
+            "checks": [
+              "python-contracts-workers",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Replacing a generated file interferes with a live shell, worker or Cargo job, or a failed promotion loses the prior installed state.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          },
+          {
+            "failure": "Recovery consumes excess disk space, alters retained evidence or changes Git working state or checkout identity.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Keep a private manifest of each changed artifact with its source binding, digest and relevant metadata. After excluding active consumers, restore the exact prior artifacts from verified staging and recheck their bytes and metadata. Keep the original failed launch observation as historical evidence.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/worktree.py",
+            "scripts/storage.py",
+            "crates/worker-host/examples/history_bridge.rs",
+            "apps/desktop/src-tauri/examples/local_import_bridge.rs",
+            "scripts/check_local_import_publication.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/herdr"
+            }
+          ],
+          "non_goals": [
+            "Moving any checkout, extending the seven-sibling M0-032 scope, updating branches, changing scheduled maintenance or product behavior, rewriting earlier evidence, and retaining a full duplicate Cargo target for each repaired worktree."
+          ],
+          "open_questions": [
+            "Which observed entries still need a bridge runtime, which owners can release an old path for the native probe, and what does an exact-source rebuild establish about the independent CSV protocol mismatch?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Git registration, source and working state, open owner sessions, ignored non-build files, original diagnostics and accepted project history."
+          ],
+          "change": [
+            "Replace only verified path-bound runtime artifacts at approved canonical managed paths. Check the child process identity and restore the previous installed bytes on rollback."
+          ],
+          "data_plan": "Keep host paths, activity observations and exact runtime receipts private. Use bounded scratch space and retain only the original artifacts needed for recovery. Use synthetic history for verification.",
+          "cleanup": "Retire task-created staging after verification and retain the minimal rollback payload. Record any held runtime and required alias with its release condition. Leave existing compatibility entries under coordinator control."
+        }
+      }
+    },
+    {
+      "id": "M0-038",
+      "title": "Close synthetic workspace preview fixtures when their parent disconnects",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Reproduce loss of the parent IPC channel of the current synthetic Vite fixture or retain evidence that the existing source already handles it.",
+        "The fixture releases its listener and real synthetic workspace writer after parent IPC loss, and preserves normal explicit close, history interruption and native terminal cleanup.",
+        "The cross-platform workspace-timeframe check covers the interruption without leaking a child on test failure. Retain the before and after observations and verify local and hosted applicable checks."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-038-4f80478067e7dea6.json",
+          "sha256": "18de17075e456a9c2888062f8bbb3c7a7fbe14656142f926616ad71f72d1f655"
+        },
+        {
+          "path": "project/evidence/M0-038-8dfc396a3ee7d857.json",
+          "sha256": "135413a6aa25d1aa4c4eb7da48931bd32509094841e81863e06dd482e46fabf1"
+        },
+        {
+          "path": "project/evidence/M0-038-0c8b3980a0ef1341.json",
+          "sha256": "fe2e3aba1a7455077823b5cb13448d8c2f7df0dd39bf2c62e95ce34843440d0a"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "An interrupted Playwright owner releases its test-only workspace preview and Rust writer without an operator stopping orphan processes.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ubuntu-preview/workspace.config.mjs",
+          "tests/ubuntu-preview/workspace_test_writer.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The IPC-owned Vite process only handles a close message, so losing the parent can bypass the normal server teardown."
+        ],
+        "risks": [
+          {
+            "failure": "The parent disappears during setup or while a synthetic request is held.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "Cleanup races a normal close, disrupts a terminal-signal journey or leaves a writer behind.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Revert the fixture change if a normal, interrupted or signal-driven journey regresses. Preserve the original host evidence and the reproduction.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ubuntu-preview/workspace.config.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Product processes, trading, user profiles and protocol behavior."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Explicit close, terminal signals, interrupted-history behavior, private synthetic profiles and existing workspace assertions."
+          ],
+          "change": [
+            "Make loss of the parent IPC channel close the owned preview and writer."
+          ],
+          "data_plan": "Use test-only temporary synthetic profiles and the retained operator observation.",
+          "cleanup": "Assert release of the port and child process and clean the synthetic fixture after every test exit."
+        }
+      }
     }
   ]
 }
