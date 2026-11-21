@@ -32,9 +32,23 @@ const snapshot = { type: 'snapshot' };
 const admissionProbe = { type: 'snapshot', request_id: 1 };
 const service = `
   const [entry, mode, port, faultEnabled] = process.argv.slice(1);
-  const { createServer } = await import(entry);
+  const shutdown = Promise.withResolvers();
+  let closing = !process.connected;
   let interrupted;
   let heldFirstDisconnect = false;
+  function cutHistory() {
+    interrupted?.destroy();
+    interrupted = undefined;
+  }
+  function requestClose() {
+    closing = true;
+    shutdown.resolve();
+  }
+  process.once('disconnect', requestClose);
+  process.on('message', message => {
+    if (message === 'close') requestClose();
+    else if (message === 'cut-history') cutHistory();
+  });
   const plugins = faultEnabled ? [{
     name: 'scopehub-test-history-response-interruption',
     enforce: 'pre',
@@ -80,19 +94,26 @@ const service = `
       });
     },
   }] : [];
-  // These journeys restart the service explicitly. Leave file watching to interactive Vite.
-  const server = await createServer({ mode, plugins, server: { host: '127.0.0.1', port: Number(port), strictPort: true, watch: null } });
-  async function receive(message) {
-    if (message !== 'close' && message !== 'cut-history') return;
-    interrupted?.destroy();
-    interrupted = undefined;
-    if (message !== 'close') return;
-    process.off('message', receive);
-    await server.close();
-    process.disconnect();
+  let server;
+  async function start() {
+    if (closing) return;
+    const { createServer } = await import(entry);
+    if (closing) return;
+    // These journeys restart the service explicitly. Leave file watching to interactive Vite.
+    server = await createServer({ mode, plugins, server: { host: '127.0.0.1', port: Number(port), strictPort: true, watch: null } });
+    if (!closing) await server.listen();
   }
-  process.on('message', receive);
-  await server.listen();
+  try {
+    await start();
+    if (!closing) await shutdown.promise;
+  } finally {
+    cutHistory();
+    try {
+      await server?.close();
+    } finally {
+      if (process.connected) process.disconnect();
+    }
+  }
 `;
 
 test.beforeAll(async ({}, testInfo) => {
@@ -124,6 +145,8 @@ test('fresh browsers restore committed timeframe and eligible undo after service
       });
     });
     await expect.poll(() => alive(observation[0].writer)).toBe(false);
+    expect(alive(observation[0].vite)).toBe(false);
+    expect(await portAvailable(port)).toBe(true);
     expect((await stat(join(profile.root, 'workspace.sqlite3'))).size).toBeGreaterThan(0);
 
     await inService(port, profile, 'ubuntu-workspace', async server => {
@@ -2863,6 +2886,95 @@ test('the private launcher handoff is required and a previous launch cannot auth
   }
 });
 
+test('losing parent IPC releases the listener and writer with a history response held', async ({}, testInfo) => {
+  const profile = await makeProfile();
+  const port = await freePort();
+  const history = new AbortController();
+  const observation = { port };
+  const observe = async () => ({
+    vite: alive(observation.vite),
+    writer: alive(observation.writer),
+    listening: !(await portAvailable(port)),
+  });
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      observation.vite = server.pid;
+      observation.writer = await writerPid(server);
+      expect(state(await (await post(server, snapshot)).json())).toEqual({ revision: 0, timeframe: '1m', undo: null });
+      const signal = AbortSignal.any([history.signal, AbortSignal.timeout(15_000)]);
+      const response = await fetch(server.url + operationPath, {
+        method: 'POST',
+        headers: {
+          Origin: server.url, 'Content-Type': 'application/json', [traceHeader]: randomUUID(),
+          'x-scopehub-test-interrupt': 'during-body-200',
+        },
+        body: JSON.stringify(sampleHistoryCall()),
+        signal,
+      });
+      expect(response.status).toBe(200);
+      const reader = response.body.getReader();
+      expect(await reader.read()).toEqual({ value: new TextEncoder().encode('{'), done: false });
+      const responseReleased = reader.read().then(({ done }) => done, () => !signal.aborted);
+      observation.beforeDisconnect = await observe();
+      expect(observation.beforeDisconnect).toEqual({ vite: true, writer: true, listening: true });
+      const exited = server.disconnectOwner(observation.writer);
+      await expect.poll(async () => {
+        observation.afterDisconnect = await observe();
+        return observation.afterDisconnect;
+      }, { timeout: 4_000 }).toEqual({ vite: false, writer: false, listening: false });
+      expect(await exited).toEqual([0, null]);
+      expect(await responseReleased).toBe(true);
+      await expect(stat(server.handoff)).rejects.toMatchObject({ code: 'ENOENT' });
+    }, { historyTrace: true, historyFault: true });
+  } finally {
+    history.abort();
+    if (observation.writer) observation.afterCleanup = await observe();
+    await profile.close();
+    await testInfo.attach('workspace-parent-disconnect', { body: JSON.stringify(observation), contentType: 'application/json' });
+  }
+});
+
+for (const phase of ['before configuration', 'during configuration', 'after duplicate close messages']) {
+  test(`losing parent IPC ${phase} exits without starting the workspace writer`, async () => {
+    const profile = await makeProfile();
+    const port = await freePort();
+    // Hold the real configured Vite server before it can start listening.
+    const entry = phase === 'before configuration' ? vite : 'data:text/javascript,' + encodeURIComponent(`
+      import { createServer as configure } from ${JSON.stringify(vite)};
+      import { once } from 'node:events';
+      export async function createServer(options) {
+        const server = await configure(options);
+        const disconnected = once(process, 'disconnect');
+        process.send('configured');
+        await disconnected;
+        return server;
+      }
+    `);
+    const child = spawnService(port, profile, 'ubuntu-workspace', { entry });
+    const exited = once(child, 'exit');
+    child.stdout.resume();
+    child.stderr.resume();
+    try {
+      if (entry !== vite) {
+        expect(await once(child, 'message', { signal: AbortSignal.timeout(10_000) })).toEqual(['configured']);
+      }
+      if (phase === 'after duplicate close messages') {
+        child.send('close');
+        child.send('close');
+      }
+      expect(child.connected).toBe(true);
+      if (child.connected) child.disconnect();
+      await expect.poll(() => child.exitCode, { timeout: 4_000 }).toBe(0);
+      expect(await portAvailable(port)).toBe(true);
+      await expect(stat(join(profile.root, 'workspace.sqlite3'))).rejects.toMatchObject({ code: 'ENOENT' });
+    } finally {
+      if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM');
+      try { await reapService(child, exited); }
+      finally { await profile.close(); }
+    }
+  });
+}
+
 test('terminal SIGINT and SIGTERM remove the handoff and reap the writer before relaunch', async () => {
   test.skip(process.platform === 'win32', 'The owned CLI uses POSIX signal delivery.');
   const profile = await makeProfile();
@@ -3015,21 +3127,30 @@ test('a status-only probe cancels its unread response body', async () => {
   expect(cancelled).toBe(true);
 });
 
-async function freePort() {
+async function freePort(requestedPort = 0) {
   const server = createServer();
-  server.listen(0, '127.0.0.1');
+  server.listen(requestedPort, '127.0.0.1');
   await once(server, 'listening');
   const port = server.address().port;
   await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
   return port;
 }
 
-async function inService(port, profile, mode, use, { expectHandoff = true, terminalSignal, historyTrace = false, historyFault = false } = {}) {
-  const url = 'http://127.0.0.1:' + port;
+async function portAvailable(port) {
+  try {
+    await freePort(port);
+    return true;
+  } catch (error) {
+    if (error.code === 'EADDRINUSE') return false;
+    throw error;
+  }
+}
+
+function spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, entry = vite }) {
   const args = terminalSignal
     ? [viteCli, '--mode', mode, '--host', '127.0.0.1', '--port', String(port), '--strictPort']
-    : ['--input-type=module', '--eval', service, vite, mode, String(port), historyFault ? '1' : ''];
-  const child = spawn(process.execPath, args, {
+    : ['--input-type=module', '--eval', service, entry, mode, String(port), historyFault ? '1' : ''];
+  return spawn(process.execPath, args, {
     cwd: ui,
     env: {
       ...process.env,
@@ -3040,7 +3161,20 @@ async function inService(port, profile, mode, use, { expectHandoff = true, termi
     },
     stdio: terminalSignal ? ['pipe', 'pipe', 'pipe'] : ['ignore', 'pipe', 'pipe', 'ipc'],
   });
+}
+
+async function reapService(child, done) {
+  const grace = setTimeout(() => child.kill('SIGKILL'), 7_000);
+  try { return await done; }
+  finally { clearTimeout(grace); }
+}
+
+async function inService(port, profile, mode, use, { expectHandoff = true, terminalSignal, historyTrace = false, historyFault = false } = {}) {
+  const url = 'http://127.0.0.1:' + port;
+  const child = spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault });
   const closed = once(child, 'close');
+  let disconnectedExit;
+  let disconnectedWriter;
   let output = '';
   let handoffRejected = false;
   const historyStages = new Map();
@@ -3073,6 +3207,14 @@ async function inService(port, profile, mode, use, { expectHandoff = true, termi
     cutHistoryResponse: () => new Promise((resolve, reject) => {
       child.send('cut-history', error => error ? reject(error) : resolve());
     }),
+    disconnectOwner: writer => {
+      expect(child.connected).toBe(true);
+      disconnectedWriter = writer;
+      // Node does not reliably emit ChildProcess close after a local IPC disconnect.
+      disconnectedExit = once(child, 'exit');
+      if (child.connected) child.disconnect();
+      return disconnectedExit;
+    },
   };
   try {
     const deadline = Date.now() + 10_000;
@@ -3103,15 +3245,20 @@ async function inService(port, profile, mode, use, { expectHandoff = true, termi
     }
     await use(server);
   } finally {
-    if (terminalSignal) child.kill(terminalSignal);
-    else if (child.connected) child.send('close', () => {});
-    const grace = setTimeout(() => child.kill('SIGKILL'), 7_000);
     try {
-      const [, signal] = await closed;
+      if (terminalSignal) child.kill(terminalSignal);
+      else if (child.connected) child.send('close', () => {});
+      else if (disconnectedWriter && child.exitCode === null && child.signalCode === null) {
+        if (process.platform !== 'win32') child.kill('SIGTERM');
+        else if (alive(disconnectedWriter)) {
+          try { await writerPid(server, 'kill', disconnectedWriter); }
+          catch (error) { if (alive(disconnectedWriter)) throw error; }
+        }
+      }
+    } finally {
+      const [, signal] = await reapService(child, disconnectedExit ?? closed);
       expect(signal).not.toBe('SIGKILL');
       if (server.capability) expect(!output.includes(server.capability)).toBe(true);
-    } finally {
-      clearTimeout(grace);
     }
   }
 }
