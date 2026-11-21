@@ -269,8 +269,19 @@ test('frozen chart shares two visible bars and clears the independent selection'
   }
 });
 
-test('published revocation removes visible and delayed frozen evidence and leaves an authorized clear', async ({ browser }, testInfo) => {
-  const fixture = await publishRevocationFixture(testInfo);
+const revocationTest = test.extend({
+  localImportBridge: [async ({}, use, testInfo) => {
+    const { stdout, stderr } = await exec('cargo', [
+      'build', '--locked', '-p', 'scopehub-desktop', '--example', 'local_import_bridge',
+      '--features', 'portable-test-bridge', '--target-dir', 'target',
+    ], { cwd: root, timeout: 295_000 });
+    await testInfo.attach('local-import-bridge-build', { body: stdout + stderr, contentType: 'text/plain' });
+    await use(join(root, 'target/debug/examples', process.platform === 'win32' ? 'local_import_bridge.exe' : 'local_import_bridge'));
+  }, { timeout: 300_000 }],
+});
+
+revocationTest('published revocation removes visible and delayed frozen evidence and leaves an authorized clear', async ({ browser, localImportBridge }, testInfo) => {
+  const fixture = await publishRevocationFixture(testInfo, localImportBridge);
   const port = Number(process.env.SCOPEHUB_EVIDENCE_REVOCATION_PORT ?? await freePort());
   const { revoked, entitled, profile, market } = fixture;
   const held = Promise.withResolvers();
@@ -363,10 +374,7 @@ test('published revocation removes visible and delayed frozen evidence and leave
   }
 });
 
-async function publishRevocationFixture(testInfo) {
-  const binary = join(root, 'target/debug/examples', process.platform === 'win32' ? 'local_import_bridge.exe' : 'local_import_bridge');
-  await exec('cargo', ['build', '--locked', '-p', 'scopehub-desktop', '--example', 'local_import_bridge',
-    '--features', 'portable-test-bridge', '--target-dir', 'target'], { cwd: root, timeout: 90_000 });
+async function publishRevocationFixture(testInfo, binary) {
   const temp = await mkdtemp(join(tmpdir(), 'scopehub-evidence-revocation-'));
   const app = join(temp, 'app');
   const folder = join(temp, 'folder');
