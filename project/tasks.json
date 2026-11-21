@@ -8383,7 +8383,7 @@
       "id": "M4-009",
       "title": "Recover native text setup during initial workspace admission",
       "milestone": "M4",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M4-007"
       ],
@@ -8412,10 +8412,15 @@
         "rust-contracts-workers",
         "ui-build"
       ],
-      "next_action": "Implement and exercise the bounded native control retry, then hand off the source revision for the Windows rerun.",
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M4-009-15ee7224844b6c58.json",
+          "sha256": "90ee7ba334e5b7c385fe7818c893580f4396ff0bb35562a94183b4cb8e98e070"
+        }
+      ],
       "plan": {
         "outcome": "An immediate Ask AI and route review can complete after the first private workspace snapshot releases the native writer.",
         "change_types": [

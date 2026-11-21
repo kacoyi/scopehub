@@ -1,0 +1,118 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M4-009",
+  "task_definition_sha256": "00bfa7258cab5623e436cb360c6647a2ba778fe467c663d981fb2db87aa0b13b",
+  "run_id": "20261121T015125.698826Z-5a471bb9",
+  "recorded_at": "2026-11-21T01:54:30.757555+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "e133b06d0f647bbe58927ed005a3eac4f8418c2c755be856d4490544e53e91d3",
+    "file_count": 487,
+    "git_head": "9977eb9d191f423a77526339b7650b126eddc67d",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "15ee7224844b6c588d1a4cccdee16512f027611bdb2bbbdb6d338d5e1eadecb2",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/projects/scopehub-model-connection/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "desktop-workspace-transport",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/desktop-workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "984e815e5a98d16875c9743a08f4fc0d384c09257a6b22dde7ed8de0cd6a7469"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a128f2507a6219b20d0e44da4b37dcff1560dc83cd50e8ee91cd240b65415864"
+    },
+    {
+      "id": "model-connection-replay",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-application",
+        "text_connection::tests"
+      ],
+      "exit_code": 0,
+      "log_sha256": "eeaa00e6f3100d0931b145a7e31e813d5f759b0196f2bc408458e2f96bc663c3"
+    },
+    {
+      "id": "model-connection-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/ai-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "bec9b117f4c8f1d24367d9a1c22b6070dd1156e0c9a6e9192ce5df956aa8c32a"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/projects/scopehub-model-connection/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "fb2cc2d65cd140d095af38d49d231ccf0209b476088fee50ad2cc07a1f76cb4b"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9b00bcd851ab2ea77d4225617bf8a2b698b557ecac507d315f41bfa5983dfb6b"
+    }
+  ],
+  "project_definition_sha256": "cac3137c71b9bddd8f29b6e61e32fcbc1bf28392654df73c558836156ced7510",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}
