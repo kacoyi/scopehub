@@ -9422,9 +9422,13 @@
         {
           "path": "project/evidence/M0-032-62e00e69f7d90432.json",
           "sha256": "d0dd84e353c3431ddc6ff73f27d03e0be65f1533ef8de30a96c3ceed02b47720"
+        },
+        {
+          "path": "project/evidence/M0-032-3066734d1ddd7db1.json",
+          "sha256": "53f2b054842553eeec32bb9bd440cb463bdccf7b9e526e3ded8e172653920f6a"
         }
       ],
-      "next_action": "Wait for the coordinator to confirm PRs 24 and 25 are merged and product verification is paused, with the exact primary and helper commits. Refresh the private checkpoint, execute the canonical move and smoke, resume cache scheduling after proving its read-only retirement edge, then hand off Herdr and move each of the seven enrolled siblings when its specific consumers are ready.",
+      "next_action": "Finish the verified native retirement refresh and retain the host acceptance receipt. Complete the one-shot canonical Herdr handoff after the live coordinator releases the old space, then retire its compatibility link and verify the canonical entrypoints. Integrate the reviewed workspace fixture closure in the isolated draft before publication.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
