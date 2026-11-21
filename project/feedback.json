@@ -2552,6 +2552,22 @@
         "prevention": "Local and hosted task verification matched the clean 320946e execution inputs. Ubuntu ran 438 Python tests and Windows ran the same suite with 45 platform skips. The stable host read-only snapshot found two intake rows and zero candidates among 50 registrations. One intake row verified 17 retained files, while the integrated product checkout verified 999 and remained held for additional unarchived files. The three failure reports retain their original failed outcomes and verified manifests. The retained M4 run still records 13 passed checks and two blocked."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "committed-indicator-removal-busy-workspace-snapshot",
+      "source": "Main workflow 44906026863, native Windows job 136851666782, artifact 14709052375, ZIP SHA-256 7a6997e80910061bc0299139d6638a009d3ec9bfe763771f410c5f4e366f3531. The same product tree passed PR workflow 44902878648.",
+      "severity": "major",
+      "status": "open",
+      "observation": "At workspace.spec.mjs line 980, the eight-second wait for workspace revision 2 expired. The retained browser image shows a successful removal message, the previous disabled accepted layer and a busy workspace. The embedded removal-stage attachment did not record a completed snapshot.",
+      "task_ids": [
+        "M3-006"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "indicator-declarative-preview"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
