@@ -412,6 +412,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
             : workspace.pending === 'evidence' ? 'Sharing chart evidence…' : 'Saving timeframe…'}</span>}
           {workspace?.error && <><span role="alert" className="workspace-error">{workspace.error}</span>
             <button type="button" className="secondary-button" onClick={workspace.reload}>Reload workspace state</button></>}
+          {workspace?.selectionNotice && <span role="status">{workspace.selectionNotice}</span>}
           {selected && <span>{selected.timezone}</span>}
           {history && <HistoryStatus history={history} repaired={Boolean(repairedBars)} />}
           {canReplay && <button type="button" className="secondary-button replay-button" onClick={playing ? stop : start}>

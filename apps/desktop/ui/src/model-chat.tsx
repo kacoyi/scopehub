@@ -32,6 +32,7 @@ const missingOpenAiKey = 'Enter an OpenAI API key in AI settings, then review th
 const unknownTurn = 'The workspace could not confirm this turn. Check its status to continue.';
 const deniedChart = 'Selected chart data is unavailable to this model connection.';
 const staleChart = 'The chart selection changed. Send the question again for the current selection.';
+const reselectChart = 'The chart selection changed. Close Ask AI and select the bar again. If prompted, reload workspace state, then select the bar before reopening Ask AI.';
 const pollIntervalMs = 200;
 const busyPollLimit = 10;
 const failedPollLimit = 2;
@@ -105,12 +106,13 @@ function ChartEvidence({ evidence }: { evidence: AiTextChartEvidence }) {
   </section>;
 }
 
-export function ModelChat({ workspaceId, theme, view, show, chartSelection }: {
+export function ModelChat({ workspaceId, theme, view, show, chartSelection, chartSelectionChanged }: {
   workspaceId: string | undefined;
   theme: 'light' | 'dark' | undefined;
   view: ModelChatView | undefined;
   show: (view: ModelChatView | undefined) => void;
   chartSelection: ModelChartSelection | undefined;
+  chartSelectionChanged: boolean;
 }) {
   const heading = useId();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -138,8 +140,12 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection }: {
   const pending = trackedTurn?.observation === 'polling' ? trackedTurn : undefined;
   const unconfirmed = trackedTurn !== undefined && pending === undefined;
   const cancellable = trackedTurn?.observation === 'checking-send' ? undefined : trackedTurn;
+  const [staleSelectionRevision, setStaleSelectionRevision] = useState<number>();
   const visible = view !== undefined;
-  const selection = connection?.route.scope === 'conversation_text_and_sample_closes' ? chartSelection : undefined;
+  const chartScope = connection?.route.scope === 'conversation_text_and_sample_closes';
+  const selection = chartScope ? chartSelection : undefined;
+  const mustReselect = chartScope && (chartSelectionChanged
+    || selection !== undefined && selection.selectionRevision === staleSelectionRevision);
   const usingOpenAi = provider === 'openai_responses';
   const model = usingOpenAi ? openAiModel : ollamaModel;
 
@@ -180,6 +186,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection }: {
     if (!preserveOutput) setTurns([]);
     setTrackedTurn(undefined);
     if (trackedTurn?.question !== undefined) setQuestion('');
+    setStaleSelectionRevision(undefined);
     lastTurn.current = undefined;
   }
 
@@ -281,6 +288,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection }: {
         lastTurn.current = id;
         setTrackedTurn(undefined);
         if (turn.state === 'failed') {
+          if (selected && turn.error.code === 'STALE_CONTEXT') setStaleSelectionRevision(selected.selectionRevision);
           setError(selected && turn.error.code === 'STALE_CONTEXT' ? staleChart
             : selected && turn.error.code === 'PERMISSION_DENIED' ? deniedChart
             : textTurnFailure(active, turn.error));
@@ -409,7 +417,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection }: {
   function submit(event: FormEvent) {
     event.preventDefault();
     const submitted = question.trim();
-    if (!submitted || trackedTurn || working) return;
+    if (!submitted || trackedTurn || working || mustReselect) return;
     if (!connection) {
       setError(undefined);
       setNotice(undefined);
@@ -427,8 +435,23 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection }: {
         setTrackedTurn({ ...turn, observation: 'polling' });
       } catch (failure) {
         const code = String(modelErrorCode(failure));
-        if (selection && (code === 'PERMISSION_DENIED' || code === 'STALE_CONTEXT')) {
-          setError(code === 'PERMISSION_DENIED' ? deniedChart : staleChart);
+        if (selection && code === 'PERMISSION_DENIED') {
+          setError(deniedChart);
+          return;
+        }
+        if (selection && code === 'STALE_CONTEXT') {
+          const status = await exchangeModel(id, { action: 'status' }, signal).catch(() => {
+            signal.throwIfAborted();
+            return undefined;
+          });
+          if (status && status.connection?.connection_id !== active.connection_id) {
+            applyStatus(status, undefined);
+            setError(status.connection ? 'The model connection changed. Review the active route in AI settings.'
+              : modelFailure(failure));
+            return;
+          }
+          setStaleSelectionRevision(selection.selectionRevision);
+          setError(staleChart);
           return;
         }
         if (signal.aborted || ['INVALID_ARGUMENT', 'RESOURCE_LIMIT'].includes(code)) throw failure;
@@ -452,6 +475,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection }: {
     show(next);
   }
 
+  const feedback = view === 'question' && mustReselect ? reselectChart : error;
   if (!view) return null;
   const cloudCredentialSettings = workspaceId && view === 'settings' && !proposal
     && (connection && !changing ? connection.route.kind === 'openai_responses' : usingOpenAi)
@@ -469,7 +493,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection }: {
       </div>
     </div>
     <div className="model-body">
-      {error && <p className="model-error" role="alert">{error}</p>}
+      {feedback && <p className="model-error" role="alert">{feedback}</p>}
       {notice && <p role="status">{notice}</p>}
       {view === 'question' ? <>
         <p className="model-muted" role="status">{connection?.route.kind === 'offline_mock' ? 'Offline mock enabled'
@@ -483,13 +507,13 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection }: {
           </article>)}
         </div>
         <form className="model-form" onSubmit={submit}>
-          {connection?.route.scope === 'conversation_text_and_sample_closes' && <p className="model-muted">
+          {chartScope && !mustReselect && <p className="model-muted">
             {selection ? `Selected chart · ${intervalLabel(selection.range)}` : 'No chart selection for this turn.'}
           </p>}
           <label>Question<textarea ref={questionField} rows={3} maxLength={2000} required value={question}
             disabled={Boolean(trackedTurn) || working} onChange={event => setQuestion(event.currentTarget.value)} /></label>
           <div className="model-actions">
-            <button type="submit" className="primary" disabled={Boolean(trackedTurn) || working || !question.trim()}>{connection ? 'Send' : 'Ask'}</button>
+            <button type="submit" className="primary" disabled={Boolean(trackedTurn) || working || mustReselect || !question.trim()}>{connection ? 'Send' : 'Ask'}</button>
             {unconfirmed && <button type="button" className="secondary-button" disabled={working} onClick={refresh}>Check turn status</button>}
             {cancellable && <button type="button" className="secondary-button" disabled={working} onClick={() => cancel(cancellable)}>Cancel turn</button>}
             {pending && <span role="status">Waiting for the model…</span>}

@@ -52,6 +52,7 @@ type View = {
   snapshot: Snapshot | undefined;
   pending: 'open' | 'save' | 'evidence' | undefined;
   error: string | undefined;
+  selectionNotice?: string | undefined;
 };
 
 const desktop = isTauri();
@@ -152,11 +153,21 @@ async function selectEvidence(snapshot: Snapshot, target: ChartInterval11 | null
     message_id: crypto.randomUUID(), request_id: crypto.randomUUID(), timestamp_ms: Date.now(),
     workspace_id: snapshot.workspace.id, expected_selection_revision: snapshot.selection_revision, target,
   };
-  const reply = await exchangeWorkspace<SelectEvidenceReply11>(request, signal);
-  if (reply.request_id !== request.request_id || reply.operation !== request.operation
-    || reply.type !== 'response' || reply.protocol_version !== '1.1') throw { code: 'OUTPUT_INVALID' };
-  if ('error' in reply) throw reply.error;
-  const selection = reply.selection;
+  const exchange = async () => {
+    const reply = await exchangeWorkspace<SelectEvidenceReply11>(request, signal);
+    if (reply.request_id !== request.request_id || reply.operation !== request.operation
+      || reply.type !== 'response' || reply.protocol_version !== '1.1') throw { code: 'OUTPUT_INVALID' };
+    if ('error' in reply) throw reply.error;
+    return reply.selection;
+  };
+  const selection = await exchange().catch(async error => {
+    // BUSY rejects admission or rolls back before commit. A missing or invalid
+    // reply may follow a commit and still requires reloading workspace state.
+    if (errorCode(error) !== 'BUSY') throw error;
+    await new Promise<void>(resolve => window.setTimeout(resolve, 150));
+    signal.throwIfAborted();
+    return exchange();
+  });
   if (selection.workspace_id !== snapshot.workspace.id || selection.selection_revision !== snapshot.selection_revision + 1
     || (target === null ? selection.target !== null : selection.target?.kind !== 'chart_interval'
       || selection.target.snapshot.content_hash !== target.snapshot.content_hash
@@ -232,14 +243,19 @@ export function useLocalWorkspace() {
     if (active.current) return;
     const controller = new AbortController();
     active.current = controller;
-    setView(previous => ({ ...previous, pending, error: undefined }));
+    setView(previous => ({ ...previous, pending, error: undefined, selectionNotice: undefined }));
     return work(controller.signal).then(snapshot => {
       if (controller.signal.aborted) return false;
       setView({ snapshot, pending: undefined, error: undefined });
       return true;
     }, error => {
       if (!controller.signal.aborted) {
-        setView(previous => ({ ...previous, pending: undefined, error: describeFailure(error) }));
+        const selectionBusy = pending === 'evidence' && errorCode(error) === 'BUSY';
+        setView(previous => ({
+          ...previous, pending: undefined,
+          error: selectionBusy ? undefined : describeFailure(error),
+          selectionNotice: selectionBusy ? 'The workspace is busy. Try selecting again.' : undefined,
+        }));
       }
       return false;
     }).finally(() => {
@@ -298,7 +314,7 @@ export function useLocalWorkspace() {
       if (active.current) throw { code: 'BUSY' };
       const controller = new AbortController();
       active.current = controller;
-      setView(previous => ({ ...previous, pending: 'evidence', error: undefined }));
+      setView(previous => ({ ...previous, pending: 'evidence', error: undefined, selectionNotice: undefined }));
       try {
         const result = await exchangeWorkspace<{ selection_revision: number }>({
           type: 'workspace_source', request_id: crypto.randomUUID(),
