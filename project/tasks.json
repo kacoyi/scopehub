@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-032",
+  "focus_task_id": "M4-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -9393,7 +9393,7 @@
       "id": "M0-032",
       "title": "Relocate the primary ScopeHub checkout while preserving verified development workflows",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-030"
       ],
@@ -9428,9 +9428,9 @@
           "sha256": "53f2b054842553eeec32bb9bd440cb463bdccf7b9e526e3ded8e172653920f6a"
         }
       ],
-      "next_action": "At integrated main a374d747, verified the primary and seven individual moves, 27 enrolled runtime rebuilds, 49 native registrations, the owner-visible synthetic preview and the read-only maintenance refresh. Independent host acceptance also verified 85 installed native entries without stale roots, three original untracked receipts and the original stash. Private host receipt SHA-256 values are ee4f49966e4544e5db6249c4a62bc1bf42e32ff7affb9ed134937a31eda3d821 and f0984252cd6265d09a883d3b9b00d5912455c59ac58312ebb2397e8f338f1e30. Verify the later final main and refresh retirement after coordinated append-only evidence imports. Bind the independent same-session watcher to that approved head and retire the compatibility link after the live owner releases the old space.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Completed the verified primary and seven individual relocations at integrated main a374d747. All 49 live Git registrations and 27 enrolled runtime rebuilds were verified, along with independent normal HTTP synthetic search. Independent host acceptance confirmed all 85 installed executable entries had canonical roots and preserved three original untracked receipts, the original stash and separately archived diagnostics. The recurring cache schedule was restored with a read-only retirement refresh and verified against all 49 registrations. Eight verified cold runtime duplicates released 31,812,624,384 allocated bytes from NVMe after recoverability and native consumer checks. The one temporary primary compatibility alias remains under a confirmed live coordinator. An independent same-session watcher is armed for the natural release, with guarded retirement after owner handoff. The private native and independent host receipt SHA-256 values are ee4f49966e4544e5db6249c4a62bc1bf42e32ff7affb9ed134937a31eda3d821 and f0984252cd6265d09a883d3b9b00d5912455c59ac58312ebb2397e8f338f1e30.",
       "plan": {
         "outcome": "The primary checkout is durably addressable on the NVMe, existing linked worktrees keep their source and state, and ordinary development and evidence retrieval work from the new primary.",
         "change_types": [
