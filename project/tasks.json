@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-038",
+  "focus_task_id": "M4-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -9393,7 +9393,7 @@
       "id": "M0-038",
       "title": "Close synthetic workspace preview fixtures when their parent disconnects",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [],
       "scope": [
         "tests/ubuntu-preview/workspace.spec.mjs",
@@ -9414,8 +9414,21 @@
         "python-contracts-workers",
         "workspace-timeframe"
       ],
-      "evidence": [],
-      "next_action": "Review the retained local reproduction and verification for the isolated candidate and run the owner-dispatched hosted task verification before acceptance.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-038-4f80478067e7dea6.json",
+          "sha256": "18de17075e456a9c2888062f8bbb3c7a7fbe14656142f926616ad71f72d1f655"
+        },
+        {
+          "path": "project/evidence/M0-038-8dfc396a3ee7d857.json",
+          "sha256": "135413a6aa25d1aa4c4eb7da48931bd32509094841e81863e06dd482e46fabf1"
+        },
+        {
+          "path": "project/evidence/M0-038-0c8b3980a0ef1341.json",
+          "sha256": "fe2e3aba1a7455077823b5cb13448d8c2f7df0dd39bf2c62e95ce34843440d0a"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
