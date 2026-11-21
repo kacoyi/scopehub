@@ -32,9 +32,23 @@ const snapshot = { type: 'snapshot' };
 const admissionProbe = { type: 'snapshot', request_id: 1 };
 const service = `
   const [entry, mode, port, faultEnabled] = process.argv.slice(1);
-  const { createServer } = await import(entry);
+  const shutdown = Promise.withResolvers();
+  let closing = !process.connected;
   let interrupted;
   let heldFirstDisconnect = false;
+  function cutHistory() {
+    interrupted?.destroy();
+    interrupted = undefined;
+  }
+  function requestClose() {
+    closing = true;
+    shutdown.resolve();
+  }
+  process.once('disconnect', requestClose);
+  process.on('message', message => {
+    if (message === 'close') requestClose();
+    else if (message === 'cut-history') cutHistory();
+  });
   const plugins = faultEnabled ? [{
     name: 'scopehub-test-history-response-interruption',
     enforce: 'pre',
@@ -80,19 +94,26 @@ const service = `
       });
     },
   }] : [];
-  // These journeys restart the service explicitly. Leave file watching to interactive Vite.
-  const server = await createServer({ mode, plugins, server: { host: '127.0.0.1', port: Number(port), strictPort: true, watch: null } });
-  async function receive(message) {
-    if (message !== 'close' && message !== 'cut-history') return;
-    interrupted?.destroy();
-    interrupted = undefined;
-    if (message !== 'close') return;
-    process.off('message', receive);
-    await server.close();
-    process.disconnect();
+  let server;
+  async function start() {
+    if (closing) return;
+    const { createServer } = await import(entry);
+    if (closing) return;
+    // These journeys restart the service explicitly. Leave file watching to interactive Vite.
+    server = await createServer({ mode, plugins, server: { host: '127.0.0.1', port: Number(port), strictPort: true, watch: null } });
+    if (!closing) await server.listen();
   }
-  process.on('message', receive);
-  await server.listen();
+  try {
+    await start();
+    if (!closing) await shutdown.promise;
+  } finally {
+    cutHistory();
+    try {
+      await server?.close();
+    } finally {
+      if (process.connected) process.disconnect();
+    }
+  }
 `;
 
 test.beforeAll(async ({}, testInfo) => {
@@ -124,6 +145,8 @@ test('fresh browsers restore committed timeframe and eligible undo after service
       });
     });
     await expect.poll(() => alive(observation[0].writer)).toBe(false);
+    expect(alive(observation[0].vite)).toBe(false);
+    expect(await portAvailable(port)).toBe(true);
     expect((await stat(join(profile.root, 'workspace.sqlite3'))).size).toBeGreaterThan(0);
 
     await inService(port, profile, 'ubuntu-workspace', async server => {
@@ -955,8 +978,39 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         const remove = preview.getByRole('button', { name: 'Remove accepted layer' });
         const undo = preview.getByRole('button', { name: 'Undo indicator removal' });
         const undoStages = { reads: [], competing_attempts: [] };
+        const removalStart = performance.now();
+        const removalEvents = [];
+        const record = (stage, fields = {}) => removalEvents.push({
+          stage, elapsed_ms: Math.round(performance.now() - removalStart), ...fields,
+        });
+        const writer = await writerPid(server);
+        const whileWriterPaused = async action => {
+          try {
+            await writerPid(server, 'suspend', writer);
+            return await action();
+          } finally {
+            await writerPid(server, 'resume', writer);
+          }
+        };
+        const admissionBusy = ({ http, body }) =>
+          http === 429 && body?.ok === false && body.error?.code === 'BUSY' && body.error?.retryable === true;
         const isLayerMutation = (payload, operation) => payload?.intent?.operation === operation
           && payload.scope?.target?.kind === 'layer' && payload.scope.target.object_id === savedLayer.layer_id;
+        const explicitMutations = [];
+        const snapshotAttempts = new Map();
+        let observingRemovalReads = true;
+        const observeRemovalRequests = request => {
+          if (new URL(request.url()).pathname !== endpoint) return;
+          const payload = request.postDataJSON();
+          if (['indicator.remove', 'workspace.undo'].includes(payload?.intent?.operation)) {
+            explicitMutations.push(payload);
+            record('mutation-dispatched', { request: payload });
+          } else if (payload?.type === 'snapshot' && observingRemovalReads && explicitMutations.length > 0) {
+            const attempt = snapshotAttempts.size + 1;
+            snapshotAttempts.set(request, attempt);
+            record('browser-snapshot-dispatched', { attempt });
+          }
+        };
         const layerMutation = async (operation, action) => {
           const matches = request => new URL(request.url()).pathname === endpoint
             && isLayerMutation(request.postDataJSON(), operation);
@@ -968,23 +1022,105 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
           if (new URL(response.url()).pathname !== endpoint || response.status() !== 200
             || response.request().postDataJSON()?.type !== type) return false;
           const body = await response.json().catch(() => undefined);
-          return body?.ok === true && matches(body.result);
+          return body?.ok === true && matches(body.result, response.request());
         }, { timeout: 8_000 });
         const readOutput = async () => {
           const request = outputRequest();
           const response = await post(server, request, {}, AbortSignal.timeout(3_000));
           return { request, http: response.status, body: await response.json() };
         };
+        const removeWithContendedSnapshot = async () => {
+          const routePattern = `**${endpoint}`;
+          const permission = Promise.withResolvers();
+          const holderAbort = new AbortController();
+          let firstSnapshot;
+          let holder;
+          const gateFirstSnapshot = async route => {
+            const request = route.request();
+            if (!explicitMutations.length || firstSnapshot || request.postDataJSON()?.type !== 'snapshot') {
+              return route.fallback();
+            }
+            firstSnapshot = request;
+            if (await permission.promise) await route.continue();
+            else await route.abort();
+          };
+          await page.route(routePattern, gateFirstSnapshot);
+          try {
+            const removed = await layerMutation('indicator.remove', () => remove.click());
+            undoStages.removal = removed;
+            record('removal-receipt', removed);
+            expect(removed).toMatchObject({ http: 200, body: { ok: true, result: {
+              request_id: removed.request.request_id,
+              outcome: { state: 'committed', receipt: { committed_workspace_revision: 2, undoable: true } },
+            } } });
+            await expect.poll(() => Boolean(firstSnapshot), { timeout: 3_000 }).toBe(true);
+            await expect.poll(() => postStatus(server, admissionProbe), { timeout: 3_000 }).toBe(400);
+            const refused = await whileWriterPaused(async () => {
+              // An independently authorized read occupies the real admission slot.
+              // The malformed probe cannot reach the writer even if it wins a race.
+              holder = post(server, snapshot, {}, AbortSignal.any([holderAbort.signal, AbortSignal.timeout(5_000)]))
+                .then(async response => ({ http: response.status, body: await response.json() }))
+                .catch(error => ({ error: error.message }));
+              await expect.poll(() => postStatus(server, admissionProbe), { timeout: 3_000 }).toBe(429);
+              record('snapshot-holder-admitted');
+              return duringPageEvent(page, 'response', response => response.request() === firstSnapshot, async () => {
+                permission.resolve(true);
+              }, 3_000, request => request === firstSnapshot);
+            });
+            const first = {
+              attempt: snapshotAttempts.get(firstSnapshot), request: firstSnapshot.postDataJSON(),
+              http: refused.status(), body: await refused.json(),
+            };
+            record('first-browser-snapshot', first);
+            const held = await holder;
+            record('snapshot-holder-completed', held);
+            expect(first).toMatchObject({ attempt: 1, http: 429, body: busy });
+            expect(held).toMatchObject({ http: 200, body: { ok: true, result: { workspace: { revision: 2 } } } });
+            return removed;
+          } finally {
+            permission.resolve(false);
+            holderAbort.abort();
+            await page.unroute(routePattern, gateFirstSnapshot);
+            await holder;
+          }
+        };
+        const durableLayerMutations = () => {
+          const database = new DatabaseSync(join(profile.root, 'workspace.sqlite3'), { readOnly: true });
+          try {
+            return database.prepare(`
+              SELECT log.operation, log.id, log.request_id, log.revision, log.undoes, layer.before_active, layer.after_active
+              FROM operation_log AS log JOIN indicator_layer_operations AS layer ON layer.operation_id = log.id
+              WHERE log.workspace_id = ? AND layer.layer_id = ? AND log.operation IN ('indicator.remove', 'workspace.undo')
+              ORDER BY log.revision
+            `).all(workspaceId, savedLayer.layer_id);
+          } finally {
+            database.close();
+          }
+        };
+        page.on('request', observeRemovalRequests);
         try {
-          const [removalSnapshot, removalLayers, removed] = await Promise.all([
-            removalRead('snapshot', result => result.workspace?.revision === 2),
-            removalRead('indicator_accepted_layers', result => result.dataset_id === id && result.layers?.length === 0),
-            layerMutation('indicator.remove', () => remove.click()),
+          const [snapshotResult, layersResult, removalResult] = await Promise.allSettled([
+            removalRead('snapshot', (result, request) => {
+              const attempt = snapshotAttempts.get(request);
+              if (!attempt) return false;
+              if (result.workspace?.revision !== 2) return false;
+              record('browser-authoritative-snapshot', { attempt, revision: result.workspace.revision });
+              return true;
+            }),
+            removalRead('indicator_accepted_layers', (result, request) => {
+              if (result.dataset_id !== id || result.layers?.length !== 0) return false;
+              record('browser-accepted-layers', { request_id: request.postDataJSON().request_id, layers: result.layers, undo: result.undo });
+              return true;
+            }),
+            removeWithContendedSnapshot(),
           ]);
-          expect(removed).toMatchObject({ http: 200, body: { ok: true, result: {
-            request_id: removed.request.request_id,
-            outcome: { state: 'committed', receipt: { committed_workspace_revision: 2, undoable: true } },
-          } } });
+          observingRemovalReads = false;
+          if (removalResult.status === 'rejected') throw removalResult.reason;
+          if (snapshotResult.status === 'rejected') throw snapshotResult.reason;
+          if (layersResult.status === 'rejected') throw layersResult.reason;
+          const { value: removalSnapshot } = snapshotResult;
+          const { value: removalLayers } = layersResult;
+          const { value: removed } = removalResult;
           undoStages.removal_reads = {
             snapshot: (await removalSnapshot.json()).result.workspace.revision,
             layers: (await removalLayers.json()).result.layers,
@@ -1034,6 +1170,7 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
             await page.unroute(undoRoute, holdUndo);
           }
           undoStages.undo = undone;
+          record('undo-receipt', undone);
           expect(undone.request.request_id).toBe(undoStages.held_undo.request_id);
           expect(undone.request.intent.arguments).toEqual({ operation_id: removalId });
           expect(undone).toMatchObject({ http: 200, body: { ok: true, result: {
@@ -1044,14 +1181,6 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
           await expect(accepted.getByText(savedLayer.version_id, { exact: true })).toBeVisible();
 
           // Reproduce read contention after the exact layer is visible with a real authorized snapshot.
-          const writer = await writerPid(server);
-          const whileWriterPaused = async action => {
-            await writerPid(server, 'suspend', writer);
-            try { return await action(); }
-            finally { await writerPid(server, 'resume', writer); }
-          };
-          const admissionBusy = ({ http, body }) =>
-            http === 429 && body?.ok === false && body.error?.code === 'BUSY' && body.error?.retryable === true;
           const contendWithSnapshot = async () => {
             const attempt = {};
             undoStages.competing_attempts.push(attempt);
@@ -1087,8 +1216,50 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
           }, { timeout: 3_000, message: 'The restored indicator output read cleared preview admission' }).toBe(false);
           expect(output).toMatchObject({ http: 200, body: { ok: true } });
           expect(output.body.result).toEqual(savedOutput);
+          expect(explicitMutations.map(request => request.intent.operation)).toEqual(['indicator.remove', 'workspace.undo']);
+          const durable = durableLayerMutations();
+          record('durable-layer-mutations', { operations: durable });
+          expect(durable).toEqual([
+            { operation: 'indicator.remove', id: removalId, request_id: removed.request.request_id,
+              revision: 2, undoes: null, before_active: 1, after_active: 0 },
+            { operation: 'workspace.undo', id: undone.body.result.outcome.receipt.operation_id, request_id: undone.request.request_id,
+              revision: 3, undoes: removalId, before_active: 0, after_active: 1 },
+          ]);
+          record('mutation-counts', { remove: 1, undo: 1 });
+        } catch (error) {
+          record('failure', { message: error.message });
+          if (undoStages.removal?.body?.result?.outcome?.state === 'committed') {
+            try {
+              record('durable-layer-mutations', { operations: durableLayerMutations() });
+              const request = { type: 'indicator_accepted_layers', request_id: randomUUID(), revision_id: id };
+              const response = await post(server, request, {}, AbortSignal.timeout(3_000));
+              record('independent-accepted-layers', { request, http: response.status, body: await response.json() });
+            } catch (diagnosticError) {
+              record('persistence-diagnostic-error', { message: diagnosticError.message });
+            }
+            try {
+              record('browser-view-at-failure', {
+                accepted_visible: await accepted.isVisible(), remove_disabled: await remove.isDisabled({ timeout: 1_000 }).catch(() => null),
+                removal_message: await preview.getByText('Accepted layer removed from the chart.', { exact: true }).isVisible(),
+                workspace_busy: await page.getByText('The local workspace is busy.', { exact: true }).first().isVisible(),
+              });
+              await testInfo.attach('indicator-removal-failure', {
+                body: await page.screenshot({ timeout: 2_000 }), contentType: 'image/png',
+              });
+            } catch (diagnosticError) {
+              record('browser-diagnostic-error', { message: diagnosticError.message });
+            }
+          }
+          throw error;
         } finally {
-          await testInfo.attach('indicator-undo-stages', { body: JSON.stringify(undoStages), contentType: 'application/json' });
+          page.off('request', observeRemovalRequests);
+          const failed = removalEvents.some(event => event.stage === 'failure');
+          try {
+            await testInfo.attach('indicator-removal-events', { body: JSON.stringify(removalEvents), contentType: 'application/json' });
+            await testInfo.attach('indicator-undo-stages', { body: JSON.stringify(undoStages), contentType: 'application/json' });
+          } catch (attachmentError) {
+            if (!failed) throw attachmentError;
+          }
         }
         observation.preview = { initial: first.event.snapshot, warmed: warmed.event.snapshot, cancelled, withheld, committed };
 
@@ -2715,6 +2886,95 @@ test('the private launcher handoff is required and a previous launch cannot auth
   }
 });
 
+test('losing parent IPC releases the listener and writer with a history response held', async ({}, testInfo) => {
+  const profile = await makeProfile();
+  const port = await freePort();
+  const history = new AbortController();
+  const observation = { port };
+  const observe = async () => ({
+    vite: alive(observation.vite),
+    writer: alive(observation.writer),
+    listening: !(await portAvailable(port)),
+  });
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      observation.vite = server.pid;
+      observation.writer = await writerPid(server);
+      expect(state(await (await post(server, snapshot)).json())).toEqual({ revision: 0, timeframe: '1m', undo: null });
+      const signal = AbortSignal.any([history.signal, AbortSignal.timeout(15_000)]);
+      const response = await fetch(server.url + operationPath, {
+        method: 'POST',
+        headers: {
+          Origin: server.url, 'Content-Type': 'application/json', [traceHeader]: randomUUID(),
+          'x-scopehub-test-interrupt': 'during-body-200',
+        },
+        body: JSON.stringify(sampleHistoryCall()),
+        signal,
+      });
+      expect(response.status).toBe(200);
+      const reader = response.body.getReader();
+      expect(await reader.read()).toEqual({ value: new TextEncoder().encode('{'), done: false });
+      const responseReleased = reader.read().then(({ done }) => done, () => !signal.aborted);
+      observation.beforeDisconnect = await observe();
+      expect(observation.beforeDisconnect).toEqual({ vite: true, writer: true, listening: true });
+      const exited = server.disconnectOwner(observation.writer);
+      await expect.poll(async () => {
+        observation.afterDisconnect = await observe();
+        return observation.afterDisconnect;
+      }, { timeout: 4_000 }).toEqual({ vite: false, writer: false, listening: false });
+      expect(await exited).toEqual([0, null]);
+      expect(await responseReleased).toBe(true);
+      await expect(stat(server.handoff)).rejects.toMatchObject({ code: 'ENOENT' });
+    }, { historyTrace: true, historyFault: true });
+  } finally {
+    history.abort();
+    if (observation.writer) observation.afterCleanup = await observe();
+    await profile.close();
+    await testInfo.attach('workspace-parent-disconnect', { body: JSON.stringify(observation), contentType: 'application/json' });
+  }
+});
+
+for (const phase of ['before configuration', 'during configuration', 'after duplicate close messages']) {
+  test(`losing parent IPC ${phase} exits without starting the workspace writer`, async () => {
+    const profile = await makeProfile();
+    const port = await freePort();
+    // Hold the real configured Vite server before it can start listening.
+    const entry = phase === 'before configuration' ? vite : 'data:text/javascript,' + encodeURIComponent(`
+      import { createServer as configure } from ${JSON.stringify(vite)};
+      import { once } from 'node:events';
+      export async function createServer(options) {
+        const server = await configure(options);
+        const disconnected = once(process, 'disconnect');
+        process.send('configured');
+        await disconnected;
+        return server;
+      }
+    `);
+    const child = spawnService(port, profile, 'ubuntu-workspace', { entry });
+    const exited = once(child, 'exit');
+    child.stdout.resume();
+    child.stderr.resume();
+    try {
+      if (entry !== vite) {
+        expect(await once(child, 'message', { signal: AbortSignal.timeout(10_000) })).toEqual(['configured']);
+      }
+      if (phase === 'after duplicate close messages') {
+        child.send('close');
+        child.send('close');
+      }
+      expect(child.connected).toBe(true);
+      if (child.connected) child.disconnect();
+      await expect.poll(() => child.exitCode, { timeout: 4_000 }).toBe(0);
+      expect(await portAvailable(port)).toBe(true);
+      await expect(stat(join(profile.root, 'workspace.sqlite3'))).rejects.toMatchObject({ code: 'ENOENT' });
+    } finally {
+      if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM');
+      try { await reapService(child, exited); }
+      finally { await profile.close(); }
+    }
+  });
+}
+
 test('terminal SIGINT and SIGTERM remove the handoff and reap the writer before relaunch', async () => {
   test.skip(process.platform === 'win32', 'The owned CLI uses POSIX signal delivery.');
   const profile = await makeProfile();
@@ -2867,21 +3127,30 @@ test('a status-only probe cancels its unread response body', async () => {
   expect(cancelled).toBe(true);
 });
 
-async function freePort() {
+async function freePort(requestedPort = 0) {
   const server = createServer();
-  server.listen(0, '127.0.0.1');
+  server.listen(requestedPort, '127.0.0.1');
   await once(server, 'listening');
   const port = server.address().port;
   await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
   return port;
 }
 
-async function inService(port, profile, mode, use, { expectHandoff = true, terminalSignal, historyTrace = false, historyFault = false } = {}) {
-  const url = 'http://127.0.0.1:' + port;
+async function portAvailable(port) {
+  try {
+    await freePort(port);
+    return true;
+  } catch (error) {
+    if (error.code === 'EADDRINUSE') return false;
+    throw error;
+  }
+}
+
+function spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, entry = vite }) {
   const args = terminalSignal
     ? [viteCli, '--mode', mode, '--host', '127.0.0.1', '--port', String(port), '--strictPort']
-    : ['--input-type=module', '--eval', service, vite, mode, String(port), historyFault ? '1' : ''];
-  const child = spawn(process.execPath, args, {
+    : ['--input-type=module', '--eval', service, entry, mode, String(port), historyFault ? '1' : ''];
+  return spawn(process.execPath, args, {
     cwd: ui,
     env: {
       ...process.env,
@@ -2892,7 +3161,20 @@ async function inService(port, profile, mode, use, { expectHandoff = true, termi
     },
     stdio: terminalSignal ? ['pipe', 'pipe', 'pipe'] : ['ignore', 'pipe', 'pipe', 'ipc'],
   });
+}
+
+async function reapService(child, done) {
+  const grace = setTimeout(() => child.kill('SIGKILL'), 7_000);
+  try { return await done; }
+  finally { clearTimeout(grace); }
+}
+
+async function inService(port, profile, mode, use, { expectHandoff = true, terminalSignal, historyTrace = false, historyFault = false } = {}) {
+  const url = 'http://127.0.0.1:' + port;
+  const child = spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault });
   const closed = once(child, 'close');
+  let disconnectedExit;
+  let disconnectedWriter;
   let output = '';
   let handoffRejected = false;
   const historyStages = new Map();
@@ -2925,6 +3207,14 @@ async function inService(port, profile, mode, use, { expectHandoff = true, termi
     cutHistoryResponse: () => new Promise((resolve, reject) => {
       child.send('cut-history', error => error ? reject(error) : resolve());
     }),
+    disconnectOwner: writer => {
+      expect(child.connected).toBe(true);
+      disconnectedWriter = writer;
+      // Node does not reliably emit ChildProcess close after a local IPC disconnect.
+      disconnectedExit = once(child, 'exit');
+      if (child.connected) child.disconnect();
+      return disconnectedExit;
+    },
   };
   try {
     const deadline = Date.now() + 10_000;
@@ -2955,15 +3245,20 @@ async function inService(port, profile, mode, use, { expectHandoff = true, termi
     }
     await use(server);
   } finally {
-    if (terminalSignal) child.kill(terminalSignal);
-    else if (child.connected) child.send('close', () => {});
-    const grace = setTimeout(() => child.kill('SIGKILL'), 7_000);
     try {
-      const [, signal] = await closed;
+      if (terminalSignal) child.kill(terminalSignal);
+      else if (child.connected) child.send('close', () => {});
+      else if (disconnectedWriter && child.exitCode === null && child.signalCode === null) {
+        if (process.platform !== 'win32') child.kill('SIGTERM');
+        else if (alive(disconnectedWriter)) {
+          try { await writerPid(server, 'kill', disconnectedWriter); }
+          catch (error) { if (alive(disconnectedWriter)) throw error; }
+        }
+      }
+    } finally {
+      const [, signal] = await reapService(child, disconnectedExit ?? closed);
       expect(signal).not.toBe('SIGKILL');
       if (server.capability) expect(!output.includes(server.capability)).toBe(true);
-    } finally {
-      clearTimeout(grace);
     }
   }
 }

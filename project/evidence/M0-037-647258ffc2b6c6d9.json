@@ -1,0 +1,82 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-037",
+  "task_definition_sha256": "62fdf49c8fc656743a69cd00ff6655a2221aa0af061aec345844ea665a9300fa",
+  "run_id": "20261121T120236.629725Z-702460aa",
+  "recorded_at": "2026-11-21T12:05:33.911481+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "c4bc8774587e4e87c42fe3c761e0123f0e3c4a081e3a6ff0323ec275c0ad8d5e",
+    "file_count": 438,
+    "git_head": "1ca105fd442c90abc4f490faca60d1604056d1a8",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "647258ffc2b6c6d91d0178945ba4501a7e534e0250b46b4fa07b68b8dd4dbce1",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": ".venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        ".venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "722318cfcc18064af80f45dbeab666f3e81f88a27f28679ad18459b651345e84"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "46088917ce82e780979d5c64aad637180a008b7eb6b8e0a790840b3b0e10e301"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        ".venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "0ff95ec0d51710480889c40bf190f5dddcec76ab7ec891a171153afd9514995a"
+    }
+  ],
+  "project_definition_sha256": "34d742073a74a5ad88ee75731d17c139ccf704e3b5c3cc9422c85706b65e8958",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

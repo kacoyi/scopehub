@@ -2670,6 +2670,66 @@
         "prevention": "Two focused tests cover release on success, error and unwind and real directory construction and cleanup. Native Windows run 44894164773 at 3a2b558cd190b4b49e15a7add91123ea7ee5c803 passed all 25 desktop tests in 45.68 seconds, including the original three. The matching hosted Ubuntu and byte-identical local task runs also passed."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "relocated-managed-worker-bridges-retain-old-source-roots",
+      "source": "Coordinator's native synthetic history and desktop CSV surveys and the indicator coordinator's isolated canonical history rebuild probe.",
+      "observation": "Native probes exercised 36 installed bridge entries in 26 previously relocated managed worktrees. Of 25 history searches, 23 reported WORKER_EXITED for a missing worker directory and two succeeded by launching Python through an old checkout alias. Of 11 desktop CSV previews, nine reported WORKER_EXITED for a missing legacy root. The two that launched Python through an old alias yielded one verified CSV preview and one PROTOCOL_MISMATCH before preview. Across both probes, 32 reported WORKER_EXITED, one reached the independent protocol failure, and three succeeded through legacy links. An isolated rebuild launched history search with canonical Python. A separate locked rebuild from the exact revision of the CSV protocol-mismatch case passed both canonical bridge probes, including the CSV preview. That staged proof preceded authorization to replace installed artifacts. The original installed artifacts and earlier reports were preserved.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-037"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers",
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Previously installed debug bridges retained absolute checkout roots via their compiled worker configuration. One older desktop bridge reached a Python interpreter through an alias and encountered an independent worker protocol mismatch.",
+        "correction": "Build the enrolled history and desktop CSV targets from each exact canonical source revision with locked dependencies. Promote only the verified installed artifacts and preserve the original bytes and recovery metadata on an independent volume.",
+        "prevention": "Isolated native fixtures exercised canonical history and desktop CSV launches with the old path unavailable, plus restoration and interrupted promotion recovery. Independent host acceptance verified 25 synthetic history searches and 11 desktop CSV previews through actual canonical Python processes across 26 unchanged clean source revisions. It also checked 216 Cargo metadata records and five untouched variants. The readback verified 4,731,718,784 original bytes and 4,769,921,616 installed bytes. The private host verification SHA-256 is 142ef56a12a9d8cefb88258a4b166e2593f52fb1fdb7c33d7b255df22f6691c2. After three historical symlinks were parked, the independent history rollup matched the exact three expected instrument IDs for every bridge and the CSV rollup passed all previews through canonical Python. The private rollup SHA-256 values are 0e63d06344321d619a6f611b4f7ff89fd3b399c2114094b5e0b176229b4afbaa for history and 0b2b204d8400510feb1c20e045dc63a590dc2d88bafe98fb9064ebcbe309ff3b for desktop CSV."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "preview-fixtures-survive-parent-disconnect",
+      "source": "Primary relocation host observation on 2026-11-21, preserved private evidence SHA-256 f07b858853bd4ce3cc31c85e0303bc5830b6d381ab69ee210be06cee1c1e1463. The original observation and native comparisons are retained under archives/private/M0-038/preview-owner-loss-a70328b0/manifest.json (SHA-256 4b1e8b9dea92428d475dd002e2b1738bfb7f8074672d45337dc0afa1a439472f).",
+      "observation": "Two Vite synthetic history fixtures and their workspace writers survived for hours after their original owner exited. They held two listening ports and a historical checkout, with no connected clients. Ordinary termination of the two verified fixture parents released both listeners and their writers.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-038"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The synthetic workspace preview listened for an explicit IPC close message. Exiting its parent closed the IPC channel without requesting the Vite shutdown that reaps the real workspace writer.",
+        "correction": "The IPC fixture observes disconnect before Vite setup and serializes shutdown with startup. Explicit close and IPC loss release a held response, close the Vite server and its writer, and disconnect IPC only while connected.",
+        "prevention": "The workspace-timeframe check exercises an established writer, a held response, startup disconnect and duplicate close. The final native Linux and Windows task artifacts bind the exact source and regression observations. An independent process-level comparison on Linux confirmed a real parent exit leaked the listener and writer at the integrated baseline and released both at the corrected source."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "committed-indicator-removal-busy-workspace-snapshot",
+      "source": "Main workflow 44906026863, native Windows job 136851666782, artifact 14709052375, ZIP SHA-256 7a6997e80910061bc0299139d6638a009d3ec9bfe763771f410c5f4e366f3531. The same product tree passed PR workflow 44902878648.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "At workspace.spec.mjs line 980, the eight-second wait for workspace revision 2 expired. The retained browser image shows a successful removal message, the previous disabled accepted layer and a busy workspace. The embedded removal-stage attachment did not record a completed snapshot.",
+      "task_ids": [
+        "M3-006"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "indicator-declarative-preview"
+      ],
+      "resolution": {
+        "cause": "A committed indicator change refreshed the workspace through a one-shot snapshot. A genuine admission refusal left the old view and a persistent busy state even after the writer was available. In the unmodified product, the eight-second observer expired while an independent authorized read returned the correct stored layer state and undo.",
+        "correction": "After an indicator commit, compare the authoritative snapshot with the receipt's workspace and minimum revision. Retry only eligible, side-effect-free snapshot reads within a four-second retry-start budget, cancel on view teardown and queue the read behind an active workspace operation. Each admitted request keeps its original transport deadline.",
+        "prevention": "The real frozen-chart regression retains its eight-second observation, forces a true first-read HTTP 429 and validates persistent remove and undo counts, request identities and the recovered workspace. Local targeted negative checks also cover non-retryable BUSY, terminal cancellation, wrong workspace, lagging revision and teardown during backoff for both buttons. The selected market-worker checks and both hosted jobs in 44913291282 passed."
+      },
+      "deferral_reason": null
     }
   ]
 }

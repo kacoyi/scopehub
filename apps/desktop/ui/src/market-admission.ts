@@ -1,4 +1,5 @@
 import runtime from '../../../../contracts/generated/runtime.json';
+import { abortableDelay } from './abortable-delay';
 
 // Native cleanup can wait for a cancel acknowledgement and then reap the worker.
 // The preview bridge force-terminates after 2 s and releases its slot on close.
@@ -10,21 +11,6 @@ export function marketAdmissionDeadline() {
 
 export function isAdmissionBusy(error: unknown) {
   return !!error && typeof error === 'object' && 'code' in error && error.code === 'BUSY';
-}
-
-function waitForAdmission(delay: number, signal: AbortSignal) {
-  signal.throwIfAborted();
-  return new Promise<void>((resolve, reject) => {
-    const timer = window.setTimeout(() => {
-      signal.removeEventListener('abort', cancel);
-      resolve();
-    }, delay);
-    function cancel() {
-      window.clearTimeout(timer);
-      reject(signal.reason);
-    }
-    signal.addEventListener('abort', cancel, { once: true });
-  });
 }
 
 export async function retryMarketAdmission<T>(
@@ -41,7 +27,7 @@ export async function retryMarketAdmission<T>(
       signal.throwIfAborted();
       const remaining = deadline - performance.now();
       if (admitted || !isAdmissionBusy(error) || remaining <= 0) throw error;
-      await waitForAdmission(Math.min(delay, remaining), signal);
+      await abortableDelay(Math.min(delay, remaining), signal);
       if (performance.now() >= deadline) throw error;
     }
   }
