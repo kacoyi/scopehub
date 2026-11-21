@@ -2730,6 +2730,28 @@
         "prevention": "The real frozen-chart regression retains its eight-second observation, forces a true first-read HTTP 429 and validates persistent remove and undo counts, request identities and the recovered workspace. Local targeted negative checks also cover non-retryable BUSY, terminal cancellation, wrong workspace, lagging revision and teardown during backoff for both buttons. The selected market-worker checks and both hosted jobs in 44913291282 passed."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "model-workflow-browser-guard-double-continue",
+      "source": "Native Windows M4-006 workflow 44919188381 attempt 1 on 46bcadea3338c3fadd54f2c25b45847fdb18a96a. The retained model-connection-workflow log SHA-256 is aa7055f346c43f6a738c126a228d8b5374e05b47d0a480928c885d902a4f628a.",
+      "observation": "Only case 7 of 10, one scoped activation delivers two ordinary turns to the owned peer and handles denial, failure and cancellation, failed. Playwright reported route.continue: Route is already handled! at tests/ui/ai-workflow-fixture.mjs:149. A local Chromium reproduction holds a same-origin request in a context observer after page fallback. Removing the final matching page route lets the driver resolve the request, then a later legacy context-wide continue throws. The origin-filtered comparison delivered one local request and blocked the separate synthetic origin without a route error.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261121T153210.808612Z-2e7176fe",
+          "source_commit": "46bcadea3338c3fadd54f2c25b45847fdb18a96a",
+          "report_sha256": "b042013239f3ffb7d04a5ba64321ae6cb7fe298e0a40468d3637a5c4e481d3b2"
+        }
+      ],
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M4-012"
+      ],
+      "regression_checks": [
+        "model-connection-workflow"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

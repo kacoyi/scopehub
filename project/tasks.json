@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M4-001",
+  "focus_task_id": "M4-012",
   "tasks": [
     {
       "id": "M0-001",
@@ -10701,6 +10701,121 @@
           ],
           "data_plan": "Use disposable synthetic frozen chart data and existing workspace records. The accepted receipt and undo remain under the existing single-writer lifecycle.",
           "cleanup": "Release read attempts, timers, route handlers and the synthetic producer on completion, cancellation or failure."
+        }
+      }
+    },
+    {
+      "id": "M4-012",
+      "title": "Isolate the model workflow browser network guard from local route faults",
+      "milestone": "M4",
+      "status": "active",
+      "depends_on": [
+        "M4-006"
+      ],
+      "scope": [
+        "tests/ui/ai-workflow-fixture.mjs",
+        "tests/ui/ai-workflow-route-guard.spec.mjs",
+        "tests/ui/ai-workflow.config.mjs",
+        "project/checks.json",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "The shared Playwright guard matches only URLs outside the exact preview origin. It records and aborts every matching browser request, and its assertion fails if any attempt was recorded.",
+        "The registered Chromium regression holds a same-origin request in a context observer after page fallback, removes the final matching page handler, and observes exactly one service arrival. A request to a second synthetic loopback origin fails in the browser and in the guard assertion with zero arrivals at that peer.",
+        "The new browser regression fails deterministically with the legacy guard and passes with the repair. All ten original browser cases and three Rust replay tests pass on the repaired source. Approved native Windows verification and a matching M4-012 task evidence receipt are required for closure."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "model-connection-workflow",
+        "model-connection-replay"
+      ],
+      "next_action": "Run the local fast and selected M4-012 checks on the private repair checkpoint. The coordinator must obtain approved matching native Windows task verification and archive the task evidence before closing this task and its feedback.",
+      "blocker": null,
+      "closure_reason": null,
+      "evidence": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261121T153210.808612Z-2e7176fe",
+          "source_commit": "46bcadea3338c3fadd54f2c25b45847fdb18a96a",
+          "report_sha256": "b042013239f3ffb7d04a5ba64321ae6cb7fe298e0a40468d3637a5c4e481d3b2"
+        }
+      ],
+      "plan": {
+        "outcome": "Removing a page fault handler while a same-origin request is in progress yields one local arrival, and a genuinely attempted different-origin request is blocked and causes the guard assertion to fail.",
+        "change_types": [
+          "tooling",
+          "model-connection"
+        ],
+        "context": [
+          "tests/ui/ai-workflow-fixture.mjs",
+          "tests/ui/ai-workflow.spec.mjs",
+          "tests/ui/ai-workflow.config.mjs",
+          "project/checks.json",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The page handler falls back to a context observer that holds the request during unroute. Removing the final matching page route lets the driver resolve the request. The legacy catch-all guard then issues a second terminal continue and Playwright rejects it.",
+          "An exact-origin exclusion at registration keeps the guard out of the local route chain while preserving denial of browser requests to other origins, including other ports on loopback."
+        ],
+        "risks": [
+          {
+            "failure": "A timing-based regression passes without reproducing the route removal interleaving.",
+            "checks": [
+              "model-connection-workflow"
+            ]
+          },
+          {
+            "failure": "The repair permits a different-origin request or drops its attempt from the guard assertion.",
+            "checks": [
+              "model-connection-workflow"
+            ]
+          },
+          {
+            "failure": "The fixture repair changes original model workflow or replay outcomes.",
+            "checks": [
+              "model-connection-workflow",
+              "model-connection-replay"
+            ]
+          }
+        ],
+        "rollback": "Retain the original hosted failure and local browser reports. If the repair regresses the original cases, restore the reviewed fixture on the private branch and keep this task open while investigating the failed observation.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ui/ai-workflow-fixture.mjs",
+            "tests/ui/ai-workflow.config.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Application, protocol, provider, credential and Rust replay changes, raw model JSON publication, hosted dispatch and publication from the private repair checkout."
+          ],
+          "open_questions": [
+            "Does the exact repaired source pass the selected task checks on approved native Windows?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Exact preview origin policy, per-attempt reporting, explicit page faults, original model workflow and replay cases, and hash-bound hosted output."
+          ],
+          "change": [
+            "Scope the fixture interception predicate to denied origins and add the controlled browser regression to the existing workflow entry."
+          ],
+          "data_plan": "Use two disposable loopback servers and synthetic requests. Retain original hosted logs and distinct local red and green reports.",
+          "cleanup": "Release the held observer on success or failure and close the owned browser context and listeners."
         }
       }
     }

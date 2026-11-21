@@ -676,7 +676,7 @@
     {
       "id": "model-connection-workflow",
       "status": "implemented",
-      "purpose": "Exercise local text settings and explicit offline mock, OpenAI credential entry and ordinary-text disclosure, ordinary turns, bounded selected-chart tool calls, corrected and denied intervals, and pending-reply invalidation through the Rust registry and real Ollama adapter against an owned synthetic HTTP peer.",
+      "purpose": "Exercise local text settings and explicit offline mock, OpenAI credential entry and ordinary-text disclosure, ordinary turns, bounded selected-chart tool calls, corrected and denied intervals, and pending-reply invalidation through the Rust registry and real Ollama adapter against an owned synthetic HTTP peer. Verify that the browser guard allows local route removal and blocks and reports a different loopback origin.",
       "platforms": "all",
       "command": [
         "pnpm",

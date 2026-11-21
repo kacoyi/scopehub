@@ -31,6 +31,15 @@ const service = `
 export const workspaceEndpoint = '/__scopehub/workspace';
 export const credentialEndpoint = '/__scopehub/model-credential';
 
+export async function installBrowserNetworkGuard(context, origin) {
+  const browserSends = [];
+  await context.route(url => url.origin !== origin, route => {
+    browserSends.push(new URL(route.request().url()).origin);
+    return route.abort();
+  });
+  return () => expect(browserSends, 'Browser requests use only the local workspace transport').toEqual([]);
+}
+
 export async function buildPreview() {
   await exec('cargo', ['build', '--locked', '--target-dir', 'target',
     '-p', 'scopehub-persistence', '-p', 'scopehub-worker-host', '--bins', '--example', 'history_bridge',
@@ -144,12 +153,7 @@ export async function withWorkspace(browser, profile, use, protectedValues = [])
           history.replaceState(history.state, '', '#workspace=' + capability);
         }
       }, { origin, capability });
-      const browserSends = [];
-      await context.route('**/*', route => {
-        if (new URL(route.request().url()).origin === origin) return route.continue();
-        browserSends.push(new URL(route.request().url()).origin);
-        return route.abort();
-      });
+      const assertNoBrowserSends = await installBrowserNetworkGuard(context, origin);
       const page = await context.newPage();
       page.on('console', message => { keyLogged ||= protectedValues.some(value => message.text().includes(value)); });
       await page.goto(origin);
@@ -167,7 +171,7 @@ export async function withWorkspace(browser, profile, use, protectedValues = [])
         return { status: response.status, cacheControl: response.headers.get('cache-control'), body: await response.json() };
       };
       await use(page, dispatch, dispatchCredential);
-      expect(browserSends, 'Browser requests use only the local workspace transport').toEqual([]);
+      assertNoBrowserSends();
       expect(output.includes(capability), 'The preview never logs the workspace capability').toBe(false);
     } finally {
       await context.close();
