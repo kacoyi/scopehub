@@ -1269,6 +1269,33 @@
         "prevention": "Regression tests cover repository identity, explicit branch and base, reuse, interruptions and storage eligibility. All 43 original worktrees matched Git and retained evidence after relocation. Host verification exercised the actual client build, four Rust/Python handshake cases, fresh worktree creation, Herdr routing, and an offline cache fallback. Process-death tests exercise kernel-released creation locks, including a Git child which outlives the launcher. The installed host alias resumed after a forced process exit."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "cross-checkout-diagnostic-dependency-and-retirement",
+      "source": "Owner development worktree review and read-only retirement reproductions on 2026-11-21.",
+      "observation": "M4-001 referenced its blocked diagnostic through another checkout. Moving or retiring that checkout could make the diagnostic unavailable. The owner also reproduced two false retirement candidates in temporary Git worktrees. One still supplied a report to a committed operational script in another checkout. The other appeared to retain its only diagnostic because an archive root above the checkout resolved back to the original file.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261121T015908.326119Z-721f69a6",
+          "source_commit": "dc9b28315e2943d02360520140e8473e5b3d5a81",
+          "report_sha256": "75be30f5055c501458d1709ef604dc3253a687e8e6c85da3f5876684cad80d8e"
+        }
+      ],
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-031"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The report dependency used a checkout location as its identity. The initial retirement observation did not cover operational script consumers and could resolve a claimed archive copy inside the checkout it was evaluating.",
+        "correction": "Record portable diagnostic locators and reject nonlocal report paths in active and newly reviewed records and operational scripts. Keep archive reads explicit and verify original report bytes and associated files. Hold worktrees when a downstream consumer exists, retention is unverified, or an observation is incomplete.",
+        "prevention": "M0-031's recorded Linux checks passed positive and negative Git fixtures, including tracked and untracked script consumers, an overlapping archive root, an archive symlink back into the checkout, independent retained copies and incomplete activity visibility. The actual host report held all 50 registrations, including 10 tips reachable from the observed origin/main. Explicit resolution of the M4 diagnostic verified 13 logs and the archive checksum manifest and preserved the blocked outcome with 13 selected checks passed and two blocked."
+      },
+      "deferral_reason": null
     }
   ]
 }
