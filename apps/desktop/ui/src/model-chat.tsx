@@ -327,7 +327,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
           timer = window.setTimeout(poll, pollIntervalMs);
           return;
         }
-        // Re-read the same local turn. Only send may dispatch to the model.
+        // Poll the same turn. The registry hands off its chart continuation once. Recovery never resubmits the question.
         if (modelErrorCode(failure) !== 'BUSY' && failedPolls < failedPollLimit) {
           failedPolls += 1;
           timer = window.setTimeout(poll, pollIntervalMs);
@@ -426,7 +426,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
   }
 
   function updateCredential(args: { action: 'replace'; secret: string } | { action: 'remove' }) {
-    void perform(async (_id, signal) => {
+    void perform(async (id, signal) => {
       try {
         setCredential(await openAiCredential(args, signal));
         if (connection?.route.kind === 'openai_responses') {
@@ -437,9 +437,16 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, char
         setNotice(args.action === 'remove' ? 'OpenAI API key removed.' : 'OpenAI API key saved.');
       } catch (failure) {
         if (signal.aborted) return;
-        setError(modelErrorCode(failure) === 'INVALID_ARGUMENT' ? 'Enter a valid OpenAI API key.'
-          : 'ScopeHub could not update the OpenAI API key. Check its status and try again.');
+        if (modelErrorCode(failure) === 'INVALID_ARGUMENT') {
+          setError('Enter a valid OpenAI API key.');
+          return;
+        }
         setCredential(undefined);
+        if (connection?.route.kind === 'openai_responses') {
+          setProvider('openai_responses');
+          await checkConnectionAfterChange(id, signal);
+        }
+        setError('ScopeHub could not confirm the OpenAI API key update. Check its status.');
       }
     });
   }

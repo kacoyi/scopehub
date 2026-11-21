@@ -152,27 +152,29 @@ async function observeAction(page, name, action) {
   return request.postDataJSON();
 }
 
-async function loseConnectionReply(page, name, action) {
-  const workspaceRoute = `**${workspaceEndpoint}`;
+async function loseLocalReply(page, endpoint, matches, action) {
+  const pattern = `**${endpoint}`;
   let acknowledgement;
   const loseReply = async route => {
-    if (!isAction(route.request(), name)) return route.fallback();
+    if (!matches(route.request())) return route.fallback();
     const response = await route.fetch({ maxRedirects: 0 });
     acknowledgement = await response.json();
     await route.abort('failed');
   };
-  await page.route(workspaceRoute, loseReply);
+  await page.route(pattern, loseReply);
   try {
-    await Promise.all([
-      page.waitForEvent('requestfailed', { predicate: request => isAction(request, name) }),
-      action(),
-    ]);
-    expect(acknowledgement).toMatchObject({ ok: true, result: { outcome: {
-      state: 'completed', result: { action: name },
-    } } });
+    await Promise.all([page.waitForEvent('requestfailed', { predicate: matches }), action()]);
+    return acknowledgement;
   } finally {
-    await page.unroute(workspaceRoute, loseReply);
+    await page.unroute(pattern, loseReply);
   }
+}
+
+async function loseConnectionReply(page, name, action) {
+  const acknowledgement = await loseLocalReply(page, workspaceEndpoint, request => isAction(request, name), action);
+  expect(acknowledgement).toMatchObject({ ok: true, result: { outcome: {
+    state: 'completed', result: { action: name },
+  } } });
 }
 
 async function expectRevoked(dispatch, command, connectionId = command.intent.arguments.connection_id) {
@@ -887,7 +889,19 @@ test('OpenAI settings manage a scoped session key and leave the Ollama route usa
       const statusAfterDenial = await dispatch(modelCommand({ action: 'status' }));
       expect(statusAfterDenial.result.outcome.result).toMatchObject({ connection: { connection_id: first }, turn_id: null });
       await control(chat(page), 'AI settings').click();
-      await updateCloudKey(page, 'replace', 'Replace API key', keys, keys[1]);
+      await apiKey(page).fill(keys[1]);
+      const replacement = await loseLocalReply(page, credentialEndpoint,
+        request => new URL(request.url()).pathname === credentialEndpoint && request.postDataJSON()?.action === 'replace',
+        () => control(settings(page), 'Replace API key').click());
+      assertKeyAbsent(replacement, keys);
+      expect(replacement).toEqual({ ok: true, result: { configured: true, lifetime: 'session' } });
+      await expect(settings(page).getByRole('region', { name: 'Active model connection' })).toHaveCount(0);
+      await control(settings(page), 'Check OpenAI key status').click();
+      await expect(settings(page)).toContainText('API key configured.');
+      await control(settings(page), 'Back to question').click();
+      await expect(chat(page)).toContainText('No model connected');
+      await expect(control(chat(page), 'Send')).toHaveCount(0);
+      await control(chat(page), 'AI settings').click();
       await assertCloudRevoked(dispatch, first);
 
       const second = await enableCloud();
