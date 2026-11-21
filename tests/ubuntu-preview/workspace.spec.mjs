@@ -44,6 +44,17 @@ const service = `
         if (request.url !== '${operationPath}' || !request.headers['${traceHeader}'] || !fault) return next();
         const end = response.end;
         response.end = function (...args) {
+          if (fault === 'hold-success' && response.statusCode === 200) {
+            const start = performance.now();
+            const timer = setTimeout(() => {
+              console.info('Preview history', JSON.stringify({
+                id: request.headers['${traceHeader}'], stage: 'held-success', elapsed_ms: Math.round(performance.now() - start),
+              }));
+              end.apply(response, args);
+            }, 5500);
+            response.once('close', () => clearTimeout(timer));
+            return response;
+          }
           if (fault === 'before-headers' && response.statusCode === 200) {
             if (heldFirstDisconnect) return response.destroy();
             heldFirstDisconnect = true;
@@ -499,6 +510,11 @@ test('indicator-preview uses the bound sample calendar through the normal chart'
   const port = await freePort();
   const afterClosure = 1704243600000;
   const lastExpected = 1704200940000;
+  const croppedHistory = sampleHistoryCall();
+  const dayStart = Date.UTC(2024, 0, 3);
+  Object.assign(croppedHistory.payload, { from_ms: dayStart, to_ms: Date.UTC(2024, 0, 4) });
+  const gappedRevision = 'scopehub-synthetic-v1:20241013:gapped';
+  const gappedHistory = { ...croppedHistory, payload: { ...croppedHistory.payload, expected_revision: gappedRevision } };
   const observation = [];
   try {
     await inService(port, profile, 'ubuntu-workspace', async server => {
@@ -509,18 +525,25 @@ test('indicator-preview uses the bound sample calendar through the normal chart'
       await injected.body?.cancel();
 
       await inFreshBrowser(browser, server, async page => {
-        await control(page, 'Open offline sample').click();
-        await expect(page.getByText('Offline sample', { exact: true })).toBeVisible();
+        await sampleStep(page, server, testInfo, 'open sample for calendar preview', () => sampleButton(page).click());
         const source = await (await post(server, snapshot)).json();
         expect(source.result.source).toMatchObject({ kind: 'sample' });
         await control(page, 'Data sources').click();
         const sources = page.getByRole('complementary', { name: 'Data sources' });
         // UTC Jan 3 starts after the first session. The preceding bar
         // must come from the same immutable revision's earlier warm-up.
-        await sources.getByLabel('Sample date (UTC)').fill('2024-01-03');
+        const releaseRoute = await holdSampleHistory(page, dayStart);
+        try {
+          const historyRequest = await sampleStep(page, server, testInfo, 'read delayed January 3 sample',
+            () => sources.getByLabel('Sample date (UTC)').fill('2024-01-03'),
+            { catalog: false, historyCall: croppedHistory, bars: 20 });
+          const stages = server.historyStages.get(historyRequest.headers()[traceHeader]);
+          const hold = stages.find(stage => stage.stage === 'held-success');
+          expect(hold?.elapsed_ms, 'Delay of the successful history response').toBeGreaterThan(5_000);
+        } finally {
+          await releaseRoute();
+        }
         const plot = page.getByRole('region', { name: 'Price chart' });
-        const chart = plot.locator('.history');
-        await expect(chart).toHaveAttribute('data-bars', '20');
         await sources.getByRole('button', { name: 'Close panel' }).click();
         const indicatorSwitch = plot.getByText('Indicators', { exact: true });
         await indicatorSwitch.click({ timeout: 8_000 });
@@ -544,7 +567,7 @@ test('indicator-preview uses the bound sample calendar through the normal chart'
         const normal = await run();
         expect(normal.event.artifact.result.series[0].points).toEqual([{ time_ms: afterClosure, value: 3500.5 }]);
         expect(normal.warmup_from_ms).toBe(lastExpected);
-        expect(normal.source_snapshot.from_ms).toBe(Date.UTC(2024, 0, 3));
+        expect(normal.source_snapshot.from_ms).toBe(dayStart);
         expect(normal.event.snapshot.warmup_bars).toBe(1);
         expect(normal.calendar_hash).toMatch(/^[a-f0-9]{64}$/);
         await expect(indicator.getByText("The source's scheduled closures add no indicator buckets.")).toBeVisible();
@@ -565,8 +588,10 @@ test('indicator-preview uses the bound sample calendar through the normal chart'
 
 
         await control(page, 'Data sources').click();
-        await sources.getByLabel('Sample revision').selectOption('gapped');
-        await expect(sources.getByText('scopehub-synthetic-v1:20241013:gapped', { exact: true })).toBeVisible();
+        await sampleStep(page, server, testInfo, 'read gapped January 3 sample',
+          () => sources.getByLabel('Sample revision').selectOption('gapped'),
+          { catalog: false, historyCall: gappedHistory, bars: 20 });
+        await expect(sources.getByText(gappedRevision, { exact: true })).toBeVisible();
         await sources.getByRole('button', { name: 'Close panel' }).click();
         if (await plot.locator('.chart-indicators').getAttribute('open') === null) {
           await indicatorSwitch.click({ timeout: 8_000 });
@@ -589,8 +614,8 @@ test('indicator-preview uses the bound sample calendar through the normal chart'
         await expect.poll(async () => (await (await post(server, {
           type: 'indicator_preview_status', request_id: randomUUID(), task_id: gapped.task_id,
         })).json()).error?.code).toBe('STALE_CONTEXT');
-      }, [endpoint, '/__scopehub/operation']);
-    });
+      }, [endpoint, '/__scopehub/operation'], { traceSample: true });
+    }, { historyTrace: true, historyFault: true });
     await testInfo.attach('sample-indicator-calendar', { body: JSON.stringify(observation), contentType: 'application/json' });
   } finally {
     await profile.close();
@@ -1068,7 +1093,7 @@ test('indicator-preview runs trusted Python once after exact local approval and 
     await seedFrozenEvidence(profile, id, before, after, rows);
     await inService(port, profile, 'ubuntu-workspace', async server => {
       await inFreshBrowser(browser, server, async page => {
-        await control(page, 'Open offline sample').click();
+        await sampleStep(page, server, testInfo, 'open sample for trusted Python preview', () => sampleButton(page).click());
         const { editor, plot } = await sampleEditor(page);
         const canvases = await plot.locator('canvas').count();
         await editor.getByLabel('Indicator type').selectOption('python');
@@ -1202,8 +1227,8 @@ test('indicator-preview runs trusted Python once after exact local approval and 
         } })).result.outcome).toMatchObject({ state: 'failed', error: { code: 'PERMISSION_DENIED' } });
         observations.first = { accepted: layer, output: ready.event.artifact, declined: true, obsolete: true,
           rejectedOutput: true, cancelled: true, csvPurposeDenied: true };
-      }, [endpoint, '/__scopehub/operation']);
-    });
+      }, [endpoint, '/__scopehub/operation'], { traceSample: true });
+    }, { historyTrace: true });
 
     await inService(port, profile, 'ubuntu-workspace', async server => {
       await inFreshBrowser(browser, server, async page => {
@@ -1226,8 +1251,8 @@ test('indicator-preview runs trusted Python once after exact local approval and 
           layer_id: layer.layer_id, version_id: layer.version_id, available: false,
         }]);
         observations.reopened = { runs, references: references.result.layers, error: withheld.error.code };
-      }, [endpoint, '/__scopehub/operation'], { restoredSample: true });
-    });
+      }, [endpoint, '/__scopehub/operation'], { traceSample: true, restoredSample: { testInfo, label: 'restore trusted Python sample' } });
+    }, { historyTrace: true });
     await testInfo.attach('trusted-indicator', { body: JSON.stringify(observations), contentType: 'application/json' });
   } finally { await profile.close(); }
 });
@@ -1607,6 +1632,17 @@ const futureHistory = { '1m': 40, '5m': 8, '1d': 2 };
 const sampleButton = page => control(page, 'Open offline sample');
 const retryHistory = page => control(page, 'Retry history');
 
+async function holdSampleHistory(page, from) {
+  const handler = async route => {
+    const call = route.request().postDataJSON();
+    if (call?.operation !== 'market.readHistoryPage' || call.payload.from_ms !== from) return route.continue();
+    const headers = await route.request().allHeaders();
+    return route.continue({ headers: { ...headers, 'x-scopehub-test-interrupt': 'hold-success' } });
+  };
+  await page.route(`**${operationPath}`, handler);
+  return () => page.unroute(`**${operationPath}`, handler);
+}
+
 async function expectedLayerRead(historyRequest) {
   const reply = await historyRequest.existingResponse().json();
   expect(reply.ok).toBe(true);
@@ -1617,7 +1653,8 @@ async function expectedLayerRead(historyRequest) {
 }
 
 async function sampleStep(page, server, testInfo, label, trigger, {
-  timeframe = '1m', catalog = true, error, retryable = false,
+  timeframe = '1m', catalog = true, error, retryable = false, historyCall = sampleHistoryCall(timeframe),
+  bars = futureHistory[timeframe],
 } = {}) {
   const observer = observeSampleRequests(page, { marketOnly: true });
   const selection = { id: future, timeframe };
@@ -1633,9 +1670,9 @@ async function sampleStep(page, server, testInfo, label, trigger, {
     expect(terminal, label).toEqual(error ? { state: 'error', message: error } : { state: 'chart' });
     await expect(retryHistory(page)).toHaveCount(retryable ? 1 : 0);
     if (error) await expect(page.locator('.history')).toHaveCount(0);
-    else await expect(history).toHaveAttribute('data-bars', String(futureHistory[timeframe]));
+    else await expect(history).toHaveAttribute('data-bars', String(bars));
 
-    const expected = [...(catalog ? [sampleCatalogCall] : []), sampleHistoryCall(timeframe)];
+    const expected = [...(catalog ? [sampleCatalogCall] : []), historyCall];
     let phase = 0;
     for (const [request, attempt] of observer.attempts) {
       const call = expected[phase];
@@ -1657,12 +1694,13 @@ async function sampleStep(page, server, testInfo, label, trigger, {
           future, 'SIM.CN.STOCK.001', 'SIM.US.STOCK.001',
         ]);
       } else {
+        const { series, expected_revision: dataset_revision, from_ms, to_ms, warmup_bars } = call.payload;
         expect(reply.result).toMatchObject({
-          snapshot: { series: call.payload.series, dataset_revision: call.payload.expected_revision },
+          snapshot: { series, dataset_revision, from_ms, to_ms, warmup_bars },
           dataset: { provider_id: 'scopehub.synthetic', mode: 'simulated' },
-          quality_state: { connection: 'offline' }, total_bars: futureHistory[timeframe], next_cursor: null,
+          quality_state: { connection: 'offline' }, total_bars: bars, next_cursor: null,
         });
-        expect(reply.result.bars).toHaveLength(futureHistory[timeframe]);
+        expect(reply.result.bars).toHaveLength(bars);
         expect(reply.result.snapshot.content_hash).toMatch(/^[a-f0-9]{64}$/);
       }
     }
@@ -2486,7 +2524,7 @@ async function assertSampleStorage(page, timeframe) {
   expect(stored).toEqual({ onlySamplePreference: true, emptySessionStorage: true, matchesSample: true });
 }
 
-async function inFreshBrowser(browser, server, use, permittedOperations = [endpoint], { restoredSample = false, traceSample = false } = {}) {
+async function inFreshBrowser(browser, server, use, permittedOperations = [endpoint], { restoredSample, traceSample = false } = {}) {
   const context = await browser.newContext();
   try {
     // Read the real launcher handoff but set its fragment locally before page
@@ -2499,7 +2537,11 @@ async function inFreshBrowser(browser, server, use, permittedOperations = [endpo
     const requests = observeOperations(page);
     let capabilityInRequestUrl = false;
     page.on('request', request => { capabilityInRequestUrl ||= request.url().includes(server.capability); });
-    await use(page, await openWorkspaceSnapshot(page, server.url, restoredSample));
+    let initial;
+    const open = async () => { initial = await openWorkspaceSnapshot(page, server.url, Boolean(restoredSample)); };
+    if (restoredSample) await sampleStep(page, server, restoredSample.testInfo, restoredSample.label, open);
+    else await open();
+    await use(page, initial);
     expect(requests.every(path => permittedOperations.includes(path))).toBe(true);
     expect(capabilityInRequestUrl).toBe(false);
   } finally {

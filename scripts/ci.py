@@ -77,6 +77,9 @@ def status(root=ROOT, run_id=None):
     result.update(repository=repository, head_sha=source['git_head'],
                   claim_scope='Workflow success for this commit; task evidence and release acceptance are separate.')
     if result['run']:
+        if result['run']['event'] == 'workflow_dispatch':
+            result['claim_scope'] = ('Workflow status for the selection recorded in this manual run (full, release or task). '
+                                     'Task evidence and release acceptance are separate.')
         run = result['run']['id']
         result['evidence_commands'] = [
             f'gh run download {run} --repo {repository} --name verification-windows-latest --dir .reports/ci/{run}/windows',

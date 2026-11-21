@@ -176,7 +176,7 @@ class IntegrationHistoryTests(ProjectFixture):
             scope = integration.delivery_scope(self.root, project, base)
             self.assertEqual(blocked, bool(scope['blockers']))
 
-    def test_collection_is_read_only_and_checks_the_latest_attempt_and_live_identity(self):
+    def test_collection_checks_the_latest_pr_attempt_despite_a_newer_task_dispatch(self):
         args = observations()
         (self.root / 'project/branch-protection.json').write_bytes(json_bytes(args['policy']))
         base = self.commit()
@@ -185,6 +185,7 @@ class IntegrationHistoryTests(ProjectFixture):
         pr = dict(args['pr'], baseRefOid=base, headRefOid=head)
         run = {'id': 100, 'head_sha': head, 'status': 'completed', 'conclusion': 'success',
                'run_attempt': 2, 'path': '.github/workflows/verify.yml', 'event': 'pull_request'}
+        task_run = dict(run, id=101, event='workflow_dispatch', run_attempt=1)
         queries = []
 
         def command(argv, root):
@@ -194,7 +195,7 @@ class IntegrationHistoryTests(ProjectFixture):
             if argv[:3] == ['gh', 'pr', 'view']:
                 return json.dumps(pr)
             if 'actions/runs' in ' '.join(argv) and '--paginate' not in argv:
-                return json.dumps({'workflow_runs': [run]})
+                return json.dumps({'workflow_runs': [task_run, run]})
             if '--paginate' in argv:
                 self.assertIn('/runs/100/attempts/2/jobs?', argv[-1])
                 return json.dumps([{'jobs': [dict(args['jobs'][0], head_sha=head)]}])
@@ -206,6 +207,8 @@ class IntegrationHistoryTests(ProjectFixture):
               patch.object(integration, 'command', side_effect=command)):
             result = integration.inspect(self.root, 1)
         self.assertTrue(result['technical_ready'])
+        self.assertEqual('pull_request', result['workflow']['run']['event'])
+        self.assertEqual(2, sum('event=pull_request' in argv for argv in queries))
         self.assertEqual(2, sum(argv[:3] == ['gh', 'pr', 'view'] for argv in queries))
         self.assertEqual(head, result['source']['git_head'])
         self.assertFalse(source_identity(self.root)['working_tree_dirty'])
