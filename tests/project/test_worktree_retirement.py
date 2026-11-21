@@ -458,6 +458,102 @@ class WorktreeRetirementTests(unittest.TestCase):
         self.assert_candidate(preserved)
         self.assertEqual(preserved['local_evidence']['verified_retained_files'], 1)
 
+    def test_scoped_pnpm_projection_requires_a_local_lock_and_package_identity(self):
+        checkout = self.candidate
+        self.commit(checkout, '.gitignore', 'node_modules/\n')
+        self.commit(checkout, '.gitattributes', 'pnpm-lock.yaml -text\n')
+        self.commit(checkout, 'package.json', '{}\n')
+        self.commit(checkout, 'apps/ui/package.json', '{}\n')
+        lock = checkout / 'pnpm-lock.yaml'
+        lock.write_bytes(b"lockfileVersion: '9.0'\r\n\r\npackages:\r\n\r\n  '@fixture/tool@1.2.3':\r\n"
+                         b'    resolution: {integrity: fixture}\r\n\r\nsnapshots:\r\n\r\n')
+        self.git('add', '--', 'pnpm-lock.yaml', cwd=checkout)
+        self.git('commit', '-qm', 'Retain a CRLF lock fixture', cwd=checkout)
+        head = self.head(checkout)
+        self.git('update-ref', 'refs/remotes/origin/main', head)
+        modules = checkout / 'node_modules'
+        store = modules / '.pnpm'
+        package = store / '@fixture+tool@1.2.3_peer@2.0.0/node_modules/@fixture/tool'
+        package.mkdir(parents=True)
+        (package / 'package.json').write_text('{"name":"@fixture/tool","version":"1.2.3"}\n', encoding='utf-8')
+        plain_package = store / 'plain@1.0.0/node_modules/plain'
+        plain_package.mkdir(parents=True)
+        metadata = modules / '.modules.yaml'
+        metadata.write_text(json.dumps({
+            'packageManager': 'pnpm@11.28.5', 'nodeLinker': 'isolated',
+            'layoutVersion': 5, 'virtualStoreDir': '.pnpm',
+        }), encoding='utf-8')
+        top_level = modules / '@fixture/tool'
+        nested = checkout / 'apps/ui/node_modules/@fixture/tool'
+        for projected, target in ((top_level, package), (nested, package), (modules / 'plain', plain_package)):
+            projected.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                projected.symlink_to(os.path.relpath(target, projected.parent), target_is_directory=True)
+            except (NotImplementedError, OSError) as error:
+                self.skipTest(f'The fixture cannot create a package symlink: {error}')
+
+        self.assert_candidate(self.row(IDLE))
+        scope = nested.parent
+        note = scope / 'evidence.json'
+        note.write_text('{"record":"unique"}\n', encoding='utf-8')
+        row = self.row(IDLE)
+        self.assert_held(row, 'unretained_local_evidence')
+        self.assertEqual(row['details']['unretained_local_evidence'], [str(note.relative_to(checkout))])
+
+        # Directory and package names alone cannot reconstruct an unlocked package.
+        unlocked = store / '@fixture+unlocked@1.2.3/node_modules/@fixture/unlocked'
+        unlocked.mkdir(parents=True)
+        (unlocked / 'package.json').write_text('{"name":"@fixture/unlocked","version":"1.2.3"}', encoding='utf-8')
+        (scope / 'unlocked').symlink_to(unlocked, target_is_directory=True)
+        (scope / 'missing').symlink_to(store / '@fixture+missing@1.2.3/node_modules/@fixture/missing',
+                                      target_is_directory=True)
+        row = self.row(IDLE)
+        self.assertEqual(set(row['details']['unretained_local_evidence']),
+                         {str((scope / name).relative_to(checkout)) for name in ('evidence.json', 'missing', 'unlocked')})
+
+        metadata.write_text('{"virtualStoreDir":"../another-store"}\n', encoding='utf-8')
+        row = self.row(IDLE)
+        self.assertIn(str(top_level.relative_to(checkout)), row['details']['unretained_local_evidence'])
+        self.assertIn(str(nested.relative_to(checkout)), row['details']['unretained_local_evidence'])
+        self.assertNotIn(str((modules / 'plain').relative_to(checkout)), row['details']['unretained_local_evidence'])
+
+    def test_scoped_pnpm_links_to_external_stores_preserve_path_consumers(self):
+        checkout = self.candidate
+        self.commit(checkout, '.gitignore', 'node_modules/\n')
+        self.commit(checkout, 'package.json', '{}\n')
+        head = self.commit(checkout, 'pnpm-lock.yaml',
+                           "lockfileVersion: '9.0'\n\npackages:\n\n  '@fixture/tool@1.2.3':\n"
+                           '    resolution: {integrity: fixture}\n\nsnapshots:\n\n')
+        self.git('update-ref', 'refs/remotes/origin/main', head)
+        foreign = self.add_worktree('foreign')
+        modules = checkout / 'node_modules'
+        modules.mkdir()
+        (modules / '.modules.yaml').write_text(json.dumps({
+            'packageManager': 'pnpm@11.28.5', 'nodeLinker': 'isolated',
+            'layoutVersion': 5, 'virtualStoreDir': '.pnpm',
+        }), encoding='utf-8')
+        foreign_package = foreign / 'node_modules/.pnpm/@fixture+tool@1.2.3/node_modules/@fixture/tool'
+        external_package = self.directory / 'external/node_modules/.pnpm/@fixture+tool@1.2.3/node_modules/@fixture/tool'
+        projection = modules / '@fixture/tool'
+        projection.parent.mkdir()
+        for target in (foreign_package, external_package):
+            with self.subTest(target=target):
+                target.mkdir(parents=True)
+                (target / 'package.json').write_text('{"name":"@fixture/tool","version":"1.2.3"}', encoding='utf-8')
+                try:
+                    projection.symlink_to(target, target_is_directory=True)
+                except (NotImplementedError, OSError) as error:
+                    self.skipTest(f'The fixture cannot create a package symlink: {error}')
+                row = self.row(IDLE)
+                self.assert_held(row, 'unretained_local_evidence')
+                self.assertEqual(row['details']['unretained_local_evidence'], [str(projection.relative_to(checkout))])
+                if target == foreign_package:
+                    foreign_row = self.row(IDLE, foreign)
+                    self.assert_held(foreign_row, 'downstream_path_consumer')
+                    self.assertEqual(foreign_row['details']['downstream_path_consumer'],
+                                     [f'{checkout}: {projection}'])
+                projection.unlink()
+
     def test_partial_process_visibility_only_admits_otherwise_eligible_reviews(self):
         review = self.candidate
         active = self.add_worktree('active')

@@ -2,6 +2,7 @@
 
 from collections import defaultdict
 import hashlib
+from itertools import dropwhile
 import json
 import os
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -448,14 +449,62 @@ def cargo_build_output(parts):
     return parts[4] == 'out' and re.fullmatch(r'[0-9a-f]{16}-.+\.(?:o|obj)', parts[5]) is not None
 
 
-def rebuildable(path, checkout, info):
+def scoped_pnpm_projection(path, checkout, mounts):
+    scope = path.parent.name
+    modules = path.parent.parent
+    if (modules.name != 'node_modules' or not re.fullmatch(r'@[a-z0-9][a-z0-9._-]*', scope) or
+            not re.fullmatch(r'[a-z0-9][a-z0-9._-]*', path.name)):
+        return False
+    root_modules = checkout / 'node_modules'
+    store = root_modules / '.pnpm'
+    link = Path(os.readlink(path))
+    # Relative pnpm projections ascend first and then descend into the virtual store.
+    if '..' in dropwhile(lambda part: part == '..', link.parts):
+        return False
+    target = Path(os.path.abspath(comparable_path(path.parent / link)))
+    if not target.is_relative_to(store):
+        return False
+    parts = target.relative_to(store).parts
+    if len(parts) != 4 or parts[1:] != ('node_modules', scope, path.name):
+        return False
+    try:
+        if (not worktree.regular_file(modules.parent / 'package.json') or
+                not target.is_dir() or path.resolve(strict=True) != target):
+            return False
+        if any(parent in mounts or (not mounts and parent.is_mount())
+               for parent in (target, *target.parents) if parent.is_relative_to(root_modules)):
+            return False
+        metadata = json.loads(read_control(root_modules / '.modules.yaml'))
+        if (not isinstance(metadata, dict) or metadata.get('nodeLinker') != 'isolated' or
+                metadata.get('virtualStoreDir') != '.pnpm' or metadata.get('layoutVersion') != 5 or
+                not str(metadata.get('packageManager', '')).startswith('pnpm@')):
+            return False
+        package = json.loads(read_control(target / 'package.json'))
+        name = f'{scope}/{path.name}'
+        if not isinstance(package, dict) or package.get('name') != name:
+            return False
+        version = package.get('version')
+        if not isinstance(version, str) or not re.fullmatch(r'\d+\.\d+\.\d+[-+\w.]*', version):
+            return False
+        entry = f'{scope}+{path.name}@{version}'
+        if parts[0] != entry and not parts[0].startswith(entry + '_'):
+            return False
+        lock = read_control(checkout / 'pnpm-lock.yaml').decode('utf-8').replace('\r\n', '\n')
+        packages = lock.partition('\npackages:\n')[2].partition('\nsnapshots:\n')[0]
+        return lock.startswith("lockfileVersion: '9.0'\n") and f"  '{name}@{version}':" in packages.splitlines()
+    except (OSError, ValueError):
+        return False
+
+
+def rebuildable(path, checkout, info, mounts):
     # Ignore only known generated layouts, even when broader Git ignore rules apply.
     relative = path.relative_to(checkout)
     if (path.parent.name == '__pycache__' and stat.S_ISREG(info.st_mode) and not storage.reparse(info) and
             (match := re.fullmatch(r'(.+)\.cpython-\d+(?:\.opt-\d+)?\.pyc', path.name))):
         return (path.parent.parent / f'{match[1]}.py').is_file()
     if storage.reparse(info) and path.parent.name != 'node_modules':
-        return relative.as_posix() == '.venv/lib64' and os.readlink(path) == 'lib' and cache_tag(checkout / '.venv')
+        return ((relative.as_posix() == '.venv/lib64' and os.readlink(path) == 'lib' and
+                 cache_tag(checkout / '.venv')) or scoped_pnpm_projection(path, checkout, mounts))
     if relative.parts[0] == '.venv' and len(relative.parts) == 2:
         return ((checkout / 'uv.lock').is_file() and cache_tag(checkout / '.venv') and
                 path.name in {'.gitignore', '.lock', 'CACHEDIR.TAG', 'pyvenv.cfg', 'bin', 'lib', 'lib64',
@@ -477,7 +526,7 @@ def rebuildable(path, checkout, info):
                 (path.parent.parent / 'package.json').is_file()):
             return path.name in {'.bin', '.modules.yaml', '.pnpm', '.pnpm-task-run-state-v1',
                                  '.pnpm-workspace-state-v1.json'} or (
-                path.is_symlink() and path_is_under(path, root_modules / '.pnpm')
+                not path.name.startswith('@') and path.is_symlink() and path_is_under(path, root_modules / '.pnpm')
             )
     return False
 
@@ -495,7 +544,7 @@ def ignored_files(checkout, paths, mounts, *, include_generated_links=False, exc
             if include_generated_links:
                 raise OSError(f'Consumer path crosses a mount boundary: {path}')
             yield path, False
-        elif rebuildable(path, checkout, info):
+        elif rebuildable(path, checkout, info, mounts):
             if exclusions is not None:
                 exclusions.append(path)
             if include_generated_links and path.is_symlink():
