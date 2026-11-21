@@ -30,6 +30,7 @@ const csvBar = {
 };
 const unavailable = 'The model could not answer. Check the configured server and try again.';
 const cancelled = 'Turn cancelled. Connect and enable again to send another question.';
+const reselect = 'The chart selection changed. Close Ask AI and select the bar again. If prompted, reload workspace state, then select the bar before reopening Ask AI.';
 
 const chat = page => page.getByRole('dialog', { name: 'Ask AI' });
 const settings = page => page.getByRole('dialog', { name: 'AI settings' });
@@ -295,10 +296,12 @@ async function selectChartBar(page, bar) {
   const panel = page.getByRole('complementary', { name: 'Data window' });
   const table = panel.getByRole('table', { name: 'Historical bars' });
   await expect(table).toBeVisible({ timeout: 12_000 });
-  const button = control(panel, `Select bar at ${time}`);
-  const receipt = await operation(page, 'workspace.selectEvidence', () => button.click());
+  const label = `Select bar at ${time}`;
+  const row = table.getByRole('row').filter({ has: control(page, label) });
+  const button = control(row, label);
+  const receipt = await operation(page, 'workspace.selectEvidence', () => button.click(), undefined, response => response.ok());
   await expect(button).toHaveAttribute('aria-pressed', 'true');
-  await expect(table.getByRole('row').filter({ has: button }).getByRole('cell').nth(5)).toHaveText(String(bar.close));
+  await expect(row.getByRole('cell').nth(5)).toHaveText(String(bar.close));
   expect(receipt.selection.target.range).toEqual(range(bar));
   return receipt.selection;
 }
@@ -321,12 +324,13 @@ function chartReply(body) {
   return assistant(closeAnswer(JSON.parse(last.content).rows[0]));
 }
 
-async function operation(page, name, action, intentAction) {
+async function operation(page, name, action, intentAction, acceptsResponse = () => true) {
   const [response] = await Promise.all([page.waitForResponse(response => {
     if (new URL(response.url()).pathname !== workspaceEndpoint) return false;
     const body = response.request().postDataJSON();
     return (body?.operation === name || body?.intent?.operation === name)
-      && (intentAction === undefined || body.intent?.arguments?.action === intentAction);
+      && (intentAction === undefined || body.intent?.arguments?.action === intentAction)
+      && acceptsResponse(response);
   }, { timeout: 12_000 }), action()]);
   const reply = await response.json();
   expect(reply, name).toMatchObject({ ok: true });
@@ -352,7 +356,8 @@ async function inspectManualCsv(page, revision) {
   expect(projected.result).toEqual({
     source_reference: revision, revision, fields: ['time_ms', 'close'], rows: [{ time_ms: csvBar.time_ms, close: csvBar.close }],
   });
-  await expect(manual.getByText(`Close ${csvBar.close}`, { exact: true })).toBeVisible();
+  const time = new Date(csvBar.time_ms).toISOString().slice(0, 19).replace('T', ' ');
+  await expect(manual.getByText(`${time} UTC · Close ${csvBar.close}`, { exact: true })).toBeVisible();
   await control(dialog, 'Use as workspace source').click();
   await expect(dialog).toBeHidden();
   await openPanel(page, 'Data window');
@@ -459,32 +464,71 @@ test('selected chart conversation negotiates the bounded tool through the owned 
 });
 
 test('rotating a pending chart selection blocks tool data and cancellation discards a pending final reply', async ({ browser }, testInfo) => {
-  await withPeer(peer => withProfile(profile => withWorkspace(browser, profile, async page => {
+  await withPeer(peer => withProfile(profile => withWorkspace(browser, profile, async (page, dispatch) => {
     const initial = Promise.withResolvers();
     const final = Promise.withResolvers();
     const lateAnswer = 'Late synthetic response must not appear.';
     try {
       peer.respond(() => initial.promise);
       await openSampleChart(page);
-      await selectChartBar(page, intervalA);
+      const first = await selectChartBar(page, intervalA);
       await askBeforeSetup(page);
       await activateRoute(page, await propose(page, peer.origin, true));
       await send(page);
       await expect.poll(() => peer.traffic.length, { timeout: 10_000 }).toBe(1);
       expectRequest(peer.traffic[0], [user(firstQuestion)], { tools: chartTools });
       await control(chat(page), 'Close').click();
-      await selectChartBar(page, intervalB);
-      const before = persistedRows(profile);
+      const selectionAttempts = [];
+      const workspaceRoute = `**${workspaceEndpoint}`;
+      const rejectFirstSelection = async route => {
+        const frame = route.request().postDataJSON();
+        if (frame?.operation !== 'workspace.selectEvidence') return route.fallback();
+        selectionAttempts.push(frame);
+        if (selectionAttempts.length > 1) return route.fallback();
+        // Match the preview's explicit rejection before its writer admits a request.
+        await route.fulfill({ status: 429, json: {
+          ok: false, error: { code: 'BUSY', message: 'The local workspace is busy.', retryable: true },
+        } });
+      };
+      await page.route(workspaceRoute, rejectFirstSelection);
+      const corrected = await selectChartBar(page, intervalB);
+      await page.unroute(workspaceRoute, rejectFirstSelection);
+      expect(selectionAttempts).toHaveLength(2);
+      expect(selectionAttempts[1]).toEqual(selectionAttempts[0]);
+      expect(corrected.selection_revision).toBe(first.selection_revision + 1);
+      const beforeRotationReply = persistedRows(profile);
       initial.resolve(providerToolCall);
       await openChat(page);
       await expect(chat(page).getByText('The chart selection changed. Send the question again for the current selection.', { exact: true })).toBeVisible();
       expect(peer.traffic, 'A stale selection produces no continuation').toHaveLength(1);
-      expect(persistedRows(profile)).toEqual(before);
+      expect(persistedRows(profile)).toEqual(beforeRotationReply);
       await expect(chat(page).getByRole('region', { name: 'Chart evidence used' })).toHaveCount(0);
 
       peer.respond(body => body?.tools ? providerToolCall : final.promise);
       const next = 'Synthetic request held before the final answer.';
+      const otherSelection = await dispatch({
+        type: 'request', protocol_version: '1.1', operation: 'workspace.selectEvidence',
+        request_id: randomUUID(), message_id: randomUUID(), timestamp_ms: Date.now(),
+        workspace_id: first.workspace_id, expected_selection_revision: corrected.selection_revision, target: first.target,
+      });
+      expect(otherSelection).toMatchObject({ ok: true, result: { selection: {
+        selection_revision: corrected.selection_revision + 1, target: first.target,
+      } } });
+      const beforeStaleSend = persistedRows(profile);
       await send(page, next);
+      await expect(chat(page).getByRole('alert')).toHaveText(reselect);
+      await expect(control(chat(page), 'Send')).toBeDisabled();
+      expect(peer.traffic, 'A stale opening selection does not send a question').toHaveLength(1);
+      expect(persistedRows(profile)).toEqual(beforeStaleSend);
+
+      await control(chat(page), 'Close').click();
+      await control(page.getByRole('complementary', { name: 'Data window' }), `Select bar at ${new Date(intervalB.time_ms).toISOString()}`).click();
+      await control(page, 'Reload workspace state').click();
+      await selectChartBar(page, intervalB);
+      const before = persistedRows(profile);
+      await openChat(page);
+      await expect(question(page)).toHaveValue(next);
+      await send(page);
       await expect.poll(() => peer.traffic.length, { timeout: 10_000 }).toBe(3);
       expectRequest(peer.traffic[1], [user(next)], { tools: chartTools });
       expectToolResult(peer.traffic[2], next, intervalB);
