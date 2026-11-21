@@ -12,6 +12,7 @@
     "project:status": "uv run python scripts/project.py status",
     "project:check": "uv run python scripts/project.py check",
     "project:record": "uv run python scripts/project.py record",
+    "project:diagnostic": "uv run python scripts/project.py diagnostic",
     "check:contracts": "node --test tests/contracts/protocol.test.mjs",
     "typecheck": "pnpm --filter @scopehub/ui typecheck",
     "build": "pnpm --filter @scopehub/ui build",

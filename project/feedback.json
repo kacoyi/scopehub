@@ -2089,6 +2089,70 @@
         "prevention": "The deterministic Rust regression rejects eager catalog compilation and checks validator isolation, output validity, and cache reuse. The complete M1-026 checks passed on clean 470b4dbef71d9e1a751815c54fe73a0167bb9783 in local run 20261121T085338.850657Z-3269f011 and both authenticated jobs in workflow 44887052675. The original native Windows Playwright check passed in 6.844 seconds including setup and cleanup, with the internal five-second replay deadline preserved. Its log SHA-256 is fcc7d8f12fa58630261a51617dd7eff259ca685fc31f27537a5674216693099f."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "cross-checkout-diagnostic-dependency-and-retirement",
+      "source": "Owner worktree review and separate read-only reproductions by the development supervisor during M0-031 on 2026-11-21.",
+      "observation": "The owner identified that M4-001 referenced its blocked diagnostic through another checkout and requested criteria for worktree retirement. Moving or retiring that checkout could make the diagnostic unavailable. During implementation the development supervisor reproduced two false retirement candidates in temporary Git worktrees. One still supplied a report to a committed operational script in another checkout. The other appeared to retain its only diagnostic because an archive root above the checkout resolved back to the original file.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261121T015908.326119Z-721f69a6",
+          "source_commit": "dc9b28315e2943d02360520140e8473e5b3d5a81",
+          "report_sha256": "75be30f5055c501458d1709ef604dc3253a687e8e6c85da3f5876684cad80d8e"
+        }
+      ],
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-031"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The report dependency used a checkout location as its identity. The initial retirement observation did not cover operational script consumers and could resolve a claimed archive copy inside the checkout it was evaluating.",
+        "correction": "Record portable diagnostic locators and reject nonlocal report paths in active and newly reviewed records and operational scripts. Keep archive reads explicit and verify original report bytes and associated files. Hold worktrees when a downstream consumer exists, retention is unverified, or an observation is incomplete.",
+        "prevention": "M0-031's recorded Linux checks passed positive and negative Git fixtures, including tracked and untracked script consumers, an overlapping archive root, an archive symlink back into the checkout, independent retained copies and incomplete activity visibility. The actual host report held all 50 registrations, including 10 tips reachable from the observed origin/main. Explicit resolution of the M4 diagnostic verified 13 logs and the archive checksum manifest and preserved the blocked outcome with 13 selected checks passed and two blocked."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "retirement-observation-and-diagnostic-review-gaps",
+      "source": "Independent Herdr reviews of PR 27 and read-only host observations on 2026-11-21, plus authenticated failed Ubuntu and Windows runs 44887586115 and 44891186224 now verified in the permanent development archive.",
+      "observation": "Independent fixtures exposed missed check registry, live symlink, editable Python and Cargo build output dependencies, lost worktree-private Git recovery references, incomplete observation artifact verification, caller-relative and exported report regressions, and an unused clean filter holding idle checkouts. Hosted Python checks failed on both platforms under globally configured Git LFS. Windows also missed untracked and ignored symlinks and rejected an independent archived file. The supervisor reproduced cross-checkout diagnostic paths escaping history checks in app, workflow and crate sources and requested a human review intake for the otherwise clear checkouts affected only by partial process visibility. A read-only inventory of the integrated PR 21 checkout showed that six standard scoped pnpm links were treated as unretained files despite resolving to its own locked virtual store. Follow-up reviews reproduced false candidates from nested Cargo paths with and without dot components, a linked harness registry and a sole diagnostic under Cargo deps. They found nonlocal report references accepted in HTML, SQL and harness commands and a manually placed root pnpm link misclassified as rebuildable. The first exact native Windows retry passed the original LFS, symlink and archive cases, and exposed duplicate attribution of one editable Python path through case-insensitive Lib and lib aliases.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261121T090216.542762Z-df265eff",
+          "source_commit": "75bddf88fa31fbc7ba0e5aae447b64ca862941e1",
+          "report_sha256": "5698e691bb3353fdbb8eed307e484270c6d20a6fa3fe43ce67c7420585b2ea2f"
+        },
+        {
+          "run_id": "20261121T090454.861752Z-508c4df7",
+          "source_commit": "75bddf88fa31fbc7ba0e5aae447b64ca862941e1",
+          "report_sha256": "3eda674b61ec2e3332f797b9a4ba74abd1f621fde59d3ad6beea6913c0de6d82"
+        },
+        {
+          "run_id": "20261121T095108.047949Z-7e2c661e",
+          "source_commit": "8cf77de55bcecab5a59042a1c24886aaad75633d",
+          "report_sha256": "79028b0f0c60c0736132c3cf03b6fb81e322bf2b8ad02ad0b0e0a7f09f4adece"
+        }
+      ],
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-035"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The original observation relied on directory classifications, incomplete path and Git state enumeration, and configured rather than effective clean filters. Report selection and verification also omitted established caller and artifact bindings. The first corrected Windows run exposed a second spelling for the same virtual environment library directory.",
+        "correction": "Verify declaring runtime paths, worktree-private object recovery, scoped pnpm placement and Cargo output ownership. Read editable libraries from actual directory entries, observe effective filters with external drivers disabled, restore caller-relative and independent report imports, and verify bound field and session artifacts. Surface human review intake while preserving the sole partial-process hold.",
+        "prevention": "Local and hosted task verification matched the clean 320946e execution inputs. Ubuntu ran 438 Python tests and Windows ran the same suite with 45 platform skips. The stable host read-only snapshot found two intake rows and zero candidates among 50 registrations. One intake row verified 17 retained files, while the integrated product checkout verified 999 and remained held for additional unarchived files. The three failure reports retain their original failed outcomes and verified manifests. The retained M4 run still records 13 passed checks and two blocked."
+      },
+      "deferral_reason": null
     }
   ]
 }

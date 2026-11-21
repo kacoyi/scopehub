@@ -6,6 +6,7 @@ import argparse
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
 import errno
+import json
 import os
 from pathlib import Path
 import re
@@ -30,15 +31,16 @@ class Registration:
     branch: str | None
     flags: frozenset[str]
     lock_reason: str | None
+    head: str | None = None
 
 
-def git(cwd, *args, allowed=(0,), lock_fd=None):
+def git(cwd, *args, allowed=(0,), lock_fd=None, input=None):
     # In particular, ignore an inherited alternate worktree, index or config.
     env = {key: value for key, value in os.environ.items() if not key.startswith('GIT_')}
     command = ['git', *args]
-    options = dict(cwd=cwd, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    options = dict(cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if lock_fd is None:
-        result = subprocess.run(command, **options)
+        result = subprocess.run(command, input=input, stdin=subprocess.DEVNULL if input is None else None, **options)
     else:
         env['LC_ALL'] = 'C'  # Git records its initialization lock reason in the child's locale.
         # This child retains the lock through Git's exit if the original CLI is killed.
@@ -51,8 +53,9 @@ def git(cwd, *args, allowed=(0,), lock_fd=None):
         with inherit_lock(lock_fd) as inheritance:
             # subprocess.run would kill the lock holder on Python-side interruption.
             with subprocess.Popen([sys.executable, '-I', '-S', '-c', runner, *command],
+                                  stdin=subprocess.DEVNULL if input is None else subprocess.PIPE,
                                   **inheritance, **options) as process:
-                stdout, stderr = process.communicate()
+                stdout, stderr = process.communicate(input)
                 result = subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
     if result.returncode not in allowed:
         detail = os.fsdecode(result.stderr).strip()
@@ -70,7 +73,8 @@ def registrations(cwd):
     for record in records.split('\0\0'):
         fields = dict(field.partition(' ')[::2] for field in record.split('\0') if field)
         if 'worktree' in fields:
-            yield Registration(Path(fields['worktree']), fields.get('branch'), frozenset(fields), fields.get('locked'))
+            yield Registration(Path(fields['worktree']), fields.get('branch'), frozenset(fields), fields.get('locked'),
+                               fields.get('HEAD'))
 
 
 def entry_info(path):
@@ -320,6 +324,10 @@ def main():
     use_parser = actions.add_parser('use', help='Print the absolute path of a named checkout.', allow_abbrev=False)
     use_parser.add_argument('name')
     actions.add_parser('list', help='List registered worktrees and their branches.', allow_abbrev=False)
+    retirement = actions.add_parser('retirement', help='Report observed retirement candidates without changing worktrees.',
+                                    allow_abbrev=False)
+    retirement.add_argument('--archive-root', type=Path, help='Absolute path to a host archive outside the checkouts.')
+    retirement.add_argument('--dispositions', metavar='COMMIT:PATH', help='Committed disposition records for exact heads.')
     args = parser.parse_args()
     if args.action == 'create' and (args.new_branch is None) != (args.base is None):
         create_parser.error('--new-branch and --base must be supplied together.')
@@ -328,6 +336,17 @@ def main():
         common = git_path(cwd, '--git-common-dir')
         with (creation_lock(common) if args.action == 'create' else nullcontext()) as lock_fd:
             registered = list(registrations(cwd))
+            if args.action == 'retirement':
+                sys.dont_write_bytecode = True
+                if __package__:
+                    from .worktree_retirement import retirement_report
+                else:
+                    # The offline command uses -I -S. Keep create, use and list usable as a pinned single file.
+                    sys.path.append(str(Path(__file__).resolve().parent))
+                    from worktree_retirement import retirement_report
+                print(json.dumps(retirement_report(cwd, common, registered, archive_root=args.archive_root,
+                                                   dispositions=args.dispositions), indent=2))
+                return
             root = managed_root(cwd, common, registered)
             if args.action == 'list':
                 print(f'Managed root: {root}')
