@@ -16,7 +16,7 @@ const chat = page => page.getByRole('dialog', { name: 'Ask AI' });
 const settings = page => page.getByRole('dialog', { name: 'AI settings' });
 const question = page => chat(page).getByLabel('Question');
 const selectedModel = page => settings(page).getByLabel('Model', { exact: true });
-const provider = page => settings(page).getByLabel('Provider', { exact: true });
+const provider = page => settings(page).getByRole('combobox', { name: 'Provider', exact: true });
 const apiKey = page => settings(page).getByLabel('OpenAI API key', { exact: true });
 const user = content => ({ role: 'user', content });
 const assistant = content => ({ role: 'assistant', content });
