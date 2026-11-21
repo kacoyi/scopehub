@@ -7893,6 +7893,10 @@
         {
           "path": "project/evidence/M0-034-ec2bc88958a65715.json",
           "sha256": "e2ebefe517304bb1285af1b48b00ca284347eb08a2011e9f4dcfcd4bc95236d9"
+        },
+        {
+          "path": "project/evidence/M0-034-a4ad2875f5ad7d6f.json",
+          "sha256": "c98923e888bcbceeca6bd81ee5866ac404d447913fc4e21a6a9d65fb5dbc4327"
         }
       ],
       "next_action": null,
@@ -7970,7 +7974,7 @@
       "id": "M0-033",
       "title": "Protect active and replaced Cargo caches during maintenance",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-029"
       ],
@@ -7993,8 +7997,21 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Validate descriptor headroom and explicit omissions under a low limit, retain matching hosted Linux and Windows task reports for PR 24, then close the review feedback and verify the closure head.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-033-bc41d6e26c4a223c.json",
+          "sha256": "b31cb7f09cab17429e2d0729cf112123d1e2e96e2b7ab762e320a7b76d760ff0"
+        },
+        {
+          "path": "project/evidence/M0-033-e0e58591da40cb5d.json",
+          "sha256": "b050f00b8a885294a6375f283dc287eba7e5156f1b619a50c69ce19ae59cdb55"
+        },
+        {
+          "path": "project/evidence/M0-033-13accb98c3ad9088.json",
+          "sha256": "dc0409598abea26fcad7406f4a10ecb09ef7d8a64ff304b689fab36e47c0ebd3"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
