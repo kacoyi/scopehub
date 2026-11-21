@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 import hashlib
-from itertools import dropwhile, islice
+from itertools import dropwhile, islice, takewhile
 import json
 import os
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -10,6 +10,7 @@ import re
 import stat
 import sys
 import time
+import tomllib
 
 if __package__:
     from . import storage, worktree
@@ -35,6 +36,8 @@ CARGO_LINK_OUTPUT = re.compile(
     storage.HASHED + r'\.(?:a|lib|dll|dll\.(?:a|exp|lib)|exe|pdb|so|dylib|dwp)'
 )
 CARGO_INCREMENTAL_LOCK = re.compile(r's-[a-z0-9]+-[a-z0-9]+\.lock')
+PNPM_DEPENDENCY_GROUPS = ('dependencies', 'devDependencies', 'optionalDependencies')
+PNPM_PEERS = re.compile(r'(?:\((?:@[a-z0-9._-]+/)?[a-z0-9._-]+@\d+\.\d+\.\d+[-+\w.]*\))*')
 MAX_EVIDENCE_DETAILS = 8
 MAX_CONSUMER_ENTRIES = 20_000
 PROJECT_RECORDS = (
@@ -260,9 +263,18 @@ def comparable_path(path):
 
 def path_is_under(value, path):
     path = comparable_path(path)
-    lexical = comparable_path(value)
-    return (('..' not in lexical.parts and lexical.is_relative_to(path)) or
+    lexical = comparable_path(Path(os.path.abspath(value)))
+    return (lexical.is_relative_to(path) or
             comparable_path(value.resolve()).is_relative_to(path))
+
+
+def observe_path_dependency(value, name, candidates, observed):
+    lexical = comparable_path(Path(os.path.abspath(value)))
+    physical = comparable_path(value.resolve())
+    for candidate in candidates:
+        target = comparable_path(candidate)
+        if lexical.is_relative_to(target) or physical.is_relative_to(target):
+            observed[candidate].add(name)
 
 
 def dependency_patterns(consumer, candidates, directories, *, absolute=False):
@@ -318,6 +330,27 @@ def editable_python_paths(checkout, mounts):
             paths.append(path / 'site-packages')
 
 
+def local_consumer_source(consumer, path, mounts):
+    source = path.resolve(strict=True)
+    if not source.is_relative_to(consumer) or any(
+            part in mounts or (not mounts and part.is_mount())
+            for part in (source, *source.parents) if part != consumer and part.is_relative_to(consumer)):
+        raise OSError(f'Project input is outside its checkout filesystem: {path}')
+    return source
+
+
+def manifest_paths(value):
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key == 'path' and isinstance(item, str):
+                yield item
+            elif isinstance(item, (dict, list)):
+                yield from manifest_paths(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from manifest_paths(item)
+
+
 def observe_dependencies(consumer, candidates, common, git_dir, config, ignored, mounts):
     common_directories = {consumer, consumer / 'project', consumer / 'scripts', git_dir}
     patterns = dependency_patterns(consumer, candidates, common_directories, absolute=True)
@@ -347,11 +380,7 @@ def observe_dependencies(consumer, candidates, common, git_dir, config, ignored,
         if info is None:
             continue
         observe_symlink(path, patterns, observed)
-        source = path.resolve(strict=True)
-        if not source.is_relative_to(consumer) or any(
-                part in mounts or (not mounts and part.is_mount())
-                for part in (source, *source.parents) if part != consumer and part.is_relative_to(consumer)):
-            raise OSError(f'Project registry is outside its checkout filesystem: {path}')
+        source = local_consumer_source(consumer, path, mounts)
         for value in strings(json.loads(read_control(source))):
             observe_text(value, name, source.parent)
 
@@ -361,10 +390,8 @@ def observe_dependencies(consumer, candidates, common, git_dir, config, ignored,
     for alternates in {directory / 'objects/info/alternates' for directory in (common, git_dir)}:
         if alternates.is_file():
             for value in os.fsdecode(read_control(alternates)).splitlines():
-                source = alternates.parent.parent / value
-                for target in patterns:
-                    if path_is_under(source, target):
-                        observed[target].add('Git object alternates')
+                observe_path_dependency(alternates.parent.parent / value, 'Git object alternates',
+                                        patterns, observed)
 
     tracked = os.fsdecode(git(consumer, 'ls-files', '--stage', '-z').stdout).split('\0')
     for entry in tracked:
@@ -375,8 +402,21 @@ def observe_dependencies(consumer, candidates, common, git_dir, config, ignored,
     controls = os.fsdecode(git(consumer, 'ls-files', '--cached', '--others', '--exclude-standard', '-z',
                                 '--', 'AGENTS.md', *OPERATIONAL_PATHS).stdout)
     for name in set(controls.split('\0')) - {''}:
+        if name != 'AGENTS.md' and not is_operational_path(name):
+            continue
         path = consumer / name
-        if (name == 'AGENTS.md' or is_operational_path(name)) and worktree.regular_file(path):
+        if path.name == 'Cargo.toml' and worktree.entry_info(path) is not None:
+            source = local_consumer_source(consumer, path, mounts)
+            try:
+                contents = read_control(source).decode('utf-8')
+                manifest = tomllib.loads(contents)
+            except ValueError as error:
+                raise ValueError(f'Cannot parse Cargo manifest {path}: {error}') from error
+            observe_text(contents, name, path.parent)
+            for value in manifest_paths(manifest):
+                for directory in {path.parent, source.parent}:
+                    observe_path_dependency(directory / value, name, patterns, observed)
+        elif worktree.regular_file(path):
             observe_text(path.read_text(encoding='utf-8', errors='surrogateescape'), name, path.parent)
     untracked = os.fsdecode(git(consumer, 'ls-files', '--others', '--exclude-standard', '-z').stdout)
     for name in untracked.split('\0'):
@@ -401,10 +441,7 @@ def observe_dependencies(consumer, candidates, common, git_dir, config, ignored,
             if line.startswith(('import ', 'import\t')):
                 observe_text(line, name)
                 continue
-            source = path.parent / line.rstrip()
-            for candidate in patterns:
-                if path_is_under(source, candidate):
-                    observed[candidate].add(name)
+            observe_path_dependency(path.parent / line.rstrip(), name, patterns, observed)
     return observed
 
 
@@ -412,9 +449,7 @@ def observe_symlink(path, candidates, observed):
     info = worktree.entry_info(path)
     if info is not None and storage.reparse(info):
         target = path.parent / os.readlink(path)
-        for candidate in candidates:
-            if path_is_under(target, candidate):
-                observed[candidate].add(str(path))
+        observe_path_dependency(target, str(path), candidates, observed)
         return True
     return False
 
@@ -496,6 +531,81 @@ def cargo_generated_file(parts, info):
     return False
 
 
+def pnpm_lock_spellings(value):
+    return (value, "'" + value.replace("'", "''") + "'", json.dumps(value, ensure_ascii=False))
+
+
+def pnpm_lock_block(lines, key, indent):
+    # Read only pnpm's canonical block mappings in the v9 lockfile.
+    prefix = ' ' * indent
+    headers = {f'{prefix}{spelling}:' for spelling in pnpm_lock_spellings(key)}
+    starts = [index for index, line in enumerate(lines) if line in headers]
+    if len(starts) != 1:
+        return ()
+    return tuple(takewhile(lambda line: not line or line.startswith(prefix + ' '),
+                           islice(lines, starts[0] + 1, None)))
+
+
+def pnpm_lock_field(lines, field):
+    prefix = f'        {field}: '
+    values = [line.removeprefix(prefix) for line in lines if line.startswith(prefix)]
+    if len(values) != 1:
+        return None
+    value = values[0]
+    if value.startswith('"'):
+        decoded = json.loads(value)
+        return decoded if isinstance(decoded, str) else None
+    if re.fullmatch(r"'(?:''|[^'])*'", value):
+        return value[1:-1].replace("''", "'")
+    return value
+
+
+def pnpm_store_entry(name, version, resolution):
+    if not resolution or not resolution.startswith(version):
+        return None
+    peers = resolution.removeprefix(version)
+    if not PNPM_PEERS.fullmatch(peers):
+        return None
+    peers = peers.replace('(', '_').replace(')', '').replace('/', '+')
+    return f"{name.replace('/', '+')}@{version}{peers}"
+
+
+def pnpm_lock_has_entry(lines, key):
+    headers = {f'  {spelling}:{suffix}' for spelling in pnpm_lock_spellings(key) for suffix in ('', ' {}')}
+    return sum(line in headers for line in lines) == 1
+
+
+def pnpm_declares_projection(lock, manifest, metadata, importer, name, version, store_entry):
+    if not lock.startswith("lockfileVersion: '9.0'\n") or not isinstance(manifest, dict):
+        return False
+    lines = lock.splitlines()
+    package_key = f'{name}@{version}'
+    if not pnpm_lock_has_entry(pnpm_lock_block(lines, 'packages', 0), package_key):
+        return False
+    importers = pnpm_lock_block(lines, 'importers', 0)
+    imported = pnpm_lock_block(importers, importer, 2)
+    for group in PNPM_DEPENDENCY_GROUPS:
+        dependencies = manifest.get(group, {})
+        specifier = dependencies.get(name) if isinstance(dependencies, dict) else None
+        if not isinstance(specifier, str):
+            continue
+        entries = pnpm_lock_block(pnpm_lock_block(imported, group, 4), name, 6)
+        resolution = pnpm_lock_field(entries, 'version')
+        if (pnpm_lock_field(entries, 'specifier') == specifier and
+                pnpm_store_entry(name, version, resolution) == store_entry):
+            return True
+    hoisted = metadata.get('hoistedDependencies')
+    if importer != '.' or not isinstance(hoisted, dict):
+        return False
+    snapshots = pnpm_lock_block(lines, 'snapshots', 0)
+    for key, aliases in hoisted.items():
+        if (key.startswith(name + '@') and isinstance(aliases, dict) and aliases.get(name) == 'public' and
+                pnpm_store_entry(name, version, key.removeprefix(name + '@')) == store_entry and
+                pnpm_lock_has_entry(snapshots, key)):
+            return True
+    return False
+
+
 def scoped_pnpm_projection(path, checkout, mounts):
     scope = path.parent.name
     modules = path.parent.parent
@@ -515,8 +625,7 @@ def scoped_pnpm_projection(path, checkout, mounts):
     if len(parts) != 4 or parts[1:] != ('node_modules', scope, path.name):
         return False
     try:
-        if (not worktree.regular_file(modules.parent / 'package.json') or
-                not target.is_dir() or path.resolve(strict=True) != target):
+        if not target.is_dir() or path.resolve(strict=True) != target:
             return False
         if any(parent in mounts or (not mounts and parent.is_mount())
                for parent in (target, *target.parents) if parent.is_relative_to(root_modules)):
@@ -533,12 +642,10 @@ def scoped_pnpm_projection(path, checkout, mounts):
         version = package.get('version')
         if not isinstance(version, str) or not re.fullmatch(r'\d+\.\d+\.\d+[-+\w.]*', version):
             return False
-        entry = f'{scope}+{path.name}@{version}'
-        if parts[0] != entry and not parts[0].startswith(entry + '_'):
-            return False
         lock = read_control(checkout / 'pnpm-lock.yaml').decode('utf-8').replace('\r\n', '\n')
-        packages = lock.partition('\npackages:\n')[2].partition('\nsnapshots:\n')[0]
-        return lock.startswith("lockfileVersion: '9.0'\n") and f"  '{name}@{version}':" in packages.splitlines()
+        manifest = json.loads(read_control(modules.parent / 'package.json'))
+        importer = modules.parent.relative_to(checkout).as_posix()
+        return pnpm_declares_projection(lock, manifest, metadata, importer, name, version, parts[0])
     except (OSError, ValueError):
         return False
 

@@ -14,6 +14,15 @@ from scripts import worktree, worktree_retirement
 
 
 IDLE = (set(), [])
+PNPM_TOOL_DEPENDENCY = (
+    "    dependencies:\n      '@fixture/tool':\n"
+    "        specifier: '^1.2.0'\n        version: 1.2.3(peer@2.0.0)\n"
+)
+PNPM_TOOL_RESOLUTIONS = (
+    "\npackages:\n\n  '@fixture/tool@1.2.3':\n"
+    "    resolution: {integrity: fixture}\n"
+    "\nsnapshots:\n\n  '@fixture/tool@1.2.3(peer@2.0.0)': {}\n"
+)
 
 
 class WorktreeRetirementTests(unittest.TestCase):
@@ -387,14 +396,42 @@ class WorktreeRetirementTests(unittest.TestCase):
         current = downstream / manifest
         candidate_relative = Path(os.path.relpath(destination, current.parent)).as_posix()
         self.assertEqual(candidate_relative, '../../../candidate/crates/domain')
-        for reference in (candidate_relative, destination.as_posix()):
-            self.commit(downstream, manifest, f'[dependencies]\ndomain = {{ path = "{reference}" }}\n')
-            row = self.row(IDLE)
-            self.assert_held(row, 'downstream_path_consumer')
-            self.assertEqual(row['details']['downstream_path_consumer'], [f'{downstream}: {manifest}'])
+        equivalent = (candidate_relative, './' + candidate_relative,
+                      candidate_relative.replace('candidate/', './candidate/'), destination.as_posix())
+        for reference in equivalent:
+            with self.subTest(reference=reference):
+                self.commit(downstream, manifest, f'[dependencies]\ndomain = {{ path = "{reference}" }}\n')
+                row = self.row(IDLE)
+                self.assert_held(row, 'downstream_path_consumer')
+                self.assertEqual(row['details']['downstream_path_consumer'], [f'{downstream}: {manifest}'])
 
         self.commit(downstream, manifest, '[dependencies]\ndomain = { path = "../domain" }\n')
         self.assert_candidate(self.row(IDLE))
+
+        self.commit(downstream, manifest, '[dependencies\ndomain = { path = "../domain" }\n')
+        row = self.row(IDLE)
+        self.assert_held(row, 'path_consumer_observation_incomplete')
+        self.assertIn(f'Cannot parse Cargo manifest {current}',
+                      row['details']['path_consumer_observation_incomplete'][0])
+
+    def test_cargo_path_reaches_lexical_and_physical_checkout_targets(self):
+        downstream = self.add_worktree('downstream')
+        manifest = 'crates/application/Cargo.toml'
+        alias = self.managed / 'alias'
+        external = self.directory / 'external'
+        external.mkdir()
+        lexical = self.candidate / 'domain-link'
+        try:
+            alias.symlink_to(self.candidate, target_is_directory=True)
+            lexical.symlink_to(external, target_is_directory=True)
+        except (NotImplementedError, OSError) as error:
+            self.skipTest(f'The fixture cannot create a directory symlink: {error}')
+        for relative in ('../../../alias', '../../../candidate/domain-link'):
+            with self.subTest(relative=relative):
+                self.commit(downstream, manifest, f'[dependencies]\ndomain = {{ path = "{relative}" }}\n')
+                row = self.row(IDLE)
+                self.assert_held(row, 'downstream_path_consumer')
+                self.assertEqual(row['details']['downstream_path_consumer'], [f'{downstream}: {manifest}'])
 
     def test_registry_symlink_within_checkout_keeps_its_command_dependencies(self):
         downstream = self.add_worktree('downstream')
@@ -538,11 +575,13 @@ class WorktreeRetirementTests(unittest.TestCase):
         checkout = self.candidate
         self.commit(checkout, '.gitignore', 'node_modules/\n')
         self.commit(checkout, '.gitattributes', 'pnpm-lock.yaml -text\n')
-        self.commit(checkout, 'package.json', '{}\n')
-        self.commit(checkout, 'apps/ui/package.json', '{}\n')
+        dependency = '{"dependencies":{"@fixture/tool":"^1.2.0"}}\n'
+        self.commit(checkout, 'package.json', dependency)
+        self.commit(checkout, 'apps/ui/package.json', dependency)
         lock = checkout / 'pnpm-lock.yaml'
-        lock.write_bytes(b"lockfileVersion: '9.0'\r\n\r\npackages:\r\n\r\n  '@fixture/tool@1.2.3':\r\n"
-                         b'    resolution: {integrity: fixture}\r\n\r\nsnapshots:\r\n\r\n')
+        lock_text = ("lockfileVersion: '9.0'\n\nimporters:\n\n  .:\n" + PNPM_TOOL_DEPENDENCY +
+                     "\n  'apps/ui':\n" + PNPM_TOOL_DEPENDENCY + PNPM_TOOL_RESOLUTIONS)
+        lock.write_bytes(lock_text.replace('\n', '\r\n').encode('utf-8'))
         self.git('add', '--', 'pnpm-lock.yaml', cwd=checkout)
         self.git('commit', '-qm', 'Retain a CRLF lock fixture', cwd=checkout)
         head = self.head(checkout)
@@ -569,6 +608,20 @@ class WorktreeRetirementTests(unittest.TestCase):
                 self.skipTest(f'The fixture cannot create a package symlink: {error}')
 
         self.assert_candidate(self.row(IDLE))
+        manifest = checkout / 'apps/ui/package.json'
+        original = manifest.read_bytes()
+        manifest.write_text(dependency.replace('^1.2.0', '^1.0.0'), encoding='utf-8')
+        row = self.row(IDLE)
+        self.assertEqual(row['details']['unretained_local_evidence'], [str(nested.relative_to(checkout))])
+        manifest.write_bytes(original)
+
+        alternate_resolution = lock_text.replace("  'apps/ui':\n" + PNPM_TOOL_DEPENDENCY,
+                                                  "  'apps/ui':\n" + PNPM_TOOL_DEPENDENCY.replace('peer@2', 'peer@3'))
+        lock.write_bytes(alternate_resolution.encode('utf-8'))
+        row = self.row(IDLE)
+        self.assertEqual(row['details']['unretained_local_evidence'], [str(nested.relative_to(checkout))])
+        lock.write_bytes(lock_text.replace('\n', '\r\n').encode('utf-8'))
+
         scope = nested.parent
         note = scope / 'evidence.json'
         note.write_text('{"record":"unique"}\n', encoding='utf-8')
@@ -593,13 +646,56 @@ class WorktreeRetirementTests(unittest.TestCase):
         self.assertIn(str(nested.relative_to(checkout)), row['details']['unretained_local_evidence'])
         self.assertNotIn(str((modules / 'plain').relative_to(checkout)), row['details']['unretained_local_evidence'])
 
-    def test_scoped_pnpm_links_to_external_stores_preserve_path_consumers(self):
+    def test_private_workspace_package_does_not_explain_manual_root_link(self):
         checkout = self.candidate
         self.commit(checkout, '.gitignore', 'node_modules/\n')
         self.commit(checkout, 'package.json', '{}\n')
-        head = self.commit(checkout, 'pnpm-lock.yaml',
-                           "lockfileVersion: '9.0'\n\npackages:\n\n  '@fixture/tool@1.2.3':\n"
-                           '    resolution: {integrity: fixture}\n\nsnapshots:\n\n')
+        self.commit(checkout, 'apps/ui/package.json', '{"dependencies":{"@fixture/tool":"^1.2.0"}}\n')
+        head = self.commit(checkout, 'pnpm-lock.yaml', "lockfileVersion: '9.0'\n\nimporters:\n\n"
+                           '  .: {}\n\n  apps/ui:\n' + PNPM_TOOL_DEPENDENCY + PNPM_TOOL_RESOLUTIONS)
+        self.git('update-ref', 'refs/remotes/origin/main', head)
+        modules = checkout / 'node_modules'
+        package = modules / '.pnpm/@fixture+tool@1.2.3_peer@2.0.0/node_modules/@fixture/tool'
+        package.mkdir(parents=True)
+        (package / 'package.json').write_text('{"name":"@fixture/tool","version":"1.2.3"}', encoding='utf-8')
+        metadata = modules / '.modules.yaml'
+        aliases = {'@fixture/tool': 'private'}
+        configuration = {
+            'packageManager': 'pnpm@11.28.5', 'nodeLinker': 'isolated',
+            'layoutVersion': 5, 'virtualStoreDir': '.pnpm', 'publicHoistPattern': [],
+            'hoistedDependencies': {'@fixture/tool@1.2.3(peer@2.0.0)': aliases},
+        }
+        metadata.write_text(json.dumps(configuration), encoding='utf-8')
+        workspace_link = checkout / 'apps/ui/node_modules/@fixture/tool'
+        root_link = modules / '@fixture/tool'
+        for projection in (workspace_link, root_link):
+            projection.parent.mkdir(parents=True)
+            try:
+                projection.symlink_to(os.path.relpath(package, projection.parent), target_is_directory=True)
+            except (NotImplementedError, OSError) as error:
+                self.skipTest(f'The fixture cannot create a package symlink: {error}')
+
+        row = self.row(IDLE)
+        self.assert_held(row, 'unretained_local_evidence')
+        self.assertEqual(row['details']['unretained_local_evidence'], [str(root_link.relative_to(checkout))])
+
+        aliases['@fixture/tool'] = 'public'
+        configuration['publicHoistPattern'] = ['@fixture/*']
+        metadata.write_text(json.dumps(configuration), encoding='utf-8')
+        self.assert_candidate(self.row(IDLE))
+
+        configuration['hoistedDependencies'] = {'@fixture/tool@1.2.3(peer@3.0.0)': aliases}
+        metadata.write_text(json.dumps(configuration), encoding='utf-8')
+        row = self.row(IDLE)
+        self.assert_held(row, 'unretained_local_evidence')
+        self.assertEqual(row['details']['unretained_local_evidence'], [str(root_link.relative_to(checkout))])
+
+    def test_scoped_pnpm_links_to_external_stores_preserve_path_consumers(self):
+        checkout = self.candidate
+        self.commit(checkout, '.gitignore', 'node_modules/\n')
+        self.commit(checkout, 'package.json', '{"dependencies":{"@fixture/tool":"^1.2.0"}}\n')
+        head = self.commit(checkout, 'pnpm-lock.yaml', "lockfileVersion: '9.0'\n\nimporters:\n\n  .:\n" +
+                           PNPM_TOOL_DEPENDENCY + PNPM_TOOL_RESOLUTIONS)
         self.git('update-ref', 'refs/remotes/origin/main', head)
         foreign = self.add_worktree('foreign')
         modules = checkout / 'node_modules'
@@ -608,8 +704,9 @@ class WorktreeRetirementTests(unittest.TestCase):
             'packageManager': 'pnpm@11.28.5', 'nodeLinker': 'isolated',
             'layoutVersion': 5, 'virtualStoreDir': '.pnpm',
         }), encoding='utf-8')
-        foreign_package = foreign / 'node_modules/.pnpm/@fixture+tool@1.2.3/node_modules/@fixture/tool'
-        external_package = self.directory / 'external/node_modules/.pnpm/@fixture+tool@1.2.3/node_modules/@fixture/tool'
+        package = 'node_modules/.pnpm/@fixture+tool@1.2.3_peer@2.0.0/node_modules/@fixture/tool'
+        foreign_package = foreign / package
+        external_package = self.directory / 'external' / package
         projection = modules / '@fixture/tool'
         projection.parent.mkdir()
         for target in (foreign_package, external_package):
