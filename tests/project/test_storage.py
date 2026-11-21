@@ -759,6 +759,37 @@ class CollectionTests(RepositoryFixture):
             self.assertEqual(closed.exception.errno, errno.EBADF)
         self.assertTrue(artifact.is_file())
 
+    def test_low_descriptor_limit_leaves_room_to_revalidate_and_reports_omissions(self):
+        import resource
+
+        limit = resource.getrlimit(resource.RLIMIT_NOFILE)
+        if limit[0] != resource.RLIM_INFINITY and limit[0] < 32:
+            self.skipTest('Host descriptor limit is already below the controlled fixture limit.')
+        artifacts = {str(artifact.parents[2]): artifact for artifact in (
+            self.cargo_cache(self.worktree(f'cache-{number}')) for number in range(9)
+        )}
+        resource.setrlimit(resource.RLIMIT_NOFILE, (32, limit[1]))
+        try:
+            result = self.collect()
+        finally:
+            resource.setrlimit(resource.RLIMIT_NOFILE, limit)
+
+        self.assertTrue(result['inventory_complete'], result)
+        self.assertTrue(result.get('collection_incomplete'), result)
+        collected = {item['path'] for item in result['collected']}
+        omitted = set(result['descriptor_limited_candidates'])
+        self.assertTrue(collected, result)
+        self.assertTrue(omitted, result)
+        self.assertTrue(collected.isdisjoint(omitted), result)
+        self.assertEqual(collected | omitted, artifacts.keys())
+        for path, artifact in artifacts.items():
+            with self.subTest(path=path):
+                if path in omitted:
+                    self.assertEqual(self.report_entry(result, Path(path))['reason'], 'file_descriptor_limit')
+                    self.assertEqual(artifact.read_bytes(), b'\x01' * 16_384)
+                else:
+                    self.assertFalse(artifact.exists())
+
     def require_exclusive_leases(self):
         import fcntl
 
