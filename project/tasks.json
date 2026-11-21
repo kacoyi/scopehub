@@ -8676,7 +8676,7 @@
       "id": "M0-037",
       "title": "Recover history and local CSV bridges in previously relocated managed worktrees",
       "milestone": "M0",
-      "status": "planned",
+      "status": "active",
       "depends_on": [
         "M0-030"
       ],
@@ -8703,7 +8703,7 @@
         "rust-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Wait for the host coordinator to authorize an idle per-checkout repair and approve the native rollback fixture. Keep the earlier runtime evidence and M0-032 cutover scope intact.",
+      "next_action": "Stage only the affected installed bridge artifacts from approved exact source revisions in capped private space outside every registered checkout. Verify each staged runtime and preserve the separate missing-root and protocol baselines. Request per-checkout installation approval after stage and rollback review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
