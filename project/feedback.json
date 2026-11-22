@@ -3089,7 +3089,7 @@
       "id": "independent-user-source-intake",
       "source": "Owner clarification on 2026-11-22, retained in contracts/reviews/2026-11-22-source-settings-and-development-inputs.json.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "The owner clarified that the user supplies personally downloaded files or a directly obtained API. The requirements discussion did not clearly identify an independent settings path or distinguish it from an optional ScopeHub offering. The contract correction needs an explicit task and product gates.",
       "task_ids": [
         "M0-051"
@@ -3098,7 +3098,11 @@
         "project-state",
         "architecture"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The prior contract identified multiple source types, but the settings entry, direct API form and relationship to optional services were underspecified.",
+        "correction": "ADR 0023 assigns the independent settings journey to M1-030, directory updates to M1-028, typed local imports to M1-029 and live external qualification to M1-009.",
+        "prevention": "The fresh-profile scenario requires a directly supplied directory and a controlled third-party API with no first-party service. The requirements bindings were checked under M0-051. Its product gates await implementation."
+      },
       "deferral_reason": null
     }
   ]

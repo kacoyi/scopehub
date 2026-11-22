@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-051",
+  "focus_task_id": "M1-030",
   "tasks": [
     {
       "id": "M0-001",
@@ -3813,7 +3813,7 @@
         "configured-market-source"
       ],
       "evidence": [],
-      "next_action": "Qualify one of TickDB, Alpaca Market Data or Massive for a bounded read and one documented custom HTTP source. Verify actual access and feed coverage with host-local test credentials. Qualify HTTP and S3 authentication separately; route brokerage candidates to M2-004.",
+      "next_action": "Bind a provider-specific conformance check before activation. Qualify one of TickDB, Alpaca Market Data or Massive and one documented custom HTTP source with a bounded read. Verify actual feed coverage and rights. Qualify REST and S3 credentials separately; route brokerage candidates to M2-004.",
       "blocker": null,
       "closure_reason": null,
       "delivery": "later"
@@ -12406,7 +12406,7 @@
       "id": "M0-051",
       "title": "Specify persistent market sources and reusable analysis methods",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-021",
         "M0-022",
@@ -12441,10 +12441,15 @@
         "architecture",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Align canonical source, method, scenario and acceptance records with the owner discussion, review the diff and archive requirements verification.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-051-f58f7566890489a1.json",
+          "sha256": "d286711605d2e3fe529b7a2a995411a31cab86bbf7bd7ca49185179f5e53565d"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Accepted the requirements and task bindings at 42b88cc. The checked-in assessment reports only aggregate read-only observations. Runtime settings, saved refresh, Parquet imports and research methods each have a separate planned gate.",
       "plan": {
         "outcome": "The owner can trace the requested desktop experiences to scoped, testable work and distinguish the existing CSV implementation from future delivery.",
         "change_types": [
