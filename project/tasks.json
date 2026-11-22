@@ -12075,7 +12075,7 @@
       "id": "M0-048",
       "title": "Include project-owned host staging in weekly retirement review",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-039"
       ],
@@ -12098,10 +12098,19 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Verify the retained recovery index and put the handoff and retirement conditions in the existing weekly review.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-048-374665c7ffe281d0.json",
+          "sha256": "051f2bcf35e692af1d3a060b91d0304f01bd240e4bf70c78afe8f6e9604e6308"
+        },
+        {
+          "path": "project/evidence/M0-048-7a6c951ca7668d8a.json",
+          "sha256": "965298b958d8730c33f32f2e9843816ff50efdb92f322a022e65db68031272e0"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The weekly worktree and evidence review covers external task staging, ownership and retirement. Verified the private restore index, both retirement manifests and all 116 archive digests against the retained host records summarized in contracts/reviews/2026-11-21-host-staging.json. Ubuntu and Windows passed both required checks in run 44980698262.",
       "plan": {
         "outcome": "Completed task staging has a disposition and a verified recovery path wherever it was created.",
         "change_types": [
