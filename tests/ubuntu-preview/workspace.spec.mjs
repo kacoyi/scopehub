@@ -17,6 +17,7 @@ import { openWorkspacePreview } from '../ui/preview-startup.mjs';
 import { busy, future, observeSampleRequests, sampleCatalogCall, sampleHistoryCall } from '../ui/sample-startup.mjs';
 import { observeSelectedHistory, operationPath, readMarketAttemptStages, traceHeader, waitForSelectedHistoryTerminal } from '../ui/selected-history.mjs';
 import { assertUnsuitableWindowsHandoffsRejected, assertWindowsPrivateHandoff } from './workspace_test_handoff_acl.mjs';
+import { observeSnapshotGate } from './workspace_snapshot_gate.mjs';
 
 const exec = promisify(execFile);
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -31,8 +32,9 @@ const snapshot = { type: 'snapshot' };
 // This malformed snapshot checks admission without becoming a competing
 // SQLite read when the actual producer is deliberately suspended.
 const admissionProbe = { type: 'snapshot', request_id: 1 };
+const snapshotGateModule = new URL('./workspace_snapshot_gate.mjs', import.meta.url).href;
 const service = `
-  const [entry, mode, port, faultEnabled] = process.argv.slice(1);
+  const [entry, mode, port, faultEnabled, snapshotWriter] = process.argv.slice(1);
   const shutdown = Promise.withResolvers();
   let closing = !process.connected;
   let interrupted;
@@ -95,6 +97,10 @@ const service = `
       });
     },
   }] : [];
+  const snapshotGate = snapshotWriter
+    ? (await import('${snapshotGateModule}')).installSnapshotGate('${endpoint}', snapshotWriter)
+    : undefined;
+  if (snapshotGate) plugins.push(snapshotGate.plugin);
   let server;
   async function start() {
     if (closing) return;
@@ -109,6 +115,7 @@ const service = `
     if (!closing) await shutdown.promise;
   } finally {
     cutHistory();
+    snapshotGate?.close();
     try {
       await server?.close();
     } finally {
@@ -978,23 +985,12 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         const accepted = preview.getByRole('region', { name: 'Accepted indicators' });
         const remove = preview.getByRole('button', { name: 'Remove accepted layer' });
         const undo = preview.getByRole('button', { name: 'Undo indicator removal' });
-        const undoStages = { reads: [], competing_attempts: [] };
+        const undoStages = {};
         const removalStart = performance.now();
         const removalEvents = [];
         const record = (stage, fields = {}) => removalEvents.push({
           stage, elapsed_ms: Math.round(performance.now() - removalStart), ...fields,
         });
-        const writer = await writerPid(server);
-        const whileWriterPaused = async action => {
-          try {
-            await writerPid(server, 'suspend', writer);
-            return await action();
-          } finally {
-            await writerPid(server, 'resume', writer);
-          }
-        };
-        const admissionBusy = ({ http, body }) =>
-          http === 429 && body?.ok === false && body.error?.code === 'BUSY' && body.error?.retryable === true;
         const isLayerMutation = (payload, operation) => payload?.intent?.operation === operation
           && payload.scope?.target?.kind === 'layer' && payload.scope.target.object_id === savedLayer.layer_id;
         const explicitMutations = [];
@@ -1030,59 +1026,103 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
           const response = await post(server, request, {}, AbortSignal.timeout(3_000));
           return { request, http: response.status, body: await response.json() };
         };
+        const readSnapshot = async (tag, signal = AbortSignal.timeout(5_000)) => {
+          const response = await post(server, snapshot, tag.headers, signal);
+          return { http: response.status, body: await response.json() };
+        };
+        const withHeldSnapshot = async (role, revision, observe) => {
+          const tag = server.tagSnapshot();
+          const abort = new AbortController();
+          const response = readSnapshot(tag, AbortSignal.any([abort.signal, AbortSignal.timeout(5_000)]))
+            .catch(error => ({ error: error.name }));
+          try {
+            const written = await Promise.race([tag.wait('written'), response.then(result => {
+              throw new Error(`Snapshot ${role} settled before reaching the writer (${result.http ?? result.error}).`);
+            })]);
+            record('snapshot-written', { role, ...written });
+            await observe({ tag, abort, response });
+            tag.release();
+            const drained = await tag.wait('drained');
+            record('snapshot-drained', { role, ...drained });
+            expect(drained).toMatchObject({ id: tag.id, request_id: written.request_id, ok: true, revision });
+            return { id: tag.id, ...await response };
+          } finally {
+            abort.abort();
+            tag.release();
+            await response;
+          }
+        };
         const removeWithContendedSnapshot = async () => {
           const routePattern = `**${endpoint}`;
-          const permission = Promise.withResolvers();
-          const holderAbort = new AbortController();
+          const firstPermission = Promise.withResolvers();
+          const recoveryPermission = Promise.withResolvers();
+          const otherReadsPermission = Promise.withResolvers();
           let firstSnapshot;
-          let holder;
           const gateFirstSnapshot = async route => {
             const request = route.request();
-            if (!explicitMutations.length || firstSnapshot || request.postDataJSON()?.type !== 'snapshot') {
+            const body = request.postDataJSON();
+            if (isLayerMutation(body, 'indicator.remove')) return route.fallback();
+            if (!firstSnapshot && body?.type === 'snapshot' && explicitMutations.length > 0) {
+              firstSnapshot = request;
+              if (await firstPermission.promise) return route.continue();
+            } else if (await (body?.type === 'snapshot' ? recoveryPermission : otherReadsPermission).promise) {
               return route.fallback();
             }
-            firstSnapshot = request;
-            if (await permission.promise) await route.continue();
-            else await route.abort();
+            return route.abort();
           };
           await page.route(routePattern, gateFirstSnapshot);
           try {
-            const removed = await layerMutation('indicator.remove', () => remove.click());
+            let removed;
+            const browserSnapshot = await duringPageEvent(page, 'request', request => snapshotAttempts.get(request) === 1,
+              async () => { removed = await layerMutation('indicator.remove', () => remove.click()); }, 3_000);
             undoStages.removal = removed;
             record('removal-receipt', removed);
             expect(removed).toMatchObject({ http: 200, body: { ok: true, result: {
               request_id: removed.request.request_id,
               outcome: { state: 'committed', receipt: { committed_workspace_revision: 2, undoable: true } },
             } } });
-            await expect.poll(() => Boolean(firstSnapshot), { timeout: 3_000 }).toBe(true);
-            await expect.poll(() => postStatus(server, admissionProbe), { timeout: 3_000 }).toBe(400);
-            const refused = await whileWriterPaused(async () => {
-              // An independently authorized read occupies the real admission slot.
-              // The malformed probe cannot reach the writer even if it wins a race.
-              holder = post(server, snapshot, {}, AbortSignal.any([holderAbort.signal, AbortSignal.timeout(5_000)]))
-                .then(async response => ({ http: response.status, body: await response.json() }))
-                .catch(error => ({ error: error.message }));
-              await expect.poll(() => postStatus(server, admissionProbe), { timeout: 3_000 }).toBe(429);
-              record('snapshot-holder-admitted');
-              return duringPageEvent(page, 'response', response => response.request() === firstSnapshot, async () => {
-                permission.resolve(true);
-              }, 3_000, request => request === firstSnapshot);
+            // Force a different authorized request to hold admission. The old
+            // probe says BUSY even though the intended holder is rejected.
+            const cancelled = await withHeldSnapshot('legacy-competitor', 2, async ({ tag, abort, response }) => {
+              const intended = server.tagSnapshot();
+              const [probe, rejected] = await Promise.all([postStatus(server, admissionProbe), readSnapshot(intended)]);
+              const closed = await intended.wait('closed');
+              record('legacy-probe-false-positive', { probe, actual_holder: tag.id, intended: closed, rejected });
+              expect(probe).toBe(429);
+              expect(rejected).toMatchObject({ http: 429, body: busy });
+              expect(closed).toMatchObject({ http: 429, cancelled: false });
+
+              abort.abort();
+              const disconnect = await tag.wait('closed');
+              record('snapshot-holder-cancelled', { ...disconnect, client: await response });
+              expect(disconnect).toMatchObject({ id: tag.id, cancelled: true });
+              const beforeDrain = await readOutput();
+              record('competing-output-before-drain', beforeDrain);
+              expect(beforeDrain).toMatchObject({ http: 429, body: busy });
             });
-            const first = {
-              attempt: snapshotAttempts.get(firstSnapshot), request: firstSnapshot.postDataJSON(),
-              http: refused.status(), body: await refused.json(),
-            };
-            record('first-browser-snapshot', first);
-            const held = await holder;
+            expect(cancelled).toMatchObject({ error: 'AbortError' });
+
+            const held = await withHeldSnapshot('intended-holder', 2, async ({ tag }) => {
+              const refused = await duringPageEvent(page, 'response', reply => reply.request() === browserSnapshot,
+                () => firstPermission.resolve(true), 3_000, request => request === browserSnapshot);
+              const first = {
+                attempt: snapshotAttempts.get(browserSnapshot), request: browserSnapshot.postDataJSON(),
+                http: refused.status(), body: await refused.json(),
+              };
+              record('first-browser-snapshot', { holder: tag.id, ...first });
+              expect(first).toMatchObject({ attempt: 1, http: 429, body: busy });
+            });
             record('snapshot-holder-completed', held);
-            expect(first).toMatchObject({ attempt: 1, http: 429, body: busy });
             expect(held).toMatchObject({ http: 200, body: { ok: true, result: { workspace: { revision: 2 } } } });
+            recoveryPermission.resolve(true);
+            await browserRecovery;
+            otherReadsPermission.resolve(true);
             return removed;
           } finally {
-            permission.resolve(false);
-            holderAbort.abort();
+            firstPermission.resolve(false);
+            recoveryPermission.resolve(false);
+            otherReadsPermission.resolve(false);
             await page.unroute(routePattern, gateFirstSnapshot);
-            await holder;
           }
         };
         const durableLayerMutations = () => {
@@ -1099,15 +1139,15 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
           }
         };
         page.on('request', observeRemovalRequests);
+        const browserRecovery = removalRead('snapshot', (result, request) => {
+          const attempt = snapshotAttempts.get(request);
+          if (!attempt || result.workspace?.revision !== 2) return false;
+          record('browser-authoritative-snapshot', { attempt, revision: result.workspace.revision });
+          return true;
+        });
         try {
           const [snapshotResult, layersResult, removalResult] = await Promise.allSettled([
-            removalRead('snapshot', (result, request) => {
-              const attempt = snapshotAttempts.get(request);
-              if (!attempt) return false;
-              if (result.workspace?.revision !== 2) return false;
-              record('browser-authoritative-snapshot', { attempt, revision: result.workspace.revision });
-              return true;
-            }),
+            browserRecovery,
             removalRead('indicator_accepted_layers', (result, request) => {
               if (result.dataset_id !== id || result.layers?.length !== 0) return false;
               record('browser-accepted-layers', { request_id: request.postDataJSON().request_id, layers: result.layers, undo: result.undo });
@@ -1123,6 +1163,7 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
           const { value: removalLayers } = layersResult;
           const { value: removed } = removalResult;
           undoStages.removal_reads = {
+            attempt: snapshotAttempts.get(removalSnapshot.request()),
             snapshot: (await removalSnapshot.json()).result.workspace.revision,
             layers: (await removalLayers.json()).result.layers,
           };
@@ -1132,6 +1173,13 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
           expect((await removalLayers.json()).result.undo).toEqual({
             operation_id: removalId, layer_id: savedLayer.layer_id, committed_workspace_revision: 2,
           });
+          const durableRemoval = {
+            operation: 'indicator.remove', id: removalId, request_id: removed.request.request_id,
+            revision: 2, undoes: null, before_active: 1, after_active: 0,
+          };
+          const afterRemoval = durableLayerMutations();
+          record('durable-removal-before-undo', { operations: afterRemoval });
+          expect(afterRemoval).toEqual([durableRemoval]);
           await dialog.getByRole('button', { name: 'Close', exact: true }).click();
           await control(page, 'Open published CSV').click();
           await dialog.getByLabel('Revision ID').fill(id);
@@ -1141,12 +1189,22 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
           await expect(undo).toBeEnabled();
           await expect(undo).toHaveCount(1);
           const releaseUndo = Promise.withResolvers();
+          const releaseUndoReads = Promise.withResolvers();
           const undoRoute = `**${endpoint}`;
+          const forwardedReads = new Set();
+          let pauseUndoReads = false;
           let heldUndo;
           const holdUndo = async route => {
             const request = route.request();
             const payload = request.postDataJSON();
             if (!isLayerMutation(payload, 'workspace.undo') || payload.intent.arguments?.operation_id !== removalId) {
+              if (pauseUndoReads) {
+                if (await releaseUndoReads.promise) return route.fallback();
+                return route.abort();
+              }
+              const completed = request.response().then(response => response?.finished()).catch(() => {});
+              forwardedReads.add(completed);
+              void completed.then(() => forwardedReads.delete(completed));
               return route.fallback();
             }
             heldUndo = request;
@@ -1154,9 +1212,8 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
             await route.continue();
           };
           await page.route(undoRoute, holdUndo);
-          let undone;
           try {
-            undone = await layerMutation('workspace.undo', async () => {
+            const undone = await layerMutation('workspace.undo', async () => {
               await undo.click();
               await expect.poll(() => Boolean(heldUndo), { timeout: 3_000 }).toBe(true);
               undoStages.held_undo = {
@@ -1166,67 +1223,52 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
               expect(heldUndo.existingResponse()).toBeNull();
               releaseUndo.resolve();
             });
+            undoStages.undo = undone;
+            record('undo-receipt', undone);
+            expect(undone.request.request_id).toBe(undoStages.held_undo.request_id);
+            expect(undone.request.intent.arguments).toEqual({ operation_id: removalId });
+            expect(undone).toMatchObject({ http: 200, body: { ok: true, result: {
+              request_id: undone.request.request_id,
+              outcome: { state: 'committed', receipt: { committed_workspace_revision: 3, undoable: false } },
+            } } });
+            await expect(preview.getByText('Accepted layer restored.', { exact: true })).toBeVisible();
+            await expect(accepted.getByText(savedLayer.version_id, { exact: true })).toBeVisible();
+
+            // Keep new browser reads behind the gate. A cancelled browser read
+            // can leave the writer occupied after its client has settled.
+            pauseUndoReads = true;
+            const forwarded = forwardedReads.size;
+            await Promise.all(forwardedReads);
+            await expect.poll(async () => {
+              const response = await post(server, admissionProbe, {}, AbortSignal.timeout(3_000));
+              const http = await responseStatus(response);
+              record('post-undo-admission-probe', { forwarded_reads: forwarded, http });
+              return http;
+            }, { timeout: 3_000, message: 'The workspace rejected the malformed probe after admission became idle' }).toBe(400);
+            const restoredSnapshot = await withHeldSnapshot('undo-holder', 3, async () => {
+              undoStages.busy_output = await readOutput();
+              expect(undoStages.busy_output).toMatchObject({ http: 429, body: busy });
+            });
+            expect(restoredSnapshot).toMatchObject({ http: 200, body: { ok: true, result: { workspace: { revision: 3 } } } });
+            const output = await readOutput();
+            undoStages.recovered_output = output;
+            expect(output).toMatchObject({ http: 200, body: { ok: true } });
+            expect(output.body.result).toEqual(savedOutput);
+            releaseUndoReads.resolve(true);
+            expect(explicitMutations.map(request => request.intent.operation)).toEqual(['indicator.remove', 'workspace.undo']);
+            const durable = durableLayerMutations();
+            record('durable-layer-mutations', { operations: durable });
+            expect(durable).toEqual([
+              durableRemoval,
+              { operation: 'workspace.undo', id: undone.body.result.outcome.receipt.operation_id, request_id: undone.request.request_id,
+                revision: 3, undoes: removalId, before_active: 0, after_active: 1 },
+            ]);
+            record('mutation-counts', { remove: 1, undo: 1 });
           } finally {
             releaseUndo.resolve();
+            releaseUndoReads.resolve(false);
             await page.unroute(undoRoute, holdUndo);
           }
-          undoStages.undo = undone;
-          record('undo-receipt', undone);
-          expect(undone.request.request_id).toBe(undoStages.held_undo.request_id);
-          expect(undone.request.intent.arguments).toEqual({ operation_id: removalId });
-          expect(undone).toMatchObject({ http: 200, body: { ok: true, result: {
-            request_id: undone.request.request_id,
-            outcome: { state: 'committed', receipt: { committed_workspace_revision: 3, undoable: false } },
-          } } });
-          await expect(preview.getByText('Accepted layer restored.', { exact: true })).toBeVisible();
-          await expect(accepted.getByText(savedLayer.version_id, { exact: true })).toBeVisible();
-
-          // Reproduce read contention after the exact layer is visible with a real authorized snapshot.
-          const contendWithSnapshot = async () => {
-            const attempt = {};
-            undoStages.competing_attempts.push(attempt);
-            let competing;
-            try {
-              attempt.output = await whileWriterPaused(async () => {
-                competing = post(server, snapshot).then(async response => ({ http: response.status, body: await response.json() }))
-                  .catch(error => ({ error: error.message }));
-                await expect.poll(() => postStatus(server, admissionProbe), { timeout: 3_000 }).toBe(429);
-                return readOutput();
-              });
-            } finally {
-              if (competing) attempt.snapshot = await competing;
-            }
-            return attempt;
-          };
-          let contention = await contendWithSnapshot();
-          // A busy slot alone identifies no owner. Retry the read-only contender
-          // once after drain if that exact snapshot was refused before admission.
-          if (admissionBusy(contention.snapshot)) {
-            await expect.poll(() => postStatus(server, admissionProbe), { timeout: 3_000 }).toBe(400);
-            contention = await contendWithSnapshot();
-          }
-          expect(contention.snapshot).toMatchObject({ http: 200, body: { ok: true, result: { workspace: { revision: 3 } } } });
-          let output = contention.output;
-          undoStages.reads.push(output);
-          expect(output).toMatchObject({ http: 429, body: busy });
-          await expect.poll(async () => {
-            if (!admissionBusy(output)) return false;
-            output = await readOutput();
-            undoStages.reads.push(output);
-            return admissionBusy(output);
-          }, { timeout: 3_000, message: 'The restored indicator output read cleared preview admission' }).toBe(false);
-          expect(output).toMatchObject({ http: 200, body: { ok: true } });
-          expect(output.body.result).toEqual(savedOutput);
-          expect(explicitMutations.map(request => request.intent.operation)).toEqual(['indicator.remove', 'workspace.undo']);
-          const durable = durableLayerMutations();
-          record('durable-layer-mutations', { operations: durable });
-          expect(durable).toEqual([
-            { operation: 'indicator.remove', id: removalId, request_id: removed.request.request_id,
-              revision: 2, undoes: null, before_active: 1, after_active: 0 },
-            { operation: 'workspace.undo', id: undone.body.result.outcome.receipt.operation_id, request_id: undone.request.request_id,
-              revision: 3, undoes: removalId, before_active: 0, after_active: 1 },
-          ]);
-          record('mutation-counts', { remove: 1, undo: 1 });
         } catch (error) {
           record('failure', { message: error.message });
           if (undoStages.removal?.body?.result?.outcome?.state === 'committed') {
@@ -1265,7 +1307,7 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         observation.preview = { initial: first.event.snapshot, warmed: warmed.event.snapshot, cancelled, withheld, committed };
 
       });
-    });
+    }, { snapshotGate: true });
     await inService(port, profile, 'ubuntu-workspace', async server => {
       await inFreshBrowser(browser, server, async page => {
         let reruns = 0;
@@ -3376,10 +3418,10 @@ async function portAvailable(port) {
   }
 }
 
-function spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, entry = vite }) {
+function spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, snapshotGate, entry = vite }) {
   const args = terminalSignal
     ? [viteCli, '--mode', mode, '--host', '127.0.0.1', '--port', String(port), '--strictPort']
-    : ['--input-type=module', '--eval', service, entry, mode, String(port), historyFault ? '1' : ''];
+    : ['--input-type=module', '--eval', service, entry, mode, String(port), historyFault ? '1' : '', ...(snapshotGate ? [workspaceBridge] : [])];
   return spawn(process.execPath, args, {
     cwd: ui,
     env: {
@@ -3399,9 +3441,9 @@ async function reapService(child, done) {
   finally { clearTimeout(grace); }
 }
 
-async function inService(port, profile, mode, use, { expectHandoff = true, terminalSignal, historyTrace = false, historyFault = false } = {}) {
+async function inService(port, profile, mode, use, { expectHandoff = true, terminalSignal, historyTrace = false, historyFault = false, snapshotGate = false } = {}) {
   const url = 'http://127.0.0.1:' + port;
-  const child = spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault });
+  const child = spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, snapshotGate });
   const closed = once(child, 'close');
   let disconnectedExit;
   let disconnectedWriter;
@@ -3434,6 +3476,7 @@ async function inService(port, profile, mode, use, { expectHandoff = true, termi
     handoff: join(profile.root, 'workspace-access-' + port + '.html'),
     handoffRejected: () => handoffRejected,
     historyStages,
+    ...(snapshotGate && { tagSnapshot: observeSnapshotGate(child) }),
     cutHistoryResponse: () => new Promise((resolve, reject) => {
       child.send('cut-history', error => error ? reject(error) : resolve());
     }),
