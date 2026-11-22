@@ -14155,6 +14155,116 @@
           "cleanup": "Keep the existing selector and remove the incorrect dependency on the synchronize payload preview SHA."
         }
       }
+    },
+    {
+      "id": "M0-069",
+      "title": "Bind indicator preview contention to the admitted snapshot",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-068"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ubuntu-preview",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0007"
+      ],
+      "acceptance": [
+        "Explain the Windows 429 using retained request and revision observations and a controlled regression.",
+        "Observe the intended holder, competing BUSY, cancellation and recovery through the real service. Preserve revision 2 and exactly one removal. Verify on native Windows."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-069-e2b42c166ce0fa0e.json",
+          "sha256": "ec8602a34096452be8c2866fa07501c0d8c57d88e60fab958a268fa339a72712"
+        },
+        {
+          "path": "project/evidence/M0-069-1f09cdbc9bc4d02f.json",
+          "sha256": "73fdbfb77570c7a9e28408b92c8a96cca81b79ed4cdeaea147ee8f2e81c54fc9"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The controlled competing snapshot reproduced the old false ownership inference. Real HTTP and writer identities now distinguish refusal, cancellation, drain and successful recovery. Ubuntu and native Windows run 45037670475 preserved the revision-2 removal and revision-3 undo, each exactly once.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T143714.976297Z-71b18a36",
+          "source_commit": "5a6647538b8157b70777a2a121d4876530823b88",
+          "report_sha256": "d4e476c37861687e0147a805abac3f3099f089baf8556f68ba6037deca3a4628"
+        }
+      ],
+      "plan": {
+        "outcome": "The indicator removal contention test binds the actual snapshot holder, observes BUSY on the competing request and verifies recovery of the persisted revision.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "apps/desktop/ui/ubuntu-workspace.mjs",
+          "project/feedback.json"
+        ],
+        "hypotheses": [
+          "A BUSY response from an independent probe can report a competing reader instead of proving admission of the intended holder. Verify the owner before choosing a fixture or product correction."
+        ],
+        "risks": [
+          {
+            "failure": "Unrelated readers or a cancelled request satisfy the ownership observation.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A change hides a real admission, cancellation or persistence error.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Revert the scoped correction through protected review and retain the original diagnostic for comparison.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "apps/desktop/ui/ubuntu-workspace.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing unrelated browser checks, widening permissions or masking contention with delays or retries."
+          ],
+          "open_questions": [
+            "Does the fixture identify its actual holder, and does the real product service preserve admission and cancellation invariants?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Single-writer admission, BUSY responses, cancellation cleanup, idempotent removal and persisted revision."
+          ],
+          "change": [
+            "Bind test observations to the actual request that holds admission. Correct product behavior only if evidence requires it."
+          ],
+          "data_plan": "Use existing isolated synthetic profiles and the verified native Windows diagnostic.",
+          "cleanup": "Remove obsolete ownership inferences and any temporary measurement after confirming the correction."
+        }
+      }
     }
   ]
 }
