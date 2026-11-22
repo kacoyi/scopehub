@@ -14275,11 +14275,7 @@
         "M0-036"
       ],
       "scope": [
-        "scripts/check.py",
-        "scripts/rust_workspace.py",
-        "tests/project",
         "apps/desktop/src-tauri/src/bridge_tests.rs",
-        "crates/persistence/src/storage.rs",
         "project/tasks.json",
         "project/feedback.json"
       ],
@@ -14297,7 +14293,7 @@
         "rust-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Measure native helper timing and overlap across fixture and application paths, then verify a scoped correction.",
+      "next_action": "Verify native fixture startup, workspace refusal and recovery, and the ordinary protected checks.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -14347,9 +14343,8 @@
             "persistence"
           ],
           "entrypoints": [
-            "scripts/check.py",
-            "scripts/rust_workspace.py",
             "apps/desktop/src-tauri/src/bridge_tests.rs",
+            "apps/desktop/src-tauri/src/workspace.rs",
             "crates/persistence/src/storage.rs"
           ],
           "rules": [
@@ -14371,7 +14366,7 @@
             "Fail-closed ACL checks, profile isolation, bounded helper termination and concurrent bridge behavior."
           ],
           "change": [
-            "Apply only a correction supported by native timing or controlled comparison."
+            "Reserve an empty outer test directory atomically and let the ordinary workspace operation provision its private subtree. Exercise a refused mapping save and a new request on the same bridge."
           ],
           "data_plan": "Use synthetic test profiles and aggregate measurements. Preserve original reports and bound logs.",
           "cleanup": "Remove diagnostic-only instrumentation from the protected delivery unless narrowly justified for regression observability."
