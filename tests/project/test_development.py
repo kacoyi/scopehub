@@ -167,6 +167,29 @@ class DevelopmentTests(ProjectFixture):
         with self.assertRaisesRegex(ValueError, 'repository-relative'):
             resolve_source(self.root, {'path': '../outside.json', 'pointer': ''})
 
+    def test_task_context_exposes_the_role_families_and_shared_quality_floor(self):
+        self.record['herdr'] = {
+            'host': 'Herdr', 'profiles': {'implement': {'family': 'sol'}, 'supervise': {'family': 'astra'}},
+            'reasoning_efforts': ['medium', 'high'], 'model_selection': ['Raise effort for a risky assignment.'],
+            'parallel': ['Keep review independent.'], 'tooling': ['Use synthetic fixtures.'],
+        }
+        self.save_record()
+        host = task_context(self.root, 'M0-001')['development_host']
+        self.assertEqual(host['profiles'], {'implement': {'family': 'sol'}, 'supervise': {'family': 'astra'}})
+        self.assertEqual(host['default_reasoning_effort'], 'medium')
+        for efforts in (['low', 'medium'], ['medium', 'low'], ['high'], []):
+            with self.subTest(efforts=efforts):
+                self.record['herdr']['reasoning_efforts'] = efforts
+                self.save_record()
+                with self.assertRaisesRegex(ProjectError, 'reasoning_efforts'):
+                    load_project(self.root)
+
+        self.record['herdr']['reasoning_efforts'] = ['medium']
+        self.record['herdr']['profiles']['supervise']['family'] = 'astra\n'
+        self.save_record()
+        with self.assertRaisesRegex(ProjectError, 'profiles/supervise/family'):
+            load_project(self.root)
+
     def test_context_omits_dependency_history_but_keeps_effective_rule_sources(self):
         ledger = self.ledger()
         task_by_id(ledger, 'M0-002')['acceptance'] = ['Large historical prerequisite. ' * 1000]

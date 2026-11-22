@@ -13687,6 +13687,113 @@
           "cleanup": "Use the ordinary online review and restore the M1-031 product focus after accepting the repair."
         }
       }
+    },
+    {
+      "id": "M0-058",
+      "title": "Resolve Herdr development models by role and quality needs",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-028"
+      ],
+      "scope": [
+        "scripts/herdr.py",
+        "tests/project/test_herdr.py",
+        "scripts/development.py",
+        "tests/project/test_development.py",
+        "contracts/schemas/project.schema.json",
+        "project/development.json",
+        "project/tasks.json",
+        "AGENTS.md"
+      ],
+      "decision_refs": [
+        "0007",
+        "0011"
+      ],
+      "acceptance": [
+        "New implementation assignments select the Sol family and review and coordination select Astra. All three start at medium. Resolve the newest listed stable numeric generation that supports the requested effort from the available Codex catalog each time a session starts.",
+        "A single assignment can raise effort and a difficult implementation can select Astra while preserving its writer role. The launcher reports unavailable combinations before starting Herdr. The next unqualified assignment starts at its role default.",
+        "Exercise future catalog generations, role permissions, old fixed-profile worktrees, missing catalog data and each role. Verify the effective model and effort on the installed launcher with a real local development assignment and independent review."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-058-d7101e692332ca7b.json",
+          "sha256": "f0bf5bbfb98ead4c0a5bd2e47c663f3d275b35454f765731354a4737febf9e80"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Live Herdr launches used gpt-6.2-sol for implementation and gpt-6.2-astra for review and coordination, all at medium effort. The independent read-only review passed after the schema and launcher were aligned on family validation, and the coordinator verified the regression.",
+      "plan": {
+        "outcome": "A developer can launch work, review and coordination at the requested quality floor, escalate a specific assignment and adopt a new compatible model without editing the role policy.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/development.json",
+          "scripts/herdr.py",
+          "tests/project/test_herdr.py",
+          "contracts/schemas/project.schema.json"
+        ],
+        "hypotheses": [
+          "The installed Codex CLI exposes stable family slugs, visibility and supported efforts in its model catalog. The local snapshot can be read for an offline dry run."
+        ],
+        "risks": [
+          {
+            "failure": "Version ordering or hidden variants select an incompatible model or quietly lower the requested quality.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Escalating a model changes role permissions, later assignments or the behavior of a historical worktree.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the prior launcher and fixed-profile worktree records recoverable in Git. A failed model lookup leaves the assignment available to retry when the catalog is restored.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/herdr.py",
+            "scripts/development.py",
+            "tests/project/test_herdr.py"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/herdr"
+            },
+            {
+              "path": "contracts/decisions/0007-ai-led-development.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Product model settings, provider credentials, global Codex configuration and new approval privileges."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Verbatim assignments, worktree isolation, read-only reviews, writer approval policy and legacy fixed-profile checkouts."
+          ],
+          "change": [
+            "Replace current version pins and role-specific high defaults with catalog-resolved families, a shared medium default and per-assignment upgrades."
+          ],
+          "data_plan": "Use synthetic catalogs and local development metadata. No user financial data or model credentials are needed.",
+          "cleanup": "Remove concrete generation pins from the active policy. Existing terminals retain their launch arguments."
+        }
+      }
     }
   ]
 }

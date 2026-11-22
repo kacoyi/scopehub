@@ -759,14 +759,26 @@
     "host": "Herdr",
     "profiles": {
       "implement": {
-        "model": "gpt-6.2-sol",
-        "reasoning_effort": "ultra"
+        "family": "sol"
       },
       "supervise": {
-        "model": "gpt-6.2-astra",
-        "reasoning_effort": "xhigh"
+        "family": "astra"
       }
     },
+    "reasoning_efforts": [
+      "medium",
+      "high",
+      "xhigh",
+      "max",
+      "ultra"
+    ],
+    "model_selection": [
+      "Use the implementation profile for code changes and the supervision profile for independent review and coordination. Start each assignment at the first configured reasoning effort.",
+      "At launch, resolve the newest stable numeric generation in the selected family that the installed Codex catalog lists with the requested effort. A dry run uses the local catalog snapshot. If no model qualifies, report the requested family and effort so the coordinator can resolve the missing capability.",
+      "Choose effort for the correctness risk. Start at high or above when a change touches data migrations, concurrent updates, financial precision or permission boundaries and the risk warrants deeper reasoning. Escalate during follow-up work when a failing regression or a review finding leaves the cause uncertain.",
+      "Use --effort for a single assignment. Use --escalate-model when an implementation needs the supervision family to resolve a difficult design or correctness question. State the concrete reason in the assignment. Each new assignment starts from its role default.",
+      "Prefer code quality when speed or cost conflicts with correctness. Verify the result with the affected checks and independent review in proportion to risk, including after an escalation."
+    ],
     "parallel": [
       "Choose a single terminal for a small change. For independent bounded work, open local Herdr tabs and assign each a task, scope, public boundary and the expected check. Choose the supervision profile for coordination or independent review when warranted.",
       "Use separate Git worktrees for overlapping writers or independent test runs. Writers sharing a checkout own disjoint paths. One integrating developer owns shared task state, schema generation, evidence recording and source publication. Verify and reconcile actual diffs at one revision.",
