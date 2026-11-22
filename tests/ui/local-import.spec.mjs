@@ -128,7 +128,8 @@ function importedFixture({ payload, requestId }, invalidPart) {
 // The browser substitutes Tauri invocation and the responses from the host.
 // Only synthetic fixture bytes contribute to display data and expected hashes.
 const test = base.extend({
-  mockNative: async ({ page, baseURL }, use) => {
+  pickerLocale: ['en', { option: true }],
+  mockNative: async ({ page, baseURL, pickerLocale }, use) => {
     const choices = [];
     const calls = [];
     const saved = new Map();
@@ -143,7 +144,7 @@ const test = base.extend({
     await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
       calls.push({ command, args });
       if (command === 'choose_local_csv_folder') {
-        expect(args ?? {}).toEqual({});
+        expect(args).toEqual({ locale: pickerLocale });
         expect(choices.length).toBeGreaterThan(0);
         return choices.shift();
       }
@@ -207,6 +208,27 @@ const test = base.extend({
     expect(pageErrors).toEqual([]);
     expect(requests.every(url => new URL(url).origin === baseURL && !new URL(url).pathname.startsWith('/__scopehub/'))).toBe(true);
   },
+});
+
+test.describe('Simplified Chinese desktop source selection', () => {
+  test.use({ locale: 'zh-CN', pickerLocale: 'zh-Hans' });
+
+  test('sends the effective language to the chooser and keeps the selected file name intact', async ({ page, mockNative }) => {
+    await page.goto('/');
+    mockNative.choices.push(catalog);
+    await control(page, '选择本地 CSV 文件夹').first().click();
+    await expect(page.getByRole('button', { name: '语言设置' }).last()).toBeVisible();
+    const file = page.getByRole('combobox', { name: 'CSV 文件', exact: true });
+    await file.selectOption(equity.fileId);
+    await expect(file.locator('option:checked')).toContainText(equity.path);
+    await control(page, '语言设置').click();
+    const settings = page.getByRole('dialog', { name: '语言设置' });
+    await settings.getByRole('combobox').selectOption('en');
+    await page.getByRole('button', { name: 'Close', exact: true }).click();
+    await expect(select(page, 'CSV file')).toHaveValue(equity.fileId);
+    await expect(select(page, 'CSV file').locator('option:checked')).toContainText(equity.path);
+    expect(mockNative.calls.filter(call => call.command === 'choose_local_csv_folder')).toHaveLength(1);
+  });
 });
 
 const mappingFields = {

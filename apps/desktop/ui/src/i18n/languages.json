@@ -1,0 +1,14 @@
+[
+  {
+    "tag": "en",
+    "name": "English",
+    "direction": "ltr",
+    "folderPickerTitle": "Choose local CSV folder"
+  },
+  {
+    "tag": "zh-Hans",
+    "name": "简体中文",
+    "direction": "ltr",
+    "folderPickerTitle": "选择本地 CSV 文件夹"
+  }
+]

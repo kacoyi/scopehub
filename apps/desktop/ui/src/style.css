@@ -207,3 +207,10 @@ th { position: sticky; top: 0; background: var(--surface); color: var(--muted); 
 .private-review-target { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 10px; }
 .private-review-target dd { margin: 0; font-weight: 620; }
 .private-record-editor > section { margin: 8px 0; }
+
+.language-trigger { flex: none; }
+.language-dialog { width: min(21rem, calc(100vw - 2rem)); padding: 1rem; }
+.language-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .8rem; }
+.language-heading h2 { margin: 0; font-size: 1.05rem; }
+.language-dialog label { display: grid; gap: .4rem; }
+.language-dialog select { width: 100%; padding: .45rem; font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; }

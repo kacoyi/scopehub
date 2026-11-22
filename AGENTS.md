@@ -5,6 +5,7 @@ Follow applicable shared policies in `AGENTS.md` files in the checkout's ancesto
 ## Language
 
 - Use English for repository content, including documentation, specifications, source comments, new identifiers, commit messages, and GitHub issues and pull requests.
+- Write user-facing translations and their locale-specific test expectations in the target language.
 - Keep protocol identifiers, file paths, and technical names consistent with the engineering contract.
 - Communicate with the project owner in Chinese unless they request another language. This conversation preference does not change the repository language.
 

@@ -1,3 +1,4 @@
+import { message as uiMessage, t, type Message } from './i18n';
 import { useLayoutEffect, useState } from 'react';
 import type {
   ConfirmationChallenge11, FrozenSnapshot, IndicatorAcceptVersionCommand11, IndicatorAcceptVersionReply11,
@@ -86,7 +87,7 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
   const [challenge, setChallenge] = useState<ConfirmationChallenge11>();
   const [undo, setUndo] = useState<RemovalHint>();
   const [pending, setPending] = useState(false);
-  const [message, setMessage] = useState<{ text: string; failed?: boolean }>();
+  const [message, setMessage] = useState<{ text: Message; failed?: boolean }>();
   const state = workspace.snapshot;
   const canDisplay = access?.canDisplay;
   const verify = access?.verify;
@@ -116,7 +117,7 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
       if (displayAccessDenied(error)) {
         void verify?.(snapshot.dataset_id);
       }
-      setMessage(previous => previous ?? { text: 'Accepted indicator output could not be restored.', failed: true });
+      setMessage(previous => previous ?? { text: uiMessage('Accepted indicator output could not be restored.'), failed: true });
     });
     return () => abort.abort();
   }, [snapshot, state?.workspace.revision, state?.selection_revision, canDisplay, verify, revoked, showAccepted]);
@@ -136,7 +137,7 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
     try { await action(AbortSignal.timeout(15_000)); }
     catch (error) {
       if (displayAccessDenied(error)) void verify?.(snapshot.dataset_id);
-      setMessage({ text: 'The indicator change could not be completed. Refresh the workspace and try again.', failed: true });
+      setMessage({ text: uiMessage('The indicator change could not be completed. Refresh the workspace and try again.'), failed: true });
     } finally { setPending(false); }
   }
 
@@ -172,7 +173,7 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
       if (outcome.state !== 'committed') throw new Error();
       clearPreview();
       workspace.refreshAfterIndicatorCommit(outcome.receipt);
-      setMessage({ text: 'Indicator version accepted.' });
+      setMessage({ text: uiMessage('Indicator version accepted.') });
     });
   }
 
@@ -185,7 +186,7 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
       const outcome = bodyOf(await exchangeWorkspace<IndicatorRemoveReply11>(request, signal), request.request_id);
       if (outcome.state !== 'committed') throw new Error();
       workspace.refreshAfterIndicatorCommit(outcome.receipt);
-      setMessage({ text: 'Accepted layer removed from the chart.' });
+      setMessage({ text: uiMessage('Accepted layer removed from the chart.') });
     });
   }
 
@@ -206,7 +207,7 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
       if (outcome.state !== 'committed') throw new Error();
       setUndo(undefined);
       workspace.refreshAfterIndicatorCommit(outcome.receipt);
-      setMessage({ text: 'Accepted layer restored.' });
+      setMessage({ text: uiMessage('Accepted layer restored.') });
     });
   }
 
@@ -214,39 +215,39 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
   const openChallenge = challenge && preview?.task_id === challenge.task_id;
   return <>
     {preview && !openChallenge && <button type="button" className="secondary-button" disabled={blocked}
-      onClick={requestAcceptance}>Accept preview</button>}
-    {openChallenge && <div role="group" aria-label="Confirm accepted indicator">
-      <p>Keep this indicator version with its frozen input, resolved parameters and exact output in this profile.</p>
+      onClick={requestAcceptance}>{t('Accept preview')}</button>}
+    {openChallenge && <div role="group" aria-label={t('Confirm accepted indicator')}>
+      <p>{t('Keep this indicator version with its frozen input, resolved parameters and exact output in this profile.')}</p>
       <button type="button" className="secondary-button" disabled={blocked} onClick={() => respond('approve')}>
-        Confirm indicator acceptance
+        {t('Confirm indicator acceptance')}
       </button>
       <button type="button" className="secondary-button" disabled={blocked} onClick={() => respond('deny')}>
-        Cancel indicator acceptance
+        {t('Cancel indicator acceptance')}
       </button>
     </div>}
-    {message && <p role={message.failed ? 'alert' : 'status'}>{message.text}</p>}
-    {layers.length > 0 && <section aria-label="Accepted indicators">
-      <h3>Accepted indicators</h3>
+    {message && <p role={message.failed ? 'alert' : 'status'}>{t(message.text)}</p>}
+    {layers.length > 0 && <section aria-label={t('Accepted indicators')}>
+      <h3>{t('Accepted indicators')}</h3>
       <ul>{layers.map(layer => <li key={layer.layer_id}>
-        <span>{!layer.available ? 'Accepted version · source unavailable'
-          : layer.document && !matchesChart(layer.document.snapshot, snapshot) ? 'Accepted version · different chart observation'
-            : 'Accepted version'} </span>
+        <span>{!layer.available ? t('Accepted version · source unavailable')
+          : layer.document && !matchesChart(layer.document.snapshot, snapshot) ? t('Accepted version · different chart observation')
+            : t('Accepted version')} </span>
         <code>{layer.version_id}</code>
         {layer.document && <details>
-          <summary>Accepted provenance and values</summary>
-          <p>Input <code>{layer.document.snapshot.content_hash}</code></p>
-          <p>Output <code>{layer.document.artifact.result_hash}</code></p>
-          <p>Parameters <code>{JSON.stringify(layer.document.resolved_parameters)}</code></p>
+          <summary>{t('Accepted provenance and values')}</summary>
+          <p>{t('Input')}{' '}<code>{layer.document.snapshot.content_hash}</code></p>
+          <p>{t('Output')}{' '}<code>{layer.document.artifact.result_hash}</code></p>
+          <p>{t('Parameters')}{' '}<code>{JSON.stringify(layer.document.resolved_parameters)}</code></p>
           {layer.document.artifact.result.diagnostics.map(diagnostic => <p key={diagnostic.code}>{diagnostic.message}</p>)}
           <ul>{layer.document.artifact.result.series.map(series => <li key={series.id}>
-            {series.id} · {series.points.slice(0, 20).map(point => point.value ?? 'Unknown').join(', ')}
+            {series.id} · {series.points.slice(0, 20).map(point => point.value ?? t('Unknown')).join(', ')}
           </li>)}</ul>
           <IndicatorRegionValues regions={layer.document.artifact.result.regions} />
         </details>}
-        <button type="button" className="secondary-button" disabled={blocked} onClick={() => remove(layer)}>Remove accepted layer</button>
+        <button type="button" className="secondary-button" disabled={blocked} onClick={() => remove(layer)}>{t('Remove accepted layer')}</button>
       </li>)}</ul>
     </section>}
     {undo && <button type="button" className="secondary-button" disabled={blocked || !state || state.workspace.revision < undo.committed_workspace_revision}
-      onClick={undoRemoval}>Undo indicator removal</button>}
+      onClick={undoRemoval}>{t('Undo indicator removal')}</button>}
   </>;
 }

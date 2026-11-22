@@ -4,8 +4,10 @@ import type { ChartCursorMode, ChartStyle, HistoryChartHandle, IndicatorChartLay
 import { DecisionNotes } from './decision-notes';
 import { PrivateRecords } from './private-records';
 import { UnavailableSharedSelection } from './frozen-evidence';
+import { formatDateTime, message, t, useLocale } from './i18n';
 import { instrumentName, symbol } from './instrument-display';
 import { IndicatorPreview } from './indicator-preview';
+import { LanguageSettings } from './language-settings';
 import type { PublishedRevisionAccess } from './published-revision-access';
 import { isClosedBarGapRevision, sampleRevisionInstrument, type Bar, type ChartHistory, type Instrument, type SampleRevision } from './market';
 import { ReplayGapDetails, replayGapReason } from './market-quality';
@@ -27,12 +29,13 @@ const panelOrder = ['watchlist', 'data'] as const;
 const layoutPanel = { watchlist: 'watchlist', data: 'inspection' } as const;
 const workspacePanel = { watchlist: 'watchlist', inspection: 'data' } as const;
 const noInstruments: Instrument[] = [];
+const sampleMonth = Date.UTC(2024, 0, 1);
 const replayLabels = {
-  starting: 'Preparing synthetic replay…',
-  playing: 'Synthetic replay in progress',
-  reconnecting: 'Market worker reconnecting…',
-  resumed: 'Market worker resumed',
-  complete: 'Synthetic replay complete',
+  starting: message('Preparing synthetic replay…'),
+  playing: message('Synthetic replay in progress'),
+  reconnecting: message('Market worker reconnecting…'),
+  resumed: message('Market worker resumed'),
+  complete: message('Synthetic replay complete'),
   gap: null,
 };
 
@@ -53,13 +56,13 @@ function PlotMessage({ title, children, error = false }: { title: string; childr
 function HistoryStatus({ history, repaired }: { history: ChartHistory; repaired: boolean }) {
   const { freshness, coverage, connection } = history.quality_state;
   const warnings = [
-    freshness === 'stale' && 'Stale data',
-    freshness === 'delayed' && 'Delayed observations',
-    coverage === 'gapped' && (repaired ? 'Frozen history has gaps' : 'Known gaps'),
-    connection === 'disconnected' && 'Source disconnected',
+    freshness === 'stale' && t('Stale data'),
+    freshness === 'delayed' && t('Delayed observations'),
+    coverage === 'gapped' && (repaired ? t('Frozen history has gaps') : t('Known gaps')),
+    connection === 'disconnected' && t('Source disconnected'),
   ].filter(Boolean);
   if (warnings.length) return <span className="history-status warning" role="status">{warnings.join(' · ')}</span>;
-  return history.bars.length ? <span className="history-status" role="status">History ready</span> : null;
+  return history.bars.length ? <span className="history-status" role="status">{t('History ready')}</span> : null;
 }
 
 export type RestoredChartSource = {
@@ -84,6 +87,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   openModelChat: (selection: ModelChartSelection | undefined) => void;
   openModelSettings: () => void;
 }) {
+  const locale = useLocale();
   const [saved] = useState(() => sample ? readSampleView() : undefined);
   const [chosenId, setChosenId] = useState(restoredSampleInstrument ?? saved?.symbol ?? '');
   const [sampleTimeframe, setSampleTimeframe] = useState(saved?.timeframe ?? '1m');
@@ -125,7 +129,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   const selected = frozen?.instrument ?? sampleInstruments.find(item => item.id === chosenId) ?? sampleInstruments[0];
   const chartInstrument = useMemo(() => selected && ({
     ...selected, name: instrumentName(selected), display_symbol: symbol(selected),
-  }), [selected]);
+  }), [selected, locale]);
   const sampleRevision = selected?.id === sampleRevisionInstrument && (timeframe === '1m' || !isClosedBarGapRevision(revision))
     ? revision : 'normal';
   const { result, retryHistory } = useHistory(sample && timeframe ? selected : undefined, timeframe, sampleRevision, date);
@@ -185,8 +189,9 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   const replayFailure = replay?.state === 'failed' ? replay.failure : undefined;
   const replayGap = replay?.gap;
   const repairedBars = replay?.repairedBars;
-  const replayLabel = replay?.state === 'failed' ? `Replay failed. ${replay.failure.message}`
-    : repairedBars ? 'Closed-bar gap repaired in chart' : replay && replayLabels[replay.state];
+  const replayStatus = replay && replay.state !== 'failed' ? replayLabels[replay.state] : null;
+  const replayLabel = replayFailure ? t('Replay failed. {reason}', { reason: t(replayFailure.message) })
+    : repairedBars ? t('Closed-bar gap repaired in chart') : replayStatus && t(replayStatus);
   const visiblePanel = panel === 'sources' || (!definition && !focusChart) ? panel : null;
   const activeDocks = focusChart ? [] : layoutDocks.flatMap(dockName => {
     const { panels, active } = docks.selected(dockName);
@@ -275,7 +280,8 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   }, []);
   useEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.isComposing || searchQuery !== null || notesOpen || recordsOpen || layout.editing || modelDialogOpen) return;
+      if (event.defaultPrevented || event.isComposing || document.querySelector('dialog:modal')) return;
+      if (searchQuery !== null || notesOpen || recordsOpen || layout.editing || modelDialogOpen) return;
       if (event.key === 'Escape') {
         if (visiblePanel === 'sources') closePanel();
         else if (focusChart) setFocusChart(false);
@@ -296,32 +302,32 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
 
   let plot: ReactNode;
   if (!sample && !frozen && restoredSource) {
-    const reason = restoredSource.status === 'loading' ? 'Restoring published CSV…' : restoredSource.status === 'revoked'
-      ? 'Access to this published CSV was revoked.' : 'The published CSV is unavailable.';
+    const reason = restoredSource.status === 'loading' ? t('Restoring published CSV…') : restoredSource.status === 'revoked'
+      ? t('Access to this published CSV was revoked.') : t('The published CSV is unavailable.');
     plot = <PlotMessage title={reason} error={restoredSource.status !== 'loading'}>
-      <p>Revision <code>{restoredSource.revision_id}</code></p>
+      <p>{t('Revision')} <code>{restoredSource.revision_id}</code></p>
       {restoredSource.status === 'unavailable' && retryRestoredSource && <button type="button" className="secondary-button"
-        onClick={retryRestoredSource}>Retry source</button>}
+        onClick={retryRestoredSource}>{t('Retry source')}</button>}
       {restoredSource.status !== 'loading' && visiblePanel !== 'sources' && (localActions ? <LocalSourceButtons actions={localActions} /> : openPublished &&
-        <button type="button" className="secondary-button" aria-haspopup="dialog" onClick={openPublished}>Open published CSV</button>)}
+        <button type="button" className="secondary-button" aria-haspopup="dialog" onClick={openPublished}>{t('Open published CSV')}</button>)}
     </PlotMessage>;
   } else if (!sample && !frozen) {
-    plot = <PlotMessage title="Open a chart">
+    plot = <PlotMessage title={t('Open a chart')}>
       {localActions ? <LocalSourceButtons actions={localActions} /> : openPublished &&
-        <button type="button" className="secondary-button" aria-haspopup="dialog" onClick={openPublished}>Open published CSV</button>}
-      <p>Explore three instruments with offline sample data.</p>
-      <button type="button" className="primary" onClick={openSample}>Open offline sample <WorkspaceIcon name="arrow" /></button></PlotMessage>;
+        <button type="button" className="secondary-button" aria-haspopup="dialog" onClick={openPublished}>{t('Open published CSV')}</button>}
+      <p>{t('Explore three instruments with offline sample data.')}</p>
+      <button type="button" className="primary" onClick={openSample}>{t('Open offline sample')} <WorkspaceIcon name="arrow" /></button></PlotMessage>;
   } else if (sample && failure) {
     const catalogFailed = catalog.state === 'error';
-    plot = <PlotMessage title={failure.message} error>{failure.retryable && <button type="button" className="primary"
-      onClick={catalogFailed ? retryCatalog : retryHistory}>{catalogFailed ? 'Retry demo' : 'Retry history'}</button>}</PlotMessage>;
+    plot = <PlotMessage title={t(failure.message)} error>{failure.retryable && <button type="button" className="primary"
+      onClick={catalogFailed ? retryCatalog : retryHistory}>{catalogFailed ? t('Retry demo') : t('Retry history')}</button>}</PlotMessage>;
   } else if (sample && catalog.state === 'ready' && !selected) {
-    plot = <PlotMessage title="No instruments in this sample." />;
+    plot = <PlotMessage title={t('No instruments in this sample.')} />;
   } else if (!selected || !history) {
-    plot = <PlotMessage title="Loading synthetic history…" />;
+    plot = <PlotMessage title={t('Loading synthetic history…')} />;
   } else if (!history.bars.length) {
     plot = <div className="history" data-instrument={selected.id} data-timeframe={timeframe} data-bars={0}>
-      <PlotMessage title={sample ? 'No bars in this sample range.' : 'The published CSV has no bars in this revision.'} /></div>;
+      <PlotMessage title={sample ? t('No bars in this sample range.') : t('The published CSV has no bars in this revision.')} /></div>;
   } else {
     plot = <PriceChart key={frozen ? restoredSource?.revision_id : selected.id + ':' + timeframe} instrument={chartInstrument ?? selected}
       history={history} style={style} cursor={cursor} handle={chart} replayBar={sample ? replay?.bar : undefined}
@@ -353,24 +359,24 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   } as CSSProperties} data-layout-theme={definition?.theme}>
     <header className="topbar">
       <div className="brand" aria-label="ScopeHub"><span className="brand-mark" aria-hidden="true">S</span><strong>ScopeHub</strong></div>
-      <div className="toolbar-group symbol-group"><button type="button" ref={trigger} className="symbol-trigger" aria-label="Search symbols"
-        aria-haspopup="dialog" title="Search symbols (/)" onClick={() => setSearchQuery('')}>
-        <WorkspaceIcon name="search" /><strong>{selected ? symbol(selected) : 'Symbol search'}</strong><WorkspaceIcon name="chevron" /></button></div>
-      <div className="toolbar-group periods" role="group" aria-label="Timeframe" aria-busy={!sample && workspaceBusy || undefined}>
+      <div className="toolbar-group symbol-group"><button type="button" ref={trigger} className="symbol-trigger" aria-label={t('Search symbols')}
+        aria-haspopup="dialog" title={t('Search symbols (/)')} onClick={() => setSearchQuery('')}>
+        <WorkspaceIcon name="search" /><strong>{selected ? symbol(selected) : t('Symbol search')}</strong><WorkspaceIcon name="chevron" /></button></div>
+      <div className="toolbar-group periods" role="group" aria-label={t('Timeframe')} aria-busy={!sample && workspaceBusy || undefined}>
         {['1m', '5m', '1d'].map(value => <button type="button" key={value} className="period"
           aria-pressed={timeframe === value} disabled={timeframeBlocked}
           onClick={() => chooseTimeframe(value)}>{value}</button>)}
-        {!sample && workspace && <button type="button" className="period" aria-label="Undo timeframe change"
-          disabled={timeframeBlocked || !workspace.snapshot?.undo} onClick={workspace.undoTimeframe}>Undo</button>}
+        {!sample && workspace && <button type="button" className="period" aria-label={t('Undo timeframe change')}
+          disabled={timeframeBlocked || !workspace.snapshot?.undo} onClick={workspace.undoTimeframe}>{t('Undo')}</button>}
       </div>
-      <div className="toolbar-group chart-styles" role="group" aria-label="Chart style">
-        <Tool name="Candles" icon="candles" active={style === 'candlestick'} onClick={() => setStyle('candlestick')} />
-        <Tool name="Close-price line" icon="line" active={style === 'line'} onClick={() => setStyle('line')} />
+      <div className="toolbar-group chart-styles" role="group" aria-label={t('Chart style')}>
+        <Tool name={t('Candles')} icon="candles" active={style === 'candlestick'} onClick={() => setStyle('candlestick')} />
+        <Tool name={t('Close-price line')} icon="line" active={style === 'line'} onClick={() => setStyle('line')} />
       </div>
       {workspace && <div className="toolbar-group"><button type="button" className="period notes-trigger"
-        aria-haspopup="dialog" disabled={workspaceBlocked} onClick={() => setNotesOpen(true)}>Decision notes</button>
+        aria-haspopup="dialog" disabled={workspaceBlocked} onClick={() => setNotesOpen(true)}>{t('Decision notes')}</button>
         <button type="button" className="period notes-trigger" aria-haspopup="dialog"
-          disabled={workspaceBlocked} onClick={() => setRecordsOpen(true)}>Private records</button></div>}
+          disabled={workspaceBlocked} onClick={() => setRecordsOpen(true)}>{t('Private records')}</button></div>}
       <button type="button" className="period notes-trigger" aria-haspopup="dialog"
         disabled={Boolean(workspace?.pending === 'evidence' || workspace?.pending === 'source')} onClick={() => {
           const state = workspace?.snapshot;
@@ -380,56 +386,58 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
             datasetRevision: history.snapshot.dataset_revision,
             range: boundSelection.range,
           } : undefined);
-        }}>Ask AI</button>
+        }}>{t('Ask AI')}</button>
       <span className={'connection' + (sample ? ' sample' : '')} role="status"><i aria-hidden="true" />{sample
-        ? <><span>Offline sample</span><b>Simulated</b></> : restoredSource ? frozen ? restoredSource.label ?? 'Published CSV'
-          : restoredSource.status === 'revoked' ? 'Access revoked' : restoredSource.status === 'loading' ? 'Restoring CSV' : 'Source unavailable'
-          : 'No data source'}</span>
-      <button type="button" ref={sourceTrigger} className="icon-button" title="Data sources" aria-label="Data sources"
+        ? <><span>{t('Offline sample')}</span><b>{t('Simulated')}</b></> : restoredSource ? frozen ? restoredSource.label ?? t('Published CSV')
+          : restoredSource.status === 'revoked' ? t('Access revoked') : restoredSource.status === 'loading' ? t('Restoring CSV') : t('Source unavailable')
+          : t('No data source')}</span>
+      <button type="button" ref={sourceTrigger} className="icon-button" title={t('Data sources')} aria-label={t('Data sources')}
         aria-expanded={visiblePanel === 'sources'} aria-controls={visiblePanel === 'sources' ? 'workspace-panel' : undefined}
         onClick={() => setPanel(visiblePanel === 'sources' ? null : 'sources')}><WorkspaceIcon name="database" /></button>
       {workspace && <button type="button" ref={layoutTrigger} className="period notes-trigger" aria-haspopup="dialog"
         disabled={!savedLayouts || Boolean(workspace.pending) || layout.busy || Boolean(layout.preview)}
-        onClick={() => layout.open()}>Edit layout</button>}
-      <Tool name={focusChart ? 'Exit chart-only view' : 'Chart-only view'} icon={focusChart ? 'collapse' : 'expand'} active={focusChart} onClick={() => setFocusChart(!focusChart)} />
+        onClick={() => layout.open()}>{t('Edit layout')}</button>}
+      <LanguageSettings />
+      <Tool name={focusChart ? t('Exit chart-only view') : t('Chart-only view')} icon={focusChart ? 'collapse' : 'expand'} active={focusChart} onClick={() => setFocusChart(!focusChart)} />
     </header>
     {savedLayouts && <WorkspaceLayoutReview active={savedLayouts.active} state={layout} />}
     <div className={'workbody' + (visiblePanel ? ' with-' + visiblePanel : '')}>
-      {!focusChart && <nav className="chart-tools" aria-label="Chart tools">
-        <Tool name="Crosshair" icon="crosshair" active={cursor === 'crosshair'} onClick={() => setCursor('crosshair')} />
-        <Tool name="Pan" icon="pan" active={cursor === 'pan'} onClick={() => setCursor('pan')} />
+      {!focusChart && <nav className="chart-tools" aria-label={t('Chart tools')}>
+        <Tool name={t('Crosshair')} icon="crosshair" active={cursor === 'crosshair'} onClick={() => setCursor('crosshair')} />
+        <Tool name={t('Pan')} icon="pan" active={cursor === 'pan'} onClick={() => setCursor('pan')} />
         <span className="tool-divider" />
-        <Tool name="Zoom in" icon="zoomIn" disabled={!canInspect} onClick={() => chart.current?.zoomIn()} />
-        <Tool name="Zoom out" icon="zoomOut" disabled={!canInspect} onClick={() => chart.current?.zoomOut()} />
-        <Tool name="Fit chart" icon="fit" disabled={!canInspect} onClick={() => chart.current?.fit()} />
+        <Tool name={t('Zoom in')} icon="zoomIn" disabled={!canInspect} onClick={() => chart.current?.zoomIn()} />
+        <Tool name={t('Zoom out')} icon="zoomOut" disabled={!canInspect} onClick={() => chart.current?.zoomOut()} />
+        <Tool name={t('Fit chart')} icon="fit" disabled={!canInspect} onClick={() => chart.current?.fit()} />
       </nav>}
       <div className={definition ? 'plot-layout layout-grid' : 'plot-layout'} style={plotSize}>
-        <section className="plot-workspace" aria-label="Price chart">
+        <section className="plot-workspace" aria-label={t('Price chart')}>
         {plot}
         {!focusChart && pinned && <PinnedComparison key={pinned} id={pinned} instrument={sampleInstruments.find(item => item.id === pinned)} chartReady={Boolean(history)} />}
-        <footer className="chart-footer"><span>{sample ? (date ? date + ' UTC' : 'Jan 2024') : 'ScopeHub'}</span>
+        <footer className="chart-footer"><span>{sample ? (date ? t('{date} UTC', { date })
+          : formatDateTime(sampleMonth, { month: 'short', year: 'numeric', timeZone: 'UTC' })) : 'ScopeHub'}</span>
           <UnavailableSharedSelection workspace={workspace} />
-          {workspace?.pending && <span role="status">{workspace.pending === 'open' ? 'Loading local workspace…'
-            : workspace.pending === 'evidence' ? 'Sharing chart evidence…'
-              : workspace.pending === 'source' ? 'Checking workspace source…' : 'Saving timeframe…'}</span>}
+          {workspace?.pending && <span role="status">{workspace.pending === 'open' ? t('Loading local workspace…')
+            : workspace.pending === 'evidence' ? t('Sharing chart evidence…')
+              : workspace.pending === 'source' ? t('Checking workspace source…') : t('Saving timeframe…')}</span>}
           {workspace?.error && <><span role="alert" className="workspace-error">{workspace.error}</span>
-            <button type="button" className="secondary-button" onClick={workspace.reload}>Reload workspace state</button></>}
+            <button type="button" className="secondary-button" onClick={workspace.reload}>{t('Reload workspace state')}</button></>}
           {workspace?.selectionNotice && <span role="status">{workspace.selectionNotice}</span>}
           {workspace?.sourceNotice && <span role="status">{workspace.sourceNotice}</span>}
           {selected && <span>{selected.timezone}</span>}
           {history && <HistoryStatus history={history} repaired={Boolean(repairedBars)} />}
           {canReplay && <button type="button" className="secondary-button replay-button" onClick={playing ? stop : start}>
-            {playing ? 'Stop replay' : replayFailure ? 'Retry replay' : 'Play sample updates'}
+            {playing ? t('Stop replay') : replayFailure ? t('Retry replay') : t('Play sample updates')}
           </button>}
           {sample && replay && replayLabel && (!replayGap || replayFailure) && <span role={replayFailure ? 'alert' : 'status'}
             className={'replay-status ' + replay.state}>{replayLabel}</span>}
           {sample && replayGap && <>
-            <span role="status" className="replay-status gap">Replay gap. {replayGapReason(replayGap)}</span>
+            <span role="status" className="replay-status gap">{t('Replay gap. {reason}', { reason: replayGapReason(replayGap) })}</span>
             <ReplayGapDetails gap={replayGap} />
           </>}
           <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">Charts by TradingView Lightweight Charts™</a></footer>
         {acceptingIndicators && workspace && history && <details className="chart-indicators">
-          <summary>Indicators</summary>
+          <summary>{t('Indicators')}</summary>
           <IndicatorPreview key={history.snapshot.content_hash} snapshot={history.snapshot} bars={history.bars}
             workspace={workspace} access={frozen ? revisionAccess : undefined}
             showResult={showPreview} showAccepted={showAccepted} />
@@ -443,16 +451,17 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
             selectionBlocked={selectionBlocked} />
         </LayoutDock>)}
       </div>
-      {narrow && !visiblePanel && activeDocks.length > 0 && <button type="button" className="panel-scrim" aria-label="Dismiss side panel"
+      {narrow && !visiblePanel && activeDocks.length > 0 && <button type="button" className="panel-scrim" aria-label={t('Dismiss side panel')}
         onClick={() => { const active = activeDocks[0]?.active; if (active) closeDock(active); }} />}
       {visiblePanel && <>
-        <button type="button" className={definition ? 'panel-scrim layout-source-scrim' : 'panel-scrim'} aria-label="Dismiss side panel" onClick={closePanel} />
+        <button type="button" className={definition ? 'panel-scrim layout-source-scrim' : 'panel-scrim'} aria-label={t('Dismiss side panel')} onClick={closePanel} />
         <WorkspacePanel {...panelProps} panel={visiblePanel} history={history} close={closePanel} layoutSource={Boolean(definition)} />
       </>}
-      {!focusChart && <nav className="side-tools" aria-label="Workspace panels" ref={dock}>{panelOrder.map(key => {
+      {!focusChart && <nav className="side-tools" aria-label={t('Workspace panels')} ref={dock}>{panelOrder.map(key => {
         const placement = definition?.panels.find(value => value.panel === layoutPanel[key]);
         const expanded = placement ? docks.selected(placement.dock).active?.panel === placement.panel : visiblePanel === key;
-        return <button type="button" className="icon-button" key={key} title={panelLabels[key]} aria-label={panelLabels[key]}
+        const label = t(panelLabels[key]);
+        return <button type="button" className="icon-button" key={key} title={label} aria-label={label}
           data-layout-toggle={placement?.panel} aria-expanded={expanded}
           aria-controls={expanded ? placement ? `workspace-panel-${placement.panel}` : 'workspace-panel' : undefined}
           onClick={() => {

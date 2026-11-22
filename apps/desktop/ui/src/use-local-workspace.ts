@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { abortableDelay } from './abortable-delay';
+import { message, t } from './i18n';
 import type {
   AiTextConnectionCommand11,
   IndicatorAcceptVersionCommand11, IndicatorCreateDraftCommand11, IndicatorRemoveCommand11,
@@ -63,11 +64,20 @@ type Snapshot = {
 type View = {
   snapshot: Snapshot | undefined;
   pending: 'open' | 'save' | 'evidence' | 'source' | undefined;
-  error: string | undefined;
-  selectionNotice?: string | undefined;
+  errorId: string | undefined;
+  selectionNotice?: ReturnType<typeof message> | undefined;
   sourceRecovery?: boolean;
-  sourceNotice?: string | undefined;
+  sourceNotice?: ReturnType<typeof message> | undefined;
 };
+
+export class WorkspaceSourceError extends Error {
+  readonly localizedMessage: ReturnType<typeof message>;
+
+  constructor(english: string) {
+    super(english);
+    this.localizedMessage = message(english);
+  }
+}
 
 const desktop = isTauri();
 const nativeWorkspace = desktop && window.__SCOPEHUB_DESKTOP_WORKSPACE__ === true;
@@ -97,7 +107,7 @@ function takeLaunchCapability() {
       reload.disabled = true;
       reload.hidden = true;
     }
-    if (hint) hint.textContent = 'Reopen the private workspace access document to try again.';
+    if (hint) hint.textContent = t('Reopen the private workspace access document to try again.');
   }
   return capability;
 }
@@ -106,7 +116,7 @@ function errorCode(error: unknown) {
   return error && typeof error === 'object' && 'code' in error ? error.code : undefined;
 }
 
-function describeFailure(error: unknown) {
+function failureMessageId(error: unknown) {
   switch (errorCode(error)) {
     case 'STALE_CONTEXT': return 'The workspace changed. Reload its current state.';
     case 'BUSY': return 'The local workspace is busy.';
@@ -284,13 +294,15 @@ function sourceReadbackNotice(current: Snapshot, readback: SourceReadback) {
     || current.selection_revision < (committedRevision ?? request.expected_selection_revision)) throw { code: 'OUTPUT_INVALID' };
   // A matching source and revision could belong to another caller when the
   // original write reply was lost. Only an acknowledged write can close the dialog.
-  if (committedRevision === undefined) return 'The source request could not be confirmed. Review the current workspace source.';
+  if (committedRevision === undefined) {
+    return new WorkspaceSourceError('The source request could not be confirmed. Review the current workspace source.');
+  }
   if (current.selection_revision > committedRevision) {
-    return 'The workspace selection changed after this request was saved. Review the current workspace source.';
+    return new WorkspaceSourceError('The workspace selection changed after this request was saved. Review the current workspace source.');
   }
   if (!sameSource(source, request.source) || current.chart_evidence !== null) throw { code: 'OUTPUT_INVALID' };
   if (source?.kind === 'frozen' && source.status !== 'available') {
-    return 'The source was selected, but this frozen chart is no longer available.';
+    return new WorkspaceSourceError('The source was selected, but this frozen chart is no longer available.');
   }
 }
 
@@ -404,7 +416,7 @@ export function useLocalWorkspace() {
   const sourceReadback = useRef<SourceReadback | null>(null);
   const mounted = useRef(false);
   const queuedRecovery = useRef<{ revision: number; start: () => void } | null>(null);
-  const [view, setView] = useState<View>({ snapshot: undefined, pending: 'open', error: undefined });
+  const [view, setView] = useState<View>({ snapshot: undefined, pending: 'open', errorId: undefined });
   const release = useCallback((controller: AbortController) => {
     if (active.current !== controller) return;
     active.current = null;
@@ -417,18 +429,18 @@ export function useLocalWorkspace() {
     if (active.current || sourceReadback.current) return;
     const controller = new AbortController();
     active.current = controller;
-    setView(previous => ({ ...previous, pending, error: undefined, selectionNotice: undefined }));
+    setView(previous => ({ ...previous, pending, errorId: undefined, selectionNotice: undefined }));
     return work(controller.signal).then(snapshot => {
       if (controller.signal.aborted) return false;
-      setView(previous => ({ snapshot, pending: undefined, error: undefined, sourceNotice: previous.sourceNotice }));
+      setView(previous => ({ snapshot, pending: undefined, errorId: undefined, sourceNotice: previous.sourceNotice }));
       return true;
     }, error => {
       if (!controller.signal.aborted) {
         const selectionBusy = pending === 'evidence' && errorCode(error) === 'BUSY';
         setView(previous => ({
           ...previous, pending: undefined,
-          error: selectionBusy ? undefined : describeFailure(error),
-          selectionNotice: selectionBusy ? 'The workspace is busy. Try selecting again.' : undefined,
+          errorId: selectionBusy ? undefined : failureMessageId(error),
+          selectionNotice: selectionBusy ? message('The workspace is busy. Try selecting again.') : undefined,
         }));
       }
       return false;
@@ -440,7 +452,7 @@ export function useLocalWorkspace() {
     const controller = new AbortController();
     active.current = controller;
     sourceActive.current = true;
-    setView(previous => ({ ...previous, pending: 'source', error: undefined, selectionNotice: undefined }));
+    setView(previous => ({ ...previous, pending: 'source', errorId: undefined, selectionNotice: undefined }));
     try {
       await work(controller.signal);
     } finally {
@@ -455,7 +467,7 @@ export function useLocalWorkspace() {
     const readback = sourceReadback.current;
     if (!readback) return;
     let current: Snapshot;
-    let notice: string | undefined;
+    let notice: WorkspaceSourceError | undefined;
     try {
       let nativeWritePending = false;
       current = validateSnapshot(await retryAdmission(onBusy => {
@@ -470,15 +482,15 @@ export function useLocalWorkspace() {
       notice = sourceReadbackNotice(current, readback);
     } catch {
       signal.throwIfAborted();
-      const message = readback.committedRevision === undefined
+      const error = new WorkspaceSourceError(readback.committedRevision === undefined
         ? 'The source request could not be confirmed. Reload the workspace state before changing the source again.'
-        : 'The source was saved. Reload the workspace state to confirm the current selection.';
-      setView(previous => ({ ...previous, error: message, sourceRecovery: true }));
-      throw new Error(message);
+        : 'The source was saved. Reload the workspace state to confirm the current selection.');
+      setView(previous => ({ ...previous, errorId: error.message, sourceRecovery: true }));
+      throw error;
     }
     sourceReadback.current = null;
-    setView({ snapshot: current, pending: undefined, error: undefined, sourceNotice: notice });
-    if (notice) throw new Error(notice);
+    setView({ snapshot: current, pending: undefined, errorId: undefined, sourceNotice: notice?.localizedMessage });
+    if (notice) throw notice;
   }, []);
   const recoverSource = useCallback(() => runSource(readSource), [readSource, runSource]);
   const reload = useCallback(() => {
@@ -515,7 +527,7 @@ export function useLocalWorkspace() {
   }
 
   const submit = (intent: Intent) => {
-    if (snapshot && !view.error) run(signal => mutate(snapshot, intent, signal), 'save');
+    if (snapshot && !view.errorId) run(signal => mutate(snapshot, intent, signal), 'save');
   };
   async function editLayout(request: LayoutCommand) {
     if (!snapshot || snapshot.workspace.id !== request.scope.workspace_id) throw { code: 'STALE_CONTEXT' };
@@ -523,7 +535,7 @@ export function useLocalWorkspace() {
     const controller = new AbortController();
     const signal = controller.signal;
     active.current = controller;
-    setView(previous => ({ ...previous, pending: 'save', error: undefined }));
+    setView(previous => ({ ...previous, pending: 'save', errorId: undefined }));
     try {
       const reply = await exchangeWorkspace<WorkspacePreviewLayoutReply11 | WorkspaceApplyLayoutReply11 | WorkspaceUndoReply11>(request, signal);
       const outcome = reply?.outcome;
@@ -542,7 +554,7 @@ export function useLocalWorkspace() {
         throw { code: 'OUTPUT_INVALID' };
       }
       if (!signal.aborted) setView(previous => ({
-        snapshot: current, pending: undefined, error: undefined, sourceNotice: previous.sourceNotice,
+        snapshot: current, pending: undefined, errorId: undefined, sourceNotice: previous.sourceNotice,
       }));
       return undefined;
     } finally {
@@ -554,6 +566,9 @@ export function useLocalWorkspace() {
   }
   return {
     ...view, reload, refreshAfterIndicatorCommit, canCheckRevision, recoverSource,
+    error: view.errorId && t(view.errorId),
+    selectionNotice: view.selectionNotice && t(view.selectionNotice),
+    sourceNotice: view.sourceNotice && t(view.sourceNotice),
     ownsSourceRecovery: (signal: AbortSignal) => sourceReadback.current?.owner === signal,
     async chooseSource(source: WorkspaceSourceChoice, cancelAdmission?: AbortSignal) {
       if (!snapshot) throw { code: 'STALE_CONTEXT' };
@@ -579,7 +594,7 @@ export function useLocalWorkspace() {
           signal.throwIfAborted();
           if (cancelAdmission?.aborted && error === cancelAdmission.reason) throw error;
           if (sourceRejected(error)) {
-            setView(previous => ({ ...previous, error: describeFailure(error) }));
+            setView(previous => ({ ...previous, errorId: failureMessageId(error) }));
             throw error;
           }
         }
@@ -617,7 +632,7 @@ export function useLocalWorkspace() {
       }, layoutTarget, snapshot.workspace.revision));
     },
     async chooseEvidence(target: ChartInterval11 | null) {
-      return Boolean(snapshot && !view.error && await run(signal => selectEvidence(snapshot, target, signal), 'evidence'));
+      return Boolean(snapshot && !view.errorId && await run(signal => selectEvidence(snapshot, target, signal), 'evidence'));
     },
     chooseTimeframe(timeframe: string) {
       if (snapshot?.workspace.timeframe !== timeframe) {

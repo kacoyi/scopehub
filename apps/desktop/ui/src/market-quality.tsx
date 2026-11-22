@@ -1,40 +1,61 @@
+import { formatNumber, message, plural, t, type Message } from './i18n';
 import type { ChartHistory, MarketFailure } from './market';
 import type { ReplayRecoveryStatus } from './market-replay';
 import type { ReplayGap } from './use-sample-replay';
 
-const unknown = 'Unknown';
+const unknown = message('Unknown');
 const sourceModes = {
-  simulated: 'Simulated', historical: 'Historical', delayed: 'Delayed', realtime: 'Real time',
-} satisfies Record<ChartHistory['dataset']['mode'], string>;
+  simulated: message('Simulated'), historical: message('Historical'), delayed: message('Delayed'), realtime: message('Real time'),
+} satisfies Record<ChartHistory['dataset']['mode'], Message>;
 const sourceKinds = {
-  synthetic: 'Synthetic', native_bars: 'Native bars', snapshot_approximation: 'Snapshot approximation',
-} satisfies Record<ChartHistory['quality_state']['source_kind'], string>;
+  synthetic: message('Synthetic'), native_bars: message('Native bars'), snapshot_approximation: message('Snapshot approximation'),
+} satisfies Record<ChartHistory['quality_state']['source_kind'], Message>;
+
+const qualityStates = new Map([
+  ['fresh', message('Fresh')],
+  ['stale', message('Stale')],
+  ['gapped', message('Gapped')],
+  ['degraded', message('Degraded')],
+  ['open', message('Open', undefined, 'session')],
+  ['closed', message('Closed', undefined, 'session')],
+  ['unknown', unknown],
+  ['current', message('Current')],
+  ['delayed', message('Delayed')],
+  ['offline', message('Offline')],
+  ['connected', message('Connected')],
+  ['disconnected', message('Disconnected')],
+  ['observed', message('Observed')],
+  ['reconnecting', message('Reconnecting')],
+  ['resumed', message('Resumed')],
+]);
 
 const gapReasons = new Map([
-  ['epoch_changed', 'The stream restarted.'],
-  ['epoch_reset', 'The stream restarted.'],
-  ['sequence_gap', 'An update is missing.'],
-  ['coverage_unknown', 'The sample has no matching replay boundary.'],
-  ['history_evicted', 'The replay boundary is outside retained history.'],
-  ['overflow', 'The replay could not keep up with incoming updates.'],
-  ['source_gap', 'The source reported missing updates.'],
-  ['stale_observation', 'An update predates the current observation.'],
+  ['epoch_changed', message('The stream restarted.')],
+  ['epoch_reset', message('The stream restarted.')],
+  ['sequence_gap', message('An update is missing.')],
+  ['coverage_unknown', message('The sample has no matching replay boundary.')],
+  ['history_evicted', message('The replay boundary is outside retained history.')],
+  ['overflow', message('The replay could not keep up with incoming updates.')],
+  ['source_gap', message('The source reported missing updates.')],
+  ['stale_observation', message('An update predates the current observation.')],
 ]);
 
 export function replayGapReason(gap: ReplayGap) {
-  return gapReasons.get(gap.reason) ?? 'Replay continuity could not be verified.';
+  return t(gapReasons.get(gap.reason) ?? 'Replay continuity could not be verified.');
 }
 
 function utcTime(timestamp: number | null | undefined) {
-  if (typeof timestamp !== 'number') return unknown;
+  if (typeof timestamp !== 'number') return t(unknown);
   const date = new Date(timestamp);
-  if (Number.isNaN(date.getTime())) return unknown;
+  if (Number.isNaN(date.getTime())) return t(unknown);
   const iso = date.toISOString();
   return <time dateTime={iso}>{iso.replace('T', ' ').replace(/(?:\.000)?Z$/, '')}</time>;
 }
 
 function stateLabel(state: string | undefined) {
-  return typeof state === 'string' && state ? state.charAt(0).toUpperCase() + state.slice(1) : unknown;
+  if (typeof state !== 'string' || !state) return t(unknown);
+  const label = qualityStates.get(state);
+  return label ? t(label) : state;
 }
 
 function UtcRange({ range }: { range: NonNullable<ReplayGap['affected']> }) {
@@ -43,26 +64,26 @@ function UtcRange({ range }: { range: NonNullable<ReplayGap['affected']> }) {
 
 function KnownGaps({ quality }: { quality: ChartHistory['quality_state'] | undefined }) {
   if (quality?.gaps.length) {
-    return <ul className="quality-gaps" aria-label="Half-open intervals in UTC, inclusive start and exclusive end">
+    return <ul className="quality-gaps" aria-label={t('Half-open intervals in UTC, inclusive start and exclusive end')}>
       {quality.gaps.map(range => <li key={`${range.from_ms}:${range.to_ms}`}><UtcRange range={range} /></li>)}
     </ul>;
   }
-  return quality?.coverage === 'observed' ? 'None reported' : unknown;
+  return quality?.coverage === 'observed' ? t('None reported') : t(unknown);
 }
 
 export function ReplayGapDetails({ gap }: { gap: ReplayGap }) {
-  return <span role="group" aria-label="Replay gap details">
-    {gap.affected ? <>Affected range <UtcRange range={gap.affected} /></> : 'Affected range unknown'}
-    {' · '}{gap.lostCount === null ? 'Lost updates unknown' : `${gap.lostCount} ${gap.lostCount === 1 ? 'lost update' : 'lost updates'}`}
+  return <span role="group" aria-label={t('Replay gap details')}>
+    {gap.affected ? <>{t('Affected range')} <UtcRange range={gap.affected} /></> : t('Affected range unknown')}
+    {' · '}{gap.lostCount === null ? t('Lost updates unknown') : plural('{count} lost update', '{count} lost updates', gap.lostCount)}
   </span>;
 }
 
 export function ReplayGapFacts({ gap }: { gap: ReplayGap }) {
-  return <section aria-label="Replay gap"><h3>Replay gap</h3>
+  return <section aria-label={t('Replay gap')}><h3>{t('Replay gap')}</h3>
     <dl className="source-facts">
-      <dt>Reason</dt><dd>{replayGapReason(gap)}</dd>
-      <dt>Affected range (UTC)</dt><dd>{gap.affected ? <UtcRange range={gap.affected} /> : unknown}</dd>
-      <dt>Lost updates</dt><dd>{gap.lostCount ?? unknown}</dd>
+      <dt>{t('Reason')}</dt><dd>{replayGapReason(gap)}</dd>
+      <dt>{t('Affected range (UTC)')}</dt><dd>{gap.affected ? <UtcRange range={gap.affected} /> : t(unknown)}</dd>
+      <dt>{t('Lost updates')}</dt><dd>{gap.lostCount === null ? t(unknown) : formatNumber(gap.lostCount)}</dd>
     </dl>
   </section>;
 }
@@ -74,23 +95,23 @@ export function MarketQualityFacts({ history, failureKind, workerRecovery }: {
 }) {
   const dataset = history?.dataset;
   const quality = history?.quality_state;
-  const workerConnection = workerRecovery ? stateLabel(workerRecovery) : failureKind === 'worker-exited' ? 'Disconnected' : undefined;
+  const workerConnection = workerRecovery ? stateLabel(workerRecovery) : failureKind === 'worker-exited' ? t('Disconnected') : undefined;
   return <dl className="source-facts">
-    <dt>Source</dt><dd>{dataset?.provider_id ?? unknown}</dd>
-    <dt>Source mode</dt><dd>{(dataset && sourceModes[dataset.mode]) ?? unknown}</dd>
-    <dt>Source kind</dt><dd>{(quality && sourceKinds[quality.source_kind]) ?? unknown}</dd>
-    <dt>Revision</dt><dd>{dataset?.revision ?? unknown}</dd>
-    <dt>Time zone</dt><dd>{dataset?.timezone ?? unknown}</dd>
-    <dt>Quality at sample time</dt><dd>{stateLabel(dataset?.quality)}</dd>
-    <dt>As of (UTC)</dt><dd>{utcTime(quality?.as_of_ms)}</dd>
-    <dt>Last observed (UTC)</dt><dd>{utcTime(quality?.last_observed_ms)}</dd>
-    <dt>Session</dt><dd>{stateLabel(quality?.session_state)}</dd>
-    <dt>Connection</dt><dd>{stateLabel(quality?.connection)}</dd>
-    {workerConnection && <><dt>Worker connection</dt><dd>{workerConnection}</dd></>}
-    {failureKind === 'transport-unavailable' && <><dt>Local transport</dt><dd>Unavailable</dd></>}
-    <dt>Freshness</dt><dd>{stateLabel(quality?.freshness)}</dd>
-    <dt>Coverage</dt><dd>{stateLabel(quality?.coverage)}</dd>
-    <dt>Known gaps</dt><dd><KnownGaps quality={quality} /></dd>
-    <dt>Input digest</dt><dd>{history?.snapshot.content_hash ?? unknown}</dd>
+    <dt>{t('Source')}</dt><dd>{dataset?.provider_id ?? t(unknown)}</dd>
+    <dt>{t('Source mode')}</dt><dd>{t((dataset && sourceModes[dataset.mode]) ?? unknown)}</dd>
+    <dt>{t('Source kind')}</dt><dd>{t((quality && sourceKinds[quality.source_kind]) ?? unknown)}</dd>
+    <dt>{t('Revision')}</dt><dd>{dataset?.revision ?? t(unknown)}</dd>
+    <dt>{t('Time zone')}</dt><dd>{dataset?.timezone ?? t(unknown)}</dd>
+    <dt>{t('Quality at sample time')}</dt><dd>{stateLabel(dataset?.quality)}</dd>
+    <dt>{t('As of (UTC)')}</dt><dd>{utcTime(quality?.as_of_ms)}</dd>
+    <dt>{t('Last observed (UTC)')}</dt><dd>{utcTime(quality?.last_observed_ms)}</dd>
+    <dt>{t('Session')}</dt><dd>{stateLabel(quality?.session_state)}</dd>
+    <dt>{t('Connection')}</dt><dd>{stateLabel(quality?.connection)}</dd>
+    {workerConnection && <><dt>{t('Worker connection')}</dt><dd>{workerConnection}</dd></>}
+    {failureKind === 'transport-unavailable' && <><dt>{t('Local transport')}</dt><dd>{t('Unavailable')}</dd></>}
+    <dt>{t('Freshness')}</dt><dd>{stateLabel(quality?.freshness)}</dd>
+    <dt>{t('Coverage')}</dt><dd>{stateLabel(quality?.coverage)}</dd>
+    <dt>{t('Known gaps')}</dt><dd><KnownGaps quality={quality} /></dd>
+    <dt>{t('Input digest')}</dt><dd>{history?.snapshot.content_hash ?? t(unknown)}</dd>
   </dl>;
 }

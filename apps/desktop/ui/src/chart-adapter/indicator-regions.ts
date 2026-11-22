@@ -96,7 +96,9 @@ export function clipIndicatorRegions(
   return bands;
 }
 
-export function mountIndicatorRegions(pane: IPaneApi<Time>, time: ITimeScaleApi<Time>) {
+type RegionLabels = { preview: string; accepted: string };
+
+export function mountIndicatorRegions(pane: IPaneApi<Time>, time: ITimeScaleApi<Time>, labels: RegionLabels) {
   let bands: readonly Band[] = [];
   let redraw: (() => void) | undefined;
   const xAt = (index: number) => time.logicalToCoordinate(index as Logical);
@@ -128,7 +130,7 @@ export function mountIndicatorRegions(pane: IPaneApi<Time>, time: ITimeScaleApi<
             const labelWidth = Math.min(240, width - left - 8);
             if (labelWidth > 0) {
               context.globalAlpha = 1;
-              const state = band.preview ? 'Preview' : 'Accepted';
+              const state = band.preview ? labels.preview : labels.accepted;
               context.fillText(band.label ? state + ' · ' + band.label : state, left + 4, 6, labelWidth);
             }
           }
@@ -144,13 +146,19 @@ export function mountIndicatorRegions(pane: IPaneApi<Time>, time: ITimeScaleApi<
     attached: ({ requestUpdate }) => { redraw = requestUpdate; },
     detached: () => { redraw = undefined; },
   };
-  return (next: readonly Band[]) => {
-    bands = next;
-    if (bands.length) {
-      if (redraw) redraw();
-      else pane.attachPrimitive(primitive);
-    } else if (redraw) {
-      pane.detachPrimitive(primitive);
-    }
+  return {
+    setBands(next: readonly Band[]) {
+      bands = next;
+      if (bands.length) {
+        if (redraw) redraw();
+        else pane.attachPrimitive(primitive);
+      } else if (redraw) {
+        pane.detachPrimitive(primitive);
+      }
+    },
+    setLabels(next: RegionLabels) {
+      labels = next;
+      redraw?.();
+    },
   };
 }

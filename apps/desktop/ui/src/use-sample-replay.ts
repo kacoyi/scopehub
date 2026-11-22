@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { MarketStreamGap, MarketStreamGapEvent, MarketSubscriptionOutput } from '../../../../contracts/generated/protocol';
+import { message } from './i18n';
 import { describeMarketFailure, invalidMarketData, readStreamPosition, type Bar, type ChartHistory, type MarketFailure } from './market';
 import { projectClosedBarRepair, validateClosedBarRepair, type ClosedBarRepair } from './market-repair';
 import { samePosition, subscribeSample, type ReplayRecoveryStatus } from './market-replay';
@@ -130,7 +131,7 @@ export function useSampleReplay(history: ChartHistory | undefined) {
         signal.throwIfAborted();
         if (!repairedBars) {
           update({ state: 'failed', failure: {
-            kind: 'invalid-data', message: 'The closed-bar repair could not be verified.', retryable: false,
+            kind: 'invalid-data', message: message('The closed-bar repair could not be verified.'), retryable: false,
           } });
           return;
         }

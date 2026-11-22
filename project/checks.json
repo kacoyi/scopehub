@@ -767,6 +767,22 @@
       "command": null,
       "timeout_seconds": 900,
       "cadence": "task"
+    },
+    {
+      "id": "desktop-localization",
+      "status": "implemented",
+      "purpose": "Exercise language negotiation, catalog coverage and the user-facing English and Simplified Chinese desktop interface, including state-preserving changes, restart and untouched user data.",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/localization/desktop.config.mjs"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "change"
     }
   ],
   "milestones": [
@@ -798,7 +814,8 @@
         "market-recovery-ui",
         "saved-directory-refresh",
         "parquet-market-import",
-        "my-data-source-settings"
+        "my-data-source-settings",
+        "desktop-localization"
       ]
     },
     {
@@ -1000,6 +1017,13 @@
       "checks": [
         "analysis-method-replay"
       ]
+    },
+    {
+      "requirement": "Use the desktop in English or Simplified Chinese, follow the system language or save an override, and change languages with a chart and a draft open. Preserve the selected market evidence and original user content across the change.",
+      "checks": [
+        "desktop-localization",
+        "local-import-ui"
+      ]
     }
   ],
   "profiles": {
@@ -1075,7 +1099,8 @@
     "market-recovery",
     "operations-workflow",
     "workspace-timeframe",
-    "desktop-workspace-transport"
+    "desktop-workspace-transport",
+    "desktop-localization"
   ],
   "gate_changes": []
 }

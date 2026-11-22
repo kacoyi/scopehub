@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { message, t, useLocale } from './i18n';
+import { LanguageSettings } from './language-settings';
 import { ChartWorkspace } from './chart-workspace';
 import { LocalImportEditor, type LocalFolderCatalog } from './local-import-editor';
-import { cancelLocalPreview, chooseLocalCsvFolder, hasLocalCsvPicker, previewLocalImport } from './local-import-transport';
+import { cancelLocalPreview, chooseLocalCsvFolder, hasLocalCsvPicker, localImportErrorMessage, previewLocalImport, renderLocalImportMessage, type LocalImportMessage } from './local-import-transport';
 import { LocalPreviewChart } from './local-preview-chart';
 import { OpenLocalRevisionDialog } from './local-revision-dialog';
 import { ModelChat, type ModelChatView } from './model-chat';
@@ -18,12 +20,13 @@ function initialSource(): boolean {
 }
 
 function App() {
+  useLocale();
   const [legacySample, setLegacySample] = useState(initialSource);
   const demoLinkHandled = useRef(false);
   const [local, setLocal] = useState(false);
   const [folder, setFolder] = useState<LocalFolderCatalog | null>(null);
   const [choosing, setChoosing] = useState(false);
-  const [pickerError, setPickerError] = useState<string>();
+  const [pickerError, setPickerError] = useState<LocalImportMessage>();
   const [openingRevision, setOpeningRevision] = useState(false);
   const [modelChatView, setModelChatView] = useState<ModelChatView>();
   const [modelSelection, setModelSelection] = useState<ModelChartSelection>();
@@ -87,9 +90,7 @@ function App() {
     setPickerError(undefined);
     try { await chooseFolder(); }
     catch (error) {
-      const message = error && typeof error === 'object' && 'message' in error && typeof error.message === 'string'
-        ? error.message : 'The local CSV folder could not be opened.';
-      setPickerError(message);
+      setPickerError(localImportErrorMessage(error) ?? message('The local CSV folder could not be opened.'));
     } finally { setChoosing(false); }
   };
   const openSample = () => {
@@ -108,7 +109,7 @@ function App() {
     openRevision: () => setOpeningRevision(true),
     resume: folder ? () => setLocal(true) : undefined,
     choosing,
-    error: pickerError,
+    error: pickerError === undefined ? undefined : renderLocalImportMessage(pickerError),
   } : undefined;
 
   return <>
@@ -134,18 +135,19 @@ function App() {
       <main className="workstation local-workstation">
         <header className="topbar local-source-bar">
           <div className="brand" aria-label="ScopeHub"><span className="brand-mark" aria-hidden="true">S</span><strong>ScopeHub</strong></div>
-          <span className="local-source-label"><i aria-hidden="true" />Local CSV</span>
+          <span className="local-source-label"><i aria-hidden="true" />{t('Local CSV')}</span>
           <div className="local-source-controls">
-            <button type="button" className="secondary-button" aria-haspopup="dialog" onClick={() => setOpeningRevision(true)}>Open published CSV</button>
-            <button type="button" className="secondary-button" onClick={openSample}>Open offline sample</button>
-            <button type="button" className="secondary-button" aria-haspopup="dialog" onClick={() => setModelChatView('question')}>Ask AI</button>
+            <LanguageSettings />
+            <button type="button" className="secondary-button" aria-haspopup="dialog" onClick={() => setOpeningRevision(true)}>{t('Open published CSV')}</button>
+            <button type="button" className="secondary-button" onClick={openSample}>{t('Open offline sample')}</button>
+            <button type="button" className="secondary-button" aria-haspopup="dialog" onClick={() => setModelChatView('question')}>{t('Ask AI')}</button>
           </div>
         </header>
         {workspace?.sourceNotice && <p role="status">{workspace.sourceNotice}</p>}
         {workspace?.sourceRecovery && <div className="local-publication-actions">
           <p role="alert">{workspace.error}</p>
           <button type="button" className="secondary-button" onClick={workspace.reload} disabled={Boolean(workspace.pending)}>
-            Reload workspace state
+            {t('Reload workspace state')}
           </button>
         </div>}
         <LocalImportEditor key={folder.folder_id} initialCatalog={folder} chooseFolder={chooseFolder}

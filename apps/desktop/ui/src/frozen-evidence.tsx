@@ -1,3 +1,4 @@
+import { message, t, type Message } from './i18n';
 import { useId, useState } from 'react';
 import type {
   Bar, FrozenSnapshot, ProjectedChartReply11, ReadLocalImportRevisionOutput, ReadProjectedChart11,
@@ -29,7 +30,7 @@ export function FrozenEvidenceControls({ snapshot, bars, workspace, access }: {
   const heading = useId();
   const [barTime, setBarTime] = useState(() => bars.at(-1)?.time_ms);
   const [pending, setPending] = useState(false);
-  const [inspection, setInspection] = useState<{ revision: number; message: string; failed?: boolean }>();
+  const [inspection, setInspection] = useState<{ revision: number; message: Message; failed?: boolean }>();
   const state = workspace.snapshot;
   const selected = state?.chart_evidence;
   const available = selected && 'revision_id' in selected ? selected : undefined;
@@ -59,18 +60,19 @@ export function FrozenEvidenceControls({ snapshot, bars, workspace, access }: {
       if (result.rows.some(row => Object.keys(row).length !== inspectFields.length
         || typeof row.close !== 'number' || typeof row.time_ms !== 'number'
         || row.time_ms < current.from_ms || row.time_ms >= current.to_ms) || first?.time_ms === undefined) throw new Error();
-      const message = result.rows.length === 1
-        ? `${barLabel(first.time_ms)} · Close ${first.close}`
-        : `${result.rows.length} bars · First close ${first.close} at ${barLabel(first.time_ms)}`;
-      if (access.canDisplay(snapshot.dataset_id)) setInspection({ revision: state.selection_revision, message });
+      const fields = { time: barLabel(first.time_ms), close: String(first.close) };
+      const observation = result.rows.length === 1
+        ? message('{time} · Close {close}', fields)
+        : message('{count} bars · First close {close} at {time}', { ...fields, count: result.rows.length });
+      if (access.canDisplay(snapshot.dataset_id)) setInspection({ revision: state.selection_revision, message: observation });
     } catch (error) {
       if (displayAccessDenied(error)) void access.verify(snapshot.dataset_id);
       if (!access.canDisplay(snapshot.dataset_id)) return;
       const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
       setInspection({
         revision: state.selection_revision,
-        message: code === 'STALE_CONTEXT' ? 'The shared selection changed. Refresh it and try again.'
-          : 'The shared chart data is unavailable.',
+        message: code === 'STALE_CONTEXT' ? message('The shared selection changed. Refresh it and try again.')
+          : message('The shared chart data is unavailable.'),
         failed: true,
       });
     } finally {
@@ -79,13 +81,13 @@ export function FrozenEvidenceControls({ snapshot, bars, workspace, access }: {
   }
 
   return <section className="local-import-card" aria-labelledby={heading}>
-    <h2 id={heading}>Shared chart evidence</h2>
-    <p role="status">{current ? current.to_ms === current.from_ms + 1 ? `Shared bar · ${barLabel(current.from_ms)}`
-      : `Shared interval · ${barLabel(current.from_ms)} to ${barLabel(current.to_ms)}`
-      : available ? 'A different frozen chart is selected.' : selected ? 'The shared selection is unavailable.'
-        : 'No shared selection.'}</p>
+    <h2 id={heading}>{t('Shared chart evidence')}</h2>
+    <p role="status">{current ? current.to_ms === current.from_ms + 1 ? t('Shared bar · {time}', { time: barLabel(current.from_ms) })
+      : t('Shared interval · {from} to {to}', { from: barLabel(current.from_ms), to: barLabel(current.to_ms) })
+      : available ? t('A different frozen chart is selected.') : selected ? t('The shared selection is unavailable.')
+        : t('No shared selection.')}</p>
     <div className="local-publication-actions">
-      <label>Bar to share{' '}
+      <label>{t('Bar to share')}{' '}
         <select value={barTime} disabled={blocked} onChange={event => setBarTime(Number(event.currentTarget.value))}>
           {bars.map(bar => <option key={bar.time_ms} value={bar.time_ms}>{barLabel(bar.time_ms)}</option>)}
         </select>
@@ -93,18 +95,18 @@ export function FrozenEvidenceControls({ snapshot, bars, workspace, access }: {
       <button type="button" className="secondary-button" disabled={blocked || barTime === undefined}
         onClick={() => barTime !== undefined && workspace.chooseEvidence({
           kind: 'chart_interval', snapshot, range: { from_ms: barTime, to_ms: barTime + 1 },
-        })}>Share selected bar</button>
+        })}>{t('Share selected bar')}</button>
       <button type="button" className="secondary-button" disabled={blocked || !selected}
-        onClick={() => workspace.chooseEvidence(null)}>Clear shared selection</button>
+        onClick={() => workspace.chooseEvidence(null)}>{t('Clear shared selection')}</button>
       <button type="button" className="secondary-button" disabled={blocked || !current}
-        onClick={() => void inspect()}>Inspect shared bar</button>
+        onClick={() => void inspect()}>{t('Inspect shared bar')}</button>
       <button type="button" className="secondary-button" disabled={pending || Boolean(workspace.pending || workspace.sourceRecovery)}
-        onClick={() => { setInspection(undefined); reload(); }}>Refresh shared selection</button>
+        onClick={() => { setInspection(undefined); reload(); }}>{t('Refresh shared selection')}</button>
     </div>
     {workspace.error && !workspace.sourceRecovery && <p role="alert" className="workspace-error">{workspace.error}</p>}
     {workspace.selectionNotice && <p role="status">{workspace.selectionNotice}</p>}
     {current && inspection && inspection.revision === state?.selection_revision &&
-      <p role={inspection.failed ? 'alert' : 'status'}>{inspection.message}</p>}
+      <p role={inspection.failed ? 'alert' : 'status'}>{t(inspection.message)}</p>}
   </section>;
 }
 
@@ -112,12 +114,12 @@ export function UnavailableSharedSelection({ workspace }: { workspace: LocalWork
   const target = workspace?.snapshot?.chart_evidence;
   if (!workspace || !target || !('unavailable' in target)) return null;
   return <div className="local-publication-actions">
-    <span role="status">The shared selection is unavailable.</span>
+    <span role="status">{t('The shared selection is unavailable.')}</span>
     <button type="button" className="secondary-button" disabled={Boolean(workspace.pending || workspace.error)}
-      onClick={() => workspace.chooseEvidence(null)}>Clear shared selection</button>
+      onClick={() => workspace.chooseEvidence(null)}>{t('Clear shared selection')}</button>
     {workspace.selectionNotice && <span role="status">{workspace.selectionNotice}</span>}
     {workspace.error && !workspace.sourceRecovery && <span role="alert">{workspace.error}</span>}
     {!workspace.sourceRecovery && (workspace.error || workspace.selectionNotice) &&
-      <button type="button" className="secondary-button" onClick={workspace.reload}>Refresh shared selection</button>}
+      <button type="button" className="secondary-button" onClick={workspace.reload}>{t('Refresh shared selection')}</button>}
   </div>;
 }

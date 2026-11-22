@@ -1,3 +1,4 @@
+import { formatNumber, message as uiMessage, plural, t, type Message } from './i18n';
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type {
   Bar, CancelTaskReply11, ConfirmationChallenge11, DeclarativeDraft11, FrozenSnapshot, IndicatorCreateDraftCommand11,
@@ -87,15 +88,15 @@ async function cancelTask(taskId: string) {
 
 function describeError(error: unknown, mode: 'declarative' | 'python') {
   switch (code(error)) {
-    case 'CANCELLED': return 'Indicator preview cancelled.';
-    case 'BUSY': return 'The workspace is busy. Try the preview again.';
-    case 'INVALID_ARGUMENT': return mode === 'python' ? 'Check the Python parameters and visible interval.'
-      : 'Choose a valid period and visible interval.';
-    case 'RESOURCE_LIMIT': return 'The indicator exceeded its limits. Try a smaller interval.';
-    case 'STALE_CONTEXT': return 'The workspace changed. Open the frozen chart and run the preview again.';
-    case 'PERMISSION_DENIED': return 'This source is unavailable for indicator calculation.';
-    case 'TIMEOUT': return 'Indicator preview timed out.';
-    default: return 'The indicator preview could not be completed.';
+    case 'CANCELLED': return uiMessage('Indicator preview cancelled.');
+    case 'BUSY': return uiMessage('The workspace is busy. Try the preview again.');
+    case 'INVALID_ARGUMENT': return mode === 'python' ? uiMessage('Check the Python parameters and visible interval.')
+      : uiMessage('Choose a valid period and visible interval.');
+    case 'RESOURCE_LIMIT': return uiMessage('The indicator exceeded its limits. Try a smaller interval.');
+    case 'STALE_CONTEXT': return uiMessage('The workspace changed. Open the frozen chart and run the preview again.');
+    case 'PERMISSION_DENIED': return uiMessage('This source is unavailable for indicator calculation.');
+    case 'TIMEOUT': return uiMessage('Indicator preview timed out.');
+    default: return uiMessage('The indicator preview could not be completed.');
   }
 }
 
@@ -119,7 +120,7 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
   const [last, setLast] = useState(bars.at(-1)?.time_ms ?? snapshot.from_ms);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<Ready>();
-  const [message, setMessage] = useState<{ text: string; error?: boolean }>();
+  const [message, setMessage] = useState<{ text: Message; error?: boolean }>();
   const active = useRef<PreviewAttempt | undefined>(undefined);
   const displayed = useRef<string | undefined>(undefined);
   const workspaceRevision = workspace.snapshot?.workspace.revision;
@@ -155,7 +156,7 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
     if (mode === 'python') {
       if (!sample || !selectedFile) return;
       try { parameters = parseParameters(pythonParameters); }
-      catch { setMessage({ text: 'Enter a JSON object with valid Python parameters.', error: true }); return; }
+      catch { setMessage({ text: uiMessage('Enter a JSON object with valid Python parameters.'), error: true }); return; }
       setPythonFile(undefined);
     } else if (!Number.isSafeInteger(requestedPeriod) || requestedPeriod < 1 || requestedPeriod > 100000) return;
     clearPreview();
@@ -298,7 +299,7 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
 
   function cancel() {
     clearPreview();
-    setMessage({ text: 'Indicator preview cancelled.' });
+    setMessage({ text: uiMessage('Indicator preview cancelled.') });
   }
 
   function clearAfterAcceptance() {
@@ -317,7 +318,7 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
       if (!source.trim()) throw new Error();
       if (fileSelection.current === selection) setPythonFile({ name: file.name, source });
     } catch {
-      if (fileSelection.current === selection) setMessage({ text: 'Choose a UTF-8 Python file up to 2 KB.', error: true });
+      if (fileSelection.current === selection) setMessage({ text: uiMessage('Choose a UTF-8 Python file up to 2 KB.'), error: true });
     }
   }
 
@@ -326,8 +327,8 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
   const ready = result?.event.snapshot;
   const date = (time: number) => new Date(time).toISOString();
   return <section className="local-import-card" aria-labelledby={heading}>
-    <h2 id={heading}>Indicator preview</h2>
-    {sample && <label>Indicator type <select value={mode} onChange={event => {
+    <h2 id={heading}>{t('Indicator preview')}</h2>
+    {sample && <label>{t('Indicator type')}{' '}<select value={mode} onChange={event => {
       const value = event.currentTarget.value;
       if (value === 'declarative' || value === 'python') revise(() => {
         fileSelection.current += 1;
@@ -335,85 +336,85 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
         setMode(value);
       });
     }}>
-      <option value="declarative">Rolling statistics</option>
-      <option value="python">Trusted Python</option>
+      <option value="declarative">{t('Rolling statistics')}</option>
+      <option value="python">{t('Trusted Python')}</option>
     </select></label>}
     <div className="local-publication-actions">
-      {mode === 'declarative' && <><label>Indicator input <select value={field} onChange={event => {
+      {mode === 'declarative' && <><label>{t('Indicator input')}{' '}<select value={field} onChange={event => {
         const value = event.currentTarget.value;
         if (value === 'close' || value === 'volume') revise(() => setField(value));
       }}>
-        <option value="close">Close</option>
-        <option value="volume">Volume</option>
+        <option value="close">{t('Close', undefined, 'price')}</option>
+        <option value="volume">{t('Volume')}</option>
       </select></label>
-      <label>Rolling period <input type="number" min="1" max="100000" value={period}
+      <label>{t('Rolling period')}{' '}<input type="number" min="1" max="100000" value={period}
         onChange={event => { const value = event.currentTarget.value; revise(() => setPeriod(value)); }} /></label></>}
       {mode === 'python' && <>
-        <label>Select Python file <input type="file" accept=".py,text/x-python" onChange={event => {
+        <label>{t('Select Python file')}{' '}<input type="file" accept=".py,text/x-python" onChange={event => {
           const file = event.currentTarget.files?.[0];
           event.currentTarget.value = '';
           void selectPython(file);
         }} /></label>
         {pythonFile && <span>{pythonFile.name}</span>}
-        <label>Python parameters <textarea value={pythonParameters} onChange={event => {
+        <label>{t('Python parameters')}{' '}<textarea value={pythonParameters} onChange={event => {
           const value = event.currentTarget.value; revise(() => setPythonParameters(value));
         }} /></label>
       </>}
-      <label>First visible bar <select value={first} onChange={event => { const value = Number(event.currentTarget.value); revise(() => setFirst(value)); }}>
+      <label>{t('First visible bar')}{' '}<select value={first} onChange={event => { const value = Number(event.currentTarget.value); revise(() => setFirst(value)); }}>
         {bars.map(bar => <option key={bar.time_ms} value={bar.time_ms}>{date(bar.time_ms)}</option>)}
       </select></label>
-      <label>Last visible bar <select value={last} onChange={event => { const value = Number(event.currentTarget.value); revise(() => setLast(value)); }}>
+      <label>{t('Last visible bar')}{' '}<select value={last} onChange={event => { const value = Number(event.currentTarget.value); revise(() => setLast(value)); }}>
         {bars.map(bar => <option key={bar.time_ms} value={bar.time_ms}>{date(bar.time_ms)}</option>)}
       </select></label>
       <button type="button" className="secondary-button" disabled={running || workspace.pending !== undefined
         || !workspace.snapshot || !!workspace.error || first > last
         || (mode === 'python' ? !pythonFile : Number(period) < 1 || Number(period) > 100000
           || !Number.isSafeInteger(Number(period)))}
-        onClick={() => void preview()}>{mode === 'python' ? 'Review Python run' : 'Run preview'}</button>
-      {running && <button type="button" className="secondary-button" onClick={cancel}>Cancel preview</button>}
-      {result && <button type="button" className="secondary-button" onClick={clearPreview}>Clear preview</button>}
+        onClick={() => void preview()}>{mode === 'python' ? t('Review Python run') : t('Run preview')}</button>
+      {running && <button type="button" className="secondary-button" onClick={cancel}>{t('Cancel preview')}</button>}
+      {result && <button type="button" className="secondary-button" onClick={clearPreview}>{t('Clear preview')}</button>}
     </div>
-    {review && <div role="group" aria-label="Confirm trusted Python run">
-      <p>Run {review.file.name} once to calculate an indicator on this synthetic chart.</p>
-      <p>Trusted Python can read or change files and access the network with your user permissions.</p>
-      <pre aria-label="Exact Python code">{review.file.source}</pre>
-      <p>Resolved parameters <code>{JSON.stringify(review.parameters)}</code></p>
-      <p>Visible interval {date(first)} to {date(last + 1)} (exclusive) · {review.input.length} bars · 0 warm-up bars</p>
-      <p>Code hash <code>{review.challenge.python?.code_hash}</code></p>
-      <p>Parameter hash <code>{review.challenge.parameters_hash}</code></p>
-      <p>Frozen input hash <code>{review.challenge.python?.snapshot_hash}</code></p>
-      <p>Dataset revision <code>{snapshot.dataset_revision}</code> · As of {date(snapshot.as_of_ms)}</p>
-      <details><summary>Exact frozen input bars</summary><pre>{JSON.stringify(review.input, null, 2)}</pre></details>
-      <button type="button" className="secondary-button" onClick={() => review.respond('approve')}>Run selected Python</button>
-      <button type="button" className="secondary-button" onClick={() => review.respond('deny')}>Decline Python run</button>
+    {review && <div role="group" aria-label={t('Confirm trusted Python run')}>
+      <p>{t('Run {file} once to calculate an indicator on this synthetic chart.', { file: review.file.name })}</p>
+      <p>{t('Trusted Python can read or change files and access the network with your user permissions.')}</p>
+      <pre aria-label={t('Exact Python code')}>{review.file.source}</pre>
+      <p>{t('Resolved parameters')}{' '}<code>{JSON.stringify(review.parameters)}</code></p>
+      <p>{t('Visible interval {from} to {to} (exclusive) · {count} bars · 0 warm-up bars', { from: date(first), to: date(last + 1), count: formatNumber(review.input.length) })}</p>
+      <p>{t('Code hash')}{' '}<code>{review.challenge.python?.code_hash}</code></p>
+      <p>{t('Parameter hash')}{' '}<code>{review.challenge.parameters_hash}</code></p>
+      <p>{t('Frozen input hash')}{' '}<code>{review.challenge.python?.snapshot_hash}</code></p>
+      <p>{t('Dataset revision')}{' '}<code>{snapshot.dataset_revision}</code> · {t('As of {time}', { time: date(snapshot.as_of_ms) })}</p>
+      <details><summary>{t('Exact frozen input bars')}</summary><pre>{JSON.stringify(review.input, null, 2)}</pre></details>
+      <button type="button" className="secondary-button" onClick={() => review.respond('approve')}>{t('Run selected Python')}</button>
+      <button type="button" className="secondary-button" onClick={() => review.respond('deny')}>{t('Decline Python run')}</button>
     </div>}
-    {running && !review && <p role="status">{mode === 'python' ? 'Preparing or calculating trusted Python preview…'
-      : 'Calculating rolling mean and population standard deviation…'}</p>}
-    {message && <p role={message.error ? 'alert' : 'status'}>{message.text}</p>}
+    {running && !review && <p role="status">{mode === 'python' ? t('Preparing or calculating trusted Python preview…')
+      : t('Calculating rolling mean and population standard deviation…')}</p>}
+    {message && <p role={message.error ? 'alert' : 'status'}>{t(message.text)}</p>}
     {ready && points && <div>
-      <p role="status">Preview layers · {mode === 'python' ? 'trusted Python' : 'rolling mean and population standard deviation'}</p>
-      <p>{mode === 'python' ? <>Parameters <code>{JSON.stringify(result.resolved_parameters)}</code></>
-        : <>Period {String(result.resolved_parameters.period)}</>} · {ready.warmup_bars} warm-up bars</p>
+      <p role="status">{mode === 'python' ? t('Preview layers · trusted Python') : t('Preview layers · rolling mean and population standard deviation')}</p>
+      <p>{mode === 'python' ? <>{t('Parameters')}{' '}<code>{JSON.stringify(result.resolved_parameters)}</code></>
+        : <>{t('Period {period}', { period: String(result.resolved_parameters.period) })}</>} · {plural('{count} warm-up bar', '{count} warm-up bars', ready.warmup_bars)}</p>
       {output?.diagnostics.map(diagnostic => <p key={diagnostic.code}>{diagnostic.message}</p>)}
       <details>
-        <summary>Preview provenance and values</summary>
+        <summary>{t('Preview provenance and values')}</summary>
         <dl>
-          <dt>Input hash</dt><dd><code>{ready.content_hash}</code></dd>
-          {result.calendar_hash && <><dt>Schedule hash</dt><dd><code>{result.calendar_hash}</code></dd></>}
-          <dt>Visible interval</dt><dd>{date(ready.from_ms)} to {date(ready.to_ms)} (exclusive)</dd>
-          <dt>Warm-up start</dt><dd>{result.warmup_from_ms === null ? 'None' : date(result.warmup_from_ms)}</dd>
-          <dt>Dataset revision</dt><dd><code>{ready.dataset_revision}</code></dd>
-          <dt>Engine</dt><dd><code>{result.event.engine_version}</code></dd>
-          <dt>Code hash</dt><dd><code>{result.event.code_hash}</code></dd>
-          <dt>Parameter hash</dt><dd><code>{result.event.params_hash}</code></dd>
+          <dt>{t('Input hash')}</dt><dd><code>{ready.content_hash}</code></dd>
+          {result.calendar_hash && <><dt>{t('Schedule hash')}</dt><dd><code>{result.calendar_hash}</code></dd></>}
+          <dt>{t('Visible interval')}</dt><dd>{t('{from} to {to} (exclusive)', { from: date(ready.from_ms), to: date(ready.to_ms) })}</dd>
+          <dt>{t('Warm-up start')}</dt><dd>{result.warmup_from_ms === null ? t('None') : date(result.warmup_from_ms)}</dd>
+          <dt>{t('Dataset revision')}</dt><dd><code>{ready.dataset_revision}</code></dd>
+          <dt>{t('Engine')}</dt><dd><code>{result.event.engine_version}</code></dd>
+          <dt>{t('Code hash')}</dt><dd><code>{result.event.code_hash}</code></dd>
+          <dt>{t('Parameter hash')}</dt><dd><code>{result.event.params_hash}</code></dd>
         </dl>
-        {mode === 'python' ? <ul aria-label="Indicator preview values">{points.map(series => <li key={series.id}>
-          {series.id} · {series.points.slice(0, 20).map(point => point.value ?? 'Unknown').join(', ')}
-        </li>)}</ul> : <table aria-label="Indicator preview values">
-          <thead><tr><th>Visible bar</th><th>Mean</th><th>Standard deviation</th></tr></thead>
+        {mode === 'python' ? <ul aria-label={t('Indicator preview values')}>{points.map(series => <li key={series.id}>
+          {series.id} · {series.points.slice(0, 20).map(point => point.value ?? t('Unknown')).join(', ')}
+        </li>)}</ul> : <table aria-label={t('Indicator preview values')}>
+          <thead><tr><th>{t('Visible bar')}</th><th>{t('Mean')}</th><th>{t('Standard deviation')}</th></tr></thead>
           <tbody>{points[0]?.points.slice(0, 20).map((point, index) => <tr key={point.time_ms}>
-            <th scope="row">{date(point.time_ms)}</th><td>{point.value ?? 'Unknown'}</td>
-            <td>{points[1]?.points[index]?.value ?? 'Unknown'}</td>
+            <th scope="row">{date(point.time_ms)}</th><td>{point.value ?? t('Unknown')}</td>
+            <td>{points[1]?.points[index]?.value ?? t('Unknown')}</td>
           </tr>)}</tbody>
         </table>}
         {output && <IndicatorRegionValues regions={output.regions} />}
