@@ -1,0 +1,73 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-054",
+  "task_definition_sha256": "b5ef23752ea031d1bb6eeb4356684a55d000bfb1c38ec17a27bb25170c6df724",
+  "run_id": "20261122T065938.990164Z-53bd0ee8",
+  "recorded_at": "2026-11-22T07:01:47.685809+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "31b1c298435b41b8c8166fd9b5a9ea10d2931d53fa1d9cb32881622dc9a49af8",
+    "file_count": 528,
+    "git_head": "104dfd73c8d51adea4ac21fe08f1c12d9b4f594c",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "8e6f3a50a3fbaf2871aee9df085c5242b6f24972cdabf72b52d81caadadc2747",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/desktop-design-reference/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/desktop-design-reference/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "710f06c3eba46ff814f0db5ecfbcb0c0fd1cfc39144e9c1d35d06d66630ffed4"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/desktop-design-reference/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "10"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c18597630cd4d6b7f13ea33d27ca9266bb126544422837ca1d7a210371284112"
+    }
+  ],
+  "project_definition_sha256": "ea5b8cd6563c6408119d6bf4d9ef7f6c4bfa659736f486d2d8ead2795556414f",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

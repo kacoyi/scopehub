@@ -314,6 +314,14 @@
         "pointer": "/separate_decisions"
       },
       {
+        "path": "contracts/reviews/2026-11-22-tradingview-desktop-reference.json",
+        "pointer": "/owner_direction"
+      },
+      {
+        "path": "contracts/reviews/2026-11-22-desktop-design-reference.json",
+        "pointer": "/owner_direction"
+      },
+      {
         "path": "contracts/reviews/2026-11-18-chart-workspace.json",
         "pointer": "/owner_direction"
       },
@@ -1368,7 +1376,21 @@
     }
   },
   "ui": {
-    "layout": "Use TradingView Supercharts as the default reference for layout, color hierarchy and chart gestures. Open into the chart workspace with instrument, timeframe, chart style and source status above the main chart. Place volume and time below price, working chart tools on the left, and instruments and data inspection on the right. Open AI, tasks and diagnostics on demand.",
+    "design_reference": {
+      "primary": "TradingView Desktop with Supercharts",
+      "url": "https://www.tradingview.com/desktop/",
+      "scope": "Use this as the primary visual and interaction reference for every ScopeHub-owned desktop surface, including the chart workspace, watchlists, settings, local data and API forms, AI conversations and evidence, activity, diagnostics and application dialogs.",
+      "visual": "Use a common type scale, spacing scale and control sizes. Keep information density, icon style, panel boundaries and semantic color roles consistent across light and dark themes. Apply the chosen rising and falling colors wherever price changes appear. Pair important states with a label, icon or other visible cue.",
+      "interaction": "Keep navigation, toolbars, selection, keyboard focus and the behavior of opening, closing and returning from panels and dialogs consistent. Retain chart gestures on the chart and native folder selection for local data.",
+      "workflows": "Use ScopeHub terminology and controls for the actions available. Source settings show the selected directory or API, connection state and refresh results. AI panels show cited evidence, action previews and any required confirmation.",
+      "comparison": {
+        "method": "Compare one visible task at a time. Record the window size, display scale, theme and input method. Compare chart and panel proportions, text and state contrast, the initial focus, the result of the action and the return to the previous context.",
+        "surfaces": "Review ScopeHub in its native desktop window for integrated acceptance. Identify each reference surface. Public Supercharts can supply observations of shared chart behavior. Identify desktop-only behavior separately.",
+        "shared_chart_url": "https://www.tradingview.com/chart/",
+        "tooling": "Development chooses the observation tools for the question. Record differences that affect the task and the reason for a ScopeHub-specific design."
+      }
+    },
+    "layout": "Apply /ui/design_reference to the default chart layout, color hierarchy and chart gestures. Open into the chart workspace with instrument, timeframe, chart style and source status above the main chart. Place volume and time below price, working chart tools on the left, and instruments and data inspection on the right. Open AI, tasks and diagnostics on demand.",
     "workspace_entry": {
       "unconfigured": "A new profile or a profile that explicitly left the sample shows an empty chart and dispatches zero application operations. Keep an explicit offline sample action available.",
       "offline_sample": "An explicit action, a deliberate #demo link or restoration of the same previously chosen sample loads the synthetic chart. Keep the Simulated label visible, including after restart. Leaving clears the preference.",
@@ -1416,7 +1438,7 @@
     "licenses": "Include third-party licenses and NOTICE in releases; verify chart library attribution requirements and do not remove branding notices by default",
     "customization": {
       "panels": "Let users move, resize, dock, tab and show or hide whole chart, watchlist, data inspection, AI and activity panels. Keep axes, crosshair and zoom inside the chart. Offer light and dark themes and selectable rising/falling colors with accessible state cues.",
-      "links": "Support optional panel selection groups as in Koyfin dashboards. Selecting an instrument or time range updates linked panels and leaves an independent comparison pinned.",
+      "links": "Support optional panel selection groups, using Koyfin dashboards as a secondary reference for that interaction. Selecting an instrument or time range updates linked panels and leaves an independent comparison pinned.",
       "editing": "Direct manipulation, AI requests and user-authored layout definitions edit the same versioned panel settings, data bindings and allowed interaction mappings. Preview changes, save named layouts, restore a previous layout or return to the default. Keep source status, operation visibility and confirmation controls reachable in custom layouts.",
       "extensibility": "V1 supports a single main instrument chart and declarative customization. Evaluate separately isolated extensions for new panel renderers or interaction code when a concrete need exceeds these bindings. Product source editing or generated scripts in the main WebView remain forbidden."
     },
