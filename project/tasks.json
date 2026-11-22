@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-057",
+  "focus_task_id": "M1-031",
   "tasks": [
     {
       "id": "M0-001",
@@ -13299,7 +13299,7 @@
       "id": "M0-057",
       "title": "Define source-independent widgets for the customizable desktop workspace",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "delivery": "current-contract",
       "depends_on": [
         "M0-055",
@@ -13326,10 +13326,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Record the widget and source-binding requirements and verify the task and scenario references.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-057-dfad6728e4d3de0f.json",
+          "sha256": "69352f5cd2de17a4a9f2b6b0f85517df471e3fa63eba323115e62df4544a8739"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Verified the workspace composition requirements and source-binding scenario at 6ab1f79. M2-012 owns implementation and M1-012 owns the integrated native observation.",
       "plan": {
         "outcome": "A contributor can trace the owner’s workspace request to a concrete, source-independent chart and table journey and distinguish it from the two-panel implementation.",
         "change_types": [
