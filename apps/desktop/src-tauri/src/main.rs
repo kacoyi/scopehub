@@ -1,11 +1,11 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
-#[cfg(not(windows))]
+#[cfg(not(scopehub_desktop_host))]
 compile_error!(
-    "ScopeHub v1 desktop builds require native Windows x64; use the local protocol harness on other hosts."
+    "Use pnpm desktop:dev on Ubuntu or native Windows x64 to run the ScopeHub desktop host."
 );
 
-#[cfg(windows)]
+#[cfg(scopehub_desktop_host)]
 fn main() {
     use scopehub_desktop::bridge;
     use std::ffi::OsStr;

@@ -25,10 +25,10 @@ use scopehub_platform::model_credentials::OpenAiCredentials;
 use scopehub_worker_host::market::{MarketWorker, WorkerConfig};
 use scopehub_worker_host::text_model;
 use serde_json::Value;
-#[cfg(windows)]
+#[cfg(scopehub_desktop_host)]
 use tauri::ipc::Channel;
 use tokio::sync::{Mutex, MutexGuard, oneshot};
-#[cfg(windows)]
+#[cfg(scopehub_desktop_host)]
 use {scopehub_worker_host::market::run_subscription, serde_json::json};
 
 use crate::{
@@ -226,7 +226,7 @@ impl State {
         }
     }
 
-    #[cfg(any(windows, test))]
+    #[cfg(any(scopehub_desktop_host, test))]
     async fn configure_openai_credential(
         &self,
         window_label: &str,
@@ -470,7 +470,7 @@ fn authorize_window(label: &str) -> Result<(), Error> {
     }
 }
 
-#[cfg(windows)]
+#[cfg(scopehub_desktop_host)]
 #[tauri::command]
 pub async fn configure_openai_credential(
     window: tauri::WebviewWindow,
@@ -483,7 +483,7 @@ pub async fn configure_openai_credential(
         .await
 }
 
-#[cfg(windows)]
+#[cfg(scopehub_desktop_host)]
 #[tauri::command]
 pub async fn execute_operation(
     window: tauri::WebviewWindow,
@@ -502,7 +502,7 @@ pub async fn execute_operation(
         .await
 }
 
-#[cfg(windows)]
+#[cfg(scopehub_desktop_host)]
 #[tauri::command]
 pub fn cancel_local_import_preview(
     window: tauri::WebviewWindow,
@@ -514,7 +514,7 @@ pub fn cancel_local_import_preview(
     Ok(())
 }
 
-#[cfg(windows)]
+#[cfg(scopehub_desktop_host)]
 #[tauri::command]
 pub async fn choose_local_csv_folder(
     window: tauri::WebviewWindow,
@@ -533,7 +533,7 @@ pub async fn choose_local_csv_folder(
         .await
 }
 
-#[cfg(windows)]
+#[cfg(scopehub_desktop_host)]
 #[tauri::command]
 pub async fn prepare_market_subscription(
     window: tauri::WebviewWindow,
@@ -557,7 +557,7 @@ pub async fn prepare_market_subscription(
         .await
 }
 
-#[cfg(windows)]
+#[cfg(scopehub_desktop_host)]
 #[tauri::command]
 pub fn cancel_market_preparation(
     window: tauri::WebviewWindow,
@@ -569,7 +569,7 @@ pub fn cancel_market_preparation(
     Ok(())
 }
 
-#[cfg(windows)]
+#[cfg(scopehub_desktop_host)]
 #[tauri::command]
 pub async fn execute_market_subscription(
     window: tauri::WebviewWindow,
@@ -604,7 +604,7 @@ pub async fn execute_market_subscription(
     })
 }
 
-#[cfg(windows)]
+#[cfg(scopehub_desktop_host)]
 #[tauri::command]
 pub fn cancel_market_subscription(
     window: tauri::WebviewWindow,

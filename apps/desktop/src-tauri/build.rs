@@ -1,5 +1,8 @@
 fn main() {
-    #[cfg(windows)]
+    println!("cargo:rustc-check-cfg=cfg(scopehub_desktop_host)");
+    #[cfg(any(windows, all(target_os = "linux", feature = "ubuntu-desktop")))]
+    println!("cargo:rustc-cfg=scopehub_desktop_host");
+    #[cfg(any(windows, all(target_os = "linux", feature = "ubuntu-desktop")))]
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(
         tauri_build::AppManifest::new().commands(&[
             "execute_operation",
