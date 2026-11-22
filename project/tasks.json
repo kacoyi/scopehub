@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-067",
+  "focus_task_id": "M1-031",
   "tasks": [
     {
       "id": "M0-001",
@@ -13896,7 +13896,7 @@
       "id": "M0-067",
       "title": "Record free visual design as the desktop workbench goal",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-066"
       ],
@@ -13919,10 +13919,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Extend the existing proposal and inspect it through the normal project views.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-067-e4496a25f6b37388.json",
+          "sha256": "52f43be446551d8647320fd5d4348409b943b16e2fe1d648380cfa16961e71be"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The UI contract records the user-designed canvas as the workbench goal. The linked assessment distinguishes confirmed intent from implementation and first-release scope, with prospective chart and news examples. The normal project views, affected checks and independent review passed on the recorded source. The original library probe remains the only observed rendering experiment in this assessment.",
       "plan": {
         "outcome": "The product contract states the owner’s long-term goal of freely designing the workbench, and the proposal shows concrete examples without changing first-release commitments.",
         "change_types": [
