@@ -24,7 +24,7 @@
       "package": "tradingview",
       "version": "3.5.1-1",
       "platform": "Ubuntu amd64",
-      "session": "Fresh signed-out profile on an isolated 1440 by 900 display at 1x.",
+      "session": "Fresh signed-out profile in a 1152 by 864 window on an isolated 1440 by 900 display at 1x.",
       "observed": "A centered welcome dialog offered sign-in through a browser. Closing it exited this session. The desktop chart, tab handling and return focus were unobserved."
     },
     "public_chart": {
@@ -39,6 +39,19 @@
       "scenario": "tests/ubuntu-preview/preview.spec.mjs",
       "case": "open the chart workspace, find symbols from the keyboard and inspect bars in the side panel",
       "observed": "The chart occupied most of the window with the symbol control above it, tools on the left and the watchlist on the right. Search focused the input. Escape dismissed it and restored focus to its opener. Arrow keys changed the highlighted result and Enter selected it."
+    },
+    "matched_dark_layout": {
+      "conditions": "Browser client area of 1366 by 900 logical pixels at 1x on both surfaces. Dark theme selected in the public Supercharts menu and active in the synthetic ScopeHub preview.",
+      "measurement": "Read horizontal chart-panel edges between the left tool rail and the right watchlist, including the price scale and excluding the dividers. Read the first content row below the top toolbar.",
+      "public_supercharts": {
+        "chart_panel_width_px": 960,
+        "first_content_row_px": 42
+      },
+      "scopehub_preview": {
+        "chart_panel_width_px": 987,
+        "first_content_row_px": 52
+      },
+      "finding": "Both layouts give the chart about seven tenths of the window width. ScopeHub reserves ten more vertical pixels above the chart. Review this difference alongside legibility and usable chart space in the native desktop."
     }
   },
   "follow_up": "M1-012 compares the integrated ScopeHub desktop journeys. Use matching themes and scale when judging color or density. Record the reference host and focus or selection after dismissal. The observations here cover a signed-out native entry and two browser surfaces.",
