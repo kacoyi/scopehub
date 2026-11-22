@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "id": "0023",
+  "title": "Specify saved data sources and reusable analysis methods",
+  "status": "accepted",
+  "recorded_at": "2026-11-22",
+  "context": "The native v5 and v7 workflows review CSV imports under session-only grants and retain immutable revisions. The owner wants revisitable source settings for heterogeneous market data and reusable, evidence-based analysis with product AI.",
+  "decision": "Make Settings > Data sources > My data sources available on a fresh install without a ScopeHub account or plan. Give users first-class forms to select a folder of personally downloaded files and configure their own API endpoint and credentials. Offer local folder, provider presets and custom API as source choices, with manual entry or paste of personal records as a secondary option. A saved local source explicitly authorizes one profile to read a bound directory and automatically publish append-only data under a reviewed versioned rule. Require CSV and Parquet as the first readers. Represent an analysis method as versioned natural-language research instructions with provenance and evidence requirements.",
+  "authority": "M0-051 records the owner's product requirements. See contracts/reviews/2026-11-22-source-settings-and-development-inputs.json. The native session grants, local-profile privacy rules and per-operation authority in ADRs 0008, 0011, 0014 and 0015 continue to apply. Delivery, source access and external disclosure require their applicable authorizations.",
+  "alternatives": [
+    {
+      "option": "Restore the session picker by remembering its path or replace data with the latest scan.",
+      "reason": "A saved source needs distinct consent and native identity checks. Immutable revisions preserve attributable history and let users review corrections and withdrawals."
+    },
+    {
+      "option": "Let an AI generate and run a parser or connector on every refresh.",
+      "reason": "Reviewed rules constrain I/O and preserve reproducible mappings. Bounded local worker operations can profile, map, preview and verify inputs under the shared Rust registry."
+    },
+    {
+      "option": "Package methods as expert personas or a marketplace.",
+      "reason": "A sourced method makes its assumptions and calculations inspectable and can be applied under existing permissions. A minimal public example is sufficient for initial delivery."
+    }
+  ],
+  "consequences": [
+    "Users can test, save, refresh and disconnect connections to free or paid services they obtain directly. Each selected connector alone uses its securely stored provider credentials. Label optional ScopeHub data services separately and keep purchase, checkout, credentials, entitlements, cancellation and billing independent.",
+    "The saved root can be paused, revoked or explicitly rebound. Revalidate the grant, directory identity, rule version and input at commit. A replacement directory or link cannot inherit access. Reconcile at startup as well as on notifications. Partial or unavailable inputs leave the last accepted revision visible with its freshness state. Retries are idempotent. Compatible new data and appends can publish automatically. Semantic changes, removals and historical corrections require targeted review.",
+    "Preserve originals, aliases, row provenance and the mapped revisions needed for historical analysis. Typed mappings preserve market-specific identities, calendars and sessions, leading-zero symbols, daily and auction distinctions, adjustment factors, units and missingness. AI can draft from permitted metadata and a minimal approved sample. Reviewed rules execute deterministically and can be reused offline. Evaluate DuckDB first on the observed workload, and compare Polars when its streaming or transformation behavior could affect the decision. SQLite remains core-owned with a single writer, and worker tools expose no general SQL or Python interface.",
+    "For a custom API, accept a single local paste, keep secrets in secure local fields and use an explicitly curated sanitized projection for AI assistance. Any private excerpt sent to a connected model needs approval for the exact request and recipient. Automatic redaction alone is insufficient. Manual or AI-drafted declarative rules limit read-only trials, pagination and refresh to the approved destination and bounds. Generated connector code is prohibited. Streaming, SDKs and signing require a dedicated reviewed adapter.",
+    "Methods identify their source, author, version, required evidence and data as of the analysis. Results show calculations, counterevidence and gaps. A method grants no permissions and does not impersonate its author. A minimal public example uses Buffett's owner-earnings approach from Berkshire Hathaway's 1986 shareholder letter, with maintenance capital expenditure and applicable working-capital needs shown as estimates. Initial delivery includes no marketplace.",
+    "M1-028 saved local sources, M1-029 Parquet, M1-030 personal source settings and M4-014 methods are current-contract requirements awaiting implementation. M1-030 verifies the settings forms with local fixtures and a controlled connector, exercising user-entered endpoints and local credential handling in that test scope. TickDB, Alpaca and Massive are market-data candidates. Qualifying and delivering actual external market-data connections remains later work under M1-009. SnapTrade brokerage remains later work. This decision creates no live operations, provider connections or default subscriptions."
+  ],
+  "supersedes": [],
+  "related_decisions": [
+    "0007",
+    "0008",
+    "0011",
+    "0013",
+    "0014",
+    "0015"
+  ],
+  "revisit_when": [
+    "Observed reader correctness, workload performance or packaged footprint changes the compute choice.",
+    "A source, adapter or method needs a different permission or reproducibility boundary."
+  ]
+}

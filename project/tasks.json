@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M4-001",
+  "focus_task_id": "M1-030",
   "tasks": [
     {
       "id": "M0-001",
@@ -806,7 +806,8 @@
         "0009",
         "0011",
         "0019",
-        "0021"
+        "0021",
+        "0023"
       ],
       "acceptance": [
         "Mock AI uses actual chart context and core tools to create, inspect and revise an indicator draft.",
@@ -820,7 +821,8 @@
         "In the same conversation, carry out a separately scoped chart action. Offer to save the user's choice, including inaction, with the original evidence and disagreement. Reopen the note after a later price move, assess reasoning using information known at the time and surface any data or execution defect separately.",
         "Correlate interleaved tool calls and terminal outcomes; selection changes, pending confirmations and cancellation preserve attributable committed effects. A first question on an unconfigured model offers configuration or an explicit labeled mock without dispatch.",
         "Exercise portable provider settings, source and purpose disclosure, consent, denial, microphone stop and revocation on Ubuntu with explicit local fixtures. No paid or Windows-only connection is needed for these local cases. Real text and duplex qualification and native credentials retain independent release gates.",
-        "Through the normal UI and final request builder, activate a disclosed route once and complete successive ordinary turns and authorized tool calls with no repeated consent. A saved conversation, memory or strategy adds only the exact selected excerpt for its named request and recipient. Exercise edits, cancellation, previous-turn attachments, other users, restore and revoked grants, including a provider conversation handle that would otherwise retain private context."
+        "Through the normal UI and final request builder, activate a disclosed route once and complete successive ordinary turns and authorized tool calls with no repeated consent. A saved conversation, memory or strategy adds only the exact selected excerpt for its named request and recipient. Exercise edits, cancellation, previous-turn attachments, other users, restore and revoked grants, including a provider conversation handle that would otherwise retain private context.",
+        "Offer only granted local profiling, mapping preview and validation tools. Compare the AI-produced rule with the offline manual rule. The model sees only the selected permitted fields and never receives a credential or authority to execute arbitrary transformations."
       ],
       "checks": [
         "ai-workflow",
@@ -3612,7 +3614,8 @@
       ],
       "acceptance": [
         "For the selected offering, verify entitlement, provider and destination, processing terms, coverage or model capabilities, cost disclosure and the effect of revocation. For data, establish actual display, redistribution and external-AI rights before exposing each use.",
-        "Exercise an independently supplied capability alongside the offering, such as user-owned CSV with managed AI or an entitled ScopeHub dataset with a user-selected model. Show what remains usable when the optional service is disconnected."
+        "Exercise an independently supplied capability alongside the offering, such as user-owned CSV with managed AI or an entitled ScopeHub dataset with a user-selected model. Show what remains usable when the optional service is disconnected.",
+        "A fresh user can enter personal data and configure a third-party API without a ScopeHub service. Cancelling only the optional first-party data service leaves independently authorized local and provider sources usable."
       ],
       "checks": [
         "credential-boundaries"
@@ -3780,7 +3783,8 @@
       "milestone": "M1",
       "status": "planned",
       "depends_on": [
-        "M1-008"
+        "M1-008",
+        "M1-030"
       ],
       "scope": [
         "crates",
@@ -3792,20 +3796,26 @@
         "0007",
         "0004",
         "0005",
-        "0008"
+        "0008",
+        "0023"
       ],
       "acceptance": [
         "Demonstrate a configured provider preset and a custom read-only HTTP mapping from vendor documentation or a sanitized sample. Test the authorized destination, authentication, pagination, rate limits and one bounded instrument/date query.",
-        "Show real permissions, feed coverage, time and units. Credentials stay in the platform store and are absent from model input and logs. Record a real authorized trial separately from replay fixtures."
+        "Show real permissions, feed coverage, time and units. Credentials stay in the platform store and are absent from model input and logs. Record a real authorized trial separately from replay fixtures.",
+        "In settings, enter source instructions and a sample using one local intake. Capture secrets locally and preview the allowed documentation and response projection for the chosen model. Ambiguous mixed text stays local. Presets ask only for their actual credentials.",
+        "Reuse an approved mapping and checkpoint across refreshes, handle limits, revoked credentials, schema drift and retries, and preserve the previous accepted revision. Test disallowed destination changes and complex protocols that need a separately reviewed adapter.",
+        "A user with a direct provider subscription can enter and exercise that connection without a ScopeHub service selection. Attribute authentication, data rights and billing to the selected provider.",
+        "Retain separate real observations for the preset and custom HTTP route. Identify each destination, data feed, authentication method, covered dates, applicable rights and actual pagination. Bind provider-specific conformance before activation. Qualify S3 credentials and file entitlement only when the selected connector includes an S3 file service."
       ],
       "checks": [
         "market-fixtures",
         "chart-history",
         "credential-boundaries",
-        "configured-market-source"
+        "configured-market-source",
+        "custom-market-http-qualification"
       ],
       "evidence": [],
-      "next_action": "Evaluate the first US-equity or Chinese market-data source against the documented workflow. Bind a provider-specific conformance check before activation and retain an authorized trial with its actual coverage.",
+      "next_action": "Bind provider-specific conformance before activation. Select one preset and one independently documented custom HTTP route. Verify each with separate bounded trial evidence and actual rights. Check S3 credentials and entitlement only for a chosen flat-file route. Brokerage candidates belong to M2-004.",
       "blocker": null,
       "closure_reason": null,
       "delivery": "later"
@@ -4850,7 +4860,11 @@
         "M4-001",
         "M4-004",
         "M1-013",
-        "M1-014"
+        "M1-014",
+        "M1-028",
+        "M1-029",
+        "M4-014",
+        "M1-030"
       ],
       "scope": [
         "project/tasks.json",
@@ -4869,7 +4883,8 @@
         "Verify the complete applicable Ubuntu experience on a recorded revision and retain end-to-end observations and regression results. Track Windows installation, packaging and native credential evidence on their designated platform. Explicitly later capabilities remain outside this review unless their delivery scope changes.",
         "Observe CSV folder refresh, a restored custom layout, two-way evidence selection and in-place action results. Identify the exact authorized voice session or record why its real-connection evidence is outstanding.",
         "Exercise the local bridge against the visible Ubuntu chart and review a saved decision. Track actual CLI and desktop client observations under M4-005 on supported hosts, including Windows when required.",
-        "Complete all Ubuntu-local scenarios through an explicitly enabled development entry sharing the Rust state and operation permissions. Retain the observed revision and screenshots, with a separate status for actual model, audio and external client observations. Passing the Ubuntu-local task permits the physical Windows trial while real-session release gates remain independent."
+        "Complete all Ubuntu-local scenarios through an explicitly enabled development entry sharing the Rust state and operation permissions. Retain the observed revision and screenshots, with a separate status for actual model, audio and external client observations. Passing the Ubuntu-local task permits the physical Windows trial while real-session release gates remain independent.",
+        "Observe saved-directory catch-up, a Parquet daily/auction source with a missing session and a cited research method on the integrated Ubuntu workspace. Record native Windows and eligible real service trials separately."
       ],
       "checks": [
         "ubuntu-preview",
@@ -12388,6 +12403,294 @@
           "cleanup": "Remove superseded pins from current workflow entries and retain their history in Git."
         }
       }
+    },
+    {
+      "id": "M0-051",
+      "title": "Specify persistent market sources and reusable analysis methods",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-021",
+        "M0-022",
+        "M1-008"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "contracts",
+        "project/tasks.json",
+        "project/checks.json",
+        "project/delivery.json",
+        "project/development.json",
+        "project/assessments",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008",
+        "0011",
+        "0014",
+        "0015",
+        "0023"
+      ],
+      "acceptance": [
+        "The canonical contract and delivery index distinguish a saved source from the session picker, repeatable local transformations from model suggestions and a research method from an operation grant.",
+        "Current and later deliverables have named tasks and appropriate gates. A redacted aggregate assessment identifies the tested equity file coverage, join limits and factor gaps. Development credentials and owner files remain host-local."
+      ],
+      "checks": [
+        "project-state",
+        "generated-contracts",
+        "architecture",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-051-f58f7566890489a1.json",
+          "sha256": "d286711605d2e3fe529b7a2a995411a31cab86bbf7bd7ca49185179f5e53565d"
+        },
+        {
+          "path": "project/evidence/M0-051-30f10d7e996003a0.json",
+          "sha256": "5337943ccbeb7d2d57accab39f0380754c9f7187878ce6951d43ee2e23ea99a9"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Accepted the requirements and task bindings at 42b88cc. The checked-in assessment reports only aggregate read-only observations. Runtime settings, saved refresh, Parquet imports and research methods each have a separate planned gate.",
+      "plan": {
+        "outcome": "The owner can trace the requested desktop experiences to scoped, testable work and distinguish the existing CSV implementation from future delivery.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/contract.json",
+          "project/tasks.json",
+          "project/delivery.json",
+          "project/checks.json",
+          "project/development.json",
+          "crates/platform/src/local_folder.rs",
+          "python/providers/local_folder.py",
+          "contracts/reviews/2026-11-22-source-settings-and-development-inputs.json",
+          "project/assessments/a-share-parquet-20261122.json",
+          "contracts/decisions/0023-saved-sources-and-analysis-methods.json"
+        ],
+        "hypotheses": [
+          "A separately granted directory subscription can reuse deterministic mapping and immutable revisions while preserving the one-session picker.",
+          "Real Parquet column types and auction identifiers expose cases that small single-file OHLCV fixtures miss."
+        ],
+        "risks": [
+          {
+            "failure": "A planned source, analyzed sample or published service description is reported as implemented or entitled.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A specification change inadvertently expands a live operation or overwrites historical authority.",
+            "checks": [
+              "generated-contracts",
+              "architecture",
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Revert the requirement records together. Keep accepted history, frozen data and the existing runtime unchanged. Revise future scope through a successor decision.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "engineering-contract-v1.json",
+            "contracts/contract.json",
+            "scripts/project.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/iteration_policy"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/product/data_onboarding"
+            }
+          ],
+          "non_goals": [
+            "Shipping runtime readers, installing a production query engine, connecting real services or enabling a new application grant in this change."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "Native session grants, immutable CSV history, independent provider rights, shared registry authorization and the current private-content policy."
+          ],
+          "change": [
+            "Specify a persistent source in settings, a bounded Parquet workflow, reusable API mappings and an evidence-based analysis method."
+          ],
+          "data_plan": "Use aggregate observations from an authorized read-only developer sample. Store testing inputs outside source control and run hosted checks on synthetic data.",
+          "cleanup": "Qualify earlier statements about session grants and CSV-only delivery. Preserve completed tasks and accepted decisions."
+        }
+      }
+    },
+    {
+      "id": "M1-028",
+      "title": "Keep a user-selected data directory current across desktop sessions",
+      "milestone": "M1",
+      "status": "planned",
+      "delivery": "current-contract",
+      "depends_on": [
+        "M1-008",
+        "M0-051",
+        "M1-030"
+      ],
+      "scope": [
+        "apps/desktop",
+        "crates",
+        "python/providers",
+        "tests",
+        "contracts"
+      ],
+      "decision_refs": [
+        "0008",
+        "0011",
+        "0014",
+        "0015",
+        "0023"
+      ],
+      "acceptance": [
+        "From Settings > Data sources add a read-only local directory, show its recursive scope and approved mapping, and enable automatic publication of compatible additions. Retain the explicit single-session picker and manual refresh.",
+        "After restart reconcile the selected root before reading. While open, reconcile after missed or duplicated notifications. Accept a complete new file or a verified append with unchanged prior records once, independently of filename, event or enumeration order. Surface last success, pending changes and current availability.",
+        "Stage historical rewrites, withdrawals, incompatible schemas and changed units for targeted review. A partial sync or unavailable directory keeps the last accepted revision. A current chart can follow accepted additions while an earlier analysis retains its frozen input.",
+        "Exercise pause, removal, path replacement and rebind, different profiles, redirected descendants and revocation during work. Recheck the saved grant and source identity at publication. An older profile migration creates no saved grants. Test crash-before-commit and recovery on Windows."
+      ],
+      "checks": [
+        "saved-directory-refresh",
+        "local-folder-import",
+        "state-migrations",
+        "operations-workflow"
+      ],
+      "evidence": [],
+      "next_action": "Start with one mapped CSV source. In the normal settings UI enable automatic update, exit, add a file, reopen and verify the chart and source receipt; then test a changed old bar and a duplicate.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M1-029",
+      "title": "Read heterogeneous Parquet as attributable local market data",
+      "milestone": "M1",
+      "status": "planned",
+      "delivery": "current-contract",
+      "depends_on": [
+        "M1-008",
+        "M0-051",
+        "M1-030"
+      ],
+      "scope": [
+        "crates",
+        "python/providers",
+        "apps/desktop",
+        "tests",
+        "project/assessments"
+      ],
+      "decision_refs": [
+        "0008",
+        "0014",
+        "0015",
+        "0023"
+      ],
+      "acceptance": [
+        "Read both CSV and Parquet through local source settings. Profile physical types, date coverage and source semantics before offering class-specific mappings. Preview original and mapped values, rejected fields and row locators. Preserve original files and stable locators through a refresh.",
+        "Use synthetic equivalents of the assessed daily, opening-auction and closing-auction files. Keep identifiers with leading zeros, explicit exchange identity and session type. An ambiguous cross-venue code remains unresolved. A missing auction preserves the daily bar; a null adjustment factor retains the raw price and leaves dependent adjusted values unknown.",
+        "Replay the same approved rule from manual setup or an AI proposal from authorized fields, with identical derived records, units, source revision and diagnostics. Exercise mixed layouts, interrupted conversion and revocation without modifying the source or earlier output.",
+        "Compare the existing reader and a bounded DuckDB worker on representative files, evaluating row identity, correction semantics, CPU, peak memory, latency and packaged Windows behavior. Evaluate Polars when it could change the choice. Record the engine decision and recovery before shipping a new dependency."
+      ],
+      "checks": [
+        "parquet-market-import",
+        "local-folder-import",
+        "market-fixtures",
+        "architecture"
+      ],
+      "evidence": [],
+      "next_action": "Build synthetic daily and auction Parquet fixtures with an absent opening auction, a cross-venue ambiguity and a null factor. Reproduce the joins and units from the assessment before choosing a packaged reader.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M4-014",
+      "title": "Invoke a versioned research method in the active conversation",
+      "milestone": "M4",
+      "status": "planned",
+      "delivery": "current-contract",
+      "depends_on": [
+        "M4-001",
+        "M0-051"
+      ],
+      "scope": [
+        "python/ai",
+        "crates/application",
+        "apps/desktop",
+        "tests",
+        "contracts"
+      ],
+      "decision_refs": [
+        "0008",
+        "0009",
+        "0011",
+        "0023"
+      ],
+      "acceptance": [
+        "Ask for the public value-investing method in ordinary language. Show the method name, source and version, applicable instrument, as-of date, necessary evidence and authorized operations in the existing conversation.",
+        "Given dated synthetic accounts, compute an owner-earnings range using stated maintenance-capital assumptions. Cite source revisions, identify counterevidence and show how an amended assumption changes the result. Attribute the analysis to the product.",
+        "With only a price chart or later-published financials, identify the missing contemporaneous evidence and limit the conclusion. Compare replay against independently calculated values; exercise revoked evidence and an attempted unauthorized action."
+      ],
+      "checks": [
+        "analysis-method-replay",
+        "ai-replay-evaluations",
+        "operations-workflow"
+      ],
+      "evidence": [],
+      "next_action": "Exercise one documented method on a complete synthetic filing and a chart-only case before adding further methods.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M1-030",
+      "title": "Configure user-owned directories and third-party APIs in My data sources",
+      "milestone": "M1",
+      "status": "planned",
+      "delivery": "current-contract",
+      "depends_on": [
+        "M0-051",
+        "M1-008"
+      ],
+      "scope": [
+        "apps/desktop",
+        "crates",
+        "python/providers",
+        "tests",
+        "contracts"
+      ],
+      "decision_refs": [
+        "0008",
+        "0011",
+        "0023"
+      ],
+      "acceptance": [
+        "From a fresh local profile open Settings > Data sources > My data sources. Choose the directory containing the user’s downloaded files, or fill the preset or custom form for an API the user obtained directly. Also support entered personal records. All these entries work without a ScopeHub account, data plan or configured model.",
+        "Preview entered records with their declared series, units and provenance. Add and edit a user-named connection using its endpoint, authentication form and required fields. A dedicated provider asks only for the fields it needs; the custom flow accepts local documentation and an optional sanitized example. Store only secret references in profile settings.",
+        "Test, save, revisit and disconnect an independently configured source. Display the supplier, check status, actual coverage and most recent usable data. Exercise an untested draft, denied authentication and a successful bounded read against a controlled fixture. Provider qualification has its own task.",
+        "Complete this journey on a fresh installation with no first-party data service configured. Remove one user-owned connection and verify the others still work under their respective access rights. Optional service interoperability, when offered, has a separate later qualification under M5-003."
+      ],
+      "checks": [
+        "my-data-source-settings",
+        "credential-boundaries",
+        "operations-workflow"
+      ],
+      "evidence": [],
+      "next_action": "Build the independent settings entry with the local directory picker and a form for a directly obtained API. Verify save, reopen and a bounded test against a controlled connector on a fresh local profile.",
+      "blocker": null,
+      "closure_reason": null
     }
   ]
 }

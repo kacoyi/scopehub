@@ -1,0 +1,101 @@
+{
+  "assessment_version": 1,
+  "assessed_on": "2026-11-22",
+  "task_id": "M0-051",
+  "implementation_task": "M1-029",
+  "root_setting": "SCOPEHUB_DEV_STOCKDATA_ROOT",
+  "scope": "Read-only aggregate inspection of an owner-supplied development snapshot using DuckDB 2.0.1 in an isolated Python environment. Product support is tracked separately.",
+  "owner_description": "Mainland China historical stocks including delisted issuers. Counts below identify distinct source codes. Listing and delisting status were not independently verified.",
+  "files": [
+    {
+      "relative_path": "daily/daily_1990_2026.parquet",
+      "bytes": 1148603217,
+      "sha256": "418eb99cf121a3c588abc0b69b39cad34b9f217eb984569e7f0b6e664b327142",
+      "rows": 18463529,
+      "distinct_source_codes": 5926,
+      "date_range": [
+        "1990-12-19",
+        "2026-11-19"
+      ],
+      "symbol_format": "Six-digit text",
+      "null_adjustment_factors": 1448
+    },
+    {
+      "relative_path": "auction/open_auction.parquet",
+      "bytes": 252929448,
+      "sha256": "0560f03730da182606c5464787b7799deca644baa268584a7abf95d8fb035175",
+      "rows": 15262447,
+      "distinct_source_codes": 8482,
+      "date_range": [
+        "2009-01-05",
+        "2026-11-19"
+      ],
+      "symbol_format": "Six-digit text with .SZ, .SH or .BJ suffix",
+      "null_adjustment_factors": 21159
+    },
+    {
+      "relative_path": "auction/close_auction.parquet",
+      "bytes": 270779275,
+      "sha256": "4ad6da90c359a3954d86702966bfdca2e9bfa86bc7fb31cbd30370758a094547",
+      "rows": 15698611,
+      "distinct_source_codes": 10301,
+      "date_range": [
+        "2009-01-05",
+        "2026-11-19"
+      ],
+      "symbol_format": "Six-digit text with .SZ, .SH or .BJ suffix",
+      "null_adjustment_factors": 330457
+    }
+  ],
+  "minute_inventory": {
+    "period_minutes": [
+      1,
+      5,
+      15,
+      30,
+      60
+    ],
+    "year_partitions_per_period": 18,
+    "first_partition": 2009,
+    "last_partition": 2026,
+    "scope": "Filenames and sizes were inventoried. The 2026 one-minute partition was checked for symbol shape."
+  },
+  "comparison": {
+    "method": "Per selected date and file, group by the six-character code, counting rows and retaining the full qualified auction identifier. Count a candidate match only when each of the three groups contains exactly one row and the auction identifiers agree. Compare non-null factors by equality. Production matching also requires an attributable exchange for the daily instrument.",
+    "anchors": [
+      {
+        "trade_date": "2009-01-05",
+        "daily_codes": 1529,
+        "open_codes": 1589,
+        "close_codes": 1603,
+        "unique_three_way_matches": 1527,
+        "matches_with_equal_non_null_factors": 1527,
+        "daily_without_open": 2,
+        "daily_without_close": 2,
+        "auction_codes_without_daily": 76
+      },
+      {
+        "trade_date": "2026-11-19",
+        "daily_codes": 5573,
+        "open_codes": 5607,
+        "close_codes": 5710,
+        "unique_three_way_matches": 5568,
+        "matches_with_equal_non_null_factors": 5568,
+        "daily_without_open": 5,
+        "daily_without_close": 0,
+        "auction_codes_without_daily": 157
+      }
+    ]
+  },
+  "mapping_implications": [
+    "Treat the bare code as a candidate key. Preserve the source spelling and venue, and require a verified venue association before combining instruments. The auction universe can include codes outside the daily file.",
+    "Keep the daily bar when either auction is missing. Preserve the original adj_factor and disclose the adjustment convention and anchor before deriving adjusted prices. All 1,448 null daily factors belonged to one code between 2000-07-19 and 2006-09-25.",
+    "The source documentation describes daily volume in lots, daily amount in ten-thousand yuan and minute amount in yuan. Auction volume and amount require their own unit verification. Treat the auction files as session observations at the granularity actually provided."
+  ],
+  "reproduction": {
+    "reader": "Use an isolated DuckDB 2.0.1 connection to the three files under root_setting. No application database or network connection is needed.",
+    "summary_query": "SELECT count(*), count(DISTINCT symbol), min(trade_date), max(trade_date), count(*) FILTER (WHERE adj_factor IS NULL) FROM read_parquet(?)",
+    "join_check": "Use the two anchor dates and the grouped-key comparison above. Perform the daily-to-auction completeness check with a left join; separately count auction keys absent from the daily file."
+  },
+  "limits": "These aggregates describe this snapshot and two join dates. Price accuracy, corporate actions, general cross-market identity, delisting classification, desktop import, subscriptions and Windows performance require independent verification."
+}
