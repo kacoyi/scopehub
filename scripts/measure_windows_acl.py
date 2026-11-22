@@ -72,11 +72,14 @@ def desktop(label, width=None, python=None):
 
 
 desktop("alone")
+python_env = dict(os.environ, PYTHONPATH=os.pathsep.join(map(str, [Path.cwd(), Path.cwd() / "python"])),
+                  SCOPEHUB_PYTHON=sys.executable, PYTHONUNBUFFERED="1",
+                  SCOPEHUB_RUN_DIR=str(out.resolve()))
 with python_log.open("wb") as log:
     start = time.monotonic()
     python = subprocess.Popen([sys.executable, "-u", "-m", "unittest", "discover", "-s", "tests",
                                "-t", ".", "-p", "test_*.py", "-v", "--durations", "10"],
-                              stdout=log, stderr=subprocess.STDOUT)
+                              stdout=log, stderr=subprocess.STDOUT, env=python_env)
     try:
         desktop("overlap-early", python=python)
         time.sleep(max(0, 160 - (time.monotonic() - start)))
