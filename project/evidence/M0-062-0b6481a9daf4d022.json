@@ -1,0 +1,131 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-062",
+  "task_definition_sha256": "a8894827436c44514b54d822df2d0bc761cb2b7a7b584a424725bf7cf4eff56c",
+  "run_id": "20261122T123856.574665Z-032f66e1",
+  "recorded_at": "2026-11-22T13:04:01.331419+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "b5c568dce167d37420540975eeb9e32b1f0d750ba8bddb683a9f25f825e7ed6b",
+    "file_count": 548,
+    "git_head": "dcbeaaeb7a7e5a1295f15e002ebe9c29b221d04f",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "0b6481a9daf4d022971a7aac5a5324a0b783e9e8b53972d807c9470653f46852",
+  "environment": {
+    "system": "Windows",
+    "release": "2025Server",
+    "machine": "AMD64",
+    "python": "3.12.10",
+    "python_executable": "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (6b2d39dcc 2026-11-17 x86_64-pc-windows-msvc)"
+    }
+  },
+  "checks": [
+    {
+      "id": "workspace-timeframe",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "11ec347777e276a64339fafe95d57656c7b6b7f71c16dc12f6a1915f28afab80"
+    },
+    {
+      "id": "desktop-localization",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/localization/desktop.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "4783b8861a1860e6bc6d4aa3ed2cdaff8a4db9ce75fa948d99de1b6562d18f0d"
+    },
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e42de997fdb9f9476aa9a3e6224fa10cdbb94c98ac8a34325ffa7d35dee6bd63"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "10"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2253c326b6bd27a574171d6c8aa87ec8d641412f5fb98b678dde67c0bbfd7f1d"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f0d8fdbff30c24616776d7672f1fe771d2482a1886d2daf666ba3f178145b540"
+    },
+    {
+      "id": "dependency-review",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "scripts/dependencies.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "17db5c53bc4bf724cd0a351d83a8f0652807c07fa39f93dfeed349bebb284125"
+    }
+  ],
+  "project_definition_sha256": "911e692213164c57d45078eb7518add0fb27c0debabb623e73547918b60129be",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "ci": {
+    "provider": "github-actions",
+    "repository": "kacoyi/scopehub",
+    "run_id": "45023093160",
+    "run_attempt": "1",
+    "event": "pull_request",
+    "head_sha": "0118cf7c17e22d10e78c7ebec217d77ccc7500f5",
+    "checkout_sha": "dcbeaaeb7a7e5a1295f15e002ebe9c29b221d04f",
+    "run_url": "https://github.com/kacoyi/scopehub/actions/runs/45023093160"
+  }
+}

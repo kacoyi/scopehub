@@ -13794,6 +13794,140 @@
           "cleanup": "Remove concrete generation pins from the active policy. Existing terminals retain their launch arguments."
         }
       }
+    },
+    {
+      "id": "M0-062",
+      "title": "Restore reliable Windows Chromium loopback verification",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-058"
+      ],
+      "scope": [
+        "package.json",
+        "pnpm-lock.yaml",
+        "project/dependency-inventory.json",
+        "THIRD_PARTY_NOTICES",
+        "contracts/references.json",
+        "tests/ubuntu-preview",
+        "tests/localization",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/checks.json"
+      ],
+      "decision_refs": [
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the two independent native Windows failures and identify the shared failure mechanism with measurements or a controlled comparison.",
+        "Preserve all browser journeys, real operation endpoints and assertion coverage. Pass workspace-timeframe and desktop-localization on native Windows and verify the protected main push."
+      ],
+      "checks": [
+        "workspace-timeframe",
+        "desktop-localization",
+        "project-state",
+        "python-contracts-workers",
+        "architecture",
+        "dependency-review"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-062-693eab453eff4705.json",
+          "sha256": "cba31d20000aaf153630e2a1779c8bbd02d098d0e6538045999d733d316e3073"
+        },
+        {
+          "path": "project/evidence/M0-062-0b6481a9daf4d022.json",
+          "sha256": "597aebb062512579f879cc2626c446434173bdcbf41f58c3271d12fdf118ccc2"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Playwright 1.65.1 applies the upstream Chromium TCP allocation workaround. On Ubuntu and native Windows the real browser reported the corrected launch option, the original workspace and localization journeys passed, and dependency review passed. Hosted PR run 45023093160 supplied both receipts.",
+      "plan": {
+        "outcome": "Windows Chromium can navigate and load same-origin application modules throughout the existing verification sequence.",
+        "change_types": [
+          "tooling",
+          "dependencies"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/localization/desktop.config.mjs",
+          "project/feedback.json",
+          "package.json",
+          "project/dependencies.json",
+          "project/dependency-inventory.json"
+        ],
+        "hypotheses": [
+          "Repeated preview sessions, browser contexts or unbundled module loading may exhaust Windows loopback network resources. Distinguish the contributors before choosing a correction.",
+          "The pinned Playwright release lacks the upstream Windows Chromium source-port allocation workaround for intermittent Winsock 10055. Check the installed launch arguments and compare the unchanged browser journeys on a native runner with a fixed release."
+        ],
+        "risks": [
+          {
+            "failure": "An isolated case passes while the cumulative Windows verification sequence still exhausts resources.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-localization"
+            ]
+          },
+          {
+            "failure": "A harness adjustment hides application errors or changes the operations exercised.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-localization"
+            ]
+          },
+          {
+            "failure": "The new browser or runner shifts unrelated dependencies or invalidates dependency and browser coverage.",
+            "checks": [
+              "dependency-review",
+              "architecture",
+              "workspace-timeframe",
+              "desktop-localization"
+            ]
+          }
+        ],
+        "rollback": "Retain the failed run artifacts and revert the harness change through a protected PR if verification regresses.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.config.mjs",
+            "tests/localization/desktop.config.mjs",
+            "scripts/check.py",
+            "package.json",
+            "scripts/dependencies.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/dependencies.json",
+              "pointer": "/maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing product behavior, widening permissions, skipping assertions, increasing retries or changing protected check selection."
+          ],
+          "open_questions": [
+            "Which shared resource is depleted, and how can the harness expose the difference on a Windows runner?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing browser journeys, native Windows coverage and operation semantics."
+          ],
+          "change": [
+            "Correct the verified resource lifecycle or demand in the internal verification harness."
+          ],
+          "data_plan": "Use isolated synthetic CI profiles and retain only diagnostic artifacts.",
+          "cleanup": "Remove temporary workflow resource sampling after archiving the original-sequence diagnostic. Keep the fix in the pinned upstream verification tooling."
+        }
+      }
     }
   ]
 }
