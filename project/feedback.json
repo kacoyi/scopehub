@@ -1430,7 +1430,7 @@
     },
     {
       "id": "local-csv-mapping-save-and-publication-replay",
-      "source": "Independent synthetic native Rust dispatcher replays at 4571353. Probes: /var/tmp/scopehub-local-v5-sOXuzpLM/independent/replay.json and /var/tmp/scopehub-local-v5-sOXuzpLM/minimal-replay/events.jsonl.",
+      "source": "Independent synthetic native Rust dispatcher replays at 4571353. The archive manifest identifies the original replay.json and events.jsonl observations. See archives/private/M0-039/historical-feedback-observations/local-csv-mapping-save-and-publication-replay/manifest.json.",
       "observation": "Replaying the same trusted mapping save with its original request ID, live folder and file, full digest, mapping and preview limit advanced the review revision from 2 to 3. A delayed retry of the already committed publication then returned STALE_CONTEXT. Publishing under revision 3 created a second dataset UUID with the same source and mapping digests, 504 identical bars and 506 source locators. A fresh one-row repro left two reviewed mapping versions, two byte-equivalent frozen revisions and one source blob. Independent lock tests preserved cancellation and changed-source rollback.",
       "severity": "major",
       "status": "addressed",
@@ -1768,7 +1768,7 @@
     },
     {
       "id": "folder-refresh-current-alias-points-to-replaced-source",
-      "source": "Independent review of the ordinary folder registry at 3b39f81. Synthetic operation trace /var/tmp/scopehub-015a70a-rows-nknu705w/ops.jsonl line 23. Retained registry and real Chromium reproduction under .reports/folder-alias-identity/red.",
+      "source": "Independent review of the ordinary folder registry at 3b39f81. The manifest retains the synthetic operation trace in ops.jsonl, including line 23. The registry and real Chromium reproduction are under .reports/folder-alias-identity/red. See archives/private/M0-039/historical-feedback-observations/folder-refresh-current-alias-points-to-replaced-source/manifest.json.",
       "observation": "After daily.csv and z.csv were published with identical bytes, replacing only daily.csv left z.csv labeled as its current alias. The replacement had a different current SHA-256. The economic comparison still reported close 8 and close 9 as competing values.",
       "severity": "major",
       "status": "addressed",
@@ -1914,7 +1914,7 @@
     },
     {
       "id": "indicator-obsolete-draft-acceptance",
-      "source": "Independent browser replays on 12c73d8. The original changed-draft, restarted and open-confirmation observations are retained under /var/tmp/scopehub-m3-001-12c73d8-lwPVz1fn/results.",
+      "source": "Independent browser replays on 12c73d8. The manifest retains the original changed-draft, restarted and open-confirmation results. See archives/private/M0-039/historical-feedback-observations/indicator-obsolete-draft-acceptance/manifest.json.",
       "observation": "A delayed ready reply for an earlier period and interval could be accepted after editing the form. Changing the settings after opening the confirmation also left the old approval actionable. The repaired real-browser regression rejects the late result and old confirmation after parameter, interval, input expression and source changes, and restores the previously accepted bytes after restart. Local report .reports/indicator-stale/formal-retry/results.json.",
       "severity": "major",
       "status": "addressed",
@@ -2065,124 +2065,6 @@
         "cause": "The chart assertion began while the selected history could still be loading. A controlled successful response in each journey reproduced the five-second test failure and then delivered the correct chart. The latency source in the original Windows run remains unidentified.",
         "correction": "Wait for the expected catalog and selected-history response using the existing bounded transport observation, then independently verify the frozen request, reply and rendered chart. Apply the same check to a new browser restoring the bound sample.",
         "prevention": "The authenticated task reports show the January 3 response held for 5500 ms on Ubuntu and 5514 ms on Windows, followed by HTTP 200, a complete successful browser body and the chart. The independent normal and gapped calculations returned 3500.5 and null. The trusted Python initial open and restart both reached the chart, and restart restored accepted output with zero preview executions."
-      },
-      "deferral_reason": null
-    },
-    {
-      "id": "text-model-terminal-frame-ends-writer",
-      "source": "Independent review of b6e21fa and 88909e9 with the real adapter and ordinary chat component.",
-      "observation": "A legitimate 20,480-byte answer fit the connector limit but produced a 20,943-byte internal result above the workspace bridge limit of 16,384 bytes. The reader returned before its handler and the local workspace writer exited.",
-      "severity": "major",
-      "status": "addressed",
-      "task_ids": [
-        "M4-007"
-      ],
-      "regression_checks": [
-        "model-connection-workflow",
-        "model-connection-replay"
-      ],
-      "resolution": {
-        "cause": "The writer classified an internal text result under the ordinary 16 KiB command limit and ended its read loop when that limit was exceeded.",
-        "correction": "Bound trusted result frames separately, validate the enclosed poll under its existing limit and keep the reader available after rejecting a frame.",
-        "prevention": "Linux task run 20261121T014054.709453Z-24f76bf2 delivered 20,480-byte ASCII and 65,536-byte escaped UTF-8 answers. It rejected a 65,537-byte response and an oversized public mutation while the same writer and grant remained usable. Process replay exercised frame rejection and continued writer operation."
-      },
-      "deferral_reason": null
-    },
-    {
-      "id": "text-model-poll-loss-clears-transcript",
-      "source": "Independent review of b6e21fa and 88909e9 with the real adapter and ordinary chat component.",
-      "observation": "Losing one local poll reply or receiving a mismatched reply on turn two cleared the displayed first turn and presented the active connection as disconnected. Reopening retained only the second answer and left its question ready for resubmission.",
-      "severity": "major",
-      "status": "addressed",
-      "task_ids": [
-        "M4-007"
-      ],
-      "regression_checks": [
-        "model-connection-workflow",
-        "model-connection-replay"
-      ],
-      "resolution": {
-        "cause": "The UI treated an uncertain poll as a terminal connection failure and cleared the tracked turn and earlier transcript.",
-        "correction": "Retry the local poll by turn ID and reconcile through the connection status while preserving the earlier exchange and disabling a duplicate send.",
-        "prevention": "Linux task run 20261121T014054.709453Z-24f76bf2 recovered the original second turn after dropped and mismatched terminal poll replies. Both cases retained the connection and the first exchange, recorded one second-turn submission and observed two total peer requests."
-      },
-      "deferral_reason": null
-    },
-    {
-      "id": "text-model-route-ack-loss-leaves-stale-grant",
-      "source": "Follow-up independent review and Chromium regressions against the real Ubuntu workspace at 0bb1c6b. The lost route review and disconnect replies are retained in .reports/ai-workflow/1795224895471-109c697d-bc93-46eb-988e-d321080e891a/results.json and .reports/ai-workflow/1795225142282-ad3ec39f-c2ac-49de-a20e-98c85913925b/results.json.",
-      "observation": "The Rust writer completed both a proposal for another destination and an explicit disconnect. Losing the local proposal reply left the old Send control visible in chat. Losing the disconnect reply left the revoked recipient visible in AI settings.",
-      "severity": "major",
-      "status": "addressed",
-      "task_ids": [
-        "M4-007"
-      ],
-      "regression_checks": [
-        "model-connection-workflow"
-      ],
-      "resolution": {
-        "cause": "The UI cleared the previous grant only when it received the route review or disconnect acknowledgement.",
-        "correction": "On an uncertain control reply, read the local grant and hold route controls and sending until the state is confirmed. Require a fresh review before activating a proposal whose acknowledgement was lost.",
-        "prevention": "Linux task run 20261121T014054.709453Z-24f76bf2 recovered the disconnected state after both faults, including an interrupted status check during route review. The two synthetic recipients received only approved traffic. A changed destination, a distinct profile and a fresh grant after cancellation each received only the new question."
-      },
-      "deferral_reason": null
-    },
-    {
-      "id": "native-first-text-setup-writer-busy",
-      "source": "Native Windows QA at a3033ce5db0277d917b65f9ca9784ef51c09d968. See contracts/reviews/2026-11-20-native-text-startup.json#/baseline/rejected_status_and_review and contracts/reviews/2026-11-20-native-text-startup.json#/baseline/retry_after_opening. The original IPC reports and screenshots are retained at archives/private/M4-009/native-text-baseline-a3033ce under the configured development storage root (receipt SHA-256 ec01b2fe25ecfff6533c4a29fe675e3971ba1619a6e37f2a0fba3f68a0bb8b74).",
-      "observation": "First status and route proposals were rejected before the registry with retryable transport BUSY and zero outbound requests. The UI reported an answer in progress before a question had been sent. The timed initial workspace snapshot took 3,074 ms. The same executable completed three ordinary turns, including a 20,480-byte answer, once the workspace was ready.",
-      "severity": "major",
-      "status": "addressed",
-      "task_ids": [
-        "M4-009"
-      ],
-      "regression_checks": [
-        "desktop-workspace-transport",
-        "rust-contracts-workers"
-      ],
-      "resolution": {
-        "cause": "The initial workspace snapshot held the native writer while provisioning the profile and opening SQLite. The UI presented an outer transport admission rejection as an active model turn.",
-        "correction": "Retry only an explicitly retryable native transport BUSY for status and route review with the original command and a four-second deadline. Show local workspace contention separately from a registry turn outcome. Send and cancel still require their original explicit actions.",
-        "prevention": "Linux task run 20261121T015125.698826Z-5a471bb9 exercised the real native writer admission through portable Rust and held the initial writer for 3,073 ms in the built UI with substituted IPC. It recovered status and route review with the same correlation, stopped when the deadline elapsed, admitted one explicit send and one cancellation, and recorded zero network requests in that substitute journey. Native cold and ready runs on cd047ab each completed three explicit sends to the synthetic peer and rendered the 20,480-byte answer. The cold run recovered from 24 status rejections using the same request and message IDs. See contracts/reviews/2026-11-20-native-text-startup.json."
-      },
-      "deferral_reason": null
-    },
-    {
-      "id": "selected-chart-contention-and-stale-draft",
-      "source": "Chart worktree ../scopehub-chart-collaboration on codex/herdr-chart-collaboration. Interrupted chart collaboration review and local Chromium controls in .reports/M4-001-resume-busy-red/results.json and .reports/M4-001-stale-draft-red/results.json.",
-      "observation": "An explicit pre-admission HTTP 429 BUSY disabled further selection until reload at a8c9609. At d701eba, a second client cleared the selection and the reopened dialog enabled Send for the stale chart draft after the workspace reloaded. At dc9b283 the owned HTTP peer regression verifies retry with the same request, a single selection revision advance, preservation of the blocked draft after reload, recovery by reselecting a bar, and a fresh unselected text turn. All four model-connection workflow cases passed in .reports/runs/20261121T015908.326119Z-721f69a6/ai-workflow/results.json (SHA-256 dd70ca5458a96f5027baf106bcafbec138dde2693b3fd815e7b15200c72633b6).",
-      "severity": "major",
-      "status": "addressed",
-      "task_ids": [
-        "M4-010"
-      ],
-      "regression_checks": [
-        "model-connection-workflow"
-      ],
-      "resolution": {
-        "cause": "Pre-admission contention left selection controls unavailable. A reopened draft also lost its selection requirement when another client cleared the selected bar.",
-        "correction": "Retry pre-admission contention with the original request identity. Retain the draft text and its stale selection requirement until the user selects a bar again or starts a fresh question.",
-        "prevention": "On integrated source 9d74a0b7cd9b57efce47547477663186cb6e7797, the selected-chart browser cases checked a single revision advance, a blocked draft after reopen, recovery by reselection and a fresh ordinary turn. All ten model browser cases passed. The M4-010 receipt binds the workflow log to run 20261121T021619.919507Z-29a53872."
-      },
-      "deferral_reason": null
-    },
-    {
-      "id": "unavailable-selection-refresh-after-busy",
-      "source": "PR 23 Ubuntu job, run 44853597299, local-import-ui.log at 9be6c8c. Reproduced on clean 44d7fed8fc4bba3f9bd08eb198ab4c4e33ff2e6e in .reports/M4-011-44d7fed-red/local-import-ui/browser-results.json (SHA-256 601cfc213bc4899b3af790428a486dfdb56e142405d70a4896a52ee5174e12ee).",
-      "observation": "After persistent BUSY on Clear shared selection, the published CSV dialog displayed the busy notice and enabled Clear but omitted Refresh shared selection. The existing startup and refresh case timed out locating that button.",
-      "severity": "major",
-      "status": "addressed",
-      "task_ids": [
-        "M4-011"
-      ],
-      "regression_checks": [
-        "local-import-ui",
-        "model-connection-workflow"
-      ],
-      "resolution": {
-        "cause": "After an exhausted BUSY retry became a recoverable selection notice in d701eba, the unavailable-selection view still offered its existing refresh action only for a blocking workspace error.",
-        "correction": "Offer the same snapshot refresh for the busy notice, alongside direct manual clear. Keep the bounded retry and request identity in the shared workspace hook.",
-        "prevention": "On ad75744a1ef9351f7d04456276adee9d77dbf45c, the held retry used the same clear request. After both BUSY responses the dialog permitted Clear and Refresh. One explicit refresh read the snapshot, preserved the selected library during the read, and a new clear used the refreshed revision. The ten AI workflow cases included successful transient retry with one revision advance. Run 20261121T023334.574343Z-f0bb7cc5 passed the M4-011 checks. The complete local-import suite with its Rust bridge passed all 13 cases in .reports/M4-011-ad75744-bridge/local-import-ui/browser-results.json (SHA-256 115280a83aa12c23cab236ef4c5e3fda6309823271922dd8aa31a5647f7b1e19)."
       },
       "deferral_reason": null
     },
@@ -2588,6 +2470,26 @@
       "deferral_reason": null
     },
     {
+      "id": "windows-desktop-fixture-acl-preparation-timeout",
+      "source": "PR 25 Windows verification 44890879647 attempt 1 at 2531786a5bb7318efee63669b209ce7d292c9024. The failed report SHA-256 is db3c44c7ab15c340db7105b82fbe7a9e9f9b14237993d07d5da336738b3ff9ff. The raw Rust check log SHA-256 is 1458cdae990c8712d5a531726faa447137ee62a9598bb91fe24f261caf464933. The retained diagnostic receipt is .reports/m0-036/failure-receipt.json.",
+      "observation": "Three desktop bridge tests hit prepare powershell-timeout at AppLocalData::new and returned Database before their assertions. The binary finished in 36.24 seconds with 20 of 23 tests passing. The #21 postmerge run 44887276464 used identical storage and desktop test sources and passed 23 tests in 21.25 seconds. PR 23 run 44888619266 used identical storage and ACL sources and passed 24 desktop tests in 23.47 seconds, including the same three fixture users. PR 24 run 44890626095 used identical storage and desktop fixture sources and passed 23 tests in 29.76 seconds. The timeout identifies a running PowerShell process and provides no explicit ACL refusal exit or measurement of the contention mechanism.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-036"
+      ],
+      "regression_checks": [
+        "project-state",
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Three independent test profile preparations exceeded the existing 10-second PowerShell deadline during the same parallel desktop test run. The original task logs and three matched-source controls identify timeouts before product assertions. Contention is a hypothesis and the data does not isolate process startup, scheduling, or filesystem work.",
+        "correction": "Serialize the explicit Windows test fixture preparations, including the copied profile directory, through one slot held only during the real ACL call. Keep the application ACL checks, path and refusal diagnostics, deadline and process cleanup intact. Bridge operations keep their original concurrency.",
+        "prevention": "Two focused tests cover release on success, error and unwind and real directory construction and cleanup. Native Windows run 44894164773 at 3a2b558cd190b4b49e15a7add91123ea7ee5c803 passed all 25 desktop tests in 45.68 seconds, including the original three. The matching hosted Ubuntu and byte-identical local task runs also passed."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "cross-checkout-diagnostic-dependency-and-retirement",
       "source": "Owner worktree review and separate read-only reproductions by the development supervisor during M0-031 on 2026-11-21.",
       "observation": "The owner identified that M4-001 referenced its blocked diagnostic through another checkout and requested criteria for worktree retirement. Moving or retiring that checkout could make the diagnostic unavailable. During implementation the development supervisor reproduced two false retirement candidates in temporary Git worktrees. One still supplied a report to a committed operational script in another checkout. The other appeared to retain its only diagnostic because an archive root above the checkout resolved back to the original file.",
@@ -2652,26 +2554,6 @@
       "deferral_reason": null
     },
     {
-      "id": "windows-desktop-fixture-acl-preparation-timeout",
-      "source": "PR 25 Windows verification 44890879647 attempt 1 at 2531786a5bb7318efee63669b209ce7d292c9024. The failed report SHA-256 is db3c44c7ab15c340db7105b82fbe7a9e9f9b14237993d07d5da336738b3ff9ff. The raw Rust check log SHA-256 is 1458cdae990c8712d5a531726faa447137ee62a9598bb91fe24f261caf464933. The retained diagnostic receipt is .reports/m0-036/failure-receipt.json.",
-      "observation": "Three desktop bridge tests hit prepare powershell-timeout at AppLocalData::new and returned Database before their assertions. The binary finished in 36.24 seconds with 20 of 23 tests passing. The #21 postmerge run 44887276464 used identical storage and desktop test sources and passed 23 tests in 21.25 seconds. PR 23 run 44888619266 used identical storage and ACL sources and passed 24 desktop tests in 23.47 seconds, including the same three fixture users. PR 24 run 44890626095 used identical storage and desktop fixture sources and passed 23 tests in 29.76 seconds. The timeout identifies a running PowerShell process and provides no explicit ACL refusal exit or measurement of the contention mechanism.",
-      "severity": "major",
-      "status": "addressed",
-      "task_ids": [
-        "M0-036"
-      ],
-      "regression_checks": [
-        "project-state",
-        "rust-contracts-workers"
-      ],
-      "resolution": {
-        "cause": "Three independent test profile preparations exceeded the existing 10-second PowerShell deadline during the same parallel desktop test run. The original task logs and three matched-source controls identify timeouts before product assertions. Contention is a hypothesis and the data does not isolate process startup, scheduling, or filesystem work.",
-        "correction": "Serialize the explicit Windows test fixture preparations, including the copied profile directory, through one slot held only during the real ACL call. Keep the application ACL checks, path and refusal diagnostics, deadline and process cleanup intact. Bridge operations keep their original concurrency.",
-        "prevention": "Two focused tests cover release on success, error and unwind and real directory construction and cleanup. Native Windows run 44894164773 at 3a2b558cd190b4b49e15a7add91123ea7ee5c803 passed all 25 desktop tests in 45.68 seconds, including the original three. The matching hosted Ubuntu and byte-identical local task runs also passed."
-      },
-      "deferral_reason": null
-    },
-    {
       "id": "relocated-managed-worker-bridges-retain-old-source-roots",
       "source": "Coordinator's native synthetic history and desktop CSV surveys and the indicator coordinator's isolated canonical history rebuild probe.",
       "observation": "Native probes exercised 36 installed bridge entries in 26 previously relocated managed worktrees. Of 25 history searches, 23 reported WORKER_EXITED for a missing worker directory and two succeeded by launching Python through an old checkout alias. Of 11 desktop CSV previews, nine reported WORKER_EXITED for a missing legacy root. The two that launched Python through an old alias yielded one verified CSV preview and one PROTOCOL_MISMATCH before preview. Across both probes, 32 reported WORKER_EXITED, one reached the independent protocol failure, and three succeeded through legacy links. An isolated rebuild launched history search with canonical Python. A separate locked rebuild from the exact revision of the CSV protocol-mismatch case passed both canonical bridge probes, including the CSV preview. That staged proof preceded authorization to replace installed artifacts. The original installed artifacts and earlier reports were preserved.",
@@ -2728,6 +2610,184 @@
         "cause": "A committed indicator change refreshed the workspace through a one-shot snapshot. A genuine admission refusal left the old view and a persistent busy state even after the writer was available. In the unmodified product, the eight-second observer expired while an independent authorized read returned the correct stored layer state and undo.",
         "correction": "After an indicator commit, compare the authoritative snapshot with the receipt's workspace and minimum revision. Retry only eligible, side-effect-free snapshot reads within a four-second retry-start budget, cancel on view teardown and queue the read behind an active workspace operation. Each admitted request keeps its original transport deadline.",
         "prevention": "The real frozen-chart regression retains its eight-second observation, forces a true first-read HTTP 429 and validates persistent remove and undo counts, request identities and the recovered workspace. Local targeted negative checks also cover non-retryable BUSY, terminal cancellation, wrong workspace, lagging revision and teardown during backoff for both buttons. The selected market-worker checks and both hosted jobs in 44913291282 passed."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "merged-branches-and-stacked-pull-requests-outlive-delivery",
+      "source": "Owner review and live GitHub branch and PR inventory on 2026-11-21.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "At main f7624a93 GitHub had 35 branch heads. Twenty-three non-default heads were reachable from main, and seven stacked pull requests remained open with their full heads already integrated. Six other backup heads required independent preservation and comparison.",
+      "task_ids": [
+        "M0-039"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Task heads remained after verified merges. Superseded stacked pull requests and recoverable backup heads had no recurring reconciliation. Workflow selection also treated a shared head SHA as a sufficient pull request identity.",
+        "correction": "Verified exact ancestry, dependent pull requests, recovery copies and original hosted evidence. Retired the 29 redundant remote heads and enabled automatic deletion on merge. Added live inventory and validation of the actual tested pull request, head and base.",
+        "prevention": "Weekly branch and worktree reviews now surface through project status alongside a monthly compatibility review. Fixtures exercise fork name collisions, older recorded base tips, direct recovery refs, ambiguous runs and stale tested merge checkouts. Recheck live protection, expected tips, open dependents and independent recovery before retirement."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "integration-shared-first-job-checkout",
+      "source": "Independent review of PR 30 at 26aab9d with two required platform jobs.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "A successful Linux checkout supplied the source identity for the entire run. Both a missing and an obsolete Windows checkout incorrectly resulted in a ready recommendation in the two-job reproduction. A second replay showed that an older correct run could conceal a newer same-PR checkout with an incorrect head parent.",
+      "task_ids": [
+        "M0-042"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The assessment read one checkout for the entire run and could skip a newer incorrect checkout as if only the base had changed.",
+        "correction": "Verify the checkout of each protected required job and the exact two parents of its tested merge. Block a newer same-PR attempt with an incorrect head.",
+        "prevention": "The regressions alter and remove the second checkout, and place a newer incorrect run ahead of a valid older one. Authentic Ubuntu and Windows logs exercise the successful pair."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "weekly-branch-review-omits-default-protection",
+      "source": "Independent review of the branch inventory in PR 30.",
+      "severity": "minor",
+      "status": "addressed",
+      "observation": "A fixture with a stable default branch reported as unprotected produced a passing weekly branch inventory. The dedicated integration protection check still enforces the policy.",
+      "task_ids": [
+        "M0-044"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The weekly inventory classified the default branch without considering its reported protection status.",
+        "correction": "Expose an actionable finding and block the review when a stable snapshot reports the default unprotected. The weekly checklist invokes the full protection comparison.",
+        "prevention": "Tests distinguish a protected default, ordinary unprotected feature branches, a protection change during observation and a stably unprotected default."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "text-model-terminal-frame-ends-writer",
+      "source": "Independent review of b6e21fa and 88909e9 with the real adapter and ordinary chat component.",
+      "observation": "A legitimate 20,480-byte answer fit the connector limit but produced a 20,943-byte internal result above the workspace bridge limit of 16,384 bytes. The reader returned before its handler and the local workspace writer exited.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M4-007"
+      ],
+      "regression_checks": [
+        "model-connection-workflow",
+        "model-connection-replay"
+      ],
+      "resolution": {
+        "cause": "The writer classified an internal text result under the ordinary 16 KiB command limit and ended its read loop when that limit was exceeded.",
+        "correction": "Bound trusted result frames separately, validate the enclosed poll under its existing limit and keep the reader available after rejecting a frame.",
+        "prevention": "Linux task run 20261121T014054.709453Z-24f76bf2 delivered 20,480-byte ASCII and 65,536-byte escaped UTF-8 answers. It rejected a 65,537-byte response and an oversized public mutation while the same writer and grant remained usable. Process replay exercised frame rejection and continued writer operation."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "text-model-poll-loss-clears-transcript",
+      "source": "Independent review of b6e21fa and 88909e9 with the real adapter and ordinary chat component.",
+      "observation": "Losing one local poll reply or receiving a mismatched reply on turn two cleared the displayed first turn and presented the active connection as disconnected. Reopening retained only the second answer and left its question ready for resubmission.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M4-007"
+      ],
+      "regression_checks": [
+        "model-connection-workflow",
+        "model-connection-replay"
+      ],
+      "resolution": {
+        "cause": "The UI treated an uncertain poll as a terminal connection failure and cleared the tracked turn and earlier transcript.",
+        "correction": "Retry the local poll by turn ID and reconcile through the connection status while preserving the earlier exchange and disabling a duplicate send.",
+        "prevention": "Linux task run 20261121T014054.709453Z-24f76bf2 recovered the original second turn after dropped and mismatched terminal poll replies. Both cases retained the connection and the first exchange, recorded one second-turn submission and observed two total peer requests."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "text-model-route-ack-loss-leaves-stale-grant",
+      "source": "Follow-up independent review and Chromium regressions against the real Ubuntu workspace at 0bb1c6b. The lost route review and disconnect replies are retained in .reports/ai-workflow/1795224895471-109c697d-bc93-46eb-988e-d321080e891a/results.json and .reports/ai-workflow/1795225142282-ad3ec39f-c2ac-49de-a20e-98c85913925b/results.json.",
+      "observation": "The Rust writer completed both a proposal for another destination and an explicit disconnect. Losing the local proposal reply left the old Send control visible in chat. Losing the disconnect reply left the revoked recipient visible in AI settings.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M4-007"
+      ],
+      "regression_checks": [
+        "model-connection-workflow"
+      ],
+      "resolution": {
+        "cause": "The UI cleared the previous grant only when it received the route review or disconnect acknowledgement.",
+        "correction": "On an uncertain control reply, read the local grant and hold route controls and sending until the state is confirmed. Require a fresh review before activating a proposal whose acknowledgement was lost.",
+        "prevention": "Linux task run 20261121T014054.709453Z-24f76bf2 recovered the disconnected state after both faults, including an interrupted status check during route review. The two synthetic recipients received only approved traffic. A changed destination, a distinct profile and a fresh grant after cancellation each received only the new question."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "native-first-text-setup-writer-busy",
+      "source": "Native Windows QA at a3033ce5db0277d917b65f9ca9784ef51c09d968. See contracts/reviews/2026-11-20-native-text-startup.json#/baseline/rejected_status_and_review and contracts/reviews/2026-11-20-native-text-startup.json#/baseline/retry_after_opening. The original IPC reports and screenshots are retained at archives/private/M4-009/native-text-baseline-a3033ce under the configured development storage root (receipt SHA-256 ec01b2fe25ecfff6533c4a29fe675e3971ba1619a6e37f2a0fba3f68a0bb8b74).",
+      "observation": "First status and route proposals were rejected before the registry with retryable transport BUSY and zero outbound requests. The UI reported an answer in progress before a question had been sent. The timed initial workspace snapshot took 3,074 ms. The same executable completed three ordinary turns, including a 20,480-byte answer, once the workspace was ready.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M4-009"
+      ],
+      "regression_checks": [
+        "desktop-workspace-transport",
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The initial workspace snapshot held the native writer while provisioning the profile and opening SQLite. The UI presented an outer transport admission rejection as an active model turn.",
+        "correction": "Retry only an explicitly retryable native transport BUSY for status and route review with the original command and a four-second deadline. Show local workspace contention separately from a registry turn outcome. Send and cancel still require their original explicit actions.",
+        "prevention": "Linux task run 20261121T015125.698826Z-5a471bb9 exercised the real native writer admission through portable Rust and held the initial writer for 3,073 ms in the built UI with substituted IPC. It recovered status and route review with the same correlation, stopped when the deadline elapsed, admitted one explicit send and one cancellation, and recorded zero network requests in that substitute journey. Native cold and ready runs on cd047ab each completed three explicit sends to the synthetic peer and rendered the 20,480-byte answer. The cold run recovered from 24 status rejections using the same request and message IDs. See contracts/reviews/2026-11-20-native-text-startup.json."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "selected-chart-contention-and-stale-draft",
+      "source": "Chart worktree ../scopehub-chart-collaboration on codex/herdr-chart-collaboration. Interrupted chart collaboration review and local Chromium controls in .reports/M4-001-resume-busy-red/results.json and .reports/M4-001-stale-draft-red/results.json.",
+      "observation": "An explicit pre-admission HTTP 429 BUSY disabled further selection until reload at a8c9609. At d701eba, a second client cleared the selection and the reopened dialog enabled Send for the stale chart draft after the workspace reloaded. At dc9b283 the owned HTTP peer regression verifies retry with the same request, a single selection revision advance, preservation of the blocked draft after reload, recovery by reselecting a bar, and a fresh unselected text turn. All four model-connection workflow cases passed in .reports/runs/20261121T015908.326119Z-721f69a6/ai-workflow/results.json (SHA-256 dd70ca5458a96f5027baf106bcafbec138dde2693b3fd815e7b15200c72633b6).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M4-010"
+      ],
+      "regression_checks": [
+        "model-connection-workflow"
+      ],
+      "resolution": {
+        "cause": "Pre-admission contention left selection controls unavailable. A reopened draft also lost its selection requirement when another client cleared the selected bar.",
+        "correction": "Retry pre-admission contention with the original request identity. Retain the draft text and its stale selection requirement until the user selects a bar again or starts a fresh question.",
+        "prevention": "On integrated source 9d74a0b7cd9b57efce47547477663186cb6e7797, the selected-chart browser cases checked a single revision advance, a blocked draft after reopen, recovery by reselection and a fresh ordinary turn. All ten model browser cases passed. The M4-010 receipt binds the workflow log to run 20261121T021619.919507Z-29a53872."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "unavailable-selection-refresh-after-busy",
+      "source": "PR 23 Ubuntu job, run 44853597299, local-import-ui.log at 9be6c8c. Reproduced on clean 44d7fed8fc4bba3f9bd08eb198ab4c4e33ff2e6e in .reports/M4-011-44d7fed-red/local-import-ui/browser-results.json (SHA-256 601cfc213bc4899b3af790428a486dfdb56e142405d70a4896a52ee5174e12ee).",
+      "observation": "After persistent BUSY on Clear shared selection, the published CSV dialog displayed the busy notice and enabled Clear but omitted Refresh shared selection. The existing startup and refresh case timed out locating that button.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M4-011"
+      ],
+      "regression_checks": [
+        "local-import-ui",
+        "model-connection-workflow"
+      ],
+      "resolution": {
+        "cause": "After an exhausted BUSY retry became a recoverable selection notice in d701eba, the unavailable-selection view still offered its existing refresh action only for a blocking workspace error.",
+        "correction": "Offer the same snapshot refresh for the busy notice, alongside direct manual clear. Keep the bounded retry and request identity in the shared workspace hook.",
+        "prevention": "On ad75744a1ef9351f7d04456276adee9d77dbf45c, the held retry used the same clear request. After both BUSY responses the dialog permitted Clear and Refresh. One explicit refresh read the snapshot, preserved the selected library during the read, and a new clear used the refreshed revision. The ten AI workflow cases included successful transient retry with one revision advance. Run 20261121T023334.574343Z-f0bb7cc5 passed the M4-011 checks. The complete local-import suite with its Rust bridge passed all 13 cases in .reports/M4-011-ad75744-bridge/local-import-ui/browser-results.json (SHA-256 115280a83aa12c23cab236ef4c5e3fda6309823271922dd8aa31a5647f7b1e19)."
       },
       "deferral_reason": null
     },

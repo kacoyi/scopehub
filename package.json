@@ -33,6 +33,7 @@
     "project:checkpoint": "uv run python scripts/project.py checkpoint",
     "project:ci": "uv run python scripts/ci.py",
     "project:protection": "uv run python scripts/protection.py",
+    "project:branches": "uv run python scripts/branches.py",
     "project:dependencies": "uv run python scripts/dependencies.py",
     "project:integration": "uv run python scripts/integration.py",
     "project:brief": "uv run python scripts/project.py brief",

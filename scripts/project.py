@@ -1,7 +1,7 @@
 """Validate project history, show a resumable workfront and preserve check evidence."""
 
 import argparse
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from graphlib import CycleError, TopologicalSorter
 import hashlib
 import json
@@ -453,6 +453,7 @@ def validate_delivery(root, project):
     feedback = read_json(root / 'project/feedback.json')
     validate_model(root, 'Delivery', delivery)
     validate_model(root, 'Feedback', feedback)
+    indexed(delivery['scaffold_maintenance']['periodic_reviews'], 'periodic review')
     tasks, checks = project['tasks'], project['checks']
     types = indexed(delivery['change_types'], 'change type')
     scenarios = indexed(delivery['scenarios'], 'scenario')
@@ -559,6 +560,15 @@ def maintenance_status(root=ROOT, today=None):
             'next_action': 'Open a bounded maintenance task when due; run fresh dependency-review for integration.'}
 
 
+def periodic_reviews(delivery, today=None):
+    today = today or datetime.now(timezone.utc).date()
+    reviews = []
+    for item in delivery['scaffold_maintenance']['periodic_reviews']:
+        due = date.fromisoformat(item['reviewed_on']) + timedelta(days=item['interval_days'])
+        reviews.append({**item, 'next_review_by': due.isoformat(), 'review_due': today >= due})
+    return reviews
+
+
 def workfront(root=ROOT, *, report_path=None):
     if __package__:
         from .development import evidence_view
@@ -598,6 +608,7 @@ def workfront(root=ROOT, *, report_path=None):
         'proposed_decisions': [item['id'] for item in project['decisions'].values() if item['status'] == 'proposed'],
         'decision_replacements': project['replacements'],
         'dependency_maintenance': maintenance_status(root),
+        'periodic_reviews': periodic_reviews(project['delivery']),
         'verification': {'report_available': report_available, 'matches_current_execution_inputs': inputs_current,
                          'matches_current_task_definitions': tasks_current,
                          'matches_current_project_definitions': definitions_current, 'current': current,

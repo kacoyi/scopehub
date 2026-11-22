@@ -1,6 +1,7 @@
 """Exercise false completion, stale decisions and delivery feedback with isolated records."""
 
 from contextlib import redirect_stdout
+from datetime import date
 from io import StringIO
 import json
 import os
@@ -16,8 +17,8 @@ from scripts import check as harness
 from scripts import project as project_cli
 from scripts.project import (
     ProjectError, archive_evidence, digest, json_bytes, load_project, product_progress, readiness,
-    read_json, recover_hosted_checkpoint, review_history, task_context, workfront, verified_main, source_identity,
-    validate_model,
+    periodic_reviews, read_json, recover_hosted_checkpoint, review_history, task_context, workfront,
+    verified_main, source_identity, validate_model,
 )
 from tests.project.test_continuity import ProjectFixture
 from tests.project.fixtures import task_by_id
@@ -25,6 +26,15 @@ from scripts.verification_evidence import integration_validation, release_artifa
 
 
 class DeliveryTests(ProjectFixture):
+    def test_recurring_review_becomes_due_and_exposes_the_action(self):
+        delivery = load_project(self.root)['delivery']
+        before, = periodic_reviews(delivery, date(2026, 11, 27))
+        due, = periodic_reviews(delivery, date(2026, 11, 28))
+        self.assertFalse(before['review_due'])
+        self.assertTrue(due['review_due'])
+        self.assertEqual(due['next_review_by'], '2026-11-28')
+        self.assertEqual(workfront(self.root)['periodic_reviews'][0]['actions'], due['actions'])
+
     def test_hosted_report_rejects_private_fields_in_evidence_metadata(self):
         for target in ('root', 'check', 'environment'):
             report = read_json(self.report())

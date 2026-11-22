@@ -1,0 +1,95 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M1-018",
+  "task_definition_sha256": "7c0bac1dfb3471975b8af056bb4063ae6ada847a7edf66b38b28f3666498f1f2",
+  "run_id": "20261119T113753.755931Z-df7a6141",
+  "recorded_at": "2026-11-19T11:51:41.634822+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "c08833921732d4290f7d6ebd97ce4b5199f60fe8c0f74ea6230b6733b7811aab",
+    "file_count": 218,
+    "git_head": "ee7cd241a36ae84bd715d90ce58788f276645f02",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "aed3b8fb247914e58e277ac2df7df776e4e5ad1f732875e29969ade912691742",
+  "environment": {
+    "system": "Windows",
+    "release": "2025Server",
+    "machine": "AMD64",
+    "python": "3.12.10",
+    "python_executable": "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (5411378eb 2026-10-08 x86_64-pc-windows-msvc)"
+    }
+  },
+  "checks": [
+    {
+      "id": "market-live-stream",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-stream.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a23bf7b9f470e582e95691bf562c781e40dfaf65d2ac1f67e7b7a191e8b94d92"
+    },
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a1a1de9d0152527b91f7fd3916f19788da6e943f11162df9f1321607d2cddeb0"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "b7e52f83ab2c56f1c056f706fdf7e86bde0ed0c63ce44156fa5b68fde3047cb2"
+    }
+  ],
+  "project_definition_sha256": "003d735405b5e9e87dc0e057e4ed137f3052da0e3422908bbd5c653cbecb5d03",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "ci": {
+    "provider": "github-actions",
+    "repository": "kacoyi/scopehub",
+    "run_id": "44515807770",
+    "run_attempt": "1",
+    "event": "pull_request",
+    "head_sha": "4753c0da53f1fad132e8fc09ef76f96f7a09ab93",
+    "checkout_sha": "ee7cd241a36ae84bd715d90ce58788f276645f02",
+    "run_url": "https://github.com/kacoyi/scopehub/actions/runs/44515807770"
+  }
+}

@@ -6154,6 +6154,14 @@
         {
           "path": "project/evidence/M1-018-6747a65520edf647.json",
           "sha256": "29e1e02e0f8a19c8d899ed8f48f849748aeffb89514983e89bb79646d6555ac2"
+        },
+        {
+          "path": "project/evidence/M1-018-aed3b8fb247914e5.json",
+          "sha256": "1e10e301c797d48cbb52edcaa401309c86274f49b270ff26b5b4d409f9bcfdea"
+        },
+        {
+          "path": "project/evidence/M1-018-c5681de098db5410.json",
+          "sha256": "7b9deccb7532a2a8c37498e870df05917ab3e5cb8aa3dc83cbf60b8e8639de2b"
         }
       ],
       "next_action": null,
@@ -8002,542 +8010,6 @@
       }
     },
     {
-      "id": "M4-006",
-      "title": "Connect a selected text model and complete ordinary turns from the desktop",
-      "milestone": "M4",
-      "status": "done",
-      "depends_on": [
-        "M2-001"
-      ],
-      "scope": [
-        "python/ai",
-        "python/worker_runtime",
-        "crates",
-        "apps/desktop",
-        "tests",
-        "project",
-        "contracts"
-      ],
-      "decision_refs": [
-        "0001",
-        "0004",
-        "0007",
-        "0009",
-        "0011",
-        "0019"
-      ],
-      "acceptance": [
-        "The first unconfigured question offers connection setup and an explicitly labeled offline demonstration without contacting any recipient.",
-        "Through the normal workspace UI a user selects a text route, model and disclosed scope, sees the destination and charge basis, and activates it once. Complete at least two ordinary turns through the actual adapter against a controlled HTTP peer. Neither turn repeats the activation prompt. Display the actual responding model and a bounded failure when the chosen route is unavailable.",
-        "Bind dispatch to the current profile, recipient and capabilities. After disconnect, cancellation or a proposed destination change, the old authority cannot send a new turn. A text-only route remains usable without audio. Keep credentials inside the trusted connector and private records on the device; ordinary turns carry only the disclosed context.",
-        "Retain separate evidence for real adapter traffic against the synthetic local endpoint, an explicitly chosen offline demonstration, and the pending paid or independently hosted model qualification in M4-002."
-      ],
-      "checks": [
-        "model-connection-workflow",
-        "model-connection-replay",
-        "ui-build",
-        "market-workflow",
-        "operations-workflow",
-        "python-types",
-        "architecture",
-        "python-contracts-workers",
-        "generated-contracts",
-        "typescript-contracts",
-        "rust-contracts-workers"
-      ],
-      "evidence": [
-        {
-          "path": "project/evidence/M4-006-4499f45a417f3f97.json",
-          "sha256": "b3e6b9e841849fb31d0b8eaaadacd76fe35636d97e263713370e9c5603fdf835"
-        },
-        {
-          "path": "project/evidence/M4-006-b210961fafbb4a99.json",
-          "sha256": "fcf11b970a8bdf9e02460f70054799abd1da7e81256d81fe83c044663f0ac8bf"
-        },
-        {
-          "path": "project/evidence/M4-006-ae92f8bbf72660d3.json",
-          "sha256": "7a2c3667cf66232154a4397c06628a9de642d7ab95c3c568434db44685a6d954"
-        }
-      ],
-      "next_action": null,
-      "blocker": null,
-      "closure_reason": null,
-      "plan": {
-        "outcome": "A product user can choose a text model once, ask a question and continue the conversation in the same authorized workspace.",
-        "change_types": [
-          "model-connection",
-          "ui",
-          "permissions",
-          "protocol"
-        ],
-        "context": [
-          "engineering-contract-v1.json",
-          "contracts/decisions/0009-model-providers-and-external-workspace-clients.json",
-          "contracts/decisions/0011-local-profiles-and-connected-model-use.json",
-          "project/development.json",
-          "crates/application/src/workspace.rs",
-          "apps/desktop/ui/src/workspace-panels.tsx",
-          "contracts/decisions/0019-profile-text-model-route.json"
-        ],
-        "hypotheses": [
-          "An explicitly chosen adapter can support ordinary turns independently of market-data supply and the chart rendering library.",
-          "Observing the final serialized request at a real local HTTP peer distinguishes an actual configured call from a canned UI response."
-        ],
-        "risks": [
-          {
-            "failure": "A first question, retry, restart, or recipient change silently transmits to an unselected route.",
-            "checks": [
-              "model-connection-workflow",
-              "model-connection-replay"
-            ]
-          },
-          {
-            "failure": "A saved private record, a credential or an old provider context reaches an unrelated turn.",
-            "checks": [
-              "model-connection-replay",
-              "operations-workflow"
-            ]
-          },
-          {
-            "failure": "A fixture becomes an implicit replacement for an unavailable configured model.",
-            "checks": [
-              "model-connection-workflow"
-            ]
-          }
-        ],
-        "rollback": "Retain the controlled peer and failed observations. Disconnect the unfinished adapter independently of workspace data and restore the previous profile state.",
-        "implementation": {
-          "modules": [
-            "product-ai",
-            "application",
-            "worker-runtime",
-            "desktop",
-            "ui",
-            "worker-host"
-          ],
-          "entrypoints": [
-            "apps/desktop/ui/src/workspace-panels.tsx",
-            "apps/desktop/src-tauri/src/bridge.rs",
-            "crates/application/src/workspace.rs",
-            "crates/application/src/workspace/text_connection.rs",
-            "crates/worker-host/src/text_model.rs",
-            "python/worker_runtime/text_model.py",
-            "python/ai/ollama.py"
-          ],
-          "rules": [
-            {
-              "path": "engineering-contract-v1.json",
-              "pointer": "/ai/model_connections"
-            },
-            {
-              "path": "engineering-contract-v1.json",
-              "pointer": "/persistence/private_content/transfer"
-            },
-            {
-              "path": "project/development.json",
-              "pointer": "/data_ownership"
-            }
-          ],
-          "non_goals": [
-            "Trading, external client pairing, microphone capture, accepting financial mutations or claiming real-provider qualification from fixture traffic."
-          ],
-          "open_questions": []
-        },
-        "evolution": {
-          "kind": "additive",
-          "preserve": [
-            "The independent market source, scoped Rust operations, existing profile-local private records, user-reviewed private excerpts and explicit sample opt-in."
-          ],
-          "change": [
-            "Add an ordinary text conversation entry, a clearly disclosed activated route and a replaceable text adapter."
-          ],
-          "data_plan": "Keep connection metadata and successful ordinary pairs in the bound session only. Project only the typed question and bounded recent pairs. The first route uses no credential references or private provider conversation handle; preserve only synthetic verification evidence.",
-          "cleanup": "Cancel pending work, clear the grant on disconnect or route replacement and start disconnected after process restart. Preserve all existing storage migrations."
-        }
-      }
-    },
-    {
-      "id": "M4-007",
-      "title": "Preserve the local writer and conversation across text reply boundaries",
-      "milestone": "M4",
-      "status": "done",
-      "depends_on": [
-        "M4-006"
-      ],
-      "scope": [
-        "crates/persistence/src/bin/workspace_bridge.rs",
-        "apps/desktop/ui/src/model-chat.tsx",
-        "apps/desktop/ui/ubuntu-workspace.mjs",
-        "tests"
-      ],
-      "decision_refs": [
-        "0004",
-        "0007",
-        "0009",
-        "0011",
-        "0019"
-      ],
-      "acceptance": [
-        "Deliver a valid large or escaped answer through the real adapter, internal result channel and visible conversation. A rejected or over-limit result leaves the same writer available for an ordinary workspace operation.",
-        "After an interrupted or mismatched poll on a second turn, retain the successful first exchange and actual connection status. Recover the original second-turn outcome exactly once, without sending the user question again or labeling a local transport failure as provider rejection.",
-        "Exercise cancellation, disconnection, an explicitly changed recipient and a distinct profile without transferring old context; demonstrate the bounded recent conversation reaches the actual configured peer."
-      ],
-      "checks": [
-        "model-connection-workflow",
-        "model-connection-replay",
-        "ui-build",
-        "market-workflow",
-        "operations-workflow",
-        "rust-contracts-workers",
-        "python-contracts-workers"
-      ],
-      "next_action": null,
-      "blocker": null,
-      "closure_reason": null,
-      "evidence": [
-        {
-          "path": "project/evidence/M4-007-3e31e53b1d4314ee.json",
-          "sha256": "65065e3e425ba70e103137cec8af4fc3ddd8663664b4da8be48cc30dd3eb1f18"
-        }
-      ],
-      "plan": {
-        "outcome": "A user can continue the same conversation and work in the same workspace after a large reply or an interrupted local poll.",
-        "change_types": [
-          "model-connection",
-          "ui",
-          "permissions"
-        ],
-        "context": [
-          "crates/persistence/src/bin/workspace_bridge.rs",
-          "apps/desktop/ui/src/model-chat.tsx",
-          "apps/desktop/ui/ubuntu-workspace.mjs",
-          "contracts/decisions/0019-profile-text-model-route.json"
-        ],
-        "hypotheses": [
-          "Private worker replies need a bounded envelope compatible with accepted connector payloads. Uncertain local observations can be reconciled using the existing job identity and current grant.",
-          "A read of the current grant can reconcile a lost disconnect or route review reply without repeating the command or enabling a recipient."
-        ],
-        "risks": [
-          {
-            "failure": "An oversized or malformed result blocks unrelated workspace requests or widens the public request limit.",
-            "checks": [
-              "model-connection-workflow",
-              "model-connection-replay"
-            ]
-          },
-          {
-            "failure": "A failed observation loses earlier turns, repeats an outbound question or discloses them after changing route or profile.",
-            "checks": [
-              "model-connection-workflow",
-              "model-connection-replay"
-            ]
-          }
-        ],
-        "rollback": "Keep both baseline observations and boundary fixtures. Restore the previous reader and UI independently if focused checks fail.",
-        "implementation": {
-          "modules": [
-            "ui",
-            "application",
-            "persistence",
-            "worker-host",
-            "worker-runtime"
-          ],
-          "entrypoints": [
-            "crates/persistence/src/bin/workspace_bridge.rs",
-            "apps/desktop/ui/src/model-chat.tsx",
-            "apps/desktop/ui/ubuntu-workspace.mjs",
-            "crates/application/src/workspace/text_connection.rs"
-          ],
-          "rules": [
-            {
-              "path": "engineering-contract-v1.json",
-              "pointer": "/ai/model_connections/session_grant"
-            },
-            {
-              "path": "engineering-contract-v1.json",
-              "pointer": "/ai/context_policy"
-            }
-          ],
-          "non_goals": [
-            "Product cloud or voice qualification and changes to private record persistence."
-          ],
-          "open_questions": []
-        },
-        "evolution": {
-          "kind": "refactor",
-          "preserve": [
-            "The activated route, recipient and profile boundaries, bounded recent turns and explicit disconnect."
-          ],
-          "change": [
-            "Make valid private result framing interoperable and recover pending turns without a duplicate dispatch.",
-            "Reconcile an interrupted disconnect or route review with the local grant before allowing another send."
-          ],
-          "data_plan": "Use disposable synthetic profiles and isolated test recipients. Keep successful ordinary pairs within their existing session.",
-          "cleanup": "Settle or reject each pending turn and remove listeners and retained state when the session ends."
-        }
-      }
-    },
-    {
-      "id": "M4-008",
-      "title": "Connect a profile-owned cloud text credential to the selected model",
-      "milestone": "M4",
-      "status": "done",
-      "depends_on": [
-        "M4-006"
-      ],
-      "scope": [
-        "crates/platform",
-        "crates/worker-host",
-        "crates/application",
-        "crates/persistence/src/bin/workspace_bridge.rs",
-        "apps/desktop",
-        "contracts",
-        "scripts/check_architecture.py",
-        "tests",
-        "project"
-      ],
-      "decision_refs": [
-        "0004",
-        "0007",
-        "0009",
-        "0011",
-        "0019",
-        "0020"
-      ],
-      "acceptance": [
-        "Select the OpenAI Responses text adapter and explicitly enter a model ID in ordinary product settings. Disclose its named destination, data categories and account charge basis before activation. Use the activated route for successive typed questions, preserving the independent Ollama route and explicit demo.",
-        "Resolve only the current profile’s explicitly supplied credential inside the trusted connector. Save native Windows credentials in Credential Manager and disclose the Ubuntu preview's session lifetime. Missing, replaced or removed credentials, an unavailable recipient, and changed connection scope produce visible bounded outcomes. Only opaque references enter the operation state.",
-        "Using test-owned synthetic credentials, inspect an actual request at the final connector boundary. Verify the approved destination, redacted handling of authentication errors, store=false, bounded reconstructed conversation and exclusion of saved private records, provider conversation handles and unrelated data. Preserve usable ordinary text after changing back to a different provider.",
-        "Keep controlled transport observations and cross-compilation separate from native Windows Credential Manager runtime and packaging. Real account qualification will run under M4-002 with the owner’s explicit test account and spend scope."
-      ],
-      "checks": [
-        "model-connection-workflow",
-        "model-connection-replay",
-        "openai-responses-transport",
-        "operations-workflow",
-        "ui-build",
-        "market-workflow",
-        "generated-contracts",
-        "typescript-contracts",
-        "python-contracts-workers",
-        "rust-contracts-workers",
-        "python-types",
-        "architecture"
-      ],
-      "next_action": null,
-      "blocker": null,
-      "closure_reason": "The controlled OpenAI Responses acceptance passed on the integrated source, including two ordinary TLS turns on one grant, chart denial before admission, credential revocation and continued Ollama use. The source-bound native Windows credential lifecycle is retained in contracts/reviews/2026-11-20-native-openai-credential.json. Real account qualification remains under M4-002. Packaged Windows acceptance remains a release gate under ADR 0020.",
-      "evidence": [
-        {
-          "path": "project/evidence/M4-008-137f40b60682285f.json",
-          "sha256": "3b476e871c33daeadff659d0ed1cedcc7d1e5219f8269fd233289ce45548cd6c"
-        },
-        {
-          "path": "project/evidence/M4-008-6b49e685c77a34ae.json",
-          "sha256": "4c39b1294a09ccbca69fba9df8745b7d6454c47336b67c913fdc44fd51052bb0"
-        },
-        {
-          "path": "project/evidence/M4-008-1ecf72444f8637d5.json",
-          "sha256": "db7f5c0648a767e24aa8de913d0cb968329f8ef26f82a30b8414df791aa6fe96"
-        },
-        {
-          "path": "project/evidence/M4-008-f956cbf6090e0a54.json",
-          "sha256": "1caf3403e1e112deb2e49f691f8a0e2df4d83af864b3b820489fdf7e49be34b3"
-        }
-      ],
-      "plan": {
-        "outcome": "An end user can select a capable cloud provider and supply their own API credential from ScopeHub, with a named recipient and no silent fallback.",
-        "change_types": [
-          "model-connection",
-          "ui",
-          "permissions",
-          "protocol"
-        ],
-        "context": [
-          "engineering-contract-v1.json",
-          "contracts/decisions/0009-model-providers-and-external-workspace-clients.json",
-          "contracts/decisions/0011-local-profiles-and-connected-model-use.json",
-          "contracts/decisions/0019-profile-text-model-route.json",
-          "contracts/decisions/0020-profile-openai-responses.json",
-          "crates/worker-host/src/text_model.rs",
-          "apps/desktop/ui/src/model-chat.tsx"
-        ],
-        "hypotheses": [
-          "The existing text connection state can route the final projected request through distinct provider adapters without altering chart or private storage. A local credential reference independent of the typed model prevents reusing a secret for another destination."
-        ],
-        "risks": [
-          {
-            "failure": "Authentication material or provider-retained private context enters a persisted or unrelated request.",
-            "checks": [
-              "model-connection-workflow",
-              "model-connection-replay",
-              "openai-responses-transport",
-              "operations-workflow"
-            ]
-          },
-          {
-            "failure": "Ordinary local text starts an undisclosed billable call or a failed cloud request silently uses a different service.",
-            "checks": [
-              "model-connection-workflow",
-              "model-connection-replay",
-              "openai-responses-transport"
-            ]
-          }
-        ],
-        "rollback": "Disconnect and remove the synthetic credential through the same trusted account. Preserve the existing credential-free adapter and independent configuration.",
-        "implementation": {
-          "modules": [
-            "product-ai",
-            "application",
-            "platform",
-            "worker-host",
-            "desktop",
-            "ui"
-          ],
-          "entrypoints": [
-            "crates/application/src/workspace/text_connection.rs",
-            "crates/worker-host/src/text_model.rs",
-            "crates/platform/src/model_credentials.rs",
-            "apps/desktop/src-tauri/src/bridge.rs",
-            "apps/desktop/ui/ubuntu-workspace.mjs",
-            "apps/desktop/ui/src/model-chat.tsx",
-            "python/ai/ollama.py"
-          ],
-          "rules": [
-            {
-              "path": "engineering-contract-v1.json",
-              "pointer": "/ai/model_connections"
-            },
-            {
-              "path": "engineering-contract-v1.json",
-              "pointer": "/persistence/credentials"
-            },
-            {
-              "path": "engineering-contract-v1.json",
-              "pointer": "/ai/context_policy"
-            }
-          ],
-          "non_goals": [
-            "Real charged calls in automated tests, authenticated third-party proxy origins, audio capture, and claiming provider fitness from controlled traffic."
-          ],
-          "open_questions": []
-        },
-        "evolution": {
-          "kind": "additive",
-          "preserve": [
-            "Per-profile activation, public text contract compatibility, the existing direct Ollama adapter, bounded ordinary turns and independent market data selection."
-          ],
-          "change": [
-            "Offer a fixed-destination native OpenAI Responses text adapter with a trusted provider-discriminated credential lifecycle."
-          ],
-          "data_plan": "Keep persistent native secrets in Windows Credential Manager and Ubuntu preview credentials in the private launcher session. The Rust registry receives only each opaque revision. Keep private originals and exports local. Rebuild the bounded input for each Responses request and set store=false. Discard provider handles.",
-          "cleanup": "Cancel active work on disconnect or invalidated credential scope, drop connector-local credential material and support removing the user’s configured credential."
-        }
-      }
-    },
-    {
-      "id": "M4-009",
-      "title": "Recover native text setup during initial workspace admission",
-      "milestone": "M4",
-      "status": "done",
-      "depends_on": [
-        "M4-007"
-      ],
-      "scope": [
-        "apps/desktop/ui/src/model-chat-transport.ts",
-        "apps/desktop/ui/src/model-chat.tsx",
-        "apps/desktop/src-tauri/src/workspace.rs",
-        "tests/ui/desktop-workspace.spec.mjs"
-      ],
-      "decision_refs": [
-        "0004",
-        "0007",
-        "0011",
-        "0019"
-      ],
-      "acceptance": [
-        "The first native chat status and route review recover after controlled workspace writer contention. Retry only explicitly retryable transport BUSY before registry admission, with the same command and a bounded wait.",
-        "A workspace admission failure identifies the local workspace. Preserve exactly one explicit model send, current cancellation behavior and grant checks. Setup contacts no model recipient.",
-        "Retain a controlled held-writer regression through the native dispatch and the normal UI entry. Supply a local source commit for a native Windows cold and warm rerun."
-      ],
-      "checks": [
-        "desktop-workspace-transport",
-        "market-workflow",
-        "model-connection-replay",
-        "model-connection-workflow",
-        "rust-contracts-workers",
-        "ui-build"
-      ],
-      "next_action": null,
-      "blocker": null,
-      "closure_reason": null,
-      "evidence": [
-        {
-          "path": "project/evidence/M4-009-15ee7224844b6c58.json",
-          "sha256": "90ee7ba334e5b7c385fe7818c893580f4396ff0bb35562a94183b4cb8e98e070"
-        }
-      ],
-      "plan": {
-        "outcome": "An immediate Ask AI and route review can complete after the first private workspace snapshot releases the native writer.",
-        "change_types": [
-          "model-connection",
-          "ui"
-        ],
-        "context": [
-          "apps/desktop/src-tauri/src/workspace.rs",
-          "crates/persistence/src/lib.rs",
-          "apps/desktop/ui/src/use-local-workspace.ts",
-          "apps/desktop/ui/src/model-chat-transport.ts"
-        ],
-        "hypotheses": [
-          "The initial snapshot holds native admission while opening SQLite. Only the outer retryable BUSY rejects status and propose before execution. A bounded retry around the transport can safely keep their original correlation."
-        ],
-        "risks": [
-          {
-            "failure": "Replaying a command after admission can revoke a newer grant, or resubmit a model turn. Treat operation outcomes as terminal for the transport retry and exercise one explicit send and cancellation.",
-            "checks": [
-              "desktop-workspace-transport",
-              "model-connection-workflow",
-              "rust-contracts-workers"
-            ]
-          }
-        ],
-        "rollback": "Restore immediate native status and proposal admission failure while retaining the captured IPC and held-writer regressions.",
-        "implementation": {
-          "modules": [
-            "ui",
-            "desktop"
-          ],
-          "entrypoints": [
-            "apps/desktop/ui/src/model-chat-transport.ts",
-            "apps/desktop/ui/src/model-chat.tsx",
-            "apps/desktop/src-tauri/src/workspace.rs"
-          ],
-          "rules": [
-            {
-              "path": "engineering-contract-v1.json",
-              "pointer": "/ai/model_connections/session_grant"
-            }
-          ],
-          "non_goals": [
-            "Automatic send retries, wider writer admission, configured provider calls and Windows execution in this worktree."
-          ],
-          "open_questions": []
-        },
-        "evolution": {
-          "kind": "refactor",
-          "preserve": [
-            "Single-writer admission, grant revocation, operation outcomes and explicit model send and cancellation."
-          ],
-          "change": [
-            "Recover narrowly from explicit native transport contention during status and route review, and report local contention accurately."
-          ],
-          "data_plan": "Use a disposable synthetic profile for the native lane and a held writer in the substituted IPC journey.",
-          "cleanup": "Stop retries by deadline or abort and release all fixture holds."
-        }
-      }
-    },
-    {
       "id": "M3-002",
       "title": "Verify sample history readiness before running indicator browser assertions",
       "milestone": "M3",
@@ -8649,194 +8121,6 @@
           ],
           "data_plan": "Use the existing synthetic data and disposable workspace profiles.",
           "cleanup": "Release browser routes, pending response timers and observers on every outcome. Retain red and green reports without private handoff credentials."
-        }
-      }
-    },
-    {
-      "id": "M4-010",
-      "title": "Recover a selected chart question after contention or a cleared selection",
-      "milestone": "M4",
-      "status": "done",
-      "depends_on": [
-        "M4-006"
-      ],
-      "scope": [
-        "apps/desktop/ui/src/use-local-workspace.ts",
-        "apps/desktop/ui/src/model-chat.tsx",
-        "apps/desktop/ui/src/main.tsx",
-        "tests/ui/ai-workflow.spec.mjs"
-      ],
-      "decision_refs": [
-        "0004",
-        "0019",
-        "0021"
-      ],
-      "acceptance": [
-        "After a pre-admission BUSY, retry the original selection operation with unchanged identity and advance its revision once.",
-        "Reopen a draft after another client clears its selected bar. Keep its text, disable Send until reselection, and allow a fresh ordinary question without chart context."
-      ],
-      "checks": [
-        "ui-build",
-        "market-workflow",
-        "model-connection-workflow",
-        "model-connection-replay"
-      ],
-      "next_action": null,
-      "blocker": null,
-      "closure_reason": null,
-      "evidence": [
-        {
-          "path": "project/evidence/M4-010-6b49e685c77a34ae.json",
-          "sha256": "899b9a4093dfec3eb7e7df6305fe7af437e68685a5b57799c8aa34ec441566c6"
-        }
-      ],
-      "plan": {
-        "outcome": "Close the reproduced contention and stale-draft defects in the selected-sample slice of M4-001.",
-        "change_types": [
-          "ui",
-          "model-connection"
-        ],
-        "context": [
-          "apps/desktop/ui/src/use-local-workspace.ts",
-          "apps/desktop/ui/src/model-chat.tsx",
-          "apps/desktop/ui/src/main.tsx",
-          "tests/ui/ai-workflow.spec.mjs"
-        ],
-        "hypotheses": [
-          "The workspace selection request owns its retry identity. The visible question draft can retain its selection requirement through a dialog reopen."
-        ],
-        "risks": [
-          {
-            "failure": "Contention replays an admitted selection or a cleared selection silently permits Send.",
-            "checks": [
-              "model-connection-workflow"
-            ]
-          }
-        ],
-        "rollback": "Retain the reproductions and hold selected-chart sending until an explicit bar selection is current.",
-        "implementation": {
-          "modules": [
-            "ui"
-          ],
-          "entrypoints": [
-            "apps/desktop/ui/src/use-local-workspace.ts",
-            "apps/desktop/ui/src/model-chat.tsx",
-            "apps/desktop/ui/src/main.tsx"
-          ],
-          "rules": [
-            {
-              "path": "engineering-contract-v1.json",
-              "pointer": "/ai/model_connections/session_grant"
-            }
-          ],
-          "non_goals": [
-            "Broader assisted operations, private excerpts and live provider qualification."
-          ],
-          "open_questions": []
-        },
-        "evolution": {
-          "kind": "refactor",
-          "preserve": [
-            "Existing route authorization, prior conversation and explicit ordinary text."
-          ],
-          "change": [
-            "Retain retry identity and stale intent across selection and dialog recovery."
-          ],
-          "data_plan": "Use the existing synthetic chart and owned HTTP recipient.",
-          "cleanup": "Clear the stale selection requirement when the user selects a bar or starts a fresh question."
-        }
-      }
-    },
-    {
-      "id": "M4-011",
-      "title": "Restore explicit refresh after shared selection contention",
-      "milestone": "M4",
-      "status": "done",
-      "depends_on": [
-        "M4-010"
-      ],
-      "scope": [
-        "apps/desktop/ui/src/frozen-evidence.tsx",
-        "apps/desktop/ui/src/use-local-workspace.ts",
-        "tests/ui/local-import.spec.mjs",
-        "tests/ui/ai-workflow.spec.mjs"
-      ],
-      "decision_refs": [
-        "0004",
-        "0021"
-      ],
-      "acceptance": [
-        "After two BUSY responses for one clear request, keep the unavailable selection visible and offer both manual clear and explicit refresh. A refresh reads the current snapshot once and preserves the chosen revisions library.",
-        "A fresh manual clear uses the refreshed selection revision and succeeds once the writer is available. A transient BUSY still retries the original request once with identical contents."
-      ],
-      "checks": [
-        "local-import-ui",
-        "model-connection-workflow",
-        "ui-build",
-        "market-workflow"
-      ],
-      "next_action": null,
-      "blocker": null,
-      "closure_reason": null,
-      "evidence": [
-        {
-          "path": "project/evidence/M4-011-1087f6f63deeceee.json",
-          "sha256": "f4e80fca895d6a7d3ec4bd7bb12d0475362065965408b17118ba60a15210b1ec"
-        }
-      ],
-      "plan": {
-        "outcome": "Let a user recover an unavailable shared selection from the published CSV library after the bounded retry still encounters contention.",
-        "change_types": [
-          "ui"
-        ],
-        "context": [
-          "apps/desktop/ui/src/frozen-evidence.tsx",
-          "apps/desktop/ui/src/use-local-workspace.ts",
-          "tests/ui/local-import.spec.mjs",
-          "tests/ui/ai-workflow.spec.mjs"
-        ],
-        "hypotheses": [
-          "The bounded retry correctly leaves Clear available. The unavailable-selection view gates Refresh only on a blocking error and omits the recoverable contention notice."
-        ],
-        "risks": [
-          {
-            "failure": "A refresh silently repeats a mutation, a retry changes request identity or stale workspace state replaces the selected library.",
-            "checks": [
-              "local-import-ui",
-              "model-connection-workflow"
-            ]
-          }
-        ],
-        "rollback": "Retain the failure trace and existing bounded selection retry while isolating the refresh control in the unavailable-selection view.",
-        "implementation": {
-          "modules": [
-            "ui"
-          ],
-          "entrypoints": [
-            "apps/desktop/ui/src/frozen-evidence.tsx",
-            "apps/desktop/ui/src/use-local-workspace.ts"
-          ],
-          "rules": [
-            {
-              "path": "engineering-contract-v1.json",
-              "pointer": "/ai/tool_policy"
-            }
-          ],
-          "non_goals": [
-            "Changes to model transport, selection authority or existing accepted task definitions."
-          ],
-          "open_questions": []
-        },
-        "evolution": {
-          "kind": "refactor",
-          "preserve": [
-            "The exact selection request on one bounded retry, explicit user actions, and library selection during workspace reads."
-          ],
-          "change": [
-            "Show the existing snapshot refresh action after persistent contention when the shared selection is unavailable."
-          ],
-          "data_plan": "Use the existing synthetic workspace and substituted native IPC for the held writer.",
-          "cleanup": "Release held test responses in the existing fixture teardown."
         }
       }
     },
@@ -9885,6 +9169,114 @@
       }
     },
     {
+      "id": "M0-036",
+      "title": "Bound Windows desktop fixture ACL preparation",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M2-011"
+      ],
+      "scope": [
+        "apps/desktop/src-tauri/src/bridge_tests.rs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Real Windows desktop fixture root preparation, including copy setup, occupies one short-lived slot that is released on success, error, and unwind.",
+        "The desktop bridge still runs its native profile, identity, authorization, cleanup, and concurrency assertions with the existing ACL routine and timeout.",
+        "The failed Windows report, raw log digest and exact tested Git tree are retained. Focused fixture tests and the native full Rust task pass on the corrective source."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "rust-format",
+        "rust-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-036-2263a63bf3b1a326.json",
+          "sha256": "ebb6e7b9f08407173cb20a792df59ef4205377b50b5124ac8f09e41120f165c8"
+        },
+        {
+          "path": "project/evidence/M0-036-bede1e0b8b042a8b.json",
+          "sha256": "951c8dee010667c741ccee98c4a3cf61e6f6d0e933dd5076dd1b6e0a49ce2076"
+        },
+        {
+          "path": "project/evidence/M0-036-48a1ce86d7f1472b.json",
+          "sha256": "a741e3de3b2ef8b9b9c336e8334f90b5c80303814a745a9b5e031115f34e2bfc"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Bound Windows desktop test profile preparation and preserve native ACL and concurrent bridge coverage.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "apps/desktop/src-tauri/src/bridge_tests.rs",
+          "crates/persistence/src/storage.rs",
+          "crates/persistence/src/storage_acl.ps1",
+          "scripts/rust_workspace.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The simultaneous Windows fixture preparations may contend for PowerShell startup or ACL work on a hosted runner. Serializing only explicit fixture setup can reduce that contention. The retained report does not distinguish CPU scheduling, process startup and I/O."
+        ],
+        "risks": [
+          {
+            "failure": "A fixture error or panic prevents later profile preparation.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A test fixture change bypasses native ACL checks or suppresses concurrent bridge assertions.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the test-only scheduling change if native focused or standard checks reveal a regression. Preserve the original report, raw log and exact Git tree.",
+        "implementation": {
+          "modules": [
+            "desktop",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "apps/desktop/src-tauri/src/bridge_tests.rs",
+            "scripts/rust_workspace.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changes to application ACL checks, timeout policy, product scheduling or existing product assertions."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The native ACL path and refusal mapping, process timeout and cleanup, concurrent bridge behavior, isolated test directories and existing test assertions."
+          ],
+          "change": [
+            "Admit one explicit Windows desktop fixture profile-root preparation at a time."
+          ],
+          "data_plan": "Use synthetic temporary profiles and the retained hosted artifacts. No product data changes are required.",
+          "cleanup": "Test release of the fixture slot on success, error and unwind. Verify real profile construction and directory cleanup."
+        }
+      }
+    },
+    {
       "id": "M0-031",
       "title": "Resolve archived diagnostic runs and qualify idle worktrees for retirement",
       "milestone": "M0",
@@ -10125,114 +9517,6 @@
           ],
           "data_plan": "Inspect repository metadata and retained development evidence locally. Opt in to archive access only for explicit verification.",
           "cleanup": "Keep the existing locator and queue entrypoints and remove overly broad assumptions under deterministic regression fixtures."
-        }
-      }
-    },
-    {
-      "id": "M0-036",
-      "title": "Bound Windows desktop fixture ACL preparation",
-      "milestone": "M0",
-      "status": "done",
-      "depends_on": [
-        "M2-011"
-      ],
-      "scope": [
-        "apps/desktop/src-tauri/src/bridge_tests.rs",
-        "project/tasks.json",
-        "project/feedback.json"
-      ],
-      "decision_refs": [
-        "0004",
-        "0007"
-      ],
-      "acceptance": [
-        "Real Windows desktop fixture root preparation, including copy setup, occupies one short-lived slot that is released on success, error, and unwind.",
-        "The desktop bridge still runs its native profile, identity, authorization, cleanup, and concurrency assertions with the existing ACL routine and timeout.",
-        "The failed Windows report, raw log digest and exact tested Git tree are retained. Focused fixture tests and the native full Rust task pass on the corrective source."
-      ],
-      "checks": [
-        "project-state",
-        "python-contracts-workers",
-        "rust-format",
-        "rust-contracts-workers"
-      ],
-      "evidence": [
-        {
-          "path": "project/evidence/M0-036-2263a63bf3b1a326.json",
-          "sha256": "ebb6e7b9f08407173cb20a792df59ef4205377b50b5124ac8f09e41120f165c8"
-        },
-        {
-          "path": "project/evidence/M0-036-bede1e0b8b042a8b.json",
-          "sha256": "951c8dee010667c741ccee98c4a3cf61e6f6d0e933dd5076dd1b6e0a49ce2076"
-        },
-        {
-          "path": "project/evidence/M0-036-48a1ce86d7f1472b.json",
-          "sha256": "a741e3de3b2ef8b9b9c336e8334f90b5c80303814a745a9b5e031115f34e2bfc"
-        }
-      ],
-      "next_action": null,
-      "blocker": null,
-      "closure_reason": null,
-      "plan": {
-        "outcome": "Bound Windows desktop test profile preparation and preserve native ACL and concurrent bridge coverage.",
-        "change_types": [
-          "tooling"
-        ],
-        "context": [
-          "apps/desktop/src-tauri/src/bridge_tests.rs",
-          "crates/persistence/src/storage.rs",
-          "crates/persistence/src/storage_acl.ps1",
-          "scripts/rust_workspace.py",
-          "project/delivery.json"
-        ],
-        "hypotheses": [
-          "The simultaneous Windows fixture preparations may contend for PowerShell startup or ACL work on a hosted runner. Serializing only explicit fixture setup can reduce that contention. The retained report does not distinguish CPU scheduling, process startup and I/O."
-        ],
-        "risks": [
-          {
-            "failure": "A fixture error or panic prevents later profile preparation.",
-            "checks": [
-              "rust-contracts-workers"
-            ]
-          },
-          {
-            "failure": "A test fixture change bypasses native ACL checks or suppresses concurrent bridge assertions.",
-            "checks": [
-              "rust-contracts-workers"
-            ]
-          }
-        ],
-        "rollback": "Revert the test-only scheduling change if native focused or standard checks reveal a regression. Preserve the original report, raw log and exact Git tree.",
-        "implementation": {
-          "modules": [
-            "desktop",
-            "development-tooling"
-          ],
-          "entrypoints": [
-            "apps/desktop/src-tauri/src/bridge_tests.rs",
-            "scripts/rust_workspace.py"
-          ],
-          "rules": [
-            {
-              "path": "project/delivery.json",
-              "pointer": "/scaffold_maintenance"
-            }
-          ],
-          "non_goals": [
-            "Changes to application ACL checks, timeout policy, product scheduling or existing product assertions."
-          ],
-          "open_questions": []
-        },
-        "evolution": {
-          "kind": "refactor",
-          "preserve": [
-            "The native ACL path and refusal mapping, process timeout and cleanup, concurrent bridge behavior, isolated test directories and existing test assertions."
-          ],
-          "change": [
-            "Admit one explicit Windows desktop fixture profile-root preparation at a time."
-          ],
-          "data_plan": "Use synthetic temporary profiles and the retained hosted artifacts. No product data changes are required.",
-          "cleanup": "Test release of the fixture slot on success, error and unwind. Verify real profile construction and directory cleanup."
         }
       }
     },
@@ -10709,6 +9993,1217 @@
           ],
           "data_plan": "Use disposable synthetic frozen chart data and existing workspace records. The accepted receipt and undo remain under the existing single-writer lifecycle.",
           "cleanup": "Release read attempts, timers, route handlers and the synthetic producer on completion, cancellation or failure."
+        }
+      }
+    },
+    {
+      "id": "M0-039",
+      "title": "Reconcile historical Git branches, pull requests and recovery evidence",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [],
+      "scope": [
+        "scripts",
+        "tests/project",
+        "project",
+        "contracts/reviews",
+        "AGENTS.md",
+        "package.json",
+        "contracts/schemas/project.schema.json",
+        "contracts/decisions/0022-task-branch-retirement-and-verification.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0006",
+        "0007",
+        "0022"
+      ],
+      "acceptance": [
+        "Compare live default and protected branches, all tips, ancestry and open pull request heads and bases. Exercise merged, divergent, held and unavailable observations with synthetic repositories.",
+        "The integration assessment binds required hosted verification to the specific pull request and tested head and base. A different pull request or obsolete base cannot supply its green workflow.",
+        "Reconcile inherited merged pull requests and heads, retain and verify independent recovery of backup tips, and preserve any original acceptance receipts missing from main.",
+        "Record observed dispositions and the standing owner workflow. Establish when to open, checkpoint, push, integrate and retire work, and give recurring reviews a cadence and an actionable entry point."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-039-3a24e7a521ed3ba8.json",
+          "sha256": "9237c4b6ca4c8e987513dc12d165204896b5c13cc455d2e8c6c9f603289c8e93"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Reconciled all 35 original GitHub heads. Retired 23 integrated branches and six independently recoverable backups, closed seven superseded PRs, restored both original M1-018 hosted receipts, and enabled automatic deletion on merge. The read-only branch command passed against the live repository. Fixed the pull request provenance check and exercised direct recovery refs and due-date reporting.",
+      "plan": {
+        "outcome": "Each inherited GitHub branch has a verified outcome. Merged work is retired, unique work and evidence remain recoverable, and subsequent delivery has a repeatable branch review.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/ci.py",
+          "scripts/worktree_retirement.py",
+          "scripts/integration.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "At main f7624a93 GitHub had 35 branch heads. Twenty-three non-default heads were reachable from main, and seven stacked pull requests remained open with their full heads already integrated. Six other backup heads required independent preservation and comparison."
+        ],
+        "risks": [
+          {
+            "failure": "A stale or incomplete observation retires new work or an active base, or a backup or worktree loses its only recoverable copy.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A different pull request on the same commit or an old base supplies the apparent passing workflow.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep original local evidence private and verify an independent Git bundle for exact tips before cleanup. Restore a retired ref only after confirming its name is free.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/ci.py",
+            "scripts/worktree_retirement.py",
+            "scripts/integration.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "contracts/decisions/0022-task-branch-retirement-and-verification.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Releasing product packages or replacing product milestone acceptance with repository maintenance."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Strict protected main checks, historical task definitions, required migrations, owner data, and separate release authorization."
+          ],
+          "change": [
+            "Add an owner-invoked live branch review, prevent accumulated merged heads, and give the recurring maintenance review a concrete entry point.",
+            "Detect overdue branch, worktree and compatibility reviews in project status, and require specific pull request verification identity.",
+            "Recognize direct shared ScopeHub recovery refs for a committed exact-head worktree disposition and reject a symbolic ref as its recovery anchor."
+          ],
+          "data_plan": "Keep original local evidence private and verify an independent Git bundle for exact tips before cleanup. Restore a retired ref only after confirming its name is free.",
+          "cleanup": "Record observed dispositions and the standing owner workflow. Establish when to open, checkpoint, push, integrate and retire work, and give recurring reviews a cadence and an actionable entry point."
+        }
+      }
+    },
+    {
+      "id": "M1-027",
+      "title": "Use the shared supported operation list for legacy market worker negotiation",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-001"
+      ],
+      "scope": [
+        "crates/worker-host/src/market.rs",
+        "crates/application/src/lib.rs"
+      ],
+      "decision_refs": [
+        "0007",
+        "0010"
+      ],
+      "acceptance": [
+        "Negotiate both supported minimum reads with protocol 1.0 from one production definition and preserve optional paged history in 1.1.",
+        "Run independent handshake and market worker contract cases against the supported old and new versions."
+      ],
+      "checks": [
+        "rust-contracts-workers",
+        "rust-format",
+        "architecture",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-027-3a24e7a521ed3ba8.json",
+          "sha256": "d9827248f7c22da152ff52aeb845429e5133c70230c4edc659a0d3f63b42bb91"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The production handshake now uses the shared legacy capability set. Independent protocol tests and the full eligible Rust workspace passed with both supported versions.",
+      "plan": {
+        "outcome": "The Rust host and operation registry share the minimum market read capabilities while independent fixtures continue to assert the wire names.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "crates/application/src/lib.rs",
+          "crates/worker-host/src/market.rs",
+          "crates/worker-host/tests/handshake.rs",
+          "contracts/contract.json"
+        ],
+        "hypotheses": [
+          "The host repeats both names from an unused public constant even though both belong to the same supported capability set."
+        ],
+        "risks": [
+          {
+            "failure": "Changing the minimum capabilities rejects a working legacy worker or requires paging for an older worker.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the narrow host change and rerun the independent worker handshake and history tests. No data conversion is involved.",
+        "implementation": {
+          "modules": [
+            "application",
+            "worker-host"
+          ],
+          "entrypoints": [
+            "crates/worker-host/src/market.rs",
+            "crates/application/src/lib.rs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/protocol/compatibility"
+            }
+          ],
+          "non_goals": [
+            "Removing a supported protocol version or changing wire schemas."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Supported 1.0 reads and optional 1.1 paged history."
+          ],
+          "change": [
+            "Negotiate minimum capabilities from the declared shared set."
+          ],
+          "data_plan": "The wire format and persisted records use their existing representations.",
+          "cleanup": "Remove the two duplicated production literals and keep independent expected values in the tests."
+        }
+      }
+    },
+    {
+      "id": "M0-042",
+      "title": "Verify the actual checkout of every required pull request job",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [],
+      "scope": [
+        "scripts/integration.py",
+        "tests/project/test_integration.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0006",
+        "0007"
+      ],
+      "acceptance": [
+        "Reproduce a successful pair of required jobs where only the first platform checked the expected pull request and merge commit. Cover both missing and mismatched evidence on the other platform.",
+        "Observe each uniquely named required job in the same run attempt and its successful pinned checkout. Require agreement on the pull request, merge checkout and exact parents for both platforms.",
+        "Exercise successful and mismatched platform pairs and retain the real Ubuntu and Windows checkout observations for a reviewed pull request.",
+        "Reject a newer attempt with an incorrect head parent even when an older attempt inspected the expected revision."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-042-dbd24cb9613c1695.json",
+          "sha256": "698479fc18f6a637940404eca9ccf26ed88475bcee5fb7124c8adaf4751eb587"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Verified Ubuntu and Windows checkout logs from hosted run 44926059988 against exact merge parents. Two-job regressions reject missing or divergent platform checkouts and a newer incorrect head even when an older attempt passed. Independent review reproduced the defect before repair and rejected incorrect and malformed parents afterward.",
+      "plan": {
+        "outcome": "A merge recommendation identifies the actual checkout of each required platform and withholds approval when any required job has stale or missing provenance.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/integration.py",
+          "tests/project/test_integration.py",
+          "project/branch-protection.json",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "A successful Linux checkout supplied the source identity for the entire run. Both a missing and an obsolete Windows checkout incorrectly resulted in a ready recommendation in the two-job reproduction."
+        ],
+        "risks": [
+          {
+            "failure": "One platform verifies an obsolete merge while another platform supplies its apparent source identity.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain the failed reproduction and accepted prior recommendations. Record missing or divergent checkout evidence as a blocker. Restore with a reviewed tooling correction.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/integration.py",
+            "tests/project/test_integration.py",
+            "project/branch-protection.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing CI permissions, branch protection, product code or release requirements."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Current base and head, protected Linux and Windows job identities, immutable accepted history and separate merge authorization."
+          ],
+          "change": [
+            "Bind every required job to the same actual checkout before recommending integration."
+          ],
+          "data_plan": "Retain the failed reproduction and accepted prior recommendations. Record missing or divergent checkout evidence as a blocker. Restore with a reviewed tooling correction.",
+          "cleanup": "Exercise successful and mismatched platform pairs and retain the real Ubuntu and Windows checkout observations for a reviewed pull request."
+        }
+      }
+    },
+    {
+      "id": "M0-043",
+      "title": "Preserve historical feedback observations outside temporary host directories",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [],
+      "scope": [
+        "project/feedback.json",
+        "project/delivery.json",
+        "contracts/reviews/2026-11-21-repository-maintenance.json",
+        "project/tasks.json",
+        "AGENTS.md"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Three historical feedback sources resolve to the original bytes after the host temporary directories are removed.",
+        "Preserve 17 original observations in the development archive and replace four temporary locators in three feedback sources.",
+        "Include observation retention and restoration in the weekly worktree review."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-043-93d69e7ba7390661.json",
+          "sha256": "7b17e5c013922a5882c6f538a9ab2640498ae0e0377cdf98fa6feaade0e81ce8"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Restored and verified 17 original files in three independent manifests. Replaced the four temporary source locators and added original-observation retention to the weekly worktree and evidence review.",
+      "plan": {
+        "outcome": "Three historical feedback sources resolve to the original bytes after the host temporary directories are removed.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/feedback.json",
+          "project/delivery.json",
+          "contracts/reviews/2026-11-21-repository-maintenance.json"
+        ],
+        "hypotheses": [
+          "Three addressed reports still use four host temporary paths as evidence. The independently retained manifest and file digests can preserve those observations."
+        ],
+        "risks": [
+          {
+            "failure": "A lost source observation or an accidental change in its meaning obscures a historical correction.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the original sources until their independent copies have been verified. Preserve the original path, file digests and historical report classification in each private manifest.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "project/feedback.json",
+            "project/delivery.json",
+            "contracts/reviews/2026-11-21-repository-maintenance.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing the original verification result, product behavior or acceptance receipts."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Original bytes, authorship, observed outcome and attached engineering evidence."
+          ],
+          "change": [
+            "Preserve 17 original observations in the development archive and replace four temporary locators in three feedback sources.",
+            "Include observation retention and restoration in the weekly worktree review."
+          ],
+          "data_plan": "Read and digest each retained file. Store only its logical location and manifest digest in version control.",
+          "cleanup": "Recheck all 17 files against the three independently retained manifests before releasing the temporary copies."
+        }
+      }
+    },
+    {
+      "id": "M0-044",
+      "title": "Detect default-branch protection loss during weekly branch review",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-039"
+      ],
+      "scope": [
+        "scripts/branches.py",
+        "tests/project/test_branches.py",
+        "project/delivery.json",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0022"
+      ],
+      "acceptance": [
+        "The weekly branch review reports a corrective action if the default branch has lost protection.",
+        "Keep ordinary feature branches eligible for classification and point to the dedicated full protection audit."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-044-d43af645e8f7ec43.json",
+          "sha256": "d6f61de0389115a67c0b03a20693325982e295f573abb482a736705327ea45f5"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Reproduced the false pass on an unprotected default, then verified 11 branch inventory tests and the live protected main. Stable protection loss produces an actionable finding and keeps the inventory available.",
+      "plan": {
+        "outcome": "The weekly branch review reports a corrective action if the default branch has lost protection.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/branches.py",
+          "tests/project/test_branches.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "A fixture with a stable default branch reported as unprotected produced a passing weekly branch inventory. The dedicated integration protection check still enforces the policy."
+        ],
+        "risks": [
+          {
+            "failure": "Weekly maintenance overlooks a disabled default-branch protection rule.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Restore the previous read-only report if necessary and run the dedicated protection audit. Never change live protection in the fixture.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/branches.py",
+            "tests/project/test_branches.py",
+            "project/delivery.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/periodic_reviews"
+            }
+          ],
+          "non_goals": [
+            "Changing GitHub settings, deleting branches or replicating the full protection policy."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "All branch and PR classifications and the separate full protection audit."
+          ],
+          "change": [
+            "Report a stable observed loss of default-branch protection as a maintenance finding."
+          ],
+          "data_plan": "No stored data changes. Retain the original reproduction and the live protected default observation.",
+          "cleanup": "Exercise protected, unprotected and ordinary unprotected feature branches."
+        }
+      }
+    },
+    {
+      "id": "M4-006",
+      "title": "Connect a selected text model and complete ordinary turns from the desktop",
+      "milestone": "M4",
+      "status": "done",
+      "depends_on": [
+        "M2-001"
+      ],
+      "scope": [
+        "python/ai",
+        "python/worker_runtime",
+        "crates",
+        "apps/desktop",
+        "tests",
+        "project",
+        "contracts"
+      ],
+      "decision_refs": [
+        "0001",
+        "0004",
+        "0007",
+        "0009",
+        "0011",
+        "0019"
+      ],
+      "acceptance": [
+        "The first unconfigured question offers connection setup and an explicitly labeled offline demonstration without contacting any recipient.",
+        "Through the normal workspace UI a user selects a text route, model and disclosed scope, sees the destination and charge basis, and activates it once. Complete at least two ordinary turns through the actual adapter against a controlled HTTP peer. Neither turn repeats the activation prompt. Display the actual responding model and a bounded failure when the chosen route is unavailable.",
+        "Bind dispatch to the current profile, recipient and capabilities. After disconnect, cancellation or a proposed destination change, the old authority cannot send a new turn. A text-only route remains usable without audio. Keep credentials inside the trusted connector and private records on the device; ordinary turns carry only the disclosed context.",
+        "Retain separate evidence for real adapter traffic against the synthetic local endpoint, an explicitly chosen offline demonstration, and the pending paid or independently hosted model qualification in M4-002."
+      ],
+      "checks": [
+        "model-connection-workflow",
+        "model-connection-replay",
+        "ui-build",
+        "market-workflow",
+        "operations-workflow",
+        "python-types",
+        "architecture",
+        "python-contracts-workers",
+        "generated-contracts",
+        "typescript-contracts",
+        "rust-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M4-006-4499f45a417f3f97.json",
+          "sha256": "b3e6b9e841849fb31d0b8eaaadacd76fe35636d97e263713370e9c5603fdf835"
+        },
+        {
+          "path": "project/evidence/M4-006-b210961fafbb4a99.json",
+          "sha256": "fcf11b970a8bdf9e02460f70054799abd1da7e81256d81fe83c044663f0ac8bf"
+        },
+        {
+          "path": "project/evidence/M4-006-ae92f8bbf72660d3.json",
+          "sha256": "7a2c3667cf66232154a4397c06628a9de642d7ab95c3c568434db44685a6d954"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A product user can choose a text model once, ask a question and continue the conversation in the same authorized workspace.",
+        "change_types": [
+          "model-connection",
+          "ui",
+          "permissions",
+          "protocol"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/decisions/0009-model-providers-and-external-workspace-clients.json",
+          "contracts/decisions/0011-local-profiles-and-connected-model-use.json",
+          "project/development.json",
+          "crates/application/src/workspace.rs",
+          "apps/desktop/ui/src/workspace-panels.tsx",
+          "contracts/decisions/0019-profile-text-model-route.json"
+        ],
+        "hypotheses": [
+          "An explicitly chosen adapter can support ordinary turns independently of market-data supply and the chart rendering library.",
+          "Observing the final serialized request at a real local HTTP peer distinguishes an actual configured call from a canned UI response."
+        ],
+        "risks": [
+          {
+            "failure": "A first question, retry, restart, or recipient change silently transmits to an unselected route.",
+            "checks": [
+              "model-connection-workflow",
+              "model-connection-replay"
+            ]
+          },
+          {
+            "failure": "A saved private record, a credential or an old provider context reaches an unrelated turn.",
+            "checks": [
+              "model-connection-replay",
+              "operations-workflow"
+            ]
+          },
+          {
+            "failure": "A fixture becomes an implicit replacement for an unavailable configured model.",
+            "checks": [
+              "model-connection-workflow"
+            ]
+          }
+        ],
+        "rollback": "Retain the controlled peer and failed observations. Disconnect the unfinished adapter independently of workspace data and restore the previous profile state.",
+        "implementation": {
+          "modules": [
+            "product-ai",
+            "application",
+            "worker-runtime",
+            "desktop",
+            "ui",
+            "worker-host"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/workspace-panels.tsx",
+            "apps/desktop/src-tauri/src/bridge.rs",
+            "crates/application/src/workspace.rs",
+            "crates/application/src/workspace/text_connection.rs",
+            "crates/worker-host/src/text_model.rs",
+            "python/worker_runtime/text_model.py",
+            "python/ai/ollama.py"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ai/model_connections"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence/private_content/transfer"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/data_ownership"
+            }
+          ],
+          "non_goals": [
+            "Trading, external client pairing, microphone capture, accepting financial mutations or claiming real-provider qualification from fixture traffic."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "The independent market source, scoped Rust operations, existing profile-local private records, user-reviewed private excerpts and explicit sample opt-in."
+          ],
+          "change": [
+            "Add an ordinary text conversation entry, a clearly disclosed activated route and a replaceable text adapter."
+          ],
+          "data_plan": "Keep connection metadata and successful ordinary pairs in the bound session only. Project only the typed question and bounded recent pairs. The first route uses no credential references or private provider conversation handle; preserve only synthetic verification evidence.",
+          "cleanup": "Cancel pending work, clear the grant on disconnect or route replacement and start disconnected after process restart. Preserve all existing storage migrations."
+        }
+      }
+    },
+    {
+      "id": "M4-007",
+      "title": "Preserve the local writer and conversation across text reply boundaries",
+      "milestone": "M4",
+      "status": "done",
+      "depends_on": [
+        "M4-006"
+      ],
+      "scope": [
+        "crates/persistence/src/bin/workspace_bridge.rs",
+        "apps/desktop/ui/src/model-chat.tsx",
+        "apps/desktop/ui/ubuntu-workspace.mjs",
+        "tests"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0009",
+        "0011",
+        "0019"
+      ],
+      "acceptance": [
+        "Deliver a valid large or escaped answer through the real adapter, internal result channel and visible conversation. A rejected or over-limit result leaves the same writer available for an ordinary workspace operation.",
+        "After an interrupted or mismatched poll on a second turn, retain the successful first exchange and actual connection status. Recover the original second-turn outcome exactly once, without sending the user question again or labeling a local transport failure as provider rejection.",
+        "Exercise cancellation, disconnection, an explicitly changed recipient and a distinct profile without transferring old context; demonstrate the bounded recent conversation reaches the actual configured peer."
+      ],
+      "checks": [
+        "model-connection-workflow",
+        "model-connection-replay",
+        "ui-build",
+        "market-workflow",
+        "operations-workflow",
+        "rust-contracts-workers",
+        "python-contracts-workers"
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "evidence": [
+        {
+          "path": "project/evidence/M4-007-3e31e53b1d4314ee.json",
+          "sha256": "65065e3e425ba70e103137cec8af4fc3ddd8663664b4da8be48cc30dd3eb1f18"
+        }
+      ],
+      "plan": {
+        "outcome": "A user can continue the same conversation and work in the same workspace after a large reply or an interrupted local poll.",
+        "change_types": [
+          "model-connection",
+          "ui",
+          "permissions"
+        ],
+        "context": [
+          "crates/persistence/src/bin/workspace_bridge.rs",
+          "apps/desktop/ui/src/model-chat.tsx",
+          "apps/desktop/ui/ubuntu-workspace.mjs",
+          "contracts/decisions/0019-profile-text-model-route.json"
+        ],
+        "hypotheses": [
+          "Private worker replies need a bounded envelope compatible with accepted connector payloads. Uncertain local observations can be reconciled using the existing job identity and current grant.",
+          "A read of the current grant can reconcile a lost disconnect or route review reply without repeating the command or enabling a recipient."
+        ],
+        "risks": [
+          {
+            "failure": "An oversized or malformed result blocks unrelated workspace requests or widens the public request limit.",
+            "checks": [
+              "model-connection-workflow",
+              "model-connection-replay"
+            ]
+          },
+          {
+            "failure": "A failed observation loses earlier turns, repeats an outbound question or discloses them after changing route or profile.",
+            "checks": [
+              "model-connection-workflow",
+              "model-connection-replay"
+            ]
+          }
+        ],
+        "rollback": "Keep both baseline observations and boundary fixtures. Restore the previous reader and UI independently if focused checks fail.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "application",
+            "persistence",
+            "worker-host",
+            "worker-runtime"
+          ],
+          "entrypoints": [
+            "crates/persistence/src/bin/workspace_bridge.rs",
+            "apps/desktop/ui/src/model-chat.tsx",
+            "apps/desktop/ui/ubuntu-workspace.mjs",
+            "crates/application/src/workspace/text_connection.rs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ai/model_connections/session_grant"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ai/context_policy"
+            }
+          ],
+          "non_goals": [
+            "Product cloud or voice qualification and changes to private record persistence."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The activated route, recipient and profile boundaries, bounded recent turns and explicit disconnect."
+          ],
+          "change": [
+            "Make valid private result framing interoperable and recover pending turns without a duplicate dispatch.",
+            "Reconcile an interrupted disconnect or route review with the local grant before allowing another send."
+          ],
+          "data_plan": "Use disposable synthetic profiles and isolated test recipients. Keep successful ordinary pairs within their existing session.",
+          "cleanup": "Settle or reject each pending turn and remove listeners and retained state when the session ends."
+        }
+      }
+    },
+    {
+      "id": "M4-008",
+      "title": "Connect a profile-owned cloud text credential to the selected model",
+      "milestone": "M4",
+      "status": "done",
+      "depends_on": [
+        "M4-006"
+      ],
+      "scope": [
+        "crates/platform",
+        "crates/worker-host",
+        "crates/application",
+        "crates/persistence/src/bin/workspace_bridge.rs",
+        "apps/desktop",
+        "contracts",
+        "scripts/check_architecture.py",
+        "tests",
+        "project"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0009",
+        "0011",
+        "0019",
+        "0020"
+      ],
+      "acceptance": [
+        "Select the OpenAI Responses text adapter and explicitly enter a model ID in ordinary product settings. Disclose its named destination, data categories and account charge basis before activation. Use the activated route for successive typed questions, preserving the independent Ollama route and explicit demo.",
+        "Resolve only the current profile’s explicitly supplied credential inside the trusted connector. Save native Windows credentials in Credential Manager and disclose the Ubuntu preview's session lifetime. Missing, replaced or removed credentials, an unavailable recipient, and changed connection scope produce visible bounded outcomes. Only opaque references enter the operation state.",
+        "Using test-owned synthetic credentials, inspect an actual request at the final connector boundary. Verify the approved destination, redacted handling of authentication errors, store=false, bounded reconstructed conversation and exclusion of saved private records, provider conversation handles and unrelated data. Preserve usable ordinary text after changing back to a different provider.",
+        "Keep controlled transport observations and cross-compilation separate from native Windows Credential Manager runtime and packaging. Real account qualification will run under M4-002 with the owner’s explicit test account and spend scope."
+      ],
+      "checks": [
+        "model-connection-workflow",
+        "model-connection-replay",
+        "openai-responses-transport",
+        "operations-workflow",
+        "ui-build",
+        "market-workflow",
+        "generated-contracts",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "python-types",
+        "architecture"
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The controlled OpenAI Responses acceptance passed on the integrated source, including two ordinary TLS turns on one grant, chart denial before admission, credential revocation and continued Ollama use. The source-bound native Windows credential lifecycle is retained in contracts/reviews/2026-11-20-native-openai-credential.json. Real account qualification remains under M4-002. Packaged Windows acceptance remains a release gate under ADR 0020.",
+      "evidence": [
+        {
+          "path": "project/evidence/M4-008-137f40b60682285f.json",
+          "sha256": "3b476e871c33daeadff659d0ed1cedcc7d1e5219f8269fd233289ce45548cd6c"
+        },
+        {
+          "path": "project/evidence/M4-008-6b49e685c77a34ae.json",
+          "sha256": "4c39b1294a09ccbca69fba9df8745b7d6454c47336b67c913fdc44fd51052bb0"
+        },
+        {
+          "path": "project/evidence/M4-008-1ecf72444f8637d5.json",
+          "sha256": "db7f5c0648a767e24aa8de913d0cb968329f8ef26f82a30b8414df791aa6fe96"
+        },
+        {
+          "path": "project/evidence/M4-008-f956cbf6090e0a54.json",
+          "sha256": "1caf3403e1e112deb2e49f691f8a0e2df4d83af864b3b820489fdf7e49be34b3"
+        }
+      ],
+      "plan": {
+        "outcome": "An end user can select a capable cloud provider and supply their own API credential from ScopeHub, with a named recipient and no silent fallback.",
+        "change_types": [
+          "model-connection",
+          "ui",
+          "permissions",
+          "protocol"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/decisions/0009-model-providers-and-external-workspace-clients.json",
+          "contracts/decisions/0011-local-profiles-and-connected-model-use.json",
+          "contracts/decisions/0019-profile-text-model-route.json",
+          "contracts/decisions/0020-profile-openai-responses.json",
+          "crates/worker-host/src/text_model.rs",
+          "apps/desktop/ui/src/model-chat.tsx"
+        ],
+        "hypotheses": [
+          "The existing text connection state can route the final projected request through distinct provider adapters without altering chart or private storage. A local credential reference independent of the typed model prevents reusing a secret for another destination."
+        ],
+        "risks": [
+          {
+            "failure": "Authentication material or provider-retained private context enters a persisted or unrelated request.",
+            "checks": [
+              "model-connection-workflow",
+              "model-connection-replay",
+              "openai-responses-transport",
+              "operations-workflow"
+            ]
+          },
+          {
+            "failure": "Ordinary local text starts an undisclosed billable call or a failed cloud request silently uses a different service.",
+            "checks": [
+              "model-connection-workflow",
+              "model-connection-replay",
+              "openai-responses-transport"
+            ]
+          }
+        ],
+        "rollback": "Disconnect and remove the synthetic credential through the same trusted account. Preserve the existing credential-free adapter and independent configuration.",
+        "implementation": {
+          "modules": [
+            "product-ai",
+            "application",
+            "platform",
+            "worker-host",
+            "desktop",
+            "ui"
+          ],
+          "entrypoints": [
+            "crates/application/src/workspace/text_connection.rs",
+            "crates/worker-host/src/text_model.rs",
+            "crates/platform/src/model_credentials.rs",
+            "apps/desktop/src-tauri/src/bridge.rs",
+            "apps/desktop/ui/ubuntu-workspace.mjs",
+            "apps/desktop/ui/src/model-chat.tsx",
+            "python/ai/ollama.py"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ai/model_connections"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence/credentials"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ai/context_policy"
+            }
+          ],
+          "non_goals": [
+            "Real charged calls in automated tests, authenticated third-party proxy origins, audio capture, and claiming provider fitness from controlled traffic."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Per-profile activation, public text contract compatibility, the existing direct Ollama adapter, bounded ordinary turns and independent market data selection."
+          ],
+          "change": [
+            "Offer a fixed-destination native OpenAI Responses text adapter with a trusted provider-discriminated credential lifecycle."
+          ],
+          "data_plan": "Keep persistent native secrets in Windows Credential Manager and Ubuntu preview credentials in the private launcher session. The Rust registry receives only each opaque revision. Keep private originals and exports local. Rebuild the bounded input for each Responses request and set store=false. Discard provider handles.",
+          "cleanup": "Cancel active work on disconnect or invalidated credential scope, drop connector-local credential material and support removing the user’s configured credential."
+        }
+      }
+    },
+    {
+      "id": "M4-009",
+      "title": "Recover native text setup during initial workspace admission",
+      "milestone": "M4",
+      "status": "done",
+      "depends_on": [
+        "M4-007"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/model-chat-transport.ts",
+        "apps/desktop/ui/src/model-chat.tsx",
+        "apps/desktop/src-tauri/src/workspace.rs",
+        "tests/ui/desktop-workspace.spec.mjs"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0011",
+        "0019"
+      ],
+      "acceptance": [
+        "The first native chat status and route review recover after controlled workspace writer contention. Retry only explicitly retryable transport BUSY before registry admission, with the same command and a bounded wait.",
+        "A workspace admission failure identifies the local workspace. Preserve exactly one explicit model send, current cancellation behavior and grant checks. Setup contacts no model recipient.",
+        "Retain a controlled held-writer regression through the native dispatch and the normal UI entry. Supply a local source commit for a native Windows cold and warm rerun."
+      ],
+      "checks": [
+        "desktop-workspace-transport",
+        "market-workflow",
+        "model-connection-replay",
+        "model-connection-workflow",
+        "rust-contracts-workers",
+        "ui-build"
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "evidence": [
+        {
+          "path": "project/evidence/M4-009-15ee7224844b6c58.json",
+          "sha256": "90ee7ba334e5b7c385fe7818c893580f4396ff0bb35562a94183b4cb8e98e070"
+        }
+      ],
+      "plan": {
+        "outcome": "An immediate Ask AI and route review can complete after the first private workspace snapshot releases the native writer.",
+        "change_types": [
+          "model-connection",
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/src-tauri/src/workspace.rs",
+          "crates/persistence/src/lib.rs",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "apps/desktop/ui/src/model-chat-transport.ts"
+        ],
+        "hypotheses": [
+          "The initial snapshot holds native admission while opening SQLite. Only the outer retryable BUSY rejects status and propose before execution. A bounded retry around the transport can safely keep their original correlation."
+        ],
+        "risks": [
+          {
+            "failure": "Replaying a command after admission can revoke a newer grant, or resubmit a model turn. Treat operation outcomes as terminal for the transport retry and exercise one explicit send and cancellation.",
+            "checks": [
+              "desktop-workspace-transport",
+              "model-connection-workflow",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Restore immediate native status and proposal admission failure while retaining the captured IPC and held-writer regressions.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "desktop"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/model-chat-transport.ts",
+            "apps/desktop/ui/src/model-chat.tsx",
+            "apps/desktop/src-tauri/src/workspace.rs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ai/model_connections/session_grant"
+            }
+          ],
+          "non_goals": [
+            "Automatic send retries, wider writer admission, configured provider calls and Windows execution in this worktree."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Single-writer admission, grant revocation, operation outcomes and explicit model send and cancellation."
+          ],
+          "change": [
+            "Recover narrowly from explicit native transport contention during status and route review, and report local contention accurately."
+          ],
+          "data_plan": "Use a disposable synthetic profile for the native lane and a held writer in the substituted IPC journey.",
+          "cleanup": "Stop retries by deadline or abort and release all fixture holds."
+        }
+      }
+    },
+    {
+      "id": "M4-010",
+      "title": "Recover a selected chart question after contention or a cleared selection",
+      "milestone": "M4",
+      "status": "done",
+      "depends_on": [
+        "M4-006"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/use-local-workspace.ts",
+        "apps/desktop/ui/src/model-chat.tsx",
+        "apps/desktop/ui/src/main.tsx",
+        "tests/ui/ai-workflow.spec.mjs"
+      ],
+      "decision_refs": [
+        "0004",
+        "0019",
+        "0021"
+      ],
+      "acceptance": [
+        "After a pre-admission BUSY, retry the original selection operation with unchanged identity and advance its revision once.",
+        "Reopen a draft after another client clears its selected bar. Keep its text, disable Send until reselection, and allow a fresh ordinary question without chart context."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "model-connection-workflow",
+        "model-connection-replay"
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "evidence": [
+        {
+          "path": "project/evidence/M4-010-6b49e685c77a34ae.json",
+          "sha256": "899b9a4093dfec3eb7e7df6305fe7af437e68685a5b57799c8aa34ec441566c6"
+        }
+      ],
+      "plan": {
+        "outcome": "Close the reproduced contention and stale-draft defects in the selected-sample slice of M4-001.",
+        "change_types": [
+          "ui",
+          "model-connection"
+        ],
+        "context": [
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "apps/desktop/ui/src/model-chat.tsx",
+          "apps/desktop/ui/src/main.tsx",
+          "tests/ui/ai-workflow.spec.mjs"
+        ],
+        "hypotheses": [
+          "The workspace selection request owns its retry identity. The visible question draft can retain its selection requirement through a dialog reopen."
+        ],
+        "risks": [
+          {
+            "failure": "Contention replays an admitted selection or a cleared selection silently permits Send.",
+            "checks": [
+              "model-connection-workflow"
+            ]
+          }
+        ],
+        "rollback": "Retain the reproductions and hold selected-chart sending until an explicit bar selection is current.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/use-local-workspace.ts",
+            "apps/desktop/ui/src/model-chat.tsx",
+            "apps/desktop/ui/src/main.tsx"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ai/model_connections/session_grant"
+            }
+          ],
+          "non_goals": [
+            "Broader assisted operations, private excerpts and live provider qualification."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing route authorization, prior conversation and explicit ordinary text."
+          ],
+          "change": [
+            "Retain retry identity and stale intent across selection and dialog recovery."
+          ],
+          "data_plan": "Use the existing synthetic chart and owned HTTP recipient.",
+          "cleanup": "Clear the stale selection requirement when the user selects a bar or starts a fresh question."
+        }
+      }
+    },
+    {
+      "id": "M4-011",
+      "title": "Restore explicit refresh after shared selection contention",
+      "milestone": "M4",
+      "status": "done",
+      "depends_on": [
+        "M4-010"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/frozen-evidence.tsx",
+        "apps/desktop/ui/src/use-local-workspace.ts",
+        "tests/ui/local-import.spec.mjs",
+        "tests/ui/ai-workflow.spec.mjs"
+      ],
+      "decision_refs": [
+        "0004",
+        "0021"
+      ],
+      "acceptance": [
+        "After two BUSY responses for one clear request, keep the unavailable selection visible and offer both manual clear and explicit refresh. A refresh reads the current snapshot once and preserves the chosen revisions library.",
+        "A fresh manual clear uses the refreshed selection revision and succeeds once the writer is available. A transient BUSY still retries the original request once with identical contents."
+      ],
+      "checks": [
+        "local-import-ui",
+        "model-connection-workflow",
+        "ui-build",
+        "market-workflow"
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "evidence": [
+        {
+          "path": "project/evidence/M4-011-1087f6f63deeceee.json",
+          "sha256": "f4e80fca895d6a7d3ec4bd7bb12d0475362065965408b17118ba60a15210b1ec"
+        }
+      ],
+      "plan": {
+        "outcome": "Let a user recover an unavailable shared selection from the published CSV library after the bounded retry still encounters contention.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/frozen-evidence.tsx",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "tests/ui/local-import.spec.mjs",
+          "tests/ui/ai-workflow.spec.mjs"
+        ],
+        "hypotheses": [
+          "The bounded retry correctly leaves Clear available. The unavailable-selection view gates Refresh only on a blocking error and omits the recoverable contention notice."
+        ],
+        "risks": [
+          {
+            "failure": "A refresh silently repeats a mutation, a retry changes request identity or stale workspace state replaces the selected library.",
+            "checks": [
+              "local-import-ui",
+              "model-connection-workflow"
+            ]
+          }
+        ],
+        "rollback": "Retain the failure trace and existing bounded selection retry while isolating the refresh control in the unavailable-selection view.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/frozen-evidence.tsx",
+            "apps/desktop/ui/src/use-local-workspace.ts"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ai/tool_policy"
+            }
+          ],
+          "non_goals": [
+            "Changes to model transport, selection authority or existing accepted task definitions."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The exact selection request on one bounded retry, explicit user actions, and library selection during workspace reads."
+          ],
+          "change": [
+            "Show the existing snapshot refresh action after persistent contention when the shared selection is unavailable."
+          ],
+          "data_plan": "Use the existing synthetic workspace and substituted native IPC for the held writer.",
+          "cleanup": "Release held test responses in the existing fixture teardown."
         }
       }
     },
