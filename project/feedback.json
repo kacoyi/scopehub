@@ -3288,6 +3288,28 @@
           "report_sha256": "d4e476c37861687e0147a805abac3f3099f089baf8556f68ba6037deca3a4628"
         }
       ]
+    },
+    {
+      "id": "windows-python-suite-wall-time",
+      "source": "Authenticated Windows PR 42 run 45042311132. Original report and logs are retained under archives/runs/20261122T161306.780775Z-67e5702f/test-report.json.",
+      "severity": "major",
+      "status": "open",
+      "observation": "The Python process reached its 900-second deadline after printing test 567 of 568. The report records a 900.015-second timeout. Earlier completed suites took 645.078 and 696.188 seconds. Other native checks also took longer in the failed run.",
+      "task_ids": [
+        "M0-070"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T161306.780775Z-67e5702f",
+          "source_commit": "5532f7c2b9b299ef10975088df0c333a138949fd",
+          "report_sha256": "32540b8d527c5fde0e3262dc8635de9cf93fc0114488a8c663094a9d7a21d5f6"
+        }
+      ]
     }
   ]
 }

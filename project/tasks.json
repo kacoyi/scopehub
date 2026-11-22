@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-031",
+  "focus_task_id": "M0-070",
   "tasks": [
     {
       "id": "M0-001",
@@ -14263,6 +14263,117 @@
           ],
           "data_plan": "Use existing isolated synthetic profiles and the verified native Windows diagnostic.",
           "cleanup": "Remove obsolete ownership inferences and any temporary measurement after confirming the correction."
+        }
+      }
+    },
+    {
+      "id": "M0-070",
+      "title": "Keep complete Windows Python discovery within a measured finite wall-time budget",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-068",
+        "M0-069"
+      ],
+      "scope": [
+        "project/checks.json",
+        "scripts/check.py",
+        "scripts/verification_scope.py",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0006",
+        "0007",
+        "0026"
+      ],
+      "acceptance": [
+        "Explain the original 900.015-second timeout using retained suite and other check timings from comparable Windows runs. Distinguish observed progress from any unverified cause.",
+        "Keep complete discovery, existing assertions, a finite deadline and useful timeout diagnostics. Demonstrate the proportional change with regression or equivalence evidence and a completed native Windows suite with retained duration."
+      ],
+      "checks": [
+        "project-state",
+        "architecture",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Compare the retained Windows timings, choose the bounded correction and verify full discovery on Windows.",
+      "blocker": null,
+      "closure_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T161306.780775Z-67e5702f",
+          "source_commit": "5532f7c2b9b299ef10975088df0c333a138949fd",
+          "report_sha256": "32540b8d527c5fde0e3262dc8635de9cf93fc0114488a8c663094a9d7a21d5f6"
+        }
+      ],
+      "plan": {
+        "outcome": "The Windows check finishes its complete Python suite on a slower hosted runner and still reports a genuine timeout with useful progress.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/checks.json",
+          "scripts/check.py",
+          "tests/project",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The last printed test may reflect cumulative work or scheduling variability. Compare other checks, previously reported test durations, fixture work and cleanup before changing verification."
+        ],
+        "risks": [
+          {
+            "failure": "A faster suite skips checks or alters test semantics.",
+            "checks": [
+              "python-contracts-workers",
+              "architecture"
+            ]
+          },
+          {
+            "failure": "Unnecessary timeout growth conceals stalls or consumes other jobs’ budgets.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Retain the original failure and restore the reviewed settings through a protected PR if coverage or timeout behavior regresses.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check.py",
+            "project/checks.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Changing product behavior, unrelated deadlines, protected contexts or release verification."
+          ],
+          "open_questions": [
+            "Which measurable costs or bounded headroom best address the observed slow run?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Full Python discovery, assertions, finite process termination, logs and platform verification."
+          ],
+          "change": [
+            "Reduce measured overhead or adjust narrowly justified headroom for this check."
+          ],
+          "data_plan": "Use existing hosted diagnostics and synthetic repository fixtures.",
+          "cleanup": "Keep only the scoped correction and its regression. Remove temporary timing instrumentation after verification."
         }
       }
     }
