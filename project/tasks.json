@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-066",
+  "focus_task_id": "M1-031",
   "tasks": [
     {
       "id": "M0-001",
@@ -13799,7 +13799,7 @@
       "id": "M0-066",
       "title": "Assess an AI-editable desktop workspace and ordered chart panes",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-057",
         "M2-002"
@@ -13822,10 +13822,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Record the design options and the observed limits of a synthetic pane placement probe.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-066-c5199ed23a46882f.json",
+          "sha256": "5fca56a75097b1519739f1dabc29b68ad9dfd8254158f0b1062554304a41583d"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The review records a proposed two-level design, a reproducible chart-library observation with synthetic bars and an end-to-end desktop example for future evaluation. The widget task links to the proposal. Scoped repository checks and independent review passed. First-release scope and native product acceptance remain open.",
       "plan": {
         "outcome": "The owner can compare a free desktop canvas with a composable workspace and distinguish what ScopeHub already supports.",
         "change_types": [
