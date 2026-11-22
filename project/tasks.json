@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-050",
+  "focus_task_id": "M0-046",
   "tasks": [
     {
       "id": "M0-001",
@@ -12160,7 +12160,7 @@
       "id": "M0-050",
       "title": "Use supported runtimes for the remaining hosted Actions",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-040"
       ],
@@ -12188,10 +12188,19 @@
         "python-contracts-workers",
         "dependency-review"
       ],
-      "evidence": [],
-      "next_action": "Dispatch M0-050 on its task branch, verify both hosted jobs and archive their authenticated logs and artifacts.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-050-2b5cd8a3d31e4a6f.json",
+          "sha256": "e074871d5c1f90d6623cac7a4aa1d1f86002c2d2a975befdc8d45c88a3b03213"
+        },
+        {
+          "path": "project/evidence/M0-050-ce9cac38f30aaddb.json",
+          "sha256": "514af19141cdd72cae98953f7d54018c6825e4a1376ff876bb8b6c011c43f181"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Ubuntu and Windows passed the authenticated M0-050 dispatch 44981385560 at e25c4ea750491c7dca3a6f77ef4fb2faae286f73. Each job had zero forced legacy runtime warnings in the full log and check annotations. The original ZIPs, run and checkout identities, timing evidence and receipt digests are bound in contracts/reviews/2026-11-21-action-runtime-maintenance.json.",
       "plan": {
         "outcome": "Hosted job actions use supported declared runtimes and preserve the actual repository verification and evidence boundary.",
         "change_types": [

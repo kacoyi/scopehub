@@ -3012,7 +3012,7 @@
       "id": "hosted-actions-require-forced-node-runtime",
       "source": "Authenticated ordinary pull request 31 control run 44978070164 attempt 1 on Ubuntu and Windows.",
       "severity": "minor",
-      "status": "open",
+      "status": "addressed",
       "observation": "The runners overrode the declared Node 20 runtime of four pinned Actions. The existing dependency checklist named this pending review.",
       "task_ids": [
         "M0-050"
@@ -3022,8 +3022,34 @@
         "python-contracts-workers",
         "dependency-review"
       ],
-      "resolution": null,
-      "deferral_reason": null
+      "resolution": {
+        "cause": "Four immutable action manifests still declared Node 20 after GitHub retired it on hosted runners.",
+        "correction": "Use official Node 24 commits across both workflows. Both hosted task jobs passed with zero forced legacy runtime warnings and published their verification and timing ZIPs. The authenticated originals are indexed in contracts/reviews/2026-11-21-action-runtime-maintenance.json.",
+        "prevention": "The periodic dependency procedure checks pinned action manifests against hosted runner support and reviews authenticated job logs and annotations after changes. Existing checks validate the immutable pins and evidence handling."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T025346.682629Z-1dd7b031",
+          "source_commit": "ea60c0fe09b8f6e47cdc83fa1bf0b30ccdd15e2d",
+          "report_sha256": "a3f86ee3f3a30f8969a569ab0c4e137153be6d6a7009fcf79ab4fa4133246246"
+        },
+        {
+          "run_id": "20261122T025728.687774Z-d6c9de9c",
+          "source_commit": "ea60c0fe09b8f6e47cdc83fa1bf0b30ccdd15e2d",
+          "report_sha256": "651431e3282943e3b5cef8648f2763600c8c398783d71176687b79efbf520b76"
+        },
+        {
+          "run_id": "20261122T033654.001585Z-eeab919a",
+          "source_commit": "e25c4ea750491c7dca3a6f77ef4fb2faae286f73",
+          "report_sha256": "2b5cd8a3d31e4a6f241e16110988f123bc8709835b6f1cfbffd4e46ab90e2afe"
+        },
+        {
+          "run_id": "20261122T033714.443092Z-8543d0f6",
+          "source_commit": "e25c4ea750491c7dca3a6f77ef4fb2faae286f73",
+          "report_sha256": "ce9cac38f30aaddb8a7f1de2b42f7b86a2db7bb8375b670091f92a0af3e7d880"
+        }
+      ]
     }
   ]
 }
