@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-069",
+  "focus_task_id": "M1-031",
   "tasks": [
     {
       "id": "M0-001",
@@ -14160,7 +14160,7 @@
       "id": "M0-069",
       "title": "Bind indicator preview contention to the admitted snapshot",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-068"
       ],
@@ -14182,10 +14182,19 @@
         "python-contracts-workers",
         "workspace-timeframe"
       ],
-      "evidence": [],
-      "next_action": "Identify the admitted request and test the corrected contention sequence on the original Windows journey.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-069-e2b42c166ce0fa0e.json",
+          "sha256": "ec8602a34096452be8c2866fa07501c0d8c57d88e60fab958a268fa339a72712"
+        },
+        {
+          "path": "project/evidence/M0-069-1f09cdbc9bc4d02f.json",
+          "sha256": "73fdbfb77570c7a9e28408b92c8a96cca81b79ed4cdeaea147ee8f2e81c54fc9"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The controlled competing snapshot reproduced the old false ownership inference. Real HTTP and writer identities now distinguish refusal, cancellation, drain and successful recovery. Ubuntu and native Windows run 45037670475 preserved the revision-2 removal and revision-3 undo, each exactly once.",
       "diagnostic_reports": [
         {
           "run_id": "20261122T143714.976297Z-71b18a36",
