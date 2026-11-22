@@ -2813,7 +2813,7 @@
       "id": "windows-browser-workspace-startup-stage",
       "source": "Hosted Windows run 44973556297. Original screenshot and 27 diagnostic logs retained with the report.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "In Windows workflow 44973556297 the first fresh browser displayed only the static startup controls after five seconds. The private-record test had not opened any record or disconnected either writer.",
       "task_ids": [
         "M0-045"
@@ -2822,7 +2822,11 @@
         "workspace-timeframe",
         "project-state"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The browser harness waited for document load and then gave the first application control five seconds. A delayed evaluation after load and an independent HTTP 503 both produced that assertion. The original Windows screenshot locates the symptom before mount, and its exact trigger remains undetermined.",
+        "correction": "Use the shared staged observer for navigation and application mount, then bound the first workspace snapshot and UI acceptance independently. Report sanitized browser, resource and transport failures at the observed stage.",
+        "prevention": "Controlled Chromium tests with real Vite and Rust verified delayed success, entry failure, missing document, rejected and invalid snapshots, a stalled reply and a browser exception after the first snapshot request. The previous control and private-record disconnect assertions passed on Ubuntu and Windows in authenticated run 44977426468. The archived original report and screenshot were verified. The local comparison index has SHA-256 5c366dcc40ec1122a801baea615a7c15e37bcf8c3eaeca1c0fed956596406dbd."
+      },
       "deferral_reason": null,
       "diagnostic_reports": [
         {
@@ -2836,7 +2840,7 @@
       "id": "private-workspace-startup-consumed-handoff",
       "source": "Independent Chromium, Vite and Rust writer review using the actual private launcher on PR 31 at 3d26f0ead10da7ac08c1ed784eed1d8ccb1adcc0.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "An exception after imports and before React mount left the private grant consumed and the static Reload window control visible. Reload then opened the public shell without a private snapshot. An entry HTTP failure before grant consumption retained the fragment and ordinary reload restored the private workspace.",
       "task_ids": [
         "M0-045"
@@ -2846,7 +2850,11 @@
         "market-quality-states",
         "project-state"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The static recovery script offered Reload window independently of grant consumption. A real private launch consumed the fragment during module evaluation before a later exception could prevent React from mounting. Reload opened the public shell.",
+        "correction": "Consuming a valid private grant hides and disables the static reload control and directs the user to reopen the original private access document. Public and pre-consumption failures still offer Reload window. The consumed grant remains in page memory.",
+        "prevention": "Real file-launch navigation verified pre-consumption and public reload, post-consumption relaunch with an authorized Rust snapshot, and an inert refresh of the cleaned private page. All three cases passed on Ubuntu and Windows in authenticated run 44977426468. The independent recovery observation has SHA-256 aea41cc6f9c5b7815936496484f1a61ea04ef1249d39be581559dcfebe80db40."
+      },
       "deferral_reason": null
     }
   ]
