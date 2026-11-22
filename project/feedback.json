@@ -3209,7 +3209,7 @@
       "id": "windows-chromium-loopback-exhaustion",
       "source": "Authenticated Windows verification for main push 45018382994 and PR 41 run 45018440319. Original diagnostics are retained under archives/runs/20261122T114203.123694Z-afc7cc49/test-report.json and archives/runs/20261122T114251.223282Z-6c1990d5/test-report.json.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "Chromium reported ERR_NO_BUFFER_SPACE during same-origin Vite module loading in distinct workspace-timeframe cases in both Windows runs. The main push also failed desktop-localization navigation to its loopback listener. The Linux jobs passed.",
       "task_ids": [
         "M0-062"
@@ -3218,7 +3218,11 @@
         "workspace-timeframe",
         "desktop-localization"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The pinned Playwright 1.64.0 launched Chromium 156 with Windows TCP source-port randomization active. Playwright issue 43545 links this path to intermittent Winsock 10055, including on loopback. Both original Windows reports match this failure. They contain no failure-time kernel trace, and an additional old-version run completed without reproducing the error.",
+        "correction": "Pin the development runner and its Playwright dependencies to 1.65.1. The upstream change in microsoft/playwright#43605 disables TcpPortRandomizationWin in Chromium. Product binaries, OS settings, retries and protected check selection are unchanged.",
+        "prevention": "The regression reads actual Chromium launch arguments through CDP and records the effective feature in desktop-localization.log. It failed with the old browser and passed with Chromium 159.0.8154.6. Hosted run 45023093160 passed workspace-timeframe, desktop-localization and the online dependency review on both platforms. Revisit the version-specific guard after an upstream fix or retirement of the affected path."
+      },
       "deferral_reason": null,
       "diagnostic_reports": [
         {

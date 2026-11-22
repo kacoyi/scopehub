@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-062",
+  "focus_task_id": "M1-031",
   "tasks": [
     {
       "id": "M0-001",
@@ -13799,7 +13799,7 @@
       "id": "M0-062",
       "title": "Restore reliable Windows Chromium loopback verification",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-058"
       ],
@@ -13831,10 +13831,19 @@
         "architecture",
         "dependency-review"
       ],
-      "evidence": [],
-      "next_action": "Compare retained failures, measure loopback resource demand and validate the correction under the affected Windows checks.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-062-693eab453eff4705.json",
+          "sha256": "cba31d20000aaf153630e2a1779c8bbd02d098d0e6538045999d733d316e3073"
+        },
+        {
+          "path": "project/evidence/M0-062-0b6481a9daf4d022.json",
+          "sha256": "597aebb062512579f879cc2626c446434173bdcbf41f58c3271d12fdf118ccc2"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Playwright 1.65.1 applies the upstream Chromium TCP allocation workaround. On Ubuntu and native Windows the real browser reported the corrected launch option, the original workspace and localization journeys passed, and dependency review passed. Hosted PR run 45023093160 supplied both receipts.",
       "plan": {
         "outcome": "Windows Chromium can navigate and load same-origin application modules throughout the existing verification sequence.",
         "change_types": [
