@@ -13067,7 +13067,7 @@
       "id": "M0-053",
       "title": "Diagnose the Windows timeout test log sharing failure",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-010"
       ],
@@ -13093,7 +13093,16 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-053-e11cb1395fbad060.json",
+          "sha256": "df55a753089234f2770acd33218ec712115ecf7434faa66e78e29cd55efbb89c"
+        },
+        {
+          "path": "project/evidence/M0-053-e52b132bb6a84ac3.json",
+          "sha256": "8f7fc642c027d0bda4beb4fa2f42599fbe5c23a500ac1fb4e5f1736ff265b8b5"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "20261122T062415.160535Z-d15c8a2c",
@@ -13173,9 +13182,9 @@
           "cleanup": "Join any test-owned processes and close observation handles. Keep final deletion strict and retain failed observations before switching approaches."
         }
       },
-      "next_action": "Review the retained WinError 32 and Windows job lifecycle, add a bounded diagnostic and obtain targeted native evidence.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null
+      "closure_reason": "Ubuntu and native Windows passed the selected checks in run 44996898959. The venv redirector control placed the actual gate outside the verification job. The direct interpreter gate entered that job. Although the writer handle was still unsignaled when job accounting reached zero, it was signaled on return from the full timeout cleanup, 0.266 seconds from the timed wait. The delete-access probe, partial output and digest, and strict deletion passed. The independent reader control reproduced WinError 32 until release. The historical file holder remains unknown."
     }
   ]
 }

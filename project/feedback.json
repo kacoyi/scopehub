@@ -3109,7 +3109,7 @@
       "id": "windows-timeout-fixture-log-sharing",
       "source": "Authenticated main verification run 44993393461 at 32bb9671e78e2e0114ade28381d93c7e23f1a1cd. Original report and logs retained as archives/runs/20261122T062415.160535Z-d15c8a2c/test-report.json.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "On Windows, test_timeout_preserves_partial_diagnostics read the partial output and reported the timeout, then temporary directory cleanup failed twice with WinError 32 when removing fixture.log. The traceback does not identify who held the file.",
       "task_ids": [
         "M0-053"
@@ -3118,7 +3118,11 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The Windows venv redirector could start the actual gated interpreter before assignment. The native control independently observed that interpreter outside the verification job. The original failure did not record the file holder, and a separate read handle reproduced the same error.",
+        "correction": "Start the isolated standard-library gate with the base interpreter and assign that exact process before releasing it to launch the selected command. Preserve the command, partial diagnostics and strict cleanup failure reporting.",
+        "prevention": "Windows run 44996898959 verified actual Job membership, the same live writer handle through timeout cleanup, native delete access before hashing, the retained bytes and digest, and strict deletion. The writer was still unsignaled just after job accounting drained and had exited when the full cleanup returned."
+      },
       "deferral_reason": null,
       "diagnostic_reports": [
         {
