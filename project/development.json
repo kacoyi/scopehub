@@ -13,6 +13,7 @@
     "ask_owner_when": [
       "User-visible behavior, product scope or a meaningful experience tradeoff is unresolved and cannot be inferred from accepted requirements.",
       "A change affects user-data retention or irreversible handling, external transmission, costs, runtime authority or an existing explicit permission boundary.",
+      "Recommend a paid API, product or service when it would materially improve a concrete development task, even if a workaround exists. Explain the expected benefit, estimated cost and how it is billed. Identify material uncertainties and a viable existing or lower-cost option when available. The owner decides on spending, subscriptions or broader access beyond existing grants.",
       "Publication, merge, release or shared-resource use needs authorization not already granted; preserve existing applicable authorization.",
       "Apply the current source-control authorization in project/delivery.json#/source_control/authorization. Record the owner's subjective product feedback when they actually exercise the program.",
       "During an owner-started session, point out a concrete limitation in personal use, development or maintenance that affects a current task or is likely to impede an upcoming one. One example from the owner's own work can be enough. When others start using ScopeHub, look for specific difficulties such as a setup step that only the owner knows how to complete.",
@@ -792,7 +793,7 @@
       "Start each assignment in the checkout that owns its paths. Implementation and coordination use Codex automatic approval review with workspace-write. Independent review is read-only and returns a blocked operation directly. Report a denial with the requested action and reason to the coordinator, and continue other permitted work. Changes in authorization, paid access and product acceptance stay with the owner."
     ],
     "tooling": [
-      "Acquire and install software, MCP servers, skills and plugins needed for an authorized task, using the existing trusted distribution and pinned project setup where applicable. Test the capability before relying on it.",
+      "For authorized work on this repository, the development AI may independently select, install and configure development tools within existing access and spending grants. These include build and test tools, command-line utilities, skills, MCP servers and plugins. Use trusted distributions and the pinned project setup where applicable. Test the capability before relying on it.",
       "Keep development tools scoped to project code and synthetic fixtures. Use the product user’s chosen grants and data policy independently. Escalate an actual missing credential, entitlement, device, input, product tradeoff or required acceptance with the concrete action needed."
     ]
   }

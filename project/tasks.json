@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-031",
+  "focus_task_id": "M0-065",
   "tasks": [
     {
       "id": "M0-001",
@@ -14106,6 +14106,89 @@
           ],
           "data_plan": "Use the existing session and project records.",
           "cleanup": "Keep the recommendation in the existing consultation view."
+        }
+      }
+    },
+    {
+      "id": "M0-065",
+      "title": "Clarify development tool installation and paid procurement recommendations",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-063"
+      ],
+      "decision_refs": [
+        "0007"
+      ],
+      "scope": [
+        "project/development.json",
+        "project/tasks.json"
+      ],
+      "acceptance": [
+        "The development AI can independently choose, install and configure development tools, including command-line utilities, skills and MCP servers, for authorized work on this repository within existing grants.",
+        "During normal task work the AI can recommend a paid API, service or product when the benefit warrants it. The owner receives the use case, likely cost and billing basis, and a practical alternative when available. New spending or broader access requires applicable owner authorization."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Clarify the existing Herdr tooling and owner consultation entries and inspect their ordinary project views.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The development AI can act on existing tool authority and advise the owner when a paid capability would help.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/development.json"
+        ],
+        "hypotheses": [
+          "The existing Herdr tooling and consultation entries already reach an active session."
+        ],
+        "risks": [
+          {
+            "failure": "A purchase recommendation is mistaken for a spending or data grant, or an ordinary installation is held for repeated approval.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revise the development policy if the owner changes the delegation.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "project/development.json"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/herdr/tooling"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/collaboration/ask_owner_when"
+            }
+          ],
+          "non_goals": [
+            "A tool catalog, a purchase, or new product runtime permissions."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "Existing tool qualification, spending authority and each product user’s data permissions."
+          ],
+          "change": [
+            "Make tool selection authority and the grounds for a paid recommendation explicit."
+          ],
+          "data_plan": "Use development policy and repository views.",
+          "cleanup": "Maintain guidance in the existing collaboration and tooling entries."
         }
       }
     }
