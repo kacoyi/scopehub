@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-052",
+  "focus_task_id": "M1-031",
   "tasks": [
     {
       "id": "M0-001",
@@ -12700,7 +12700,7 @@
       "id": "M0-052",
       "title": "Set the Ubuntu development and experience target to the native desktop application",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-051",
         "M1-010"
@@ -12729,10 +12729,15 @@
         "architecture",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Record the owner direction and bind native desktop delivery and observation to the platform contract.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-052-4456841b407de845.json",
+          "sha256": "f189878117f1b37f762be934c8355c7232e38e8d21a5023034ffc576b28a1ef9"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Verified contract v1.6.0, task dependencies and historical scope at 6e8db6e. Native launch and field observations are planned under M1-031 and M1-012.",
       "plan": {
         "outcome": "A contributor can identify which entry to implement on Ubuntu, where to exercise the integrated experience and which platform ships v1.",
         "change_types": [
