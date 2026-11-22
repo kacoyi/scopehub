@@ -111,7 +111,7 @@ class WindowsJob:
                 if process_ids.listed > min(process_ids.assigned, capacity):
                     raise OSError('Windows job returned an invalid process ID list')
                 if process_ids.listed == process_ids.assigned:
-                    return process_ids.pids[:process_ids.listed]
+                    return [int(process_ids.pids[index]) for index in range(process_ids.listed)]
             elif ctypes.get_last_error() != ERROR_MORE_DATA:
                 self.require(result)
             capacity = max(capacity * 2, process_ids.assigned)
@@ -126,6 +126,9 @@ class WindowsJob:
             raise OSError(f'Windows job process {pid} did not finish terminating')
         if result != WAIT_OBJECT_0:
             raise OSError(f'Unexpected wait status {result} for Windows job process {pid}')
+
+    def _close_process_handle(self, process: int) -> None:
+        self.require(self.api.CloseHandle(process))
 
     def stop(self) -> None:
         deadline = time.monotonic() + 10
@@ -143,15 +146,15 @@ class WindowsJob:
                         if ctypes.get_last_error() == ERROR_INVALID_PARAMETER:
                             continue  # The process ID ceased to name a process.
                         self.require(process)
-                    handles.callback(lambda handle=process: self.require(self.api.CloseHandle(handle)))
+                    handles.callback(self._close_process_handle, process)
                     in_job = wintypes.BOOL()
                     self.require(self.api.IsProcessInJob(process, self.handle, ctypes.byref(in_job)))
                     if in_job.value:
                         members.append((pid, process))
             finally:
                 self.require(self.api.TerminateJobObject(self.handle, 1))
-            for pid, process in members:
-                self._wait_for_process(process, pid, deadline)
+                for pid, process in members:
+                    self._wait_for_process(process, pid, deadline)
         while True:
             accounting = Accounting()
             self.require(self.api.QueryInformationJobObject(

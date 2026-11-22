@@ -13211,6 +13211,7 @@
       ],
       "checks": [
         "project-state",
+        "python-types-win32",
         "python-contracts-workers"
       ],
       "evidence": [],
@@ -13239,6 +13240,7 @@
           {
             "failure": "A process ID that exited before inspection could be reused, or cleanup could extend a separate deadline per member.",
             "checks": [
+              "python-types-win32",
               "python-contracts-workers"
             ]
           }

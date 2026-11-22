@@ -159,10 +159,12 @@ class ProcessTests(unittest.TestCase):
             return original_wait(process, timeout, cancel)
 
         def observe_job_stop(job):
-            if writer_handle is not None:
-                observed['writer_in_job_before_stop'] = self.windows_job_contains(job, writer_handle)
-                observed['writer_wait_before_job_stop'] = _winapi.WaitForSingleObject(writer_handle, 0)
-            original_stop(job)
+            try:
+                if writer_handle is not None:
+                    observed['writer_in_job_before_stop'] = self.windows_job_contains(job, writer_handle)
+                    observed['writer_wait_before_job_stop'] = _winapi.WaitForSingleObject(writer_handle, 0)
+            finally:
+                original_stop(job)
             if writer_handle is not None:
                 observed['writer_wait_after_job_stop'] = _winapi.WaitForSingleObject(writer_handle, 0)
 
