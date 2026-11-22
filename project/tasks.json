@@ -13062,6 +13062,236 @@
       "next_action": "Enable the Tauri development entry and required platform dependencies on Ubuntu. Prove the first synthetic chart and native picker in the actual window, then bind retained observations to that host.",
       "blocker": null,
       "closure_reason": null
+    },
+    {
+      "id": "M0-053",
+      "title": "Diagnose the Windows timeout test log sharing failure",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-010"
+      ],
+      "scope": [
+        "scripts/processes.py",
+        "scripts/process_tree.py",
+        "scripts/windows_job.py",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0003",
+        "0004",
+        "0005",
+        "0006"
+      ],
+      "acceptance": [
+        "Retain the failed main Windows diagnostic and distinguish a verification-process handle leak from delayed or external file release.",
+        "Verify bounded process cleanup and intact partial diagnostics on Windows. Resolve the observed sharing failure without suppressing errors."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-053-e11cb1395fbad060.json",
+          "sha256": "df55a753089234f2770acd33218ec712115ecf7434faa66e78e29cd55efbb89c"
+        },
+        {
+          "path": "project/evidence/M0-053-e52b132bb6a84ac3.json",
+          "sha256": "8f7fc642c027d0bda4beb4fa2f42599fbe5c23a500ac1fb4e5f1736ff265b8b5"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T062415.160535Z-d15c8a2c",
+          "source_commit": "32bb9671e78e2e0114ade28381d93c7e23f1a1cd",
+          "report_sha256": "c5d0788d0538e82223ed65076844e08e9589a8e63c7fb6da2d51599eb6d92ffe"
+        }
+      ],
+      "plan": {
+        "outcome": "A native Windows timeout leaves readable partial output, stops owned writers within the cleanup bound and allows the fixture to be removed. Retained evidence records what the original failure and the focused experiment each establish.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/processes.py",
+          "scripts/process_tree.py",
+          "scripts/windows_job.py",
+          "tests/project/test_processes.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "A Windows virtual environment redirector may start the real launcher before the redirector is assigned to the job, leaving that launcher outside the job.",
+          "Job accounting may reach zero before a descendant's process object signals and its inherited output handle closes.",
+          "A separate file opener could allow the successful report reads while preventing deletion. The original traceback does not identify the holder."
+        ],
+        "risks": [
+          {
+            "failure": "A cleanup change hides persistent file contention or returns while a descendant can still write after the report digest is recorded.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The repair replaces the separate contract branch's product focus or loses the failing diagnostic.",
+            "checks": [
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Retain the failed run and synthetic observations. Revert only this repair on its independent branch or through a reviewed integration correction.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check.py",
+            "scripts/processes.py",
+            "scripts/process_tree.py",
+            "scripts/windows_job.py",
+            "tests/project/test_processes.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control"
+            }
+          ],
+          "non_goals": [
+            "Product behavior, provider calls, private records, release and changes to the contract pull request."
+          ],
+          "open_questions": [
+            "Does the native timeout return before an observed owned writer exits, and does a deletion probe still fail after those writers have exited?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing output and digest semantics, timeout and cancellation diagnostics, bounded shutdown and visible cleanup errors."
+          ],
+          "change": [
+            "Instrument the Windows process and file lifetime in a focused synthetic fixture and repair the behavior established by the observation."
+          ],
+          "data_plan": "Use synthetic files and retain the original authenticated failure report and logs by digest. No application storage changes.",
+          "cleanup": "Join any test-owned processes and close observation handles. Keep final deletion strict and retain failed observations before switching approaches."
+        }
+      },
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Ubuntu and native Windows passed the selected checks in run 44996898959. The venv redirector control placed the actual gate outside the verification job. The direct interpreter gate entered that job. Although the writer handle was still unsignaled when job accounting reached zero, it was signaled on return from the full timeout cleanup, 0.266 seconds from the timed wait. The delete-access probe, partial output and digest, and strict deletion passed. The independent reader control reproduced WinError 32 until release. The historical file holder remains unknown."
+    },
+    {
+      "id": "M0-056",
+      "title": "Join observed Windows verification Job members before returning",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-053"
+      ],
+      "scope": [
+        "scripts/windows_job.py",
+        "tests/project/test_processes.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0013"
+      ],
+      "acceptance": [
+        "Retain the exact PR failure where the live writer's process handle was unsignaled at timeout return while DELETE access already succeeded.",
+        "On native Windows confirm the real writer belongs to the verification Job before stop. Join its retained process handle within the existing cleanup bound before returning, and verify diagnostic bytes, report digest and strict deletion.",
+        "Keep launch failures, cleanup errors and independent file contention visible. Preserve the original M0-053 record and product focus."
+      ],
+      "checks": [
+        "project-state",
+        "python-types-win32",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-056-44624a32bae4efd5.json",
+          "sha256": "90daa645f79922e7ce756f6043aed575e1e0be7bcfd4434f5ede44bd469ace88"
+        },
+        {
+          "path": "project/evidence/M0-056-a0f52c0d7eb460b1.json",
+          "sha256": "188ecf7c3d5596c1ea0f93bbf58539a4cf30082f53286cdebcbc1ba3c777ccae"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T072140.708728Z-edfb023d",
+          "source_commit": "8dcda240584f4115ed5e7560e386c3620c40ae77",
+          "report_sha256": "36f10d1a179b52be99e888b8e467461798b0ce923025658d63afd8b142ec1403"
+        }
+      ],
+      "plan": {
+        "outcome": "The same synthetic Windows writer that exposed early cleanup return is a confirmed Job member and its process object has signaled when cleanup returns.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/windows_job.py",
+          "scripts/process_tree.py",
+          "tests/project/test_processes.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "Waiting for the gate and zero active Job members can finish before a separately observed writer signals. Native run 44997698442 observed this at the public timeout return, with DELETE access already available."
+        ],
+        "risks": [
+          {
+            "failure": "A process ID that exited before inspection could be reused, or cleanup could extend a separate deadline per member.",
+            "checks": [
+              "python-types-win32",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain both original failed diagnostics. Revert the additional cleanup change on this repair branch or through a reviewed correction, preserving the independently verified gate assignment fix.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/windows_job.py",
+            "scripts/process_tree.py",
+            "tests/project/test_processes.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Product changes, provider calls, private input, release and historical file-holder attribution."
+          ],
+          "open_questions": [
+            "Which return boundaries now see the same writer signal on the hosted native runner?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The gate assignment fix, Job termination, process accounting, bounded cleanup, partial diagnostics, failure reporting and portable behavior."
+          ],
+          "change": [
+            "Before termination retain handles for verified members in the Windows Job snapshot and wait for those process objects within the cleanup deadline."
+          ],
+          "data_plan": "Use synthetic processes with disposable logs. Preserve both failed reports by identity and archive accepted Windows evidence.",
+          "cleanup": "Close acquired process handles on every path and retain the existing kill-on-close fallback. Keep cleanup errors visible."
+        }
+      },
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Ubuntu and Windows passed the selected checks in run 45000485659. Windows confirmed that the live writer was in the verification Job and that its retained handle signaled before WindowsJob.stop and run_logged returned. The timeout returned 0.266 seconds from the start of the timed wait. DELETE access, partial output, digest and strict deletion all passed. The exit barrier covers verified snapshot members. The original WinError 32 holder remains unknown."
     }
   ]
 }

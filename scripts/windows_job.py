@@ -4,10 +4,23 @@ The launcher waits for assignment before starting the command. This prevents
 the normal-exit race of traversing descendants only after their parent exits.
 """
 
+from contextlib import ExitStack
 import ctypes
 from ctypes import wintypes
+import math
 import sys
 import time
+
+
+JOB_OBJECT_BASIC_ACCOUNTING_INFORMATION = 1
+JOB_OBJECT_BASIC_PROCESS_ID_LIST = 3
+PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+SYNCHRONIZE = 0x00100000
+ERROR_INVALID_PARAMETER = 87
+ERROR_MORE_DATA = 234
+WAIT_OBJECT_0 = 0
+WAIT_TIMEOUT = 258
+WAIT_FAILED = 0xFFFFFFFF
 
 
 class BasicLimits(ctypes.Structure):
@@ -46,8 +59,10 @@ class WindowsJob:
             'SetInformationJobObject': ([wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD], wintypes.BOOL),
             'QueryInformationJobObject': ([wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD, ctypes.c_void_p], wintypes.BOOL),
             'AssignProcessToJobObject': ([wintypes.HANDLE, wintypes.HANDLE], wintypes.BOOL),
+            'IsProcessInJob': ([wintypes.HANDLE, wintypes.HANDLE, ctypes.POINTER(wintypes.BOOL)], wintypes.BOOL),
             'TerminateJobObject': ([wintypes.HANDLE, wintypes.UINT], wintypes.BOOL),
             'OpenProcess': ([wintypes.DWORD, wintypes.BOOL, wintypes.DWORD], wintypes.HANDLE),
+            'WaitForSingleObject': ([wintypes.HANDLE, wintypes.DWORD], wintypes.DWORD),
             'CloseHandle': ([wintypes.HANDLE], wintypes.BOOL),
         }
         for name, (arguments, result) in signatures.items():
@@ -81,18 +96,88 @@ class WindowsJob:
         finally:
             self.api.CloseHandle(process)
 
+    def _member_pids(self, deadline: float) -> list[int]:
+        capacity = 32
+        while time.monotonic() < deadline:
+            class ProcessIdList(ctypes.Structure):
+                _fields_ = [('assigned', wintypes.DWORD), ('listed', wintypes.DWORD),
+                            ('pids', ctypes.c_size_t * capacity)]
+
+            process_ids = ProcessIdList()
+            result = self.api.QueryInformationJobObject(
+                self.handle, JOB_OBJECT_BASIC_PROCESS_ID_LIST, ctypes.byref(process_ids),
+                ctypes.sizeof(process_ids), None)
+            if result:
+                if process_ids.listed > min(process_ids.assigned, capacity):
+                    raise OSError('Windows job returned an invalid process ID list')
+                if process_ids.listed == process_ids.assigned:
+                    return [int(process_ids.pids[index]) for index in range(process_ids.listed)]
+            elif ctypes.get_last_error() != ERROR_MORE_DATA:
+                self.require(result)
+            capacity = max(capacity * 2, process_ids.assigned)
+        raise OSError('Timed out obtaining the Windows job process ID list')
+
+    def _wait_for_process(self, process: int, pid: int, deadline: float) -> None:
+        milliseconds = max(0, math.ceil((deadline - time.monotonic()) * 1000))
+        result = self.api.WaitForSingleObject(process, milliseconds)
+        if result == WAIT_FAILED:
+            raise ctypes.WinError(ctypes.get_last_error())
+        if result == WAIT_TIMEOUT:
+            raise OSError(f'Windows job process {pid} did not finish terminating')
+        if result != WAIT_OBJECT_0:
+            raise OSError(f'Unexpected wait status {result} for Windows job process {pid}')
+
+    def _close_process_handle(self, process: int) -> None:
+        self.require(self.api.CloseHandle(process))
+
     def stop(self) -> None:
-        self.require(self.api.TerminateJobObject(self.handle, 1))
         deadline = time.monotonic() + 10
+        # Job accounting can remove a process before its process handle signals.
+        # Capture the current members first. Job termination still covers processes
+        # created after the snapshot, which have no retained process handle here.
+        with ExitStack() as handles:
+            members = []
+            inspection_error = None
+            try:
+                for pid in self._member_pids(deadline):
+                    if time.monotonic() >= deadline:
+                        raise OSError('Timed out opening Windows job process handles')
+                    process = self.api.OpenProcess(SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+                    if not process:
+                        if ctypes.get_last_error() == ERROR_INVALID_PARAMETER:
+                            continue  # The process ID ceased to name a process.
+                        self.require(process)
+                    handles.callback(self._close_process_handle, process)
+                    in_job = wintypes.BOOL()
+                    self.require(self.api.IsProcessInJob(process, self.handle, ctypes.byref(in_job)))
+                    if in_job.value:
+                        members.append((pid, process))
+            except OSError as error:
+                inspection_error = error
+                raise
+            finally:
+                try:
+                    self.require(self.api.TerminateJobObject(self.handle, 1))
+                    for pid, process in members:
+                        self._wait_for_process(process, pid, deadline)
+                except OSError as stop_error:
+                    if inspection_error is not None:
+                        raise OSError(
+                            f'Windows job process inspection failed ({inspection_error}). '
+                            f'Job termination or exit wait also failed ({stop_error}).'
+                        ) from stop_error
+                    raise
         while True:
             accounting = Accounting()
             self.require(self.api.QueryInformationJobObject(
-                self.handle, 1, ctypes.byref(accounting), ctypes.sizeof(accounting), None))
+                self.handle, JOB_OBJECT_BASIC_ACCOUNTING_INFORMATION, ctypes.byref(accounting),
+                ctypes.sizeof(accounting), None))
             if accounting.active_processes == 0:
                 return
-            if time.monotonic() >= deadline:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
                 raise OSError('Windows job still has active verification descendants')
-            time.sleep(.01)
+            time.sleep(min(.01, remaining))
 
     def close(self) -> None:
         if self.handle is not None:

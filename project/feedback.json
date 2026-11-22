@@ -3104,6 +3104,60 @@
         "prevention": "The fresh-profile scenario requires a directly supplied directory and a controlled third-party API with no first-party service. The requirements bindings were checked under M0-051. Its product gates await implementation."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-timeout-fixture-log-sharing",
+      "source": "Authenticated main verification run 44993393461 at 32bb9671e78e2e0114ade28381d93c7e23f1a1cd. Original report and logs retained as archives/runs/20261122T062415.160535Z-d15c8a2c/test-report.json.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "On Windows, test_timeout_preserves_partial_diagnostics read the partial output and reported the timeout, then temporary directory cleanup failed twice with WinError 32 when removing fixture.log. The traceback does not identify who held the file.",
+      "task_ids": [
+        "M0-053"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The Windows venv redirector could start the actual gated interpreter before assignment. The native control independently observed that interpreter outside the verification job. The original failure did not record the file holder, and a separate read handle reproduced the same error.",
+        "correction": "Start the isolated standard-library gate with the base interpreter and assign that exact process before releasing it to launch the selected command. Preserve the command, partial diagnostics and strict cleanup failure reporting.",
+        "prevention": "Windows run 44996898959 verified actual Job membership, the same live writer handle through timeout cleanup, native delete access before hashing, the retained bytes and digest, and strict deletion. The writer was still unsignaled just after job accounting drained and had exited when the full cleanup returned."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T062415.160535Z-d15c8a2c",
+          "source_commit": "32bb9671e78e2e0114ade28381d93c7e23f1a1cd",
+          "report_sha256": "c5d0788d0538e82223ed65076844e08e9589a8e63c7fb6da2d51599eb6d92ffe"
+        }
+      ]
+    },
+    {
+      "id": "windows-verification-return-precedes-writer-exit",
+      "source": "Authenticated PR 35 verification run 44997698442, head bd6233001b3874cb1fb843606663d32fa54edb4f and tested merge 8dcda240584f4115ed5e7560e386c3620c40ae77. Original report and logs retained as archives/runs/20261122T072140.708728Z-edfb023d/test-report.json.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "Only the new Windows timeout writer observation failed. Its process handle returned WAIT_TIMEOUT both after Job stop and at run_logged return, 0.250 seconds from the timed wait. The DELETE access probe succeeded. The original timeout log test and the redirector membership control passed.",
+      "task_ids": [
+        "M0-056"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Job accounting removed terminating members before their process objects necessarily signaled. The cleanup waited on the launcher handle while the observed writer could still be terminating.",
+        "correction": "Retain handles for confirmed Job members before requesting termination, join them under one deadline and keep the Job accounting guard. If inspection fails, attempt termination and wait for the already confirmed members under the same bound. Report both inspection and shutdown failures if both occur.",
+        "prevention": "Native run 45000485659 confirmed actual live writer membership, exit at both cleanup boundaries, and intact, deletable diagnostics. Independent review exercised resize, membership and failure paths, including shared deadlines and compound errors. The confirmed snapshot is the scope of explicit member waits."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T072140.708728Z-edfb023d",
+          "source_commit": "8dcda240584f4115ed5e7560e386c3620c40ae77",
+          "report_sha256": "36f10d1a179b52be99e888b8e467461798b0ce923025658d63afd8b142ec1403"
+        }
+      ]
     }
   ]
 }
