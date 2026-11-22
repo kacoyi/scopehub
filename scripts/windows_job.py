@@ -137,6 +137,7 @@ class WindowsJob:
         # created after the snapshot, which have no retained process handle here.
         with ExitStack() as handles:
             members = []
+            inspection_error = None
             try:
                 for pid in self._member_pids(deadline):
                     if time.monotonic() >= deadline:
@@ -151,10 +152,21 @@ class WindowsJob:
                     self.require(self.api.IsProcessInJob(process, self.handle, ctypes.byref(in_job)))
                     if in_job.value:
                         members.append((pid, process))
+            except OSError as error:
+                inspection_error = error
+                raise
             finally:
-                self.require(self.api.TerminateJobObject(self.handle, 1))
-                for pid, process in members:
-                    self._wait_for_process(process, pid, deadline)
+                try:
+                    self.require(self.api.TerminateJobObject(self.handle, 1))
+                    for pid, process in members:
+                        self._wait_for_process(process, pid, deadline)
+                except OSError as stop_error:
+                    if inspection_error is not None:
+                        raise OSError(
+                            f'Windows job process inspection failed ({inspection_error}). '
+                            f'Job termination or exit wait also failed ({stop_error}).'
+                        ) from stop_error
+                    raise
         while True:
             accounting = Accounting()
             self.require(self.api.QueryInformationJobObject(
