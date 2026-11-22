@@ -2617,7 +2617,7 @@
       "id": "merged-branches-and-stacked-pull-requests-outlive-delivery",
       "source": "Owner review and live GitHub branch and PR inventory on 2026-11-21.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "At main f7624a93 GitHub had 35 branch heads. Twenty-three non-default heads were reachable from main, and seven stacked pull requests remained open with their full heads already integrated. Six other backup heads required independent preservation and comparison.",
       "task_ids": [
         "M0-039"
@@ -2626,7 +2626,11 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Task heads remained after verified merges. Superseded stacked pull requests and recoverable backup heads had no recurring reconciliation. Workflow selection also treated a shared head SHA as a sufficient pull request identity.",
+        "correction": "Verified exact ancestry, dependent pull requests, recovery copies and original hosted evidence. Retired the 29 redundant remote heads and enabled automatic deletion on merge. Added live inventory and validation of the actual tested pull request, head and base.",
+        "prevention": "Weekly branch and worktree reviews now surface through project status alongside a monthly compatibility review. Fixtures exercise fork name collisions, older recorded base tips, direct recovery refs, ambiguous runs and stale tested merge checkouts. Recheck live protection, expected tips, open dependents and independent recovery before retirement."
+      },
       "deferral_reason": null
     }
   ]

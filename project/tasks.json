@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-039",
+  "focus_task_id": "M4-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -9877,7 +9877,7 @@
       "id": "M0-039",
       "title": "Reconcile historical Git branches, pull requests and recovery evidence",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [],
       "scope": [
         "scripts",
@@ -9905,10 +9905,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Compare live default and protected branches, all tips, ancestry and open pull request heads and bases. Exercise merged, divergent, held and unavailable observations with synthetic repositories.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-039-3a24e7a521ed3ba8.json",
+          "sha256": "9237c4b6ca4c8e987513dc12d165204896b5c13cc455d2e8c6c9f603289c8e93"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Reconciled all 35 original GitHub heads. Retired 23 integrated branches and six independently recoverable backups, closed seven superseded PRs, restored both original M1-018 hosted receipts, and enabled automatic deletion on merge. The read-only branch command passed against the live repository. Fixed the pull request provenance check and exercised direct recovery refs and due-date reporting.",
       "plan": {
         "outcome": "Each inherited GitHub branch has a verified outcome. Merged work is retired, unique work and evidence remain recoverable, and subsequent delivery has a repeatable branch review.",
         "change_types": [
@@ -9986,7 +9991,7 @@
       "id": "M1-027",
       "title": "Use the shared supported operation list for legacy market worker negotiation",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-001"
       ],
@@ -10009,10 +10014,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Replace the duplicate market handshake list with the existing application contract and exercise both supported versions.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-027-3a24e7a521ed3ba8.json",
+          "sha256": "d9827248f7c22da152ff52aeb845429e5133c70230c4edc659a0d3f63b42bb91"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The production handshake now uses the shared legacy capability set. Independent protocol tests and the full eligible Rust workspace passed with both supported versions.",
       "plan": {
         "outcome": "The Rust host and operation registry share the minimum market read capabilities while independent fixtures continue to assert the wire names.",
         "change_types": [
