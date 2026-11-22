@@ -54,7 +54,8 @@ class VerificationSchedulingTests(unittest.TestCase):
             ]
             console = StringIO()
             with patch.object(harness, 'ROOT', root), redirect_stdout(console):
-                results = harness.run_overlapped(checks, dict(os.environ), root / '.reports')
+                results = harness.run_overlapped(checks, dict(os.environ), root / '.reports',
+                                                 system=harness.platform.system())
 
             self.assertEqual({check['id'] for check in checks}, results.keys())
             self.assertEqual(['passed'] * len(checks), [results[check['id']]['status'] for check in checks])
@@ -82,7 +83,7 @@ class VerificationSchedulingTests(unittest.TestCase):
             self.assertEqual(
                 {'python-contracts-workers': {'status': 'failed', 'reason_code': 'interrupted'},
                  'ui-build': {'status': 'failed', 'reason_code': 'cleanup_failed'}},
-                harness.run_overlapped(checks, {}, Path('unused')),
+                harness.run_overlapped(checks, {}, Path('unused'), system=harness.platform.system()),
             )
 
     @unittest.skipUnless(sys.platform == 'linux', 'Linux checks use independent process sessions.')
@@ -106,7 +107,7 @@ class VerificationSchedulingTests(unittest.TestCase):
                 f'check.ROOT = Path({str(root)!r}); '
                 'signal.signal(signal.SIGINT, signal.SIG_IGN); '
                 'signal.signal(signal.SIGTERM, signal.SIG_IGN); '
-                f'rows = check.run_overlapped({checks!r}, dict(os.environ), check.ROOT / "logs"); '
+                f'rows = check.run_overlapped({checks!r}, dict(os.environ), check.ROOT / "logs", system="Linux"); '
                 'assert signal.getsignal(signal.SIGINT) == signal.SIG_IGN; '
                 'assert signal.getsignal(signal.SIGTERM) == signal.SIG_IGN; '
                 f'assert tuple(sorted(rows)) == {names!r}; '
@@ -137,12 +138,15 @@ class VerificationSchedulingTests(unittest.TestCase):
 
 
 class HostedSchedulingTests(ProjectFixture):
-    def test_full_runs_keep_catalog_order_and_narrow_runs_remain_serial(self):
+    def test_full_and_narrow_runs_keep_catalog_order_and_platform_budgets(self):
         catalog_path = self.root / 'project/checks.json'
         catalog = read_json(catalog_path)
         build_ids = ['python-contracts-workers', 'rust-contracts-workers']
         template = catalog['checks'][2]
-        catalog['checks'][2:2] = [{**template, 'id': key} for key in build_ids]
+        catalog['checks'][2:2] = [
+            {**template, 'id': 'python-contracts-workers', 'windows_timeout_seconds': 25},
+            {**template, 'id': 'rust-contracts-workers'},
+        ]
         catalog['checks'].append({**template, 'id': 'operations-workflow'})
         catalog['required_change_checks'].extend([*build_ids, 'operations-workflow'])
         catalog_path.write_bytes(json_bytes(catalog))
@@ -156,6 +160,7 @@ class HostedSchedulingTests(ProjectFixture):
         }
 
         def execute(name, command, env, run_dir, timeout, *, cancel=None):
+            self.assertEqual(expected_timeouts[name], timeout)
             if cancel is not None and name == 'rust-lints':
                 build_finished.set()
             if cancel is not None and name == 'python-contracts-workers':
@@ -169,14 +174,23 @@ class HostedSchedulingTests(ProjectFixture):
                     'exit_code': 1 if failed else 0,
                     'log': log.relative_to(self.root).as_posix(), 'log_sha256': harness.file_digest(log)}
 
-        for args, break_rust, expected_overlap, expected_reuse in [
-            ([], False, True, ['1']), ([], True, True, [None]), (['--fail-fast'], False, False, [None]),
-            (['--profile', 'fast'], False, False, []), (['--profile', 'release'], False, False, [None]),
-            (['--task', 'M0-002'], False, False, [None]),
+        for system, args, break_rust, expected_overlap, expected_reuse in [
+            ('Linux', [], False, True, ['1']),
+            ('Windows', ['--require-windows'], False, True, ['1']),
+            ('Linux', [], True, True, [None]),
+            ('Linux', ['--fail-fast'], False, False, [None]),
+            ('Linux', ['--profile', 'fast'], False, False, []),
+            ('Linux', ['--profile', 'release'], False, False, [None]),
+            ('Windows', ['--task', 'M0-002'], False, False, [None]),
         ]:
+            expected_timeouts = {check['id']: check['timeout_seconds'] for check in catalog['checks']}
+            if system == 'Windows':
+                expected_timeouts['python-contracts-workers'] = 25
             build_finished = Event()
             reuse_modes = []
-            with (self.subTest(args=args, break_rust=break_rust), patch.object(harness, 'ROOT', self.root),
+            with (self.subTest(system=system, args=args, break_rust=break_rust),
+                  patch.object(harness.platform, 'system', return_value=system),
+                  patch.object(harness, 'ROOT', self.root),
                   patch.object(harness, 'REPORTS', self.root / '.reports'),
                   patch.object(harness, 'ci_provenance', return_value=provenance),
                   patch.object(harness, 'tool_version', return_value='fixture'),

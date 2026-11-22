@@ -233,6 +233,9 @@
           "minimum": 1,
           "maximum": 86400
         },
+        "windows_timeout_seconds": {
+          "$ref": "#/$defs/Check/properties/timeout_seconds"
+        },
         "cadence": {
           "enum": [
             "change",
@@ -1510,7 +1513,8 @@
           "enum": [
             "push",
             "pull_request",
-            "workflow_dispatch"
+            "workflow_dispatch",
+            "schedule"
           ]
         },
         "head_sha": {

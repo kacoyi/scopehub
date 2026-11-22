@@ -108,6 +108,11 @@ def check_command(check):
     return [sys.executable if arg == '{python}' else arg for arg in check['command'] or []]
 
 
+def check_timeout(check, system):
+    default = check['timeout_seconds']
+    return check.get('windows_timeout_seconds', default) if system == 'Windows' else default
+
+
 def build_window(catalog, selected, environment, index):
     # Serialize all build steps. The Python suite uses temporary checkouts and ephemeral ports.
     # Join before any workflow, browser or acceptance check consumes shared outputs.
@@ -121,7 +126,7 @@ def build_window(catalog, selected, environment, index):
     return window
 
 
-def run_overlapped(checks, env, run_dir):
+def run_overlapped(checks, env, run_dir, *, system):
     cancel = Event()
     interrupted = False
 
@@ -136,7 +141,8 @@ def run_overlapped(checks, env, run_dir):
 
     def run(check):
         try:
-            result = execute(check['id'], check_command(check), env, run_dir, check['timeout_seconds'], cancel=cancelled)
+            result = execute(check['id'], check_command(check), env, run_dir,
+                             check_timeout(check, system), cancel=cancelled)
         except BaseException:
             cancel.set()
             raise
@@ -196,16 +202,24 @@ TASK_CHECKS_WITHOUT_BROWSER_OR_CARGO_BUILD = {
                                  '-p', 'test_*.py', '-v', '--durations', '10'],
     'dependency-review': ['{python}', 'scripts/dependencies.py'],
 }
+PROFILE_CHECKS_WITHOUT_BROWSER_OR_CARGO_BUILD = {
+    **TASK_CHECKS_WITHOUT_BROWSER_OR_CARGO_BUILD,
+    'generated-contracts': ['{python}', 'scripts/generate_contracts.py', '--check'],
+}
 
 
-def ci_requires_build_setup(project, task_id):
-    if task_id not in project['tasks']:
+def ci_requires_build_setup(project, task_id=None, *, profile=None):
+    if not task_id and profile not in {'records', 'tooling'}:
+        return True
+    try:
+        selected = select_checks(project, profile=profile, task_id=task_id)
+    except ProjectError:
         return True
     # These checks can run with the installed toolchains and an empty Cargo target.
     # A new check or changed command keeps setup until its prerequisites are reviewed.
-    return any(key not in TASK_CHECKS_WITHOUT_BROWSER_OR_CARGO_BUILD
-               or project['checks'].get(key, {}).get('command') != TASK_CHECKS_WITHOUT_BROWSER_OR_CARGO_BUILD[key]
-               for key in select_checks(project, task_id=task_id))
+    reviewed = TASK_CHECKS_WITHOUT_BROWSER_OR_CARGO_BUILD if task_id else PROFILE_CHECKS_WITHOUT_BROWSER_OR_CARGO_BUILD
+    return not selected or any(key not in reviewed or project['checks'].get(key, {}).get('command') != reviewed[key]
+                               for key in selected)
 
 
 def checked_session(project, run_dir, key, source):
@@ -226,7 +240,7 @@ def main():
     args = parser.parse_args()
     if args.ci_build_setup_required:
         try:
-            required = ci_requires_build_setup(load_project(ROOT), args.task)
+            required = ci_requires_build_setup(load_project(ROOT), args.task, profile=args.profile)
         except Exception:
             # Leave failed project validation and recovery evidence to the actual check run.
             required = True
@@ -279,7 +293,7 @@ def main():
             if overlap and check['id'] == 'python-contracts-workers':
                 window = build_window(catalog, selected, environment, index)
                 if len(window) > 1:
-                    concurrent_results = run_overlapped(window, env, run_dir)
+                    concurrent_results = run_overlapped(window, env, run_dir, system=environment['system'])
             result = concurrent_results.pop(check['id'], None)
             if result is None:
                 check_env = env
@@ -287,7 +301,7 @@ def main():
                         row['id'] == 'rust-contracts-workers' and row['status'] == 'passed' and row.get('exit_code') == 0
                         for row in results):
                     check_env = {**env, 'SCOPEHUB_REUSE_OPERATIONS_BUILD': '1'}
-                result = execute(check['id'], command, check_env, run_dir, check['timeout_seconds'])
+                result = execute(check['id'], command, check_env, run_dir, check_timeout(check, environment['system']))
             if result['status'] == 'passed':
                 try:
                     if check['id'] in SESSION_CHECKS:

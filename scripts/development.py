@@ -154,6 +154,21 @@ def focused_context(project, key, phase):
     navigation = plan.get('implementation', {})
     modules = [item for item in development.get('modules', []) if item['id'] in navigation.get('modules', [])]
     decision_paths = project.get('decision_paths', {})
+    decisions = []
+    for decision_id in effective_decisions(project, task):
+        decision = project['decisions'][decision_id]
+        successor = project['replacements'].get(decision_id)
+        entry = {
+            'id': decision_id,
+            'title': decision['title'],
+            'decision': decision['decision'],
+            'status': decision['status'],
+            'superseded_by': successor,
+            'path': decision_paths.get(decision_id),
+        }
+        if decision['status'] == 'accepted' and successor is None:
+            entry['revisit_when'] = decision['revisit_when']
+        decisions.append(entry)
     result = {
         'task': task,
         'phase': phase,
@@ -164,10 +179,7 @@ def focused_context(project, key, phase):
                                            if development else 'project/delivery.json'])),
         'dependencies': [{'id': item, 'title': project['tasks'][item]['title'],
                           'status': project['tasks'][item]['status']} for item in task['depends_on']],
-        'decisions': [{'id': item, 'title': project['decisions'][item]['title'],
-                       'decision': project['decisions'][item]['decision'],
-                       'superseded_by': project['replacements'].get(item),
-                       'path': decision_paths.get(item)} for item in effective_decisions(project, task)],
+        'decisions': decisions,
         'checks': [project['checks'][item] for item in task['checks']],
         'scenarios': [item for item in project['delivery']['scenarios'] if key in item['task_ids']],
         'feedback': [item for item in project['feedback']['items'] if key in item['task_ids']],

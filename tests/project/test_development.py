@@ -210,6 +210,47 @@ class DevelopmentTests(ProjectFixture):
         with self.assertRaisesRegex(ProjectError, 'Unknown context phase'):
             task_context(self.root, 'M0-001', phase='unknown')
 
+    def test_context_shows_revisit_conditions_of_current_applicable_decisions(self):
+        decision = read_json(self.root / 'contracts/decisions/0003-repository-harness.json')
+        self.save('contracts/decisions/0007-intermediate.json', {
+            **decision, 'id': '0007', 'supersedes': ['0003'], 'revisit_when': 'Intermediate condition.',
+        })
+        current_conditions = ['The source changes.', 'The recovery path changes.']
+        self.save('contracts/decisions/0008-current.json', {
+            **decision, 'id': '0008', 'supersedes': ['0007'], 'revisit_when': current_conditions,
+        })
+        text_condition = 'The supported format changes.'
+        self.save('contracts/decisions/0009-applicable.json', {
+            **decision, 'id': '0009', 'revisit_when': text_condition,
+        })
+        self.save('contracts/decisions/0010-proposed.json', {
+            **decision, 'id': '0010', 'status': 'proposed', 'supersedes': ['0008'],
+            'revisit_when': 'Proposed condition.',
+        })
+        self.save('contracts/decisions/0011-rejected.json', {
+            **decision, 'id': '0011', 'status': 'rejected', 'revisit_when': 'Rejected condition.',
+        })
+        self.save('contracts/decisions/0012-unrelated.json', {
+            **decision, 'id': '0012', 'status': 'accepted', 'revisit_when': 'Unrelated condition.',
+        })
+        ledger = self.ledger()
+        task_by_id(ledger, 'M0-001')['decision_refs'] = ['0003', '0009', '0010', '0011']
+        self.save_ledger(ledger)
+
+        for phase in ('implement', 'verify', 'handoff'):
+            with self.subTest(phase=phase):
+                decisions = {item['id']: item for item in task_context(self.root, 'M0-001', phase=phase)['decisions']}
+                self.assertEqual(
+                    {'0003': ('accepted', '0007'), '0007': ('accepted', '0008'),
+                     '0008': ('accepted', None), '0009': ('accepted', None),
+                     '0010': ('proposed', None), '0011': ('rejected', None)},
+                    {key: (item['status'], item['superseded_by']) for key, item in decisions.items()},
+                )
+                self.assertEqual(
+                    {'0008': current_conditions, '0009': text_condition},
+                    {key: item['revisit_when'] for key, item in decisions.items() if 'revisit_when' in item},
+                )
+
     def test_brief_derives_product_and_implementation_instead_of_copying_summary(self):
         brief = product_brief(load_project(self.root))
         self.assertEqual('Synthetic research purpose.', brief['purpose'])

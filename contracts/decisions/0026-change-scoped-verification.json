@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0",
+  "id": "0026",
+  "title": "Select verification from the actual change while preserving protected integration",
+  "status": "accepted",
+  "recorded_at": "2026-11-22",
+  "context": "The owner asked to make verification proportional to the work. Full protected jobs have taken tens of minutes even when the desktop binary was unaffected. The Herdr routing change exposed a new advisory in the shared lockfile, which the existing dependency review correctly detected.",
+  "decision": "Classify the complete Git difference for each protected PR candidate and main push. Use checked profiles for project records and reviewed narrative fields, isolated Herdr tooling, and catalog wording. Preserve both native jobs, history, dependency review and evidence of the actual selected checks. Use the complete change suite for other changes, uncertain comparisons, manual full runs and a weekly main regression. An independent merge check verifies the successful harness scope in each job. Release evidence still requires the release workflow and the exact packaged candidate.",
+  "authority": "The owner requested a better verification policy. The development team selects and maintains the engineering checks under ADR 0007 and the existing protected integration delegation.",
+  "alternatives": [
+    {
+      "option": "Run the complete change suite after every edit and in every protected job.",
+      "reason": "Simple coverage comes with repeated desktop and browser builds for changes confined to records or development tools."
+    },
+    {
+      "option": "Skip workflows by path or rely on the PR title, labels or declared task alone.",
+      "reason": "A required context can stay pending and a mixed or undeclared change can escape the checks it needs."
+    }
+  ],
+  "consequences": [
+    "The selector has a small explicit set of supported narrow cases. Grant a new case only with tested boundaries for its files, dependencies and check prerequisites.",
+    "Task records, feedback, evidence, and reviewed narrative fields can use records checks. Changes to Herdr model families, effort settings, and their tests can use development-tool checks. Contributor instructions, owner authorizations, the launch command, and unrecognized policy fields require the full change suite.",
+    "A main push verifies its actual merged state even when the preceding PR was successful. Reports and timing comparisons retain their selected scope.",
+    "A fresh dependency finding can still block an otherwise small change. Keep the original evidence and resolve the dependency independently."
+  ],
+  "supersedes": [],
+  "related_decisions": [
+    "0004",
+    "0006",
+    "0007"
+  ],
+  "revisit_when": [
+    "A missed dependency or a repeated full fallback identifies another verifiable boundary.",
+    "Measured protected latency or the weekly full regression shows the checks need adjustment."
+  ]
+}

@@ -13796,6 +13796,1120 @@
       }
     },
     {
+      "id": "M0-062",
+      "title": "Restore reliable Windows Chromium loopback verification",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-058"
+      ],
+      "scope": [
+        "package.json",
+        "pnpm-lock.yaml",
+        "project/dependency-inventory.json",
+        "THIRD_PARTY_NOTICES",
+        "contracts/references.json",
+        "tests/ubuntu-preview",
+        "tests/localization",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/checks.json"
+      ],
+      "decision_refs": [
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the two independent native Windows failures and identify the shared failure mechanism with measurements or a controlled comparison.",
+        "Preserve all browser journeys, real operation endpoints and assertion coverage. Pass workspace-timeframe and desktop-localization on native Windows and verify the protected main push."
+      ],
+      "checks": [
+        "workspace-timeframe",
+        "desktop-localization",
+        "project-state",
+        "python-contracts-workers",
+        "architecture",
+        "dependency-review"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-062-693eab453eff4705.json",
+          "sha256": "cba31d20000aaf153630e2a1779c8bbd02d098d0e6538045999d733d316e3073"
+        },
+        {
+          "path": "project/evidence/M0-062-0b6481a9daf4d022.json",
+          "sha256": "597aebb062512579f879cc2626c446434173bdcbf41f58c3271d12fdf118ccc2"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Playwright 1.65.1 applies the upstream Chromium TCP allocation workaround. On Ubuntu and native Windows the real browser reported the corrected launch option, the original workspace and localization journeys passed, and dependency review passed. Hosted PR run 45023093160 supplied both receipts.",
+      "plan": {
+        "outcome": "Windows Chromium can navigate and load same-origin application modules throughout the existing verification sequence.",
+        "change_types": [
+          "tooling",
+          "dependencies"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/localization/desktop.config.mjs",
+          "project/feedback.json",
+          "package.json",
+          "project/dependencies.json",
+          "project/dependency-inventory.json"
+        ],
+        "hypotheses": [
+          "Repeated preview sessions, browser contexts or unbundled module loading may exhaust Windows loopback network resources. Distinguish the contributors before choosing a correction.",
+          "The pinned Playwright release lacks the upstream Windows Chromium source-port allocation workaround for intermittent Winsock 10055. Check the installed launch arguments and compare the unchanged browser journeys on a native runner with a fixed release."
+        ],
+        "risks": [
+          {
+            "failure": "An isolated case passes while the cumulative Windows verification sequence still exhausts resources.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-localization"
+            ]
+          },
+          {
+            "failure": "A harness adjustment hides application errors or changes the operations exercised.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-localization"
+            ]
+          },
+          {
+            "failure": "The new browser or runner shifts unrelated dependencies or invalidates dependency and browser coverage.",
+            "checks": [
+              "dependency-review",
+              "architecture",
+              "workspace-timeframe",
+              "desktop-localization"
+            ]
+          }
+        ],
+        "rollback": "Retain the failed run artifacts and revert the harness change through a protected PR if verification regresses.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.config.mjs",
+            "tests/localization/desktop.config.mjs",
+            "scripts/check.py",
+            "package.json",
+            "scripts/dependencies.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/dependencies.json",
+              "pointer": "/maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing product behavior, widening permissions, skipping assertions, increasing retries or changing protected check selection."
+          ],
+          "open_questions": [
+            "Which shared resource is depleted, and how can the harness expose the difference on a Windows runner?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing browser journeys, native Windows coverage and operation semantics."
+          ],
+          "change": [
+            "Correct the verified resource lifecycle or demand in the internal verification harness."
+          ],
+          "data_plan": "Use isolated synthetic CI profiles and retain only diagnostic artifacts.",
+          "cleanup": "Remove temporary workflow resource sampling after archiving the original-sequence diagnostic. Keep the fix in the pinned upstream verification tooling."
+        }
+      }
+    },
+    {
+      "id": "M0-060",
+      "title": "Select hosted verification by the actual change on both protected platforms",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-058",
+        "M0-059"
+      ],
+      "decision_refs": [
+        "0004",
+        "0006",
+        "0007",
+        "0026"
+      ],
+      "scope": [
+        ".github/workflows/verify.yml",
+        "AGENTS.md",
+        "package.json",
+        "scripts/verification_scope.py",
+        "scripts/check.py",
+        "scripts/ci.py",
+        "scripts/ci_artifacts.py",
+        "scripts/timing.py",
+        "tests/project",
+        "contracts/schemas/project.schema.json",
+        "project/checks.json",
+        "project/tasks.json",
+        "project/development.json",
+        "project/delivery.json",
+        "scripts/integration.py",
+        "contracts/decisions/0026-change-scoped-verification.json"
+      ],
+      "acceptance": [
+        "Reviewed task records and contract narrative, isolated Herdr model settings or their tests, and translation wording select proportionate checks on pull requests and main pushes. Preserve the reason for the selection, actual check outcomes, and explicit omissions in the verification evidence.",
+        "Any shared, unclassified, mixed executable, dependency, protocol, authorization, persistence, build or CI change and any unverifiable comparison retains the complete change suite. A mixed records and known executable change must validate the executable. Task evidence and true release acceptance retain their original meaning.",
+        "Both required native jobs check the actual candidate, preserve history and continue the fresh advisory review. Omit expensive build outputs and browser setup only when the selected checks permit it. The manual full and release routes stay available, and a weekly full change run provides a backstop.",
+        "Exercise scope selection with realistic Git histories and local edits, run both lightweight profiles and the localization route against real checkout inputs, and verify that this change to CI itself selects full verification."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture",
+        "generated-contracts",
+        "dependency-review"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-060-afc28c8350774b09.json",
+          "sha256": "132d600dc5494cefe7516365e031e267b640e2e650c5252067c8984481e28ea9"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "On Ubuntu, a temporary edit to the product-purpose field selected four checks and passed in 9.282 seconds. A translation edit selected eight checks and passed in 20.321 seconds, including 13 Chromium localization cases. A Herdr model setting selected seven checks. The tooling profile passed those checks on the clean source in 100.406 seconds. Real Git fixtures exercise complete PR and push ranges, fallback rules and history preservation. The workflow change itself selected the full change suite. The local timings measure the harness only.",
+      "plan": {
+        "outcome": "A wording edit can reach a protected result without desktop builds, while changes with product or verification risk still exercise their required platforms.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          ".github/workflows/verify.yml",
+          "scripts/check.py",
+          "scripts/integration.py",
+          "project/checks.json",
+          "project/delivery.json",
+          "project/development.json"
+        ],
+        "hypotheses": [
+          "Classifying the complete base-to-checked-tree difference with a conservative fallback can save browser, build and native packaging work for known independent changes. Recent unaffected Windows jobs took tens of minutes."
+        ],
+        "risks": [
+          {
+            "failure": "A renamed, deleted, untracked, compound or machine-consumed change is treated as prose, or a missing base yields a false green.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A protected context is silently skipped, an omission becomes a pass, or release and integration evidence lose their scope.",
+            "checks": [
+              "python-contracts-workers",
+              "architecture",
+              "generated-contracts",
+              "dependency-review"
+            ]
+          }
+        ],
+        "rollback": "Run the existing full change profile when scope is uncertain. Keep the protected contexts and the manual full and release workflows available. Restore a reviewed previous workflow if a route is incorrect.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/verification_scope.py",
+            "scripts/check.py",
+            ".github/workflows/verify.yml",
+            "scripts/integration.py",
+            "scripts/timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control"
+            },
+            {
+              "path": "project/checks.json",
+              "pointer": "/required_change_checks"
+            },
+            {
+              "path": "project/branch-protection.json",
+              "pointer": "/configuration"
+            },
+            {
+              "path": "contracts/decisions/0026-change-scoped-verification.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Changing product behavior, granting bypasses, altering protected branch settings or treating a partial run as release evidence."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Protected contexts and exact checkout provenance, accepted history, dependency advisory checks, manual task/full/release behavior and explicit skipped checks."
+          ],
+          "change": [
+            "Choose a reviewed verification profile from the full Git change for ordinary PRs and main pushes. Keep a scheduled complete regression independent of release acceptance."
+          ],
+          "data_plan": "Use repository-relative Git metadata, synthetic test fixtures and ordinary build reports only. No user financial data or remote model call is needed.",
+          "cleanup": "Keep the existing full harness as the fallback. Remove duplicate unconditional work on recognized changes and record the actual coverage."
+        }
+      }
+    },
+    {
+      "id": "M0-068",
+      "title": "Verify synchronized pull requests against the actual Actions merge checkout",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-060"
+      ],
+      "decision_refs": [
+        "0004",
+        "0026"
+      ],
+      "scope": [
+        "scripts/verification_scope.py",
+        "tests/project/test_verification_scope.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "acceptance": [
+        "A synchronize event with stale preview metadata and an independently verified candidate records the actual base, checkout, file count and selection reason.",
+        "Invalid checkout SHA, PR ref, synchronization head or ordered parents keep the conservative fallback. Exercise both narrow and full changes using real Git objects."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-068-02f9916d8e9b6d6a.json",
+          "sha256": "da76c3dbdf875d0b9b99d7de2a64a11dc66210b7fb4283cf9a4d9cf382dc7d6c"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The real Git regression failed before the change and passed after it. Replaying the retained checkout with stale preview metadata classified all 24 changed files, and contradictory synchronization head, ref, checkout or base identities triggered full fallback. The clean-source task run passed project-state, architecture and python-contracts-workers.",
+      "plan": {
+        "outcome": "The hosted selection explains which files changed when a PR update races background merge metadata.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/verification_scope.py",
+          "tests/project/test_verification_scope.py",
+          ".github/workflows/verify.yml"
+        ],
+        "hypotheses": [
+          "The Actions merge ref and checkout SHA identify the current merge, while the synchronize payload can still describe a previous test merge."
+        ],
+        "risks": [
+          {
+            "failure": "A stale head or contradictory event incorrectly permits lightweight checks.",
+            "checks": [
+              "python-contracts-workers",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Return to full verification for an unverifiable comparison and retain the diagnostic.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/verification_scope.py"
+          ],
+          "rules": [
+            {
+              "path": "contracts/decisions/0026-change-scoped-verification.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Changes to merge authority, branch protection, platform coverage or push selection."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Use the complete checked tree, verify the PR number, ref, checkout SHA and ordered parents, and keep legacy event behavior."
+          ],
+          "change": [
+            "Validate synchronized PR heads independently of stale background merge metadata."
+          ],
+          "data_plan": "No product data or report schema changes.",
+          "cleanup": "Keep the existing selector and remove the incorrect dependency on the synchronize payload preview SHA."
+        }
+      }
+    },
+    {
+      "id": "M0-069",
+      "title": "Bind indicator preview contention to the admitted snapshot",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-068"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ubuntu-preview",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0007"
+      ],
+      "acceptance": [
+        "Explain the Windows 429 using retained request and revision observations and a controlled regression.",
+        "Observe the intended holder, competing BUSY, cancellation and recovery through the real service. Preserve revision 2 and exactly one removal. Verify on native Windows."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-069-e2b42c166ce0fa0e.json",
+          "sha256": "ec8602a34096452be8c2866fa07501c0d8c57d88e60fab958a268fa339a72712"
+        },
+        {
+          "path": "project/evidence/M0-069-1f09cdbc9bc4d02f.json",
+          "sha256": "73fdbfb77570c7a9e28408b92c8a96cca81b79ed4cdeaea147ee8f2e81c54fc9"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The controlled competing snapshot reproduced the old false ownership inference. Real HTTP and writer identities now distinguish refusal, cancellation, drain and successful recovery. Ubuntu and native Windows run 45037670475 preserved the revision-2 removal and revision-3 undo, each exactly once.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T143714.976297Z-71b18a36",
+          "source_commit": "5a6647538b8157b70777a2a121d4876530823b88",
+          "report_sha256": "d4e476c37861687e0147a805abac3f3099f089baf8556f68ba6037deca3a4628"
+        }
+      ],
+      "plan": {
+        "outcome": "The indicator removal contention test binds the actual snapshot holder, observes BUSY on the competing request and verifies recovery of the persisted revision.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "apps/desktop/ui/ubuntu-workspace.mjs",
+          "project/feedback.json"
+        ],
+        "hypotheses": [
+          "A BUSY response from an independent probe can report a competing reader instead of proving admission of the intended holder. Verify the owner before choosing a fixture or product correction."
+        ],
+        "risks": [
+          {
+            "failure": "Unrelated readers or a cancelled request satisfy the ownership observation.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A change hides a real admission, cancellation or persistence error.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Revert the scoped correction through protected review and retain the original diagnostic for comparison.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "apps/desktop/ui/ubuntu-workspace.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing unrelated browser checks, widening permissions or masking contention with delays or retries."
+          ],
+          "open_questions": [
+            "Does the fixture identify its actual holder, and does the real product service preserve admission and cancellation invariants?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Single-writer admission, BUSY responses, cancellation cleanup, idempotent removal and persisted revision."
+          ],
+          "change": [
+            "Bind test observations to the actual request that holds admission. Correct product behavior only if evidence requires it."
+          ],
+          "data_plan": "Use existing isolated synthetic profiles and the verified native Windows diagnostic.",
+          "cleanup": "Remove obsolete ownership inferences and any temporary measurement after confirming the correction."
+        }
+      }
+    },
+    {
+      "id": "M0-071",
+      "title": "Recover native Windows desktop ACL preparation under verification load",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-036"
+      ],
+      "scope": [
+        "apps/desktop/src-tauri/src/bridge_tests.rs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0007"
+      ],
+      "acceptance": [
+        "Distinguish explicit fixture preparation timeouts from application-path preparation during SAVE_LOCAL_IMPORT_MAPPING. Compare the original with prior runs and measure native concurrency and helper behavior.",
+        "Demonstrate a bounded correction on native Windows with the desktop cases and full protected verification. Preserve ACL checks, fail-closed behavior, profile isolation, deadlines, cleanup and concurrent desktop operations."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "rust-format",
+        "rust-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-071-583fa3f43c8b5f41.json",
+          "sha256": "6063cd869619e41383aa96594c6baae42cd77d5447a073854d3f2ae2a1ea21cd"
+        },
+        {
+          "path": "project/evidence/M0-071-5f3665cf4fa717bb.json",
+          "sha256": "96da51b023a0df1e4cd6071054f3f3821d75bbe42344b6908bceb987e5265d74"
+        },
+        {
+          "path": "project/evidence/M0-071-644377af0f478682.json",
+          "sha256": "63f0b3f199aaad8e0287a5f263e3b114fbe0bad2686b74df3d2e20febb94e9eb"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Native diagnostic 45052208778 reproduced both fixture startup failures under a controlled delay. Removing redundant outer preparation reduced explicit helper starts from seven to two across the original journeys. All 54 original application helper calls remained. The added mapping-save case verified fail-closed timeout, child cleanup and recovery on a new request. The uninstrumented candidate passed the protected Ubuntu and Windows checks.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T165618.491721Z-d3e98934",
+          "source_commit": "cdf27d7722530bc9d5a5753a3898b67644a1887a",
+          "report_sha256": "ba4b14a2ed8d5268091b0978f85187c0f277d755f2e593b9c2b429b8e5aaf867"
+        }
+      ],
+      "plan": {
+        "outcome": "Native desktop verification exercises real Windows ACL preparation and operation paths without losing their bounds or test concurrency.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "apps/desktop/src-tauri/src/bridge_tests.rs",
+          "crates/persistence/src/storage.rs",
+          "crates/persistence/src/storage_acl.ps1",
+          "scripts/check.py",
+          "scripts/rust_workspace.py"
+        ],
+        "hypotheses": [
+          "The existing explicit fixture slot still permits overlap with application ACL helpers. The native verification scheduler also overlaps Python and Rust. Measure both and distinguish runner variability from a path-specific defect."
+        ],
+        "risks": [
+          {
+            "failure": "A timeout is incorrectly attributed to the ACL policy or to concurrent Python solely because their timestamps overlap.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "rust-format",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A scheduling or fixture change suppresses meaningful concurrency, skips ACL enforcement, or loses cleanup on failure.",
+            "checks": [
+              "rust-contracts-workers",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain failed native diagnostics and baseline measurements. Revert the reviewed correction if real ACL or verification behavior regresses.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "persistence"
+          ],
+          "entrypoints": [
+            "apps/desktop/src-tauri/src/bridge_tests.rs",
+            "apps/desktop/src-tauri/src/workspace.rs",
+            "crates/persistence/src/storage.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing ACL rules, bypassing profile checks, blanket serialization, changing the Python timeout in PR 46 or starting another queued product task."
+          ],
+          "open_questions": [
+            "Where does native helper wall time accumulate, and which verification activities contribute?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Fail-closed ACL checks, profile isolation, bounded helper termination and concurrent bridge behavior."
+          ],
+          "change": [
+            "Reserve an empty outer test directory atomically and let the ordinary workspace operation provision its private subtree. Exercise a refused mapping save and a new request on the same bridge."
+          ],
+          "data_plan": "Use synthetic test profiles and aggregate measurements. Preserve original reports and bound logs.",
+          "cleanup": "Remove diagnostic-only instrumentation from the protected delivery unless narrowly justified for regression observability."
+        }
+      }
+    },
+    {
+      "id": "M0-070",
+      "title": "Keep complete Windows Python discovery within a measured finite wall-time budget",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-068",
+        "M0-069"
+      ],
+      "scope": [
+        "project/checks.json",
+        "contracts/schemas/project.schema.json",
+        "scripts/check.py",
+        "scripts/verification_scope.py",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0006",
+        "0007",
+        "0026"
+      ],
+      "acceptance": [
+        "Explain the original 900.015-second timeout using retained suite and other check timings from comparable Windows runs. Distinguish observed progress from any unverified cause.",
+        "Keep complete discovery, existing assertions, a finite deadline and useful timeout diagnostics. Demonstrate the proportional change with regression or equivalence evidence and a completed native Windows suite with retained duration."
+      ],
+      "checks": [
+        "project-state",
+        "architecture",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-070-c775ced496cfe084.json",
+          "sha256": "2eb3490a26767c3cc92e7a5add8edbc507b9fbeb25a83d0141efbe1b9e773d7d"
+        },
+        {
+          "path": "project/evidence/M0-070-f58162a8963e27bc.json",
+          "sha256": "4f15d59a4309e3de2e030dd8d1b6d6629e1cdf11426b2be35b9d4d675a01b229"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Both full suites passed in PR run 45058420352. Complete unittest discovery took 882.265 seconds on native Windows with a 1200-second deadline and 124.727 seconds on Ubuntu with a 900-second deadline. Earlier run 45046352101 finished Windows Python in 801.937 seconds. Its desktop ACL failure is recorded in M0-071. A controlled finite timeout kept its progress, timeout reason and sibling result.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T161306.780775Z-67e5702f",
+          "source_commit": "5532f7c2b9b299ef10975088df0c333a138949fd",
+          "report_sha256": "32540b8d527c5fde0e3262dc8635de9cf93fc0114488a8c663094a9d7a21d5f6"
+        }
+      ],
+      "plan": {
+        "outcome": "The Windows check finishes its complete Python suite on a slower hosted runner and still reports a genuine timeout with useful progress.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/checks.json",
+          "scripts/check.py",
+          "tests/project",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The last printed test may reflect cumulative work or scheduling variability. Compare other checks, previously reported test durations, fixture work and cleanup before changing verification."
+        ],
+        "risks": [
+          {
+            "failure": "A faster suite skips checks or alters test semantics.",
+            "checks": [
+              "python-contracts-workers",
+              "architecture"
+            ]
+          },
+          {
+            "failure": "Unnecessary timeout growth conceals stalls or consumes other jobs’ budgets.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Retain the original failure and restore the reviewed settings through a protected PR if coverage or timeout behavior regresses.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check.py",
+            "project/checks.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Changing product behavior, unrelated deadlines, protected contexts or release verification."
+          ],
+          "open_questions": [
+            "Which measurable costs or bounded headroom best address the observed slow run?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Full Python discovery, assertions, finite process termination, logs and platform verification."
+          ],
+          "change": [
+            "Reduce measured overhead or adjust narrowly justified headroom for this check."
+          ],
+          "data_plan": "Use existing hosted diagnostics and synthetic repository fixtures.",
+          "cleanup": "Keep only the scoped correction and its regression. Remove temporary timing instrumentation after verification."
+        }
+      }
+    },
+    {
+      "id": "M0-061",
+      "title": "Keep product decisions revisable at a cost proportional to the change",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-024"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "project/development.json",
+        "scripts/development.py",
+        "tests/project/test_development.py",
+        "project/tasks.json"
+      ],
+      "acceptance": [
+        "The engineering contract identifies affordable evolution as an implementation objective and points to the working rules. Those rules cover routine edits, reconsidering the product outcome from new evidence, and choosing a replacement based on affected callers, supported data and the cost of retiring the old path.",
+        "A developer can distinguish a reported user difficulty from a proposed solution, use existing task or feedback records to test a consequential assumption, and recognize repeated expensive changes. Ordinary edits fit the existing workflow.",
+        "The normal task context displays the recorded reconsideration conditions of current applicable decisions and identifies superseded decisions. Both historical formats work and accepted records retain their original contents."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-061-75282e378ecd149e.json",
+          "sha256": "16d094d44c488b4054e569a90ec8139d1d853cf882884cd23d8c6601ae9c8c7b"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The contract links to the working evolution rules. The fast harness passed on the clean source. M0-001 shows the successor of historical decision 0001 and the original text and list conditions for current decisions in all three focused phases. The regression distinguishes proposed, rejected and unrelated decisions from current guidance. The rules define how to assess later comparable changes. Actual post-release user outcomes and savings require observations from those changes.",
+      "plan": {
+        "outcome": "A developer making a small edit or revisiting a larger product decision can find the appropriate action and the evidence that would change the decision.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "project/development.json",
+          "scripts/development.py",
+          "tests/project/test_development.py",
+          "contracts/decisions/0007-ai-led-development.json"
+        ],
+        "hypotheses": [
+          "Most replacement mechanics already exist. Surfacing the conditions attached to current decisions and using the existing task and feedback records can close the gap without a new reporting system."
+        ],
+        "risks": [
+          {
+            "failure": "A superseded rationale is mistaken for an active decision, or the context no longer reads a historical decision with a text trigger.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A rewrite rule assumes all prototype data is disposable, assigns new permissions, or burdens every small edit with a formal experiment.",
+            "checks": [
+              "project-state",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Restore the previous policy text and focused view through a reviewed source change. The full decision records stay readable throughout.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/development.py",
+            "scripts/project.py",
+            "tests/project/test_development.py"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/implementation_policy/changes"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/implementation_policy/evolution"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/evolution"
+            },
+            {
+              "path": "contracts/decisions/0007-ai-led-development.json",
+              "pointer": "/revisit_when"
+            }
+          ],
+          "non_goals": [
+            "Product rewrites, user telemetry, new approval gates, general plugin infrastructure, and changes to the task or decision schemas."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "Existing task phases, decision history, profile ownership, migration checks and engineering authority."
+          ],
+          "change": [
+            "Clarify the change-cost and feedback rules and read decision triggers from their original records in the task view."
+          ],
+          "data_plan": "Use committed engineering records and synthetic decision chains. Product data and live user feedback are outside this task.",
+          "cleanup": "Use the current decision and task records as the sole sources. Keep follow-up work in the existing task queue."
+        }
+      }
+    },
+    {
+      "id": "M0-063",
+      "title": "Clarify the owner's current AI development and external contribution policy",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-061"
+      ],
+      "decision_refs": [
+        "0004",
+        "0006",
+        "0007"
+      ],
+      "scope": [
+        "project/development.json",
+        "project/delivery.json",
+        "AGENTS.md",
+        "project/tasks.json"
+      ],
+      "acceptance": [
+        "The owner's current workflow starts in a local Herdr window with Codex CLI. Product direction and experience decisions belong to the owner. AI agents perform implementation, review, coordination and maintenance within the active authorized session.",
+        "Feedback is evidence for an explicit product decision, including retaining the current behavior or declining a suggestion. Confirmed violations of existing requirements continue through the repair workflow.",
+        "Standing GitHub authority covers this owner's internally initiated development and its protected PRs. Unsolicited Issues and third-party submissions grant no authority to start work, respond, close, or merge. Any future change of intake policy belongs to the owner."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-063-5fd3483d66b04193.json",
+          "sha256": "448e24d9216fda08bcc5b80c25c0d5e66d8e7b77c10327681b5c71411d761d27"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The project brief and detailed task context expose the owner-started development roles, feedback decisions and internal GitHub delegation from their canonical records. Independent review covered internal CI, unsolicited Issues, third-party submissions and confirmed defects. The affected checks passed on the reviewed source. Existing tasks, authorization history and the M0-061 receipt were preserved.",
+      "plan": {
+        "outcome": "An AI agent can determine who starts its work, which feedback warrants action and what GitHub work the standing delegation covers.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/development.json",
+          "project/delivery.json",
+          "AGENTS.md",
+          "contracts/decisions/0007-ai-led-development.json"
+        ],
+        "hypotheses": [
+          "The existing collaboration and authorization records can express the decision without a new workflow, runtime setting or contributor service."
+        ],
+        "risks": [
+          {
+            "failure": "An external report, passing PR or public repository is treated as a work order or permission to merge.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Manual initiation is interpreted as requiring human involvement in every engineering step or suspending authorized CI repairs.",
+            "checks": [
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "A later owner decision can revise the current collaboration text and append a new GitHub authorization entry. Existing accepted task and decision history stays available.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "project/development.json",
+            "project/delivery.json",
+            "AGENTS.md"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/collaboration"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/authorization"
+            }
+          ],
+          "non_goals": [
+            "Product AI behavior, automated community intake, changes to repository settings or licensing."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "Technical autonomy for owner-authorized work, existing CI and branch protection, and the accepted M0-061 record."
+          ],
+          "change": [
+            "Specify the current development roles and narrow the standing external intake authority."
+          ],
+          "data_plan": "Use repository policy and read-only project views. No community submission or private product data is needed.",
+          "cleanup": "Keep the policy in the existing collaboration and source-control records."
+        }
+      }
+    },
+    {
+      "id": "M0-064",
+      "title": "Advise the owner when personal or development workflows need to change",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-063"
+      ],
+      "decision_refs": [
+        "0007"
+      ],
+      "scope": [
+        "project/development.json",
+        "project/tasks.json"
+      ],
+      "acceptance": [
+        "Recognize the owner's intended long-term personal use. Evidence from their own work can justify advice before anyone else uses ScopeHub.",
+        "During an active session, raise a concrete mismatch in how the owner uses or develops the product. Explain the observed or foreseeable consequence, a proportionate adjustment and its tradeoff. Independent use can expose a new constraint. It does not by itself require a change.",
+        "The usual project brief and task consultation views expose the guidance. Feedback and recommendations preserve the owner's decisions and the existing scope of development authority."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-064-dfd2b591e5baabb3.json",
+          "sha256": "4d4b2ee95a7b856f460f651255144b6e846d040e1feed453e75dcda12b2e52d4"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The project brief and all three focused task phases expose the owner consultation through the existing policy. Independent review applied it to hypothetical solo use, an owner-dependent setup step and adoption without difficulty. The selected checks passed on the reviewed source. The examples illustrate the policy and do not claim observations from actual users.",
+      "plan": {
+        "outcome": "The development AI knows when and how to advise the owner as the way ScopeHub is used or maintained evolves.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/development.json",
+          "scripts/development.py"
+        ],
+        "hypotheses": [
+          "The existing owner consultation feeds the brief and each focused task phase from one record."
+        ],
+        "risks": [
+          {
+            "failure": "Growth alone prompts a process change, or a real problem in solo use goes unreported.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revise the collaboration policy when the owner changes their needs or the recommendation proves unsuitable.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "project/development.json",
+            "scripts/development.py"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/collaboration"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Background monitoring, product notifications and third-party intake."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "Owner-started development and existing authorization for engineering work."
+          ],
+          "change": [
+            "Use concrete evidence to advise the owner as personal use and development practices evolve."
+          ],
+          "data_plan": "Use the existing session and project records.",
+          "cleanup": "Keep the recommendation in the existing consultation view."
+        }
+      }
+    },
+    {
+      "id": "M0-065",
+      "title": "Clarify development tool installation and paid procurement recommendations",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-063"
+      ],
+      "decision_refs": [
+        "0007"
+      ],
+      "scope": [
+        "project/development.json",
+        "project/tasks.json"
+      ],
+      "acceptance": [
+        "The development AI can independently choose, install and configure development tools, including command-line utilities, skills and MCP servers, for authorized work on this repository within existing grants.",
+        "During normal task work the AI can recommend a paid API, service or product when the benefit warrants it. The owner receives the use case, likely cost and billing basis, and a practical alternative when available. New spending or broader access requires applicable owner authorization."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-065-b20afcf0657fbf0d.json",
+          "sha256": "1aee1d975a36093b4980f5da0a1ebb2b35b66f12b4321a2da94f496c1de0eaac"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The Herdr tooling entry covers ordinary development utilities, skills, MCP servers and plugins. The project brief and each focused phase expose when to recommend paid products and who authorizes new spending and access. The selected checks passed on the reviewed source. Independent review traced all four cases through the existing policies.",
+      "plan": {
+        "outcome": "The development AI can act on existing tool authority and advise the owner when a paid capability would help.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/development.json"
+        ],
+        "hypotheses": [
+          "The existing Herdr tooling and consultation entries already reach an active session."
+        ],
+        "risks": [
+          {
+            "failure": "A purchase recommendation is mistaken for a spending or data grant, or an ordinary installation is held for repeated approval.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revise the development policy if the owner changes the delegation.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "project/development.json"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/herdr/tooling"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/collaboration/ask_owner_when"
+            }
+          ],
+          "non_goals": [
+            "A tool catalog, a purchase, or new product runtime permissions."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "Existing tool qualification, spending authority and each product user’s data permissions."
+          ],
+          "change": [
+            "Make tool selection authority and the grounds for a paid recommendation explicit."
+          ],
+          "data_plan": "Use development policy and repository views.",
+          "cleanup": "Maintain guidance in the existing collaboration and tooling entries."
+        }
+      }
+    },
+    {
       "id": "M0-066",
       "title": "Assess an AI-editable desktop workspace and ordered chart panes",
       "milestone": "M0",
