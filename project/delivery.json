@@ -719,7 +719,7 @@
         "interval_days": 7,
         "reviewed_on": "2026-11-21",
         "actions": [
-          "Run pnpm project:branches at the next active session when due and after an integration. Fetch missing history from the reviewed origin and repeat the observation. Confirm main protection and automatic head deletion.",
+          "Run pnpm project:branches at the next active session when due and after an integration. Fetch missing history from the reviewed origin and repeat the observation. Run pnpm project:protection to compare effective main settings against policy and confirm automatic head deletion in the branch inventory.",
           "Trace each retained remote head to its active task, dependent pull request, or independent recovery copy. Resolve an integrated head, failing dependency proposal or abandoned stack and record the result."
         ]
       },

@@ -2652,6 +2652,22 @@
         "prevention": "The regressions alter and remove the second checkout, and place a newer incorrect run ahead of a valid older one. Authentic Ubuntu and Windows logs exercise the successful pair."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "weekly-branch-review-omits-default-protection",
+      "source": "Independent review of the branch inventory in PR 30.",
+      "severity": "minor",
+      "status": "open",
+      "observation": "A fixture with a stable default branch reported as unprotected produced a passing weekly branch inventory. The dedicated integration protection check still enforces the policy.",
+      "task_ids": [
+        "M0-044"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

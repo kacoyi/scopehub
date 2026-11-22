@@ -129,9 +129,30 @@ class BranchReviewTests(unittest.TestCase):
         self.assertEqual('outside_default_history', prs[12]['status'])
         self.assertEqual(refs_before, self.git('show-ref', '--head'))
 
+    def test_unprotected_default_blocks_review_and_keeps_branch_classifications(self):
+        inventory = self.inventory([[
+            branch('trunk', self.default, protected=False),
+            branch('feature', self.feature, protected=False),
+            branch('backup', self.unique, protected=False),
+        ]])
+
+        report = self.inspect(inventory)
+
+        self.assertEqual('blocked', report['status'])
+        self.assertEqual([], report['errors'])
+        self.assertEqual({'name': 'trunk', 'sha': self.default}, report['default_branch'])
+        rows = {row['name']: row for row in report['branches']}
+        self.assertEqual({'trunk': 'default', 'feature': 'reachable_unreferenced', 'backup': 'unique_history'},
+                         {name: row['status'] for name, row in rows.items()})
+        self.assertIs(rows['trunk']['protected'], False)
+        finding, = report['findings']
+        self.assertEqual('default_branch_unprotected', finding['code'])
+        self.assertEqual('trunk', finding['branch'])
+        self.assertIn('pnpm project:protection', finding['action'])
+
     def test_recorded_pr_base_can_lag_the_live_stacked_base(self):
         inventory = self.inventory([[
-            branch('trunk', self.default),
+            branch('trunk', self.default, protected=True),
             branch('stack/base', self.feature),
             branch('stack/head', self.unique),
         ]], [[pull(26, base=('stack/base', self.root_sha), head=('stack/head', self.unique))]])
@@ -148,7 +169,7 @@ class BranchReviewTests(unittest.TestCase):
 
     def test_same_repository_head_conflict_holds_the_live_branch(self):
         inventory = self.inventory([[
-            branch('trunk', self.default),
+            branch('trunk', self.default, protected=True),
             branch('feature', self.feature),
         ]], [[pull(26, base=('trunk', self.default), head=('feature', self.unique))]])
 
@@ -165,7 +186,7 @@ class BranchReviewTests(unittest.TestCase):
         self.assertIsNone(pr['reachable_from_default'])
 
     def test_paginated_open_prs_include_later_branch_holds(self):
-        first_heads = [branch('trunk', self.default)]
+        first_heads = [branch('trunk', self.default, protected=True)]
         first_heads.extend(branch(f'feature-{n}', self.feature) for n in range(1, 100))
         first_pulls = [pull(n, base=('trunk', self.default), head=(f'feature-{n}', self.feature))
                        for n in range(1, 100)]
@@ -183,7 +204,7 @@ class BranchReviewTests(unittest.TestCase):
 
     def test_unique_history_and_missing_commit_are_distinct(self):
         absent = '9' * 40
-        inventory = self.inventory([[branch('trunk', self.default), branch('backup', self.unique),
+        inventory = self.inventory([[branch('trunk', self.default, protected=True), branch('backup', self.unique),
                                      branch('missing', absent)]])
         # A promisor configuration must not turn an ancestry check into an implicit fetch.
         self.git('config', 'remote.origin.promisor', 'true')
@@ -201,7 +222,8 @@ class BranchReviewTests(unittest.TestCase):
     def test_shallow_checkout_cannot_prove_unique_history(self):
         git_dir = Path(self.git('rev-parse', '--absolute-git-dir'))
         (git_dir / 'shallow').write_text(f'{self.default}\n', encoding='utf-8')
-        report = self.inspect(self.inventory([[branch('trunk', self.default), branch('feature', self.feature)]]))
+        report = self.inspect(self.inventory([[branch('trunk', self.default, protected=True),
+                                               branch('feature', self.feature)]]))
         self.assertEqual('blocked', report['status'])
         self.assertIn('non-shallow', report['errors'][0])
         self.assertEqual('uncertain', report['branches'][0]['status'])
@@ -209,15 +231,17 @@ class BranchReviewTests(unittest.TestCase):
     def test_local_commit_replacements_do_not_create_reachability(self):
         self.git('replace', '--graft', self.default, self.unique)
         self.git('merge-base', '--is-ancestor', self.unique, self.default)
-        report = self.inspect(self.inventory([[branch('trunk', self.default), branch('unique', self.unique)]]))
+        report = self.inspect(self.inventory([[branch('trunk', self.default, protected=True),
+                                               branch('unique', self.unique)]]))
         self.assertEqual('passed', report['status'], report['errors'])
         self.assertEqual('unique_history', report['branches'][1]['status'])
 
     def test_remote_change_withholds_classifications(self):
-        original = self.inventory([[branch('trunk', self.default), branch('feature', self.feature)]])
+        original = self.inventory([[branch('trunk', self.default, protected=True), branch('feature', self.feature)]])
         for endpoint, revised in [
-            (BRANCHES, [[branch('trunk', self.unique), branch('feature', self.feature)]]),
-            (BRANCHES, [[branch('trunk', self.default), branch('feature', self.feature, protected=True)]]),
+            (BRANCHES, [[branch('trunk', self.unique, protected=True), branch('feature', self.feature)]]),
+            (BRANCHES, [[branch('trunk', self.default, protected=True), branch('feature', self.feature, protected=True)]]),
+            (BRANCHES, [[branch('trunk', self.default, protected=False), branch('feature', self.feature)]]),
             (PULLS, [[pull(3, base=('trunk', self.default), head=('feature', self.feature))]]),
             (ENDPOINT, {**original[ENDPOINT], 'delete_branch_on_merge': False}),
         ]:
@@ -229,6 +253,7 @@ class BranchReviewTests(unittest.TestCase):
                 self.assertIn('changed during inspection', report['errors'][0])
                 self.assertEqual([], report['branches'])
                 self.assertIsNone(report['delete_branch_on_merge'])
+                self.assertNotIn('default_branch_unprotected', {finding['code'] for finding in report['findings']})
 
     def test_disabled_or_unknown_auto_deletion_has_an_actionable_finding(self):
         for metadata, observed, reason in [
@@ -247,12 +272,13 @@ class BranchReviewTests(unittest.TestCase):
                 self.assertIn('GitHub Settings', report['findings'][0]['action'])
 
     def test_invalid_or_unavailable_remote_input_blocks_review(self):
+        trunk = branch('trunk', self.default, protected=True)
         for endpoint, payload, reason in [
             (BRANCHES, {'message': 'unexpected response'}, 'paginated response'),
-            (BRANCHES, [[[branch('trunk', self.default)]]], 'branch record'),
-            (BRANCHES, [[branch('trunk', self.default), branch('trunk', self.default)]], 'Duplicate branch'),
+            (BRANCHES, [[[trunk]]], 'branch record'),
+            (BRANCHES, [[trunk, trunk]], 'Duplicate branch'),
             (BRANCHES, [[branch('trunk', self.default, protected=None)]], 'protection status'),
-            (BRANCHES, [[branch('trunk', self.default[:12])]], 'commit SHA'),
+            (BRANCHES, [[branch('trunk', self.default[:12], protected=True)]], 'commit SHA'),
             (BRANCHES, [[branch('other', self.default)]], 'Default branch'),
             (PULLS, [[pull(5, base=('trunk', 'short'), head=('other', self.unique), repo=FORK)]], 'PR #5 base'),
             (PULLS, [[pull(5, base=('trunk', self.default), head=('trunk', 'short'))]], 'PR #5 head'),

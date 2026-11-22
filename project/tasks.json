@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M4-001",
+  "focus_task_id": "M0-044",
   "tasks": [
     {
       "id": "M0-001",
@@ -10265,6 +10265,93 @@
           ],
           "data_plan": "Read and digest each retained file. Store only its logical location and manifest digest in version control.",
           "cleanup": "Recheck all 17 files against the three independently retained manifests before releasing the temporary copies."
+        }
+      }
+    },
+    {
+      "id": "M0-044",
+      "title": "Detect default-branch protection loss during weekly branch review",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-039"
+      ],
+      "scope": [
+        "scripts/branches.py",
+        "tests/project/test_branches.py",
+        "project/delivery.json",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0022"
+      ],
+      "acceptance": [
+        "The weekly branch review reports a corrective action if the default branch has lost protection.",
+        "Keep ordinary feature branches eligible for classification and point to the dedicated full protection audit."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "The weekly branch review reports a corrective action if the default branch has lost protection.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The weekly branch review reports a corrective action if the default branch has lost protection.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/branches.py",
+          "tests/project/test_branches.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "A fixture with a stable default branch reported as unprotected produced a passing weekly branch inventory. The dedicated integration protection check still enforces the policy."
+        ],
+        "risks": [
+          {
+            "failure": "Weekly maintenance overlooks a disabled default-branch protection rule.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Restore the previous read-only report if necessary and run the dedicated protection audit. Never change live protection in the fixture.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/branches.py",
+            "tests/project/test_branches.py",
+            "project/delivery.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/periodic_reviews"
+            }
+          ],
+          "non_goals": [
+            "Changing GitHub settings, deleting branches or replicating the full protection policy."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "All branch and PR classifications and the separate full protection audit."
+          ],
+          "change": [
+            "Report a stable observed loss of default-branch protection as a maintenance finding."
+          ],
+          "data_plan": "No stored data changes. Retain the original reproduction and the live protected default observation.",
+          "cleanup": "Exercise protected, unprotected and ordinary unprotected feature branches."
         }
       }
     }

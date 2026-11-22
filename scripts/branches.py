@@ -210,6 +210,7 @@ def inspect(root=ROOT):
         'delete_branch_on_merge': None,
         'branches': [],
         'open_pull_requests': [],
+        'findings': [],
         'claim_scope': ('Point-in-time review. PR ref sha is the recorded revision and live_sha is the current '
                         'same-repository branch tip. Ancestry is relative to the observed default tip. '
                         'Reinspect before any cleanup.'),
@@ -227,8 +228,13 @@ def inspect(root=ROOT):
         branch_rows = [branches[name] for name in sorted(branches)]
         pull_rows = [pulls[number] for number in sorted(pulls)]
         errors.extend(classify(default, branch_rows, pull_rows, ancestry))
-        report.update(status='passed' if not errors and delete_on_merge is True else 'blocked',
-                      repository=identity[1], repository_id=identity[0],
+        if branches[default]['protected'] is False:
+            report['findings'].append({
+                'code': 'default_branch_unprotected',
+                'branch': default,
+                'action': 'Run pnpm project:protection to audit the live protection policy and review its findings.',
+            })
+        report.update(repository=identity[1], repository_id=identity[0],
                       default_branch={'name': default, 'sha': default_sha}, delete_branch_on_merge=delete_on_merge,
                       branches=branch_rows,
                       open_pull_requests=pull_rows, errors=errors,
@@ -238,7 +244,6 @@ def inspect(root=ROOT):
         report['errors'] = [str(error)]
 
     setting = report['delete_branch_on_merge']
-    report['findings'] = []
     if setting is False:
         report['findings'].append({
             'code': 'delete_branch_on_merge_disabled',
@@ -251,6 +256,8 @@ def inspect(root=ROOT):
             'action': ('Resolve any observation errors, confirm the setting in GitHub Settings > General > '
                        'Pull Requests and rerun project:branches with the pinned account.'),
         })
+    if not report['errors'] and not report['findings']:
+        report['status'] = 'passed'
     report['observed_at'] = datetime.now(timezone.utc).isoformat()
     return report
 
