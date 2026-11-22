@@ -3084,6 +3084,22 @@
         "prevention": "The model connection workflow exercises normal close and parent disconnect during and after startup and checks the actual listener and writer. Both platforms passed in run 44981248331."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "independent-user-source-intake",
+      "source": "Owner clarification on 2026-11-22, retained in contracts/reviews/2026-11-22-source-settings-and-development-inputs.json.",
+      "severity": "major",
+      "status": "open",
+      "observation": "The owner clarified that the user supplies personally downloaded files or a directly obtained API. The requirements discussion did not clearly identify an independent settings path or distinguish it from an optional ScopeHub offering. The contract correction needs an explicit task and product gates.",
+      "task_ids": [
+        "M0-051"
+      ],
+      "regression_checks": [
+        "project-state",
+        "architecture"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

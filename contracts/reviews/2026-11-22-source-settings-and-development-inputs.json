@@ -1,0 +1,69 @@
+{
+  "kind": "owner-source-settings-and-development-inputs",
+  "recorded_at": "2026-11-22",
+  "task_ids": [
+    "M0-051",
+    "M1-030",
+    "M1-028",
+    "M1-029",
+    "M1-009",
+    "M4-001",
+    "M4-014",
+    "M5-003"
+  ],
+  "owner_direction": {
+    "settings": "Every product user can open Settings > Data sources > My data sources to select the directory where they keep files they downloaded, or fill the connection details for an API they obtained directly from its provider. This includes free and paid providers and personally entered or imported data. The user manages that relationship. A ScopeHub data subscription, account, checkout and first-party data entitlement play no role in this journey.",
+    "refresh": "A user selects a directory scope once. Matching updates, including files deposited by a sync client while ScopeHub is closed, should flow through the approved mapping. Bring substantive historical corrections and changes of meaning back for review.",
+    "preparation": "Support different markets, formats and source conventions. Evaluate tools such as DuckDB and Polars for bounded local preparation. Let the connected model assist with unfamiliar mappings. Keep routine refresh available offline once a local mapping is approved.",
+    "api": "Offer dedicated provider forms and a local intake for an unfamiliar API. The user may supply instructions, examples and their own credential in the same setup flow. Separate secrets locally before any disclosed model use. The optional ScopeHub offering, the user's direct provider account and the model used for assistance each have separate fees and grants.",
+    "methods": "Invoke an inspectable research method from the current conversation. A question about Buffett's approach illustrates a class of reusable methods. Tie the selected method to its source, required evidence, calculations and limits."
+  },
+  "development": {
+    "equity_sample": {
+      "assessment": "project/assessments/a-share-parquet-20261122.json",
+      "root_setting": "SCOPEHUB_DEV_STOCKDATA_ROOT",
+      "use": "Read-only local development tests. Use synthetic equivalents in the repository and hosted CI."
+    },
+    "connections": {
+      "alpaca": {
+        "markets": "Equity bars at https://data.alpaca.markets/v2. The provided paper trading URL identifies a separate service.",
+        "settings": [
+          "APCA_API_KEY_ID",
+          "APCA_API_SECRET_KEY",
+          "ALPACA_DATA_BASE_URL"
+        ],
+        "status": "A Key ID was supplied. The paired paper secret is a separate input for a future authenticated data trial."
+      },
+      "massive": {
+        "rest": "MASSIVE_API_KEY",
+        "flat_files": [
+          "MASSIVE_S3_ENDPOINT",
+          "MASSIVE_S3_BUCKET",
+          "MASSIVE_S3_ACCESS_KEY_ID",
+          "MASSIVE_S3_SECRET_ACCESS_KEY"
+        ],
+        "status": "The REST key and S3 endpoint, bucket and access ID were supplied. Qualify the paired S3 secret and actual file entitlement separately."
+      },
+      "tickdb": {
+        "documentation": "https://docs.tickdb.ai/zh-Hans/index",
+        "setting": "TICKDB_API_KEY",
+        "purpose": "A bounded market-data trial from the selected provider."
+      },
+      "models": {
+        "routing": "For authorized development tests prefer the supplied OpenAI test project and its granted credit. Use OpenRouter when the needed model is unavailable there. Record the route and observed cost for real qualification. Product users independently select their own recipients and services.",
+        "settings": [
+          "OPENAI_API_KEY",
+          "OPENAI_PROJECT_ID",
+          "OPENROUTER_API_KEY"
+        ]
+      }
+    },
+    "storage": {
+      "scope": "Host-local development settings. Only variable names and public service addresses belong in source control. Application profiles continue to use their existing platform credential mechanism.",
+      "owner_host_bundle": "~/.config/scopehub/development/test-connections.env.age",
+      "owner_host_identity": "~/.local/share/scopehub-dev/age/identity.txt",
+      "use": "The owner host uses age-encrypted dotenv fields and owner-only files. Decrypt in the trusted local test client and select just the fields needed by that connector. Other development hosts may inject the same fields through their own local credential store."
+    },
+    "observed_scope": "The equity inspection used local read-only queries. The credential setup and public documentation do not establish a successful account, market feed, S3 or real-model trial."
+  }
+}

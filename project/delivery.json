@@ -596,6 +596,98 @@
         "model-connection-replay"
       ],
       "evidence_boundary": "The peer is a synthetic HTTP fixture. Model capability, finance collaboration and packaged Windows behavior have independent acceptance gates."
+    },
+    {
+      "id": "saved-local-directory",
+      "task_ids": [
+        "M1-028"
+      ],
+      "user_goal": "Keep chart data current as a local sync folder receives new deliveries.",
+      "given": "On Friday a profile has approved one directory and mapping. A chart follows its current revision; an earlier analysis holds a frozen revision.",
+      "when": "Close the desktop. Add a compatible file and alias, atomically replace a synced file with its old observations plus a new day, and change an old close in another series. Reopen on Monday; interrupt and retry a refresh.",
+      "then": [
+        "Import complete compatible additions once. Display the historical conflict and keep the prior accepted value until reviewed. The earlier analysis rereads its original revision.",
+        "Show the saved scope and last success in settings. A paused, disconnected, replaced or revoked directory cannot publish new data."
+      ],
+      "failure_cases": [
+        "Offline mount and partial sync",
+        "Duplicate and missed notifications",
+        "Root replacement, symlink escape or different profile",
+        "Grant revoked between preview and commit"
+      ],
+      "checks": [
+        "saved-directory-refresh"
+      ],
+      "evidence_boundary": "Exercise an installed host where native identity is available and repeat the restart scenario with synthetic files. Historical manual CSV evidence covers the session picker."
+    },
+    {
+      "id": "parquet-market-sessions",
+      "task_ids": [
+        "M1-029"
+      ],
+      "user_goal": "Chart a locally owned daily series and inspect its two auction sessions without reformatting the files.",
+      "given": "Synthetic inputs use a bare six-character daily code, exchange-qualified auction codes, an ambiguous venue, a missing auction, and an absent adjustment factor.",
+      "when": "Preview the mapping, inspect source units and adjustment basis, publish and reread the resulting revisions.",
+      "then": [
+        "A missing opening auction leaves the daily and closing observations visible. A raw value with unknown adjustment stays traceable.",
+        "Same-code instruments from different venues, daily and auction quantities, source rows and mapping versions stay distinguishable."
+      ],
+      "failure_cases": [
+        "Venue collision",
+        "Missing or revised factor",
+        "Currency or quantity units differ",
+        "Interrupted or incompatible input"
+      ],
+      "checks": [
+        "parquet-market-import"
+      ],
+      "evidence_boundary": "Use synthetic records in hosted checks. The independent owner sample inspection establishes only its observed file characteristics."
+    },
+    {
+      "id": "research-method-in-conversation",
+      "task_ids": [
+        "M4-014"
+      ],
+      "user_goal": "Apply a named research method and inspect the evidence behind its conclusion.",
+      "given": "An equity chart is selected. One case supplies statements available on the analysis date and one supplies price data alone.",
+      "when": "Request an owner-earnings analysis, then change the maintenance capital estimate.",
+      "then": [
+        "Identify the method version and sources, reproduce the arithmetic and surface assumptions and contrary evidence.",
+        "Describe the missing inputs in the chart-only case and recheck rights when the evidence changes."
+      ],
+      "failure_cases": [
+        "Future filing",
+        "Unsupported assumption",
+        "Revoked evidence",
+        "Skill text requesting additional permissions"
+      ],
+      "checks": [
+        "analysis-method-replay"
+      ],
+      "evidence_boundary": "Replay fixes inputs and tool responses. Real-model behavior retains its separate qualification."
+    },
+    {
+      "id": "my-data-sources-without-a-service",
+      "task_ids": [
+        "M1-030"
+      ],
+      "user_goal": "Use files the user downloaded and an API they obtained directly from its provider.",
+      "given": "A fresh profile has no ScopeHub account, first-party data plan or model. A controlled read-only provider accepts a synthetic test credential.",
+      "when": "Open Settings > Data sources > My data sources, select the user’s local directory, enter the supplied API connection details, test a bounded read and reopen the saved connection.",
+      "then": [
+        "The local files, personally entered records and external API retain their independent provenance and rights. The external form displays the required inputs for its provider. Secrets stay in the selected connector’s credential store.",
+        "Complete setup and refresh on the fresh local profile. Removing one source leaves the others usable."
+      ],
+      "failure_cases": [
+        "Unconfigured first-party service",
+        "Invalid or expired third-party key",
+        "Custom instructions containing credential material",
+        "Multiple independent sources covering one instrument"
+      ],
+      "checks": [
+        "my-data-source-settings"
+      ],
+      "evidence_boundary": "Use a controlled provider in product acceptance. Real feed rights, service subscriptions and billing are verified separately."
     }
   ],
   "release_policy": {

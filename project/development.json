@@ -479,10 +479,11 @@
         "pointer": "/product/collaboration_model"
       },
       "task_ids": [
-        "M4-001"
+        "M4-001",
+        "M4-014"
       ],
       "delivery": "current-contract",
-      "boundary": "Planned shared evidence, reviewed mappings and visible outcomes. The financial partner challenges a thesis, revises its own conclusion and reviews user-selected decision notes. Replay and observed real-model discussion establish different aspects."
+      "boundary": "Planned shared evidence, reviewed mappings and visible outcomes. The financial partner challenges a thesis, revises its own conclusion and reviews user-selected decision notes. Replay and observed real-model discussion establish different aspects. Versioned research methods require a dated evidence replay and a missing-input case."
     },
     {
       "id": "installation",
@@ -506,10 +507,12 @@
         "M1-008",
         "M4-006",
         "M4-008",
-        "M4-002"
+        "M4-002",
+        "M1-028",
+        "M1-030"
       ],
       "delivery": "current-contract",
-      "boundary": "A local CSV folder can be used offline. Ordinary text setup reviews Ollama or OpenAI Responses for the current profile and session. OpenAI uses the explicitly configured API key and named destination. Controlled transport, native Windows use and real account qualification are verified independently."
+      "boundary": "A local CSV folder can be used offline. Ordinary text setup reviews Ollama or OpenAI Responses for the current profile and session. OpenAI uses the explicitly configured API key and named destination. Controlled transport, native Windows use and real account qualification are verified independently. M1-030 covers the independent My data sources settings entry for personal records and directly purchased API connections."
     },
     {
       "id": "information-channels",
@@ -543,10 +546,12 @@
         "pointer": "/product/data_onboarding"
       },
       "task_ids": [
-        "M1-008"
+        "M1-008",
+        "M1-028",
+        "M1-029"
       ],
       "delivery": "current-contract",
-      "boundary": "The Windows desktop offers a native folder picker and editable local CSV preview. An explicit save records a mapping version and header association in the profile SQLite store. A new session can reuse the mapping after selecting the source again. A changed header requires review. Native Windows verification of durable reuse, staged dataset publication and repeatable folder refresh remain pending."
+      "boundary": "M1-008 accepted explicit session-scoped CSV import, mapping reuse and reviewed publication. Saved-directory catch-up and typed Parquet sources have separate pending product gates."
     },
     {
       "id": "workspace-layout",

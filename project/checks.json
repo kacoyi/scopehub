@@ -717,6 +717,38 @@
       ],
       "timeout_seconds": 900,
       "cadence": "task"
+    },
+    {
+      "id": "saved-directory-refresh",
+      "status": "planned",
+      "purpose": "Exercise settings, profile-scoped directory identity, restart catch-up, stable append, duplicate, correction, cancellation and revocation.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 900
+    },
+    {
+      "id": "parquet-market-import",
+      "status": "planned",
+      "purpose": "Observe CSV/Parquet mapping, equity and auction identity, adjustment basis, units, missing values, provenance and recovery through the local product.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 900
+    },
+    {
+      "id": "analysis-method-replay",
+      "status": "planned",
+      "purpose": "Replay a versioned research method against independently calculated values, a missing-input case, corrected evidence and effective operation grants.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 900
+    },
+    {
+      "id": "my-data-source-settings",
+      "status": "planned",
+      "purpose": "Exercise the independent settings entry for entered records, local directories and a directly obtained provider API. Cover synthetic authentication, isolated credentials and independence from optional first-party data services.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 900
     }
   ],
   "milestones": [
@@ -745,7 +777,10 @@
         "market-recovery",
         "local-folder-import",
         "market-worker-interruption",
-        "market-recovery-ui"
+        "market-recovery-ui",
+        "saved-directory-refresh",
+        "parquet-market-import",
+        "my-data-source-settings"
       ]
     },
     {
@@ -772,7 +807,8 @@
         "configured-voice-session",
         "external-ai-bridge",
         "configured-external-ai-clients",
-        "configured-model-session"
+        "configured-model-session",
+        "analysis-method-replay"
       ]
     },
     {
@@ -926,6 +962,25 @@
       "requirement": "Observe Codex CLI and one compatible desktop AI client separately reading the open chart and applying a scoped annotation. Verify the visible result and undo on each supported test host.",
       "checks": [
         "configured-external-ai-clients"
+      ]
+    },
+    {
+      "requirement": "On a fresh install without a ScopeHub account or data plan, open Settings > Data sources > My data sources, select a folder of personally downloaded data and configure the user's own endpoint and fixture credentials in the API form. Test, save, refresh and disconnect independently with a controlled connector. Verify optional ScopeHub data services are labeled separately. Opt in to the read-only saved folder and approve a versioned rule. Publish compatible appends once across notifications, retry and restart. Stage a historical correction or removal for review, stop publication after pause or revocation, and require explicit rebind before using a replacement root. Reopen the prior entitled revision.",
+      "checks": [
+        "my-data-source-settings",
+        "saved-directory-refresh"
+      ]
+    },
+    {
+      "requirement": "Profile, map, preview and verify CSV and Parquet market fixtures offline. Inspect typed daily and auction records, leading-zero symbols, units, missing values and adjustment-factor provenance. Reject publication under a stale rule and reproduce an analysis from the retained source and rule revisions.",
+      "checks": [
+        "parquet-market-import"
+      ]
+    },
+    {
+      "requirement": "Select the public owner-earnings analysis method and run it on dated evidence. Show its author, source and version, as-of inputs, calculations, counterevidence and gaps. Repeat from the same evidence and verify that selecting the method grants no additional tool or data access.",
+      "checks": [
+        "analysis-method-replay"
       ]
     }
   ],
