@@ -1,7 +1,7 @@
 {
   "artifact_type": "engineering_contract",
   "contract_id": "market-ai-workbench.v1",
-  "contract_version": "1.5.0",
+  "contract_version": "1.6.0",
   "language": "en-US",
   "normative_terms": {
     "MUST": "MUST be implemented",
@@ -70,10 +70,17 @@
     "platform": {
       "v1": "Windows 10/11 x64",
       "later": [
-        "Linux",
-        "macOS"
+        "Linux releases",
+        "macOS releases"
       ],
-      "later_policy": "Reserve platform interfaces only; do not implement or claim support"
+      "later_policy": "Public Linux and macOS releases are deferred. Implement the Ubuntu desktop development host in this contract.",
+      "ubuntu_desktop": {
+        "purpose": "Primary application for day-to-day development and owner experience on Ubuntu.",
+        "entry": "pnpm desktop:dev",
+        "runtime": "Tauri 2 with WebKitGTK. Load the shared React/Vite frontend in the application window and invoke the Rust operation registry through the native bridge.",
+        "browser_preview": "Use pnpm dev:ubuntu and pnpm dev:ubuntu:workspace for optional browser preview and automated frontend tests. Desktop experience acceptance requires an observed native window.",
+        "verification": "M1-031 delivers the development host. Exercise M1-012 in that host before M1-011 on physical Windows. The v1 installer and packaged acceptance run on Windows 10/11 x64."
+      }
     },
     "release_unit": "A single Windows desktop installer",
     "architecture": "A modular monolithic application core with controlled local workers; not microservices",
@@ -192,7 +199,7 @@
       "framework": "React",
       "build": "Vite",
       "charts": "Lightweight Charts",
-      "runtime": "Tauri WebView2"
+      "runtime": "Tauri 2 with WebKitGTK on the Ubuntu development desktop and WebView2 on Windows"
     },
     "core": {
       "language": "Rust stable",
@@ -274,6 +281,10 @@
     "development": "project/development.json",
     "owner_decision_inputs": [
       {
+        "path": "contracts/reviews/2026-11-22-ubuntu-desktop.json",
+        "pointer": "/owner_direction"
+      },
+      {
         "path": "contracts/reviews/2026-11-22-source-settings-and-development-inputs.json",
         "pointer": "/owner_direction"
       },
@@ -292,14 +303,6 @@
       {
         "path": "contracts/reviews/2026-11-18-hosted-ux.json",
         "pointer": "/publication_scope"
-      },
-      {
-        "path": "contracts/reviews/2026-11-18-hosted-ux.json",
-        "pointer": "/verification_sequence"
-      },
-      {
-        "path": "contracts/reviews/2026-11-18-hosted-ux.json",
-        "pointer": "/product_scope"
       },
       {
         "path": "contracts/reviews/2026-11-18-hosted-ux.json",
@@ -1490,7 +1493,7 @@
     "installer": "Windows x64 NSIS",
     "webview2": "Explicitly use the installer bootstrapper strategy; first installation may require internet access. Record this in build-manifest.json and installer messaging; do not promise fully offline installation.",
     "python": "Distribute workers with the installer; do not require Python on the user system",
-    "build": "Build and validate natively on Windows; lock dependencies and record build information",
+    "build": "Run the Ubuntu development application from source. Build and validate the v1 release natively on Windows x64. Lock dependencies and record build information.",
     "platform_interfaces": [
       "credentialStore",
       "applicationPaths",
@@ -1506,7 +1509,7 @@
       "Complete source code and lockfiles"
     ],
     "verification_evidence": {
-      "field_input": "For a scheduled field check, retain .reports/observations/<check-id>/observation.json plus its referenced PNG files. Identify kind, commit, inputs_sha256, operator, observed_at, surface, each required action as an object with status=passed and an observed description of its actual visible outcome, and screenshot path/sha256 pairs. Ubuntu requires an explicit text, voice, CLI and desktop disposition; physical Windows additionally identifies its Windows client family, build, architecture, WebView2 and the Ubuntu-reviewed commit. The same execution digest permits a bookkeeping-only commit between observations. Missing primary observations stay blocked. Include the observed Windows OS product type (1 for a client workstation) with family and build. Server builds can share a build number with a client. Hosted publication accepts only a producer-marked screenshot_scope of synthetic for screenshots captured from the synthetic fixture. Personal screenshots and private profiles stay on the device.",
+      "field_input": "For a scheduled field check, retain .reports/observations/<check-id>/observation.json plus its referenced PNG files. Identify kind, commit, inputs_sha256, operator, observed_at, surface, each required action as an object with status=passed and an observed description of its actual visible outcome, and screenshot path/sha256 pairs. Ubuntu desktop observations identify the ScopeHub Tauri process and window, Ubuntu and WebKitGTK versions, and the native actions observed there. The integrated observation also records the text, voice, CLI and desktop dispositions. The physical Windows observation additionally identifies its Windows client family, build, architecture, WebView2 and the Ubuntu-reviewed commit. The same execution digest permits a bookkeeping-only commit between observations. Missing primary observations stay blocked. Include the observed Windows OS product type (1 for a client workstation) with family and build. Server builds can share a build number with a client. Hosted publication accepts only a producer-marked screenshot_scope of synthetic for screenshots captured from the synthetic fixture. Personal screenshots and private profiles stay on the device.",
       "session_input": "A real check writes <check-id>.observation.json under SCOPEHUB_RUN_DIR, containing check, modality, commit, inputs_sha256, provider, route, data_revision, authorized_scope, observed_at and either dataset or model with deployment set to local or cloud. The configured_models summary includes both deployments; cloud_models contains only observed cloud sessions. Installation defaults are independent of either observation. Use short public or opaque aliases for provider, route, data revision, model and dataset (ASCII letters, digits, dots, underscores and hyphens, up to 96 characters, starting with a letter or digit). Record the scope category synthetic-model-qualification, synthetic-voice-qualification or authorized-market-verification for the respective modality. Keep URLs, account names, credentials, grant text and private values out of aliases. Exit 77 records an unavailable authorized session. A successful command without the matching observation cannot establish qualification. Model and voice observations include the redacted qualification object defined by /ai/qualified_session_acceptance/reference_case: confirmed fields, initial and corrected intervals, observed means and snapshot hashes, effects, approved annotation receipt, authorized monetary limit and actual charge. Voice also supplies measured first-audio latency, interruption, capture and follow-up outcomes. Exercise the fixed synthetic private transfer case in text and voice. Record observed completed turns, extra consent prompts and the per-stage digests of private spans sent off-device and accessible to the receiving model, and whether a later request reused the selected private context. Store only the exit code in command logs for private session, field, external-client and credential checks. Keep prompts, bodies and raw audio out of the retained observation, command output and diagnostics.",
       "candidate_input": "The release check places build-manifest.json in SCOPEHUB_RUN_DIR/candidate and retains the NSIS installer there. The manifest binds commit, inputs_sha256, installer, two Windows observations, and performance by relative path and SHA-256. Windows observations identify the host family (Windows 10/11), numerical build, x64 architecture, WebView2, operator, time, clean-install and upgrade results for the same installer hash. The performance observation binds the same source and installer, CPU, RAM, display scale, refresh rate and raw samples. Use authenticated workflow artifact retrieval for hosted evidence. Each Windows host record includes the workstation product type as well as the family and build. List packaged third-party license and notice files in third_party_licenses as relative path and SHA-256 pairs. The hosted run retains available verified installer bytes, legal notices and typed failed or partial measurements for diagnosis. Passing acceptance requires the full matching installer, manifest, Windows client observations and complete passing measurements."
     }
@@ -1540,14 +1543,16 @@
         "Session-scoped native CSV folder import and reviewed refresh",
         "Profile-bound saved local sources with reviewed append-only rules (M1-028)",
         "Typed Parquet alongside CSV with inspectable market semantics (M1-029)",
-        "First-class settings and forms for user folders and direct API connections with controlled-connector tests (M1-030)"
+        "First-class settings and forms for user folders and direct API connections with controlled-connector tests (M1-030)",
+        "Ubuntu Tauri desktop development entry sharing the Windows frontend and Rust operation registry (M1-031)"
       ],
       "gate": [
         "fixture correctness",
         "worker failure recovery",
         "Saved-source authorization, idempotent restart reconciliation and targeted correction review",
         "Typed CSV and Parquet evidence with reproducible historical calculations",
-        "Fresh-install access without a ScopeHub account or plan and independent API connection lifecycle with a controlled connector"
+        "Fresh-install access without a ScopeHub account or plan and independent API connection lifecycle with a controlled connector",
+        "Native Ubuntu workspace observation before the physical Windows desktop trial"
       ]
     },
     {
@@ -1649,7 +1654,8 @@
       "Observe Codex CLI and one compatible desktop AI client separately reading the open chart and applying a scoped annotation. Verify the visible result and undo on each supported test host.",
       "On a fresh install without a ScopeHub account or data plan, open Settings > Data sources > My data sources, select a folder of personally downloaded data and configure the user's own endpoint and fixture credentials in the API form. Test, save, refresh and disconnect independently with a controlled connector. Verify optional ScopeHub data services are labeled separately. Opt in to the read-only saved folder and approve a versioned rule. Publish compatible appends once across notifications, retry and restart. Stage a historical correction or removal for review, stop publication after pause or revocation, and require explicit rebind before using a replacement root. Reopen the prior entitled revision.",
       "Profile, map, preview and verify CSV and Parquet market fixtures offline. Inspect typed daily and auction records, leading-zero symbols, units, missing values and adjustment-factor provenance. Reject publication under a stale rule and reproduce an analysis from the retained source and rule revisions.",
-      "Select the public owner-earnings analysis method and run it on dated evidence. Show its author, source and version, as-of inputs, calculations, counterevidence and gaps. Repeat from the same evidence and verify that selecting the method grants no additional tool or data access."
+      "Select the public owner-earnings analysis method and run it on dated evidence. Show its author, source and version, as-of inputs, calculations, counterevidence and gaps. Repeat from the same evidence and verify that selecting the method grants no additional tool or data access.",
+      "On an Ubuntu graphical desktop, pnpm desktop:dev opens the ScopeHub Tauri window. Open the offline sample, use the native folder chooser with a fixture and reopen the workspace. Retain the observed application process, WebKitGTK version, revision, input digest and screenshots."
     ],
     "performance": {
       "profile": "Record CPU/RAM/Windows/WebView2 versions; release build; 10000 bars; one chart; mock stream at 10 updates/s",
@@ -1667,7 +1673,7 @@
     "Edit canonical wire schemas in contracts/schemas/protocol.schema.json; generate language types and operation schema projections with pnpm generate. This engineering file defines product and engineering requirements, not generated schemas.",
     "All dynamic operations must pass through the Rust registry first; do not add generic execute/shell/sql tools",
     "Keep mock implementations until a provider is confirmed; do not temporarily scrape market data from the internet to pretend that integration exists",
-    "Keep only interfaces for non-target platforms; do not spend time implementing cross-platform releases",
+    "Implement the native Ubuntu development host and the Windows v1 release. Reserve other host integrations for a separately approved platform scope.",
     "Tests cover protocols, identity, permissions, and computation semantics first, then the UI",
     "Do not implement live trading types, buttons, or tools as hidden placeholders",
     "State explicitly in the final report whether real data and cloud models are configured; do not exaggerate the completed scope"

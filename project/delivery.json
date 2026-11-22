@@ -30,7 +30,7 @@
       "Run release-cadence checks at the actual release boundary or through an affected task; normal changes retain a short deterministic feedback loop.",
       "After a coherent delivery is completed and its evidence is archived, assess its PR with project:integration --pr <number> and include the concrete integration recommendation at handoff. Do not wait for future product milestones or for the owner to remember to ask about integration.",
       "Review responsibility cohesion, public boundaries, data ownership and transition cleanup using project/development.json; distinguish engineering evidence from actual owner product feedback.",
-      "Archive Ubuntu-local and physical Windows observation checks at their designated revisions. Their task-only observations remain historically scoped. Unconfigured or unauthorized external text, voice and client qualifications stay pending until separately observed."
+      "Archive native Ubuntu Tauri and physical Windows WebView2 observation checks at their designated revisions. Their task-only observations remain historically scoped. Unconfigured or unauthorized external text, voice and client qualifications stay pending until separately observed."
     ],
     "adaptation": [
       "Ordinary implementation, local experiments, tests and refactoring within accepted boundaries need no additional owner approval.",
@@ -391,7 +391,8 @@
       "task_ids": [
         "M1-005",
         "M1-010",
-        "M1-014"
+        "M1-014",
+        "M1-031"
       ],
       "user_goal": "Inspect explicit synthetic examples without configuring or receiving an external service.",
       "given": "Unconfigured startup, local generated examples and no credentials.",
@@ -417,9 +418,10 @@
         "chart-history",
         "market-fixtures",
         "ubuntu-preview",
-        "windows-native-build"
+        "windows-native-build",
+        "ubuntu-desktop-host"
       ],
-      "evidence_boundary": "The chart and development transport checks cover read-only synthetic history. Record observations from an Ubuntu graphical session and the native Windows WebView2 session separately from build results and owner feedback."
+      "evidence_boundary": "Browser checks cover the shared chart and loopback transport. Capture the Ubuntu experience in the Tauri/WebKitGTK window and the physical Windows experience in its WebView2 window. Retain each host observation separately from build results and owner feedback."
     },
     {
       "id": "local-folder-refresh",

@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "id": "0024",
+  "title": "Develop and review the Ubuntu workspace in Tauri",
+  "status": "accepted",
+  "recorded_at": "2026-11-22",
+  "context": "The Ubuntu development commands currently open Vite in a browser. The native desktop entry and its build dependencies are Windows-gated. Browser observations cover the shared UI and loopback transport. They leave native window, picker and shutdown behavior unobserved.",
+  "decision": "Use pnpm desktop:dev to run the shared React/Vite workspace inside Tauri 2 with WebKitGTK on Ubuntu. Windows uses WebView2. Dispatch desktop actions over the native Tauri bridge to the same Rust operation registry. Keep the explicit Vite browser entries available for frontend iteration and automation.",
+  "authority": "The owner selected the Ubuntu desktop experience in contracts/reviews/2026-11-22-ubuntu-desktop.json. ADR 0001 establishes the existing desktop, core and worker boundaries.",
+  "alternatives": [
+    {
+      "option": "Continue daily development in the browser and move the experience to Tauri after feature completion.",
+      "reason": "This postpones feedback on the desktop window, native dialogs, profile restoration and process lifetime until after the feature work."
+    }
+  ],
+  "consequences": [
+    "M1-031 provides the native development launch, a retained Ubuntu desktop observation and native evidence checks. M1-012 exercises all applicable journeys in that host. M1-011 continues on the physical Windows desktop at matching execution inputs.",
+    "Both hosts share the frontend and Rust authorization, persistence and worker lifecycle. Platform-specific behavior stays behind the desktop and platform boundaries. Use synthetic local fixtures for the desktop check.",
+    "Version 1 publishes the Windows 10/11 x64 installer. Ubuntu development runs from source. A public Ubuntu package requires a separate release decision."
+  ],
+  "supersedes": [],
+  "related_decisions": [
+    "0001",
+    "0004",
+    "0007"
+  ],
+  "revisit_when": [
+    "A supported Ubuntu distribution or installer is proposed, or platform behavior prevents the same workspace from running in both desktop hosts."
+  ]
+}

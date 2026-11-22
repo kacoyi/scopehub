@@ -1,0 +1,15 @@
+{
+  "kind": "owner-ubuntu-desktop-direction",
+  "recorded_at": "2026-11-22",
+  "owner_direction": {
+    "experience": "Develop and use ScopeHub on Ubuntu as a desktop application from this stage. Use the actual application window for the overall Ubuntu experience before the physical Windows trial.",
+    "scope": "This change updates the contract and delivery tasks. The Ubuntu installation package and public Linux distribution are separate release decisions."
+  },
+  "supersedes_scope": "Replaces the browser as the Ubuntu experience entry in the ubuntu-experience stage and product_scope of contracts/reviews/2026-11-18-hosted-ux.json. Its publication authority and Ubuntu-before-Windows sequence continue to apply.",
+  "task_ids": [
+    "M0-052",
+    "M1-031",
+    "M1-012",
+    "M1-011"
+  ]
+}

@@ -966,6 +966,7 @@
   "development_data": "Explicit synthetic demo and development samples. The native CSV picker grants session-only directory access, while frozen revisions remain available under profile rights. Saved local sources and Parquet are current requirements awaiting implementation.",
   "service_capabilities": "The current contract requires M1-030 to deliver Settings > Data sources > My data sources on a fresh install. Users can select a folder containing market files they downloaded or configure their own API endpoint and credential fields. They can test, save, refresh and disconnect their sources without a ScopeHub account or plan. Verify the API setup and lifecycle with a controlled connector. Only the selected connector uses locally stored provider credentials. Optional ScopeHub data services are labeled and selected separately. Live external market-data provider delivery and qualification remain later (M1-009). Internal model adapters, external AI clients and eligible ScopeHub services are independently selected and authorized. Production services and client access are unconfigured.",
   "product_requirements": [
+    "engineering-contract-v1.json#/product/platform/ubuntu_desktop",
     "engineering-contract-v1.json#/product/data_onboarding",
     "engineering-contract-v1.json#/product/data_onboarding/my_data_sources",
     "engineering-contract-v1.json#/product/data_onboarding/saved_sources",
