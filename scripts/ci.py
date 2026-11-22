@@ -72,14 +72,17 @@ def status(root=ROOT, run_id=None):
         response = json.loads(command(['gh', 'api', '--method', 'GET',
                                        f'repos/{repository}/actions/runs',
                                        '-f', f"head_sha={source['git_head']}", '-f', 'per_page=100'], root))
-        runs = response['workflow_runs']
+        # A weekly run has its own evidence and cannot replace the push or PR being inspected.
+        runs = [run for run in response['workflow_runs'] if run.get('event') != 'schedule']
     result = classify_runs(runs, source['git_head'], dirty=source['working_tree_dirty'], selected=run_id is not None)
     result.update(repository=repository, head_sha=source['git_head'],
-                  claim_scope='Workflow success for this commit; task evidence and release acceptance are separate.')
+                  claim_scope='The run covers its reported check selection for this commit. Task and release acceptance have separate evidence.')
     if result['run']:
         if result['run']['event'] == 'workflow_dispatch':
             result['claim_scope'] = ('Workflow status for the selection recorded in this manual run (full, release or task). '
                                      'Task evidence and release acceptance are separate.')
+        elif result['run']['event'] == 'schedule':
+            result['claim_scope'] = 'Scheduled full change regression on this commit. Integration uses the pull request and main push runs.'
         run = result['run']['id']
         result['evidence_commands'] = [
             f'gh run download {run} --repo {repository} --name verification-windows-latest --dir .reports/ci/{run}/windows',

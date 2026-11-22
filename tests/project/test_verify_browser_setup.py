@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -17,18 +18,105 @@ class VerifyBrowserSetupTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         workflow = yaml.safe_load((ROOT / '.github/workflows/verify.yml').read_text(encoding='utf-8'))
-        steps = workflow['jobs']['verify']['steps']
+        cls.events = workflow[True]  # PyYAML parses the YAML 1.1 boolean spelling "on".
+        cls.concurrency = workflow['concurrency']
+        cls.job = workflow['jobs']['verify']
+        cls.steps = steps = cls.job['steps']
         cls.step = next(
             step for step in steps
             if step.get('name') == 'Install and start the pinned chart-test browser'
         )
-        cls.prerequisite = next(step for step in steps if step.get('id') == 'task_setup')
+        cls.prerequisite = next(step for step in steps if step.get('id') == 'build_setup')
+        cls.selector = next(step for step in steps if step.get('id') == 'scope')
+        cls.narrow = next(step for step in steps if step.get('name', '').endswith(' changes'))
 
-    def test_browser_setup_is_required_without_a_successful_task_opt_out(self):
-        self.assertEqual("steps.task_setup.outputs.skip != 'true'", self.step['if'])
-        self.assertEqual('inputs.task_id', self.prerequisite['if'])
+    def test_browser_setup_is_required_without_a_successful_prerequisite_opt_out(self):
+        self.assertEqual("steps.build_setup.outputs.skip != 'true'", self.step['if'])
+        self.assertNotIn('if', self.prerequisite)
         self.assertNotIn('continue-on-error', self.step)
         self.assertEqual('bash', self.step['shell'])
+
+    def test_protected_jobs_check_the_default_checkout_and_keep_actual_evidence_steps(self):
+        protection = json.loads((ROOT / 'project/branch-protection.json').read_text(encoding='utf-8'))
+        required = {check['context'] for check in protection['configuration']['required_status_checks']['checks']}
+        self.assertEqual("${{ inputs.task_id && 'verify task' || 'verify' }} (${{ matrix.os }})", self.job['name'])
+        self.assertEqual(required, {f"verify ({row['os']})" for row in self.job['strategy']['matrix']['include']})
+        checkout = next(step for step in self.steps if step.get('uses', '').startswith('actions/checkout@'))
+        self.assertEqual({'fetch-depth': 0, 'persist-credentials': False}, checkout['with'])
+        self.assertNotIn('if', checkout)
+        self.assertEqual('${{ github.event.pull_request.head.sha || github.sha }}', self.job['env']['SCOPEHUB_SOURCE_HEAD'])
+        for name in ('Preserve accepted history', 'Initialize CI verification reports',
+                     'Fetch the reviewed public publisher advisory'):
+            step = next(step for step in self.steps if step.get('name') == name)
+            self.assertNotIn('if', step)
+            self.assertLess(self.steps.index(step), self.steps.index(self.narrow))
+        stage = next(step for step in self.steps if step.get('id') == 'artifacts')
+        self.assertEqual("always() && steps.reports.outcome == 'success'", stage['if'])
+        upload = next(step for step in self.steps if step.get('with', {}).get('name') == 'verification-${{ matrix.os }}')
+        self.assertEqual('${{ steps.artifacts.outputs.path }}', upload['with']['path'])
+        self.assertNotIn('continue-on-error', upload)
+
+    def test_workflow_routes_only_pr_and_main_push_into_scope_selection(self):
+        self.assertIsNone(self.events['pull_request'])
+        self.assertEqual({'branches': ['main']}, self.events['push'])
+        self.assertEqual("github.event_name == 'pull_request' || github.event_name == 'push'", self.selector['if'])
+        self.assertEqual('uv run --no-sync python scripts/verification_scope.py --ci', self.selector['run'])
+        self.assertTrue(self.selector['continue-on-error'])
+        self.assertEqual("${{ steps.scope.outcome == 'success' && steps.scope.outputs.profile || 'full' }}",
+                         self.prerequisite['env']['SCOPEHUB_SCOPE'])
+        self.assertEqual("${{ steps.scope.outputs.decision != '' && 'true' || 'false' }}",
+                         self.prerequisite['env']['SCOPEHUB_SCOPE_HAS_DECISION'])
+        self.assertEqual('Verify ${{ steps.build_setup.outputs.profile }} changes', self.narrow['name'])
+        self.assertEqual("steps.build_setup.outputs.profile != '' && !inputs.task_id", self.narrow['if'])
+        self.assertEqual('${{ steps.build_setup.outputs.profile }}', self.narrow['env']['SCOPEHUB_SCOPE'])
+        self.assertNotIn('continue-on-error', self.narrow)
+        stage = next(step for step in self.steps if step.get('id') == 'artifacts')
+        self.assertEqual('${{ steps.scope.outputs.decision }}', stage['env']['SCOPEHUB_SCOPE_DECISION'])
+        self.assertEqual('${{ steps.scope.outcome }}', stage['env']['SCOPEHUB_SCOPE_OUTCOME'])
+
+    def test_workflow_selector_emits_full_when_its_hosted_event_is_incomplete(self):
+        head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / 'step output.txt'
+            result = subprocess.run(
+                self.selector['run'].split(), cwd=ROOT, capture_output=True, text=True, timeout=30, check=True,
+                env=dict(os.environ, GITHUB_EVENT_NAME='push', GITHUB_EVENT_PATH='', GITHUB_SHA=head,
+                         GITHUB_OUTPUT=str(output)),
+            )
+            decision = json.loads(result.stdout)
+            self.assertEqual('full', decision['profile'])
+            outputs = dict(line.split('=', 1) for line in output.read_text(encoding='utf-8').splitlines())
+            self.assertEqual('full', outputs['profile'])
+            self.assertEqual({'profile': 'full', 'reason_code': 'comparison_unavailable',
+                              'checkout': head, 'base': None, 'change_count': None}, json.loads(outputs['decision']))
+
+    def test_full_weekly_and_manual_routes_preserve_existing_harnesses(self):
+        self.assertEqual([{'cron': '31 3 * * 1'}], self.events['schedule'])
+        self.assertEqual("github.event_name != 'schedule' || github.ref == 'refs/heads/main'", self.job['if'])
+        self.assertIn("github.event_name == 'schedule' && format('verify-weekly-{0}-{1}'", self.concurrency['group'])
+        self.assertIn("inputs.profile == 'release' && format('verify-release-{0}-{1}'", self.concurrency['group'])
+        self.assertEqual('full', self.events['workflow_dispatch']['inputs']['profile']['default'])
+        self.assertEqual(['full', 'release'], self.events['workflow_dispatch']['inputs']['profile']['options'])
+        commands = {step.get('run'): step for step in self.steps}
+        fallback = "!inputs.task_id && steps.build_setup.outputs.profile == ''"
+        conditions = {
+            'pnpm check': f"runner.os != 'Windows' && {fallback}",
+            'uv run python scripts/check.py --require-windows':
+                f"runner.os == 'Windows' && inputs.profile != 'release' && {fallback}",
+            'uv run python scripts/check.py --profile release --require-windows':
+                "runner.os == 'Windows' && inputs.profile == 'release' && !inputs.task_id",
+        }
+        for command, condition in conditions.items():
+            self.assertEqual(condition, commands[command]['if'])
+            self.assertNotIn('name', commands[command])
+            self.assertNotIn('continue-on-error', commands[command])
+        task = next(step for step in self.steps if step.get('name') == 'Verify the selected task')
+        self.assertEqual('inputs.task_id', task['if'])
+        self.assertEqual('uv run python scripts/check.py --task="$SCOPEHUB_TASK_ID"', task['run'])
+        reject = next(step for step in self.steps if step.get('name') == 'Reject a task ID with the release profile')
+        self.assertEqual("inputs.task_id && inputs.profile == 'release'", reject['if'])
+        self.assertNotIn('continue-on-error', reject)
+        self.assertLess(self.steps.index(reject), self.steps.index(task))
 
     def test_task_omits_setup_only_for_reviewed_browser_and_build_free_selection(self):
         project = load_project(ROOT)
@@ -40,21 +128,85 @@ class VerifyBrowserSetupTests(unittest.TestCase):
         project['checks']['environment']['command'] = ['{python}', 'changed.py']
         self.assertTrue(ci_requires_build_setup(project, 'M0-041'))
 
+    def test_scoped_prerequisites_review_the_commands_and_keep_localization_setup(self):
+        project = load_project(ROOT)
+        for profile in ('records', 'tooling'):
+            with self.subTest(profile=profile):
+                self.assertFalse(ci_requires_build_setup(project, profile=profile))
+        for profile in ('localization', 'full', 'release', 'fast', 'unknown'):
+            with self.subTest(profile=profile):
+                self.assertTrue(ci_requires_build_setup(project, profile=profile))
+
+        project['checks']['dependency-review']['command'] += ['--offline']
+        self.assertTrue(ci_requires_build_setup(project, profile='records'))
+        self.assertTrue(ci_requires_build_setup(project, profile='tooling'))
+        del project['catalog']['profiles']['records']
+        self.assertTrue(ci_requires_build_setup(project, profile='records'))
+
     @unittest.skipUnless(sys.platform == 'linux', 'Run with the Linux GitHub Actions Bash shell')
-    def test_prerequisite_error_leaves_chromium_setup_enabled(self):
-        for answer, status in [('false', 0), ('true', 0), ('false', 1)]:
-            with self.subTest(answer=answer, status=status), tempfile.TemporaryDirectory() as directory:
+    def test_prerequisite_script_accepts_only_fixed_profiles_and_keeps_setup_on_uncertainty(self):
+        cases = (
+            ('records', '', 'false', 0, 'profile=records\nskip=true\n', '--profile=records'),
+            ('tooling', '', 'false', 0, 'profile=tooling\nskip=true\n', '--profile=tooling'),
+            ('tooling', '', 'true', 0, 'profile=tooling\n', '--profile=tooling'),
+            ('records', '', 'false', 1, 'profile=records\n', '--profile=records'),
+            ('localization', '', 'false', 0, 'profile=localization\n', None),
+            ('full', '', 'false', 0, '', None),
+            ('', '', 'false', 0, '', None),
+            ('unknown', '', 'false', 0, '', None),
+            ('records\nskip=true', '', 'false', 0, '', None),
+            ('full', 'M0-041', 'false', 0, 'skip=true\n', '--task=M0-041'),
+            ('full', 'missing task', 'false', 1, '', '--task=missing task'),
+        )
+        for profile, task, answer, status, expected_output, selection in cases:
+            with self.subTest(profile=profile, task=task, status=status), tempfile.TemporaryDirectory() as directory:
                 output = Path(directory) / 'step output.txt'
-                stub = f"uv() {{ printf '%s\\n' {answer}; return {status}; }}\n"
-                subprocess.run(
+                arguments = Path(directory) / 'arguments.txt'
+                stub = f'''uv() {{
+  printf '%s\\n' "$@" > "$STUB_ARGUMENTS"
+  printf '%s\\n' {answer}
+  return {status}
+}}
+'''
+                result = subprocess.run(
                     ['bash', '--noprofile', '--norc', '-eo', 'pipefail', '-c', stub + self.prerequisite['run']],
-                    env=dict(os.environ, SCOPEHUB_TASK_ID='M0-041', GITHUB_OUTPUT=str(output)),
-                    timeout=10, check=True,
+                    env=dict(os.environ, SCOPEHUB_TASK_ID=task, SCOPEHUB_SCOPE=profile,
+                             SCOPEHUB_SCOPE_HAS_DECISION='true',
+                             GITHUB_OUTPUT=str(output), STUB_ARGUMENTS=str(arguments)),
+                    timeout=10, capture_output=True, text=True, check=False,
                 )
-                if answer == 'false' and status == 0:
-                    self.assertEqual('skip=true\n', output.read_text(encoding='utf-8'))
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertEqual(expected_output, output.read_text(encoding='utf-8') if output.exists() else '')
+                if selection:
+                    self.assertEqual(['run', '--no-sync', 'python', 'scripts/check.py', selection,
+                                      '--ci-build-setup-required'], arguments.read_text(encoding='utf-8').splitlines())
                 else:
-                    self.assertFalse(output.exists())
+                    self.assertFalse(arguments.exists())
+
+    @unittest.skipUnless(sys.platform == 'linux', 'Run with the Linux GitHub Actions Bash shell')
+    def test_successful_narrow_profile_without_decision_keeps_the_full_route(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / 'step output.txt'
+            subprocess.run(
+                ['bash', '--noprofile', '--norc', '-eo', 'pipefail', '-c', self.prerequisite['run']],
+                env=dict(os.environ, SCOPEHUB_TASK_ID='', SCOPEHUB_SCOPE='records',
+                         SCOPEHUB_SCOPE_HAS_DECISION='false', GITHUB_OUTPUT=str(output)),
+                timeout=10, capture_output=True, text=True, check=True,
+            )
+            self.assertFalse(output.exists())
+
+    @unittest.skipUnless(sys.platform == 'linux', 'Run with the Linux GitHub Actions Bash shell')
+    def test_narrow_harness_passes_the_profile_and_propagates_failure(self):
+        for profile in ('records', 'tooling', 'localization'):
+            with self.subTest(profile=profile):
+                result = subprocess.run(
+                    ['bash', '--noprofile', '--norc', '-eo', 'pipefail', '-c',
+                     'uv() { printf "%s\\n" "$@"; return 9; }\n' + self.narrow['run']],
+                    env=dict(os.environ, SCOPEHUB_SCOPE=profile), timeout=10,
+                    capture_output=True, text=True, check=False,
+                )
+                self.assertEqual(9, result.returncode, result.stderr)
+                self.assertEqual(['run', 'python', 'scripts/check.py', '--profile', profile], result.stdout.splitlines())
 
     @unittest.skipUnless(sys.platform == 'linux', 'Run with the Linux GitHub Actions Bash shell')
     def test_launch_failure_repairs_dependencies_and_must_pass_a_second_probe(self):

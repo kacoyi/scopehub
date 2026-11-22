@@ -348,6 +348,36 @@ class TimingRegressionTests(unittest.TestCase):
                 self.assertEqual(status, metric['status'])
                 self.assertEqual(breaches, metric['recent_objective_breaches'])
 
+    def test_scoped_jobs_keep_their_own_baselines_and_measure_the_executed_harness(self):
+        samples, workflows = [], []
+        for day, profile in enumerate(('full', 'records', 'tooling', 'localization', 'task'), start=10):
+            run = hosted_run(run_id=day, day=day)
+            step = f'Verify {profile} changes'
+            linux = hosted_job(day * 10, 'ubuntu', '00:10', '04:00',
+                               'Run pnpm check' if profile == 'full' else step,
+                               '00:30', '03:50', run_id=day, day=day)
+            windows = hosted_job(day * 10 + 1, 'windows', '00:10', '06:00',
+                                 'Run uv run python scripts/check.py --require-windows' if profile == 'full' else step,
+                                 '00:40', '05:20', run_id=day, day=day)
+            workflows.append(timing.hosted_timing(run, [linux, windows]))
+            report = fast_report(day, 190)
+            report['source']['git_head'] = 'b' * 40
+            report['selection']['profile'] = profile
+            report['ci'] = {'repository': 'fixture/scopehub', 'run_id': str(day), 'run_attempt': '1',
+                            'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'b' * 40}
+            samples.append(timing.report_sample(report))
+
+        view = timing.timing_view(samples, hosted=workflows)
+        self.assertCountEqual(['full', 'records', 'tooling', 'localization'],
+                              [row['profile'] for row in view['objective_reviews']])
+        self.assertIn('pull_request / records / Linux', timing.review_summary({**view, 'input_issues': []}))
+        for sample in view['samples']:
+            with self.subTest(profile=sample['profile']):
+                if sample['profile'] == 'task':
+                    self.assertIsNotNone(sample['review_exclusion'])
+                else:
+                    self.assertEqual(200, sample['seconds']['harness_step'])
+
     def test_objective_breaches_remain_visible_across_hosted_coverage_change(self):
         samples, workflows = [], []
         for day, finish in enumerate(('14:50', '15:01', '18:01'), start=14):

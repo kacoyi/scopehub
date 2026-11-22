@@ -43,6 +43,7 @@
     ],
     "verification": [
       "Protect domain rules with independent examples, module collaboration with contract tests and critical user journeys with actual integrated behavior.",
+      "Report the results of the affected checks as soon as they are available. Track protected integration in the background and distinguish its outcome from the demonstrated change and from release acceptance.",
       "Test boundary, failure, cancellation and recovery behavior proportional to risk. Builds and schema validation establish only their own scope.",
       "Keep expected values independent of implementation; do not refresh golden outputs merely to pass. Changed requirements need explicit rationale and revised relevant assertions.",
       "Architecture checks enforce declared imports and dependencies, not complete design quality; inspect the actual diff and behavior.",

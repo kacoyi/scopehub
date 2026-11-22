@@ -47,6 +47,20 @@ class HostedStatusTests(unittest.TestCase):
         self.assertEqual('blocked', ci.classify_runs([self.run_record()], self.head, selected=True)['status'])
         self.assertEqual('passed', ci.classify_runs([self.run_record()], self.head)['status'])
 
+    def test_weekly_regression_cannot_cover_a_failed_or_missing_integration(self):
+        source = {'git_head': self.head, 'working_tree_dirty': False}
+        scheduled = self.run_record(id=11, event='schedule')
+        failed_push = self.run_record(event='push', conclusion='failure')
+        for history, expected in (([scheduled, failed_push], 'failed'), ([scheduled], 'blocked')):
+            with (self.subTest(expected=expected), patch.object(ci, 'github_identity', return_value='fixture/scopehub'),
+                  patch.object(ci, 'source_identity', return_value=source),
+                  patch.object(ci, 'command', return_value=json.dumps({'workflow_runs': history}))):
+                self.assertEqual(expected, ci.status()['status'])
+        with (patch.object(ci, 'github_identity', return_value='fixture/scopehub'),
+              patch.object(ci, 'source_identity', return_value=source),
+              patch.object(ci, 'command', return_value=json.dumps(scheduled))):
+            self.assertIn('Scheduled full change regression', ci.status(run_id=11)['claim_scope'])
+
     def test_manual_status_covers_the_recorded_selection(self):
         source = {'git_head': self.head, 'working_tree_dirty': False}
         runs = {'workflow_runs': [self.run_record(event='workflow_dispatch')]}
@@ -166,6 +180,8 @@ class HostedEvidenceTests(ProjectFixture):
         record = ci_provenance(source, env, self.root)
         self.assertEqual(head, record['checkout_sha'])
         self.assertEqual('b' * 40, record['head_sha'])
+        weekly = ci_provenance(source, {**env, 'GITHUB_EVENT_NAME': 'schedule', 'SCOPEHUB_SOURCE_HEAD': head}, self.root)
+        self.assertEqual(('schedule', head), (weekly['event'], weekly['checkout_sha']))
         self.assertIsNone(ci_provenance(source, {}, self.root))
         del env['SCOPEHUB_SOURCE_HEAD']
         with self.assertRaisesRegex(ProjectError, 'CIProvenance'):

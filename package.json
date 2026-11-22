@@ -21,6 +21,8 @@
     "dev:ubuntu:workspace": "cargo build --locked -p scopehub-persistence --bin workspace_bridge -p scopehub-worker-host --example history_bridge --bin scopehub-indicator-child --bin scopehub-text-model-child --target-dir target && pnpm --filter @scopehub/ui exec vite --mode ubuntu-workspace",
     "desktop:dev": "cd apps/desktop && tauri dev",
     "desktop:build": "cd apps/desktop && tauri build --no-bundle",
+    "project:impact": "uv run python scripts/verification_scope.py",
+    "check:changed": "uv run python scripts/verification_scope.py --run",
     "check:fast": "uv run python scripts/check.py --profile fast",
     "project:herdr": "uv run python scripts/herdr.py",
     "project:worktree": "uv run --no-project --offline python -I -S scripts/worktree.py",

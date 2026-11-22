@@ -1510,7 +1510,8 @@
           "enum": [
             "push",
             "pull_request",
-            "workflow_dispatch"
+            "workflow_dispatch",
+            "schedule"
           ]
         },
         "head_sha": {

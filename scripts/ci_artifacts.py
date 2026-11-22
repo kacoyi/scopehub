@@ -16,6 +16,7 @@ if __package__:
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, integration_validation, release_artifacts, validate_notice,
     )
+    from .verification_scope import SCOPED_PROFILES
 else:
     from check import PRIVATE_CHECK_LOGS, ci_provenance, redacted_check_log
     from project import ProjectError, digest, file_digest, json_bytes, load_project, validate_model
@@ -25,8 +26,12 @@ else:
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, integration_validation, release_artifacts, validate_notice,
     )
+    from verification_scope import SCOPED_PROFILES
 
 ROOT = Path(__file__).resolve().parents[1]
+SCOPE_FILE = 'verification-scope.json'
+SCOPE_FIELDS = {'profile', 'reason_code', 'base', 'checkout', 'change_count'}
+COMMIT_SHA = re.compile(r'(?!0{40})[0-9a-f]{40}')
 BROWSER_OUTPUTS = {
     'market-live-stream': ('results.json', 'market-stream-', ('synthetic-replay-final.png',)),
     'market-quality-states': ('results.json', 'market-quality-', ('synthetic-market-quality.png',)),
@@ -112,6 +117,55 @@ def bound_bytes(path, sha256):
 def write_artifact(path, contents):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(contents)
+
+
+def scope_provenance(report, report_sha256, env):
+    """Construct the versioned sidecar from fixed Actions step outputs and the verified report."""
+    outcome = env.get('SCOPEHUB_SCOPE_OUTCOME')
+    if outcome is None or report['ci']['event'] not in {'push', 'pull_request'}:
+        return None  # Legacy, scheduled and manual runs have no selector observation.
+
+    selected = env.get('SCOPEHUB_SCOPE_PROFILE')
+    raw = env.get('SCOPEHUB_SCOPE_DECISION')
+    if outcome != 'success' or not raw or selected not in {'full', *SCOPED_PROFILES}:
+        decision = {
+            'profile': 'full', 'base': None, 'checkout': None, 'change_count': None,
+            'reason_code': 'selector_failed' if outcome == 'failure' else 'selector_output_unavailable',
+        }
+    else:
+        if len(raw) > 1024:
+            raise PublicationError('Verification scope decision exceeds the allowed size.')
+        try:
+            decision = evidence_json(raw.encode('utf-8'))
+        except (ValueError, TypeError, RecursionError) as error:
+            raise PublicationError('Invalid verification scope decision.') from error
+        if not isinstance(decision, dict) or decision.keys() != SCOPE_FIELDS or decision['profile'] != selected:
+            raise PublicationError('Invalid verification scope decision fields or profile.')
+
+        base, checkout, count = (decision[key] for key in ('base', 'checkout', 'change_count'))
+        if checkout is not None and (not isinstance(checkout, str) or not COMMIT_SHA.fullmatch(checkout)
+                                     or checkout != report['ci']['checkout_sha']):
+            raise PublicationError('Verification scope checkout differs from the hosted job.')
+        if base is not None and (not isinstance(base, str) or not COMMIT_SHA.fullmatch(base)
+                                 or base != env.get('SCOPEHUB_SCOPE_BASE') or checkout is None):
+            raise PublicationError('Verification scope base differs from the hosted comparison.')
+        if count is not None and (type(count) is not int or not 0 <= count <= 2**31 - 1 or base is None):
+            raise PublicationError('Invalid verification scope change count.')
+
+        reason = decision['reason_code']
+        if selected in SCOPED_PROFILES:
+            valid = reason == 'reviewed_changes' and count is not None and count > 0
+        else:
+            valid = ((reason == 'change_requires_full' and count is not None and count > 0)
+                     or (reason == 'no_changes' and count == 0)
+                     or (reason == 'comparison_unavailable' and count is None))
+        if not valid:
+            raise PublicationError('Invalid verification scope reason for the comparison.')
+
+    selection = report.get('selection', {})
+    if selection.get('profile') != decision['profile'] or selection.get('task_id') is not None:
+        raise PublicationError('Verification scope differs from the executed harness selection.')
+    return {'kind': 'scopehub-verification-scope-v1', **decision, 'report_sha256': report_sha256}
 
 
 def stage_session(reports, destination, run, result, source):
@@ -201,6 +255,7 @@ def stage_artifacts(root, destination, env):
     if named_report.read_bytes() != contents:
         raise PublicationError('The latest and per-run harness reports differ.')
 
+    scope = scope_provenance(report, digest(contents), env)
     project = load_project(root)
     destination.mkdir()
     executed = {}
@@ -262,6 +317,8 @@ def stage_artifacts(root, destination, env):
         stage_candidate(reports, destination, run, report, project['spec']['acceptance']['performance'],
                         expected=candidate)
 
+    if scope is not None:
+        write_artifact(destination / SCOPE_FILE, json_bytes(scope))
     (destination / 'test-report.json').write_bytes(contents)
     (destination / run / 'test-report.json').parent.mkdir(parents=True, exist_ok=True)
     (destination / run / 'test-report.json').write_bytes(contents)

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-031",
+  "focus_task_id": "M0-060",
   "tasks": [
     {
       "id": "M0-001",
@@ -13792,6 +13792,138 @@
           ],
           "data_plan": "Use synthetic catalogs and local development metadata. No user financial data or model credentials are needed.",
           "cleanup": "Remove concrete generation pins from the active policy. Existing terminals retain their launch arguments."
+        }
+      }
+    },
+    {
+      "id": "M0-060",
+      "title": "Select hosted verification by the actual change on both protected platforms",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-058",
+        "M0-059"
+      ],
+      "decision_refs": [
+        "0004",
+        "0006",
+        "0007",
+        "0026"
+      ],
+      "scope": [
+        ".github/workflows/verify.yml",
+        "AGENTS.md",
+        "package.json",
+        "scripts/verification_scope.py",
+        "scripts/check.py",
+        "scripts/ci.py",
+        "scripts/ci_artifacts.py",
+        "scripts/timing.py",
+        "tests/project",
+        "contracts/schemas/project.schema.json",
+        "project/checks.json",
+        "project/tasks.json",
+        "project/development.json",
+        "project/delivery.json",
+        "scripts/integration.py",
+        "contracts/decisions/0026-change-scoped-verification.json"
+      ],
+      "acceptance": [
+        "Reviewed task records and contract narrative, isolated Herdr model settings or their tests, and translation wording select proportionate checks on pull requests and main pushes. Preserve the reason for the selection, actual check outcomes, and explicit omissions in the verification evidence.",
+        "Any shared, unclassified, mixed executable, dependency, protocol, authorization, persistence, build or CI change and any unverifiable comparison retains the complete change suite. A mixed records and known executable change must validate the executable. Task evidence and true release acceptance retain their original meaning.",
+        "Both required native jobs check the actual candidate, preserve history and continue the fresh advisory review. Omit expensive build outputs and browser setup only when the selected checks permit it. The manual full and release routes stay available, and a weekly full change run provides a backstop.",
+        "Exercise scope selection with realistic Git histories and local edits, run both lightweight profiles and the localization route against real checkout inputs, and verify that this change to CI itself selects full verification."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture",
+        "generated-contracts",
+        "dependency-review"
+      ],
+      "evidence": [],
+      "next_action": "Implement and exercise the change selector, workflow routing, evidence and updated delivery policy.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A wording edit can reach a protected result without desktop builds, while changes with product or verification risk still exercise their required platforms.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          ".github/workflows/verify.yml",
+          "scripts/check.py",
+          "scripts/integration.py",
+          "project/checks.json",
+          "project/delivery.json",
+          "project/development.json"
+        ],
+        "hypotheses": [
+          "Classifying the complete base-to-checked-tree difference with a conservative fallback can save browser, build and native packaging work for known independent changes. Recent unaffected Windows jobs took tens of minutes."
+        ],
+        "risks": [
+          {
+            "failure": "A renamed, deleted, untracked, compound or machine-consumed change is treated as prose, or a missing base yields a false green.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A protected context is silently skipped, an omission becomes a pass, or release and integration evidence lose their scope.",
+            "checks": [
+              "python-contracts-workers",
+              "architecture",
+              "generated-contracts",
+              "dependency-review"
+            ]
+          }
+        ],
+        "rollback": "Run the existing full change profile when scope is uncertain. Keep the protected contexts and the manual full and release workflows available. Restore a reviewed previous workflow if a route is incorrect.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/verification_scope.py",
+            "scripts/check.py",
+            ".github/workflows/verify.yml",
+            "scripts/integration.py",
+            "scripts/timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control"
+            },
+            {
+              "path": "project/checks.json",
+              "pointer": "/required_change_checks"
+            },
+            {
+              "path": "project/branch-protection.json",
+              "pointer": "/configuration"
+            },
+            {
+              "path": "contracts/decisions/0026-change-scoped-verification.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Changing product behavior, granting bypasses, altering protected branch settings or treating a partial run as release evidence."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Protected contexts and exact checkout provenance, accepted history, dependency advisory checks, manual task/full/release behavior and explicit skipped checks."
+          ],
+          "change": [
+            "Choose a reviewed verification profile from the full Git change for ordinary PRs and main pushes. Keep a scheduled complete regression independent of release acceptance."
+          ],
+          "data_plan": "Use repository-relative Git metadata, synthetic test fixtures and ordinary build reports only. No user financial data or remote model call is needed.",
+          "cleanup": "Keep the existing full harness as the fallback. Remove duplicate unconditional work on recognized changes and record the actual coverage."
         }
       }
     }

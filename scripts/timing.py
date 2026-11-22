@@ -11,8 +11,14 @@ from statistics import median
 import subprocess
 from tempfile import TemporaryDirectory
 
+if __package__:
+    from .verification_scope import SCOPED_PROFILES
+else:
+    from verification_scope import SCOPED_PROFILES
+
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = '.github/workflows/verify.yml'
+AUTOMATIC_PROFILES = SCOPED_PROFILES | {'full'}
 SAMPLE_KIND = 'scopehub-verification-timing-v1'
 ARCHIVE_KIND = 'scopehub-timing-archive-v1'
 TIMING_FILE = 'verification-timing.json'
@@ -25,6 +31,7 @@ HARNESS_STEPS = {
     'Run uv run python scripts/check.py --require-windows',
     'Run uv run python scripts/check.py --profile release --require-windows',
     'Verify the selected task',
+    *(f'Verify {profile} changes' for profile in SCOPED_PROFILES),
 }
 BROWSER_STEPS = {
     'Install the pinned chart-test browser on Windows',
@@ -428,8 +435,9 @@ def timing_view(samples, *, hosted=()):
             reason = 'Exact Actions attempt and job identities are unavailable or conflicting.'
         elif ci and (not sample['workflow_success'] or not job or job['conclusion'] != 'success'):
             reason = 'A matching successful job and complete successful Actions workflow are required.'
-        elif ci and (ci['event'] not in NORMAL_EVENTS or ci['run_attempt'] != '1' or sample['profile'] != 'full'):
-            reason = 'Only first-attempt full PR or main push jobs enter the hosted review.'
+        elif ci and (ci['event'] not in NORMAL_EVENTS or ci['run_attempt'] != '1'
+                     or sample['profile'] not in AUTOMATIC_PROFILES):
+            reason = 'Only first-attempt automatic PR and main profiles enter the hosted review.'
         elif not ci and sample['profile'] != 'fast':
             reason = 'The local timing objective applies to the fast profile.'
         elif all(sample['seconds'][key] is None for key in ('harness', 'total', 'runner')):
@@ -459,7 +467,7 @@ def timing_view(samples, *, hosted=()):
                            'platform': platform, 'arch': arch, **objective_review(rows, metric, budget)})
     return {'samples': merged, 'hosted': hosted, 'reviews': reviews, 'objective_reviews': objectives,
             'next_action': ('Review objective breaches and material growth, then collect missing comparable observations.'
-                            if reviews else 'Retain a measured fast run or a full hosted report with matching Actions jobs.')}
+                            if reviews else 'Retain a measured fast run or a hosted change report with matching Actions jobs.')}
 
 
 def local_paths(root):
@@ -574,7 +582,7 @@ def review_summary(view):
     for row in objectives:
         median_seconds = row['recent_median_seconds']
         value = f'{median_seconds:.0f}s' if median_seconds is not None else 'unavailable'
-        lines.append(f"- {row['event']} / {row['platform']}: {row['status'].replace('_', ' ')}; "
+        lines.append(f"- {row['event']} / {row['profile']} / {row['platform']} — {row['status'].replace('_', ' ')}, "
                      f"recent median {value}, objective {row['objective_seconds']}s, "
                      f"{row['recent_objective_breaches']} breaches. {row['action']}")
         if row['scope_change_note']:
