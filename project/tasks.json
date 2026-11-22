@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-044",
+  "focus_task_id": "M4-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -10272,7 +10272,7 @@
       "id": "M0-044",
       "title": "Detect default-branch protection loss during weekly branch review",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-039"
       ],
@@ -10295,10 +10295,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "The weekly branch review reports a corrective action if the default branch has lost protection.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-044-d43af645e8f7ec43.json",
+          "sha256": "d6f61de0389115a67c0b03a20693325982e295f573abb482a736705327ea45f5"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Reproduced the false pass on an unprotected default, then verified 11 branch inventory tests and the live protected main. Stable protection loss produces an actionable finding and keeps the inventory available.",
       "plan": {
         "outcome": "The weekly branch review reports a corrective action if the default branch has lost protection.",
         "change_types": [

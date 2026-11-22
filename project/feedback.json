@@ -2657,7 +2657,7 @@
       "id": "weekly-branch-review-omits-default-protection",
       "source": "Independent review of the branch inventory in PR 30.",
       "severity": "minor",
-      "status": "open",
+      "status": "addressed",
       "observation": "A fixture with a stable default branch reported as unprotected produced a passing weekly branch inventory. The dedicated integration protection check still enforces the policy.",
       "task_ids": [
         "M0-044"
@@ -2666,7 +2666,11 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The weekly inventory classified the default branch without considering its reported protection status.",
+        "correction": "Expose an actionable finding and block the review when a stable snapshot reports the default unprotected. The weekly checklist invokes the full protection comparison.",
+        "prevention": "Tests distinguish a protected default, ordinary unprotected feature branches, a protection change during observation and a stably unprotected default."
+      },
       "deferral_reason": null
     }
   ]
