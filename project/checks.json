@@ -749,6 +749,15 @@
       "platforms": "all",
       "command": null,
       "timeout_seconds": 900
+    },
+    {
+      "id": "custom-market-http-qualification",
+      "status": "planned",
+      "purpose": "Observe an authorized user-configured read-only HTTP mapping independently of a provider preset. Bind the actual destination, pagination, coverage, units and permitted use to this route.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 900,
+      "cadence": "task"
     }
   ],
   "milestones": [

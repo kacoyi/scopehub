@@ -3804,16 +3804,18 @@
         "Show real permissions, feed coverage, time and units. Credentials stay in the platform store and are absent from model input and logs. Record a real authorized trial separately from replay fixtures.",
         "In settings, enter source instructions and a sample using one local intake. Capture secrets locally and preview the allowed documentation and response projection for the chosen model. Ambiguous mixed text stays local. Presets ask only for their actual credentials.",
         "Reuse an approved mapping and checkpoint across refreshes, handle limits, revoked credentials, schema drift and retries, and preserve the previous accepted revision. Test disallowed destination changes and complex protocols that need a separately reviewed adapter.",
-        "A user with a direct provider subscription can enter and exercise that connection without a ScopeHub service selection. Attribute authentication, data rights and billing to the selected provider."
+        "A user with a direct provider subscription can enter and exercise that connection without a ScopeHub service selection. Attribute authentication, data rights and billing to the selected provider.",
+        "Retain separate real observations for the preset and custom HTTP route. Identify each destination, data feed, authentication method, covered dates, applicable rights and actual pagination. Bind provider-specific conformance before activation. Qualify S3 credentials and file entitlement only when the selected connector includes an S3 file service."
       ],
       "checks": [
         "market-fixtures",
         "chart-history",
         "credential-boundaries",
-        "configured-market-source"
+        "configured-market-source",
+        "custom-market-http-qualification"
       ],
       "evidence": [],
-      "next_action": "Bind a provider-specific conformance check before activation. Qualify one of TickDB, Alpaca Market Data or Massive and one documented custom HTTP source with a bounded read. Verify actual feed coverage and rights. Qualify REST and S3 credentials separately; route brokerage candidates to M2-004.",
+      "next_action": "Bind provider-specific conformance before activation. Select one preset and one independently documented custom HTTP route. Verify each with separate bounded trial evidence and actual rights. Check S3 credentials and entitlement only for a chosen flat-file route. Brokerage candidates belong to M2-004.",
       "blocker": null,
       "closure_reason": null,
       "delivery": "later"
@@ -12577,7 +12579,8 @@
       "delivery": "current-contract",
       "depends_on": [
         "M1-008",
-        "M0-051"
+        "M0-051",
+        "M1-030"
       ],
       "scope": [
         "crates",
