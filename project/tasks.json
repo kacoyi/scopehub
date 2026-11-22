@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-070",
+  "focus_task_id": "M1-031",
   "tasks": [
     {
       "id": "M0-001",
@@ -14390,7 +14390,7 @@
       "id": "M0-070",
       "title": "Keep complete Windows Python discovery within a measured finite wall-time budget",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-068",
         "M0-069"
@@ -14418,10 +14418,19 @@
         "architecture",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Compare the retained Windows timings, choose the bounded correction and verify full discovery on Windows.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-070-c775ced496cfe084.json",
+          "sha256": "2eb3490a26767c3cc92e7a5add8edbc507b9fbeb25a83d0141efbe1b9e773d7d"
+        },
+        {
+          "path": "project/evidence/M0-070-f58162a8963e27bc.json",
+          "sha256": "4f15d59a4309e3de2e030dd8d1b6d6629e1cdf11426b2be35b9d4d675a01b229"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Both full suites passed in PR run 45058420352. Complete unittest discovery took 882.265 seconds on native Windows with a 1200-second deadline and 124.727 seconds on Ubuntu with a 900-second deadline. Earlier run 45046352101 finished Windows Python in 801.937 seconds. Its desktop ACL failure is recorded in M0-071. A controlled finite timeout kept its progress, timeout reason and sibling result.",
       "diagnostic_reports": [
         {
           "run_id": "20261122T161306.780775Z-67e5702f",
