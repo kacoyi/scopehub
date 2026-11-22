@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-031",
+  "focus_task_id": "M0-066",
   "tasks": [
     {
       "id": "M0-001",
@@ -13439,7 +13439,7 @@
         "architecture"
       ],
       "evidence": [],
-      "next_action": "Start with the built-in inspection table and main chart. Specify the minimum bar fields and compatible source references against the existing layout definition, then test a local fixture and a controlled API adapter with equivalent bars.",
+      "next_action": "Start with the built-in inspection table and main chart. Specify the minimum bar fields and compatible source references against the existing layout definition, then test a local fixture and a controlled API adapter with equivalent bars. See contracts/reviews/2026-11-22-ai-workspace-canvas.json for the proposed pane editing workflow and the open release-scope decision about blank workspaces.",
       "blocker": null,
       "closure_reason": null
     },
@@ -13792,6 +13792,98 @@
           ],
           "data_plan": "Use synthetic catalogs and local development metadata. No user financial data or model credentials are needed.",
           "cleanup": "Remove concrete generation pins from the active policy. Existing terminals retain their launch arguments."
+        }
+      }
+    },
+    {
+      "id": "M0-066",
+      "title": "Assess an AI-editable desktop workspace and ordered chart panes",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-057",
+        "M2-002"
+      ],
+      "decision_refs": [
+        "0008",
+        "0016",
+        "0017"
+      ],
+      "scope": [
+        "contracts/reviews/2026-11-22-ai-workspace-canvas.json",
+        "project/tasks.json"
+      ],
+      "acceptance": [
+        "Distinguish the existing single-chart layout, data widgets and indicator rendering from the proposed blank workspace, editable styles and ordered chart panes.",
+        "Assess the specific price, indicator and volume workflow with the pinned chart library. Describe normal manual and AI editing, undo, data bindings and the remaining desktop validation.",
+        "Make the proposal discoverable from the planned widget task while preserving the current release commitments and accepted task history."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Record the design options and the observed limits of a synthetic pane placement probe.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The owner can compare a free desktop canvas with a composable workspace and distinguish what ScopeHub already supports.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "project/tasks.json",
+          "apps/desktop/ui/src/chart-adapter/history.ts",
+          "crates/application/src/workspace/layout.rs"
+        ],
+        "hypotheses": [
+          "Workspace widgets and chart panes can be edited at different levels through a shared layout definition."
+        ],
+        "risks": [
+          {
+            "failure": "A chart-library demonstration is mistaken for an implemented product or a wider first-release commitment.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revise or replace the proposal after a product decision. Existing layouts and the active desktop delivery retain their current scope.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "engineering-contract-v1.json",
+            "apps/desktop/ui/src/chart-adapter/history.ts",
+            "project/tasks.json"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/customization"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/design_reference"
+            }
+          ],
+          "non_goals": [
+            "Shipping a canvas editor or changing current product permissions or version-one scope."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "Existing single-chart commitments, the widget task acceptance and historical layout evidence."
+          ],
+          "change": [
+            "Record a candidate workspace design and the separate choice of first-release scope."
+          ],
+          "data_plan": "Use synthetic chart data and public documentation.",
+          "cleanup": "Keep design options together in one review record linked from the planned task."
         }
       }
     }
