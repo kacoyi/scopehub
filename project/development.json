@@ -563,10 +563,11 @@
       },
       "task_ids": [
         "M2-002",
-        "M4-001"
+        "M4-001",
+        "M2-012"
       ],
       "delivery": "current-contract",
-      "boundary": "The built-in workspace chart, watchlist and inspection panel share a typed, editable definition and profile-local layout store. Registered human and scoped AI edits use the same preview, apply, undo and revision checks. Independent comparison uses the selected simulated catalog. Source restoration uses current profile access. Native Windows and owner review remain separate."
+      "boundary": "The built-in workspace chart, watchlist and inspection panel share a typed, editable definition and profile-local layout store. Registered human and scoped AI edits use the same preview, apply, undo and revision checks. Independent comparison uses the selected simulated catalog. Source restoration uses current profile access. Native Windows and owner review remain separate. Adding or removing widgets and rebinding compatible local or API data across views is planned in M2-012."
     },
     {
       "id": "realtime-voice",
