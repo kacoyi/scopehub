@@ -3007,6 +3007,23 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "hosted-actions-require-forced-node-runtime",
+      "source": "Authenticated ordinary pull request 31 control run 44978070164 attempt 1 on Ubuntu and Windows.",
+      "severity": "minor",
+      "status": "open",
+      "observation": "The runners overrode the declared Node 20 runtime of four pinned Actions. The existing dependency checklist named this pending review.",
+      "task_ids": [
+        "M0-050"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers",
+        "dependency-review"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

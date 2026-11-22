@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-046",
+  "focus_task_id": "M0-050",
   "tasks": [
     {
       "id": "M0-001",
@@ -12153,6 +12153,102 @@
           ],
           "data_plan": "Keep per-path host inventory, digests and restore arguments in the private development archive. Track only measured aggregates and content identities in Git.",
           "cleanup": "Reuse the existing weekly worktree and evidence review. Verify a restore before releasing independently owned originals."
+        }
+      }
+    },
+    {
+      "id": "M0-050",
+      "title": "Use supported runtimes for the remaining hosted Actions",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-040"
+      ],
+      "scope": [
+        ".github/workflows",
+        "project/dependencies.json",
+        "tests/project",
+        "scripts/integration.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "contracts/reviews"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0022"
+      ],
+      "acceptance": [
+        "Review an immutable supported upstream replacement for each of the four action manifests that triggered the forced Node 20 runtime warning in both jobs of the integrated control.",
+        "Preserve checkout identity, action inputs, explicit cache and toolchain configuration, permissions, artifact contents and digests, historical evidence and both protected job names.",
+        "Verify the real Ubuntu and Windows jobs can check out the pinned source and upload authenticated current evidence without a forced legacy Node runtime warning. Include runtime declarations in the regular dependency review."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "dependency-review"
+      ],
+      "evidence": [],
+      "next_action": "Dispatch M0-050 on its task branch, verify both hosted jobs and archive their authenticated logs and artifacts.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Hosted job actions use supported declared runtimes and preserve the actual repository verification and evidence boundary.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          ".github/workflows/verify.yml",
+          ".github/workflows/review-verification-timing.yml",
+          "project/dependencies.json",
+          "scripts/integration.py"
+        ],
+        "hypotheses": [
+          "The ordinary integration control produced one forced Node 20 runtime warning listing checkout, setup-node, upload-artifact and pnpm/action-setup on both host platforms. Reviewed replacements can declare the supported runtime without changing the verification scope."
+        ],
+        "risks": [
+          {
+            "failure": "A major action upgrade changes history checkout, package setup, cache behavior, artifact layout or trust boundaries.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "dependency-review"
+            ]
+          }
+        ],
+        "rollback": "Retain the previously reviewed pins and the passing control artifacts. Revert an incompatible change and document the exact upstream constraint before selecting a supported replacement.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            ".github/workflows/verify.yml",
+            ".github/workflows/review-verification-timing.yml",
+            "project/dependencies.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control"
+            }
+          ],
+          "non_goals": [
+            "Expanded token permissions, unpinned tags, runner upgrades bought for this task, or changes to application dependencies."
+          ],
+          "open_questions": [
+            "Which official versions retain the required behavior and artifact formats on both current hosted images?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Pinned action sources, protected Ubuntu and Windows jobs, the official checkout and authenticated evidence workflow."
+          ],
+          "change": [
+            "Remove reliance on the hosted compatibility override for the four reported action declarations."
+          ],
+          "data_plan": "Use synthetic verification and public publisher information. Preserve the exact official artifact bytes and local evidence.",
+          "cleanup": "Remove superseded pins from current workflow entries and retain their history in Git."
         }
       }
     }
