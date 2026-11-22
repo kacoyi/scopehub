@@ -206,6 +206,7 @@
   "This action exceeds a local record or backup limit.": "此操作超出本地记录或备份的限制。",
   "This action exceeds the size or record limit for a complete decision-note backup.": "此操作超出了完整决策笔记备份的文件大小或记录数量限制。",
   "This action or backup is unavailable in this local profile.": "当前本地个人资料无法使用此操作或备份。",
+  "This app (offline)": "此应用（离线）",
   "This backup or action is unavailable for the current local profile.": "当前本地配置无法使用此备份或执行此操作。",
   "This connection has expired. Open AI settings to enable a route.": "此连接已过期。请打开 AI 设置并启用一个连接。",
   "This connection lasts for this app session. Enable it again after restarting ScopeHub.": "此连接仅在本次应用会话期间有效。重启 ScopeHub 后需重新启用。",

@@ -29,6 +29,7 @@ export function unitLabel(unit: string, appearance?: 'lowercase') {
 }
 
 export function price(value: number, instrument: Instrument) {
-  const digits = instrument.price_tick?.split('.')[1]?.length ?? 0;
+  if (instrument.price_tick == null) return formatNumber(value, { maximumSignificantDigits: 21 });
+  const digits = instrument.price_tick.split('.')[1]?.length ?? 0;
   return formatNumber(value, { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }

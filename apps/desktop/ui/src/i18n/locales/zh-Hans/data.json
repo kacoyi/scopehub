@@ -300,6 +300,7 @@
   "The access removal reply could not be verified.": "无法验证撤销访问权限的响应。",
   "The chart number would lose source precision. Review this value in the raw record.": "图表中的数值会损失源数据的精度。请在原始记录中核对此值。",
   "The complete CSV could not be checked within the 10,000-record and 4 MiB result limits.": "无法在 10,000 条记录和结果大小 4 MiB 的限制内检查完整的 CSV 文件。",
+  "The completed file describes a different series.": "完整文件中的数据序列与已接受的序列不一致。",
   "The current source could not be read for review.": "无法读取当前数据源进行检查。",
   "The decoded CSV header could not be inspected within the preview limit.": "无法在预览限制内检查解码后的 CSV 表头。",
   "The entry is not a supported regular CSV within the 4 MiB file limit.": "此条目不是受支持的常规 CSV 文件，或文件大小超过 4 MiB。",

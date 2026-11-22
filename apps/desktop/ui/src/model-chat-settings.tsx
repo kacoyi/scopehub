@@ -11,13 +11,15 @@ export function providerName(kind: ModelRoute['kind']) {
 }
 
 export function RouteDisclosure({ route }: { route: ModelRoute }) {
+  const destination = route.kind === 'offline_mock' && route.destination === 'This app (offline)'
+    ? t('This app (offline)') : route.destination;
   const charges = route.charge_basis === 'openai_api_account'
     ? t('OpenAI meters use under the API account or project associated with your key. Check your account’s pricing before enabling.')
     : route.charge_basis === 'endpoint_operator' ? t('Set by the server operator. Check its fees before enabling.') : t('None');
   return <>
     <dl className="model-route">
       <dt>{t('Provider')}</dt><dd>{providerName(route.kind)}</dd>
-      <dt>{t('Destination')}</dt><dd><bdi>{route.destination}</bdi></dd>
+      <dt>{t('Destination')}</dt><dd><bdi>{destination}</bdi></dd>
       <dt>{t('Model')}</dt><dd><bdi>{route.model}</bdi></dd>
       <dt>{t('Scope')}</dt><dd>{t('Typed questions and up to four earlier question and answer pairs in this session.')}{' '}
         {route.scope === 'conversation_text_and_sample_closes'

@@ -13319,7 +13319,8 @@
         "project/tasks.json",
         "tests/ui",
         "tests/localization",
-        "contracts/decisions/0025-desktop-interface-languages.json"
+        "contracts/decisions/0025-desktop-interface-languages.json",
+        "project/feedback.json"
       ],
       "acceptance": [
         "Offer a persistent interface language setting on the fresh desktop and local-data workspace. Support system preference, English and Simplified Chinese. A future locale adds a registered language and its own catalog without branching the views.",
@@ -13332,10 +13333,11 @@
         "market-workflow",
         "project-state",
         "python-contracts-workers",
-        "local-import-ui"
+        "local-import-ui",
+        "market-quality-states"
       ],
       "evidence": [],
-      "next_action": "Add the language registry, local setting and bilingual catalogs, migrate presentation-owned messages and exercise the switch on existing workflows.",
+      "next_action": "Record the bilingual desktop checks and review the native Linux observation before integration.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -13399,7 +13401,7 @@
             }
           ],
           "non_goals": [
-            "Translation of user records, model replies or market identifiers; delivery of further locale catalogs in this task."
+            "Translation of user records, model replies or market identifiers. Delivery of additional language catalogs is outside this task."
           ],
           "open_questions": []
         },

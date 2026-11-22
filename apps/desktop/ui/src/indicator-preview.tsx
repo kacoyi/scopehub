@@ -7,6 +7,7 @@ import type {
 } from '../../../../contracts/generated/protocol';
 import type { IndicatorChartLayer } from './chart-adapter/history';
 import { IndicatorAcceptance } from './indicator-acceptance';
+import { IndicatorDiagnostics } from './indicator-diagnostics';
 import { IndicatorRegionValues } from './indicator-region-values';
 import { displayAccessDenied, type PublishedRevisionAccess } from './published-revision-access';
 import { exchangeWorkspace, type LocalWorkspace } from './use-local-workspace';
@@ -395,7 +396,7 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
       <p role="status">{mode === 'python' ? t('Preview layers · trusted Python') : t('Preview layers · rolling mean and population standard deviation')}</p>
       <p>{mode === 'python' ? <>{t('Parameters')}{' '}<code>{JSON.stringify(result.resolved_parameters)}</code></>
         : <>{t('Period {period}', { period: String(result.resolved_parameters.period) })}</>} · {plural('{count} warm-up bar', '{count} warm-up bars', ready.warmup_bars)}</p>
-      {output?.diagnostics.map(diagnostic => <p key={diagnostic.code}>{diagnostic.message}</p>)}
+      {output && <IndicatorDiagnostics result={output} />}
       <details>
         <summary>{t('Preview provenance and values')}</summary>
         <dl>

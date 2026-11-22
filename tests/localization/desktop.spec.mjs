@@ -55,6 +55,32 @@ test.describe('language preference and recovery', () => {
   });
 });
 
+test('can reload the original URL when the first application module is unavailable', async ({ page }) => {
+  await page.route('**/src/workspace-start.ts', route => route.abort('connectionfailed'));
+  await page.goto('/?view=main#demo');
+  const startup = page.getByRole('main', { name: 'Workspace startup' });
+  const reload = startup.getByRole('button', { name: 'Reload window' });
+  await expect(reload).toBeVisible();
+  const address = page.url();
+  await page.unroute('**/src/workspace-start.ts');
+  await reload.click();
+  await expect(control(page, 'Language settings')).toBeVisible();
+  expect(page.url()).toBe(address);
+});
+
+test('retranslates the recovery page from another window while the main application is unavailable', async ({ page, context }) => {
+  await page.route('**/src/main.tsx', route => route.abort('connectionfailed'));
+  await page.goto('/');
+  const startup = page.getByRole('main', { name: 'Workspace startup' });
+  await expect(startup.getByRole('heading')).toHaveText('The workspace hasn’t opened yet');
+  const settings = await context.newPage();
+  await settings.goto('/');
+  await chooseLanguage(settings, 'Language settings', 'zh-Hans');
+  const recovered = page.getByRole('main', { name: '工作台启动' });
+  await expect(recovered.getByRole('heading')).toHaveText('工作台尚未打开');
+  await expect(recovered.getByRole('button', { name: '重新加载窗口' })).toBeEnabled();
+});
+
 test('updates the chart, an open panel and a draft without repeating market operations', async ({ page, context }) => {
   const reads = [];
   page.on('request', request => {

@@ -142,6 +142,7 @@ const folderReviewDetails = new Set([
   'The decoded CSV header could not be inspected within the preview limit.',
   'The ordered CSV header could not be decoded with the saved encoding and delimiter.',
   'The complete CSV could not be checked within the 10,000-record and 4 MiB result limits.',
+  'The completed file describes a different series.',
   'This file has competing values at the same bar start. Review the alternatives below.',
   'Ordered CSV header differs from the saved mapping.',
   'An opaque ancestor prevents checking this accepted source path.',
@@ -239,10 +240,12 @@ export function localCsvIssueMessage(text: string, code?: string): LocalImportMe
   return text;
 }
 
-function csvReviewMessage(text: string, code?: string): LocalImportMessage {
+function csvReviewMessage(text: string, issueMetadata?: { code: string | undefined }): LocalImportMessage {
   const [, record, detail] = /^Review CSV record (\d+)\. ([\s\S]+)$/u.exec(text) ?? [];
-  if (record === undefined || detail === undefined) return localCsvIssueMessage(text, code);
-  const issue = localCsvIssueMessage(detail, code);
+  if (record === undefined || detail === undefined) return localCsvIssueMessage(text, issueMetadata?.code);
+  const issue = localCsvIssueMessage(detail, issueMetadata?.code);
+  // Folder details arrive as text alone, so the record prefix does not establish provenance.
+  if (!issueMetadata && typeof issue === 'string') return text;
   return deferred(() => t('Review CSV record {record}. {issue}', {
     record: formatCsvInteger(record), issue: renderLocalImportMessage(issue),
   }));
@@ -257,19 +260,20 @@ export function localImportErrorMessage(error: unknown): LocalImportMessage | un
   const details = 'details' in error ? error.details : undefined;
   if (details && typeof details === 'object' && 'reason' in details && details.reason === 'csv_review_required') {
     const code = 'issue_code' in details && typeof details.issue_code === 'string' ? details.issue_code : undefined;
-    return csvReviewMessage(text, code);
+    return csvReviewMessage(text, { code });
   }
   return text;
 }
 
 export function folderRefreshFileDetail(detail: string): string {
   if (folderReviewDetails.has(detail)) return t(detail);
-  const [, issue, start, end] = /^([\s\S]+) Source lines (\d+)–(\d+)\.$/u.exec(detail) ?? [];
-  if (issue === undefined || start === undefined || end === undefined) {
-    return renderLocalImportMessage(csvReviewMessage(detail));
-  }
+  const [, issue, start, end] = /^(Review CSV record \d+\. [\s\S]+) Source lines (\d+)–(\d+)\.$/u.exec(detail) ?? [];
+  const review = csvReviewMessage(issue ?? detail);
+  if (typeof review === 'string') return detail;
+  const text = renderLocalImportMessage(review);
+  if (start === undefined || end === undefined) return text;
   return t('{issue} Source lines {start}–{end}.', {
-    issue: renderLocalImportMessage(csvReviewMessage(issue)),
+    issue: text,
     start: formatCsvInteger(start), end: formatCsvInteger(end),
   });
 }

@@ -6,6 +6,7 @@ import type {
   MutationScope11, PreviewReady11, TrustedConfirmationDecision11, WorkspaceUndoCommand11, WorkspaceUndoReply11,
 } from '../../../../contracts/generated/protocol';
 import type { IndicatorChartLayer } from './chart-adapter/history';
+import { IndicatorDiagnostics } from './indicator-diagnostics';
 import { IndicatorRegionValues } from './indicator-region-values';
 import { displayAccessDenied, type PublishedRevisionAccess } from './published-revision-access';
 import { exchangeWorkspace, type LocalWorkspace } from './use-local-workspace';
@@ -238,7 +239,7 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
           <p>{t('Input')}{' '}<code>{layer.document.snapshot.content_hash}</code></p>
           <p>{t('Output')}{' '}<code>{layer.document.artifact.result_hash}</code></p>
           <p>{t('Parameters')}{' '}<code>{JSON.stringify(layer.document.resolved_parameters)}</code></p>
-          {layer.document.artifact.result.diagnostics.map(diagnostic => <p key={diagnostic.code}>{diagnostic.message}</p>)}
+          <IndicatorDiagnostics result={layer.document.artifact.result} />
           <ul>{layer.document.artifact.result.series.map(series => <li key={series.id}>
             {series.id} · {series.points.slice(0, 20).map(point => point.value ?? t('Unknown')).join(', ')}
           </li>)}</ul>
