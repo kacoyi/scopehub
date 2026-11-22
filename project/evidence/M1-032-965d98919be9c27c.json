@@ -1,0 +1,139 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M1-032",
+  "task_definition_sha256": "8c32fdc83260dac904f8e8e08039fc0ace418074156fd8dc2c2135eff3a9326e",
+  "run_id": "20261122T090045.775420Z-3b13d499",
+  "recorded_at": "2026-11-22T09:03:34.974240+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "aa1b9b5da49dcd2b12cd1c770c111fa97560f8d710424e26f3cc8a0e6f3ae36a",
+    "file_count": 547,
+    "git_head": "b855b6ee44499f780361dffcf5a19ce4f18cdc18",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "965d98919be9c27c1b4a41e9c3e69ae0ac399cc1cf13afa4329c48fe14c29894",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/desktop-localization/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "desktop-localization",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/localization/desktop.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "913c638d7a5fda0f8f1de37796387ec649d61a35dc1cf886ffed8b3572a3b89f"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "1a3a2df8226449d1da480fb70fb2cb3773247fa8fd9fb33af117e4cbeb25a1ca"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c0a615e994897312b6c174f868d50f761a4ad7dc346b3fb2ad7f371db6366496"
+    },
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/desktop-localization/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8c1ec984cc51d2ed507b9b0e2cf6c0ce7b37b57c972819d3bcd84887eb1c8a20"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/desktop-localization/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "10"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ec6683a671b05754c1ba3f5aff53e728effeb92fba610f74eedb21581be9519b"
+    },
+    {
+      "id": "local-import-ui",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/local-import.playwright.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "fba9f3572971f69d1e06d5277123935b57ccd9ec9da2f540dbde4ba3dad6c83e"
+    },
+    {
+      "id": "market-quality-states",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-quality.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d2dc0f71c94df94ea8f924abc8e43d735d733f3695f46d678f87fe3d667282ac"
+    }
+  ],
+  "project_definition_sha256": "1eaeb88e3abff4d510cafaabd8724be534bb4157cd94a5f30b415fe31dbf1c28",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}
