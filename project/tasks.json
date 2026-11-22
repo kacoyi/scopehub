@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-055",
+  "focus_task_id": "M1-031",
   "tasks": [
     {
       "id": "M0-001",
@@ -12651,7 +12651,7 @@
       "id": "M0-055",
       "title": "Establish a desktop design reference and an observable comparison",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-052",
         "M0-054"
@@ -12674,10 +12674,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Observe a reference interaction, compare the existing synthetic journey and bind the native review method to M1-012.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-055-8726200c46072779.json",
+          "sha256": "7adbd0d3d5bff9c6ec7999c9017cf91589d2ddf193b4414f8e45330faea3ce76"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Verified the reference and comparison method at c978d33. The signed-out desktop entry, public chart and synthetic browser sample have separately scoped observations. Matched dark-browser measurements are retained in the review. Native ScopeHub experience remains assigned to M1-012 after M1-031.",
       "plan": {
         "outcome": "A contributor can repeat a user-facing comparison and report exactly which desktop or browser behavior was seen.",
         "change_types": [
