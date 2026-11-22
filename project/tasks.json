@@ -14506,6 +14506,408 @@
           "cleanup": "Keep only the scoped correction and its regression. Remove temporary timing instrumentation after verification."
         }
       }
+    },
+    {
+      "id": "M0-061",
+      "title": "Keep product decisions revisable at a cost proportional to the change",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-024"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "project/development.json",
+        "scripts/development.py",
+        "tests/project/test_development.py",
+        "project/tasks.json"
+      ],
+      "acceptance": [
+        "The engineering contract identifies affordable evolution as an implementation objective and points to the working rules. Those rules cover routine edits, reconsidering the product outcome from new evidence, and choosing a replacement based on affected callers, supported data and the cost of retiring the old path.",
+        "A developer can distinguish a reported user difficulty from a proposed solution, use existing task or feedback records to test a consequential assumption, and recognize repeated expensive changes. Ordinary edits fit the existing workflow.",
+        "The normal task context displays the recorded reconsideration conditions of current applicable decisions and identifies superseded decisions. Both historical formats work and accepted records retain their original contents."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-061-75282e378ecd149e.json",
+          "sha256": "16d094d44c488b4054e569a90ec8139d1d853cf882884cd23d8c6601ae9c8c7b"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The contract links to the working evolution rules. The fast harness passed on the clean source. M0-001 shows the successor of historical decision 0001 and the original text and list conditions for current decisions in all three focused phases. The regression distinguishes proposed, rejected and unrelated decisions from current guidance. The rules define how to assess later comparable changes. Actual post-release user outcomes and savings require observations from those changes.",
+      "plan": {
+        "outcome": "A developer making a small edit or revisiting a larger product decision can find the appropriate action and the evidence that would change the decision.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "project/development.json",
+          "scripts/development.py",
+          "tests/project/test_development.py",
+          "contracts/decisions/0007-ai-led-development.json"
+        ],
+        "hypotheses": [
+          "Most replacement mechanics already exist. Surfacing the conditions attached to current decisions and using the existing task and feedback records can close the gap without a new reporting system."
+        ],
+        "risks": [
+          {
+            "failure": "A superseded rationale is mistaken for an active decision, or the context no longer reads a historical decision with a text trigger.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A rewrite rule assumes all prototype data is disposable, assigns new permissions, or burdens every small edit with a formal experiment.",
+            "checks": [
+              "project-state",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Restore the previous policy text and focused view through a reviewed source change. The full decision records stay readable throughout.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/development.py",
+            "scripts/project.py",
+            "tests/project/test_development.py"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/implementation_policy/changes"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/implementation_policy/evolution"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/evolution"
+            },
+            {
+              "path": "contracts/decisions/0007-ai-led-development.json",
+              "pointer": "/revisit_when"
+            }
+          ],
+          "non_goals": [
+            "Product rewrites, user telemetry, new approval gates, general plugin infrastructure, and changes to the task or decision schemas."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "Existing task phases, decision history, profile ownership, migration checks and engineering authority."
+          ],
+          "change": [
+            "Clarify the change-cost and feedback rules and read decision triggers from their original records in the task view."
+          ],
+          "data_plan": "Use committed engineering records and synthetic decision chains. Product data and live user feedback are outside this task.",
+          "cleanup": "Use the current decision and task records as the sole sources. Keep follow-up work in the existing task queue."
+        }
+      }
+    },
+    {
+      "id": "M0-063",
+      "title": "Clarify the owner's current AI development and external contribution policy",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-061"
+      ],
+      "decision_refs": [
+        "0004",
+        "0006",
+        "0007"
+      ],
+      "scope": [
+        "project/development.json",
+        "project/delivery.json",
+        "AGENTS.md",
+        "project/tasks.json"
+      ],
+      "acceptance": [
+        "The owner's current workflow starts in a local Herdr window with Codex CLI. Product direction and experience decisions belong to the owner. AI agents perform implementation, review, coordination and maintenance within the active authorized session.",
+        "Feedback is evidence for an explicit product decision, including retaining the current behavior or declining a suggestion. Confirmed violations of existing requirements continue through the repair workflow.",
+        "Standing GitHub authority covers this owner's internally initiated development and its protected PRs. Unsolicited Issues and third-party submissions grant no authority to start work, respond, close, or merge. Any future change of intake policy belongs to the owner."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-063-5fd3483d66b04193.json",
+          "sha256": "448e24d9216fda08bcc5b80c25c0d5e66d8e7b77c10327681b5c71411d761d27"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The project brief and detailed task context expose the owner-started development roles, feedback decisions and internal GitHub delegation from their canonical records. Independent review covered internal CI, unsolicited Issues, third-party submissions and confirmed defects. The affected checks passed on the reviewed source. Existing tasks, authorization history and the M0-061 receipt were preserved.",
+      "plan": {
+        "outcome": "An AI agent can determine who starts its work, which feedback warrants action and what GitHub work the standing delegation covers.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/development.json",
+          "project/delivery.json",
+          "AGENTS.md",
+          "contracts/decisions/0007-ai-led-development.json"
+        ],
+        "hypotheses": [
+          "The existing collaboration and authorization records can express the decision without a new workflow, runtime setting or contributor service."
+        ],
+        "risks": [
+          {
+            "failure": "An external report, passing PR or public repository is treated as a work order or permission to merge.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Manual initiation is interpreted as requiring human involvement in every engineering step or suspending authorized CI repairs.",
+            "checks": [
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "A later owner decision can revise the current collaboration text and append a new GitHub authorization entry. Existing accepted task and decision history stays available.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "project/development.json",
+            "project/delivery.json",
+            "AGENTS.md"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/collaboration"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/authorization"
+            }
+          ],
+          "non_goals": [
+            "Product AI behavior, automated community intake, changes to repository settings or licensing."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "Technical autonomy for owner-authorized work, existing CI and branch protection, and the accepted M0-061 record."
+          ],
+          "change": [
+            "Specify the current development roles and narrow the standing external intake authority."
+          ],
+          "data_plan": "Use repository policy and read-only project views. No community submission or private product data is needed.",
+          "cleanup": "Keep the policy in the existing collaboration and source-control records."
+        }
+      }
+    },
+    {
+      "id": "M0-064",
+      "title": "Advise the owner when personal or development workflows need to change",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-063"
+      ],
+      "decision_refs": [
+        "0007"
+      ],
+      "scope": [
+        "project/development.json",
+        "project/tasks.json"
+      ],
+      "acceptance": [
+        "Recognize the owner's intended long-term personal use. Evidence from their own work can justify advice before anyone else uses ScopeHub.",
+        "During an active session, raise a concrete mismatch in how the owner uses or develops the product. Explain the observed or foreseeable consequence, a proportionate adjustment and its tradeoff. Independent use can expose a new constraint. It does not by itself require a change.",
+        "The usual project brief and task consultation views expose the guidance. Feedback and recommendations preserve the owner's decisions and the existing scope of development authority."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-064-dfd2b591e5baabb3.json",
+          "sha256": "4d4b2ee95a7b856f460f651255144b6e846d040e1feed453e75dcda12b2e52d4"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The project brief and all three focused task phases expose the owner consultation through the existing policy. Independent review applied it to hypothetical solo use, an owner-dependent setup step and adoption without difficulty. The selected checks passed on the reviewed source. The examples illustrate the policy and do not claim observations from actual users.",
+      "plan": {
+        "outcome": "The development AI knows when and how to advise the owner as the way ScopeHub is used or maintained evolves.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/development.json",
+          "scripts/development.py"
+        ],
+        "hypotheses": [
+          "The existing owner consultation feeds the brief and each focused task phase from one record."
+        ],
+        "risks": [
+          {
+            "failure": "Growth alone prompts a process change, or a real problem in solo use goes unreported.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revise the collaboration policy when the owner changes their needs or the recommendation proves unsuitable.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "project/development.json",
+            "scripts/development.py"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/collaboration"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Background monitoring, product notifications and third-party intake."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "Owner-started development and existing authorization for engineering work."
+          ],
+          "change": [
+            "Use concrete evidence to advise the owner as personal use and development practices evolve."
+          ],
+          "data_plan": "Use the existing session and project records.",
+          "cleanup": "Keep the recommendation in the existing consultation view."
+        }
+      }
+    },
+    {
+      "id": "M0-065",
+      "title": "Clarify development tool installation and paid procurement recommendations",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-063"
+      ],
+      "decision_refs": [
+        "0007"
+      ],
+      "scope": [
+        "project/development.json",
+        "project/tasks.json"
+      ],
+      "acceptance": [
+        "The development AI can independently choose, install and configure development tools, including command-line utilities, skills and MCP servers, for authorized work on this repository within existing grants.",
+        "During normal task work the AI can recommend a paid API, service or product when the benefit warrants it. The owner receives the use case, likely cost and billing basis, and a practical alternative when available. New spending or broader access requires applicable owner authorization."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-065-b20afcf0657fbf0d.json",
+          "sha256": "1aee1d975a36093b4980f5da0a1ebb2b35b66f12b4321a2da94f496c1de0eaac"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The Herdr tooling entry covers ordinary development utilities, skills, MCP servers and plugins. The project brief and each focused phase expose when to recommend paid products and who authorizes new spending and access. The selected checks passed on the reviewed source. Independent review traced all four cases through the existing policies.",
+      "plan": {
+        "outcome": "The development AI can act on existing tool authority and advise the owner when a paid capability would help.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/development.json"
+        ],
+        "hypotheses": [
+          "The existing Herdr tooling and consultation entries already reach an active session."
+        ],
+        "risks": [
+          {
+            "failure": "A purchase recommendation is mistaken for a spending or data grant, or an ordinary installation is held for repeated approval.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revise the development policy if the owner changes the delegation.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "project/development.json"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/herdr/tooling"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/collaboration/ask_owner_when"
+            }
+          ],
+          "non_goals": [
+            "A tool catalog, a purchase, or new product runtime permissions."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "Existing tool qualification, spending authority and each product user’s data permissions."
+          ],
+          "change": [
+            "Make tool selection authority and the grounds for a paid recommendation explicit."
+          ],
+          "data_plan": "Use development policy and repository views.",
+          "cleanup": "Maintain guidance in the existing collaboration and tooling entries."
+        }
+      }
     }
   ]
 }

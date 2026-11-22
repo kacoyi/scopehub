@@ -18,6 +18,13 @@
     ],
     "unknowns": "Do not guess credentials, provider permissions, commercial licenses, or security capabilities; use an explicit blocked status or a simulated implementation",
     "changes": "The development AI owns technical planning and implementation. Record consequential language, process, protocol or architecture changes in an ADR. Consult the owner for unresolved product behavior/scope, user-data consequences, costs, external transmission or permission changes; reuse existing authorization. Technical choices preserving these commitments do not require the owner to select an implementation.",
+    "evolution": {
+      "objective": "Keep the cost of modifying a workflow, rewriting a module or retiring a capability low over the life of the product. Reconsider current designs when user experience, a better alternative or engineering evidence changes the tradeoff. Protect the commitments that still apply to users, their saved work and their permissions.",
+      "rules": {
+        "path": "project/development.json",
+        "pointer": "/quality/evolution"
+      }
+    },
     "dependencies": "Choose compatible stable versions during implementation and commit all lockfiles; do not automatically upgrade major versions or add dependencies for placeholder modules",
     "build_or_reuse": {
       "principle": "Choose reuse, integration, adaptation, or local implementation by concrete product needs and lifetime maintenance cost. External data channels, products, services, libraries, and SDKs are valid options.",
