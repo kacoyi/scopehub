@@ -458,6 +458,40 @@ class VerificationScopeTest(unittest.TestCase):
                 self.assertEqual(result['profile'], 'full')
                 self.assertIn('merge ref', result['reason'])
 
+    def test_synchronize_classifies_actual_merge_and_rejects_conflicting_identities(self):
+        self.git('switch', '-c', 'topic')
+        self.write('README.md', '# First update\n')
+        first_head = self.commit('first update')
+        self.git('switch', 'main')
+        self.git('merge', '--no-ff', 'topic', '-m', 'first preview')
+        old_preview = self.head()
+
+        for path, content, profile, count in (
+                ('README.md', '# New wording\n', 'records', 1),
+                (APP, 'export const changed = true;\n', 'full', 2)):
+            self.git('switch', 'topic')
+            self.write(path, content)
+            topic = self.commit('synchronize topic')
+            self.git('switch', '--detach', self.base)
+            self.git('merge', '--no-ff', 'topic', '-m', 'current preview')
+            checkout = self.head()
+            event = self.pull(self.base, topic)
+            event.update(action='synchronize', after=topic)
+            event['pull_request']['merge_commit_sha'] = old_preview
+            decision = self.ci(event, name='pull_request')
+            self.assertEqual((decision['profile'], decision['base'], decision['checkout'], decision['change_count']),
+                             (profile, self.base, checkout, count))
+            for bad_event, extra in (
+                    ({**event, 'after': first_head}, {}),
+                    ({**event, 'after': None}, {}),
+                    (event, {'GITHUB_SHA': old_preview}),
+                    (event, {'GITHUB_REF': 'refs/pull/32/merge'}),
+                    ({**event, 'pull_request': {**event['pull_request'], 'merge_commit_sha': 'invalid'}}, {}),
+                    ({**event, 'after': first_head, 'pull_request': self.pull(self.base, first_head)['pull_request']}, {}),
+                    ({**event, 'pull_request': {**event['pull_request'], 'base': {'sha': first_head}}}, {})):
+                result = self.ci(bad_event, name='pull_request', extra_env=extra)
+                self.assertEqual((result['profile'], result['change_count']), ('full', None))
+
     def test_pr_merge_only_changes_are_included_and_wrong_parents_are_rejected(self):
         self.git('switch', '-c', 'topic')
         self.write('README.md', '# PR text\n')

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-031",
+  "focus_task_id": "M0-068",
   "tasks": [
     {
       "id": "M0-001",
@@ -14063,6 +14063,91 @@
           ],
           "data_plan": "Use repository-relative Git metadata, synthetic test fixtures and ordinary build reports only. No user financial data or remote model call is needed.",
           "cleanup": "Keep the existing full harness as the fallback. Remove duplicate unconditional work on recognized changes and record the actual coverage."
+        }
+      }
+    },
+    {
+      "id": "M0-068",
+      "title": "Verify synchronized pull requests against the actual Actions merge checkout",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-060"
+      ],
+      "decision_refs": [
+        "0004",
+        "0026"
+      ],
+      "scope": [
+        "scripts/verification_scope.py",
+        "tests/project/test_verification_scope.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "acceptance": [
+        "A synchronize event with stale preview metadata and an independently verified candidate records the actual base, checkout, file count and selection reason.",
+        "Invalid checkout SHA, PR ref, synchronization head or ordered parents keep the conservative fallback. Exercise both narrow and full changes using real Git objects."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture"
+      ],
+      "evidence": [],
+      "next_action": "Reproduce the hosted mismatch and verify the corrected selector against real merge objects.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The hosted selection explains which files changed when a PR update races background merge metadata.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/verification_scope.py",
+          "tests/project/test_verification_scope.py",
+          ".github/workflows/verify.yml"
+        ],
+        "hypotheses": [
+          "The Actions merge ref and checkout SHA identify the current merge, while the synchronize payload can still describe a previous test merge."
+        ],
+        "risks": [
+          {
+            "failure": "A stale head or contradictory event incorrectly permits lightweight checks.",
+            "checks": [
+              "python-contracts-workers",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Return to full verification for an unverifiable comparison and retain the diagnostic.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/verification_scope.py"
+          ],
+          "rules": [
+            {
+              "path": "contracts/decisions/0026-change-scoped-verification.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Changes to merge authority, branch protection, platform coverage or push selection."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Use the complete checked tree, verify the PR number, ref, checkout SHA and ordered parents, and keep legacy event behavior."
+          ],
+          "change": [
+            "Validate synchronized PR heads independently of stale background merge metadata."
+          ],
+          "data_plan": "No product data or report schema changes.",
+          "cleanup": "Keep the existing selector and remove the incorrect dependency on the synchronize payload preview SHA."
         }
       }
     }

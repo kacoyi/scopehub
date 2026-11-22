@@ -406,7 +406,15 @@ def ci_base(root, checkout, env):
         parents = git(root, 'rev-list', '--parents', '-n', '1', checkout).split()
         if parents != [value.encode('ascii') for value in (checkout, base, head)]:
             raise ScopeError('The checkout does not have the event base and head as its two parents.')
-        if pull.get('merge_commit_sha') is not None and oid(pull['merge_commit_sha']) != checkout:
+        preview = pull.get('merge_commit_sha')
+        if preview is not None:
+            preview = oid(preview)
+        if event.get('action') == 'synchronize':
+            # A synchronize payload can retain the previous preview SHA. The Actions
+            # checkout and both current parents were verified above.
+            if oid(event.get('after')) != head:
+                raise ScopeError('The synchronized head does not match the pull request head.')
+        elif preview is not None and preview != checkout:
             raise ScopeError('The event merge SHA does not match the checkout.')
         return base
 

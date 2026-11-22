@@ -3236,6 +3236,28 @@
           "report_sha256": "532e34bb88fd556cf38dd126e3144c052cb82ef90d6d187400ada57370390b20"
         }
       ]
+    },
+    {
+      "id": "pr-synchronize-stale-preview-sha",
+      "source": "PR 41 run 45028387189, Ubuntu job 137226316277. Retained report at archives/runs/20261122T133800.124696Z-cdcf5ecd/test-report.json and adjacent verification-scope.json (SHA-256 324f3285ffc8b8440e13420088bc8a88dc2c25b57f9527340f8cfdb29bde4fe4).",
+      "severity": "major",
+      "status": "open",
+      "observation": "The full harness succeeded on the actual merge checkout, but selection recorded comparison_unavailable and no base or count. The selector log rejected the event merge SHA after validating the PR ref, checkout and both parents.",
+      "task_ids": [
+        "M0-068"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T133800.124696Z-cdcf5ecd",
+          "source_commit": "eb5320d273a0677057edfb6b2384d45b14819644",
+          "report_sha256": "a6184df429e76ce43191cb8412d4dac46b5a7b2337ac5de36ec1c97e4c57ff4f"
+        }
+      ]
     }
   ]
 }
