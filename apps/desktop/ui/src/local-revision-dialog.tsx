@@ -30,6 +30,7 @@ function failureMessage(error: unknown, fallback: string) {
   if (!error || typeof error !== 'object') return fallback;
   if (errorCode(error) === 'SNAPSHOT_UNAVAILABLE') return 'This frozen chart is unavailable in the current profile.';
   if (errorCode(error) === 'PERMISSION_DENIED') return 'This profile does not have permission to display this revision.';
+  if (errorCode(error) === 'STALE_CONTEXT') return 'The workspace changed. Reload its current state.';
   return 'message' in error && typeof error.message === 'string' ? error.message : fallback;
 }
 
@@ -50,13 +51,15 @@ type OpenedRevision =
 
 const PAGE_SIZE = 8;
 
-export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, nativeLocalImport, useWorkspaceSource }: {
-  useWorkspaceSource?: ((id: string) => Promise<void>) | undefined;
+export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, nativeLocalImport, useWorkspaceSource, onWorkspaceSourceSelected }: {
+  useWorkspaceSource?: ((id: string, signal: AbortSignal) => Promise<void>) | undefined;
+  onWorkspaceSourceSelected: () => void;
   onClose: () => void; revisionAccess: PublishedRevisionAccess; workspace: LocalWorkspace | undefined; nativeLocalImport: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const libraryTitle = useRef<HTMLHeadingElement>(null);
   const chart = useRef<HTMLElement>(null);
+  const lifetime = useRef<AbortController | null>(null);
   const active = useRef(false);
   const pendingList = useRef(Promise.resolve());
   const heading = useId();
@@ -118,8 +121,10 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
 
   useEffect(() => {
     const node = dialog.current;
+    const controller = new AbortController();
+    lifetime.current = controller;
     node?.showModal();
-    return () => { node?.close(); };
+    return () => { controller.abort(); node?.close(); };
   }, []);
 
   useEffect(() => {
@@ -210,14 +215,43 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
     }, 'Unable to remove access to this revision.');
   }
 
-  return <dialog ref={dialog} className="symbol-dialog local-revision-dialog" aria-labelledby={heading} onCancel={onClose}>
+  function close() {
+    lifetime.current?.abort();
+    onClose();
+  }
+
+  async function selectWorkspaceSource(work: (signal: AbortSignal) => Promise<boolean>) {
+    const signal = lifetime.current?.signal;
+    if (!signal || signal.aborted) return;
+    await request(async () => {
+      if (await work(signal) && !signal.aborted) onWorkspaceSourceSelected();
+    }, 'Unable to save the workspace source.');
+  }
+
+  return <dialog ref={dialog} className="symbol-dialog local-revision-dialog" aria-labelledby={heading} onCancel={close}>
     <div className="dialog-heading local-revision-heading">
       <h2 id={heading}>Open published CSV</h2>
-      <button type="button" className="secondary-button" onClick={onClose}>Close</button>
+      <button type="button" className="secondary-button" onClick={close}>Close</button>
     </div>
     <div className="local-revision-body">
       {busy && <p role="status">Working with the frozen revision…</p>}
-      {failure && <p className="local-import-error" role="alert">{failure}</p>}
+      {(failure || workspace?.sourceRecovery && workspace.error) &&
+        <p className="local-import-error" role="alert">{failure ?? workspace?.error}</p>}
+      {workspace?.error && <button type="button" className="secondary-button" disabled={working}
+        onClick={() => {
+          if (!workspace.sourceRecovery) {
+            setFailure(undefined);
+            workspace.reload();
+            return;
+          }
+          void selectWorkspaceSource(async signal => {
+            const ownsSource = workspace.ownsSourceRecovery(signal);
+            await workspace.recoverSource();
+            return ownsSource;
+          });
+        }}>
+        Reload workspace state
+      </button>}
       {notice && <p role="status">{notice}</p>}
       {!visibleFrozen && <UnavailableSharedSelection workspace={workspace} />}
       {visibleFrozen && <section ref={chart} className="local-revision-chart" tabIndex={-1} aria-labelledby={chartHeading}>
@@ -226,8 +260,11 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
           ? <FrozenFolderChart key={visibleFrozen.result.revision.revision_id} result={visibleFrozen.result} access={revisionAccess} />
           : <FrozenLocalChart key={visibleFrozen.result.revision.revision_id} result={visibleFrozen.result} workspace={workspace} access={revisionAccess} />}
         {visibleFrozen.kind === 'csv' && useWorkspaceSource && <button type="button" className="secondary-button"
-          disabled={working} onClick={() => void request(
-            () => useWorkspaceSource(visibleFrozen.result.revision.revision_id), 'Unable to save the workspace source.',
+          disabled={working || workspace?.sourceRecovery} onClick={() => void selectWorkspaceSource(
+            async signal => {
+              await useWorkspaceSource(visibleFrozen.result.revision.revision_id, signal);
+              return true;
+            },
           )}>Use as workspace source</button>}
         {nativeLocalImport && <div className="local-import-card">
           <RevisionAccessActions key={visibleFrozen.result.revision.revision_id} folder={visibleFrozen.kind === 'folder'}

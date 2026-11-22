@@ -779,7 +779,7 @@
       "id": "M4-001",
       "title": "Deliver the first human-AI chart collaboration workflow",
       "milestone": "M4",
-      "status": "active",
+      "status": "planned",
       "depends_on": [
         "M3-001",
         "M1-008",
@@ -8049,6 +8049,14 @@
         {
           "path": "project/evidence/M4-006-4499f45a417f3f97.json",
           "sha256": "b3e6b9e841849fb31d0b8eaaadacd76fe35636d97e263713370e9c5603fdf835"
+        },
+        {
+          "path": "project/evidence/M4-006-b210961fafbb4a99.json",
+          "sha256": "fcf11b970a8bdf9e02460f70054799abd1da7e81256d81fe83c044663f0ac8bf"
+        },
+        {
+          "path": "project/evidence/M4-006-ae92f8bbf72660d3.json",
+          "sha256": "7a2c3667cf66232154a4397c06628a9de642d7ab95c3c568434db44685a6d954"
         }
       ],
       "next_action": null,
@@ -10829,6 +10837,145 @@
           ],
           "data_plan": "Use two disposable loopback servers and synthetic requests. Retain original hosted logs and distinct local red and green reports.",
           "cleanup": "Release the held observer on success or failure and close the owned browser context and listeners."
+        }
+      }
+    },
+    {
+      "id": "M4-013",
+      "title": "Complete a foreground workspace source change during background revision inspection",
+      "milestone": "M4",
+      "status": "done",
+      "depends_on": [],
+      "scope": [
+        "apps/desktop/ui",
+        "tests",
+        "project"
+      ],
+      "decision_refs": [
+        "0004",
+        "0006",
+        "0007",
+        "0016"
+      ],
+      "acceptance": [
+        "Reproduce the pre-admission foreground BUSY response while holding a real background revision read. Distinguish it from an accepted write followed by an unavailable snapshot.",
+        "Prevent background status activity from starving the foreground intent. Verify one accepted write, dialog completion and final source and revision. Preserve error handling, cancellation and bounded diagnostics.",
+        "Keep the original expected revision across known refusals. Verify that a competing selection survives and that a lost write acknowledgement shows uncertainty after read-only recovery, even when the durable source matches.",
+        "Bound the wait for every issued source write and readback on browser and native transports. Exercise a committed reply held past its deadline, late settlement, and a stalled readback with an available read-only recovery action.",
+        "Run the affected M4-006 selection and the deterministic contention regression including hosted Ubuntu and Windows. Retain the failure and recovery evidence."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "local-folder-import",
+        "model-connection-workflow",
+        "desktop-workspace-transport",
+        "project-state"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M4-013-e5cd89397cd2604a.json",
+          "sha256": "fae199ce59294a61626b69bddcc2a4795368040381de94159e27a96aec5dc766"
+        },
+        {
+          "path": "project/evidence/M4-013-16a95ea044f60aee.json",
+          "sha256": "7be63ed5d8601868453b203a170d3c30b6854f6aebbd4c956aebcea2292248d9"
+        },
+        {
+          "path": "project/evidence/M4-013-dc910e4a372c2417.json",
+          "sha256": "4706270150facc09e1aed95758fbc110d4486ca5580f234b16d9a0266bdeead6"
+        },
+        {
+          "path": "project/evidence/M4-013-fff8ba8082bbbd07.json",
+          "sha256": "a4dc589d6afc816a319f7a0f91924387420e22158a6767b53eb969e7b3ef8554"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261121T165105.115104Z-7e76ce8a",
+          "source_commit": "fc6e88a678e0f4d95fa8a3122016fba0ea2a6033",
+          "report_sha256": "070e3bd29b9acd75f83a711d73e7f1ac74836bbc261f9d14392cc4e18bf1dfa3"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Local fast and affected checks passed. Hosted M4-006 run 44973437972 and M4-013 run 44973438056 passed on Ubuntu and Windows at ad7037f03c10b683928b247a655be22cf0a46dfa. The synthetic browser suite verified a genuine pre-admission refusal followed by one accepted write and authoritative source restoration, cancellation before retry, competing revisions, unavailable readback, lost acknowledgement and overdue responses. The desktop IPC check also verified recovery while an original invoke remained outstanding. M4-001 resumes as planned with its original scope, checks, diagnostic and next action.",
+      "plan": {
+        "outcome": "One authorized click selects the intended published source under overlapping background status activity, with exactly one accepted mutation and an authoritative recovered revision.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/local-revision-dialog.tsx",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "apps/desktop/ui/src/published-revision-access.ts",
+          "apps/desktop/ui/src/workspace-source.ts",
+          "tests/ui/workspace-source.spec.mjs",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The retained Ubuntu M4-006 run observed the open dialog after the source click. The controlled Chromium reproduction on the same revision confirmed HTTP 429 BUSY before admission while a real periodic status read was held. The stored source and selection revision were unchanged.",
+          "An acknowledged source write returns an authoritative selection revision. A snapshot can verify that revision, show a superseding selection, or fail independently. With a missing write result, a matching source snapshot alone cannot attribute the write to the original intent.",
+          "Independent Chromium review of 69997fd held an accepted source response. More than 17 seconds after closing the dialog, the UI remained pending while the independent snapshot confirmed frozen selection revision 1. The existing admission budget limits retry starts. An already-issued transport promise also needs an explicit deadline."
+        ],
+        "risks": [
+          {
+            "failure": "A retry or late result writes twice, changes a stale workspace, or hides an actual denial.",
+            "checks": [
+              "ui-build",
+              "market-workflow",
+              "local-folder-import",
+              "model-connection-workflow",
+              "project-state"
+            ]
+          },
+          {
+            "failure": "An issued request stalls after admission and keeps the UI pending, or a late settlement replaces a recovered selection. Native invocation may continue after the UI deadline.",
+            "checks": [
+              "ui-build",
+              "model-connection-workflow",
+              "desktop-workspace-transport"
+            ]
+          }
+        ],
+        "rollback": "Revert the UI coordination and regression together if necessary. The profile schema and wire messages are retained. Keep the original failure report and synthetic regression evidence for diagnosis.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/local-revision-dialog.tsx",
+            "apps/desktop/ui/src/use-local-workspace.ts",
+            "apps/desktop/ui/src/published-revision-access.ts",
+            "apps/desktop/ui/src/workspace-source.ts"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "This is a foreground source-selection repair following the accepted M4-006 through M4-012 connection and recovery slices. M4-001 keeps its entire scope, acceptance, checks and diagnostic for remaining assisted actions, replay evaluations and private excerpt acceptance.",
+            "New provider calls, real credentials and completion of the wider assisted product and release milestones."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing authorization, selection revisions, request identities, error visibility and user-owned records."
+          ],
+          "change": [
+            "Coordinate the foreground and background entries. Keep the write result separate from readback recovery, and apply only an authoritative snapshot. Preserve the original expected revision for a known pre-admission retry. Surface a missing acknowledgement as uncertain even if the displayed source happens to match.",
+            "Bound each issued source request and readback with a transport-independent wait deadline. Ignore late results and offer read-only recovery when the current authoritative state cannot yet be read."
+          ],
+          "data_plan": "Use synthetic temporary profiles. Keep diagnostic outputs bounded to operation stages, statuses and selection revisions. Retain existing authorization and optimistic selection checks without introducing persisted request metadata.",
+          "cleanup": "Release the held reply and owned profile on every test outcome. Run the affected M4-006 selection and deterministic regression locally and on hosted Ubuntu and Windows. Retain the failure and recovery evidence."
         }
       }
     },

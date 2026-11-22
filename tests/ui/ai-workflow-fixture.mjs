@@ -1,6 +1,6 @@
 import { execFile, spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { once } from 'node:events';
+import { on, once } from 'node:events';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
@@ -14,13 +14,16 @@ const exec = promisify(execFile);
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const ui = join(root, 'apps/desktop/ui');
 const vite = pathToFileURL(join(ui, 'node_modules/vite/dist/node/index.js')).href;
+const writerGate = new URL('./workspace-writer-gate.mjs', import.meta.url).href;
 const workspaceBridge = join(root, 'target', 'debug', process.platform === 'win32' ? 'workspace_bridge.exe' : 'workspace_bridge');
 const service = `
+  if (process.argv[2]) (await import(process.argv[2])).installPublishedRevisionGate();
   const { createServer } = await import(process.argv[1]);
   const server = await createServer({ mode: 'ubuntu-workspace',
     server: { host: '127.0.0.1', port: 0, strictPort: true, watch: null, hmr: false, ws: false },
   });
-  process.once('message', async () => {
+  process.on('message', async message => {
+    if (message !== 'close') return;
     await server.close();
     process.disconnect();
   });
@@ -107,8 +110,8 @@ export function persistedRows(profile) {
   }
 }
 
-export async function withWorkspace(browser, profile, use, protectedValues = []) {
-  const child = spawn(process.execPath, ['--input-type=module', '--eval', service, vite], {
+export async function withWorkspace(browser, profile, use, protectedValues = [], gateStatus = false) {
+  const child = spawn(process.execPath, ['--input-type=module', '--eval', service, vite, ...(gateStatus ? [writerGate] : [])], {
     cwd: ui,
     env: {
       ...process.env,
@@ -170,7 +173,19 @@ export async function withWorkspace(browser, profile, use, protectedValues = [])
         const response = await post(credentialEndpoint, frame, authorized);
         return { status: response.status, cacheControl: response.headers.get('cache-control'), body: await response.json() };
       };
-      await use(page, dispatch, dispatchCredential);
+      const holdRevisionRead = async () => {
+        const waitFor = async message => {
+          for await (const [value] of on(child, 'message', { signal: AbortSignal.timeout(8_000) })) {
+            if (value === message) return;
+          }
+        };
+        const armed = waitFor('published-revision-gate-armed');
+        const held = waitFor('published-revision-reply-held');
+        child.send('arm-published-revision-gate');
+        await Promise.all([armed, held]);
+        return () => child.send('release-published-revision-gate');
+      };
+      await use(page, dispatch, dispatchCredential, gateStatus ? holdRevisionRead : undefined);
       assertNoBrowserSends();
       expect(output.includes(capability), 'The preview never logs the workspace capability').toBe(false);
     } finally {
