@@ -85,10 +85,21 @@ const sourceReplyDeadlineMs = 15_000;
 function takeLaunchCapability() {
   const { hash, pathname, search } = window.location;
   if (!hash.startsWith('#workspace=')) return undefined;
+  const capability = /^#workspace=([a-f0-9]{64})$/.exec(hash)?.[1];
   // A fragment is local to the browser. Remove it before starting the UI and
   // keep the grant in memory for this page only.
   window.history.replaceState(window.history.state, '', pathname + search);
-  return /^#workspace=([a-f0-9]{64})$/.exec(hash)?.[1];
+  if (capability) {
+    // A reload after this point would open a workspace without the grant.
+    const reload = document.querySelector<HTMLButtonElement>('#startup-reload');
+    const hint = document.getElementById('startup-hint');
+    if (reload) {
+      reload.disabled = true;
+      reload.hidden = true;
+    }
+    if (hint) hint.textContent = 'Reopen the private workspace access document to try again.';
+  }
+  return capability;
 }
 
 function errorCode(error: unknown) {

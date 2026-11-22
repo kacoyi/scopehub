@@ -13,6 +13,7 @@ import { expect, test } from '@playwright/test';
 import { control, leaveSample } from '../ui/workspace-controls.mjs';
 import { painted } from '../ui/chart-pixels.mjs';
 import { startLocalImportBridge } from '../ui/local-import-bridge.mjs';
+import { openWorkspacePreview } from '../ui/preview-startup.mjs';
 import { busy, future, observeSampleRequests, sampleCatalogCall, sampleHistoryCall } from '../ui/sample-startup.mjs';
 import { observeSelectedHistory, operationPath, readMarketAttemptStages, traceHeader, waitForSelectedHistoryTerminal } from '../ui/selected-history.mjs';
 import { assertUnsuitableWindowsHandoffsRejected, assertWindowsPrivateHandoff } from './workspace_test_handoff_acl.mjs';
@@ -3110,9 +3111,11 @@ test('a failed initial document releases its workspace snapshot observer before 
       navigations += 1;
       return route.abort('failed');
     });
-    const events = ['response', 'close', 'crash'];
+    const events = ['request', 'response', 'requestfinished', 'requestfailed', 'pageerror', 'close', 'crash'];
     const before = events.map(event => page.listenerCount(event));
-    await expect(openWorkspaceSnapshot(page, url)).rejects.toThrow(/page\.goto: net::ERR_FAILED/);
+    await expect(openWorkspaceSnapshot(page, url)).rejects.toThrow(
+      /document navigation\. document failed \(net::ERR_FAILED\)\. Document net::ERR_FAILED, entry not requested/,
+    );
     expect(events.map(event => page.listenerCount(event))).toEqual(before);
     expect(navigations).toBe(1);
   } finally {
@@ -3120,12 +3123,239 @@ test('a failed initial document releases its workspace snapshot observer before 
   }
 });
 
+test('workspace startup entry can finish after the default control assertion window', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      const context = await newWorkspaceContext(browser, server);
+      try {
+        const page = await context.newPage();
+        const requests = observeOperations(page);
+        const entry = server.url + '/src/main.tsx';
+        let entryRequests = 0;
+        let navigations = 0;
+        page.on('request', request => { if (request.isNavigationRequest()) navigations += 1; });
+        await page.route(entry, async route => {
+          entryRequests += 1;
+          const transformed = await route.fetch();
+          expect(transformed.status()).toBe(200);
+          // Chromium can finish the document before an asynchronous module evaluates.
+          // Hold execution across the old five-second assertion, then run Vite's real entry.
+          const gate = `await new Promise(resolve => {
+            const release = () => window.setTimeout(resolve, 5500);
+            if (document.readyState === 'complete') release();
+            else window.addEventListener('load', release, { once: true });
+          });\n`;
+          await route.fulfill({ contentType: 'text/javascript', body: gate + await transformed.text() });
+        });
+        const observeStaticStartup = async () => {
+          await page.waitForEvent('load');
+          const startup = page.getByRole('main', { name: 'Workspace startup' });
+          await expect(startup).toBeVisible();
+          await expect(control(page, 'Open offline sample')).toHaveCount(0);
+          expect(requests).toEqual([]);
+          await testInfo.attach('static-startup-before-entry', { body: await page.screenshot(), contentType: 'image/png' });
+        };
+        const [, initial] = await Promise.all([observeStaticStartup(), openWorkspaceSnapshot(page, server.url)]);
+        expect(state(initial)).toEqual({ revision: 0, timeframe: '1m', undo: null });
+        expect(requests).toEqual([endpoint]);
+        expect(entryRequests).toBe(1);
+        expect(navigations).toBe(1);
+        await expect(page.getByRole('main', { name: 'Workspace startup' })).toHaveCount(0);
+      } finally { await context.close(); }
+    });
+  } finally { await profile.close(); }
+});
+
+test('workspace startup entry HTTP failure identifies the resource without retrying', async ({ browser }) => {
+  const profile = await makeProfile();
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      const context = await newWorkspaceContext(browser, server);
+      try {
+        const page = await context.newPage();
+        const requests = observeOperations(page);
+        let entryRequests = 0;
+        let navigations = 0;
+        let capabilityInRequestUrl = false;
+        page.on('request', request => {
+          if (request.isNavigationRequest()) navigations += 1;
+          capabilityInRequestUrl ||= request.url().includes(server.capability);
+        });
+        await page.route(server.url + '/src/main.tsx', route => {
+          entryRequests += 1;
+          return route.fulfill({ status: 503, contentType: 'text/javascript', body: '' });
+        });
+        await expect(openWorkspaceSnapshot(page, server.url)).rejects.toThrow(
+          /application mount\. \/src\/main\.tsx returned HTTP 503/,
+        );
+        const startup = page.getByRole('main', { name: 'Workspace startup' });
+        await expect(startup.getByRole('button', { name: 'Reload window' })).toBeEnabled();
+        await expect(control(page, 'Open offline sample')).toHaveCount(0);
+        expect(requests).toEqual([]);
+        expect(entryRequests).toBe(1);
+        expect(navigations).toBe(1);
+        expect(capabilityInRequestUrl).toBe(false);
+        expect(state(await (await post(server, snapshot)).json())).toEqual({ revision: 0, timeframe: '1m', undo: null });
+      } finally { await context.close(); }
+    });
+  } finally { await profile.close(); }
+});
+
+for (const [name, isPrivate, consumed] of [
+  ['public window', false, false],
+  ['private launcher before capability consumption', true, false],
+  ['private launcher after capability consumption', true, true],
+]) {
+  test(`workspace startup recovery for a ${name}`, async ({ browser }) => {
+    const profile = await makeProfile();
+    try {
+      await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+        const context = await browser.newContext();
+        try {
+          const page = await context.newPage();
+          const requests = observeOperations(page);
+          const entry = server.url + '/src/main.tsx';
+          const message = 'Synthetic exception after the entry imports';
+          let navigations = 0;
+          let exposed = false;
+          page.on('request', request => {
+            const url = request.url();
+            if (request.isNavigationRequest() && new URL(url).origin === server.url) navigations += 1;
+            exposed ||= url.includes(server.capability);
+          });
+          const breakEntry = async route => {
+            if (!consumed) return route.fulfill({ status: 503, contentType: 'text/javascript', body: '' });
+            // Static imports still evaluate before this exception, consuming the true launch fragment.
+            const transformed = await route.fetch();
+            expect(transformed.status()).toBe(200);
+            return route.fulfill({ contentType: 'text/javascript', body: `throw new Error(${JSON.stringify(message)});\n` + await transformed.text() });
+          };
+          const launch = async () => {
+            await page.goto(pathToFileURL(server.handoff).href);
+            // Keep the fragment out of Playwright navigation arguments and assertion diffs.
+            await page.getByRole('link', { name: 'Open ScopeHub workspace' }).evaluate(link => link.click());
+          };
+          await page.route(entry, breakEntry);
+          const failed = consumed
+            ? page.waitForEvent('pageerror', error => error.message === message)
+            : page.waitForResponse(response => response.url() === entry && response.status() === 503);
+          await Promise.all([failed, isPrivate ? launch() : page.goto(server.url)]);
+          const startup = page.getByRole('main', { name: 'Workspace startup' });
+          await expect(startup).toBeVisible();
+          expect(await page.evaluate(() => Boolean(window.location.hash))).toBe(isPrivate && !consumed);
+          expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
+          expect(requests).toEqual([]);
+          expect(navigations).toBe(1);
+
+          const reload = startup.locator('#startup-reload');
+          if (consumed) {
+            await expect(reload).toBeHidden();
+            await expect(reload).toBeDisabled();
+            await expect(startup).toContainText('Reopen the private workspace access document to try again.');
+          } else {
+            await expect(reload).toBeVisible();
+            await expect(reload).toBeEnabled();
+          }
+          await page.unroute(entry, breakEntry);
+          const recover = consumed ? launch : () => reload.evaluate(button => button.click());
+          if (isPrivate) {
+            const [first] = await Promise.all([page.waitForResponse(response =>
+              new URL(response.url()).pathname === endpoint && response.request().postDataJSON()?.type === 'snapshot'), recover()]);
+            expect(state(await first.json())).toEqual({ revision: 0, timeframe: '1m', undo: null });
+            await expect(control(page, 'Private records')).toBeEnabled();
+          } else {
+            await recover();
+            await expect(control(page, 'Open offline sample')).toBeVisible({ timeout: 10_000 });
+            await expect(control(page, 'Private records')).toHaveCount(0);
+          }
+          expect(await page.evaluate(() => window.location.hash === '')).toBe(true);
+          expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
+          expect(requests).toEqual(isPrivate ? [endpoint] : []);
+          expect(navigations).toBe(2);
+          expect(exposed).toBe(false);
+          await expect(startup).toHaveCount(0);
+          if (consumed) {
+            // A normally mounted workspace keeps its grant only for this page.
+            await page.reload();
+            await expect(control(page, 'Open offline sample')).toBeVisible({ timeout: 10_000 });
+            await expect(control(page, 'Private records')).toHaveCount(0);
+            expect(requests).toEqual([endpoint]);
+            expect(navigations).toBe(3);
+            expect(exposed).toBe(false);
+            expect(await page.evaluate(() => window.location.hash === '' && localStorage.length === 0
+              && sessionStorage.length === 0)).toBe(true);
+          }
+        } finally { await context.close(); }
+      });
+    } finally { await profile.close(); }
+  });
+}
+
 test('a status-only probe cancels its unread response body', async () => {
   let cancelled = false;
   const body = new ReadableStream({ cancel() { cancelled = true; } });
   expect(await responseStatus(new Response(body, { status: 429 }))).toBe(429);
   expect(cancelled).toBe(true);
 });
+
+for (const [name, reason] of [
+  ['a rejected reply', /workspace snapshot\. Snapshot returned HTTP 503\. Snapshot HTTP 503/],
+  ['an invalid reply', /workspace snapshot\. Application rejected the initial snapshot\. Snapshot HTTP 200/],
+  ['a stalled reply', /workspace snapshot\. Snapshot exceeded 1500 ms\. Snapshot no response/],
+  ['a browser exception', /workspace snapshot\. Uncaught browser TypeError before the workspace was ready\. Snapshot no response\.$/],
+]) {
+  test(`workspace startup reports ${name} during the first snapshot after application mount`, async ({ browser }) => {
+    const profile = await makeProfile();
+    try {
+      await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+        const context = await newWorkspaceContext(browser, server);
+        const release = Promise.withResolvers();
+        try {
+          const page = await context.newPage();
+          const requests = observeOperations(page);
+          await page.route(server.url + endpoint, async route => {
+            if (name === 'a rejected reply') {
+              await route.fulfill({ status: 503, json: { ok: false, error: { code: 'WORKER_EXITED' } } });
+            } else if (name === 'an invalid reply') {
+              await route.fulfill({ json: {
+                ok: true, result: { workspace: { id: workspaceId, revision: -1, timeframe: '1m' }, selection_revision: 0, undo: null },
+              } });
+            } else {
+              await release.promise;
+              await route.abort();
+            }
+          });
+          const events = ['request', 'response', 'requestfailed', 'pageerror', 'close', 'crash'];
+          const before = events.map(event => page.listenerCount(event));
+          try {
+            const injectException = async () => {
+              await page.waitForRequest(server.url + endpoint);
+              await control(page, 'Data sources').evaluate(() => {
+                setTimeout(() => { throw new TypeError('Synthetic startup-only detail'); }, 0);
+              });
+            };
+            const injection = name === 'a browser exception' ? injectException() : undefined;
+            const failed = expect(openWorkspacePreview(page, server.url, endpoint, { snapshotTimeout: 1500 })).rejects.toThrow(reason);
+            await Promise.all([failed, injection]);
+            expect(events.map(event => page.listenerCount(event))).toEqual(before);
+            await expect(control(page, 'Data sources')).toBeVisible();
+            await expect(control(page, 'Private records')).toBeDisabled();
+            expect(requests).toEqual([endpoint]);
+            expect(await page.evaluate(() => window.location.hash === '')).toBe(true);
+          } finally {
+            release.resolve();
+            await page.unrouteAll({ behavior: 'wait' });
+          }
+        } finally {
+          await context.close();
+        }
+      });
+    } finally {
+      await profile.close();
+    }
+  });
+}
 
 async function freePort(requestedPort = 0) {
   const server = createServer();
@@ -3360,7 +3590,7 @@ async function assertSampleStorage(page, timeframe) {
   expect(stored).toEqual({ onlySamplePreference: true, emptySessionStorage: true, matchesSample: true });
 }
 
-async function inFreshBrowser(browser, server, use, permittedOperations = [endpoint], { restoredSample, traceSample = false } = {}) {
+async function newWorkspaceContext(browser, server) {
   const context = await browser.newContext();
   try {
     // Read the real launcher handoff but set its fragment locally before page
@@ -3368,6 +3598,16 @@ async function inFreshBrowser(browser, server, use, permittedOperations = [endpo
     await context.addInitScript(capability => {
       window.history.replaceState(null, '', '#workspace=' + capability);
     }, server.capability);
+    return context;
+  } catch (error) {
+    await context.close();
+    throw error;
+  }
+}
+
+async function inFreshBrowser(browser, server, use, permittedOperations = [endpoint], { restoredSample, traceSample = false } = {}) {
+  const context = await newWorkspaceContext(browser, server);
+  try {
     const page = await context.newPage();
     if (traceSample) await observeSelectedHistory(page, { includeCatalog: true });
     const requests = observeOperations(page);
@@ -3386,19 +3626,16 @@ async function inFreshBrowser(browser, server, use, permittedOperations = [endpo
 }
 
 async function openWorkspaceSnapshot(page, url, restoredSample = false) {
-  const response = await duringPageEvent(page, 'response', response =>
-    new URL(response.url()).pathname === endpoint && response.request().postDataJSON()?.type === 'snapshot', async () => {
-    await page.goto(url);
-    if (restoredSample) {
-      await expect(page.getByText('Offline sample', { exact: true })).toBeVisible();
-    } else {
-      await expect(control(page, 'Open offline sample')).toBeVisible();
-      await expect(page.getByText('No data source')).toBeVisible();
-      expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
-    }
-    expect(await page.evaluate(() => window.location.hash === '')).toBe(true);
-  });
-  return response.json();
+  const frame = await openWorkspacePreview(page, url, endpoint);
+  if (restoredSample) {
+    await expect(page.getByText('Offline sample', { exact: true })).toBeVisible();
+  } else {
+    await expect(control(page, 'Open offline sample')).toBeVisible();
+    await expect(page.getByText('No data source')).toBeVisible();
+    expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
+  }
+  expect(await page.evaluate(() => window.location.hash === '')).toBe(true);
+  return frame;
 }
 
 function duringResponse(page, operation, action, timeout) {

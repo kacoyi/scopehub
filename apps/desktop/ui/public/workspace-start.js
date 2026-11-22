@@ -5,9 +5,13 @@
 
   const title = document.getElementById('startup-title');
   const hint = document.getElementById('startup-hint');
-  hint.textContent = 'If the workspace stays here, reload this window.';
-  reload.addEventListener('click', () => window.location.reload(), { once: true });
-  reload.hidden = false;
+  if (!reload.disabled) {
+    hint.textContent = 'If the workspace stays here, reload this window.';
+    reload.addEventListener('click', () => {
+      if (!reload.disabled) window.location.reload();
+    }, { once: true });
+    reload.hidden = false;
+  }
 
   window.setTimeout(() => {
     if (title.isConnected) title.textContent = 'The workspace hasn’t opened yet';
