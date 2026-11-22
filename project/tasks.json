@@ -14265,6 +14265,126 @@
           "cleanup": "Remove obsolete ownership inferences and any temporary measurement after confirming the correction."
         }
       }
+    },
+    {
+      "id": "M0-071",
+      "title": "Recover native Windows desktop ACL preparation under verification load",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-036"
+      ],
+      "scope": [
+        "apps/desktop/src-tauri/src/bridge_tests.rs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0007"
+      ],
+      "acceptance": [
+        "Distinguish explicit fixture preparation timeouts from application-path preparation during SAVE_LOCAL_IMPORT_MAPPING. Compare the original with prior runs and measure native concurrency and helper behavior.",
+        "Demonstrate a bounded correction on native Windows with the desktop cases and full protected verification. Preserve ACL checks, fail-closed behavior, profile isolation, deadlines, cleanup and concurrent desktop operations."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "rust-format",
+        "rust-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-071-583fa3f43c8b5f41.json",
+          "sha256": "6063cd869619e41383aa96594c6baae42cd77d5447a073854d3f2ae2a1ea21cd"
+        },
+        {
+          "path": "project/evidence/M0-071-5f3665cf4fa717bb.json",
+          "sha256": "96da51b023a0df1e4cd6071054f3f3821d75bbe42344b6908bceb987e5265d74"
+        },
+        {
+          "path": "project/evidence/M0-071-644377af0f478682.json",
+          "sha256": "63f0b3f199aaad8e0287a5f263e3b114fbe0bad2686b74df3d2e20febb94e9eb"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Native diagnostic 45052208778 reproduced both fixture startup failures under a controlled delay. Removing redundant outer preparation reduced explicit helper starts from seven to two across the original journeys. All 54 original application helper calls remained. The added mapping-save case verified fail-closed timeout, child cleanup and recovery on a new request. The uninstrumented candidate passed the protected Ubuntu and Windows checks.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T165618.491721Z-d3e98934",
+          "source_commit": "cdf27d7722530bc9d5a5753a3898b67644a1887a",
+          "report_sha256": "ba4b14a2ed8d5268091b0978f85187c0f277d755f2e593b9c2b429b8e5aaf867"
+        }
+      ],
+      "plan": {
+        "outcome": "Native desktop verification exercises real Windows ACL preparation and operation paths without losing their bounds or test concurrency.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "apps/desktop/src-tauri/src/bridge_tests.rs",
+          "crates/persistence/src/storage.rs",
+          "crates/persistence/src/storage_acl.ps1",
+          "scripts/check.py",
+          "scripts/rust_workspace.py"
+        ],
+        "hypotheses": [
+          "The existing explicit fixture slot still permits overlap with application ACL helpers. The native verification scheduler also overlaps Python and Rust. Measure both and distinguish runner variability from a path-specific defect."
+        ],
+        "risks": [
+          {
+            "failure": "A timeout is incorrectly attributed to the ACL policy or to concurrent Python solely because their timestamps overlap.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "rust-format",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A scheduling or fixture change suppresses meaningful concurrency, skips ACL enforcement, or loses cleanup on failure.",
+            "checks": [
+              "rust-contracts-workers",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain failed native diagnostics and baseline measurements. Revert the reviewed correction if real ACL or verification behavior regresses.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "persistence"
+          ],
+          "entrypoints": [
+            "apps/desktop/src-tauri/src/bridge_tests.rs",
+            "apps/desktop/src-tauri/src/workspace.rs",
+            "crates/persistence/src/storage.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing ACL rules, bypassing profile checks, blanket serialization, changing the Python timeout in PR 46 or starting another queued product task."
+          ],
+          "open_questions": [
+            "Where does native helper wall time accumulate, and which verification activities contribute?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Fail-closed ACL checks, profile isolation, bounded helper termination and concurrent bridge behavior."
+          ],
+          "change": [
+            "Reserve an empty outer test directory atomically and let the ordinary workspace operation provision its private subtree. Exercise a refused mapping save and a new request on the same bridge."
+          ],
+          "data_plan": "Use synthetic test profiles and aggregate measurements. Preserve original reports and bound logs.",
+          "cleanup": "Remove diagnostic-only instrumentation from the protected delivery unless narrowly justified for regression observability."
+        }
+      }
     }
   ]
 }
