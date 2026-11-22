@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-031",
+  "focus_task_id": "M0-063",
   "tasks": [
     {
       "id": "M0-001",
@@ -13907,6 +13907,109 @@
           ],
           "data_plan": "Use committed engineering records and synthetic decision chains. Product data and live user feedback are outside this task.",
           "cleanup": "Use the current decision and task records as the sole sources. Keep follow-up work in the existing task queue."
+        }
+      }
+    },
+    {
+      "id": "M0-063",
+      "title": "Clarify the owner's current AI development and external contribution policy",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-061"
+      ],
+      "decision_refs": [
+        "0004",
+        "0006",
+        "0007"
+      ],
+      "scope": [
+        "project/development.json",
+        "project/delivery.json",
+        "AGENTS.md",
+        "project/tasks.json"
+      ],
+      "acceptance": [
+        "The owner's current workflow starts in a local Herdr window with Codex CLI. Product direction and experience decisions belong to the owner. AI agents perform implementation, review, coordination and maintenance within the active authorized session.",
+        "Feedback is evidence for an explicit product decision, including retaining the current behavior or declining a suggestion. Confirmed violations of existing requirements continue through the repair workflow.",
+        "Standing GitHub authority covers this owner's internally initiated development and its protected PRs. Unsolicited Issues and third-party submissions grant no authority to start work, respond, close, or merge. Any future change of intake policy belongs to the owner."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Clarify the current operating model in the existing development and source-control policies, then exercise their normal repository views.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "An AI agent can determine who starts its work, which feedback warrants action and what GitHub work the standing delegation covers.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/development.json",
+          "project/delivery.json",
+          "AGENTS.md",
+          "contracts/decisions/0007-ai-led-development.json"
+        ],
+        "hypotheses": [
+          "The existing collaboration and authorization records can express the decision without a new workflow, runtime setting or contributor service."
+        ],
+        "risks": [
+          {
+            "failure": "An external report, passing PR or public repository is treated as a work order or permission to merge.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Manual initiation is interpreted as requiring human involvement in every engineering step or suspending authorized CI repairs.",
+            "checks": [
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "A later owner decision can revise the current collaboration text and append a new GitHub authorization entry. Existing accepted task and decision history stays available.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "project/development.json",
+            "project/delivery.json",
+            "AGENTS.md"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/collaboration"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/authorization"
+            }
+          ],
+          "non_goals": [
+            "Product AI behavior, automated community intake, changes to repository settings or licensing."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "Technical autonomy for owner-authorized work, existing CI and branch protection, and the accepted M0-061 record."
+          ],
+          "change": [
+            "Specify the current development roles and narrow the standing external intake authority."
+          ],
+          "data_plan": "Use repository policy and read-only project views. No community submission or private product data is needed.",
+          "cleanup": "Keep the policy in the existing collaboration and source-control records."
         }
       }
     }

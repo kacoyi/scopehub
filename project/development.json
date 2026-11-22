@@ -2,19 +2,19 @@
   "schema_version": "1.0",
   "collaboration": {
     "owner": [
-      "Co-create ScopeHub with the development AI, contribute requirements or implementation when desired, make product and experience tradeoffs and evaluate demonstrated outcomes. The owner can also use the product."
+      "The owner starts development by opening Codex CLI in a local Herdr window, sets product needs and priorities, decides product experience tradeoffs and evaluates demonstrated results. The owner decides matters reserved for their authorization. The owner can also use ScopeHub as a product user."
     ],
     "development_ai": [
-      "Own requirement synthesis, technical planning, implementation, code quality, verification, maintenance and an evidence-backed handoff.",
+      "In this owner's current workflow, AI agents fill every engineering role, including requirement synthesis, technical planning, implementation, independent review, coordination, verification, maintenance and handoff of verified results.",
       "Choose algorithms, libraries, internal boundaries and technical architecture autonomously within authorized product, resource and safety constraints; record consequential decisions and inspect existing code.",
       "Convert nearby requirements into observable slices; investigate consequential uncertainty early and keep independent work moving while questions are pending.",
-      "Own the work through implementation, debugging, review, verification and the next ready product slice while capacity is available. Choose windows, agents, work partition and model roles proactively. At a genuine dependency or acceptance boundary, explain the exact input or action the owner can supply."
+      "Once the owner starts the session, AI agents can delegate and continue authorized work, including the next ready slice. Choose windows, work assignments and model roles as needed. Incoming GitHub events do not start a development session. Bring concrete missing inputs or reserved product decisions to the owner."
     ],
     "ask_owner_when": [
       "User-visible behavior, product scope or a meaningful experience tradeoff is unresolved and cannot be inferred from accepted requirements.",
       "A change affects user-data retention or irreversible handling, external transmission, costs, runtime authority or an existing explicit permission boundary.",
       "Publication, merge, release or shared-resource use needs authorization not already granted; preserve existing applicable authorization.",
-      "Apply the current task-branch and hosted verification authority in contracts/reviews/2026-11-18-hosted-ux.json. Record the owner's subjective product feedback when they actually exercise the program."
+      "Apply the current source-control authorization in project/delivery.json#/source_control/authorization. Record the owner's subjective product feedback when they actually exercise the program."
     ],
     "question_protocol": [
       "Ask concrete questions about observable behavior and consequences; include a recommended option and the impact of alternatives when useful.",
@@ -64,7 +64,8 @@
     ],
     "feedback_loop": [
       "Read status and focused context; inspect implementation; define one observable result and expose the highest-impact uncertainty.",
-      "When a product user reports a difficulty, distinguish what they observed and wanted to accomplish from any solution they suggest. Summarize consequential feedback in the existing task or feedback record and use synthetic data for a reproduction. Check a proposed change against the original user outcome. Record the reason for keeping or changing the design, or what evidence would reopen a deferred decision.",
+      "Treat feedback as evidence for a decision. Separate the observed difficulty and intended outcome from the suggested solution. Experiment when useful, using synthetic data to reproduce the observation and checking proposed changes against the intended outcome. Weigh the evidence and the product priorities. Adopt a change within authorized scope, keep the present design, decline the suggestion or defer the decision. Record consequential findings and the reason for the decision or what would reopen it in the existing task or feedback record.",
+      "When verification confirms a violation of an existing requirement, follow the applicable engineering repair policy in project/delivery.json.",
       "Implement, run fast and affected checks, inspect behavior, correct consequential failures and archive matching evidence.",
       "Separate engineering verification, ready-for-owner-review, observed owner acceptance, integration and release. Report each honestly.",
       "Keep focus, next action and meaningful feedback current. Turn recurring failures into proportionate regressions; remove obsolete rules through reviewed decisions."
