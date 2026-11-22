@@ -52,7 +52,9 @@ def run_logged(argv, *, cwd, env, log_path, timeout, cancel=None):
                 else:
                     from windows_job import WindowsJob
                 job = WindowsJob()
-            command = [sys.executable, '-I', '-S', '-c', WINDOWS_LAUNCHER, *argv] if job else argv
+            # The Windows venv redirector can spawn an interpreter before job
+            # assignment. Run the stdlib-only gate in the base interpreter.
+            command = [sys._base_executable, '-I', '-S', '-c', WINDOWS_LAUNCHER, *argv] if job else argv
             process = subprocess.Popen(command, cwd=cwd, env=env,
                                        stdin=subprocess.PIPE if job else subprocess.DEVNULL,
                                        stdout=output, stderr=subprocess.STDOUT, **options)

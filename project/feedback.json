@@ -3104,6 +3104,29 @@
         "prevention": "The fresh-profile scenario requires a directly supplied directory and a controlled third-party API with no first-party service. The requirements bindings were checked under M0-051. Its product gates await implementation."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-timeout-fixture-log-sharing",
+      "source": "Authenticated main verification run 44993393461 at 32bb9671e78e2e0114ade28381d93c7e23f1a1cd. Original report and logs retained as archives/runs/20261122T062415.160535Z-d15c8a2c/test-report.json.",
+      "severity": "major",
+      "status": "open",
+      "observation": "On Windows, test_timeout_preserves_partial_diagnostics read the partial output and reported the timeout, then temporary directory cleanup failed twice with WinError 32 when removing fixture.log. The traceback does not identify who held the file.",
+      "task_ids": [
+        "M0-053"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T062415.160535Z-d15c8a2c",
+          "source_commit": "32bb9671e78e2e0114ade28381d93c7e23f1a1cd",
+          "report_sha256": "c5d0788d0538e82223ed65076844e08e9589a8e63c7fb6da2d51599eb6d92ffe"
+        }
+      ]
     }
   ]
 }

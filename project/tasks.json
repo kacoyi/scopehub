@@ -13062,6 +13062,120 @@
       "next_action": "Enable the Tauri development entry and required platform dependencies on Ubuntu. Prove the first synthetic chart and native picker in the actual window, then bind retained observations to that host.",
       "blocker": null,
       "closure_reason": null
+    },
+    {
+      "id": "M0-053",
+      "title": "Diagnose the Windows timeout test log sharing failure",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-010"
+      ],
+      "scope": [
+        "scripts/processes.py",
+        "scripts/process_tree.py",
+        "scripts/windows_job.py",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0003",
+        "0004",
+        "0005",
+        "0006"
+      ],
+      "acceptance": [
+        "Retain the failed main Windows diagnostic and distinguish a verification-process handle leak from delayed or external file release.",
+        "Verify bounded process cleanup and intact partial diagnostics on Windows. Resolve the observed sharing failure without suppressing errors."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T062415.160535Z-d15c8a2c",
+          "source_commit": "32bb9671e78e2e0114ade28381d93c7e23f1a1cd",
+          "report_sha256": "c5d0788d0538e82223ed65076844e08e9589a8e63c7fb6da2d51599eb6d92ffe"
+        }
+      ],
+      "plan": {
+        "outcome": "A native Windows timeout leaves readable partial output, stops owned writers within the cleanup bound and allows the fixture to be removed. Retained evidence records what the original failure and the focused experiment each establish.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/processes.py",
+          "scripts/process_tree.py",
+          "scripts/windows_job.py",
+          "tests/project/test_processes.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "A Windows virtual environment redirector may start the real launcher before the redirector is assigned to the job, leaving that launcher outside the job.",
+          "Job accounting may reach zero before a descendant's process object signals and its inherited output handle closes.",
+          "A separate file opener could allow the successful report reads while preventing deletion. The original traceback does not identify the holder."
+        ],
+        "risks": [
+          {
+            "failure": "A cleanup change hides persistent file contention or returns while a descendant can still write after the report digest is recorded.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The repair replaces the separate contract branch's product focus or loses the failing diagnostic.",
+            "checks": [
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Retain the failed run and synthetic observations. Revert only this repair on its independent branch or through a reviewed integration correction.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check.py",
+            "scripts/processes.py",
+            "scripts/process_tree.py",
+            "scripts/windows_job.py",
+            "tests/project/test_processes.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control"
+            }
+          ],
+          "non_goals": [
+            "Product behavior, provider calls, private records, release and changes to the contract pull request."
+          ],
+          "open_questions": [
+            "Does the native timeout return before an observed owned writer exits, and does a deletion probe still fail after those writers have exited?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing output and digest semantics, timeout and cancellation diagnostics, bounded shutdown and visible cleanup errors."
+          ],
+          "change": [
+            "Instrument the Windows process and file lifetime in a focused synthetic fixture and repair the behavior established by the observation."
+          ],
+          "data_plan": "Use synthetic files and retain the original authenticated failure report and logs by digest. No application storage changes.",
+          "cleanup": "Join any test-owned processes and close observation handles. Keep final deletion strict and retain failed observations before switching approaches."
+        }
+      },
+      "next_action": "Review the retained WinError 32 and Windows job lifecycle, add a bounded diagnostic and obtain targeted native evidence.",
+      "blocker": null,
+      "closure_reason": null
     }
   ]
 }
