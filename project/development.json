@@ -50,11 +50,12 @@
     ],
     "evolution": [
       "For a refactor, replacement, migration or requirement reset, identify preserved and intentionally changed behavior, affected callers, data handling and cleanup before activation.",
-      "Refactor small changes directly. For a replacement that cannot safely ship in one step, use the existing task dependencies to separate independently testable stages. Record the next working state, affected callers, exit check and recovery point in each stage's acceptance and plan.",
+      "Make a small reversible change in its owning module and exercise the affected behavior in the current task. For a consequential rewrite, compare adapting the current implementation with replacing it or retiring it if the agreed workflow no longer needs it. Include the work for callers, verification, data conversion, coexistence and retirement. Use a representative example to resolve an assumption that could change the choice.",
+      "A direct replacement can retire the old path in the same change when all supported callers can move together and affected state is absent, disposable synthetic data or demonstrably compatible. Check for saved user work even before launch. When a change needs stages, use existing task dependencies and record a working state, affected callers, an exit check and a recovery point for each stage.",
       "Before switching a caller, capture its required behavior at the public entry, including failure cases and old inputs. Compare both implementations on representative read-only fixtures when useful. Keep one authoritative writer while moving mutations and exercise recovery on a copy of existing data.",
       "Move callers in bounded groups and verify each through its normal entry. Keep the previous path only while recovery or a supported consumer needs it. Assign remaining cutover or removal work to a successor task with a concrete trigger. After the last caller and supported data version move, remove the obsolete path, transition switch and redundant checks while retaining coverage of current commitments.",
       "Version persistent formats and test migrations against representative old data before use. Retain failed evidence and verify backup/restore or forward repair; an application rollback does not prove data downgrade safety.",
-      "Requirement changes supersede current decisions and create successor tasks; never rewrite completed task definitions or accepted ADR rationale."
+      "When the agreed outcome changes, update the working requirement, its behavior checks and any unfinished plan. For previously completed work, link a successor task. For a consequential change to an accepted decision, record a superseding ADR so the original rationale remains available."
     ],
     "review": [
       "Before completion inspect responsibility cohesion, dependency direction, public surface, business/data ownership, failure cleanup, protected behavior and transition removal.",
@@ -63,6 +64,7 @@
     ],
     "feedback_loop": [
       "Read status and focused context; inspect implementation; define one observable result and expose the highest-impact uncertainty.",
+      "When a product user reports a difficulty, distinguish what they observed and wanted to accomplish from any solution they suggest. Summarize consequential feedback in the existing task or feedback record and use synthetic data for a reproduction. Check a proposed change against the original user outcome. Record the reason for keeping or changing the design, or what evidence would reopen a deferred decision.",
       "Implement, run fast and affected checks, inspect behavior, correct consequential failures and archive matching evidence.",
       "Separate engineering verification, ready-for-owner-review, observed owner acceptance, integration and release. Report each honestly.",
       "Keep focus, next action and meaningful feedback current. Turn recurring failures into proportionate regressions; remove obsolete rules through reviewed decisions."
@@ -660,7 +662,8 @@
   ],
   "improvement_metrics": [
     "Measure context characters and relevant source lookups for representative tasks before and after changes.",
-    "Track consequential clarification, rework and escaped-defect observations; do not infer accuracy gains from smaller prompts alone."
+    "Track consequential clarification, rework and escaped-defect observations; do not infer accuracy gains from smaller prompts alone.",
+    "If similar changes repeatedly touch unrelated callers or require users to fix saved work by hand, record one concrete example in the existing task or feedback. After changing the boundary, use the next comparable change to see whether the extra caller edits or user steps were eliminated."
   ],
   "data_ownership": [
     {

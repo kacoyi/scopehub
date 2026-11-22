@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-031",
+  "focus_task_id": "M0-061",
   "tasks": [
     {
       "id": "M0-001",
@@ -13792,6 +13792,116 @@
           ],
           "data_plan": "Use synthetic catalogs and local development metadata. No user financial data or model credentials are needed.",
           "cleanup": "Remove concrete generation pins from the active policy. Existing terminals retain their launch arguments."
+        }
+      }
+    },
+    {
+      "id": "M0-061",
+      "title": "Keep product decisions revisable at a cost proportional to the change",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-024"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "project/development.json",
+        "scripts/development.py",
+        "tests/project/test_development.py",
+        "project/tasks.json"
+      ],
+      "acceptance": [
+        "The engineering contract identifies affordable evolution as an implementation objective and points to the working rules. Those rules cover routine edits, reconsidering the product outcome from new evidence, and choosing a replacement based on affected callers, supported data and the cost of retiring the old path.",
+        "A developer can distinguish a reported user difficulty from a proposed solution, use existing task or feedback records to test a consequential assumption, and recognize repeated expensive changes. Ordinary edits fit the existing workflow.",
+        "The normal task context displays the recorded reconsideration conditions of current applicable decisions and identifies superseded decisions. Both historical formats work and accepted records retain their original contents."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture"
+      ],
+      "evidence": [],
+      "next_action": "Review the existing evolution rules, connect them to the implementation contract and expose recorded decision triggers in normal task context.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A developer making a small edit or revisiting a larger product decision can find the appropriate action and the evidence that would change the decision.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "project/development.json",
+          "scripts/development.py",
+          "tests/project/test_development.py",
+          "contracts/decisions/0007-ai-led-development.json"
+        ],
+        "hypotheses": [
+          "Most replacement mechanics already exist. Surfacing the conditions attached to current decisions and using the existing task and feedback records can close the gap without a new reporting system."
+        ],
+        "risks": [
+          {
+            "failure": "A superseded rationale is mistaken for an active decision, or the context no longer reads a historical decision with a text trigger.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A rewrite rule assumes all prototype data is disposable, assigns new permissions, or burdens every small edit with a formal experiment.",
+            "checks": [
+              "project-state",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Restore the previous policy text and focused view through a reviewed source change. The full decision records stay readable throughout.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/development.py",
+            "scripts/project.py",
+            "tests/project/test_development.py"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/implementation_policy/changes"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/implementation_policy/evolution"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/evolution"
+            },
+            {
+              "path": "contracts/decisions/0007-ai-led-development.json",
+              "pointer": "/revisit_when"
+            }
+          ],
+          "non_goals": [
+            "Product rewrites, user telemetry, new approval gates, general plugin infrastructure, and changes to the task or decision schemas."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "Existing task phases, decision history, profile ownership, migration checks and engineering authority."
+          ],
+          "change": [
+            "Clarify the change-cost and feedback rules and read decision triggers from their original records in the task view."
+          ],
+          "data_plan": "Use committed engineering records and synthetic decision chains. Product data and live user feedback are outside this task.",
+          "cleanup": "Use the current decision and task records as the sole sources. Keep follow-up work in the existing task queue."
         }
       }
     }
