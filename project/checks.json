@@ -798,8 +798,7 @@
         "market-recovery-ui",
         "saved-directory-refresh",
         "parquet-market-import",
-        "my-data-source-settings",
-        "ubuntu-desktop-host"
+        "my-data-source-settings"
       ]
     },
     {
@@ -1000,12 +999,6 @@
       "requirement": "Select the public owner-earnings analysis method and run it on dated evidence. Show its author, source and version, as-of inputs, calculations, counterevidence and gaps. Repeat from the same evidence and verify that selecting the method grants no additional tool or data access.",
       "checks": [
         "analysis-method-replay"
-      ]
-    },
-    {
-      "requirement": "On an Ubuntu graphical desktop, pnpm desktop:dev opens the ScopeHub Tauri window. Open the offline sample, use the native folder chooser with a fixture and reopen the workspace. Retain the observed application process, WebKitGTK version, revision, input digest and screenshots.",
-      "checks": [
-        "ubuntu-desktop-host"
       ]
     }
   ],

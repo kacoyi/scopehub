@@ -79,7 +79,12 @@
         "entry": "pnpm desktop:dev",
         "runtime": "Tauri 2 with WebKitGTK. Load the shared React/Vite frontend in the application window and invoke the Rust operation registry through the native bridge.",
         "browser_preview": "Use pnpm dev:ubuntu and pnpm dev:ubuntu:workspace for optional browser preview and automated frontend tests. Desktop experience acceptance requires an observed native window.",
-        "verification": "M1-031 delivers the development host. Exercise M1-012 in that host before M1-011 on physical Windows. The v1 installer and packaged acceptance run on Windows 10/11 x64."
+        "verification": "M1-031 delivers the development host. Exercise M1-012 in that host before M1-011 on physical Windows. The v1 installer and packaged acceptance run on Windows 10/11 x64.",
+        "development_acceptance": {
+          "check": "ubuntu-desktop-host",
+          "observation": "On an Ubuntu graphical desktop, pnpm desktop:dev opens the ScopeHub Tauri window. Open the offline sample, use the native folder chooser with a fixture and reopen the workspace. Retain the observed application process, WebKitGTK version, revision, input digest and screenshots.",
+          "scope": "Retain this field check with M1-031 and M1-012. The Windows release profile uses its own packaged checks."
+        }
       }
     },
     "release_unit": "A single Windows desktop installer",
@@ -87,7 +92,7 @@
     "v1_scope": [
       "Import personally downloaded market data through the session CSV picker or an opted-in saved folder with repeatable CSV and Parquet imports",
       "First-class settings for the user's own folder and direct API connection forms, with controlled connector tests (M1-030)",
-      "A single workspace with one main instrument chart, rearrangeable panels and saved layout definitions",
+      "A Tauri desktop workspace with one main chart, rearrangeable panels and saved layout definitions, developed and reviewed on Ubuntu and delivered as a Windows 10/11 x64 installer",
       "Switching between candlestick and line charts",
       "Timeframe switching",
       "Text and opt-in voice conversations, two-way evidence selection and visible AI tool operations",
@@ -1654,8 +1659,7 @@
       "Observe Codex CLI and one compatible desktop AI client separately reading the open chart and applying a scoped annotation. Verify the visible result and undo on each supported test host.",
       "On a fresh install without a ScopeHub account or data plan, open Settings > Data sources > My data sources, select a folder of personally downloaded data and configure the user's own endpoint and fixture credentials in the API form. Test, save, refresh and disconnect independently with a controlled connector. Verify optional ScopeHub data services are labeled separately. Opt in to the read-only saved folder and approve a versioned rule. Publish compatible appends once across notifications, retry and restart. Stage a historical correction or removal for review, stop publication after pause or revocation, and require explicit rebind before using a replacement root. Reopen the prior entitled revision.",
       "Profile, map, preview and verify CSV and Parquet market fixtures offline. Inspect typed daily and auction records, leading-zero symbols, units, missing values and adjustment-factor provenance. Reject publication under a stale rule and reproduce an analysis from the retained source and rule revisions.",
-      "Select the public owner-earnings analysis method and run it on dated evidence. Show its author, source and version, as-of inputs, calculations, counterevidence and gaps. Repeat from the same evidence and verify that selecting the method grants no additional tool or data access.",
-      "On an Ubuntu graphical desktop, pnpm desktop:dev opens the ScopeHub Tauri window. Open the offline sample, use the native folder chooser with a fixture and reopen the workspace. Retain the observed application process, WebKitGTK version, revision, input digest and screenshots."
+      "Select the public owner-earnings analysis method and run it on dated evidence. Show its author, source and version, as-of inputs, calculations, counterevidence and gaps. Repeat from the same evidence and verify that selecting the method grants no additional tool or data access."
     ],
     "performance": {
       "profile": "Record CPU/RAM/Windows/WebView2 versions; release build; 10000 bars; one chart; mock stream at 10 updates/s",

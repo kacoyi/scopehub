@@ -418,10 +418,9 @@
         "chart-history",
         "market-fixtures",
         "ubuntu-preview",
-        "windows-native-build",
-        "ubuntu-desktop-host"
+        "windows-native-build"
       ],
-      "evidence_boundary": "Browser checks cover the shared chart and loopback transport. Capture the Ubuntu experience in the Tauri/WebKitGTK window and the physical Windows experience in its WebView2 window. Retain each host observation separately from build results and owner feedback."
+      "evidence_boundary": "Browser checks cover the shared chart and loopback transport. M1-031 and M1-012 retain the Ubuntu Tauri/WebKitGTK field check. M1-011 retains the physical Windows WebView2 observation at matching inputs. Each observation records the actual host and actions."
     },
     {
       "id": "local-folder-refresh",
