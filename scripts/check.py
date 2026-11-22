@@ -108,6 +108,11 @@ def check_command(check):
     return [sys.executable if arg == '{python}' else arg for arg in check['command'] or []]
 
 
+def check_timeout(check, system):
+    default = check['timeout_seconds']
+    return check.get('windows_timeout_seconds', default) if system == 'Windows' else default
+
+
 def build_window(catalog, selected, environment, index):
     # Serialize all build steps. The Python suite uses temporary checkouts and ephemeral ports.
     # Join before any workflow, browser or acceptance check consumes shared outputs.
@@ -121,7 +126,7 @@ def build_window(catalog, selected, environment, index):
     return window
 
 
-def run_overlapped(checks, env, run_dir):
+def run_overlapped(checks, env, run_dir, *, system):
     cancel = Event()
     interrupted = False
 
@@ -136,7 +141,8 @@ def run_overlapped(checks, env, run_dir):
 
     def run(check):
         try:
-            result = execute(check['id'], check_command(check), env, run_dir, check['timeout_seconds'], cancel=cancelled)
+            result = execute(check['id'], check_command(check), env, run_dir,
+                             check_timeout(check, system), cancel=cancelled)
         except BaseException:
             cancel.set()
             raise
@@ -287,7 +293,7 @@ def main():
             if overlap and check['id'] == 'python-contracts-workers':
                 window = build_window(catalog, selected, environment, index)
                 if len(window) > 1:
-                    concurrent_results = run_overlapped(window, env, run_dir)
+                    concurrent_results = run_overlapped(window, env, run_dir, system=environment['system'])
             result = concurrent_results.pop(check['id'], None)
             if result is None:
                 check_env = env
@@ -295,7 +301,7 @@ def main():
                         row['id'] == 'rust-contracts-workers' and row['status'] == 'passed' and row.get('exit_code') == 0
                         for row in results):
                     check_env = {**env, 'SCOPEHUB_REUSE_OPERATIONS_BUILD': '1'}
-                result = execute(check['id'], command, check_env, run_dir, check['timeout_seconds'])
+                result = execute(check['id'], command, check_env, run_dir, check_timeout(check, environment['system']))
             if result['status'] == 'passed':
                 try:
                     if check['id'] in SESSION_CHECKS:

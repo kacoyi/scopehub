@@ -94,7 +94,8 @@
         "--durations",
         "10"
       ],
-      "timeout_seconds": 900
+      "timeout_seconds": 900,
+      "windows_timeout_seconds": 1200
     },
     {
       "id": "typescript-contracts",

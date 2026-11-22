@@ -14267,6 +14267,247 @@
       }
     },
     {
+      "id": "M0-071",
+      "title": "Recover native Windows desktop ACL preparation under verification load",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-036"
+      ],
+      "scope": [
+        "apps/desktop/src-tauri/src/bridge_tests.rs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0007"
+      ],
+      "acceptance": [
+        "Distinguish explicit fixture preparation timeouts from application-path preparation during SAVE_LOCAL_IMPORT_MAPPING. Compare the original with prior runs and measure native concurrency and helper behavior.",
+        "Demonstrate a bounded correction on native Windows with the desktop cases and full protected verification. Preserve ACL checks, fail-closed behavior, profile isolation, deadlines, cleanup and concurrent desktop operations."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "rust-format",
+        "rust-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-071-583fa3f43c8b5f41.json",
+          "sha256": "6063cd869619e41383aa96594c6baae42cd77d5447a073854d3f2ae2a1ea21cd"
+        },
+        {
+          "path": "project/evidence/M0-071-5f3665cf4fa717bb.json",
+          "sha256": "96da51b023a0df1e4cd6071054f3f3821d75bbe42344b6908bceb987e5265d74"
+        },
+        {
+          "path": "project/evidence/M0-071-644377af0f478682.json",
+          "sha256": "63f0b3f199aaad8e0287a5f263e3b114fbe0bad2686b74df3d2e20febb94e9eb"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Native diagnostic 45052208778 reproduced both fixture startup failures under a controlled delay. Removing redundant outer preparation reduced explicit helper starts from seven to two across the original journeys. All 54 original application helper calls remained. The added mapping-save case verified fail-closed timeout, child cleanup and recovery on a new request. The uninstrumented candidate passed the protected Ubuntu and Windows checks.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T165618.491721Z-d3e98934",
+          "source_commit": "cdf27d7722530bc9d5a5753a3898b67644a1887a",
+          "report_sha256": "ba4b14a2ed8d5268091b0978f85187c0f277d755f2e593b9c2b429b8e5aaf867"
+        }
+      ],
+      "plan": {
+        "outcome": "Native desktop verification exercises real Windows ACL preparation and operation paths without losing their bounds or test concurrency.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "apps/desktop/src-tauri/src/bridge_tests.rs",
+          "crates/persistence/src/storage.rs",
+          "crates/persistence/src/storage_acl.ps1",
+          "scripts/check.py",
+          "scripts/rust_workspace.py"
+        ],
+        "hypotheses": [
+          "The existing explicit fixture slot still permits overlap with application ACL helpers. The native verification scheduler also overlaps Python and Rust. Measure both and distinguish runner variability from a path-specific defect."
+        ],
+        "risks": [
+          {
+            "failure": "A timeout is incorrectly attributed to the ACL policy or to concurrent Python solely because their timestamps overlap.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "rust-format",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A scheduling or fixture change suppresses meaningful concurrency, skips ACL enforcement, or loses cleanup on failure.",
+            "checks": [
+              "rust-contracts-workers",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain failed native diagnostics and baseline measurements. Revert the reviewed correction if real ACL or verification behavior regresses.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "persistence"
+          ],
+          "entrypoints": [
+            "apps/desktop/src-tauri/src/bridge_tests.rs",
+            "apps/desktop/src-tauri/src/workspace.rs",
+            "crates/persistence/src/storage.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing ACL rules, bypassing profile checks, blanket serialization, changing the Python timeout in PR 46 or starting another queued product task."
+          ],
+          "open_questions": [
+            "Where does native helper wall time accumulate, and which verification activities contribute?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Fail-closed ACL checks, profile isolation, bounded helper termination and concurrent bridge behavior."
+          ],
+          "change": [
+            "Reserve an empty outer test directory atomically and let the ordinary workspace operation provision its private subtree. Exercise a refused mapping save and a new request on the same bridge."
+          ],
+          "data_plan": "Use synthetic test profiles and aggregate measurements. Preserve original reports and bound logs.",
+          "cleanup": "Remove diagnostic-only instrumentation from the protected delivery unless narrowly justified for regression observability."
+        }
+      }
+    },
+    {
+      "id": "M0-070",
+      "title": "Keep complete Windows Python discovery within a measured finite wall-time budget",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-068",
+        "M0-069"
+      ],
+      "scope": [
+        "project/checks.json",
+        "contracts/schemas/project.schema.json",
+        "scripts/check.py",
+        "scripts/verification_scope.py",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0006",
+        "0007",
+        "0026"
+      ],
+      "acceptance": [
+        "Explain the original 900.015-second timeout using retained suite and other check timings from comparable Windows runs. Distinguish observed progress from any unverified cause.",
+        "Keep complete discovery, existing assertions, a finite deadline and useful timeout diagnostics. Demonstrate the proportional change with regression or equivalence evidence and a completed native Windows suite with retained duration."
+      ],
+      "checks": [
+        "project-state",
+        "architecture",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-070-c775ced496cfe084.json",
+          "sha256": "2eb3490a26767c3cc92e7a5add8edbc507b9fbeb25a83d0141efbe1b9e773d7d"
+        },
+        {
+          "path": "project/evidence/M0-070-f58162a8963e27bc.json",
+          "sha256": "4f15d59a4309e3de2e030dd8d1b6d6629e1cdf11426b2be35b9d4d675a01b229"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Both full suites passed in PR run 45058420352. Complete unittest discovery took 882.265 seconds on native Windows with a 1200-second deadline and 124.727 seconds on Ubuntu with a 900-second deadline. Earlier run 45046352101 finished Windows Python in 801.937 seconds. Its desktop ACL failure is recorded in M0-071. A controlled finite timeout kept its progress, timeout reason and sibling result.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T161306.780775Z-67e5702f",
+          "source_commit": "5532f7c2b9b299ef10975088df0c333a138949fd",
+          "report_sha256": "32540b8d527c5fde0e3262dc8635de9cf93fc0114488a8c663094a9d7a21d5f6"
+        }
+      ],
+      "plan": {
+        "outcome": "The Windows check finishes its complete Python suite on a slower hosted runner and still reports a genuine timeout with useful progress.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/checks.json",
+          "scripts/check.py",
+          "tests/project",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The last printed test may reflect cumulative work or scheduling variability. Compare other checks, previously reported test durations, fixture work and cleanup before changing verification."
+        ],
+        "risks": [
+          {
+            "failure": "A faster suite skips checks or alters test semantics.",
+            "checks": [
+              "python-contracts-workers",
+              "architecture"
+            ]
+          },
+          {
+            "failure": "Unnecessary timeout growth conceals stalls or consumes other jobs’ budgets.",
+            "checks": [
+              "python-contracts-workers",
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Retain the original failure and restore the reviewed settings through a protected PR if coverage or timeout behavior regresses.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check.py",
+            "project/checks.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Changing product behavior, unrelated deadlines, protected contexts or release verification."
+          ],
+          "open_questions": [
+            "Which measurable costs or bounded headroom best address the observed slow run?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Full Python discovery, assertions, finite process termination, logs and platform verification."
+          ],
+          "change": [
+            "Reduce measured overhead or adjust narrowly justified headroom for this check."
+          ],
+          "data_plan": "Use existing hosted diagnostics and synthetic repository fixtures.",
+          "cleanup": "Keep only the scoped correction and its regression. Remove temporary timing instrumentation after verification."
+        }
+      }
+    },
+    {
       "id": "M0-061",
       "title": "Keep product decisions revisable at a cost proportional to the change",
       "milestone": "M0",
