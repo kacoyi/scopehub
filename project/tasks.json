@@ -10836,7 +10836,7 @@
       "id": "M0-040",
       "title": "Reconcile outstanding dependency update proposals and reviewed pins",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [],
       "scope": [
         ".github",
@@ -10869,11 +10869,19 @@
         {
           "path": "project/evidence/M0-040-a0e2ec40504cb834.json",
           "sha256": "efb066a371a1313e867f72c8d4292fc641fc8ef2f5e37bed977045272f518e00"
+        },
+        {
+          "path": "project/evidence/M0-040-4d91b6d69f8e8035.json",
+          "sha256": "0af4482f978e6267cf70a9402234e379bc6c71bb12e78ed93e04ec0fdef81aba"
+        },
+        {
+          "path": "project/evidence/M0-040-1ffadd4b7e6cf40b.json",
+          "sha256": "aa9834674db6ef64f75838e06d4912963a8500f6f9b945e08530d6caf0cbd391"
         }
       ],
-      "next_action": "Archive matching hosted Ubuntu and native Windows verification, including windows-native-build. Open the scoped draft to main when its merge base includes the reviewed fc6e88a integration baseline.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Fast and selected local checks passed. Authenticated workflow 44972287275 passed the required checks on Ubuntu and Windows for 10e4a2a0e867e4df5501d191b37e15437cdfcc9d. The Windows report passed windows-native-build with log SHA-256 449645d5ae6950c77a68fc982a7017c7bfa773a8d86a4f3da3cbc663c69de9f7. The original two missing-checkpoint cases were replayed at their exact GitHub checkouts and passed both history comparisons. All four proposal heads, failed runs and reviewed replacements are in the dependency record.",
       "plan": {
         "outcome": "The four inherited Dependabot proposals have a verified, current disposition and update proposals can be reviewed with the required lock, license, advisory and Actions pin evidence.",
         "change_types": [
@@ -10956,7 +10964,7 @@
       "id": "M0-041",
       "title": "Replace the vulnerable uv trust-root toolchain pin",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [],
       "scope": [
         ".github/workflows/verify.yml",
@@ -10986,11 +10994,19 @@
         {
           "path": "project/evidence/M0-041-54e1a4e3e914420e.json",
           "sha256": "3d57b0591fdd501894b98472a077ff152c068050ed53a304eaf65a04c6437ca2"
+        },
+        {
+          "path": "project/evidence/M0-041-9456b627035d6565.json",
+          "sha256": "d1358934a125de5f017bfa90e926a2047cb856515f43128931cd49a486bdd6af"
+        },
+        {
+          "path": "project/evidence/M0-041-8ed2200b47d2823b.json",
+          "sha256": "1d189249e0f8906b3cc0d489c4fc26ef041b69e6581fbda3f0f1a2e3b7fe0b49"
         }
       ],
-      "next_action": "Archive matching platform CI with uv 0.13.9 and locked sync, then close the recorded advisory. Activate the verified dedicated local installation in the coordinated window.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The official Linux and Windows uv 0.13.9 archives matched the publisher manifest, digests and release attestations. Local fast, selected and byte-preserving locked sync checks passed. Authenticated task workflow 44976075524 verified locked sync and all selected task checks on Ubuntu and Windows for 3d26f0ead10da7ac08c1ed784eed1d8ccb1adcc0. The dedicated Linux host installation was atomically updated and independently verified 0.12.24 rollback copies were retained. The normal commands passed in the primary and task checkouts. Full Windows workflow 44973556297 passed native build and dependency review and failed the workspace-timeframe browser startup case. The original report and screenshot were retained for startup follow-up.",
       "plan": {
         "outcome": "Both hosted platforms and ScopeHub's local development checks use one exact patched uv version, with verified archive provenance and the reviewed Python dependency graph.",
         "change_types": [

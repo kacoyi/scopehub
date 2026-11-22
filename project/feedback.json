@@ -2761,7 +2761,7 @@
       "id": "dependency-proposals-remain-red-without-disposition",
       "source": "GitHub PRs 2, 3, 7 and 26 at main f7624a93.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "Four open dependency proposals had failed both hosted jobs and the strict inventory and Action review process had not been reconciled with their changes.",
       "task_ids": [
         "M0-040"
@@ -2772,14 +2772,18 @@
         "architecture",
         "dependency-review"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The two Actions proposals changed immutable pins before review. The two Cargo proposals rewrote their heads, leaving the previous event commit absent from the hosted checkout.",
+        "correction": "Reconciled all four proposals against fc6e88a, replaced the reviewed pins, regenerated the native Cargo lock inventory and recovered the exact prior checkpoint before running both required history comparisons.",
+        "prevention": "The force-push regression proves exact checkpoint recovery still rejects missing accepted history. Immutable pin, license and advisory checks were exercised in the retained hosted Ubuntu and Windows reports. Maintenance tracks each inherited proposal and its replacement."
+      },
       "deferral_reason": null
     },
     {
       "id": "uv-vendored-ca-trust-root",
       "source": "https://github.com/astral-sh/uv/security/advisories/GHSA-hq85-5cpj-mr62",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "ScopeHub used uv 0.12.24 with its default bundled CA roots. The publisher reports compromised intermediate certificate keys and removes the affected root from its bundled trust store in 0.13.4.",
       "task_ids": [
         "M0-041"
@@ -2789,7 +2793,11 @@
         "python-contracts-workers",
         "dependency-review"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "uv 0.12.24 defaulted to the bundled trust store that the publisher identified as affected.",
+        "correction": "Pinned uv 0.13.9 in pyproject.toml, verified the first-party platform artifacts, and activated the reviewed binary in the dedicated host installation.",
+        "prevention": "Hosted setup reads the same exact version and checks the reviewed platform download digest. The local entry points and doctor reject the stale tool, and both platforms proved locked synchronization without changing the package graph."
+      },
       "deferral_reason": null
     }
   ]
