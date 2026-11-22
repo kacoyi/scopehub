@@ -2996,7 +2996,7 @@
       "id": "completed-host-staging-outlived-task",
       "source": "Historical repository maintenance and independently restored closed task inputs on 2026-11-21.",
       "severity": "minor",
-      "status": "open",
+      "status": "addressed",
       "observation": "Temporary clones, build targets and review inputs survived their completed tasks outside the registered worktree roots. The existing worktree and Cargo inventories correctly cover their registered scope.",
       "task_ids": [
         "M0-048"
@@ -3005,7 +3005,11 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The weekly review covered registered worktrees and did not track independent task staging.",
+        "correction": "Recorded the two retirement batches and verified their private index and archived copies for all 116 original paths.",
+        "prevention": "The seven-day worktrees-and-evidence review now includes external task staging. The private handoff identifies its owner, location and retirement condition."
+      },
       "deferral_reason": null
     }
   ]
