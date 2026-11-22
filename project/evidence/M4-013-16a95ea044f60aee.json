@@ -1,0 +1,115 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M4-013",
+  "task_definition_sha256": "792d960ad8da08ae829e2cfb0c2f4b6370bc36b0e07403494a006bc2d6b6f152",
+  "run_id": "20261122T014900.159919Z-38922968",
+  "recorded_at": "2026-11-22T01:51:26.662548+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "add7069040314baabf497951d6f65cfaa5e2536d8f46e4baad35968d3ff5e929",
+    "file_count": 518,
+    "git_head": "69997fdf24e14417e62369a6e658ae0939631983",
+    "working_tree_dirty": true,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "16a95ea044f60aee64ae67d456fa909d31905b7c76737d8da1de22efeb783097",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/ai-integration/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c575fc4fbeb4506cf7f5ea4460755861be6db942d5e73c15d6f25c5e69687509"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "7d32db96eeb65ae9fdaa44d858e73bef0f046e76421f8bdb4ae55955efffd860"
+    },
+    {
+      "id": "local-folder-import",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/ai-integration/.venv/bin/python",
+        "scripts/check_local_import_publication.py",
+        "folder-import"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ff45e9811240c3e8ce93934be0eaa5b44b7bca2574f160b90d76578081c93154"
+    },
+    {
+      "id": "model-connection-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/ai-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "fcf153f275c33dbd7b3f271e9f6836589f5fe2f46dbaf23148152f12babb741e"
+    },
+    {
+      "id": "desktop-workspace-transport",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/desktop-workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d56b486924831e57e9d2194278678a5dfc1e12395fac8659b9373a3a91f7da50"
+    },
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/ai-integration/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "feae690b86d5f03a467f9f295cd3b2a68155c6a8b7eccc931f5743c3d525409d"
+    }
+  ],
+  "project_definition_sha256": "08da0667d7f25e90706fc26c6d70ef238fe395539793b9ff874f75176a5e4e83",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

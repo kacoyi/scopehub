@@ -469,7 +469,7 @@ fn retention_allowed(
     sample_instrument: Option<&str>,
 ) -> Result<bool, Error> {
     match sample_instrument {
-        Some(instrument) => tx.indicator_sample_allowed(instrument),
+        Some(instrument) => tx.sample_source_selected(instrument),
         None => tx.indicator_retention_allowed(dataset_id),
     }
 }

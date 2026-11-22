@@ -1,0 +1,88 @@
+{
+  "source": "ad75744a1ef9351f7d04456276adee9d77dbf45c",
+  "exe_sha256": "20b151d42a227448de1d1728d40232c04b941db66916510b2864069305f4adb1",
+  "exe_bytes": 38327808,
+  "source_archive_sha256": "0915bc7663d76d316d637c23b3185ea7f0437654edb404636fab8cc4f091f44e",
+  "build_log": {
+    "path": "run/build-combined-ad75744/MAPBUILD.TXT",
+    "sha256": "97bd87cf8b158de007cad90f109ccc68a8c16bb6f899ae3268a066345efd522b"
+  },
+  "build_manifest": {
+    "path": "run/build-combined-ad75744/MAPEXE.JSON",
+    "sha256": "80c4902a103a3132911089f14059c94fcb330e7c05c51ce754deac6b2d5a7a8d"
+  },
+  "environment": "Non-elevated disposable Windows 11 Enterprise Evaluation QA account, MSVC native desktop with WebView2 and no VM network adapter.",
+  "scope": "Ordinary user-selected Ollama connection against one synthetic local HTTP peer on the integrated application source.",
+  "cold_start": {
+    "result": "passed",
+    "provider": "Ollama",
+    "chart_access": false,
+    "provider_activation_count": 1,
+    "recipient_http_requests": 3,
+    "recipient_message_counts": [
+      1,
+      3,
+      5
+    ],
+    "first_workspace_snapshot_ms": 3024,
+    "largest_rendered_answer_bytes": 20480,
+    "workspace_timeframe_after_disconnect": "5m",
+    "transcript_empty_after_disconnect": true,
+    "transport_busy_before_admission": 28,
+    "same_request_identity_on_busy_retries": true,
+    "window_unloaded_without_owned_debug_listeners": true,
+    "report": {
+      "path": "run/combined-cold-ad75744/WSDIAG.JSON",
+      "sha256": "7045598a074c127b6d6848f3484e73d8de344d3a239dd5b2645d1ef191821ce4"
+    },
+    "screenshot": {
+      "path": "run/combined-cold-ad75744/CHAT.PNG",
+      "sha256": "ccada0b5aa5b5ba390fc3908c3dce6ca3b7bd7b8b0ded3ecb83eaae77284494c"
+    }
+  },
+  "workspace_ready": {
+    "result": "passed",
+    "provider": "Ollama",
+    "chart_access": false,
+    "provider_activation_count": 1,
+    "recipient_http_requests": 3,
+    "recipient_message_counts": [
+      1,
+      3,
+      5
+    ],
+    "first_workspace_snapshot_ms": 2946,
+    "largest_rendered_answer_bytes": 20480,
+    "workspace_timeframe_after_disconnect": "5m",
+    "transcript_empty_after_disconnect": true,
+    "transport_busy_before_admission": 0,
+    "same_request_identity_on_busy_retries": null,
+    "window_unloaded_without_owned_debug_listeners": true,
+    "report": {
+      "path": "run/combined-ready-ad75744/WSDIAG.JSON",
+      "sha256": "9dfa5384c619fd43acd46524f27aa571a30aec8cafb275c38d9ba6cc8ad10333"
+    },
+    "screenshot": {
+      "path": "run/combined-ready-ad75744/CHAT.PNG",
+      "sha256": "d1899419f724a2eba5a26a7a3946a335a38acc1e371381ff9a85f01f0159fa08"
+    }
+  },
+  "credential_observation": {
+    "scope": "Preserved synthetic native credential behavior with identical platform sources, workspace manifests and toolchain pin.",
+    "tested_source": "a420ca99f40400d58d979bd967b404563b55ee9a",
+    "same_git_objects": {
+      "crates/platform": "781064ac7a475a22a5a0ecfc514093b6c7091c75",
+      "Cargo.lock": "cbb2fd6d955ad2883b5ed45f70208d2e8e62612a",
+      "Cargo.toml": "afeb2109332053c560bf82b63889745c077d5c75",
+      "rust-toolchain.toml": "b432996f101609389fcd631582395680520eb494"
+    },
+    "receipt": {
+      "path": "credential-observation.json",
+      "sha256": "37b1a3d95930ffa7858f8869ee72262369976ddddb6f6872d4b906ebf42ea371"
+    }
+  },
+  "original_interrupted_result_disk": {
+    "sha256_before_and_after": "2cf3cdaf30e89db199be35d63196e91e2b49f9846b267e0f2abba6f2ed50dbdf",
+    "preserved": true
+  }
+}

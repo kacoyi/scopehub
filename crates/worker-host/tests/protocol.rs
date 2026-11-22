@@ -1,14 +1,14 @@
 use scopehub_domain::{
     protocol::{
-        DecisionNoteAppendOutcomeCommand11, DecisionNoteAppendOutcomeReply11,
-        DecisionNoteDeleteCommand11, DecisionNoteDeleteReply11, DecisionNoteExportBackupCommand11,
-        DecisionNoteExportBackupReply11, DecisionNotePreviewRestoreCommand11,
-        DecisionNotePreviewRestoreReply11, DecisionNoteReadCommand11, DecisionNoteReadReply11,
-        DecisionNoteRestoreBackupCommand11, DecisionNoteRestoreBackupReply11,
-        DecisionNoteSaveCommand11, DecisionNoteSaveReply11, Message, MutationIntent11,
-        PrivateRecordChangeCommand11, PrivateRecordChangeReply11, PrivateRecordExportCommand11,
-        PrivateRecordExportReply11, PrivateRecordReadCommand11, PrivateRecordReadReply11, Request,
-        ToolCall,
+        AiTextConnectionCommand11, AiTextConnectionReply11, DecisionNoteAppendOutcomeCommand11,
+        DecisionNoteAppendOutcomeReply11, DecisionNoteDeleteCommand11, DecisionNoteDeleteReply11,
+        DecisionNoteExportBackupCommand11, DecisionNoteExportBackupReply11,
+        DecisionNotePreviewRestoreCommand11, DecisionNotePreviewRestoreReply11,
+        DecisionNoteReadCommand11, DecisionNoteReadReply11, DecisionNoteRestoreBackupCommand11,
+        DecisionNoteRestoreBackupReply11, DecisionNoteSaveCommand11, DecisionNoteSaveReply11,
+        Message, MutationIntent11, PrivateRecordChangeCommand11, PrivateRecordChangeReply11,
+        PrivateRecordExportCommand11, PrivateRecordExportReply11, PrivateRecordReadCommand11,
+        PrivateRecordReadReply11, Request, ToolCall,
     },
     wire::normalize_integers,
 };
@@ -285,6 +285,7 @@ fn private_workspace_vectors_use_local_projections_and_generated_types() {
     let cases = [
         include_str!("../../../tests/fixtures/decision-note-protocol-cases.json"),
         include_str!("../../../tests/fixtures/private-record-protocol-cases.json"),
+        include_str!("../../../tests/fixtures/ai-text-connection-protocol-cases.json"),
     ]
     .into_iter()
     .flat_map(|source| serde_json::from_str::<Vec<Value>>(source).unwrap())
@@ -325,6 +326,8 @@ fn private_workspace_vectors_use_local_projections_and_generated_types() {
         }
         covered.insert((operation, direction));
         let decoded = match (operation, direction) {
+            ("ai.textConnection", "input") => roundtrip::<AiTextConnectionCommand11>(message),
+            ("ai.textConnection", "output") => roundtrip::<AiTextConnectionReply11>(message),
             ("decisionNote.save", "input") => roundtrip::<DecisionNoteSaveCommand11>(message),
             ("decisionNote.save", "output") => roundtrip::<DecisionNoteSaveReply11>(message),
             ("decisionNote.read", "input") => roundtrip::<DecisionNoteReadCommand11>(message),
@@ -372,7 +375,10 @@ fn private_workspace_vectors_use_local_projections_and_generated_types() {
     for op in operations {
         let operation = op["name"].as_str().unwrap();
         for direction in ["input", "output"] {
-            assert!(covered.contains(&(operation, direction)));
+            assert!(
+                covered.contains(&(operation, direction)),
+                "{operation} {direction} needs a valid private workspace vector"
+            );
         }
     }
 }

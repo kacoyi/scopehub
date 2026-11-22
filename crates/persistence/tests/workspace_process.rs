@@ -5,6 +5,8 @@ mod operations_workflow;
 #[path = "support/private_record_workflow.rs"]
 mod private_record_workflow;
 mod support;
+#[path = "support/text_result_framing.rs"]
+mod text_result_framing;
 
 use std::{
     fs,
@@ -547,8 +549,12 @@ impl LiveBridge {
         }
     }
 
+    fn frame(&self) -> Value {
+        self.replies.recv_timeout(CHILD_DEADLINE).unwrap()
+    }
+
     fn reply(&self) -> Value {
-        let frame = self.replies.recv_timeout(CHILD_DEADLINE).unwrap();
+        let frame = self.frame();
         assert_eq!(frame["ok"], true, "{frame}");
         frame["result"].clone()
     }

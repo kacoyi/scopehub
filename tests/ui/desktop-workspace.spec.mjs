@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
+import { buildPreview, seedDisplayOnlyChart, withProfile, withWorkspace } from './ai-workflow-fixture.mjs';
 import { control, leaveSample } from './workspace-controls.mjs';
 
 const workspaceId = 'main';
@@ -35,17 +36,19 @@ function committed(operation, result, id, undoable) {
   };
 }
 
-async function nativeTransport(page, { optedIn, native = true }, use) {
+async function nativeTransport(page, { optedIn, native = true, textModel = false }, use) {
   const calls = [];
   await page.exposeBinding('dispatchNativeWorkspace', async (_, command, args) => {
     calls.push({ command, args });
     expect(command).toBe('execute_operation');
-    expect(Object.keys(args).sort()).toEqual(['operation', 'payload']);
+    expect(Object.keys(args).sort()).toEqual(args.operation === 'market.listLocalImportRevisions'
+      ? ['operation', 'payload', 'requestId'] : ['operation', 'payload']);
     return use(args);
   });
-  await page.addInitScript(({ optedIn, native }) => {
+  await page.addInitScript(({ optedIn, native, textModel }) => {
     window.isTauri = native;
     if (optedIn) Object.defineProperty(window, '__SCOPEHUB_DESKTOP_WORKSPACE__', { value: true });
+    if (textModel) Object.defineProperty(window, '__SCOPEHUB_DESKTOP_TEXT_MODEL__', { value: true });
     window.__TAURI_INTERNALS__ = {
       async invoke(command, args) {
         const reply = await window.dispatchNativeWorkspace(command, args);
@@ -53,7 +56,7 @@ async function nativeTransport(page, { optedIn, native = true }, use) {
         return reply.result;
       },
     };
-  }, { optedIn, native });
+  }, { optedIn, native, textModel });
   return calls;
 }
 
@@ -143,6 +146,108 @@ test('opted-in desktop uses a distinct bootstrap and commits and undoes through 
   expect(network).toEqual([]);
 });
 
+test('an outstanding native source invoke needs revision proof and a late reply stays inert', async ({ page, browser, baseURL }) => {
+  test.setTimeout(180_000);
+  await buildPreview();
+  await withProfile(async profile => {
+    const revision = randomUUID();
+    await seedDisplayOnlyChart(profile, revision, {
+      time_ms: Date.parse('2026-02-03T00:00:00Z'), trading_day: '2026-02-03', open: 73, high: 75, low: 72, close: 74,
+      volume: 13, is_closed: true,
+    });
+    await withWorkspace(browser, profile, async (_preview, dispatch) => {
+      const entered = Promise.withResolvers();
+      const allowWrite = Promise.withResolvers();
+      const committed = Promise.withResolvers();
+      const allowReply = Promise.withResolvers();
+      const calls = await nativeTransport(page, { optedIn: true }, async ({ operation, payload }) => {
+        if (operation === 'market.listLocalImportRevisions') {
+          return { result: { revisions: [], next_after_revision_id: null } };
+        }
+        if (payload.type === 'frozen_chart_status') return { result: { available: true } };
+        expect(operation).toBeNull();
+        if (payload.type === 'workspace_source') {
+          entered.resolve();
+          await allowWrite.promise;
+          const reply = await dispatch(payload);
+          committed.resolve(reply);
+          await allowReply.promise;
+          return reply;
+        }
+        return dispatch(payload);
+      });
+      const network = observeWorkspaceNetwork(page, baseURL);
+      const snapshot = () => dispatch({ type: 'snapshot' });
+      const original = { ok: true, result: { selection_revision: 0, source: null } };
+      const sourceWrites = () => calls.filter(({ args }) => args.payload.type === 'workspace_source');
+      const snapshotReads = () => calls.filter(({ args }) => args.payload.type === 'snapshot').length;
+      const priceChart = page.getByRole('region', { name: 'Price chart' });
+      const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+      const useSource = control(dialog, 'Use as workspace source');
+      const reload = control(dialog, 'Reload workspace state');
+      const alert = dialog.getByRole('alert');
+      try {
+        await page.goto('/');
+        await control(priceChart, 'Open published CSV').click();
+        await dialog.getByLabel('Revision ID').fill(revision);
+        await control(dialog, 'Open frozen chart').click();
+        await expect(useSource).toBeEnabled();
+        expect(await snapshot()).toMatchObject(original);
+        await page.evaluate(() => {
+          const ipc = window.__TAURI_INTERNALS__;
+          const invoke = ipc.invoke;
+          ipc.invoke = async (command, args) => {
+            const reply = await invoke(command, args);
+            if (args.payload?.type === 'workspace_source') window.syntheticSourceReplyDelivered = true;
+            return reply;
+          };
+        });
+        await page.clock.install();
+        await useSource.click();
+        await entered.promise;
+        await page.clock.fastForward(17_500);
+        await expect(reload).toBeEnabled();
+        await expect(useSource).toBeDisabled();
+        await expect(alert).toContainText('Reload the workspace state before changing the source again.');
+        const firstRead = snapshotReads();
+        await reload.click();
+        await expect.poll(snapshotReads).toBe(firstRead + 1);
+        await expect(reload).toBeEnabled();
+        await expect(useSource).toBeDisabled();
+        expect(await snapshot()).toMatchObject(original);
+
+        allowWrite.resolve();
+        expect(await committed.promise).toMatchObject({ ok: true, result: { selection_revision: 1 } });
+        const source = { kind: 'none' };
+        const peer = await dispatch({
+          type: 'workspace_source', request_id: randomUUID(), expected_selection_revision: 1, source,
+        });
+        expect(peer).toMatchObject({ ok: true, result: { selection_revision: 2 } });
+        await reload.click();
+        await expect(useSource).toBeEnabled();
+        await expect(alert).toContainText('Review the current workspace source.');
+        const lastRead = snapshotReads();
+
+        allowReply.resolve();
+        await page.waitForFunction(() => window.syntheticSourceReplyDelivered === true);
+        await page.clock.runFor(100);
+        await expect(dialog).toBeVisible();
+        await expect(alert).toContainText('Review the current workspace source.');
+        expect(snapshotReads()).toBe(lastRead);
+        expect(sourceWrites()).toHaveLength(1);
+        expect(sourceWrites()[0].args.payload).toMatchObject({
+          expected_selection_revision: 0, source: { kind: 'frozen', revision_id: revision },
+        });
+        expect(await snapshot()).toMatchObject({ ok: true, result: { selection_revision: 2, source } });
+        expect(network).toEqual([]);
+      } finally {
+        allowWrite.resolve();
+        allowReply.resolve();
+      }
+    });
+  });
+});
+
 test('opted-in desktop keeps sample timeframe controls separate from durable IPC', async ({ page, baseURL }) => {
   let current = ready('1m', 1, undo);
   const calls = await nativeTransport(page, { optedIn: true }, args => {
@@ -215,4 +320,137 @@ test('denied or uncorrelated desktop replies keep the current timeframe; reload 
   await expect(control(page, 'Undo timeframe change')).toBeDisabled();
   expect(calls.map(call => call.args.operation)).toEqual([null, 'chart.setTimeframe', null, 'chart.setTimeframe']);
   expect(network).toEqual([]);
+});
+
+test('native text setup retries a held writer and sends only on explicit submission', async ({ page, baseURL }, testInfo) => {
+  const snapshotEntered = Promise.withResolvers();
+  const releaseSnapshot = Promise.withResolvers();
+  const modelOperation = 'ai.textConnection';
+  const origin = 'http://127.0.0.1:1';
+  const model = 'synthetic:start';
+  const route = { kind: 'ollama', destination: origin + '/api/chat', model,
+    scope: 'conversation_text', charge_basis: 'endpoint_operator' };
+  const proposalId = randomUUID();
+  const connection = { connection_id: randomUUID(), route };
+  const preAdmissionBusy = { error: { code: 'BUSY', retryable: true } };
+  const busyMessage = 'The local workspace is busy. Try again when it is ready.';
+  const admitted = [];
+  let held = 'status';
+  let statusHeldSince;
+  let turnId;
+  const calls = await nativeTransport(page, { optedIn: true, textModel: true }, async ({ operation, payload }) => {
+    if (operation === null) {
+      expect(payload).toEqual({ type: 'snapshot' });
+      snapshotEntered.resolve();
+      await releaseSnapshot.promise;
+      return { result: ready('1m', 0) };
+    }
+    expect(operation).toBe(modelOperation);
+    const args = payload.intent.arguments;
+    const { action } = args;
+    if (action === held) {
+      if (action === 'status') statusHeldSince ??= performance.now();
+      return preAdmissionBusy;
+    }
+    admitted.push(action);
+    let result;
+    switch (action) {
+      case 'status': result = { connection: null, turn_id: null }; break;
+      case 'propose':
+        expect(args.route).toEqual({ kind: 'ollama', origin, model });
+        result = { proposal_id: proposalId, route };
+        break;
+      case 'activate':
+        expect(args.proposal_id).toBe(proposalId);
+        result = { connection };
+        break;
+      case 'send':
+        expect(args).toEqual({ action, connection_id: connection.connection_id, question: 'Synthetic native question' });
+        turnId = payload.request_id;
+        result = { turn_id: turnId };
+        break;
+      case 'poll':
+      case 'cancel':
+        expect(args).toEqual({ action, connection_id: connection.connection_id, turn_id: turnId });
+        result = action === 'poll' ? { turn_id: turnId, turn: { state: 'running' } } : {};
+        break;
+      default: throw new Error(`Unexpected text action ${action}`);
+    }
+    return { result: response(payload, { state: 'completed', operation, result: { action, ...result } }) };
+  });
+  const network = observeWorkspaceNetwork(page, baseURL);
+  const chat = page.getByRole('dialog', { name: 'Ask AI' });
+  const settings = page.getByRole('dialog', { name: 'AI settings' });
+  const commands = action => calls.map(({ args }) => args.payload).filter(payload => payload.intent?.arguments.action === action);
+
+  try {
+    await page.goto('/');
+    await snapshotEntered.promise;
+    await control(page, 'Ask AI').click();
+    // The captured Windows initial workspace snapshot took just over three seconds.
+    await expect.poll(() => statusHeldSince === undefined ? 0 : performance.now() - statusHeldSince,
+      { intervals: [50, 100], timeout: 3800 }).toBeGreaterThanOrEqual(3000);
+    const statusHeldMs = Math.round(performance.now() - statusHeldSince);
+    expect(commands('status').length).toBeGreaterThan(1);
+    expect(admitted).toEqual([]);
+    held = undefined;
+    releaseSnapshot.resolve();
+    await chat.getByLabel('Question').fill('Synthetic native question');
+    await control(chat, 'Ask').click();
+    expect(admitted).toEqual(['status']);
+
+    const submitReview = async () => {
+      await settings.getByLabel('Server origin').fill(origin);
+      await settings.getByLabel('Model', { exact: true }).fill(model);
+      await control(settings, 'Review connection').click();
+    };
+    held = 'propose';
+    await submitReview();
+    await expect.poll(() => commands('propose').length).toBeGreaterThanOrEqual(3);
+    expect(admitted).toEqual(['status']);
+    held = undefined;
+    await expect(settings.getByText(route.destination, { exact: true })).toBeVisible();
+    for (const action of ['status', 'propose']) {
+      const attempts = commands(action);
+      expect(attempts).toEqual(attempts.map(() => attempts[0]));
+    }
+    expect(admitted).toEqual(['status', 'propose']);
+    expect(network).toEqual([]);
+
+    await control(settings, 'Connect and enable').click();
+    await expect(chat.getByText(/^Ollama connected/)).toBeVisible();
+    held = 'send';
+    await control(chat, 'Send').click();
+    await expect(chat.getByRole('alert')).toHaveText(busyMessage);
+    expect(commands('send')).toHaveLength(1);
+    expect(admitted).toEqual(['status', 'propose', 'activate']);
+    held = undefined;
+    await control(chat, 'Send').click();
+    await expect(chat.getByText('Waiting for the model…')).toBeVisible();
+    await control(chat, 'Cancel turn').click();
+    await expect(chat.getByText('No model connected', { exact: true })).toBeVisible();
+    expect(admitted.filter(action => action === 'send')).toHaveLength(1);
+    expect(commands('send')).toHaveLength(2);
+    expect(commands('cancel')).toHaveLength(1);
+    expect(network).toEqual([]);
+
+    const recoveredProposeAttempts = commands('propose').length;
+    held = 'propose';
+    await control(chat, 'AI settings').click();
+    await submitReview();
+    await expect(settings.getByRole('alert')).toHaveText(busyMessage, { timeout: 6000 });
+    const expiredAttempts = commands('propose').slice(recoveredProposeAttempts);
+    expect(expiredAttempts.length).toBeGreaterThan(1);
+    expect(expiredAttempts).toEqual(expiredAttempts.map(() => expiredAttempts[0]));
+    expect(admitted.filter(action => action === 'propose')).toHaveLength(1);
+    expect(network).toEqual([]);
+
+    await testInfo.attach('native-text-admission', {
+      body: JSON.stringify({ statusHeldMs, statusAttempts: commands('status').length, recoveredProposeAttempts,
+        expiredProposeAttempts: expiredAttempts.length, admitted, unexpectedRequests: network }, null, 2),
+      contentType: 'application/json',
+    });
+  } finally {
+    releaseSnapshot.resolve();
+  }
 });

@@ -106,7 +106,8 @@
         "domain"
       ],
       "owns": [
-        "Operation authorization and cross-field market invariants"
+        "Operation authorization and cross-field market invariants",
+        "Local human text connection grants, current chart-purpose authorization and final recipient projection"
       ],
       "invariants": [
         "Reject unsupported operations; actor identity comes from trusted transports",
@@ -122,35 +123,40 @@
       "paths": [
         "crates/worker-host"
       ],
-      "responsibility": "Controlled worker lifecycle and correlated, bounded transport.",
+      "responsibility": "Controlled worker lifecycle and correlated, bounded transport, including a direct OpenAI Responses connector.",
       "public_entries": [
         "crates/worker-host/src/lib.rs",
         "crates/worker-host/src/indicator.rs",
         "crates/worker-host/src/local_import.rs",
-        "crates/worker-host/src/market.rs"
+        "crates/worker-host/src/market.rs",
+        "crates/worker-host/src/text_model.rs"
       ],
       "dependencies": [
         "domain",
         "application"
       ],
       "owns": [
-        "Owned child processes and request lifecycle"
+        "Owned child processes and request lifecycle",
+        "Fixed-destination OpenAI Responses HTTPS serialization and output validation"
       ],
       "invariants": [
         "No mutable adapter escape through the application registry",
-        "Shutdown releases owned workers"
+        "Shutdown releases owned workers",
+        "The OpenAI connector accepts the admitted credential for one account-scoped request and transmits only the bounded conversation projection"
       ],
       "checks": [
-        "rust-contracts-workers"
+        "rust-contracts-workers",
+        "openai-responses-transport"
       ]
     },
     {
       "id": "desktop",
       "status": "implemented",
       "paths": [
-        "apps/desktop/src-tauri"
+        "apps/desktop/src-tauri",
+        "apps/desktop/ui/ubuntu-workspace.mjs"
       ],
-      "responsibility": "Windows composition root and allowlisted UI transport.",
+      "responsibility": "Windows composition root, private Ubuntu workspace launcher transport and allowlisted UI commands.",
       "public_entries": [
         "apps/desktop/src-tauri/src/bridge.rs",
         "apps/desktop/src-tauri/src/main.rs"
@@ -163,11 +169,13 @@
         "platform"
       ],
       "owns": [
-        "Window identity and application assembly"
+        "Window identity and application assembly",
+        "Trusted credential entry for the active profile and session-only Ubuntu preview key storage"
       ],
       "invariants": [
         "Bind user actor at the transport; no general file/process/SQL command",
-        "Only a native directory picker supplies the root of a local CSV selection"
+        "Only a native directory picker supplies the root of a local CSV selection",
+        "The local human credential command returns configuration state and lifetime. The core receives only an opaque credential revision."
       ],
       "checks": [
         "architecture",
@@ -237,12 +245,14 @@
         "python/worker_runtime/__main__.py",
         "python/worker_runtime/indicator.py",
         "python/worker_runtime/local_import.py",
-        "python/worker_runtime/protocol.py"
+        "python/worker_runtime/protocol.py",
+        "python/worker_runtime/text_model.py"
       ],
       "dependencies": [
         "domain",
         "providers",
-        "indicators"
+        "indicators",
+        "product-ai"
       ],
       "owns": [
         "Protocol role and dispatch state"
@@ -318,19 +328,21 @@
       "paths": [
         "crates/platform"
       ],
-      "responsibility": "Native resources, including read-only access to a directory explicitly selected by the trusted host.",
+      "responsibility": "Native resources, including read-only access to explicitly selected directories and profile-owned OpenAI credentials.",
       "public_entries": [
-        "crates/platform/src/local_folder.rs"
+        "crates/platform/src/local_folder.rs",
+        "crates/platform/src/model_credentials.rs"
       ],
       "dependencies": [
         "domain",
         "application"
       ],
       "owns": [
-        "OS-specific resources"
+        "OS-specific resources",
+        "Windows current-user credential lifecycle and process-local credential storage for portable sessions"
       ],
       "invariants": [
-        "Credentials remain outside database and logs",
+        "Credential values remain outside the database and logs. The trusted connector resolves the matching revision within the bound profile and provider namespace.",
         "Local import reads resolve catalog-issued file IDs inside the current native selection"
       ],
       "checks": [
@@ -340,24 +352,27 @@
     },
     {
       "id": "product-ai",
-      "status": "planned",
+      "status": "implemented",
       "paths": [
         "python/ai"
       ],
-      "responsibility": "Configured model adapters and product collaboration execution.",
-      "public_entries": [],
+      "responsibility": "Credential-free Ollama text adapter and product collaboration execution.",
+      "public_entries": [
+        "python/ai/ollama.py"
+      ],
       "dependencies": [
         "domain"
       ],
       "owns": [
-        "Model interaction and task-local reasoning state"
+        "Ollama text model HTTP adapter"
       ],
       "invariants": [
-        "Use core-provided operations; cannot self-authorize"
+        "Send the final core-projected text request to its selected endpoint. Use no ambient credentials, proxy, implicit fallback or stored private data."
       ],
       "checks": [
-        "ai-workflow",
-        "ai-replay-evaluations"
+        "model-connection-workflow",
+        "model-connection-replay",
+        "python-contracts-workers"
       ]
     },
     {
@@ -489,10 +504,12 @@
       },
       "task_ids": [
         "M1-008",
+        "M4-006",
+        "M4-008",
         "M4-002"
       ],
       "delivery": "current-contract",
-      "boundary": "A local CSV folder can be used offline. Optional cloud assistance and model connections require explicit transmission scope. These onboarding workflows await implementation."
+      "boundary": "A local CSV folder can be used offline. Ordinary text setup reviews Ollama or OpenAI Responses for the current profile and session. OpenAI uses the explicitly configured API key and named destination. Controlled transport, native Windows use and real account qualification are verified independently."
     },
     {
       "id": "information-channels",
@@ -706,7 +723,7 @@
       "owner": "application",
       "writer": "persistence",
       "status": "implemented",
-      "rule": "The SQLite writer persists the explicitly selected published CSV revision UUID, interval and independent selection token. The Rust registry revalidates current permissions and source rights for each selection or projection. Other target kinds and general bound durable mutations are pending."
+      "rule": "The SQLite writer persists the explicitly selected published CSV revision UUID, interval and independent selection token. The application holds the selected verified synthetic snapshot and range in memory against the same token. The Rust registry revalidates current permissions and source rights for each selection or projection. Other target kinds and general bound durable mutations are pending."
     },
     {
       "id": "local-private-content",
@@ -714,6 +731,20 @@
       "writer": "persistence",
       "status": "implemented",
       "rule": "The local Rust single writer stores explicitly saved typed exchanges, memories and strategies, and applies corrections, deletion and backup recovery within the bound profile. The core also owns any future retrieval data and excerpt grants. Those behaviors are tracked by their delivery tasks."
+    },
+    {
+      "id": "text-model-session",
+      "owner": "application",
+      "writer": "application",
+      "status": "implemented",
+      "rule": "Profile-bound in-memory route disclosure, grant and bounded successful ordinary text pairs. An OpenAI grant binds the opaque profile credential revision and supports ordinary conversation text. Changing that revision revokes the OpenAI review or grant. Opted-in Ollama chart turns recheck the current selection and opt-in sample purpose, and dispatch at most one registered read using the embedded AI principal. Chart turns do not enter outbound conversation history. Restart, disconnection, cancellation or a new valid proposal revokes the grant."
+    },
+    {
+      "id": "native-openai-credential",
+      "owner": "platform",
+      "writer": "platform",
+      "status": "implemented",
+      "rule": "The platform writes or removes a current-user Windows Credential Manager entry scoped to the OpenAI provider and trusted profile. The native connector resolves the value only for that profile and the approved revision."
     }
   ],
   "herdr": {

@@ -9,6 +9,7 @@ from pathlib import Path
 import sys
 import subprocess
 import tempfile
+from threading import Event, Thread
 import time
 import unittest
 from unittest.mock import patch
@@ -113,6 +114,28 @@ class ProcessTests(unittest.TestCase):
         time.sleep(1.4)
         self.assertFalse(escaped.exists())
 
+    def test_cancellation_from_another_check_stops_descendants(self):
+        parent, ready, escaped = self.descendant_command(wait=True)
+        cancel = Event()
+
+        def request_cancellation():
+            deadline = time.monotonic() + 5
+            while not ready.exists() and time.monotonic() < deadline:
+                time.sleep(.005)
+            cancel.set()
+
+        thread = Thread(target=request_cancellation)
+        thread.start()
+        self.addCleanup(thread.join)
+        log = self.root / 'cancelled.log'
+        code, reason = processes.run_logged([sys.executable, '-c', parent], cwd=self.root, env=dict(os.environ),
+                                            log_path=log, timeout=10, cancel=cancel.is_set)
+        self.assertTrue(ready.exists())
+        self.assertEqual((None, 'interrupted'), (code, reason))
+        self.assertIn('Check stopped: interrupted.', log.read_text())
+        time.sleep(1.4)
+        self.assertFalse(escaped.exists())
+
     def test_cleanup_failure_cannot_become_a_pass(self):
         with patch.object(processes, 'stop_tree', side_effect=OSError('cleanup fixture failure')):
             result = self.execute("print('root completed')")
@@ -140,3 +163,15 @@ class ProcessTests(unittest.TestCase):
     def test_version_probe_failure_is_a_diagnostic(self):
         with patch.object(doctor.subprocess, 'run', side_effect=OSError('fixture unavailable')):
             self.assertEqual('unavailable', doctor.tool_version(sys.executable))
+
+    def test_doctor_rejects_the_vulnerable_uv_executable(self):
+        tool_version = doctor.tool_version
+
+        def stale_uv(tool, root):
+            return 'uv 0.12.24' if tool == 'uv' else tool_version(tool, root)
+
+        with patch.object(doctor, 'tool_version', side_effect=stale_uv):
+            result = doctor.diagnose()
+        self.assertEqual('failed', result['status'])
+        self.assertTrue(any(error.startswith('uv: expected ') and error.endswith(', observed uv 0.12.24')
+                            for error in result['errors']))

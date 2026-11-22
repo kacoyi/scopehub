@@ -1,4 +1,4 @@
-# Generated from contracts/schemas/protocol.schema.json; sha256=9f48bd3a32aadff27fdedaa54a1e79e33d1c13a05d8042e8944d4b728d5cc688. Do not edit.
+# Generated from contracts/schemas/protocol.schema.json; sha256=b3c912e00eecfbc651c92c3b6750679f8bd66dd6160830b6d8bd2d0713f19dc0. Do not edit.
 from __future__ import annotations
 from typing import Literal, NotRequired, TypedDict
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
@@ -10,7 +10,7 @@ Metadata = dict[str, JsonValue]
 WorkerRole = Literal['market', 'ai', 'indicator']
 ProtocolVersion = Literal['1.0']
 ErrorCode = Literal['INVALID_ARGUMENT', 'UNSUPPORTED_CAPABILITY', 'PERMISSION_DENIED', 'CONFIRMATION_REQUIRED', 'CANCELLED', 'TIMEOUT', 'WORKER_EXITED', 'PROTOCOL_MISMATCH', 'DATA_UNAVAILABLE', 'STALE_CONTEXT', 'RESOURCE_LIMIT', 'OUTPUT_INVALID', 'PROVIDER_NOT_CONFIGURED', 'INTERNAL_ERROR', 'BUSY', 'SNAPSHOT_UNAVAILABLE']
-OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'market.subscribe', 'market.previewLocalImport', 'market.saveLocalImportMapping', 'market.loadLocalImportMapping', 'market.listLocalImportRevisions', 'market.readLocalImportRevision', 'market.readLocalImportSourceRow', 'market.previewLocalFolderRefresh', 'market.prepareLocalFolderPublication', 'market.publishLocalFolderRefresh', 'market.listLocalFolderRevisions', 'market.readLocalFolderRevision', 'market.readLocalFolderSourceRow', 'market.revokeLocalFolderRevision', 'market.revokeLocalImportRevision', 'market.publishLocalImport', 'workspace.readChartProjection', 'workspace.selectEvidence', 'decisionNote.save', 'decisionNote.read', 'decisionNote.appendOutcome', 'decisionNote.delete', 'decisionNote.exportBackup', 'decisionNote.previewRestore', 'decisionNote.restoreBackup', 'privateRecord.read', 'privateRecord.change', 'privateRecord.exportBackup', 'workspace.previewLayout', 'workspace.applyLayout']
+OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'market.subscribe', 'market.previewLocalImport', 'market.saveLocalImportMapping', 'market.loadLocalImportMapping', 'market.listLocalImportRevisions', 'market.readLocalImportRevision', 'market.readLocalImportSourceRow', 'market.previewLocalFolderRefresh', 'market.prepareLocalFolderPublication', 'market.publishLocalFolderRefresh', 'market.listLocalFolderRevisions', 'market.readLocalFolderRevision', 'market.readLocalFolderSourceRow', 'market.revokeLocalFolderRevision', 'market.revokeLocalImportRevision', 'market.publishLocalImport', 'workspace.readChartProjection', 'workspace.selectEvidence', 'decisionNote.save', 'decisionNote.read', 'decisionNote.appendOutcome', 'decisionNote.delete', 'decisionNote.exportBackup', 'decisionNote.previewRestore', 'decisionNote.restoreBackup', 'privateRecord.read', 'privateRecord.change', 'privateRecord.exportBackup', 'workspace.previewLayout', 'workspace.applyLayout', 'ai.textConnection']
 ChartStyle = Literal['candlestick', 'line']
 TaskStatus = Literal['queued', 'running', 'awaiting_confirmation', 'completed', 'failed', 'cancelled']
 Tradability = Literal['non_tradable', 'unknown']
@@ -2653,3 +2653,128 @@ class WorkspaceApplyLayoutReply11(TypedDict):
     type: Literal['response']
     request_id: Uuid
     outcome: WorkspaceApplyLayoutOutcome11
+class AiTextOllamaChoice(TypedDict):
+    kind: Literal['ollama']
+    origin: str
+    model: str
+    chart_tools: NotRequired[Literal[True]]
+class AiTextOfflineMockChoice(TypedDict):
+    kind: Literal['offline_mock']
+class AiTextOpenAiChoice(TypedDict):
+    kind: Literal['openai_responses']
+    model: str
+AiTextRouteChoice = AiTextOllamaChoice | AiTextOfflineMockChoice | AiTextOpenAiChoice
+class AiTextOllamaRoute(TypedDict):
+    kind: Literal['ollama']
+    destination: str
+    model: str
+    scope: Literal['conversation_text', 'conversation_text_and_sample_closes']
+    charge_basis: Literal['endpoint_operator']
+class AiTextOfflineMockRoute(TypedDict):
+    kind: Literal['offline_mock']
+    destination: Literal['This app (offline)']
+    model: Literal['ScopeHub offline mock']
+    scope: Literal['conversation_text']
+    charge_basis: Literal['none']
+class AiTextOpenAiRoute(TypedDict):
+    kind: Literal['openai_responses']
+    destination: Literal['https://api.openai.com/v1/responses']
+    model: str
+    scope: Literal['conversation_text']
+    charge_basis: Literal['openai_api_account']
+AiTextRoute = AiTextOllamaRoute | AiTextOfflineMockRoute | AiTextOpenAiRoute
+class AiTextGrant(TypedDict):
+    connection_id: Uuid
+    route: AiTextRoute
+class AiTextRunningTurn(TypedDict):
+    state: Literal['running']
+class AiTextCompletedTurn(TypedDict):
+    state: Literal['completed']
+    model: str
+    text: str
+    chart_evidence: NotRequired[AiTextChartEvidence]
+class AiTextFailedTurn(TypedDict):
+    state: Literal['failed']
+    error: WorkspaceFault11
+AiTextTurn = AiTextRunningTurn | AiTextCompletedTurn | AiTextFailedTurn
+class AiTextStatusInput(TypedDict):
+    action: Literal['status']
+class AiTextProposeInput(TypedDict):
+    action: Literal['propose']
+    route: AiTextRouteChoice
+class AiTextActivateInput(TypedDict):
+    action: Literal['activate']
+    proposal_id: Uuid
+class AiTextDisconnectInput(TypedDict):
+    action: Literal['disconnect']
+    connection_id: Uuid
+class AiTextSendInput(TypedDict):
+    action: Literal['send']
+    connection_id: Uuid
+    question: str
+    selection_revision: NotRequired[Revision]
+class AiTextPollInput(TypedDict):
+    action: Literal['poll']
+    connection_id: Uuid
+    turn_id: Uuid
+class AiTextCancelInput(TypedDict):
+    action: Literal['cancel']
+    connection_id: Uuid
+    turn_id: Uuid
+AiTextConnectionInput = AiTextStatusInput | AiTextProposeInput | AiTextActivateInput | AiTextDisconnectInput | AiTextSendInput | AiTextPollInput | AiTextCancelInput
+class AiTextStatusOutput(TypedDict):
+    action: Literal['status']
+    connection: AiTextGrant | None
+    turn_id: Uuid | None
+class AiTextProposeOutput(TypedDict):
+    action: Literal['propose']
+    proposal_id: Uuid
+    route: AiTextRoute
+class AiTextActivateOutput(TypedDict):
+    action: Literal['activate']
+    connection: AiTextGrant
+class AiTextDisconnectOutput(TypedDict):
+    action: Literal['disconnect']
+class AiTextSendOutput(TypedDict):
+    action: Literal['send']
+    turn_id: Uuid
+class AiTextPollOutput(TypedDict):
+    action: Literal['poll']
+    turn_id: Uuid
+    turn: AiTextTurn
+class AiTextCancelOutput(TypedDict):
+    action: Literal['cancel']
+AiTextConnectionOutput = AiTextStatusOutput | AiTextProposeOutput | AiTextActivateOutput | AiTextDisconnectOutput | AiTextSendOutput | AiTextPollOutput | AiTextCancelOutput
+class AiTextConnectionCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    scope: AiTextConnectionScope11
+    intent: AiTextConnectionIntent11
+class AiTextConnectionReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    outcome: AiTextConnectionOutcome11
+class AiTextChartClose(TypedDict):
+    time_ms: Timestamp
+    close: float
+class AiTextChartEvidence(TypedDict):
+    source_reference: OpaqueId
+    revision: OpaqueId
+    range: VisibleRange
+    rows: list[AiTextChartClose]
+class AiTextConnectionScope11(TypedDict):
+    workspace_id: OpaqueId
+class AiTextConnectionIntent11(TypedDict):
+    operation: Literal['ai.textConnection']
+    arguments: AiTextConnectionInput
+class AiTextConnectionCompleted11(TypedDict):
+    state: Literal['completed']
+    operation: Literal['ai.textConnection']
+    result: AiTextConnectionOutput
+AiTextConnectionOutcome11 = AiTextConnectionCompleted11 | ScopedFailure11

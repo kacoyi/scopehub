@@ -1,0 +1,245 @@
+{
+  "version": 1,
+  "task_id": "M0-050",
+  "repository": "kacoyi/scopehub",
+  "runtime_policy": "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
+  "reviewed_replacements": [
+    {
+      "action": "actions/checkout",
+      "previous_commit": "11d5960a326750d5838078e36cf38b85af677262",
+      "previous_runtime": "node20",
+      "tag": "v7.0.1",
+      "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "runtime": "node24",
+      "release": "https://github.com/actions/checkout/releases/tag/v7.0.1",
+      "manifest": "https://github.com/actions/checkout/blob/3d3c42e5aac5ba805825da76410c181273ba90b1/action.yml",
+      "implementation": [
+        "https://github.com/actions/checkout/blob/3d3c42e5aac5ba805825da76410c181273ba90b1/src/git-source-provider.ts",
+        "https://github.com/actions/checkout/blob/3d3c42e5aac5ba805825da76410c181273ba90b1/src/ref-helper.ts",
+        "https://github.com/actions/checkout/blob/3d3c42e5aac5ba805825da76410c181273ba90b1/src/git-command-manager.ts"
+      ]
+    },
+    {
+      "action": "actions/setup-node",
+      "previous_commit": "49933ea5288caeca8642d1e84afbd3f7d6820020",
+      "previous_runtime": "node20",
+      "tag": "v7.1.0",
+      "commit": "949feb2413d6458794dcd2491c4babbbce0c15c1",
+      "runtime": "node24",
+      "release": "https://github.com/actions/setup-node/releases/tag/v7.1.0",
+      "manifest": "https://github.com/actions/setup-node/blob/949feb2413d6458794dcd2491c4babbbce0c15c1/action.yml",
+      "implementation": [
+        "https://github.com/actions/setup-node/blob/949feb2413d6458794dcd2491c4babbbce0c15c1/src/main.ts",
+        "https://github.com/actions/setup-node/blob/949feb2413d6458794dcd2491c4babbbce0c15c1/src/cache-restore.ts"
+      ]
+    },
+    {
+      "action": "actions/upload-artifact",
+      "previous_commit": "ea165f8d65b6e75b540449e92b4886f43607fa02",
+      "previous_runtime": "node20",
+      "tag": "v7.0.2",
+      "commit": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+      "runtime": "node24",
+      "release": "https://github.com/actions/upload-artifact/releases/tag/v7.0.2",
+      "manifest": "https://github.com/actions/upload-artifact/blob/cf430e030ddbb5b0abf93d22962f4752f3646cd9/action.yml",
+      "implementation": [
+        "https://github.com/actions/upload-artifact/blob/cf430e030ddbb5b0abf93d22962f4752f3646cd9/src/upload/upload-artifact.ts",
+        "https://github.com/actions/upload-artifact/blob/cf430e030ddbb5b0abf93d22962f4752f3646cd9/src/shared/upload-artifact.ts"
+      ]
+    },
+    {
+      "action": "pnpm/action-setup",
+      "previous_commit": "b906affcce14559ad1aafd4ab0e942779e9f58b1",
+      "previous_runtime": "node20",
+      "tag": "v6.1.1",
+      "commit": "73e46992e05b19abd31f2f3c20e0e7370d762115",
+      "runtime": "node24",
+      "release": "https://github.com/pnpm/action-setup/releases/tag/v6.1.1",
+      "manifest": "https://github.com/pnpm/action-setup/blob/73e46992e05b19abd31f2f3c20e0e7370d762115/action.yml",
+      "implementation": [
+        "https://github.com/pnpm/action-setup/blob/73e46992e05b19abd31f2f3c20e0e7370d762115/src/install-pnpm/run.ts"
+      ]
+    }
+  ],
+  "compatibility": "Both workflows change only their immutable Action references. The checked PR merge ref and actual HEAD log markers remain available. setup-node owns the explicit pnpm store cache, pnpm install uses the frozen lock, and the verification and timing artifacts retain their named ZIP layout and digests. The checked source and downloaded artifact identities are observed separately.",
+  "scope": "The ordinary PR control establishes the runtime warning baseline. The task dispatch establishes the repaired Action behavior on Ubuntu and Windows. The combined PR owns the final ordinary Linux and Windows checkouts.",
+  "control": {
+    "run_id": 44978070164,
+    "attempt": 1,
+    "run_url": "https://github.com/kacoyi/scopehub/actions/runs/44978070164",
+    "event": "pull_request",
+    "head_sha": "10e4ab0470e4f83144e77ff52b3c722b6ec047f4",
+    "checkout_sha": "ea60c0fe09b8f6e47cdc83fa1bf0b30ccdd15e2d",
+    "checkout_parents": [
+      "f7624a93ff976d0d01139500ab665dd0a65eb705",
+      "10e4ab0470e4f83144e77ff52b3c722b6ec047f4"
+    ],
+    "raw_archive": {
+      "path": "archives/observations/M0-050/github-actions/44978070164/attempt-1",
+      "manifest": "SHA256SUMS",
+      "manifest_sha256": "d7696049f396fbcf7fd2795cba4a7fecb3ea9aba21ade5c875b024bdf5788d6d"
+    },
+    "jobs": {
+      "ubuntu": {
+        "job_id": 137072359548,
+        "job_name": "verify (ubuntu-latest)",
+        "runner_version": "2.338.2",
+        "forced_legacy_runtime_warnings": {
+          "job_log": 1,
+          "check_run_annotations": 1
+        },
+        "verification_artifact": {
+          "name": "verification-ubuntu-latest",
+          "id": 14737231452,
+          "digest": "sha256:440c23bd434fa056fa64317c6f7e0afcf3f157c61ee24e144599fcb0a6a5d060"
+        },
+        "harness": {
+          "run_id": "20261122T025346.682629Z-1dd7b031",
+          "status": "blocked",
+          "inputs_sha256": "38babbe614a1a94f6fbd0e0892c6cf56d252b9d094b0bbaa7e52f7908c1f280a",
+          "report_path": "archives/runs/20261122T025346.682629Z-1dd7b031/test-report.json",
+          "report_sha256": "a3f86ee3f3a30f8969a569ab0c4e137153be6d6a7009fcf79ab4fa4133246246"
+        }
+      },
+      "windows": {
+        "job_id": 137072359391,
+        "job_name": "verify (windows-latest)",
+        "runner_version": "2.338.2",
+        "forced_legacy_runtime_warnings": {
+          "job_log": 1,
+          "check_run_annotations": 1
+        },
+        "verification_artifact": {
+          "name": "verification-windows-latest",
+          "id": 14737815731,
+          "digest": "sha256:786c8082f599d1cc62e08cfed0e1bf45a6f98f71c533425f231d22cccb5a965d"
+        },
+        "harness": {
+          "run_id": "20261122T025728.687774Z-d6c9de9c",
+          "status": "passed",
+          "inputs_sha256": "38babbe614a1a94f6fbd0e0892c6cf56d252b9d094b0bbaa7e52f7908c1f280a",
+          "report_path": "archives/runs/20261122T025728.687774Z-d6c9de9c/test-report.json",
+          "report_sha256": "651431e3282943e3b5cef8648f2763600c8c398783d71176687b79efbf520b76"
+        }
+      }
+    },
+    "pull_request": 31,
+    "checkout_ref": "refs/remotes/pull/31/merge",
+    "warning_actions": [
+      "actions/checkout",
+      "actions/setup-node",
+      "actions/upload-artifact",
+      "pnpm/action-setup"
+    ],
+    "scope": "Both protected jobs succeeded. The Ubuntu harness report recorded platform and planned-check omissions."
+  },
+  "task_dispatch": {
+    "run_id": 44981385560,
+    "attempt": 1,
+    "run_url": "https://github.com/kacoyi/scopehub/actions/runs/44981385560",
+    "event": "workflow_dispatch",
+    "head_sha": "e25c4ea750491c7dca3a6f77ef4fb2faae286f73",
+    "checkout_sha": "e25c4ea750491c7dca3a6f77ef4fb2faae286f73",
+    "checkout_parents": [
+      "59f260328e26822eb9054f404c9719064142ce73"
+    ],
+    "raw_archive": {
+      "path": "archives/observations/M0-050/github-actions/44981385560/attempt-1",
+      "manifest": "SHA256SUMS",
+      "manifest_sha256": "40b67c0efa8c18f8854954dc4eaa813e63f79d4093e950076764270a71221c26"
+    },
+    "jobs": {
+      "ubuntu": {
+        "job_id": 137082420873,
+        "job_name": "verify task (ubuntu-latest)",
+        "runner_version": "2.338.2",
+        "forced_legacy_runtime_warnings": {
+          "job_log": 0,
+          "check_run_annotations": 0
+        },
+        "verification_artifact": {
+          "name": "verification-ubuntu-latest",
+          "id": 14738051978,
+          "digest": "sha256:6d45bb982db3e8a152b0cf7ebb436631ccbfd862d78b143ca9260c63d5093e5e"
+        },
+        "harness": {
+          "run_id": "20261122T033654.001585Z-eeab919a",
+          "status": "passed",
+          "inputs_sha256": "780fbf85fe0889f824202651745c787330d6eb64a302c14ef76ba34fc65fb7de",
+          "report_path": "archives/runs/20261122T033654.001585Z-eeab919a/test-report.json",
+          "report_sha256": "2b5cd8a3d31e4a6f241e16110988f123bc8709835b6f1cfbffd4e46ab90e2afe"
+        },
+        "timing_artifact": {
+          "name": "verification-timing-ubuntu-latest",
+          "id": 14738191276,
+          "digest": "sha256:1a7bf97b691f37a5e7eaecdcc8cae4cfc28eb452ba83ca41e9f57f5ab39f3221",
+          "timing_record_sha256": "499ea51d6915a0542e0bc17ddbf4f4ee3de47c8ffd69d2f3b416e047170a5cfb"
+        },
+        "tools": {
+          "node": "v24.22.3",
+          "pnpm": "11.28.5",
+          "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+          "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+          "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+        },
+        "cache": {
+          "pnpm_saved_key": "node-cache-Linux-x64-pnpm-b89867662bb9d8e60d06b1b394a12b5a87db6e8bef58f871f3f08aeb36ef6c2f",
+          "uv_saved_key": "setup-uv-2-x86_64-unknown-linux-gnu-ubuntu-26.04-3.12-pruned-f6b06f265c2a50330418b4d29b980cb1d74ea1430f947a07d75d03d103d83515",
+          "cargo": "not_requested"
+        },
+        "receipt": {
+          "path": "project/evidence/M0-050-2b5cd8a3d31e4a6f.json",
+          "sha256": "e074871d5c1f90d6623cac7a4aa1d1f86002c2d2a975befdc8d45c88a3b03213"
+        }
+      },
+      "windows": {
+        "job_id": 137082420675,
+        "job_name": "verify task (windows-latest)",
+        "runner_version": "2.338.2",
+        "forced_legacy_runtime_warnings": {
+          "job_log": 0,
+          "check_run_annotations": 0
+        },
+        "verification_artifact": {
+          "name": "verification-windows-latest",
+          "id": 14738360274,
+          "digest": "sha256:3b387838f156badfdbe12ede9026ddc20c613cb440af775ed1047bfb16c1612f"
+        },
+        "harness": {
+          "run_id": "20261122T033714.443092Z-8543d0f6",
+          "status": "passed",
+          "inputs_sha256": "780fbf85fe0889f824202651745c787330d6eb64a302c14ef76ba34fc65fb7de",
+          "report_path": "archives/runs/20261122T033714.443092Z-8543d0f6/test-report.json",
+          "report_sha256": "ce9cac38f30aaddb8a7f1de2b42f7b86a2db7bb8375b670091f92a0af3e7d880"
+        },
+        "timing_artifact": {
+          "name": "verification-timing-windows-latest",
+          "id": 14737518375,
+          "digest": "sha256:5a7c61b45838fa8aa27edb5ff32723f1cb2ae28e2f0dabf60c7d5a744155af05",
+          "timing_record_sha256": "aea400af4b2b5074e81ed872f0d9faa65d655bc1ae703d7aeb6ec7bdfbabcba2"
+        },
+        "tools": {
+          "node": "v24.22.3",
+          "pnpm": "11.28.5",
+          "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+          "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+          "uv": "uv 0.13.9 (6b2d39dcc 2026-11-17 x86_64-pc-windows-msvc)"
+        },
+        "cache": {
+          "pnpm_saved_key": "node-cache-Windows-x64-pnpm-b89867662bb9d8e60d06b1b394a12b5a87db6e8bef58f871f3f08aeb36ef6c2f",
+          "uv_saved_key": "setup-uv-2-x86_64-pc-windows-msvc-windows-2025-3.12-pruned-f6b06f265c2a50330418b4d29b980cb1d74ea1430f947a07d75d03d103d83515",
+          "cargo": "not_requested"
+        },
+        "receipt": {
+          "path": "project/evidence/M0-050-ce9cac38f30aaddb.json",
+          "sha256": "514af19141cdd72cae98953f7d54018c6825e4a1376ff876bb8b6c011c43f181"
+        }
+      }
+    },
+    "branch": "codex/action-runtime-maintenance",
+    "task_id_input": "M0-050",
+    "pnpm_bootstrap_observation": "Both jobs displayed pnpm's v10-layout migration advisory, switched to the exact v11.28.5 project pin and completed frozen installation. setup-node and setup-uv each saved their established cache key after a miss.",
+    "timing_reader": "The authenticated project:timing read verified both compact timing samples with complete source identity and selected-check coverage."
+  },
+  "recorded_on": "2026-11-21"
+}

@@ -8,8 +8,9 @@ use std::{
 };
 
 use scopehub_application::{
-    Actor, MarketFuture, MarketLifecycle, MarketPort, MarketRegistry, MarketStatus,
-    READ_OPERATIONS, SUBSCRIBE, ShutdownFuture, SubscriptionFuture, SubscriptionPort, failure,
+    Actor, LEGACY_READ_OPERATIONS, MarketFuture, MarketLifecycle, MarketPort, MarketRegistry,
+    MarketStatus, READ_OPERATIONS, SUBSCRIBE, ShutdownFuture, SubscriptionFuture, SubscriptionPort,
+    failure,
 };
 use scopehub_domain::protocol::{
     Error, ErrorCode, MarketSubscriptionInput, MarketSubscriptionOutput, Message, Response,
@@ -186,11 +187,7 @@ impl MarketWorker {
         let session = self.session.as_mut().expect("started session");
         let result = tokio::time::timeout(deadline, async {
             let frame = read_frame(&mut session.output).await?;
-            let hello = crate::negotiate_worker(
-                &frame,
-                "market",
-                &["instrument.search", "market.getBars"],
-            )?;
+            let hello = crate::negotiate_worker(&frame, "market", &LEGACY_READ_OPERATIONS)?;
             session.version = hello.version;
             session.capabilities = hello.capabilities;
             Ok(())

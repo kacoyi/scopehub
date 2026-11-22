@@ -1057,6 +1057,19 @@
       "input_spec": "PrivateRecordExportCommand11",
       "output_spec": "PrivateRecordExportReply11",
       "schema_requirement": "Use the bound local human 1.1 envelope. Saving, correcting, deleting and restoring require a revision-bound approval. The private workspace host supplies identity and current access."
+    },
+    {
+      "name": "ai.textConnection",
+      "effect": "control",
+      "confirmation": true,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input_spec": "AiTextConnectionCommand11",
+      "output_spec": "AiTextConnectionReply11",
+      "schema_requirement": "The local profile human approves a reviewed destination, model, conversation disclosure and charge basis once. Ordinary text turns use the live session grant. Model replies carry text only."
     }
   ],
   "authorization": {

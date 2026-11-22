@@ -13,6 +13,7 @@ export function usePublishedRevisionAccess(workspace: LocalWorkspace | undefined
   const [revoked, setRevoked] = useState<ReadonlySet<string>>(observed.current);
   const selected = useRef<{ token: number; id: string } | undefined>(undefined);
   const snapshot = workspace?.snapshot;
+  const canCheckRevision = workspace?.canCheckRevision;
 
   const revoke = useCallback((id: string) => {
     if (observed.current.has(id)) return;
@@ -34,7 +35,7 @@ export function usePublishedRevisionAccess(workspace: LocalWorkspace | undefined
     selected.current = undefined;
   }, [snapshot, revoke]);
   const verifyAccess = useCallback((id: string, read: () => Promise<boolean | undefined>) => {
-    if (!canDisplay(id)) return;
+    if (!canDisplay(id) || canCheckRevision?.() === false) return;
     const current = checking.current.get(id);
     if (current) return current;
     const request = read().then(available => {
@@ -44,7 +45,7 @@ export function usePublishedRevisionAccess(workspace: LocalWorkspace | undefined
     }).finally(() => checking.current.delete(id));
     checking.current.set(id, request);
     return request;
-  }, [canDisplay, revoke]);
+  }, [canCheckRevision, canDisplay, revoke]);
   const verify = useCallback((id: string) => verifyAccess(id, async () => {
     const reply = await exchangeWorkspace<{ available: boolean }>({
       type: 'frozen_chart_status', request_id: crypto.randomUUID(), revision_id: id,
@@ -65,7 +66,8 @@ export function useWatchPublishedRevision(
   initialAccess: 'check' | 'checked-by-reader' = 'check',
 ) {
   const refresh = workspace?.snapshot;
-  const reload = workspace?.reload;
+  const reload = workspace?.sourceRecovery ? undefined : workspace?.reload;
+  const canCheckRevision = workspace?.canCheckRevision;
   const error = workspace?.error;
   const previous = useRef({ id, refresh, error });
   useEffect(() => {
@@ -83,7 +85,7 @@ export function useWatchPublishedRevision(
       if (document.visibilityState === 'visible') void verify(id);
     };
     const focus = () => {
-      if (document.visibilityState !== 'visible') return;
+      if (document.visibilityState !== 'visible' || canCheckRevision?.() === false) return;
       if (reload) reload();
       else check();
     };
@@ -95,5 +97,5 @@ export function useWatchPublishedRevision(
       window.removeEventListener('focus', focus);
       document.removeEventListener('visibilitychange', focus);
     };
-  }, [id, reload, verify]);
+  }, [id, reload, verify, canCheckRevision]);
 }

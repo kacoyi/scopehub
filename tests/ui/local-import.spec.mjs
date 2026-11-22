@@ -1484,9 +1484,12 @@ base('keeps the selected folder library available during workspace startup and r
 }, async ({ page }) => {
   const releaseSnapshot = Promise.withResolvers();
   const releaseRefresh = Promise.withResolvers();
+  const releaseBusyRetry = Promise.withResolvers();
   const workspaceId = randomUUID();
   const calls = [];
+  const clearRequests = [];
   let openingWorkspace = true;
+  let writerBusy = true;
   await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
     expect(command).toBe('execute_operation');
     if (args?.payload?.type === 'snapshot') {
@@ -1496,10 +1499,20 @@ base('keeps the selected folder library available during workspace startup and r
       await (refresh ? releaseRefresh : releaseSnapshot).promise;
       openingWorkspace = false;
       return { result: { workspace: { id: workspaceId, revision: 0, timeframe: '1d' },
-        selection_revision: 3, undo: null, chart_evidence: { unavailable: true } } };
+        selection_revision: refresh ? 4 : 3, undo: null, chart_evidence: { unavailable: true } } };
     }
     calls.push(args?.operation);
-    if (args.operation === 'workspace.selectEvidence' || openingWorkspace) return { error: { code: 'BUSY', message: 'The market worker is busy.', retryable: true } };
+    const busy = { error: { code: 'BUSY', message: 'The market worker is busy.', retryable: true } };
+    if (args.operation === 'workspace.selectEvidence') {
+      const request = args.payload;
+      clearRequests.push(request);
+      if (clearRequests.length === 2) await releaseBusyRetry.promise;
+      if (writerBusy) return busy;
+      return { result: { protocol_version: '1.1', type: 'response', operation: args.operation,
+        request_id: request.request_id, message_id: randomUUID(), timestamp_ms: Date.now(),
+        selection: { workspace_id: workspaceId, selection_revision: 5, target: null } } };
+    }
+    if (openingWorkspace) return busy;
     return { result: { version: 1, revisions: [], next_after_revision_id: null } };
   });
   await page.addInitScript(() => {
@@ -1529,9 +1542,18 @@ base('keeps the selected folder library available during workspace startup and r
     await expect(dialog.getByRole('alert')).toHaveCount(0);
     expect(calls).toEqual(['snapshot', 'market.listLocalFolderRevisions']);
 
-    await dialog.getByRole('button', { name: 'Clear shared selection' }).click();
+    const clear = dialog.getByRole('button', { name: 'Clear shared selection' });
+    await clear.click();
+    await expect.poll(() => clearRequests.length).toBe(2);
+    expect(clearRequests[0]).toMatchObject({ workspace_id: workspaceId, expected_selection_revision: 3, target: null });
+    expect(clearRequests[1]).toEqual(clearRequests[0]);
+    await expect(clear).toBeDisabled();
+    releaseBusyRetry.resolve();
+    await expect(dialog.getByText('The workspace is busy. Try selecting again.')).toBeVisible();
+    await expect(clear).toBeEnabled();
+    await expect(folder).toHaveAttribute('aria-pressed', 'true');
     await dialog.getByRole('button', { name: 'Refresh shared selection' }).click();
-    const before = ['snapshot', 'market.listLocalFolderRevisions', 'workspace.selectEvidence', 'snapshot'];
+    const before = ['snapshot', 'market.listLocalFolderRevisions', 'workspace.selectEvidence', 'workspace.selectEvidence', 'snapshot'];
     await expect.poll(() => calls).toEqual(before);
     await dialog.getByRole('button', { name: 'Single-file revisions' }).click();
     await expect(dialog.getByText('Loading published revisions…')).toBeVisible();
@@ -1541,9 +1563,19 @@ base('keeps the selected folder library available during workspace startup and r
     await expect(dialog.getByText('No published CSV revisions are available in this profile.')).toBeVisible();
     await expect(dialog.getByRole('alert')).toHaveCount(0);
     expect(calls).toEqual([...before, 'market.listLocalImportRevisions']);
+
+    writerBusy = false;
+    await clear.click();
+    await expect(clear).toHaveCount(0);
+    await expect(dialog.getByText('No published CSV revisions are available in this profile.')).toBeVisible();
+    expect(clearRequests).toHaveLength(3);
+    expect(clearRequests[2]).toMatchObject({ workspace_id: workspaceId, expected_selection_revision: 4, target: null });
+    expect(clearRequests[2].request_id).not.toBe(clearRequests[0].request_id);
+    expect(calls).toEqual([...before, 'market.listLocalImportRevisions', 'workspace.selectEvidence']);
   } finally {
     releaseSnapshot.resolve();
     releaseRefresh.resolve();
+    releaseBusyRetry.resolve();
   }
 });
 

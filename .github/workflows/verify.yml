@@ -29,7 +29,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            uv_sha256: a7fbaff2b9a271d85c1bdb540941090fd1ce011797b4abeb48e4dcd39c2471d5
+          - os: windows-latest
+            uv_sha256: edd61f7f5728a56cc62455386661860bdfc7bab65872f39b0c25bdcc1d8e1beb
     runs-on: ${{ matrix.os }}
     # Leave ordinary Windows jobs time for cache cleanup after checks and upload.
     # Each check retains its own deadline.
@@ -43,21 +47,24 @@ jobs:
         run: |
           echo 'task_id cannot be combined with the release profile.' >&2
           exit 1
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
-          version: '0.12.24'
+          version-file: pyproject.toml
+          checksum: ${{ matrix.uv_sha256 }}
           python-version: '3.12'
           enable-cache: true
+          prune-cache: true
+          download-from-astral-mirror: false
           cache-dependency-glob: |
             uv.lock
             pyproject.toml
@@ -65,7 +72,22 @@ jobs:
         with:
           toolchain: '1.99.0'
           components: rustfmt, clippy
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      - run: uv sync --locked
+      - run: pnpm install --frozen-lockfile
+      - name: Check the selected task's browser and build-output prerequisites
+        if: inputs.task_id
+        id: task_setup
+        env:
+          SCOPEHUB_TASK_ID: ${{ inputs.task_id }}
+        shell: bash
+        run: |
+          if required="$(uv run --no-sync python scripts/check.py --task="$SCOPEHUB_TASK_ID" --ci-build-setup-required)" &&
+              [ "$required" = 'false' ]; then
+            printf 'skip=true\n' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: cargo_cache
+        if: steps.task_setup.outputs.skip != 'true'
         with:
           path: |
             ~/.cargo/registry/index
@@ -75,13 +97,8 @@ jobs:
           key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('rust-toolchain.toml') }}-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('rust-toolchain.toml') }}-
-      - run: uv sync --locked
-      - run: pnpm install --frozen-lockfile
-      - name: Install the pinned chart-test browser on Windows
-        if: runner.os == 'Windows'
-        run: pnpm exec playwright install --with-deps chromium
-      - name: Start the pinned chart-test browser on Linux
-        if: runner.os == 'Linux'
+      - name: Install and start the pinned chart-test browser
+        if: steps.task_setup.outputs.skip != 'true'
         shell: bash
         run: |
           pnpm exec playwright install chromium
@@ -94,9 +111,10 @@ jobs:
           fi
       - name: Preserve accepted history
         env:
+          GIT_NO_REPLACE_OBJECTS: '1'
           SCOPEHUB_REVIEW_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
           SCOPEHUB_CHECKPOINT_BASE: ${{ github.event.before }}
-        run: uv run python scripts/project.py history
+        run: uv run python scripts/project.py history --fetch-missing-checkpoint
       - name: Initialize CI verification reports
         id: reports
         run: uv run --no-sync python scripts/ci_artifacts.py prepare
@@ -127,12 +145,39 @@ jobs:
       - name: Stage current verification evidence
         id: artifacts
         if: always() && steps.reports.outcome == 'success'
+        env:
+          # A cache state describes the archive restored by this job.
+          SCOPEHUB_TIMING_CACHE: >-
+            ${{ steps.cargo_cache.outcome == 'skipped' && 'not_requested' ||
+                steps.cargo_cache.outcome != 'success' && 'unknown' ||
+                steps.cargo_cache.outputs['cache-hit'] == 'true' && 'warm' ||
+                steps.cargo_cache.outputs['cache-matched-key'] != '' && 'partial' ||
+                steps.cargo_cache.outputs['cache-primary-key'] != '' && 'not_restored' || 'unknown' }}
         run: uv run --no-sync python scripts/ci_artifacts.py stage
       - if: always() && steps.artifacts.outcome == 'success' && steps.artifacts.outputs.path != ''
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: verification-${{ matrix.os }}
           path: ${{ steps.artifacts.outputs.path }}
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
+      - if: always() && steps.artifacts.outcome == 'success' && steps.artifacts.outputs.timing_path != ''
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verification-timing-${{ matrix.os }}
+          path: ${{ steps.artifacts.outputs.timing_path }}
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Save the complete Cargo cache
+        if: success() && !inputs.task_id && steps.cargo_cache.outputs['cache-primary-key'] != '' && steps.cargo_cache.outputs['cache-hit'] != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ steps.cargo_cache.outputs['cache-primary-key'] }}

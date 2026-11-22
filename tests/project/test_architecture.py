@@ -1,5 +1,7 @@
 """Prevent dependency aliases from hiding forbidden layer relationships."""
 
+from contextlib import redirect_stdout
+from io import BytesIO, TextIOWrapper
 from pathlib import Path
 import json
 import os
@@ -11,7 +13,7 @@ import unittest
 from unittest.mock import patch
 
 from scripts.check_architecture import desktop_capability_errors, rust_boundaries
-from scripts.rust_workspace import verification_command, workspace_packages
+from scripts.rust_workspace import run_operations, verification_command, workspace_packages
 
 
 class ArchitectureTests(unittest.TestCase):
@@ -145,6 +147,52 @@ class ArchitectureTests(unittest.TestCase):
         packages[0]['metadata'] = {'scopehub': {'check_platform': 'typo'}}
         with self.assertRaisesRegex(ValueError, 'Unsupported check platform'):
             verification_command(packages, 'test')
+
+    def test_operations_use_the_host_workspace_graph_and_run_only_the_scoped_target(self):
+        checkout = Path(__file__).resolve().parents[2]
+        packages = workspace_packages(checkout)
+        for system, machine in [('Linux', 'x86_64'), ('Windows', 'AMD64'), ('Windows', 'ARM64')]:
+            with self.subTest(system=system, machine=machine):
+                workspace, _ = verification_command(packages, 'test', system=system, machine=machine)
+                command, selection = verification_command(packages, 'operations', system=system, machine=machine)
+                self.assertEqual([*workspace, '--test', 'workspace_process', 'operations_workflow::'], command)
+                self.assertEqual([], selection['portable_library_tests'])
+
+    def test_operations_reject_a_missing_or_ambiguous_eligible_target(self):
+        target = {'kind': ['test'], 'name': 'workspace_process'}
+        persistence = {'name': 'scopehub-persistence', 'targets': [target]}
+        other = {'name': 'scopehub-other', 'targets': [target]}
+        for packages in [[other], [persistence, other]]:
+            with self.subTest(packages=packages), self.assertRaisesRegex(ValueError, 'one eligible scopehub-persistence'):
+                verification_command(packages, 'operations', system='Linux', machine='x86_64')
+
+    def test_operations_require_one_summary_with_passes_and_no_ignored_cases(self):
+        success = b'test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 18 filtered out; finished in 0.34s\r\n'
+        empty = success.replace(b'2 passed', b'0 passed')
+        ignored = empty.replace(b'0 ignored', b'2 ignored')
+        cases = [
+            ('passing', success, 0, 0),
+            ('zero matches', empty, 0, 1),
+            ('all ignored', ignored, 0, 1),
+            ('partly ignored', success.replace(b'2 passed', b'1 passed').replace(b'0 ignored', b'3 ignored'), 0, 1),
+            ('missing summary', b'no summary\n', 0, 1),
+            ('duplicate summary', success + success, 0, 1),
+            ('cargo failure', success, 101, 101),
+        ]
+        for name, output, exit_code, expected in cases:
+            with self.subTest(name=name), TextIOWrapper(BytesIO(), encoding='utf-8') as console:
+                with redirect_stdout(console), patch('scripts.rust_workspace.subprocess.Popen') as launch:
+                    process = launch.return_value.__enter__.return_value
+                    process.stdout = BytesIO(output)
+                    process.wait.return_value = exit_code
+                    self.assertEqual(expected, run_operations(['cargo']))
+                launch.assert_called_once()
+                streamed = console.buffer.getvalue()
+                self.assertTrue(streamed.startswith(output))
+                if expected == 1:
+                    self.assertIn(b'passing cases and zero ignored cases', streamed[len(output):])
+                else:
+                    self.assertEqual(output, streamed)
 
     def test_new_member_test_runs_even_when_absent_from_default_members(self):
         self.domain('')

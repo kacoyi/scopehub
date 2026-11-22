@@ -352,7 +352,7 @@ class WorktreeRetirementTests(unittest.TestCase):
                 'head': head,
                 'disposition': 'superseded',
                 'reason': 'The replacement was reviewed at the integration checkpoint.',
-                'recoverable_ref': 'refs/heads/archive/experiment',
+                'recoverable_ref': 'refs/scopehub/recovery/experiment',
             }],
         }
         review = self.add_worktree('review')
@@ -362,10 +362,14 @@ class WorktreeRetirementTests(unittest.TestCase):
         self.git('update-ref', 'refs/remotes/origin/main', reviewed)
         self.assertEqual(self.row(IDLE, dispositions=reference)['state'], 'held')
 
-        self.git('update-ref', 'refs/heads/archive/experiment', head)
+        ref = 'refs/scopehub/recovery/experiment'
+        self.git('symbolic-ref', ref, 'refs/heads/candidate')
+        self.assert_held(self.row(IDLE, dispositions=reference), 'not_integrated_or_disposed')
+        self.git('symbolic-ref', '--delete', ref)
+        self.git('update-ref', ref, head)
         row = self.row(IDLE, dispositions=reference)
         self.assert_candidate(row)
-        self.assertEqual(row['recovery_ref'], 'refs/heads/archive/experiment')
+        self.assertEqual(row['recovery_ref'], ref)
         self.assertEqual(row['integration']['source'], reference)
 
         self.commit(self.candidate, 'fixture.txt', 'a new experiment')

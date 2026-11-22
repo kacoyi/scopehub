@@ -2,15 +2,17 @@ import { useId, useState } from 'react';
 import type {
   Bar, FrozenSnapshot, ProjectedChartReply11, ReadLocalImportRevisionOutput, ReadProjectedChart11,
 } from '../../../../contracts/generated/protocol';
-import { exchangeWorkspace, type LocalWorkspace } from './use-local-workspace';
+import { exchangeWorkspace, readWorkspaceAfterAdmission, type LocalWorkspace } from './use-local-workspace';
 import { displayAccessDenied, type PublishedRevisionAccess } from './published-revision-access';
 
 export type FrozenChartResult = ReadLocalImportRevisionOutput & { snapshot?: FrozenSnapshot };
 
-export async function openAuthenticatedFrozenChart(revisionId: string, requestId: string) {
-  const result = await exchangeWorkspace<FrozenChartResult>(
-    { type: 'frozen_chart', revision_id: revisionId, request_id: requestId }, AbortSignal.timeout(15_000),
-  );
+export async function openAuthenticatedFrozenChart(revisionId: string, requestId: string, restoreSignal?: AbortSignal) {
+  const request = { type: 'frozen_chart', revision_id: revisionId, request_id: requestId } as const;
+  const timeout = AbortSignal.timeout(15_000);
+  const result = restoreSignal
+    ? await readWorkspaceAfterAdmission<FrozenChartResult>(request, AbortSignal.any([restoreSignal, timeout]))
+    : await exchangeWorkspace<FrozenChartResult>(request, timeout);
   if (result.snapshot?.dataset_id !== revisionId || result.snapshot.dataset_revision !== revisionId
     || !/^[0-9a-f]{64}$/.test(result.snapshot.content_hash) || result.bars.length !== result.revision.bar_count) {
     throw new Error('The frozen chart reply could not be verified.');
@@ -96,10 +98,11 @@ export function FrozenEvidenceControls({ snapshot, bars, workspace, access }: {
         onClick={() => workspace.chooseEvidence(null)}>Clear shared selection</button>
       <button type="button" className="secondary-button" disabled={blocked || !current}
         onClick={() => void inspect()}>Inspect shared bar</button>
-      <button type="button" className="secondary-button" disabled={pending || Boolean(workspace.pending)}
+      <button type="button" className="secondary-button" disabled={pending || Boolean(workspace.pending || workspace.sourceRecovery)}
         onClick={() => { setInspection(undefined); reload(); }}>Refresh shared selection</button>
     </div>
-    {workspace.error && <p role="alert" className="workspace-error">{workspace.error}</p>}
+    {workspace.error && !workspace.sourceRecovery && <p role="alert" className="workspace-error">{workspace.error}</p>}
+    {workspace.selectionNotice && <p role="status">{workspace.selectionNotice}</p>}
     {current && inspection && inspection.revision === state?.selection_revision &&
       <p role={inspection.failed ? 'alert' : 'status'}>{inspection.message}</p>}
   </section>;
@@ -112,9 +115,9 @@ export function UnavailableSharedSelection({ workspace }: { workspace: LocalWork
     <span role="status">The shared selection is unavailable.</span>
     <button type="button" className="secondary-button" disabled={Boolean(workspace.pending || workspace.error)}
       onClick={() => workspace.chooseEvidence(null)}>Clear shared selection</button>
-    {workspace.error && <>
-      <span role="alert">{workspace.error}</span>
-      <button type="button" className="secondary-button" onClick={workspace.reload}>Refresh shared selection</button>
-    </>}
+    {workspace.selectionNotice && <span role="status">{workspace.selectionNotice}</span>}
+    {workspace.error && !workspace.sourceRecovery && <span role="alert">{workspace.error}</span>}
+    {!workspace.sourceRecovery && (workspace.error || workspace.selectionNotice) &&
+      <button type="button" className="secondary-button" onClick={workspace.reload}>Refresh shared selection</button>}
   </div>;
 }

@@ -90,7 +90,9 @@
         ".",
         "-p",
         "test_*.py",
-        "-v"
+        "-v",
+        "--durations",
+        "10"
       ],
       "timeout_seconds": 900
     },
@@ -187,14 +189,9 @@
       "purpose": "Verify real A/B/clear chart selection, local AI chart mutation admission, independent revision conflicts, authorized exactly-once replay, rollback, undo and fresh writer reconnect.",
       "platforms": "all",
       "command": [
-        "cargo",
-        "test",
-        "--locked",
-        "-p",
-        "scopehub-persistence",
-        "--test",
-        "workspace_process",
-        "operations_workflow::"
+        "{python}",
+        "scripts/rust_workspace.py",
+        "operations"
       ],
       "timeout_seconds": 900,
       "cadence": "change"
@@ -525,7 +522,7 @@
     {
       "id": "market-quality-states",
       "status": "implemented",
-      "purpose": "Exercise the chart with real frozen normal, stale, gapped and empty sample reads, independent session and freshness states, delayed selection, distinct typed failures and retry.",
+      "purpose": "Exercise the chart with real frozen normal, stale, gapped and empty sample reads, independent session and freshness states, delayed selection, distinct typed failures and retry, and public browser startup failure and recovery.",
       "platforms": "all",
       "command": [
         "pnpm",
@@ -644,7 +641,7 @@
     {
       "id": "workspace-timeframe",
       "status": "implemented",
-      "purpose": "Exercise the real opted-in local writer through browser and process restart, timeframe undo, terminal cleanup, decision-note confirmation, deletion, backup and restore, private-record lifecycle and stale approval, and chart evidence selection and narrow projection of actual frozen profile data.",
+      "purpose": "Exercise the real opted-in local writer through staged browser startup, private handoff recovery, browser and process restart, timeframe undo, terminal cleanup, decision-note confirmation, deletion, backup and restore, private-record lifecycle and stale approval, and chart evidence selection and narrow projection of actual frozen profile data.",
       "platforms": "all",
       "command": [
         "pnpm",
@@ -660,7 +657,7 @@
     {
       "id": "desktop-workspace-transport",
       "status": "implemented",
-      "purpose": "Exercise the built desktop UI with substituted Tauri IPC for default startup, authorized timeframe and undo, and rejection. The portable Rust bridge checks exercise the actual registry and storage.",
+      "purpose": "Exercise the built desktop UI with substituted Tauri IPC for default startup, authorized timeframe and undo, rejection, and a delayed source invoke. Verify source recovery through the actual Rust registry and storage, including a still-pending write and late acknowledgement.",
       "platforms": "all",
       "command": [
         "pnpm",
@@ -672,6 +669,54 @@
       ],
       "timeout_seconds": 900,
       "cadence": "change"
+    },
+    {
+      "id": "model-connection-workflow",
+      "status": "implemented",
+      "purpose": "Exercise local text settings and explicit offline mock, OpenAI credential entry and ordinary-text disclosure, ordinary turns, bounded selected-chart tool calls, corrected and denied intervals, and pending-reply invalidation through the Rust registry and real Ollama adapter against an owned synthetic HTTP peer. Verify that the browser guard allows local route removal and blocks and reports a different loopback origin. Hold a real published CSV status read while changing the workspace source and distinguish pre-admission rejection, accepted writes, superseding revisions, lost acknowledgements and overdue transport responses using synthetic profiles. Verify that ordinary close and parent IPC loss release the shared fixture's real Vite listener and SQLite writer, including during startup.",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/ai-workflow.config.mjs"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
+      "id": "model-connection-replay",
+      "status": "implemented",
+      "purpose": "Replay profile, actor, disclosure, context isolation, credential revision, expiry, duplicate send and cancellation boundaries without using a provider or opening a storage transaction.",
+      "platforms": "all",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-application",
+        "text_connection::tests"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
+      "id": "openai-responses-transport",
+      "status": "implemented",
+      "purpose": "Capture the final fixed-destination OpenAI Responses HTTPS requests for two reconstructed turns with synthetic credentials and an isolated TLS peer. Verify redacted authorization failure, local denial and redirect rejection without a real account.",
+      "platforms": "all",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-worker-host",
+        "text_model::openai"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "task"
     }
   ],
   "milestones": [

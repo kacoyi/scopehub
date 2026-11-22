@@ -62,6 +62,10 @@ def records():
         'scaffold_maintenance': {key: ['Synthetic maintenance policy.'] for key in
                                  ['triggers', 'workflow', 'guardrails', 'bootstrap']},
     }
+    delivery['scaffold_maintenance']['periodic_reviews'] = [
+        {'id': 'branch-review', 'interval_days': 7, 'reviewed_on': '2026-11-21',
+         'actions': ['Inspect the synthetic branch inventory.']},
+    ]
     result = {
         'engineering-contract-v1.json': {'milestones': [{'id': key} for key in milestone_checks],
                                          'acceptance': {'required': ['Synthetic installed outcome', 'Synthetic model outcome'],

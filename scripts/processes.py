@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import time
 
 if __package__:
     from .process_tree import stop_tree
@@ -18,7 +19,22 @@ raise SystemExit(subprocess.call(sys.argv[1:], stdin=subprocess.DEVNULL))
 '''
 
 
-def run_logged(argv, *, cwd, env, log_path, timeout):
+def _wait_for_check(process, timeout, cancel):
+    if cancel is None:
+        return process.wait(timeout=timeout)
+    deadline = time.monotonic() + timeout
+    while not cancel():
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise subprocess.TimeoutExpired(process.args, timeout)
+        try:
+            return process.wait(timeout=min(remaining, .25))
+        except subprocess.TimeoutExpired:
+            continue
+    raise KeyboardInterrupt
+
+
+def run_logged(argv, *, cwd, env, log_path, timeout, cancel=None):
     """Write directly to disk instead of accumulating an entire build in RAM."""
     log_path = Path(log_path)
     log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -28,6 +44,8 @@ def run_logged(argv, *, cwd, env, log_path, timeout):
     with log_path.open('wb') as output:
         options = {'creationflags': subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == 'nt' else {'start_new_session': True}
         try:
+            if cancel is not None and cancel():
+                raise KeyboardInterrupt
             if os.name == 'nt':
                 if __package__:
                     from .windows_job import WindowsJob
@@ -42,7 +60,7 @@ def run_logged(argv, *, cwd, env, log_path, timeout):
                 job.assign(process.pid)
                 process.stdin.write(b'1')
                 process.stdin.close()
-            exit_code = process.wait(timeout=timeout)
+            exit_code = _wait_for_check(process, timeout, cancel)
         except (subprocess.TimeoutExpired, KeyboardInterrupt) as error:
             reason = 'timeout' if isinstance(error, subprocess.TimeoutExpired) else 'interrupted'
             output.write(f'\nCheck stopped: {reason}.\n'.encode('utf-8'))

@@ -1,7 +1,7 @@
 """Validate project history, show a resumable workfront and preserve check evidence."""
 
 import argparse
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from graphlib import CycleError, TopologicalSorter
 import hashlib
 import json
@@ -453,6 +453,7 @@ def validate_delivery(root, project):
     feedback = read_json(root / 'project/feedback.json')
     validate_model(root, 'Delivery', delivery)
     validate_model(root, 'Feedback', feedback)
+    indexed(delivery['scaffold_maintenance']['periodic_reviews'], 'periodic review')
     tasks, checks = project['tasks'], project['checks']
     types = indexed(delivery['change_types'], 'change type')
     scenarios = indexed(delivery['scenarios'], 'scenario')
@@ -559,6 +560,15 @@ def maintenance_status(root=ROOT, today=None):
             'next_action': 'Open a bounded maintenance task when due; run fresh dependency-review for integration.'}
 
 
+def periodic_reviews(delivery, today=None):
+    today = today or datetime.now(timezone.utc).date()
+    reviews = []
+    for item in delivery['scaffold_maintenance']['periodic_reviews']:
+        due = date.fromisoformat(item['reviewed_on']) + timedelta(days=item['interval_days'])
+        reviews.append({**item, 'next_review_by': due.isoformat(), 'review_due': today >= due})
+    return reviews
+
+
 def workfront(root=ROOT, *, report_path=None):
     if __package__:
         from .development import evidence_view
@@ -598,6 +608,7 @@ def workfront(root=ROOT, *, report_path=None):
         'proposed_decisions': [item['id'] for item in project['decisions'].values() if item['status'] == 'proposed'],
         'decision_replacements': project['replacements'],
         'dependency_maintenance': maintenance_status(root),
+        'periodic_reviews': periodic_reviews(project['delivery']),
         'verification': {'report_available': report_available, 'matches_current_execution_inputs': inputs_current,
                          'matches_current_task_definitions': tasks_current,
                          'matches_current_project_definitions': definitions_current, 'current': current,
@@ -894,6 +905,38 @@ def readiness(root=ROOT, *, report_path=None, artifact_root=None, candidate=None
             'claim_scope': 'Technical readiness from recorded release checks; publication authorization and published-artifact verification are separate. Scenario text alone is not observed product behavior.'}
 
 
+def recover_hosted_checkpoint(root, revision, repository):
+    if not re.fullmatch(r'[0-9a-f]{40}', revision):
+        raise ProjectError('Hosted history requires a full previous checkpoint SHA')
+    if revision == '0' * 40:
+        return
+    if not re.fullmatch(r'[A-Za-z0-9-]+/[A-Za-z0-9_.-]+', repository):
+        raise ProjectError('Hosted history requires the GitHub verification repository')
+
+    def object_type():
+        return subprocess.run(['git', '--no-replace-objects', 'cat-file', '-t', '--', revision],
+                              cwd=root, capture_output=True)
+
+    found = object_type()
+    if found.returncode:
+        # A force-pushed PR checkpoint can remain on GitHub after its ref moves.
+        # Request just the event's object from the base repository without credentials.
+        origin = f'https://github.com/{repository}.git'
+        try:
+            fetched = subprocess.run(['git', '-c', 'credential.helper=', '-c', 'http.followRedirects=false',
+                                      'fetch', '--no-tags',
+                                      '--no-write-fetch-head', '--no-recurse-submodules', '--', origin, revision],
+                                     cwd=root, capture_output=True, timeout=60,
+                                     env={**os.environ, 'GIT_TERMINAL_PROMPT': '0'})
+        except subprocess.TimeoutExpired:
+            raise ProjectError(f'Timed out retrieving previous checkpoint {revision} from {repository}') from None
+        if fetched.returncode:
+            raise ProjectError(f'Cannot retrieve previous checkpoint {revision} from {repository}')
+        found = object_type()
+    if found.returncode or found.stdout.strip() != b'commit':
+        raise ProjectError(f'Previous checkpoint {revision} is not an available Git commit')
+
+
 def review_history(root=ROOT, base=None):
     """Compare accepted history to the actual reviewed revision, not HEAD by guess."""
     if not base or set(base) == {'0'}:
@@ -1131,6 +1174,8 @@ def main():
     sub.add_parser('checkpoint')
     history = sub.add_parser('history')
     history.add_argument('--base', default=os.environ.get('SCOPEHUB_REVIEW_BASE'))
+    history.add_argument('--fetch-missing-checkpoint', action='store_true',
+                         help='Recover the exact previous checkpoint from the public GitHub verification repository')
     record = sub.add_parser('record')
     record.add_argument('task_id')
     record.add_argument('--report', type=Path, default=ROOT / '.reports/test-report.json')
@@ -1180,6 +1225,10 @@ def main():
             result = review_history(ROOT, args.base)
             checkpoint_base = os.environ.get('SCOPEHUB_CHECKPOINT_BASE')
             if checkpoint_base and checkpoint_base != args.base:
+                if args.fetch_missing_checkpoint:
+                    if os.environ.get('GITHUB_ACTIONS') != 'true':
+                        raise ProjectError('Checkpoint recovery requires the GitHub Actions job context')
+                    recover_hosted_checkpoint(ROOT, checkpoint_base, os.environ.get('GITHUB_REPOSITORY', ''))
                 result['previous_checkpoint'] = review_history(ROOT, checkpoint_base)
         elif args.command == 'checkpoint':
             result = checkpoint()

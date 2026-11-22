@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0",
+  "id": "0020",
+  "title": "Connect OpenAI Responses with a profile-owned API credential",
+  "status": "accepted",
+  "recorded_at": "2026-11-19",
+  "context": "M4-008 adds ordinary cloud text to the profile session established by M4-006. The user chooses a model available to their OpenAI API account or project. The credential lifecycle and outbound account charges need distinct handling from the existing credential-free Ollama route.",
+  "decision": "The trusted host resolves the currently approved profile credential revision and the Rust connector sends one bounded HTTPS POST to https://api.openai.com/v1/responses. The registry reconstructs conversation input from the current typed question and bounded recent successful pairs. Send store=false and use a locally reconstructed request on each turn. Show the provider, fixed destination, selected model, data categories and account charge basis before activation. Require the user to enter a model ID and a key. Credential entry, review and activation make zero provider requests.",
+  "authority": "M4-008, ADR 0007 and ADR 0011 authorize the scoped ordinary text implementation and synthetic verification. Real metered qualification requires the owner's account and spend authorization under M4-002.",
+  "alternatives": [
+    {
+      "option": "Send the credential to the existing Python model worker.",
+      "reason": "A direct Rust connector consumes the admitted credential in the trusted host path and avoids exposing it to the interpreter or its environment. The native OpenAI connector can start independently of the development Python configuration."
+    },
+    {
+      "option": "Resume turns with a provider conversation or response handle.",
+      "reason": "The local registry owns the context sent on each turn. Rebuilding it makes projection and revocation observable at the final request boundary."
+    }
+  ],
+  "consequences": [
+    "Windows uses a generic local-machine credential in the current OS user's Credential Manager, keyed by a digest of the trusted profile in the OpenAI provider namespace. Its opaque revision and API key are stored together. The platform crate confines the Win32 calls to a private Windows module and denies unsafe code everywhere else in that crate. The existing workspace lint policy continues to apply to the other crates.",
+    "The private Ubuntu preview launcher keeps the explicitly entered key in session memory and sends only its opaque revision to the Rust workspace registry. The native workspace database and operation schemas carry no API key. Replacing or removing a credential invalidates the previous cloud review or grant. Disconnect and process restart discard the grant and its conversation history.",
+    "The connector sends the credential only as a sensitive authorization header. It enforces the verified destination, deadline and byte limits with redirects, proxy discovery and HTTP retry disabled. The output is limited to the returned text and responding model. Provider response handles, saved private records, chart data and tool permissions remain outside this ordinary text connection.",
+    "Ollama keeps its independently reviewed route and the existing owned Python adapter. The offline mock remains explicit. An OpenAI authorization or transport failure is visible on its own route. Test TLS traffic establishes the controlled boundary and Windows packaged use and account qualification have independent gates."
+  ],
+  "supersedes": [],
+  "related_decisions": ["0007", "0009", "0011", "0019"],
+  "revisit_when": "A provider requires an additional credential type, a different destination, a new approved context category or a different platform persistence guarantee.",
+  "references": {
+    "transport": [
+      "https://developers.openai.com/api/docs/quickstart",
+      "https://developers.openai.com/api/reference/resources/responses/methods/create"
+    ],
+    "credential_store": [
+      "https://learn.microsoft.com/en-us/windows/win32/api/wincred/ns-wincred-credentialw",
+      "https://learn.microsoft.com/en-us/windows/win32/api/wincred/nf-wincred-credreadw",
+      "https://learn.microsoft.com/en-us/windows/win32/api/wincred/nf-wincred-credwritew",
+      "https://learn.microsoft.com/en-us/windows/win32/api/wincred/nf-wincred-creddeletew"
+    ]
+  }
+}

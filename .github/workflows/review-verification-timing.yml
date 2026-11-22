@@ -1,0 +1,38 @@
+name: Review verification timing
+
+on:
+  schedule:
+    - cron: '17 16 * * 6'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: verification-timing-review
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Review recent hosted verification
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_PROMPT_DISABLED: '1'
+        run: |
+          python3 scripts/timing.py --recent 12 --github-actions \
+            --save .reports/timing/weekly.json --summary "$GITHUB_STEP_SUMMARY" > /dev/null
+      - name: Archive timing observations
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verification-timing-weekly
+          path: .reports/timing/weekly.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30

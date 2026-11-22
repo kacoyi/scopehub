@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "id": "0022",
+  "title": "Retire integrated branches and verify the actual pull request checkout",
+  "status": "accepted",
+  "recorded_at": "2026-11-21",
+  "context": "Seven open stacked pull requests already had their entire heads in main. Six remote backup branches preserved old histories, including original hosted receipts missing from main. Multiple pull requests can use the same head, and the GitHub run API can list their current associations after their bases move.",
+  "decision": "Use short-lived outcome branches, automatic deletion on merge, and a read-only live inventory of protected heads, open pull requests and exact ancestry. Keep independently verified recovery for superseded work. Bind integration to the pull request and the tested merge commit with the expected head and base parents.",
+  "authority": "The owner delegated GitHub workflow decisions on 2026-11-21. The standing verified-main integration conditions and separate formal release authorization continue to apply.",
+  "alternatives": [
+    {
+      "option": "Preserve all historical branches indefinitely",
+      "reason": "Stale heads and already-integrated pull requests obscured the remaining active work. A verified bundle preserves original tips, while the accepted main history preserves integrated work."
+    },
+    {
+      "option": "Retire every branch after a fixed age",
+      "reason": "Age cannot establish integration, open dependents, unique changes or the presence of recoverable evidence."
+    },
+    {
+      "option": "Accept the latest successful run on the head SHA alone",
+      "reason": "A different pull request can use the same head against a different base. The checkout observed in the candidate run supplies its tested identity."
+    }
+  ],
+  "consequences": [
+    "A dependent pull request must move or finish before its base is retired. Weekly inspection also finds superseded pull requests whose branches were integrated elsewhere.",
+    "Remote deletions use exact expected values. A private recovery ref and a separately restored bundle preserve superseded history without a permanent GitHub backup branch.",
+    "Missing checkout provenance or an unavailable GitHub observation leaves integration pending. An obsolete checkout or another pull request cannot supply a passing result."
+  ],
+  "supersedes": [],
+  "related_decisions": ["0004", "0006", "0007"],
+  "revisit_when": [
+    "The checkout Action or GitHub pull request verification representation changes.",
+    "The repository adopts a merge queue, long-lived supported release branches, or additional integration targets."
+  ]
+}

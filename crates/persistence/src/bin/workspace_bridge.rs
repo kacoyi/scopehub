@@ -8,8 +8,9 @@ use std::{
 };
 
 use scopehub_application::{
-    Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE, LOCAL_WORKSPACE_OPERATIONS,
-    OperationRegistry, PRIVATE_RECORD_CHANGE, READ_LOCAL_IMPORT_REVISION, WorkspaceAccess,
+    AI_TEXT_CONNECTION, Actor, DECISION_NOTE_OPERATIONS, DECISION_NOTE_PREVIEW_RESTORE,
+    LOCAL_WORKSPACE_OPERATIONS, OperationRegistry, PRIVATE_RECORD_CHANGE,
+    READ_LOCAL_IMPORT_REVISION, TextModelProvider, TextModelWork, WorkspaceAccess,
     WorkspaceBinding, evidence_operation_name, failure,
 };
 use scopehub_domain::{
@@ -23,8 +24,17 @@ const MAX_REQUEST_BYTES: u64 = 16 * 1024;
 const MAX_NOTE_REQUEST_BYTES: u64 = 32 * 1024;
 const MAX_BACKUP_REQUEST_BYTES: u64 = 1024 * 1024;
 const MAX_SAMPLE_REQUEST_BYTES: u64 = 256 * 1024;
+// A 64 KiB text result can expand sixfold through JSON escapes, plus the
+// responding model identity and the ordinary poll command.
+const MAX_TEXT_RESULT_BYTES: u64 = 512 * 1024;
 
-fn request_limit(operation: Option<&str>) -> u64 {
+fn request_limit(request: Option<&Value>) -> u64 {
+    if request.is_some_and(|frame| frame["type"] == "ai_text_result") {
+        return MAX_TEXT_RESULT_BYTES;
+    }
+    let operation = request.and_then(|request| {
+        evidence_operation_name(request).or_else(|| request["intent"]["operation"].as_str())
+    });
     match operation {
         Some(DECISION_NOTE_PREVIEW_RESTORE | PRIVATE_RECORD_CHANGE) => MAX_BACKUP_REQUEST_BYTES,
         Some(operation) if DECISION_NOTE_OPERATIONS.contains(&operation) => MAX_NOTE_REQUEST_BYTES,
@@ -68,6 +78,16 @@ fn snapshot_request_id(request: &Value) -> Option<u64> {
     (object.len() == 2 && (1..=9_007_199_254_740_991).contains(&id)).then_some(id)
 }
 
+fn report_cancelled_model(frame: &mut Value, model_work: &mut Option<(uuid::Uuid, TextModelWork)>) {
+    if model_work
+        .as_ref()
+        .is_some_and(|(_, work)| work.is_cancelled())
+    {
+        *model_work = None;
+        frame["text_model_cancelled"] = json!(true);
+    }
+}
+
 fn serve(
     registry: &mut OperationRegistry<SqliteWorkspace>,
     access: &WorkspaceAccess<'_>,
@@ -88,6 +108,7 @@ fn serve(
     }
 
     let mut line = Vec::new();
+    let mut model_work: Option<(uuid::Uuid, TextModelWork)> = None;
     loop {
         line.clear();
         let count = input
@@ -98,10 +119,15 @@ fn serve(
             return Ok(());
         }
         if count > max_message_bytes() {
-            return write_frame(
+            if !line.ends_with(b"\n") {
+                // Drain the rest without buffering it before reading another frame.
+                input.skip_until(b'\n')?;
+            }
+            write_frame(
                 &mut output,
                 result_frame(Err(failure(ErrorCode::RESOURCELIMIT))),
-            );
+            )?;
+            continue;
         }
         if !line.ends_with(b"\n") {
             return write_frame(
@@ -111,13 +137,16 @@ fn serve(
         }
         let request =
             serde_json::from_slice::<Value>(&line).map_err(|_| failure(ErrorCode::INVALIDARGUMENT));
-        if request
-            .as_ref()
-            .is_ok_and(|frame| frame["type"] == "indicator_sample_preview")
-        {
+        if request.as_ref().is_ok_and(|frame| {
+            matches!(
+                frame["type"].as_str(),
+                Some("indicator_sample_preview" | "sample_evidence_selection")
+            )
+        }) {
             // The authenticated local preview host assembles this private frame.
             // Browser requests never supply the history or the wrapper.
             let mut request = request.expect("private frame");
+            let select_sample = request["type"] == "sample_evidence_selection";
             let result = if count as u64 > MAX_SAMPLE_REQUEST_BYTES {
                 Err(failure(ErrorCode::RESOURCELIMIT))
             } else if let Some(frame) = request.as_object_mut()
@@ -130,12 +159,18 @@ fn serve(
                 if command.to_string().len() as u64 >= MAX_REQUEST_BYTES {
                     Err(failure(ErrorCode::RESOURCELIMIT))
                 } else {
-                    registry.execute_sample_indicator_preview(access, command, history)
+                    if select_sample {
+                        registry.execute_sample_evidence_selection(access, command, history)
+                    } else {
+                        registry.execute_sample_indicator_preview(access, command, history)
+                    }
                 }
             } else {
                 Err(failure(ErrorCode::INVALIDARGUMENT))
             };
-            write_frame(&mut output, result_frame(result))?;
+            let mut frame = result_frame(result);
+            report_cancelled_model(&mut frame, &mut model_work);
+            write_frame(&mut output, frame)?;
             continue;
         }
         if request
@@ -170,16 +205,46 @@ fn serve(
             write_frame(&mut output, frame)?;
             continue;
         }
-        let operation = request.as_ref().ok().and_then(|request| {
-            evidence_operation_name(request).or_else(|| request["intent"]["operation"].as_str())
-        });
-        if count as u64 > request_limit(operation) {
-            return write_frame(
+        if count as u64 > request_limit(request.as_ref().ok()) {
+            write_frame(
                 &mut output,
                 result_frame(Err(failure(ErrorCode::RESOURCELIMIT))),
-            );
+            )?;
+            continue;
         }
         if let Ok(request) = &request
+            && request["type"] == "ai_openai_credential_changed"
+        {
+            // The authenticated preview owns the session key. The writer
+            // receives only its opaque revision on this private pipe.
+            let result = (|| {
+                let invalid = || failure(ErrorCode::INVALIDARGUMENT);
+                let (_, revision) = request
+                    .as_object()
+                    .filter(|frame| frame.len() == 2)
+                    .and_then(|frame| frame.get_key_value("revision"))
+                    .ok_or_else(invalid)?;
+                let revision = if revision.is_null() {
+                    None
+                } else {
+                    Some(
+                        revision
+                            .as_str()
+                            .and_then(|id| uuid::Uuid::parse_str(id).ok())
+                            .ok_or_else(invalid)?,
+                    )
+                };
+                registry.refresh_openai_credential(access, revision)?;
+                if model_work
+                    .as_ref()
+                    .is_some_and(|(_, work)| work.is_cancelled())
+                {
+                    model_work = None;
+                }
+                Ok(Value::Null)
+            })();
+            write_frame(&mut output, result_frame(result))?;
+        } else if let Ok(request) = &request
             && request["type"] == "snapshot"
         {
             // Private stdio control frame, separate from registered 1.1 commands.
@@ -222,6 +287,7 @@ fn serve(
             && request["type"] == "workspace_source"
         {
             let mut frame = result_frame(registry.select_workspace_source(access, request));
+            report_cancelled_model(&mut frame, &mut model_work);
             frame["request_id"] = request["request_id"].clone();
             write_frame(&mut output, frame)?;
         } else if let Ok(request) = &request
@@ -254,16 +320,90 @@ fn serve(
             frame["request_id"] = request["request_id"].clone();
             write_frame(&mut output, frame)?;
         } else {
+            let request = request.and_then(|mut request| {
+                if request["type"] != "ai_text_result" {
+                    return Ok(request);
+                }
+                // This carrier is assembled only by the trusted preview host.
+                // The browser can poll the turn, but supplies no worker result.
+                let frame = request
+                    .as_object_mut()
+                    .filter(|frame| frame.len() == 3)
+                    .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
+                let command = frame
+                    .remove("command")
+                    .filter(|command| {
+                        command["intent"]["operation"] == AI_TEXT_CONNECTION
+                            && command["intent"]["arguments"]["action"] == "poll"
+                    })
+                    .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
+                if command.to_string().len() as u64 >= MAX_REQUEST_BYTES {
+                    return Err(failure(ErrorCode::RESOURCELIMIT));
+                }
+                let id = command["intent"]["arguments"]["turn_id"]
+                    .as_str()
+                    .and_then(|id| uuid::Uuid::parse_str(id).ok())
+                    .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
+                let result = frame
+                    .remove("worker")
+                    .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
+                if model_work
+                    .as_ref()
+                    .is_some_and(|(pending, _)| *pending == id)
+                {
+                    let (_, work) = model_work.take().expect("matched text worker");
+                    let result = match result.get("error") {
+                        Some(error) => Err(serde_json::from_value(error.clone())
+                            .unwrap_or_else(|_| failure(ErrorCode::OUTPUTINVALID))),
+                        None => Ok(result),
+                    };
+                    work.finish(result);
+                }
+                Ok(command)
+            });
             let result = request.and_then(|request| registry.execute_workspace(access, request));
+            let next_model_work = if let Ok(reply) = &result
+                && reply["outcome"]["operation"] == AI_TEXT_CONNECTION
+                && let result = &reply["outcome"]["result"]
+                && (result["action"] == "send"
+                    || result["action"] == "poll" && result["turn"]["state"] == "running")
+            {
+                let turn_id = result["turn_id"]
+                    .as_str()
+                    .and_then(|id| uuid::Uuid::parse_str(id).ok())
+                    .ok_or_else(|| io::Error::other("Invalid text turn identity."))?;
+                registry
+                    .take_text_model_work(access, turn_id)
+                    .map_err(|_| io::Error::other("Text turn handoff failed."))?
+                    .map(|work| (turn_id, work))
+            } else {
+                None
+            };
             let work = match &result {
                 Ok(reply) => reply["outcome"]["result"]["task_id"].as_str(),
                 Err(_) => None,
             }
             .and_then(|task| registry.take_approved_python(access, task).ok().flatten());
             let mut frame = result_frame(result);
+            report_cancelled_model(&mut frame, &mut model_work);
             if let Some(work) = work {
                 frame["indicator_compute"] =
                     Value::String(serde_json::to_string(&work.request).map_err(io::Error::other)?);
+            }
+            if let Some((id, work)) = next_model_work {
+                let projection = match work.provider() {
+                    TextModelProvider::Ollama => json!({
+                        "destination": work.destination(), "request": work.request(),
+                    }),
+                    TextModelProvider::OpenAiResponses {
+                        credential_revision,
+                    } => json!({
+                        "provider": "openai_responses", "credential_revision": credential_revision.to_string(),
+                        "request": work.request(),
+                    }),
+                };
+                frame["text_model_work"] = Value::String(projection.to_string());
+                model_work = Some((id, work));
             }
             write_frame(&mut output, frame)?;
         }

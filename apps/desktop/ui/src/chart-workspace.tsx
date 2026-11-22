@@ -9,6 +9,7 @@ import { IndicatorPreview } from './indicator-preview';
 import type { PublishedRevisionAccess } from './published-revision-access';
 import { isClosedBarGapRevision, sampleRevisionInstrument, type Bar, type ChartHistory, type Instrument, type SampleRevision } from './market';
 import { ReplayGapDetails, replayGapReason } from './market-quality';
+import type { ModelChartSelection } from './model-chat-transport';
 import { PriceChart } from './price-chart';
 import { narrowScreen, readSampleView, saveSampleView } from './sample-view';
 import { SymbolSearch } from './symbol-search';
@@ -69,7 +70,7 @@ export type RestoredChartSource = {
   label?: string;
 };
 
-export function ChartWorkspace({ sample, leaveSample, localActions, workspace, openPublished, restoredSource, restoredSampleInstrument, chooseSampleInstrument, onOpenSample, retryRestoredSource, revisionAccess }: {
+export function ChartWorkspace({ sample, leaveSample, localActions, workspace, openPublished, restoredSource, restoredSampleInstrument, chooseSampleInstrument, onOpenSample, retryRestoredSource, revisionAccess, modelDialogOpen, openModelChat, openModelSettings }: {
   sample: boolean; leaveSample: () => void; localActions: LocalSourceActions | undefined;
   workspace: LocalWorkspace | undefined;
   revisionAccess: PublishedRevisionAccess;
@@ -79,6 +80,9 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   onOpenSample?: (() => void) | undefined;
   retryRestoredSource?: (() => void) | undefined;
   chooseSampleInstrument?: ((id: string) => Promise<void>) | undefined;
+  modelDialogOpen: boolean;
+  openModelChat: (selection: ModelChartSelection | undefined) => void;
+  openModelSettings: () => void;
 }) {
   const [saved] = useState(() => sample ? readSampleView() : undefined);
   const [chosenId, setChosenId] = useState(restoredSampleInstrument ?? saved?.symbol ?? '');
@@ -87,7 +91,12 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   const timeframe = sample ? sampleTimeframe : frozen?.history.dataset.timeframe ?? (workspace ? workspace.snapshot?.workspace.timeframe ?? '' : sampleTimeframe);
   const workspaceBusy = Boolean(workspace?.pending);
   const workspaceBlocked = Boolean(workspace && (!workspace.snapshot || workspaceBusy || workspace.error));
-  const timeframeBlocked = !sample && (workspaceBlocked || restoredSource !== undefined);
+  const evidence = workspace?.snapshot?.chart_evidence;
+  const integratedSample = sample && workspace?.snapshot?.source?.kind === 'sample';
+  const hasSampleSelection = Boolean(evidence && 'snapshot_hash' in evidence && evidence.snapshot_hash);
+  const sampleFiltersBlocked = integratedSample && (workspace?.pending === 'evidence' || workspace?.pending === 'source'
+    || hasSampleSelection && workspaceBlocked);
+  const timeframeBlocked = sample ? sampleFiltersBlocked : workspaceBlocked || restoredSource !== undefined;
   const [revision, setRevision] = useState<SampleRevision>(saved?.sampleRevision ?? 'normal');
   const [date, setDate] = useState(saved?.sampleDate ?? '');
   const [style, setStyle] = useState<ChartStyle>(saved?.style ?? 'candlestick');
@@ -139,24 +148,36 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   useEffect(() => {
     if (sample && history && (definition?.link_selection !== false || !lastInspected)) setLastInspected(history);
   }, [sample, history, definition?.link_selection, lastInspected]);
-  const evidence = workspace?.snapshot?.chart_evidence;
-  const sharedBar = frozen && evidence && 'revision_id' in evidence && evidence.revision_id === frozen.history.snapshot.dataset_id
-    && evidence.range.to_ms === evidence.range.from_ms + 1 ? evidence.range.from_ms : undefined;
-  const selectedBarTime = definition?.link_selection ? frozen ? sharedBar
-    : sampleBar?.snapshot === history?.snapshot.content_hash ? sampleBar?.time : undefined : undefined;
+  const boundSelection = evidence && 'revision_id' in evidence && history
+    && evidence.revision_id === history.snapshot.dataset_id
+    && (frozen || integratedSample && evidence.snapshot_hash === history.snapshot.content_hash) ? evidence : undefined;
+  const sharedBar = boundSelection && boundSelection.range.to_ms === boundSelection.range.from_ms + 1
+    ? boundSelection.range.from_ms : undefined;
+  const localSelection = sample && !integratedSample;
+  const selectedBarTime = !definition?.link_selection ? undefined : localSelection
+    ? (sampleBar?.snapshot === history?.snapshot.content_hash ? sampleBar?.time : undefined) : sharedBar;
+  const selectionBlocked = Boolean((frozen || integratedSample) && workspaceBlocked);
   const selectBar = definition?.link_selection && history ? (bar: Bar) => {
-    if (sample) {
+    if (localSelection) {
       setSampleBar({ snapshot: history.snapshot.content_hash, time: bar.time_ms });
-    } else if (frozen && workspace?.snapshot && !workspace.pending && !workspace.error) {
-      workspace.chooseEvidence({
+    } else if (workspace?.snapshot && !selectionBlocked && history.bars.some(item => item.time_ms === bar.time_ms)) {
+      void workspace.chooseEvidence({
         kind: 'chart_interval', snapshot: history.snapshot, range: { from_ms: bar.time_ms, to_ms: bar.time_ms + 1 },
       });
     }
   } : undefined;
   const clearBar = selectedBarTime !== undefined ? () => {
-    if (sample) setSampleBar(undefined);
-    else if (workspace?.snapshot && !workspace.pending && !workspace.error) workspace.chooseEvidence(null);
+    if (localSelection) setSampleBar(undefined);
+    else if (!selectionBlocked) void workspace?.chooseEvidence(null);
   } : undefined;
+  function changeSampleWindow(change: () => void) {
+    if (sampleFiltersBlocked) return;
+    if (!integratedSample || !hasSampleSelection) {
+      change();
+    } else {
+      void workspace?.chooseEvidence(null).then(cleared => { if (cleared) change(); });
+    }
+  }
   const failure = catalog.state === 'error' ? catalog.failure : result.state === 'error' ? result.failure : undefined;
   const { replay, start, stop } = useSampleReplay(sample ? history : undefined);
   const workerRecovery = replay?.state === 'reconnecting' || replay?.state === 'resumed' ? replay.state : undefined;
@@ -234,8 +255,11 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
       workspace.chooseTimeframe(value);
       return;
     }
-    setSampleTimeframe(value);
-    if (value !== '1m' && isClosedBarGapRevision(revision)) setRevision('normal');
+    if (value === timeframe) return;
+    changeSampleWindow(() => {
+      setSampleTimeframe(value);
+      if (value !== '1m' && isClosedBarGapRevision(revision)) setRevision('normal');
+    });
   };
   useEffect(() => {
     if (timeframe && timeframe !== '1m' && isClosedBarGapRevision(revision)) setRevision('normal');
@@ -251,7 +275,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   }, []);
   useEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.isComposing || searchQuery !== null || notesOpen || recordsOpen || layout.editing) return;
+      if (event.defaultPrevented || event.isComposing || searchQuery !== null || notesOpen || recordsOpen || layout.editing || modelDialogOpen) return;
       if (event.key === 'Escape') {
         if (visiblePanel === 'sources') closePanel();
         else if (focusChart) setFocusChart(false);
@@ -267,7 +291,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
     };
     window.addEventListener('keydown', keyboard);
     return () => window.removeEventListener('keydown', keyboard);
-  }, [searchQuery, notesOpen, recordsOpen, layout.editing, focusChart, visiblePanel, closePanel]);
+  }, [searchQuery, notesOpen, recordsOpen, layout.editing, focusChart, visiblePanel, closePanel, modelDialogOpen]);
   const openSample = onOpenSample ?? (() => { window.location.hash = 'demo'; });
 
   let plot: ReactNode;
@@ -309,11 +333,18 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
 
   const panelProps = {
     sample, selected, instruments, failureKind: (failure ?? replayFailure)?.kind, workerRecovery, replayGap,
-    filters: { revision: sampleRevision, timeframe, date, setRevision, setDate }, choose, leave: leaveSample,
+    filters: {
+      revision: sampleRevision, timeframe, date, blocked: sampleFiltersBlocked,
+      setRevision: (value: SampleRevision) => {
+        if (value !== sampleRevision) changeSampleWindow(() => setRevision(value));
+      },
+      setDate: (value: string) => { if (value !== date) changeSampleWindow(() => setDate(value)); },
+    }, choose, leave: leaveSample,
     choosingInstrument: workspaceBusy,
     localActions: sample || restoredSource ? localActions : undefined,
     openPublished: (sample || restoredSource) && !localActions ? openPublished : undefined,
     openSample: !sample && restoredSource ? openSample : undefined,
+    openModelSettings,
   };
   const savedLayouts = workspace?.snapshot?.layouts;
   const pinned = definition?.pinned_instrument;
@@ -340,6 +371,16 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
         aria-haspopup="dialog" disabled={workspaceBlocked} onClick={() => setNotesOpen(true)}>Decision notes</button>
         <button type="button" className="period notes-trigger" aria-haspopup="dialog"
           disabled={workspaceBlocked} onClick={() => setRecordsOpen(true)}>Private records</button></div>}
+      <button type="button" className="period notes-trigger" aria-haspopup="dialog"
+        disabled={Boolean(workspace?.pending === 'evidence' || workspace?.pending === 'source')} onClick={() => {
+          const state = workspace?.snapshot;
+          openModelChat(state && boundSelection && history && !selectionBlocked ? {
+            selectionRevision: state.selection_revision,
+            sourceReference: history.snapshot.dataset_id,
+            datasetRevision: history.snapshot.dataset_revision,
+            range: boundSelection.range,
+          } : undefined);
+        }}>Ask AI</button>
       <span className={'connection' + (sample ? ' sample' : '')} role="status"><i aria-hidden="true" />{sample
         ? <><span>Offline sample</span><b>Simulated</b></> : restoredSource ? frozen ? restoredSource.label ?? 'Published CSV'
           : restoredSource.status === 'revoked' ? 'Access revoked' : restoredSource.status === 'loading' ? 'Restoring CSV' : 'Source unavailable'
@@ -369,9 +410,12 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
         <footer className="chart-footer"><span>{sample ? (date ? date + ' UTC' : 'Jan 2024') : 'ScopeHub'}</span>
           <UnavailableSharedSelection workspace={workspace} />
           {workspace?.pending && <span role="status">{workspace.pending === 'open' ? 'Loading local workspace…'
-            : workspace.pending === 'evidence' ? 'Sharing chart evidence…' : 'Saving timeframe…'}</span>}
+            : workspace.pending === 'evidence' ? 'Sharing chart evidence…'
+              : workspace.pending === 'source' ? 'Checking workspace source…' : 'Saving timeframe…'}</span>}
           {workspace?.error && <><span role="alert" className="workspace-error">{workspace.error}</span>
             <button type="button" className="secondary-button" onClick={workspace.reload}>Reload workspace state</button></>}
+          {workspace?.selectionNotice && <span role="status">{workspace.selectionNotice}</span>}
+          {workspace?.sourceNotice && <span role="status">{workspace.sourceNotice}</span>}
           {selected && <span>{selected.timezone}</span>}
           {history && <HistoryStatus history={history} repaired={Boolean(repairedBars)} />}
           {canReplay && <button type="button" className="secondary-button replay-button" onClick={playing ? stop : start}>
@@ -396,7 +440,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
           <WorkspacePanel {...panelProps} layoutPanel={active.panel} panel={workspacePanel[active.panel]}
             history={active.panel === 'inspection' ? inspectionHistory : history} close={() => closeDock(active)}
             selectedBarTime={selectedBarTime} selectBar={selectBar} clearBar={clearBar}
-            selectionBlocked={Boolean(frozen && (workspace?.pending || workspace?.error))} />
+            selectionBlocked={selectionBlocked} />
         </LayoutDock>)}
       </div>
       {narrow && !visiblePanel && activeDocks.length > 0 && <button type="button" className="panel-scrim" aria-label="Dismiss side panel"

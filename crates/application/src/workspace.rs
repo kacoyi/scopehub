@@ -27,6 +27,11 @@ mod notes;
 mod private_records;
 mod source;
 pub use source::{FrozenWorkspaceSourceStatus, WorkspaceSourcePreference, WorkspaceSourceView};
+mod text_connection;
+pub(crate) use text_connection::TextConnection;
+pub use text_connection::{
+    AI_TEXT_CONNECTION, OPENAI_RESPONSES_DESTINATION, TextModelProvider, TextModelWork,
+};
 
 pub(crate) use indicators::IndicatorStage;
 pub use indicators::{
@@ -48,9 +53,11 @@ pub use backup::{
     DECISION_NOTE_PREVIEW_RESTORE, DECISION_NOTE_RESTORE_BACKUP, DecisionNoteBackupData,
     DecisionNoteOutcomeAddition, DecisionNoteRestorePlan,
 };
+pub(crate) use evidence::SampleChartSelection;
 pub use evidence::{
     ChartEvidenceRef, ChartEvidenceStatus, LocalChartAnalysisGrant, READ_CHART_PROJECTION,
-    SELECT_EVIDENCE, evidence_operation_name,
+    READ_SAMPLE_EVIDENCE_HISTORY, SELECT_EVIDENCE, evidence_operation_name,
+    is_sample_evidence_selection,
 };
 pub use layout::{
     APPLY_LAYOUT, LAYOUT_ID, PREVIEW_LAYOUT, WorkspaceLayoutChange, WorkspaceLayoutSnapshot,
@@ -66,6 +73,7 @@ pub use notes::{
 pub const SET_TIMEFRAME: &str = "chart.setTimeframe";
 pub const UNDO: &str = "workspace.undo";
 pub const LOCAL_WORKSPACE_OPERATIONS: &[&str] = &[
+    AI_TEXT_CONNECTION,
     SET_TIMEFRAME,
     UNDO,
     PREVIEW_LAYOUT,
@@ -265,7 +273,7 @@ pub trait WorkspaceTransaction {
     fn indicator_trusted_python_allowed(&self, _instrument_id: &str) -> Result<bool, Error> {
         Ok(false)
     }
-    fn indicator_sample_allowed(&self, _instrument_id: &str) -> Result<bool, Error> {
+    fn sample_source_selected(&self, _instrument_id: &str) -> Result<bool, Error> {
         Ok(false)
     }
     fn indicator_compute_allowed(&self, _revision_id: &str) -> Result<bool, Error> {
@@ -451,12 +459,23 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
                 .operations
                 .contains(&PREVIEW_LAYOUT)
                 .then_some(layouts),
-            chart_evidence: chart_evidence.map(|status| match status {
-                ChartEvidenceStatus::Available(target) => json!({
-                    "revision_id": target.revision_id, "range": target.range,
+            chart_evidence: self
+                .sample_evidence
+                .as_ref()
+                .filter(|sample| {
+                    state.selection_revision == sample.selection_revision
+                        && evidence::local_display(access)
+                        && access.operations.contains(&READ_CHART_PROJECTION)
+                })
+                .map(SampleChartSelection::local_reference)
+                .or_else(|| {
+                    chart_evidence.map(|status| match status {
+                        ChartEvidenceStatus::Available(target) => json!({
+                            "revision_id": target.revision_id, "range": target.range,
+                        }),
+                        ChartEvidenceStatus::Unavailable => json!({"unavailable": true}),
+                    })
                 }),
-                ChartEvidenceStatus::Unavailable => json!({"unavailable": true}),
-            }),
         })
     }
 
@@ -547,6 +566,9 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
         }
         if PRIVATE_RECORD_OPERATIONS.contains(&name) {
             return self.execute_private_record(access, operation(name)?, request);
+        }
+        if name == AI_TEXT_CONNECTION {
+            return self.execute_text_connection(access, operation(name)?, request);
         }
         if !matches!(name, SET_TIMEFRAME | UNDO | PREVIEW_LAYOUT | APPLY_LAYOUT) {
             return Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY));

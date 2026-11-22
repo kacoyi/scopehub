@@ -52,17 +52,17 @@ export function useRestoredWorkspaceSource(workspace: LocalWorkspace | undefined
       setLoaded(undefined);
       return;
     }
-    let cancelled = false;
+    const controller = new AbortController();
     setLoaded({ kind: 'frozen', revision_id: openable, status: 'loading' });
-    void openAuthenticatedFrozenChart(openable, crypto.randomUUID()).then(result => {
+    void openAuthenticatedFrozenChart(openable, crypto.randomUUID(), controller.signal).then(result => {
       const chart = projectFrozenChart(result);
-      if (!cancelled && canDisplay(openable)) setLoaded(chart ? {
+      if (!controller.signal.aborted && canDisplay(openable)) setLoaded(chart ? {
         kind: 'frozen', revision_id: openable, status: 'ready', chart, label: result.revision.relative_path,
       } : { kind: 'frozen', revision_id: openable, status: 'unavailable' });
     }).catch(() => {
-      if (!cancelled) setLoaded({ kind: 'frozen', revision_id: openable, status: 'unavailable' });
+      if (!controller.signal.aborted) setLoaded({ kind: 'frozen', revision_id: openable, status: 'unavailable' });
     });
-    return () => { cancelled = true; };
+    return () => controller.abort();
   }, [openable, canDisplay, attempt]);
 
   const retry = () => {

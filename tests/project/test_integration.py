@@ -26,7 +26,7 @@ def observations():
     for key in ['enforce_admins', 'allow_force_pushes', 'allow_deletions', 'required_conversation_resolution']:
         protection[key] = {'enabled': protection[key]}
     pr = {'number': 1, 'url': 'https://github.com/fixture/project/pull/1', 'state': 'OPEN', 'isDraft': False,
-          'headRefOid': 'a' * 40, 'baseRefOid': 'b' * 40, 'baseRefName': 'main',
+          'headRefOid': 'a' * 40, 'headRefName': 'task', 'baseRefOid': 'b' * 40, 'baseRefName': 'main',
           'mergeable': 'MERGEABLE', 'mergeStateStatus': 'CLEAN', 'reviewDecision': ''}
     return {'source': {'git_head': 'a' * 40, 'working_tree_dirty': False}, 'pr': pr, 'final_pr': deepcopy(pr),
             'base_current': True, 'workflow': {'status': 'passed', 'reason': 'Observed success.',
@@ -36,7 +36,41 @@ def observations():
             'scope': {'completed_task_ids': ['M0-001'], 'blockers': []}, 'observations_stable': True}
 
 
+def checkout_log(pr, commit, git='/usr/bin/git'):
+    return '\n'.join(f'2026-11-21T16:42:53.0000000Z {message}' for message in (
+        '##[group]Run actions/checkout@' + '1' * 40,
+        '##[endgroup]',
+        '##[group]Checking out the ref',
+        f'[command]{git} checkout --progress --force refs/remotes/pull/{pr}/merge',
+        '##[endgroup]',
+        f'[command]{git} log -1 --format=%H',
+        commit,
+    ))
+
+
 class IntegrationAssessmentTests(unittest.TestCase):
+    def test_checkout_identifies_the_tested_ref_and_head_on_both_runner_platforms(self):
+        commit = '7' * 40
+        for git in ('/usr/bin/git', r'"C:\Program Files\Git\bin\git.exe"'):
+            self.assertEqual((3, commit), integration.checked_pull_request(StringIO(checkout_log(3, commit, git))))
+        with self.assertRaisesRegex(ProjectError, 'checkout log'):
+            integration.checked_pull_request(StringIO(checkout_log(3, commit).replace(
+                '##[group]Checking out the ref', '##[group]Run pnpm check')))
+
+    def test_log_download_handles_other_encodings_and_reports_missing_evidence(self):
+        commit = '7' * 40
+
+        def download(argv, **options):
+            self.assertEqual('repos/fixture/project/actions/jobs/10/logs', argv[-1])
+            options['stdout'].buffer.write(b'\xff\r\n' + checkout_log(3, commit).encode())
+            return subprocess.CompletedProcess(argv, 0, stderr=b'')
+
+        with patch.object(subprocess, 'run', side_effect=download):
+            self.assertEqual((3, commit), integration.job_checkout('.', 'fixture/project', 10))
+        with patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess([], 1, stderr=b'HTTP 404')):
+            with self.assertRaisesRegex(ProjectError, 'job 10: HTTP 404'):
+                integration.job_checkout('.', 'fixture/project', 10)
+
     def test_technical_pass_requires_a_separate_review_and_authorization(self):
         result = integration.assess(**observations())
         self.assertTrue(result['technical_ready'])
@@ -178,14 +212,27 @@ class IntegrationHistoryTests(ProjectFixture):
 
     def test_collection_checks_the_latest_pr_attempt_despite_a_newer_task_dispatch(self):
         args = observations()
+        for settings in [args['policy']['configuration'], args['protection']]:
+            settings['required_status_checks']['checks'].append({'context': 'portable', 'app_id': 123})
         (self.root / 'project/branch-protection.json').write_bytes(json_bytes(args['policy']))
         base = self.commit()
         self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
         head = self.commit()
         pr = dict(args['pr'], baseRefOid=base, headRefOid=head)
-        run = {'id': 100, 'head_sha': head, 'status': 'completed', 'conclusion': 'success',
+        run = {'id': 100, 'head_sha': head, 'head_branch': 'task', 'status': 'completed', 'conclusion': 'success',
                'run_attempt': 2, 'path': '.github/workflows/verify.yml', 'event': 'pull_request'}
-        task_run = dict(run, id=101, event='workflow_dispatch', run_attempt=1)
+        # Lists of associated open PRs can be empty even for a real rerun.
+        run['pull_requests'] = []
+        associated = [{'number': 1, 'head': {'sha': head}, 'base': {'sha': base, 'ref': 'main'}}]
+        foreign = dict(run, id=101, run_attempt=1, pull_requests=associated)
+        stale = dict(run, id=102, run_attempt=1, pull_requests=associated)
+        task_run = dict(run, id=103, event='workflow_dispatch', run_attempt=1)
+        runs = [task_run, stale, foreign, run]
+        checkout_step = {'name': 'Run actions/checkout@' + '1' * 40, 'conclusion': 'success'}
+        checked = {1000: (1, '7' * 40), 1010: (2, '8' * 40), 1020: (1, '9' * 40)}
+        checked.update({job + 1: source for job, source in checked.items()})
+        second_steps = [checkout_step]
+        head_parent = {100: head, 101: head, 102: head}
         queries = []
 
         def command(argv, root):
@@ -194,24 +241,79 @@ class IntegrationHistoryTests(ProjectFixture):
                 return original(argv, root)
             if argv[:3] == ['gh', 'pr', 'view']:
                 return json.dumps(pr)
-            if 'actions/runs' in ' '.join(argv) and '--paginate' not in argv:
-                return json.dumps({'workflow_runs': [task_run, run]})
-            if '--paginate' in argv:
-                self.assertIn('/runs/100/attempts/2/jobs?', argv[-1])
-                return json.dumps([{'jobs': [dict(args['jobs'][0], head_sha=head)]}])
+            if 'event=pull_request' in argv:
+                return json.dumps([{'workflow_runs': runs[:2]}, {'workflow_runs': runs[2:]}])
+            for run_id, attempt, parent in [(100, 2, base), (101, 1, base), (102, 1, 'f' * 40)]:
+                _, merge_sha = checked[run_id * 10]
+                if f'/runs/{run_id}/attempts/{attempt}/jobs?' in argv[-1]:
+                    job = dict(args['jobs'][0], head_sha=head, id=run_id * 10, steps=[checkout_step])
+                    portable = dict(job, name='portable', id=run_id * 10 + 1, steps=second_steps)
+                    return json.dumps([{'jobs': [job, portable]}])
+                if argv[-1].endswith(f'/git/commits/{merge_sha}'):
+                    return json.dumps({'sha': merge_sha, 'parents': [{'sha': parent}, {'sha': head_parent[run_id]}]})
             self.assertEqual('repos/fixture/project/branches/main/protection', argv[-1])
             return json.dumps(args['protection'])
 
         original = integration.command
+        checkout = patch.object(integration, 'job_checkout', side_effect=lambda root, repo, job_id: checked[job_id])
+        self.addCleanup(checkout.stop)
+        checkout.start()
         with (patch.object(integration, 'github_identity', return_value='fixture/project'),
               patch.object(integration, 'command', side_effect=command)):
             result = integration.inspect(self.root, 1)
         self.assertTrue(result['technical_ready'])
         self.assertEqual('pull_request', result['workflow']['run']['event'])
+        self.assertEqual(100, result['workflow']['run']['id'])
+        self.assertEqual({'pull_request': 1, 'commit': '7' * 40, 'base': base, 'head': head},
+                         result['workflow']['checkout'])
+        self.assertEqual([(1000, '7' * 40), (1001, '7' * 40)],
+                         [(job['job_id'], job['commit']) for job in result['workflow']['required_checkouts']])
         self.assertEqual(2, sum('event=pull_request' in argv for argv in queries))
         self.assertEqual(2, sum(argv[:3] == ['gh', 'pr', 'view'] for argv in queries))
         self.assertEqual(head, result['source']['git_head'])
         self.assertFalse(source_identity(self.root)['working_tree_dirty'])
+        with (patch.object(integration, 'github_identity', return_value='fixture/project'),
+              patch.object(integration, 'command', side_effect=command)):
+            runs[:] = [run]
+            checked[1001] = (1, '9' * 40)
+            mixed = integration.inspect(self.root, 1)
+            self.assertFalse(mixed['technical_ready'])
+            self.assertIn('different pull requests or merge commits', mixed['workflow']['reason'])
+            checked[1001] = checked[1000]
+            second_steps.clear()
+            missing = integration.inspect(self.root, 1)
+            self.assertFalse(missing['technical_ready'])
+            self.assertIn('portable has no successful pinned checkout', missing['workflow']['reason'])
+            second_steps.append(checkout_step)
+            for only, reason in [(stale, 'different base'), (foreign, 'no checked run matches')]:
+                runs[:] = [only]
+                result = integration.inspect(self.root, 1)
+                self.assertFalse(result['technical_ready'])
+                self.assertIn(reason, result['workflow']['reason'])
+            runs[:] = [stale, run]
+            head_parent[102] = 'd' * 40
+            wrong_head = integration.inspect(self.root, 1)
+            self.assertFalse(wrong_head['technical_ready'])
+            self.assertIn('does not match its declared head', wrong_head['workflow']['reason'])
+            head_parent[102] = head
+            # A newer attempt with unavailable identity cannot fall through to an older pass.
+            runs[:] = [dict(stale, status='queued', conclusion=None), run]
+            self.assertIn('queued or running', integration.inspect(self.root, 1)['workflow']['reason'])
+            runs[:] = [foreign, dict(run, conclusion='failure')]
+            self.assertEqual('failed', integration.inspect(self.root, 1)['workflow']['status'])
+        runs[:] = [run]
+        queries.clear()
+
+        def changed_during_inspection(argv, root):
+            if 'event=pull_request' in argv and any('event=pull_request' in old for old in queries):
+                runs.append(dict(run, run_attempt=3, status='in_progress', conclusion=None))
+            return command(argv, root)
+
+        with (patch.object(integration, 'github_identity', return_value='fixture/project'),
+              patch.object(integration, 'command', side_effect=changed_during_inspection)):
+            raced = integration.inspect(self.root, 1)
+        self.assertFalse(raced['technical_ready'])
+        self.assertTrue(any('changed during inspection' in why for why in raced['blockers']))
         with patch.object(integration, 'github_identity', return_value='unrelated/project'):
             with self.assertRaisesRegex(ProjectError, 'another repository'):
                 integration.inspect(self.root, 1)

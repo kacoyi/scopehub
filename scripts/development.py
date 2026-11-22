@@ -241,6 +241,10 @@ def status_view(state, *, detail=False):
     if detail:
         return state
     result = dict(state)
+    result['periodic_reviews'] = [
+        {key: review[key] for key in ('id', 'next_review_by', 'review_due')}
+        for review in state['periodic_reviews']
+    ]
     focus = state.get('focus')
     if focus:
         result['focus'] = {key: focus[key] for key in

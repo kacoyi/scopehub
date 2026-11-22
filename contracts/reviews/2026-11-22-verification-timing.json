@@ -1,0 +1,374 @@
+{
+  "reviewed_on": "2026-11-22",
+  "tasks": [
+    "M0-046",
+    "M0-047"
+  ],
+  "full_pull_request_observations": [
+    {
+      "role": "control",
+      "run_id": 44978070164,
+      "attempt": 1,
+      "head": "10e4ab0470e4f83144e77ff52b3c722b6ec047f4",
+      "elapsed_seconds": 2041,
+      "runner_work_seconds": 2815,
+      "platforms": {
+        "windows": {
+          "job_id": 137072359391,
+          "job_name": "verify (windows-latest)",
+          "runner_image": {
+            "label": "windows-2025-vs2026",
+            "version": "20261116.315.1"
+          },
+          "queue_seconds": 17,
+          "runner_seconds": 2024,
+          "setup_seconds": 276,
+          "harness_seconds": 1556,
+          "teardown_seconds": 192,
+          "cargo_cache": {
+            "state": "fallback",
+            "matched_manifest_toolchain_hashes": "e9493dea7d87d2e6ce333957af71c371e895477093f5cceb01172ac8a5382005-8aec3a59960c8503fc0d4fa5fa8232cefe52e36321ee9bf870e1fe45b716da62",
+            "restored_bytes": 2623258529
+          },
+          "checkout": "ea60c0fe09b8f6e47cdc83fa1bf0b30ccdd15e2d",
+          "report_sha256": "651431e3282943e3b5cef8648f2763600c8c398783d71176687b79efbf520b76",
+          "artifact_id": 14737815731,
+          "zip_digest": "sha256:786c8082f599d1cc62e08cfed0e1bf45a6f98f71c533425f231d22cccb5a965d",
+          "python_suite_counts": [
+            "Ran 463 tests in 341.964s",
+            "OK (skipped=48)"
+          ],
+          "playwright_summaries": [
+            "  1 skipped",
+            "  47 passed (3.6m)"
+          ],
+          "selected_count": 30,
+          "five_slowest_seconds": {
+            "python-contracts-workers": 342.953,
+            "rust-contracts-workers": 287.828,
+            "windows-native-build": 235.64,
+            "workspace-timeframe": 216.765,
+            "market-recovery": 66.0
+          }
+        },
+        "ubuntu": {
+          "job_id": 137072359548,
+          "job_name": "verify (ubuntu-latest)",
+          "runner_image": {
+            "label": "ubuntu-26.04",
+            "version": "20261116.202.1"
+          },
+          "queue_seconds": 17,
+          "runner_seconds": 791,
+          "setup_seconds": 54,
+          "harness_seconds": 732,
+          "teardown_seconds": 5,
+          "cargo_cache": {
+            "state": "exact",
+            "matched_manifest_toolchain_hashes": "e9493dea7d87d2e6ce333957af71c371e895477093f5cceb01172ac8a5382005-34addd6fb270290ce8d3329d1520b8e6737f984a54587bdae8c503aa8e5a27ec",
+            "restored_bytes": 1097373774
+          },
+          "checkout": "ea60c0fe09b8f6e47cdc83fa1bf0b30ccdd15e2d",
+          "report_sha256": "a3f86ee3f3a30f8969a569ab0c4e137153be6d6a7009fcf79ab4fa4133246246",
+          "artifact_id": 14737231452,
+          "zip_digest": "sha256:440c23bd434fa056fa64317c6f7e0afcf3f157c61ee24e144599fcb0a6a5d060",
+          "python_suite_counts": [
+            "Ran 463 tests in 68.473s",
+            "OK"
+          ],
+          "playwright_summaries": [
+            "  48 passed (2.7m)"
+          ],
+          "selected_count": 30,
+          "five_slowest_seconds": {
+            "workspace-timeframe": 164.974,
+            "rust-contracts-workers": 131.518,
+            "python-contracts-workers": 69.104,
+            "market-recovery": 68.281,
+            "market-quality-states": 58.119
+          }
+        }
+      }
+    },
+    {
+      "role": "candidate",
+      "run_id": 44980698262,
+      "attempt": 1,
+      "head": "59f260328e26822eb9054f404c9719064142ce73",
+      "elapsed_seconds": 1617,
+      "runner_work_seconds": 2207,
+      "platforms": {
+        "ubuntu": {
+          "job_id": 137080334308,
+          "job_name": "verify (ubuntu-latest)",
+          "runner_image": {
+            "label": "ubuntu-26.04",
+            "version": "20261116.202.1"
+          },
+          "queue_seconds": 2,
+          "runner_seconds": 592,
+          "setup_seconds": 30,
+          "harness_seconds": 547,
+          "teardown_seconds": 15,
+          "cargo_cache": {
+            "state": "miss",
+            "matched_manifest_toolchain_hashes": "e9493dea7d87d2e6ce333957af71c371e895477093f5cceb01172ac8a5382005-34addd6fb270290ce8d3329d1520b8e6737f984a54587bdae8c503aa8e5a27ec"
+          },
+          "checkout": "060f604d45b8f338c15b3167e8823dd41d7fb190",
+          "report_sha256": "374665c7ffe281d0fcdf13db90b3d022728a0070879149f3b06fe21a8bf0c680",
+          "artifact_id": 14736969611,
+          "zip_digest": "sha256:ee78147922eb593fea3ece8e58ab3a4197424fd66a5cc18c6ad1e2b97b0bb7f9",
+          "python_suite_counts": [
+            "Ran 507 tests in 91.309s",
+            "OK"
+          ],
+          "playwright_summaries": [
+            "  48 passed (2.2m)"
+          ],
+          "selected_count": 30,
+          "five_slowest_seconds": {
+            "rust-contracts-workers": 145.365,
+            "workspace-timeframe": 133.228,
+            "python-contracts-workers": 91.816,
+            "market-recovery": 48.187,
+            "market-live-stream": 43.39
+          }
+        },
+        "windows": {
+          "job_id": 137080334496,
+          "job_name": "verify (windows-latest)",
+          "runner_image": {
+            "label": "windows-2025-vs2026",
+            "version": "20261116.315.1"
+          },
+          "queue_seconds": 2,
+          "runner_seconds": 1615,
+          "setup_seconds": 215,
+          "harness_seconds": 1388,
+          "teardown_seconds": 12,
+          "cargo_cache": {
+            "state": "exact",
+            "matched_manifest_toolchain_hashes": "e9493dea7d87d2e6ce333957af71c371e895477093f5cceb01172ac8a5382005-253dff6ed638aa1a94e70dee77fd5a3dc7e49f5709dcaf84b0747d171f22c9eb",
+            "restored_bytes": 3859592979
+          },
+          "checkout": "060f604d45b8f338c15b3167e8823dd41d7fb190",
+          "report_sha256": "7a6c951ca7668d8a710de1eadfb16b59f1d18cf5dd1b9f4e736e5720f7e19018",
+          "artifact_id": 14738351591,
+          "zip_digest": "sha256:da5f9e58faae2c48eee2fc39d3733ac56594af5193a1d44fc6a56df657ddfb1f",
+          "python_suite_counts": [
+            "Ran 507 tests in 690.837s",
+            "OK (skipped=51)"
+          ],
+          "playwright_summaries": [
+            "  1 skipped",
+            "  47 passed (4.5m)"
+          ],
+          "selected_count": 30,
+          "five_slowest_seconds": {
+            "python-contracts-workers": 692.141,
+            "rust-contracts-workers": 335.39,
+            "workspace-timeframe": 272.032,
+            "windows-native-build": 209.625,
+            "market-recovery": 75.765
+          }
+        }
+      }
+    }
+  ],
+  "coverage": "Both full checks retained their selection, gate outcomes and protected job names. Each platform kept all 463 previously enumerated Python outcomes and added 44 tests. The timing flag and operations wrapper were the only changed commands. All four operations test names and outcomes matched. Product source, UI vectors, lockfiles and runner image versions matched across the two PR checkouts.",
+  "local_repeated_schedule_experiment": {
+    "trials": {
+      "a7": {
+        "mode": "serial",
+        "wall_seconds": 150.388,
+        "cpu_seconds": 124.236
+      },
+      "b7": {
+        "mode": "parallel",
+        "wall_seconds": 68.089,
+        "cpu_seconds": 102.333
+      },
+      "a8": {
+        "mode": "serial",
+        "wall_seconds": 149.124,
+        "cpu_seconds": 122.474
+      },
+      "b8": {
+        "mode": "parallel",
+        "wall_seconds": 67.962,
+        "cpu_seconds": 101.345
+      }
+    },
+    "matching_named_outcomes": {
+      "python-contracts-workers": 497,
+      "rust-contracts-workers": 194,
+      "typescript-contracts": 333
+    },
+    "matching_checks_and_commands": [
+      "python-contracts-workers",
+      "typescript-contracts",
+      "ui-build",
+      "rust-format",
+      "rust-contracts-workers",
+      "rust-lints"
+    ],
+    "wall_seconds": {
+      "serial_mean": 149.756,
+      "parallel_mean": 68.025,
+      "candidate_minus_control": -81.731,
+      "percent_change": -54.58
+    },
+    "cpu_seconds": {
+      "serial_mean": 123.355,
+      "parallel_mean": 101.839,
+      "candidate_minus_control": -21.516,
+      "percent_change": -17.44
+    }
+  },
+  "local_experiment_inputs": "a2dd171b6260dedfd2cc39c8eacfd6bf5ee7112c9a19f22cd4a8df222f0f061e",
+  "operations_wrapper_negative_and_positive_controls": [
+    {
+      "case": "none",
+      "mode": "narrow",
+      "cargo_exit": 0,
+      "wrapper_exit": 1,
+      "summary": "0 passed; 0 failed; 0 ignored"
+    },
+    {
+      "case": "none",
+      "mode": "workspace",
+      "cargo_exit": 0,
+      "wrapper_exit": 1,
+      "summary": "0 passed; 0 failed; 0 ignored"
+    },
+    {
+      "case": "ignored",
+      "mode": "narrow",
+      "cargo_exit": 0,
+      "wrapper_exit": 1,
+      "summary": "0 passed; 0 failed; 1 ignored"
+    },
+    {
+      "case": "ignored",
+      "mode": "workspace",
+      "cargo_exit": 0,
+      "wrapper_exit": 1,
+      "summary": "0 passed; 0 failed; 1 ignored"
+    },
+    {
+      "case": "partly-ignored",
+      "mode": "narrow",
+      "cargo_exit": 0,
+      "wrapper_exit": 1,
+      "summary": "1 passed; 0 failed; 3 ignored"
+    },
+    {
+      "case": "partly-ignored",
+      "mode": "workspace",
+      "cargo_exit": 0,
+      "wrapper_exit": 1,
+      "summary": "1 passed; 0 failed; 3 ignored"
+    },
+    {
+      "case": "failing",
+      "mode": "narrow",
+      "cargo_exit": 101,
+      "wrapper_exit": 101,
+      "summary": "0 passed; 1 failed; 0 ignored"
+    },
+    {
+      "case": "failing",
+      "mode": "workspace",
+      "cargo_exit": 101,
+      "wrapper_exit": 101,
+      "summary": "0 passed; 1 failed; 0 ignored"
+    },
+    {
+      "case": "passing",
+      "mode": "narrow",
+      "cargo_exit": 0,
+      "wrapper_exit": 0,
+      "summary": "1 passed; 0 failed; 0 ignored"
+    },
+    {
+      "case": "passing",
+      "mode": "workspace",
+      "cargo_exit": 0,
+      "wrapper_exit": 0,
+      "summary": "1 passed; 0 failed; 0 ignored"
+    }
+  ],
+  "interpretation": "The local warm six-check experiment isolated the schedule change. Hosted critical elapsed fell by 424 seconds and occupied runner time by 608 seconds. The two full PR runs also differed in cache hits, setup and teardown, and test additions. A single hosted pair cannot quantify timing variability or isolate the effect of scheduling.",
+  "remaining_gap": "Windows elapsed was 1617 seconds against the 900-second objective. Inspect the Python, Cargo, and workspace-timeframe costs and cache restoration on the next weekly review. Linux elapsed was 594 seconds.",
+  "weekly_review": {
+    "id": "verification-timing",
+    "interval_days": 7,
+    "reviewed_on": "2026-11-21",
+    "actions": [
+      "Use the weekly Review verification timing workflow or pnpm project:timing when due. The read-only hosted job examines up to twelve completed ordinary runs per event and publishes a summary and compact archive. Review passing local fast and completed successful first-attempt full PR and main workflows separately by platform, runner, Cargo cache observation and exact selected check outcomes. Warm means exact archive restoration, partial means a matched prefix restored, cold means restoration attempted without an archive, not_requested means a reviewed task skipped restoration, and unknown means unavailable or failed evidence. Build reuse depends on the restored contents and current inputs.",
+      "Investigate two objective breaches among the latest three comparable runs, or a median increase of at least 60 seconds and 15 percent between consecutive sets of three comparable runs, even under budget. Compare individual stages and slow checks, record the source and coverage, and assign a corrective task for persistent regressions. Investigate a single outlier and collect more observations without a timing gate. Record missing or changed coverage and start a comparable baseline before making a speed claim.",
+      "Apply the elapsed objective across coverage changes within the same feedback scope. Review added and removed checks and compare the latest median to a stable faster three-run window when recent scope expansion follows an improvement. Record missing compact history, keep incomplete and release or task runs available as diagnostics, and advance the review date after recording findings and follow-up.",
+      "The 2026-11-21 baseline review found repeated Windows overruns and substantial setup and harness costs across three retained PR and main pairs. M0-046 owns the first repair and its comparable follow-up. Continue retaining the paired platform observations and review again by 2026-11-28."
+    ],
+    "next_review_by": "2026-11-28",
+    "review_due": false
+  },
+  "historical_objective_review": [
+    {
+      "event": "pull_request",
+      "platform": "Linux",
+      "metric": "total",
+      "objective_seconds": 900,
+      "recent_runs": [
+        "44914639961",
+        "44923340906",
+        "44926059988"
+      ],
+      "recent_median_seconds": 747.0,
+      "recent_objective_breaches": 0,
+      "status": "within_objective"
+    },
+    {
+      "event": "pull_request",
+      "platform": "Windows",
+      "metric": "total",
+      "objective_seconds": 900,
+      "recent_runs": [
+        "44914639961",
+        "44923340906",
+        "44926059988"
+      ],
+      "recent_median_seconds": 1974.0,
+      "recent_objective_breaches": 3,
+      "status": "investigate"
+    },
+    {
+      "event": "push",
+      "platform": "Linux",
+      "metric": "total",
+      "objective_seconds": 900,
+      "recent_runs": [
+        "44902662915",
+        "44912215510",
+        "44919033149"
+      ],
+      "recent_median_seconds": 676.0,
+      "recent_objective_breaches": 0,
+      "status": "within_objective"
+    },
+    {
+      "event": "push",
+      "platform": "Windows",
+      "metric": "total",
+      "objective_seconds": 900,
+      "recent_runs": [
+        "44902662915",
+        "44912215510",
+        "44919033149"
+      ],
+      "recent_median_seconds": 1379.0,
+      "recent_objective_breaches": 3,
+      "status": "investigate"
+    }
+  ]
+}

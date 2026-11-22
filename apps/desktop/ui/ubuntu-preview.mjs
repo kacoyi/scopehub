@@ -186,6 +186,11 @@ export async function readIndicatorSampleHistory(root, command, signal) {
   return JSON.parse(await runOperation(root, line, 256 * 1024, signal));
 }
 
+export async function readSampleEvidenceHistory(root, command, signal) {
+  const line = JSON.stringify({ operation: 'workspace.loadSampleEvidenceHistory', payload: command }) + '\n';
+  return JSON.parse(await runOperation(root, line, 256 * 1024, signal));
+}
+
 export function ubuntuPreview() {
   return {
     name: 'scopehub-ubuntu-preview',
