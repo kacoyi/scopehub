@@ -490,9 +490,9 @@ crates.io: foreign-types-shared 0.3.1
 Declared license: MIT/Apache-2.0
 Upstream metadata: https://crates.io/crates/foreign-types-shared/0.3.1
 
-crates.io: form_urlencoded 1.2.2
+crates.io: form_urlencoded 1.2.3
 Declared license: MIT OR Apache-2.0
-Upstream metadata: https://crates.io/crates/form_urlencoded/1.2.2
+Upstream metadata: https://crates.io/crates/form_urlencoded/1.2.3
 
 crates.io: fraction 0.17.0
 Declared license: MIT OR Apache-2.0
@@ -1646,9 +1646,9 @@ crates.io: untrusted 0.9.0
 Declared license: ISC
 Upstream metadata: https://crates.io/crates/untrusted/0.9.0
 
-crates.io: url 2.5.8
+crates.io: url 2.5.9
 Declared license: MIT OR Apache-2.0
-Upstream metadata: https://crates.io/crates/url/2.5.8
+Upstream metadata: https://crates.io/crates/url/2.5.9
 
 crates.io: urlpattern 0.6.0
 Declared license: MIT

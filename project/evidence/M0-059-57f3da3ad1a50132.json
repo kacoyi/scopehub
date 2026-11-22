@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-059",
+  "task_definition_sha256": "243c909fe3adb65e65c1caf81d2683a8d22c29d2b157f42c7c53bcbaf781d7e6",
+  "run_id": "20261122T102401.645941Z-fe447b38",
+  "recorded_at": "2026-11-22T10:25:22.543183+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "6438794cbb34de735cf581a3458b5aec3caa234afb7ba892521dacd6fe629bd6",
+    "file_count": 547,
+    "git_head": "d57669faa3f8887f318d6bfd3e44914e97569016",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "57f3da3ad1a50132094bba9890f7a0126bbe2d9e0abd1c5805a2214cda581916",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/url-advisory-repair/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/url-advisory-repair/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "4f9cf2dfc61af365dbbdce9d20b2fa4223d1530eb6b470d98164b8971ba7cea6"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/url-advisory-repair/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d76751401560d79ff91f1f165e3144dcaadde6bd223ed272dcdf335e2a4c428d"
+    },
+    {
+      "id": "dependency-review",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/url-advisory-repair/.venv/bin/python",
+        "scripts/dependencies.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "376e819664c294e0bd68e89013ef0895920b1bb63f580d03fdecff6c5f85c2fd"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/url-advisory-repair/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "96a45a5ccf608ba8a009f6543943f8f0c1c43fc6be3b87898eb0702a5fd48c36"
+    }
+  ],
+  "project_definition_sha256": "de3804a0148c59a2ce382e761755d43e08f096fae8f57d2bb15a8de9d270d7f1",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

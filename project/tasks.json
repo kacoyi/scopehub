@@ -13573,6 +13573,122 @@
       }
     },
     {
+      "id": "M0-059",
+      "title": "Update the locked Rust URL parser for RUSTSEC-2026-0592",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-040"
+      ],
+      "scope": [
+        "crates/application/Cargo.toml",
+        "Cargo.lock",
+        "project/dependency-inventory.json",
+        "THIRD_PARTY_NOTICES",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0006",
+        "0007"
+      ],
+      "acceptance": [
+        "The application and resolved Cargo graph require the published fixed url release 2.5.9 or a compatible patched version. Preserve the reviewed licenses, dependency notices and unrelated package versions.",
+        "A fresh online dependency review has no unresolved findings. The application and worker contracts compile and pass with the repaired graph. Preserve the original Windows failure from PR 39 with its verified logs."
+      ],
+      "checks": [
+        "project-state",
+        "architecture",
+        "dependency-review",
+        "rust-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-059-57f3da3ad1a50132.json",
+          "sha256": "4080f28d72ea12108831dd5a458f365e18e7d5e115bc8326a47f560beffbad37"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T094812.711104Z-690a13fb",
+          "source_commit": "991eafad4d5e062ba1851666f5cf6d061a525421",
+          "report_sha256": "12470f56f1b88f1ceb042892deeee8180bc32ea80f806bb95832af364a25bd11"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The patched application and worker contracts and fresh online dependency review passed on the clean source. The exact portable and Windows dependency graphs resolve url 2.5.9 and its required form_urlencoded 1.2.3. The original failed Windows diagnostic remains verifiable in the archive.",
+      "plan": {
+        "outcome": "Restore integration after a new Rust URL parser advisory surfaced against the shared main dependency graph.",
+        "change_types": [
+          "dependencies"
+        ],
+        "context": [
+          "project/dependencies.json",
+          "crates/application/Cargo.toml",
+          "Cargo.lock",
+          "scripts/dependencies.py"
+        ],
+        "hypotheses": [
+          "RustSec and OSV identify url 2.5.9 as the fixed release. It is published and compatible with the existing application and desktop dependency requirements."
+        ],
+        "risks": [
+          {
+            "failure": "The dependency solver moves other packages or leaves an affected version reachable.",
+            "checks": [
+              "architecture",
+              "dependency-review",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An inventory refresh masks a license change or an unresolved advisory.",
+            "checks": [
+              "dependency-review",
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Keep the previous source revision and verified Windows diagnostic. Preserve the merge hold if the candidate fails and pursue a compatible patched version.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "application"
+          ],
+          "entrypoints": [
+            "crates/application/Cargo.toml",
+            "scripts/dependencies.py"
+          ],
+          "rules": [
+            {
+              "path": "project/dependencies.json",
+              "pointer": "/maintenance"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing model routing, product behavior, persisted user data or provider permissions."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing operation behavior, public interfaces, grant scope and previous receipts."
+          ],
+          "change": [
+            "Resolve the published URL dependency fix and refresh dependency metadata and notices."
+          ],
+          "data_plan": "No persistent data migration is needed for the dependency update. Use synthetic repository contract checks.",
+          "cleanup": "Use the ordinary online review and restore the M1-031 product focus after accepting the repair."
+        }
+      }
+    },
+    {
       "id": "M0-058",
       "title": "Resolve Herdr development models by role and quality needs",
       "milestone": "M0",
