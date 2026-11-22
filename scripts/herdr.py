@@ -16,6 +16,8 @@ else:
 
 
 ROLE_PROFILES = {'implement': 'implement', 'review': 'supervise', 'coordinate': 'supervise'}
+HIGHER_EFFORTS = ('high', 'xhigh', 'max', 'ultra')
+CATALOG_TIMEOUT_SECONDS = 15
 
 
 class LaunchError(ValueError):
@@ -52,19 +54,97 @@ def read_record(path: Path) -> dict:
     return record
 
 
-def role_profile(root: Path, role: str) -> tuple[str, str]:
-    profile = ROLE_PROFILES[role]
+def model_catalog(root: Path, *, dry_run: bool) -> list:
+    if dry_run:
+        codex_home = os.environ.get('CODEX_HOME')
+        cache = (root / codex_home if codex_home else Path.home() / '.codex') / 'models_cache.json'
+        source = f'Codex model cache at {cache}'
+        recovery = 'Start Codex to populate the cache, or retry without --dry-run.'
+        try:
+            payload = cache.read_bytes()
+        except OSError as error:
+            raise LaunchError(f'Cannot read {source}. {recovery}') from error
+    else:
+        source = 'catalog from codex debug models'
+        recovery = 'Check the installed Codex CLI and retry.'
+        try:
+            result = subprocess.run(
+                ['codex', 'debug', 'models'], cwd=root, capture_output=True,
+                timeout=CATALOG_TIMEOUT_SECONDS, check=True,
+            )
+        except subprocess.TimeoutExpired as error:
+            raise LaunchError(f'codex debug models timed out after {CATALOG_TIMEOUT_SECONDS} seconds.') from error
+        except subprocess.CalledProcessError as error:
+            raise LaunchError(f'codex debug models failed with exit status {error.returncode}. {recovery}') from error
+        except OSError as error:
+            raise LaunchError(f'Cannot run codex debug models. {recovery}') from error
+        payload = result.stdout
+
+    try:
+        models = json.loads(payload)['models']
+    except (ValueError, KeyError, TypeError) as error:
+        raise LaunchError(f'Invalid {source}. {recovery}') from error
+    if not isinstance(models, list):
+        raise LaunchError(f'Invalid {source}. {recovery}')
+    return models
+
+
+def resolve_model(models: list, family: str, effort: str) -> str:
+    stable_slug = re.compile(rf'gpt-([0-9]+(?:\.[0-9]+)*)-{re.escape(family)}')
+    candidates = []
+    for model in models:
+        if not isinstance(model, dict) or model.get('visibility') != 'list':
+            continue
+        slug = model.get('slug')
+        match = stable_slug.fullmatch(slug) if isinstance(slug, str) else None
+        levels = model.get('supported_reasoning_levels')
+        if match and isinstance(levels, list) and any(
+            isinstance(level, dict) and level.get('effort') == effort for level in levels
+        ):
+            version = tuple(int(part) for part in match[1].split('.'))
+            candidates.append((version, match[0]))
+    if not candidates:
+        raise LaunchError(f'No listed stable Codex model in family {family!r} supports effort {effort!r}.')
+    return max(candidates)[1]
+
+
+def role_profile(root: Path, args: argparse.Namespace) -> tuple[str, str]:
+    profile = 'supervise' if args.escalate_model else ROLE_PROFILES[args.role]
+    invalid_profile = f'Missing or invalid project/development.json#herdr profile {profile!r}'
     try:
         settings = read_record(root / 'project/development.json')['herdr']
         if settings['host'] != 'Herdr':
             raise LaunchError('Expected Herdr as the host in project/development.json#herdr')
-        options = settings['profiles'][profile]
-        model, effort = options['model'], options['reasoning_effort']
+        profiles = settings['profiles']
+        options = profiles[profile]
     except (KeyError, TypeError) as error:
-        raise LaunchError(f'Missing or invalid project/development.json#herdr profile {profile!r}') from error
-    if not all(isinstance(value, str) and value.strip() for value in (model, effort)):
-        raise LaunchError(f'Herdr profile {profile!r} requires a model and reasoning_effort.')
-    return model, effort
+        raise LaunchError(invalid_profile) from error
+    if not isinstance(profiles, dict) or not isinstance(options, dict):
+        raise LaunchError(invalid_profile)
+    family_policy = 'reasoning_efforts' in settings or any(
+        isinstance(entry, dict) and 'family' in entry for entry in profiles.values()
+    )
+    if not family_policy:
+        model, effort = options.get('model'), options.get('reasoning_effort')
+        if not all(isinstance(value, str) and value.strip() for value in (model, effort)):
+            raise LaunchError(invalid_profile)
+        if args.effort is not None or args.escalate_model:
+            raise LaunchError('--effort and --escalate-model require a family-based Herdr profile.')
+        return model, effort
+
+    for name in ('implement', 'supervise'):
+        entry = profiles.get(name)
+        family = entry.get('family') if isinstance(entry, dict) else None
+        if not isinstance(family, str) or not re.fullmatch(r'[a-z][a-z0-9-]*', family) or set(entry) != {'family'}:
+            raise LaunchError(f'Missing or invalid project/development.json#herdr profile {name!r}')
+    efforts = settings.get('reasoning_efforts')
+    if (not isinstance(efforts, list) or not efforts or efforts[0] != 'medium'
+            or any(effort not in HIGHER_EFFORTS for effort in efforts[1:]) or len(set(efforts)) != len(efforts)):
+        raise LaunchError('Herdr reasoning_efforts must start with medium and list only distinct higher efforts after it.')
+    effort = efforts[0] if args.effort is None else args.effort
+    if effort not in efforts:
+        raise LaunchError(f'Unsupported Herdr effort {effort!r}. Choose from {", ".join(efforts)}.')
+    return resolve_model(model_catalog(root, dry_run=args.dry_run), options['family'], effort), effort
 
 
 def require_local_space(root: Path, space_id: str) -> None:
@@ -89,7 +169,7 @@ def launch_argv(root: Path, args: argparse.Namespace) -> list[str]:
         raise LaunchError('Expected a task list in project/tasks.json.')
     if not any(isinstance(task, dict) and task.get('id') == args.task_id for task in tasks):
         raise LaunchError(f'Unknown ScopeHub task ID {args.task_id!r} in project/tasks.json.')
-    model, effort = role_profile(root, args.role)
+    model, effort = role_profile(root, args)
 
     # Herdr restricts names to 32 characters and requires live names to be unique.
     prefix = re.sub(r'[^a-z0-9_-]', '-', f'{args.task_id.lower()}-{args.role}')[:19]
@@ -125,12 +205,17 @@ def main() -> int:
     parser.add_argument('--assignment', required=True,
                         help='Bounded task text. Use --assignment=TEXT if it begins with a dash.')
     parser.add_argument('--space', metavar='ID', help='Existing local Herdr space for a visible tab.')
+    parser.add_argument('--effort', help='Reasoning effort for this assignment with a family-based profile.')
+    parser.add_argument('--escalate-model', action='store_true',
+                        help='Use the supervise model family for this implementation assignment.')
     parser.add_argument('--dry-run', action='store_true', help='Print launch argv without running commands.')
     args = parser.parse_args()
     if not args.assignment.strip():
         parser.error('--assignment must contain task text.')
     if args.space is not None and (not args.space or '/' in args.space or any(map(str.isspace, args.space))):
         parser.error('--space must be a local Herdr space ID.')
+    if args.escalate_model and args.role != 'implement':
+        parser.error('--escalate-model requires the implement role.')
     try:
         root = find_worktree(Path.cwd())
         command = launch_argv(root, args)
