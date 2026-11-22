@@ -43,48 +43,62 @@ instrument("apps/desktop/src-tauri/src/bridge_tests.rs", [
         })"""),
 ])
 
-import threading
+# Only delay the explicitly selected synthetic call in this disposable runner.
+instrument("crates/persistence/src/storage.rs", [
+    ('.env("SCOPEHUB_STORAGE_ACTION", action)', '''.env("SCOPEHUB_STORAGE_ACTION", action)
+        .env("SCOPEHUB_DIAG_DELAY", if action == "prepare" && (
+            (std::env::var("SCOPEHUB_DIAG_MODE").as_deref() == Ok("fixture")
+            && thread::current().name().is_some_and(|n| n.ends_with("desktop_dispatch_restores_replays_and_undoes_with_one_owned_connection") || n.ends_with("copied_workspace_bytes_cannot_enable_a_grant_or_cross_native_profiles"))
+            && path.file_name().is_some_and(|n| n.to_string_lossy().starts_with("scopehub-desktop-test-")))
+            || (std::env::var("SCOPEHUB_DIAG_MODE").as_deref() == Ok("blocked-application") && path.parent().is_some_and(|p|p.is_file()))
+        ) { "1" } else { "0" })''')
+])
+instrument("crates/persistence/src/storage_acl.ps1", [
+    ("function Stop-Storage", '''if ($env:SCOPEHUB_DIAG_DELAY -eq "1") {
+    [Console]::Error.WriteLine(("ACL synthetic-delay {0}" -f $PID))
+    [Threading.Thread]::Sleep(15000)
+}
+function Stop-Storage''')
+])
+
+fixture = Path("apps/desktop/src-tauri/src/bridge_tests.rs")
+candidate = fixture.read_bytes()
+original = subprocess.check_output(["git","show","cf1abbc8c5c608da85b486de09f39806978b492a:"+fixture.as_posix()])
+exact = ["desktop_dispatch_restores_replays_and_undoes_with_one_owned_connection",
+         "copied_workspace_bytes_cannot_enable_a_grant_or_cross_native_profiles"]
+summary = []
+import re
 import psutil
-import check
-
-subprocess.run(["cargo", "fmt", "--all"], check=True)
-
-# Run the original build window through desktop tests on a fresh hosted VM.
-# Only synthetic, process-family aggregate samples and the active Python test are recorded.
-out = out.resolve()
-env = dict(os.environ, PYTHONPATH=os.pathsep.join(map(str, [Path.cwd(), Path.cwd() / "python"])),
-           SCOPEHUB_PYTHON=sys.executable, SCOPEHUB_RUN_DIR=str(out), PYTHONUNBUFFERED="1",
-           RUST_TEST_NOCAPTURE="1")
-catalog = json.loads(Path("project/checks.json").read_text())["checks"]
-first = next(i for i, item in enumerate(catalog) if item["id"] == "python-contracts-workers")
-last = next(i for i, item in enumerate(catalog) if item["id"] == "rust-contracts-workers")
-window = catalog[first:last+1]
-done = threading.Event()
-
-
-def sample():
-    with (out / "samples.jsonl").open("w") as stream:
-        while not done.wait(1):
-            names = [p.info["name"].lower() for p in psutil.process_iter(["name"]) if p.info["name"]]
-            phase = ""
-            log = out / "python-contracts-workers.log"
-            if log.exists():
-                with log.open("rb") as f:
-                    f.seek(max(0, f.seek(0,2) - 400))
-                    lines = f.read().decode(errors="replace").splitlines()
-                    phase = lines[-1][-300:] if lines else ""
-            stream.write(json.dumps({"time":time.time(),"cpu":psutil.cpu_percent(),
-                "available_mb":psutil.virtual_memory().available//1048576,"python_phase":phase,
-                "powershell":names.count("powershell.exe"),"rustc":names.count("rustc.exe"),
-                "python":names.count("python.exe")})+"\n")
-            stream.flush()
-
-
-monitor = threading.Thread(target=sample, daemon=True)
-monitor.start()
-try:
-    results = check.run_overlapped(window, env, out)
-finally:
-    done.set()
-    monitor.join()
-(out / "summary.json").write_text(json.dumps(results, indent=2))
+for version in ("baseline", "candidate"):
+    if version == "baseline":
+        fixture.write_bytes(original)
+    else:
+        fixture.write_bytes(candidate)
+    args = ["cargo", "test", "--locked", "-p", "scopehub-desktop", "--lib",
+            "--no-run", "--message-format=json"]
+    build = subprocess.run(args, stdout=subprocess.PIPE, check=True)
+    binary, = [m["executable"] for line in build.stdout.splitlines() if (m:=json.loads(line)).get("executable")
+               and m["profile"]["test"] and "scopehub-desktop" in m["package_id"]]
+    cases = [("ordinary", "", 0)]
+    cases.extend(("fixture", name, 101 if version == "baseline" else 0) for name in exact)
+    if version == "candidate":
+        cases.append(("blocked-application","reviewed_mapping_save_recovers_after_workspace_provisioning_refusal",0))
+    for mode, name, expected in cases:
+        command = [binary,"--nocapture"]
+        if name:
+            command.extend(["--exact","bridge::tests::"+name])
+        log = out / f"{version}-{mode}-{name}.log"
+        with log.open("wb") as stream:
+            rc = subprocess.run(command, env=dict(os.environ,SCOPEHUB_DIAG_MODE=mode),
+                                stdout=stream, stderr=subprocess.STDOUT, timeout=300).returncode
+        observed = log.read_text(errors="replace")
+        stops = [int(n) for n in re.findall(r"ACL stop (\d+) \d+ powershell-timeout",observed)]
+        delayed = re.findall(r"ACL synthetic-delay (\d+)",observed)
+        expected_delay = (mode=="fixture" and version=="baseline") or mode=="blocked-application"
+        assert len(stops)==len(delayed)==int(expected_delay), (mode,name,stops,delayed)
+        assert set(stops)==set(map(int,delayed))
+        assert not any(psutil.pid_exists(pid) for pid in stops), stops
+        assert rc==expected and (not name or "running 1 test" in observed), (mode,name,rc)
+        summary.append(dict(version=version,mode=mode,test=name,rc=rc,killed=stops,
+                            results=re.findall(r"test result: [^\n]+",observed)))
+        (out / "summary.json").write_text(json.dumps(summary,indent=2))
