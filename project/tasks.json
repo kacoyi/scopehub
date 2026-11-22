@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-064",
+  "focus_task_id": "M1-031",
   "tasks": [
     {
       "id": "M0-001",
@@ -14022,7 +14022,7 @@
       "id": "M0-064",
       "title": "Advise the owner when personal or development workflows need to change",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-063"
       ],
@@ -14042,10 +14042,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Add the guidance to the canonical collaboration policy and inspect it through a normal product task.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-064-dfd2b591e5baabb3.json",
+          "sha256": "4d4b2ee95a7b856f460f651255144b6e846d040e1feed453e75dcda12b2e52d4"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The project brief and all three focused task phases expose the owner consultation through the existing policy. Independent review applied it to hypothetical solo use, an owner-dependent setup step and adoption without difficulty. The selected checks passed on the reviewed source. The examples illustrate the policy and do not claim observations from actual users.",
       "plan": {
         "outcome": "The development AI knows when and how to advise the owner as the way ScopeHub is used or maintained evolves.",
         "change_types": [
