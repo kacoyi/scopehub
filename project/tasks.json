@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-031",
+  "focus_task_id": "M0-069",
   "tasks": [
     {
       "id": "M0-001",
@@ -14153,6 +14153,107 @@
           ],
           "data_plan": "No product data or report schema changes.",
           "cleanup": "Keep the existing selector and remove the incorrect dependency on the synchronize payload preview SHA."
+        }
+      }
+    },
+    {
+      "id": "M0-069",
+      "title": "Bind indicator preview contention to the admitted snapshot",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-068"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ubuntu-preview",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0007"
+      ],
+      "acceptance": [
+        "Explain the Windows 429 using retained request and revision observations and a controlled regression.",
+        "Observe the intended holder, competing BUSY, cancellation and recovery through the real service. Preserve revision 2 and exactly one removal. Verify on native Windows."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "evidence": [],
+      "next_action": "Identify the admitted request and test the corrected contention sequence on the original Windows journey.",
+      "blocker": null,
+      "closure_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T143714.976297Z-71b18a36",
+          "source_commit": "5a6647538b8157b70777a2a121d4876530823b88",
+          "report_sha256": "d4e476c37861687e0147a805abac3f3099f089baf8556f68ba6037deca3a4628"
+        }
+      ],
+      "plan": {
+        "outcome": "The indicator removal contention test binds the actual snapshot holder, observes BUSY on the competing request and verifies recovery of the persisted revision.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "apps/desktop/ui/ubuntu-workspace.mjs",
+          "project/feedback.json"
+        ],
+        "hypotheses": [
+          "A BUSY response from an independent probe can report a competing reader instead of proving admission of the intended holder. Verify the owner before choosing a fixture or product correction."
+        ],
+        "risks": [
+          {
+            "failure": "Unrelated readers or a cancelled request satisfy the ownership observation.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A change hides a real admission, cancellation or persistence error.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Revert the scoped correction through protected review and retain the original diagnostic for comparison.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "apps/desktop/ui/ubuntu-workspace.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing unrelated browser checks, widening permissions or masking contention with delays or retries."
+          ],
+          "open_questions": [
+            "Does the fixture identify its actual holder, and does the real product service preserve admission and cancellation invariants?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Single-writer admission, BUSY responses, cancellation cleanup, idempotent removal and persisted revision."
+          ],
+          "change": [
+            "Bind test observations to the actual request that holds admission. Correct product behavior only if evidence requires it."
+          ],
+          "data_plan": "Use existing isolated synthetic profiles and the verified native Windows diagnostic.",
+          "cleanup": "Remove obsolete ownership inferences and any temporary measurement after confirming the correction."
         }
       }
     }

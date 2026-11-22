@@ -3262,6 +3262,28 @@
           "report_sha256": "a6184df429e76ce43191cb8412d4dac46b5a7b2337ac5de36ec1c97e4c57ff4f"
         }
       ]
+    },
+    {
+      "id": "indicator-removal-snapshot-holder-identity",
+      "source": "Main push 45033552903 native Windows diagnostic at archives/runs/20261122T143714.976297Z-71b18a36/test-report.json.",
+      "severity": "major",
+      "status": "open",
+      "observation": "The removal committed revision 2. A BUSY probe was attributed to the intended holder, but that holder and the first browser snapshot both received 429. A later browser read and the persisted state confirmed revision 2 and a single removal.",
+      "task_ids": [
+        "M0-069"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T143714.976297Z-71b18a36",
+          "source_commit": "5a6647538b8157b70777a2a121d4876530823b88",
+          "report_sha256": "d4e476c37861687e0147a805abac3f3099f089baf8556f68ba6037deca3a4628"
+        }
+      ]
     }
   ]
 }
