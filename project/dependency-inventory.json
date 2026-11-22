@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0",
-  "observed_at": "2026-11-22T01:29:26.764765+00:00",
+  "observed_at": "2026-11-22T10:19:34.886944+00:00",
   "lock_sha256": {
-    "Cargo.lock": "acde7c4b9dd93b40c20f91a2c422988e504c5ad7d288a16b8f644b808a03e5f2",
+    "Cargo.lock": "813c34437d98de9439bf625cf35301abd0cceb79023472a763f5af290640aba7",
     "uv.lock": "628c3231c45d1c644d8909dcf009367266104f5978d3d87976af6760c78c2842",
     "pnpm-lock.yaml": "baa4c0c5c4776cdb58bb3e654f5cadd4e681c9b45f82312b3cfa7a88376ddcfc"
   },
@@ -857,9 +857,9 @@
     {
       "ecosystem": "crates.io",
       "name": "form_urlencoded",
-      "version": "1.2.2",
+      "version": "1.2.3",
       "license": "MIT OR Apache-2.0",
-      "metadata_url": "https://crates.io/crates/form_urlencoded/1.2.2"
+      "metadata_url": "https://crates.io/crates/form_urlencoded/1.2.3"
     },
     {
       "ecosystem": "crates.io",
@@ -2880,9 +2880,9 @@
     {
       "ecosystem": "crates.io",
       "name": "url",
-      "version": "2.5.8",
+      "version": "2.5.9",
       "license": "MIT OR Apache-2.0",
-      "metadata_url": "https://crates.io/crates/url/2.5.8"
+      "metadata_url": "https://crates.io/crates/url/2.5.9"
     },
     {
       "ecosystem": "crates.io",

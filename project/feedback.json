@@ -3177,6 +3177,33 @@
         "prevention": "The restored CSV workflow checks the 12.34 close and +0.09 change in both languages. Additional examples cover small and large prices and the precision of a declared tick."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "locked-url-advisory-blocks-integration",
+      "source": "Authenticated Windows verification for PR 39, run 45009129527. The original report and logs are retained at archives/runs/20261122T094812.711104Z-690a13fb/test-report.json.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The fresh Windows dependency review reported RUSTSEC-2026-0592 against url 2.5.8. The required check blocked integration of a development-only change sharing the main dependency graph.",
+      "task_ids": [
+        "M0-059"
+      ],
+      "regression_checks": [
+        "dependency-review",
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The application accepted url 2.5.8, and the shared Cargo.lock resolved that version when the new RustSec advisory was published.",
+        "correction": "Raise the application's minimum to url 2.5.9 and lock that version with its required form_urlencoded 1.2.3. Regenerate the dependency inventory and notices with the existing license declarations.",
+        "prevention": "The locked all-target and Windows x64 Cargo trees resolve url 2.5.9, and comparison with the base lock confirms all unrelated package records are identical. Fresh online dependency-review reported zero unresolved findings. Linux rust-contracts-workers passed the application, worker and portable desktop checks."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T094812.711104Z-690a13fb",
+          "source_commit": "991eafad4d5e062ba1851666f5cf6d061a525421",
+          "report_sha256": "12470f56f1b88f1ceb042892deeee8180bc32ea80f806bb95832af364a25bd11"
+        }
+      ]
     }
   ]
 }
