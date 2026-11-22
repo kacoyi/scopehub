@@ -12,14 +12,14 @@ struct ImportFixture(PathBuf);
 #[cfg(any(target_os = "linux", windows))]
 impl ImportFixture {
     fn new() -> Self {
-        use std::time::{SystemTime, UNIX_EPOCH};
+        Self(Self::reserve())
+    }
+
+    fn reserve() -> PathBuf {
         let path = std::env::temp_dir().join(format!(
             "scopehub-launcher-{}-{}",
             std::process::id(),
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
+            uuid::Uuid::new_v4().simple(),
         ));
         #[cfg(target_os = "linux")]
         {
@@ -33,7 +33,7 @@ impl ImportFixture {
         std::fs::create_dir(&path).unwrap();
         #[cfg(target_os = "linux")]
         let path = path.canonicalize().unwrap();
-        Self(path)
+        path
     }
 }
 
@@ -727,6 +727,56 @@ raise SystemExit(local_import.run(sys.stdin.buffer, sys.stdout.buffer))
             .code,
         ErrorCode::PERMISSIONDENIED,
     );
+    state.shutdown().await;
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[tokio::test]
+async fn reviewed_mapping_save_recovers_after_workspace_provisioning_refusal() {
+    use std::fs;
+
+    let fixture = ImportFixture::new();
+    let folder = fixture.0.join("source");
+    fs::create_dir(&folder).unwrap();
+    fs::write(
+        folder.join("source.csv"),
+        b"Ticker,Date,Open,High,Low,Close,Shares\n000418,2026-11-19,4,7,3,5,20\n",
+    )
+    .unwrap();
+    let profile = fixture.0.join("profile");
+    let database = profile.join("workspace-dev/workspace.sqlite3");
+    let state = state_with_local_profile(Some(&profile));
+    let ids = select_csv(&state, &folder).await;
+    let save = reviewed_save_input(&state, &ids, equity_mapping()).await;
+
+    // A regular file at the requested directory fails the real storage check.
+    let blocker = b"synthetic profile path conflict";
+    fs::write(&profile, blocker).unwrap();
+    let refused = state
+        .execute_local_operation(
+            SAVE_LOCAL_IMPORT_MAPPING,
+            save.clone(),
+            Some("blocked-save"),
+        )
+        .await
+        .unwrap_err();
+    assert_eq!(refused.code, ErrorCode::INTERNALERROR);
+    assert_eq!(fs::read(&profile).unwrap(), blocker);
+    fs::remove_file(&profile).unwrap();
+
+    let loaded = execute_import(&state, LOAD_LOCAL_IMPORT_MAPPING, ids)
+        .await
+        .unwrap();
+    assert_eq!(loaded["status"], "not_saved");
+    assert!(!profile.exists());
+
+    let saved = state
+        .execute_local_operation(SAVE_LOCAL_IMPORT_MAPPING, save, Some("new-save"))
+        .await
+        .unwrap();
+    assert_eq!(saved["record"]["review_revision"], 1);
+    assert_eq!(saved["record"]["mapping"], equity_mapping());
+    assert!(database.is_file());
     state.shutdown().await;
 }
 
@@ -2558,6 +2608,7 @@ fn with_profile_preparation<T>(slot: &std::sync::Mutex<()>, prepare: impl FnOnce
 }
 
 impl AppLocalData {
+    #[cfg(not(windows))]
     fn new() -> Self {
         use std::{
             sync::atomic::{AtomicU64, Ordering},
@@ -2581,6 +2632,13 @@ impl AppLocalData {
         Self(path)
     }
 
+    #[cfg(windows)]
+    fn new() -> Self {
+        // The empty reservation owns cleanup. The ACL helper provisions and
+        // verifies the private app-data subtree before any workspace writes.
+        Self(ImportFixture::reserve())
+    }
+
     fn prepare(path: &std::path::Path) {
         let prepare = || scopehub_persistence::SqliteWorkspace::prepare_profile_root(path);
         #[cfg(windows)]
@@ -2595,7 +2653,17 @@ impl AppLocalData {
     }
 
     fn database(&self) -> PathBuf {
-        self.0.join("workspace-dev").join("workspace.sqlite3")
+        self.path().join("workspace-dev").join("workspace.sqlite3")
+    }
+
+    #[cfg(not(windows))]
+    fn path(&self) -> PathBuf {
+        self.0.clone()
+    }
+
+    #[cfg(windows)]
+    fn path(&self) -> PathBuf {
+        self.0.join("app-data")
     }
 }
 
@@ -2638,10 +2706,18 @@ fn desktop_fixture_preparation_slot_releases_on_success_error_and_unwind() {
 #[test]
 fn desktop_fixture_prepares_and_removes_its_profile_root() {
     let profile = AppLocalData::new();
-    let root = profile.0.clone();
+    let root = profile.path();
+    #[cfg(windows)]
+    {
+        assert_ne!(root, profile.0);
+        assert_eq!(std::fs::read_dir(&profile.0).unwrap().count(), 0);
+        AppLocalData::prepare(&root);
+    }
     assert!(root.is_dir());
+    let reservation = profile.0.clone();
     drop(profile);
     assert!(!root.exists());
+    assert!(!reservation.exists());
 }
 
 fn uuid(number: u64) -> String {
@@ -2680,7 +2756,7 @@ async fn snapshot(state: &State) -> Value {
 #[tokio::test]
 async fn desktop_dispatch_restores_replays_and_undoes_with_one_owned_connection() {
     let profile = AppLocalData::new();
-    let first = state_with_development_workspace(Some(&profile.0));
+    let first = state_with_development_workspace(Some(&profile.path()));
     let opened = snapshot(&first).await;
     assert_eq!(opened["workspace"]["revision"], 0);
     assert_eq!(opened["workspace"]["timeframe"], "1m");
@@ -2710,7 +2786,7 @@ async fn desktop_dispatch_restores_replays_and_undoes_with_one_owned_connection(
         ErrorCode::CANCELLED,
     );
 
-    let restarted = state_with_development_workspace(Some(&profile.0));
+    let restarted = state_with_development_workspace(Some(&profile.path()));
     let restored = snapshot(&restarted).await;
     assert_eq!(restored["workspace"]["timeframe"], "5m");
     assert_eq!(restored["workspace"]["revision"], 1);
@@ -2745,7 +2821,7 @@ async fn desktop_dispatch_restores_replays_and_undoes_with_one_owned_connection(
     assert_ne!(inverse["outcome"]["receipt"]["operation_id"], operation_id);
     restarted.shutdown().await;
 
-    let third = state_with_development_workspace(Some(&profile.0));
+    let third = state_with_development_workspace(Some(&profile.path()));
     let restored = snapshot(&third).await;
     assert_eq!(restored["workspace"]["timeframe"], "1m");
     assert_eq!(restored["workspace"]["revision"], 2);
@@ -2775,7 +2851,7 @@ async fn desktop_rejects_other_windows_forged_identity_and_unconfigured_mutation
     }
     assert!(!profile.database().exists());
 
-    let desktop = state_with_development_workspace(Some(&profile.0));
+    let desktop = state_with_development_workspace(Some(&profile.path()));
     for (operation, request) in [
         (Some(SET_TIMEFRAME), command.clone()),
         (Some("decisionNote.read"), note_read()),
@@ -2854,7 +2930,7 @@ async fn desktop_rejects_other_windows_forged_identity_and_unconfigured_mutation
 #[tokio::test]
 async fn copied_workspace_bytes_cannot_enable_a_grant_or_cross_native_profiles() {
     let first = AppLocalData::new();
-    let writer = state_with_development_workspace(Some(&first.0));
+    let writer = state_with_development_workspace(Some(&first.path()));
     let command = mutation(0, "chart.setTimeframe", json!({"timeframe": "5m"}), 100);
     let reply = writer
         .execute("main", Some(SET_TIMEFRAME), command, None)
@@ -2889,7 +2965,7 @@ async fn copied_workspace_bytes_cannot_enable_a_grant_or_cross_native_profiles()
     AppLocalData::prepare(copy.parent().unwrap());
     std::fs::copy(first.database(), &copy).unwrap();
     let before = std::fs::read(&copy).unwrap();
-    let foreign = state_with_development_workspace(Some(&other.0));
+    let foreign = state_with_development_workspace(Some(&other.path()));
     assert_eq!(
         foreign
             .execute("main", None, json!({"type": "snapshot"}), None)
@@ -2929,7 +3005,7 @@ async fn native_private_record_uses_the_bound_writer_and_survives_restart() {
             .code,
         ErrorCode::PERMISSIONDENIED,
     );
-    let desktop = state_with_development_workspace(Some(&profile.0));
+    let desktop = state_with_development_workspace(Some(&profile.path()));
     assert_eq!(
         desktop
             .execute("foreign-window", Some(READ), read.clone(), None)
@@ -2970,7 +3046,7 @@ async fn native_private_record_uses_the_bound_writer_and_survives_restart() {
     assert!(desktop.reads.lock().await.status().process_id.is_none());
     desktop.shutdown().await;
 
-    let reopened = state_with_development_workspace(Some(&profile.0));
+    let reopened = state_with_development_workspace(Some(&profile.path()));
     let inspected = reopened
         .execute("main", Some(READ), read, None)
         .await
