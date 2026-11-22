@@ -12157,6 +12157,98 @@
       }
     },
     {
+      "id": "M0-049",
+      "title": "Release AI workflow fixture processes when their parent exits",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M4-013"
+      ],
+      "scope": [
+        "tests/ui",
+        "tests/ubuntu-preview",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/checks.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Demonstrate that losing the fixture parent leaves the original Vite listener and Rust workspace writer alive and retain the pre-fix reproduction.",
+        "After normal close and after an IPC parent disconnect, the shared AI and layout fixture releases its server and real Rust child even during startup. Exercise both supported browser checks with their original environment and cases."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "model-connection-workflow",
+        "workspace-layout"
+      ],
+      "evidence": [],
+      "next_action": "Import matching Linux and Windows hosted task evidence, then close M0-049 and restore focus to M0-046.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A finished or interrupted synthetic AI workflow leaves no live fixture listener or workspace writer.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ui/ai-workflow-fixture.mjs",
+          "tests/ui/ai-workflow.spec.mjs",
+          "tests/ui/workspace-layout.spec.mjs",
+          "tests/ubuntu-preview/workspace.spec.mjs"
+        ],
+        "hypotheses": [
+          "Two old fixture instances stayed alive after their benchmark parent exited. Their launched Node service matches the current fixture that listens only for an explicit close message."
+        ],
+        "risks": [
+          {
+            "failure": "The listener, writer or profile outlives the parent or a close races with Vite startup.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "model-connection-workflow",
+              "workspace-layout"
+            ]
+          }
+        ],
+        "rollback": "Keep the observed processes and diagnostics identified separately, restore the earlier fixture behavior for comparison and explicitly dispose only of isolated reproduction processes.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ui/ai-workflow-fixture.mjs",
+            "tests/ui/ai-workflow.config.mjs",
+            "tests/ui/workspace-layout.config.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Product runtime changes, live provider connections, or terminating unrelated processes."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "AI and layout browser workflows, real Vite and Rust fixture startup, explicit close and synthetic profiles."
+          ],
+          "change": [
+            "Join the parent-disconnect and normal close paths and verify real descendants terminate."
+          ],
+          "data_plan": "Exercise only temporary synthetic profiles. Keep original host custody records private.",
+          "cleanup": "Share the launcher and lifetime between the AI and layout fixtures. Retain one focused regression in the model connection workflow."
+        }
+      }
+    },
+    {
       "id": "M0-050",
       "title": "Use supported runtimes for the remaining hosted Actions",
       "milestone": "M0",

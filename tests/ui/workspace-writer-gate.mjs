@@ -9,14 +9,21 @@ export function installPublishedRevisionGate() {
   const spawn = childProcess.spawn;
   let armed = false;
   let release;
+  const releaseReply = () => {
+    armed = false;
+    release?.();
+    release = undefined;
+  };
+  const notify = message => {
+    if (process.connected) process.send(message, () => {});
+  };
+  process.once('disconnect', releaseReply);
   process.on('message', message => {
     if (message === 'arm-published-revision-gate') {
       armed = true;
-      process.send('published-revision-gate-armed');
+      notify('published-revision-gate-armed');
     } else if (message === 'release-published-revision-gate' || message === 'close') {
-      armed = false;
-      release?.();
-      release = undefined;
+      releaseReply();
     }
   });
   childProcess.spawn = (...args) => {
@@ -42,7 +49,7 @@ export function installPublishedRevisionGate() {
             gate.push(line);
             drain(callback);
           };
-          process.send('published-revision-reply-held');
+          notify('published-revision-reply-held');
           return;
         }
         gate.push(line);

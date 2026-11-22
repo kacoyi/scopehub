@@ -673,7 +673,7 @@
     {
       "id": "model-connection-workflow",
       "status": "implemented",
-      "purpose": "Exercise local text settings and explicit offline mock, OpenAI credential entry and ordinary-text disclosure, ordinary turns, bounded selected-chart tool calls, corrected and denied intervals, and pending-reply invalidation through the Rust registry and real Ollama adapter against an owned synthetic HTTP peer. Verify that the browser guard allows local route removal and blocks and reports a different loopback origin. Hold a real published CSV status read while changing the workspace source and distinguish pre-admission rejection, accepted writes, superseding revisions, lost acknowledgements and overdue transport responses using synthetic profiles.",
+      "purpose": "Exercise local text settings and explicit offline mock, OpenAI credential entry and ordinary-text disclosure, ordinary turns, bounded selected-chart tool calls, corrected and denied intervals, and pending-reply invalidation through the Rust registry and real Ollama adapter against an owned synthetic HTTP peer. Verify that the browser guard allows local route removal and blocks and reports a different loopback origin. Hold a real published CSV status read while changing the workspace source and distinguish pre-admission rejection, accepted writes, superseding revisions, lost acknowledgements and overdue transport responses using synthetic profiles. Verify that ordinary close and parent IPC loss release the shared fixture's real Vite listener and SQLite writer, including during startup.",
       "platforms": "all",
       "command": [
         "pnpm",

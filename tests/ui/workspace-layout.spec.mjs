@@ -1,38 +1,24 @@
-import { execFile, spawn } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { expect, test } from '@playwright/test';
 import { painted } from './chart-pixels.mjs';
 import { startLocalImportBridge } from './local-import-bridge.mjs';
 import { control } from './workspace-controls.mjs';
+import { closeWorkspaceService, spawnWorkspaceService } from './workspace-service.mjs';
 
 const exec = promisify(execFile);
 const root = fileURLToPath(new URL('../../', import.meta.url));
-const ui = join(root, 'apps/desktop/ui');
-const viteEntry = pathToFileURL(join(ui, 'node_modules/vite/dist/node/index.js')).href;
 const windows = process.platform === 'win32';
 const workspaceBridge = join(root, 'target', 'debug', windows ? 'workspace_bridge.exe' : 'workspace_bridge');
 const python = join(root, '.venv', ...(windows ? ['Scripts', 'python.exe'] : ['bin', 'python']));
 const endpoint = '/__scopehub/workspace';
-const service = `
-  const [entry, mode, port] = process.argv.slice(1);
-  const { createServer } = await import(entry);
-  const server = await createServer({ mode,
-    server: { host: '127.0.0.1', port: Number(port), strictPort: true, watch: null, hmr: false, ws: false },
-  });
-  process.once('message', async () => {
-    await server.close();
-    process.disconnect();
-  });
-  await server.listen();
-  process.send(server.httpServer.address().port);
-`;
 
 test.beforeAll(async ({}, testInfo) => {
   testInfo.setTimeout(900_000);
@@ -56,16 +42,7 @@ async function withProfile(use) {
 
 async function withService(profile, use) {
   const port = process.env.SCOPEHUB_WORKSPACE_LAYOUT_PORT ?? '0';
-  const child = spawn(process.execPath, ['--input-type=module', '--eval', service, viteEntry, 'ubuntu-workspace', port], {
-    cwd: ui,
-    env: {
-      ...process.env,
-      SCOPEHUB_WORKSPACE_PROFILE_ROOT: profile.directory,
-      SCOPEHUB_WORKSPACE_PROFILE_ID: profile.id,
-      SCOPEHUB_WORKSPACE_ID: profile.workspaceId,
-    },
-    stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
-  });
+  const child = spawnWorkspaceService(profile, { port });
   const closed = once(child, 'close');
   const listening = once(child, 'message', { signal: AbortSignal.timeout(15_000) });
   let diagnostic = '';
@@ -95,12 +72,8 @@ async function withService(profile, use) {
     await use({ url, capability, serverPid: child.pid, writerPid: Number(stdout.trim()) });
     expect(diagnostic.includes(capability)).toBe(false);
   } finally {
-    if (child.connected) child.send('close', () => {});
-    const grace = setTimeout(() => child.kill('SIGKILL'), 7_000);
-    try {
-      const [code] = await closed;
-      expect(code).toBe(0);
-    } finally { clearTimeout(grace); }
+    const [code] = await closeWorkspaceService(child, closed);
+    expect(code).toBe(0);
   }
 }
 
