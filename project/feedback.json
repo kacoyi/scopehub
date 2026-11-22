@@ -3012,7 +3012,7 @@
       "id": "ai-workflow-fixture-outlives-parent",
       "source": "Historical host retirement audit and byte-identical current AI workflow fixture on 2026-11-21.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "Two detached synthetic Vite services and their Rust writers outlived the benchmark parent. The current shared AI workflow fixture handles explicit close but has no IPC disconnect handler.",
       "task_ids": [
         "M0-049"
@@ -3023,7 +3023,11 @@
         "model-connection-workflow",
         "workspace-layout"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The fixture handled explicit close messages only. Parent IPC loss could leave the Vite server and Rust writer running.",
+        "correction": "Share the workspace service launcher between fixtures and join explicit close and IPC disconnect handling, including shutdown during startup.",
+        "prevention": "The model connection workflow exercises normal close and parent disconnect during and after startup and checks the actual listener and writer. Both platforms passed in run 44981248331."
+      },
       "deferral_reason": null
     }
   ]
