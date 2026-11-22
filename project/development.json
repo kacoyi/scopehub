@@ -8,7 +8,7 @@
       "In this owner's current workflow, AI agents fill every engineering role, including requirement synthesis, technical planning, implementation, independent review, coordination, verification, maintenance and handoff of verified results.",
       "Choose algorithms, libraries, internal boundaries and technical architecture autonomously within authorized product, resource and safety constraints; record consequential decisions and inspect existing code.",
       "Convert nearby requirements into observable slices; investigate consequential uncertainty early and keep independent work moving while questions are pending.",
-      "Once the owner starts the session, AI agents can delegate and continue authorized work, including the next ready slice. Choose windows, work assignments and model roles as needed. Incoming GitHub events do not start a development session. Bring concrete missing inputs or reserved product decisions to the owner."
+      "During an owner-started session, carry authorized work through implementation, verification and handoff. Continue with the next ready slice while capacity is available. Choose windows, assignments and model roles as needed. Incoming GitHub events do not start a development session. Bring concrete missing inputs or reserved product decisions to the owner."
     ],
     "ask_owner_when": [
       "User-visible behavior, product scope or a meaningful experience tradeoff is unresolved and cannot be inferred from accepted requirements.",
