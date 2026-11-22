@@ -140,3 +140,15 @@ class ProcessTests(unittest.TestCase):
     def test_version_probe_failure_is_a_diagnostic(self):
         with patch.object(doctor.subprocess, 'run', side_effect=OSError('fixture unavailable')):
             self.assertEqual('unavailable', doctor.tool_version(sys.executable))
+
+    def test_doctor_rejects_the_vulnerable_uv_executable(self):
+        tool_version = doctor.tool_version
+
+        def stale_uv(tool, root):
+            return 'uv 0.12.24' if tool == 'uv' else tool_version(tool, root)
+
+        with patch.object(doctor, 'tool_version', side_effect=stale_uv):
+            result = doctor.diagnose()
+        self.assertEqual('failed', result['status'])
+        self.assertTrue(any(error.startswith('uv: expected ') and error.endswith(', observed uv 0.12.24')
+                            for error in result['errors']))

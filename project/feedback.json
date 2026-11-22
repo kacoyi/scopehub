@@ -2774,6 +2774,23 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "uv-vendored-ca-trust-root",
+      "source": "https://github.com/astral-sh/uv/security/advisories/GHSA-hq85-5cpj-mr62",
+      "severity": "major",
+      "status": "open",
+      "observation": "ScopeHub used uv 0.12.24 with its default bundled CA roots. The publisher reports compromised intermediate certificate keys and removes the affected root from its bundled trust store in 0.13.4.",
+      "task_ids": [
+        "M0-041"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers",
+        "dependency-review"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

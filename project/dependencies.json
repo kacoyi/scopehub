@@ -23,7 +23,7 @@
       "reviewed_ref": "v10.3.0",
       "observed_at": "2026-11-21",
       "source": "https://github.com/astral-sh/setup-uv/tree/1c37ad07a6a961277cf70c0d37d6f313000f5884",
-      "review": "Verified official tag and action.yml. Node 24 is supported on both hosted runners. This version publishes the pinned uv 0.12.24 checksum and accepts the existing Python 3.12 and cache inputs. The removed server-url and old custom manifest are unused. Explicit pruning preserves the previous cache behavior and disabling the new mirror keeps binary downloads on GitHub Releases. The verification token retains contents:read."
+      "review": "Verified official tag and action.yml. Node 24 is supported on both hosted runners. The Action reads the exact uv constraint from pyproject.toml and checks the reviewed SHA-256 for each download. It accepts the existing Python 3.12 and cache inputs. The removed server-url and old custom manifest are unused. Explicit pruning preserves the previous cache behavior and disabling the new mirror keeps binary downloads on GitHub Releases. The verification token retains contents:read."
     },
     {
       "repository": "pnpm/action-setup",
@@ -239,7 +239,7 @@
     "next_review_by": "2026-11-28",
     "owner": "Repository implementation agent, with owner review for product/permission/boundary decisions.",
     "automation": "Weekly bounded Dependabot proposals for GitHub Actions and Cargo activate when .github/dependabot.yml reaches the default branch. No auto-merge.",
-    "manual_ecosystems": "The upstream support matrix does not yet list pnpm 11 or uv 0.12. Use the pinned native package managers for monthly Python/npm updates until matching updater support is verified; do not claim those updates are automated.",
+    "manual_ecosystems": "Reviewed on 2026-11-21. GitHub.com supports pnpm 11 through the npm ecosystem. The hosted matrix lists uv 0.11, while released Dependabot Core 0.405.0 uses uv 0.13.7 internally. ScopeHub requires exact uv 0.13.9. Use the pinned native package managers for this repository's Python and npm maintenance. Enable npm proposals only in a reviewed updater configuration that verifies the frozen pnpm lock, local patch and license inventory. Revisit hosted uv automation when the updater resolves the exact project pin and a trial proves it can update the locked graph.",
     "procedure": [
       "On the next active development session, inspect the due date and open a maintenance task when due; newly reported relevant advisories trigger earlier review.",
       "Review the open Dependabot queue and each recorded proposal by exact head and hosted run. Reconcile changed heads against the current graph, record shipped replacements after integration, and retain closed or superseded decisions with their original evidence. Reopen review when a deferred trigger is met or a replacement disappears from the supported graph.",
@@ -251,6 +251,8 @@
     ],
     "references": [
       "https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories",
+      "https://github.blog/changelog/2026-10-20-dependabot-now-supports-npm-12-pnpm-11-and-12-and-bun-1-4/",
+      "https://github.com/dependabot/dependabot-core/blob/v0.405.0/uv/Dockerfile",
       "https://docs.github.com/en/actions/reference/security/secure-use",
       "https://google.github.io/osv.dev/post-v1-querybatch/"
     ],
@@ -323,8 +325,25 @@
       "related_toolchain_finding": {
         "source": "https://github.com/astral-sh/uv/security/advisories/GHSA-hq85-5cpj-mr62",
         "observation": "The separately pinned uv 0.12.24 binary is affected when using its default bundled CA roots. The setup-uv Action update does not change the uv binary or remediate its trust store. The package inventory scan does not cover the installed uv executable.",
-        "revisit": "Review a patched uv toolchain at or above 0.13.4 before the 2026-11-28 maintenance deadline or immediately if the existing download trust cannot be established. Verify the exact uv release checksum, lock compatibility, Python 3.12 setup and Linux/Windows verification before changing the separate tool pin."
+        "revisit": "Review a patched uv toolchain at or above 0.13.4 before the 2026-11-28 maintenance deadline or immediately if the existing download trust cannot be established. Verify the exact uv release checksum, lock compatibility, Python 3.12 setup and Linux/Windows verification before changing the separate tool pin.",
+        "superseded_by": "M0-041"
       }
+    },
+    "uv_toolchain_review": {
+      "task_id": "M0-041",
+      "version": "0.13.9",
+      "version_source": "pyproject.toml tool.uv.required-version",
+      "release": "https://github.com/astral-sh/uv/releases/tag/0.13.9",
+      "manifest": "https://raw.githubusercontent.com/astral-sh/versions/main/v1/uv.ndjson",
+      "release_build": "https://github.com/astral-sh/uv/actions/runs/44053076542/attempts/1",
+      "release_commit": "6b2d39dcc390293d51c9c0d2bbcd650f4bcbfdce",
+      "archive_sha256": {
+        "uv-x86_64-unknown-linux-gnu.tar.gz": "a7fbaff2b9a271d85c1bdb540941090fd1ce011797b4abeb48e4dcd39c2471d5",
+        "uv-x86_64-pc-windows-msvc.zip": "edd61f7f5728a56cc62455386661860bdfc7bab65872f39b0c25bdcc1d8e1beb"
+      },
+      "review": "Both original archives matched their publisher SHA-256, Astral manifest and GitHub release metadata. GitHub Artifact Attestations verified both files against astral-sh/uv's release workflow. 0.13.9 retains the CA bundle correction from 0.13.4 and the intermediate key distrust and managed Python refresh from 0.13.5. It also improves equivalent platform marker checks and rejects wheels advertised under another package name. The local Python 3.12 trial passed uv lock --check and uv sync --locked with the existing byte-identical lock.",
+      "advisory": "https://github.com/astral-sh/uv/security/advisories/GHSA-hq85-5cpj-mr62",
+      "trust_follow_up": "https://github.com/astral-sh/uv/releases/tag/0.13.5"
     }
   }
 }

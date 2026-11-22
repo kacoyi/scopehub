@@ -30,9 +30,14 @@ def diagnose(root=ROOT):
     node_range = re.fullmatch(r'>=(\d+) <(\d+)', package['engines']['node'])
     if not node_range or int(node_range[2]) != int(node_range[1]) + 1:
         return {'status': 'failed', 'errors': ['Declare one supported Node major in package.json engines.']}
+    project = tomllib.loads((root / 'pyproject.toml').read_text(encoding='utf-8'))
+    uv_constraint = project.get('tool', {}).get('uv', {}).get('required-version')
+    uv_version = re.fullmatch(r'==(\d+\.\d+\.\d+)', uv_constraint) if isinstance(uv_constraint, str) else None
+    if not uv_version:
+        return {'status': 'failed', 'errors': ['Declare an exact uv version in pyproject.toml tool.uv.required-version.']}
     expected = {'python': (root / '.python-version').read_text().strip(),
                 'node': node_range[1], 'pnpm': package['packageManager'].split('@')[1],
-                'rustc': rust, 'cargo': rust}
+                'rustc': rust, 'cargo': rust, 'uv': uv_version[1]}
     observed = {'python': platform.python_version(),
                 **{name: tool_version(name, root) for name in ['node', 'pnpm', 'rustc', 'cargo', 'uv', 'git']}}
     errors = []
@@ -40,9 +45,8 @@ def diagnose(root=ROOT):
         match = re.search(r'\d+\.\d+\.\d+', observed[name])
         if not match or match[0].split('.')[:len(version.split('.'))] != version.split('.'):
             errors.append(f'{name}: expected {version}, observed {observed[name]}')
-    for name in ['uv', 'git']:
-        if observed[name] == 'unavailable':
-            errors.append(f'{name}: executable unavailable')
+    if observed['git'] == 'unavailable':
+        errors.append('git: executable unavailable')
     for path in ['Cargo.lock', 'pnpm-lock.yaml', 'uv.lock', 'node_modules/@tauri-apps/cli/config.schema.json']:
         if not (root / path).is_file():
             errors.append(f'Missing build input: {path}')

@@ -10906,7 +10906,9 @@
           },
           {
             "failure": "Recovering a missing checkpoint resolves an untrusted revision or bypasses the accepted-history comparison.",
-            "checks": ["python-contracts-workers"]
+            "checks": [
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Keep old immutable revisions and lockfiles in Git and archive failed checks. A reviewed revert restores the previous toolchain. Use only public package metadata and synthetic verification.",
@@ -10947,6 +10949,114 @@
           ],
           "data_plan": "Keep old immutable revisions and lockfiles in Git and archive failed checks. A reviewed revert restores the previous toolchain. Use only public package metadata and synthetic verification.",
           "cleanup": "Record the outcome for each original proposal and make the recurring dependency review account for closed or superseded proposals."
+        }
+      }
+    },
+    {
+      "id": "M0-041",
+      "title": "Replace the vulnerable uv trust-root toolchain pin",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [],
+      "scope": [
+        ".github/workflows/verify.yml",
+        "pyproject.toml",
+        "project",
+        "scripts/doctor.py",
+        "tests/project"
+      ],
+      "decision_refs": [
+        "0004",
+        "0006",
+        "0007"
+      ],
+      "acceptance": [
+        "Pin an exact uv release outside GHSA-hq85-5cpj-mr62 in the project and hosted verification. Match the Linux GNU x64 and Windows MSVC x64 archives to first-party checksums, the publisher manifest and verified release provenance.",
+        "The existing Python 3.12 environment builds from the current lock through normal uv sync --locked and pnpm verification on Ubuntu and Windows. Record lock compatibility and reject the old uv pin in normal preflight.",
+        "Record current upstream Dependabot coverage and supersede the installation risk recorded during M0-040 while preserving its proposal and acceptance history. Keep live model access and shared host tool changes outside this task."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture",
+        "python-types",
+        "dependency-review"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-041-54e1a4e3e914420e.json",
+          "sha256": "3d57b0591fdd501894b98472a077ff152c068050ed53a304eaf65a04c6437ca2"
+        }
+      ],
+      "next_action": "Archive matching platform CI with uv 0.13.9 and locked sync, then close the recorded advisory. Activate the verified dedicated local installation in the coordinated window.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Both hosted platforms and ScopeHub's local development checks use one exact patched uv version, with verified archive provenance and the reviewed Python dependency graph.",
+        "change_types": [
+          "tooling",
+          "dependencies"
+        ],
+        "context": [
+          ".github/workflows/verify.yml",
+          "pyproject.toml",
+          "uv.lock",
+          "scripts/doctor.py",
+          "project/dependencies.json"
+        ],
+        "hypotheses": [
+          "uv 0.13.9 includes the publisher's trust fixes, resolves through the reviewed setup Action and accepts the current lock without changing its package graph."
+        ],
+        "risks": [
+          {
+            "failure": "A stale executable or unexpected platform asset bypasses the selected fix.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "dependency-review"
+            ]
+          },
+          {
+            "failure": "Version constraints or lock syntax disrupt Python 3.12 setup or worker verification.",
+            "checks": [
+              "python-types",
+              "python-contracts-workers",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Keep the previous pinned source and host binary recoverable. If the selected release fails, retain diagnostics and test another reviewed patched release or a separately verified system trust configuration before relying on the old binary.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "pyproject.toml",
+            ".github/workflows/verify.yml",
+            "scripts/doctor.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control"
+            }
+          ],
+          "non_goals": [
+            "Shared host binary replacement, outside-project environment changes, new updater jobs, Python package upgrades or product calls."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Python 3.12, the reviewed package graph, read-only verification and independent M0-040 evidence."
+          ],
+          "change": [
+            "Use the patched uv trust bundle and bind platform archives to inspected digests.",
+            "Read one project uv pin in the hosted setup and in local preflight."
+          ],
+          "data_plan": "Store verified executables, archives and trial cache under this checkout. Use signed public release material and synthetic check data.",
+          "cleanup": "Supersede the temporary uv disposition and record actual updater coverage without enabling unrelated proposal streams."
         }
       }
     }
