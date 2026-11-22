@@ -1,8 +1,9 @@
 import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
 import type { LayoutPanel11, WorkspaceLayout11 } from '../../../../contracts/generated/protocol';
+import { t } from './i18n';
 import { price, symbol } from './instrument-display';
 import { readSampleHistory, type ChartHistory, type Instrument } from './market';
-import { layoutPanelLabels } from './workspace-layout';
+import { layoutDockLabels, layoutPanelLabels } from './workspace-layout';
 
 type Dock = LayoutPanel11['dock'];
 type Panel = LayoutPanel11['panel'];
@@ -55,11 +56,11 @@ export function LayoutDock({ dock, panels, active, select, close, children }: {
       close();
     }
   }}>
-    {tabs && <div className="layout-tabs" role="tablist" aria-label={`${dock[0]?.toUpperCase()}${dock.slice(1)} panels`}>
+    {tabs && <div className="layout-tabs" role="tablist" aria-label={t('{dock} panels', { dock: t(layoutDockLabels[dock]) })}>
       {panels.map((panel, index) => <button type="button" key={panel.panel} id={`layout-tab-${panel.panel}`}
         role="tab" aria-selected={active === panel.panel} aria-controls={`layout-section-${panel.panel}`}
         tabIndex={active === panel.panel ? 0 : -1} onClick={() => select(panel.panel)}
-        onKeyDown={event => changeTab(event, index)}>{layoutPanelLabels[panel.panel]}</button>)}
+        onKeyDown={event => changeTab(event, index)}>{t(layoutPanelLabels[panel.panel])}</button>)}
     </div>}
     {tabs ? panels.map(panel => <div key={panel.panel} id={`layout-section-${panel.panel}`} role="tabpanel"
       aria-labelledby={`layout-tab-${panel.panel}`} hidden={active !== panel.panel}>{active === panel.panel && children}</div>) : children}
@@ -85,11 +86,12 @@ export function PinnedComparison({ id, instrument, chartReady }: {
     return () => controller.abort();
   }, [id, instrument, chartReady, resolved]);
   const last = resolved ? resolved.bars.at(-1) : undefined;
-  return <section className="layout-comparison" aria-label="Pinned comparison">
-    <h2>Pinned comparison</h2>
+  return <section className="layout-comparison" aria-label={t('Pinned comparison')}>
+    <h2>{t('Pinned comparison')}</h2>
     <strong>{instrument ? symbol(instrument) : id.replace(/^SIM\./, '')}</strong>
-    {instrument ? <span>{last ? `Sample daily close ${price(last.close, instrument)} ${instrument.currency} · ${last.trading_day}`
-      : loaded?.id === id ? 'Sample close unavailable' : 'Loading sample comparison…'}</span>
-      : <span>Comparison source unavailable</span>}
+    {instrument ? <span>{last ? t('Sample daily close {price} {currency} · {day}', {
+      price: price(last.close, instrument), currency: instrument.currency, day: last.trading_day,
+    }) : loaded?.id === id ? t('Sample close unavailable') : t('Loading sample comparison…')}</span>
+      : <span>{t('Comparison source unavailable')}</span>}
   </section>;
 }

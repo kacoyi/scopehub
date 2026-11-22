@@ -5,12 +5,14 @@ import type {
   ReadLocalFolderRevisionOutput, SavedLocalImportMapping,
 } from '../../../../contracts/generated/protocol';
 import {
-  loadLocalImportMapping, prepareLocalFolderPublication, previewLocalFolderRefresh, publishLocalFolderRefresh, publishLocalImport,
-  readLocalFolderRevision, readLocalImportRevision, revokeLocalFolderRevision, revokeLocalImportRevision, saveLocalImportMapping,
+  loadLocalImportMapping, localCsvAuxiliaryRole, localCsvIssueMessage, localImportErrorMessage, prepareLocalFolderPublication,
+  previewLocalFolderRefresh, publishLocalFolderRefresh, publishLocalImport, readLocalFolderRevision, readLocalImportRevision,
+  renderLocalImportMessage, revokeLocalFolderRevision, revokeLocalImportRevision, saveLocalImportMapping, type LocalImportMessage,
 } from './local-import-transport';
 import { openAuthenticatedFrozenChart, UnavailableSharedSelection, type FrozenChartResult } from './frozen-evidence';
-import { FrozenFolderChart, FrozenLocalChart } from './local-preview-chart';
+import { formatSourceBarTime, FrozenFolderChart, FrozenLocalChart } from './local-preview-chart';
 import { FolderRefreshReview, type FolderPublicationChoices } from './folder-refresh-review';
+import { formatNumber, message, plural, t } from './i18n';
 import { displayAccessDenied, useWatchPublishedRevision, type PublishedRevisionAccess } from './published-revision-access';
 import type { LocalWorkspace } from './use-local-workspace';
 import { RevisionAccessActions } from './local-revision-dialog';
@@ -47,7 +49,8 @@ type ImportAction = 'preview' | 'save' | 'load' | 'publish' | 'read' | 'revoke' 
 type Pending = { action: ImportAction; cancelled: boolean; cancel: () => Promise<void> };
 type PreparedFolder = { review: PrepareLocalFolderPublicationOutput; key: string; attempted: boolean };
 type Progress = { action: ImportAction; phase: 'running' | 'cancelling' | 'cancelled' };
-type Failure = { message: string; sha256?: string; headerUnavailable?: boolean };
+type Locator = Pick<PreviewRow, 'line_start' | 'line_end'>;
+type Failure = { message: LocalImportMessage; sha256?: string; headerUnavailable?: boolean; locator?: Locator };
 type DraftTextField = Exclude<keyof CsvMappingV1, 'version' | 'revision' | 'columns'>;
 
 const actionText = {
@@ -91,21 +94,24 @@ function importErrorCode(error: unknown) {
 }
 
 function describeImportFailure(error: unknown, fallback: string, action?: ImportAction): Failure {
-  if (!error || typeof error !== 'object') return { message: fallback };
+  if (!error || typeof error !== 'object') return { message: message(fallback) };
   const code = importErrorCode(error);
   if ((code === 'STALE_CONTEXT' || code === 'SNAPSHOT_UNAVAILABLE') && (action === 'prepare-folder' || action === 'publish-folder')) {
-    return { message: 'The folder or accepted revision changed. Stage the folder refresh again.' };
+    return { message: message('The folder or accepted revision changed. Stage the folder refresh again.') };
   }
   if (code === 'SNAPSHOT_UNAVAILABLE' && action === 'refresh') return {
-    message: 'This frozen revision is unavailable in the current profile.',
+    message: message('This frozen revision is unavailable in the current profile.'),
   };
   if (code === 'SNAPSHOT_UNAVAILABLE') return {
     message: action === 'read' || action === 'revoke' || action === 'read-folder' || action === 'revoke-folder'
-      ? 'This frozen chart is unavailable in the current profile.'
-      : 'The file changed since it was inspected. Inspect raw rows again to review the current file.',
+      ? message('This frozen chart is unavailable in the current profile.')
+      : message('The file changed since it was inspected. Inspect raw rows again to review the current file.'),
   };
-  if (code === 'STALE_CONTEXT' && action !== 'publish') return { message: 'The folder selection has expired. Choose the folder again.' };
-  const message = 'message' in error && typeof error.message === 'string' && error.message ? error.message : fallback;
+  if (code === 'STALE_CONTEXT' && action !== 'publish') return { message: message('The folder selection has expired. Choose the folder again.') };
+  if (action === 'read' && error instanceof Error && error.message === 'The frozen chart reply could not be verified.') {
+    return { message: message('The frozen chart reply could not be verified.') };
+  }
+  const failureMessage = localImportErrorMessage(error) || message(fallback);
   const details = 'details' in error ? error.details : undefined;
   if (details && typeof details === 'object') {
     const sha256 = 'sha256' in details && typeof details.sha256 === 'string' ? details.sha256 : undefined;
@@ -113,13 +119,11 @@ function describeImportFailure(error: unknown, fallback: string, action?: Import
     const locator = 'reason' in details && details.reason === 'csv_review_required' && 'locator' in details ? details.locator : undefined;
     if (locator && typeof locator === 'object' && 'record_number' in locator && typeof locator.record_number === 'number'
       && 'line_start' in locator && typeof locator.line_start === 'number' && 'line_end' in locator && typeof locator.line_end === 'number') {
-      return { message: `${message} Source lines ${sourceLines({
-        line_start: locator.line_start, line_end: locator.line_end,
-      })}.` };
+      return { message: failureMessage, locator: { line_start: locator.line_start, line_end: locator.line_end } };
     }
-    return sha256 === undefined ? { message, headerUnavailable } : { message, sha256, headerUnavailable };
+    return sha256 === undefined ? { message: failureMessage, headerUnavailable } : { message: failureMessage, sha256, headerUnavailable };
   }
-  return { message };
+  return { message: failureMessage };
 }
 
 function cancelPending(pending: Pending) {
@@ -128,44 +132,64 @@ function cancelPending(pending: Pending) {
   void pending.cancel().catch(() => undefined);
 }
 
-function sourceLines(row: Pick<PreviewRow, 'line_start' | 'line_end'>) {
-  return row.line_start === row.line_end ? String(row.line_start) : `${row.line_start}–${row.line_end}`;
+function ungrouped(value: number) {
+  return formatNumber(value, { useGrouping: false });
 }
 
-function utcTime(milliseconds: number) {
-  const time = new Date(milliseconds);
-  return Number.isFinite(time.valueOf()) ? time.toISOString() : `${milliseconds} ms UTC`;
+function sourceLines(row: Locator) {
+  return row.line_start === row.line_end ? ungrouped(row.line_start) : `${ungrouped(row.line_start)}–${ungrouped(row.line_end)}`;
+}
+
+function failureText(failure: Failure) {
+  const text = renderLocalImportMessage(failure.message);
+  return failure.locator ? t('{message} Source lines {lines}.', { message: text, lines: sourceLines(failure.locator) }) : text;
+}
+
+function ImportAlert({ failure }: { failure: Failure }) {
+  return <div className="local-import-error" role="alert">
+    {failureText(failure)}
+    {failure.sha256 && <div>{t('Complete file SHA-256')} <code>{failure.sha256}</code></div>}
+  </div>;
+}
+
+function rawOnlyReason(reason: string) {
+  const preserved = /^Preserved for review as (.+)\.$/.exec(reason);
+  if (preserved?.[1]) return t('Preserved for review as {role}.', { role: localCsvAuxiliaryRole(preserved[1]) });
+  if (reason === 'No supported bar field is mapped to this column.' || reason === 'Previous settlement price') return t(reason);
+  return reason;
 }
 
 function IssueList({ issues }: { issues: PreviewIssue[] }) {
   return <ul className="local-import-issues">{issues.map((issue, index) =>
-    <li key={`${issue.code}-${index}`}>{issue.field && <strong>{issue.field}{' · '}</strong>}{issue.message}</li>,
+    <li key={`${issue.code}-${index}`}>{issue.field && <strong>{issue.field}{' · '}</strong>}
+      {renderLocalImportMessage(localCsvIssueMessage(issue.message, issue.code))}
+    </li>,
   )}</ul>;
 }
 
 function Diagnostics({ preview }: { preview: CsvPreview }) {
   const rejected = preview.rows.filter(row => row.issues.length);
-  return <section className="local-import-card" aria-label="Diagnostics">
-    <h2>Diagnostics</h2>
+  return <section className="local-import-card" aria-label={t('Diagnostics')}>
+    <h2>{t('Diagnostics')}</h2>
     {preview.issues.length > 0 && <IssueList issues={preview.issues} />}
     {rejected.map(row => <div className="local-import-row-issues" key={row.record_number}>
-      <h3>Record {row.record_number} · Source lines {sourceLines(row)}</h3>
+      <h3>{t('Record {record} · Source lines {lines}', { record: ungrouped(row.record_number), lines: sourceLines(row) })}</h3>
       <IssueList issues={row.issues} />
     </div>)}
-    {preview.issues.length === 0 && rejected.length === 0 && <p>No issues in this preview.</p>}
+    {preview.issues.length === 0 && rejected.length === 0 && <p>{t('No issues in this preview.')}</p>}
     {preview.raw_only_columns.length > 0 && <details className="local-import-raw-only">
-      <summary>Columns kept in raw data ({preview.raw_only_columns.length})</summary>
+      <summary>{t('Columns kept in raw data ({count})', { count: ungrouped(preview.raw_only_columns.length) })}</summary>
       <ul>{preview.raw_only_columns.map(({ column, reason }, index) =>
-        <li key={index}><strong>{column || `Column ${index + 1}`}</strong> · {reason}</li>)}</ul>
+        <li key={index}><strong>{column || t('Column {number}', { number: ungrouped(index + 1) })}</strong> · {rawOnlyReason(reason)}</li>)}</ul>
     </details>}
   </section>;
 }
 
 function RawValue({ value }: { value: string | undefined }) {
   if (value === undefined) return <span className="local-import-muted">—</span>;
-  if (value === '') return <span className="local-import-muted">Empty</span>;
+  if (value === '') return <span className="local-import-muted">{t('Empty')}</span>;
   if (value.length > 240) return <details>
-    <summary>{value.length.toLocaleString()} characters</summary><pre>{value}</pre>
+    <summary>{t('{count} characters', { count: formatNumber(value.length) })}</summary><pre>{value}</pre>
   </details>;
   return value;
 }
@@ -176,50 +200,52 @@ function RawRows({ preview }: { preview: CsvPreview }) {
   const first = page * pageSize;
   const pageRows = preview.rows.slice(first, first + pageSize);
   const width = Math.max(1, preview.header.length, ...preview.rows.map(row => row.raw_fields.length));
-  const headers = Array.from({ length: width }, (_, index) => preview.header[index] || `Column ${index + 1}`);
-  return <section className="local-import-card" aria-label="Raw CSV rows">
-    <h2>Raw CSV rows</h2>
+  const headers = Array.from({ length: width }, (_, index) => preview.header[index] || t('Column {number}', { number: ungrouped(index + 1) }));
+  return <section className="local-import-card" aria-label={t('Raw CSV rows')}>
+    <h2>{t('Raw CSV rows')}</h2>
     {preview.raw_header_text !== null && <div className="local-import-raw-header">
-      <h3>Raw header</h3><RawValue value={preview.raw_header_text} />
+      <h3>{t('Raw header')}</h3><RawValue value={preview.raw_header_text} />
     </div>}
-    {preview.rows.length === 0 ? <p>No source records are available for this preview.</p> :
-      <div className="local-import-table table-scroll" tabIndex={0} role="region" aria-label="Scroll raw CSV rows">
-        <table aria-label="Raw CSV rows">
-          <thead><tr><th scope="col">Record</th><th scope="col">Source lines</th>
+    {preview.rows.length === 0 ? <p>{t('No source records are available for this preview.')}</p> :
+      <div className="local-import-table table-scroll" tabIndex={0} role="region" aria-label={t('Scroll raw CSV rows')}>
+        <table aria-label={t('Raw CSV rows')}>
+          <thead><tr><th scope="col">{t('Record')}</th><th scope="col">{t('Source lines')}</th>
             {headers.map((header, index) => <th scope="col" key={index}><RawValue value={header} /></th>)}
           </tr></thead>
           <tbody>{pageRows.map(row => <tr key={row.record_number}>
-            <th scope="row">{row.record_number}</th><td>{sourceLines(row)}</td>
+            <th scope="row">{ungrouped(row.record_number)}</th><td>{sourceLines(row)}</td>
             {row.raw_text === null ? headers.map((_, index) => <td key={index}><RawValue value={row.raw_fields[index]} /></td>)
               : <td colSpan={width}><RawValue value={row.raw_text} /></td>}
           </tr>)}</tbody>
         </table>
       </div>}
     {preview.rows.length > pageSize && <div className="local-import-table-nav">
-      <p>Records {first + 1}–{first + pageRows.length} of {preview.rows.length}</p>
-      <button type="button" className="secondary-button" disabled={page === 0} onClick={() => setPage(page - 1)}>Previous records</button>
-      <button type="button" className="secondary-button" disabled={first + pageSize >= preview.rows.length} onClick={() => setPage(page + 1)}>Next records</button>
+      <p>{t('Records {first}–{last} of {total}', {
+        first: ungrouped(first + 1), last: ungrouped(first + pageRows.length), total: ungrouped(preview.rows.length),
+      })}</p>
+      <button type="button" className="secondary-button" disabled={page === 0} onClick={() => setPage(page - 1)}>{t('Previous records')}</button>
+      <button type="button" className="secondary-button" disabled={first + pageSize >= preview.rows.length} onClick={() => setPage(page + 1)}>{t('Next records')}</button>
     </div>}
   </section>;
 }
 
 function NormalizedBars({ preview }: { preview: CsvPreview }) {
   const { series } = preview;
-  return <section className="local-import-card" aria-label="Normalized bars">
-    <h2>Normalized bars</h2>
-    {series && <p>{series.venue} · {series.timeframe} · {series.timezone} · Volume in {series.quantity_unit} · {series.price_adjustment}</p>}
+  return <section className="local-import-card" aria-label={t('Normalized bars')}>
+    <h2>{t('Normalized bars')}</h2>
+    {series && <p>{series.venue} · {series.timeframe} · {series.timezone} · {t('Volume in {unit}', { unit: series.quantity_unit })} · {series.price_adjustment}</p>}
     {preview.rows.some(row => row.normalized !== null) ?
-      <div className="local-import-table table-scroll" tabIndex={0} role="region" aria-label="Scroll normalized bars">
-        <table aria-label="Normalized bars">
+      <div className="local-import-table table-scroll" tabIndex={0} role="region" aria-label={t('Scroll normalized bars')}>
+        <table aria-label={t('Normalized bars')}>
           <thead><tr>{['Record', 'Source lines', 'Symbol', 'Start (UTC)', 'Trading day', 'Open', 'High', 'Low', 'Close', 'Volume'].map(label =>
-            <th key={label} scope="col">{label}</th>,
+            <th key={label} scope="col">{t(label, undefined, label === 'Close' ? 'price' : undefined)}</th>,
           )}</tr></thead>
           <tbody>{preview.rows.map(({ normalized: bar, ...row }) => bar && <tr key={row.record_number}>
-            <th scope="row">{row.record_number}</th><td>{sourceLines(row)}</td><td>{row.symbol}</td><td>{utcTime(bar.time_ms)}</td>
-            <td>{bar.trading_day}</td><td>{bar.open}</td><td>{bar.high}</td><td>{bar.low}</td><td>{bar.close}</td><td>{bar.volume ?? 'Unknown'}</td>
+            <th scope="row">{ungrouped(row.record_number)}</th><td>{sourceLines(row)}</td><td>{row.symbol}</td><td>{formatSourceBarTime(bar.time_ms)}</td>
+            <td>{bar.trading_day}</td><td>{bar.open}</td><td>{bar.high}</td><td>{bar.low}</td><td>{bar.close}</td><td>{bar.volume ?? t('Unknown')}</td>
           </tr>)}</tbody>
         </table>
-      </div> : <p>No rows qualified as closed bars. Review the diagnostics and mapping.</p>}
+      </div> : <p>{t('No rows qualified as closed bars. Review the diagnostics and mapping.')}</p>}
   </section>;
 }
 
@@ -239,10 +265,10 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   const [loadedSourceHash, setLoadedSourceHash] = useState<string>();
   const [failure, setFailure] = useState<Failure>();
   const [mappingFailure, setMappingFailure] = useState<Failure>();
-  const [mappingNotice, setMappingNotice] = useState<string>();
+  const [mappingNotice, setMappingNotice] = useState<ReturnType<typeof message>>();
   const [publicationFailure, setPublicationFailure] = useState<Failure>();
-  const [publicationNotice, setPublicationNotice] = useState<string>();
-  const [pickerFailure, setPickerFailure] = useState<string>();
+  const [publicationNotice, setPublicationNotice] = useState<ReturnType<typeof message>>();
+  const [pickerFailure, setPickerFailure] = useState<Failure>();
   const [opening, setOpening] = useState(false);
   const [progress, setProgress] = useState<Progress>();
   const active = useRef<Pending | undefined>(undefined);
@@ -279,7 +305,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     if (!folderAccessLost) return;
     setPublishedFolder(undefined);
     setFrozenFolder(undefined);
-    setPublicationNotice('Access removed for this published folder revision.');
+    setPublicationNotice(message('Access removed for this published folder revision.'));
   }, [folderAccessLost]);
 
   useEffect(() => {
@@ -299,7 +325,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     // the preview of the withdrawn bytes that would otherwise reappear here.
     setInspection(value => value?.output.sha256 === revokedSourceHash ? undefined : value);
     setLoadedSourceHash(value => value === revokedSourceHash ? undefined : value);
-    setPublicationNotice('Access removed for this published revision.');
+    setPublicationNotice(message('Access removed for this published revision.'));
   }, [lostAccess, publishedId, revokedSourceHash]);
 
   const file = catalog.files.find(item => item.file_id === fileId && item.kind === 'csv');
@@ -368,7 +394,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     try {
       await chooseFolder();
     } catch (error) {
-      if (alive.current) setPickerFailure(describeImportFailure(error, 'Unable to choose a local CSV folder.').message);
+      if (alive.current) setPickerFailure(describeImportFailure(error, 'Unable to choose a local CSV folder.'));
     } finally {
       picker.current = false;
       if (alive.current) setOpening(false);
@@ -454,7 +480,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       expected_sha256: reviewed.output.sha256, mapping: reviewed.mapping, row_limit: reviewed.rowLimit,
     }, id), reply => {
       setApproved({ draft, sha256: reviewed.output.sha256, record: reply.record });
-      setMappingNotice(`Reviewed mapping revision ${reply.record.review_revision} saved for this profile.`);
+      setMappingNotice(message('Reviewed mapping revision {revision} saved for this profile.', { revision: reply.record.review_revision }));
     });
   }
 
@@ -465,22 +491,22 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     }, id), reply => {
       if (reply.status === 'not_saved') {
         setApproved(undefined);
-        setMappingNotice('This profile has no reviewed mapping for this file.');
+        setMappingNotice(message('This profile has no reviewed mapping for this file.'));
       } else if (reply.status === 'review_required') {
         setApproved(undefined);
         setInspection(undefined);
         setLoadedSourceHash(reply.source_sha256 ?? undefined);
         setFailure(undefined);
-        setMappingNotice('The CSV header has changed. Inspect the current raw rows and review the mapping.');
+        setMappingNotice(message('The CSV header has changed. Inspect the current raw rows and review the mapping.'));
       } else if (reply.record && reply.source_sha256) {
         setDraft(reply.record.mapping);
         setApproved({ draft: reply.record.mapping, sha256: reply.source_sha256, record: reply.record });
         setLoadedSourceHash(reply.source_sha256);
         if (observed?.sha256 !== reply.source_sha256) setInspection(undefined);
         setFailure(undefined);
-        setMappingNotice(`Reviewed mapping revision ${reply.record.review_revision} loaded. Preview it against the current file.`);
+        setMappingNotice(message('Reviewed mapping revision {revision} loaded. Preview it against the current file.', { revision: reply.record.review_revision }));
       } else {
-        setMappingFailure({ message: 'The saved mapping reply could not be verified.' });
+        setMappingFailure({ message: message('The saved mapping reply could not be verified.') });
       }
     });
   }
@@ -492,7 +518,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       expected_sha256: publishable.sha256, review_revision: publishable.record.review_revision,
     }, id), reply => {
       if (!revisionAccess.canDisplay(reply.revision.revision_id)) {
-        setPublicationNotice('Access removed for this published revision.');
+        setPublicationNotice(message('Access removed for this published revision.'));
         return;
       }
       setPublished(reply.revision);
@@ -509,7 +535,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     }, id), reply => {
       if (!revisionAccess.canDisplay(revisionId)) return;
       if ((reply.folder_base?.revision_id ?? reply.base?.revision_id) !== revisionId) {
-        setPublicationFailure({ message: 'The folder preview could not be verified for this revision.' });
+        setPublicationFailure({ message: message('The folder preview could not be verified for this revision.') });
         return;
       }
       setFolderRefresh(reply);
@@ -524,7 +550,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     }, id), review => {
       if (!revisionAccess.canDisplay(refreshRevisionId)) return;
       if (review.review_id !== reviewId || review.parent_revision_id !== refreshRevisionId) {
-        setPublicationFailure({ message: 'The reviewed publication reply could not be verified.' });
+        setPublicationFailure({ message: message('The reviewed publication reply could not be verified.') });
         return;
       }
       setPreparedFolder({ review, key: crypto.randomUUID(), attempted: false });
@@ -544,18 +570,18 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       const revision = reply.revision;
       if (revision.base_revision_id !== anchor || revision.parent_revision_id !== parent
         || revision.bar_count !== review.bar_count || revision.source_count !== review.source_count) {
-        setPublicationFailure({ message: 'The folder publication receipt could not be verified.' });
+        setPublicationFailure({ message: message('The folder publication receipt could not be verified.') });
         return;
       }
       setPreparedFolder(undefined);
       setFolderRefresh(undefined);
       if (!revisionAccess.canDisplay(revision.revision_id)) {
-        setPublicationNotice('Access removed for this published folder revision.');
+        setPublicationNotice(message('Access removed for this published folder revision.'));
         return;
       }
       setPublishedFolder(revision);
       setFrozenFolder(undefined);
-      setPublicationNotice('Reviewed folder published.');
+      setPublicationNotice(message('Reviewed folder published.'));
     });
   }
 
@@ -573,7 +599,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       if (!revisionAccess.canDisplay(revisionId)) return;
       if (reply.revision.revision_id !== revisionId || reply.bars.length !== publishedFolder.bar_count
         || reply.files.length !== publishedFolder.source_count) {
-        setPublicationFailure({ message: 'The frozen folder revision could not be verified.' });
+        setPublicationFailure({ message: message('The frozen folder revision could not be verified.') });
         return;
       }
       setFrozen(undefined);
@@ -587,7 +613,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       version: 1, revision_id: publishedFolder.revision_id,
     }, id), reply => {
       if (reply.revision_id !== publishedFolder.revision_id) {
-        setPublicationFailure({ message: 'The folder access removal reply could not be verified.' });
+        setPublicationFailure({ message: message('The folder access removal reply could not be verified.') });
         return;
       }
       revisionAccess.revoke(publishedFolder.revision_id);
@@ -609,7 +635,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       if (!revisionAccess.canDisplay(revisionId)) return;
       if (reply.revision.revision_id !== published.revision_id || reply.revision.source_sha256 !== published.source_sha256
         || reply.revision.mapping_sha256 !== published.mapping_sha256 || reply.bars.length !== published.bar_count) {
-        setPublicationFailure({ message: 'The frozen chart reply could not be verified.' });
+        setPublicationFailure({ message: message('The frozen chart reply could not be verified.') });
         return;
       }
       setFrozenFolder(undefined);
@@ -623,11 +649,11 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       version: 1, revision_id: published.revision_id,
     }, id), reply => {
       if (reply.revision_id !== published.revision_id) {
-        setPublicationFailure({ message: 'The access removal reply could not be verified.' });
+        setPublicationFailure({ message: message('The access removal reply could not be verified.') });
         return;
       }
       revisionAccess.revoke(published.revision_id);
-      setPublicationNotice('Access removed for this published revision.');
+      setPublicationNotice(message('Access removed for this published revision.'));
       workspace?.reload();
     });
   }
@@ -639,113 +665,108 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     cancelPending(request);
   }
 
-  const progressText = opening ? 'Waiting for folder selection…' : progress?.phase === 'running' ? actionText[progress.action].running
-    : progress?.phase === 'cancelling' ? `Cancelling ${actionText[progress.action].label}…`
-      : progress?.phase === 'cancelled' ? actionText[progress.action].cancelled : undefined;
+  const progressText = opening ? t('Waiting for folder selection…') : progress?.phase === 'running' ? t(actionText[progress.action].running)
+    : progress?.phase === 'cancelling' ? t('Cancelling {action}…', { action: t(actionText[progress.action].label) })
+      : progress?.phase === 'cancelled' ? t(actionText[progress.action].cancelled) : undefined;
 
-  return <section className="local-import-editor" aria-label="Local CSV import">
+  return <section className="local-import-editor" aria-label={t('Local CSV import')}>
     <div className="local-import-heading">
-      <div><h1>Local CSV import</h1><p className="local-import-muted">Folder · {catalog.display_name}</p></div>
-      <button type="button" className="secondary-button" disabled={busy} onClick={() => void replaceFolder()}>Choose local CSV folder</button>
+      <div><h1>{t('Local CSV import')}</h1><p className="local-import-muted">{t('Folder · {name}', { name: catalog.display_name })}</p></div>
+      <button type="button" className="secondary-button" disabled={busy} onClick={() => void replaceFolder()}>{t('Choose local CSV folder')}</button>
     </div>
-    {pickerFailure && <p className="local-import-error" role="alert">{pickerFailure}</p>}
-    {failure && <div className="local-import-error" role="alert">{failure.message}
-      {failure.sha256 && <div>Complete file SHA-256 <code>{failure.sha256}</code></div>}
-    </div>}
-    {mappingFailure && <div className="local-import-error" role="alert">{mappingFailure.message}
-      {mappingFailure.sha256 && <div>Complete file SHA-256 <code>{mappingFailure.sha256}</code></div>}
-    </div>}
-    {publicationFailure && <div className="local-import-error" role="alert">{publicationFailure.message}
-      {publicationFailure.sha256 && <div>Complete file SHA-256 <code>{publicationFailure.sha256}</code></div>}
-    </div>}
+    {pickerFailure && <p className="local-import-error" role="alert">{failureText(pickerFailure)}</p>}
+    {failure && <ImportAlert failure={failure} />}
+    {mappingFailure && <ImportAlert failure={mappingFailure} />}
+    {publicationFailure && <ImportAlert failure={publicationFailure} />}
     <div className="local-import-grid">
       <div className="local-import-controls">
         <fieldset className="local-import-card" disabled={busy}>
-          <legend>File and format</legend>
+          <legend>{t('File and format')}</legend>
           <div className="local-import-fields">
-            <label className="local-import-wide">CSV file <select value={fileId} onChange={event => selectFile(event.currentTarget.value)}>
-              {!file && <option value="">Choose a CSV file</option>}
+            <label className="local-import-wide">{t('CSV file')} <select value={fileId} onChange={event => selectFile(event.currentTarget.value)}>
+              {!file && <option value="">{t('Choose a CSV file')}</option>}
               {catalog.files.map(item => <option key={item.file_id} value={item.file_id} disabled={item.kind !== 'csv'}>
-                {item.relative_path}{item.kind === 'unsupported_extension' ? ' (unsupported format)' : item.kind === 'unsupported_entry' ? ' (unavailable)' : ''}
+                {item.kind === 'unsupported_extension' ? t('{path} (unsupported format)', { path: item.relative_path })
+                  : item.kind === 'unsupported_entry' ? t('{path} (unavailable)', { path: item.relative_path }) : item.relative_path}
               </option>)}
             </select></label>
-            {file ? <p className="local-import-wide local-import-muted">{file.byte_count.toLocaleString()} bytes</p>
-              : <p className="local-import-wide local-import-muted">This folder contains no supported CSV files.</p>}
-            <label>Encoding <select value={draft.encoding} onChange={event => updateDraft('encoding', event.currentTarget.value)}>
-              <option value="utf-8">UTF-8</option><option value="utf-8-sig">UTF-8 with BOM</option><option value="gb18030">GB18030</option>
+            {file ? <p className="local-import-wide local-import-muted">{t('{count} bytes', { count: formatNumber(file.byte_count) })}</p>
+              : <p className="local-import-wide local-import-muted">{t('This folder contains no supported CSV files.')}</p>}
+            <label>{t('Encoding')} <select value={draft.encoding} onChange={event => updateDraft('encoding', event.currentTarget.value)}>
+              <option value="utf-8">UTF-8</option><option value="utf-8-sig">{t('UTF-8 with BOM')}</option><option value="gb18030">GB18030</option>
             </select></label>
-            <label>Delimiter <select value={draft.delimiter} onChange={event => updateDraft('delimiter', event.currentTarget.value)}>
-              <option value=",">Comma</option><option value=";">Semicolon</option><option value={'\t'}>Tab</option><option value="|">Pipe</option>
+            <label>{t('Delimiter')} <select value={draft.delimiter} onChange={event => updateDraft('delimiter', event.currentTarget.value)}>
+              <option value=",">{t('Comma')}</option><option value=";">{t('Semicolon')}</option><option value={'\t'}>{t('Tab')}</option><option value="|">{t('Pipe')}</option>
             </select></label>
-            <label>Record kind <select value={draft.record_kind} onChange={event => updateDraft('record_kind', event.currentTarget.value)}>
-              <option value="unclassified">Show raw records</option>
-              <option value="native_ohlcv">Closed OHLCV bars</option>
-              <option value="trade">Executed trades</option>
-              <option value="quote_snapshot">Quote snapshots</option>
-              <option value="depth_snapshot">Order book snapshots</option>
-              <option value="reference_data">Reference data</option>
-              <option value="corporate_action">Corporate actions</option>
+            <label>{t('Record kind')} <select value={draft.record_kind} onChange={event => updateDraft('record_kind', event.currentTarget.value)}>
+              <option value="unclassified">{t('Show raw records')}</option>
+              <option value="native_ohlcv">{t('Closed OHLCV bars')}</option>
+              <option value="trade">{t('Executed trades')}</option>
+              <option value="quote_snapshot">{t('Quote snapshots')}</option>
+              <option value="depth_snapshot">{t('Order book snapshots')}</option>
+              <option value="reference_data">{t('Reference data')}</option>
+              <option value="corporate_action">{t('Corporate actions')}</option>
             </select></label>
-            <label>Rows per preview <select value={rowLimit} onChange={event => {
+            <label>{t('Rows per preview')} <select value={rowLimit} onChange={event => {
               setRowLimit(Number(event.currentTarget.value)); setFailure(undefined); setProgress(undefined);
             }}>
-              {[1, 25, 50, 100, 250, 500].map(count => <option key={count} value={count}>{count}</option>)}
+              {[1, 25, 50, 100, 250, 500].map(count => <option key={count} value={count}>{formatNumber(count)}</option>)}
             </select></label>
           </div>
-          <button type="button" className="secondary-button" disabled={!file} onClick={() => void inspect(true)}>Inspect raw rows</button>
-          <button type="button" className="secondary-button" disabled={!file} onClick={() => void loadMapping()}>Load reviewed mapping</button>
+          <button type="button" className="secondary-button" disabled={!file} onClick={() => void inspect(true)}>{t('Inspect raw rows')}</button>
+          <button type="button" className="secondary-button" disabled={!file} onClick={() => void loadMapping()}>{t('Load reviewed mapping')}</button>
         </fieldset>
         {native && <fieldset className="local-import-card" disabled={busy || !file}>
-          <legend>Bar mapping</legend>
-          {columns.length === 0 && <p className="local-import-muted">Inspect raw rows to load column names.</p>}
+          <legend>{t('Bar mapping')}</legend>
+          {columns.length === 0 && <p className="local-import-muted">{t('Inspect raw rows to load column names.')}</p>}
           <div className="local-import-fields">
             {columnFields.map(([key, label]) => {
               const name = draft.columns?.[key];
-              return <label key={key}>{label}<select value={name === null ? noVolume : name ?? ''}
+              return <label key={key}>{t(label)}<select value={name === null ? noVolume : name ?? ''}
                 onChange={event => selectColumn(key, event.currentTarget.value)}>
-                <option value="">Select a header</option>
-                {key === 'volume' && <option value={noVolume}>No volume column</option>}
-                {name && !columns.includes(name) && <option value={name}>{name} (previous selection)</option>}
+                <option value="">{t('Select a header')}</option>
+                {key === 'volume' && <option value={noVolume}>{t('No volume column')}</option>}
+                {name && !columns.includes(name) && <option value={name}>{t('{name} (previous selection)', { name })}</option>}
                 {columns.map(column => <option key={column} value={column}>{column}</option>)}
               </select></label>;
             })}
-            <label>Instrument type <select value={draft.instrument_kind ?? ''} onChange={event => updateDraft('instrument_kind', event.currentTarget.value)}>
-              <option value="">Select type</option><option value="equity">Stock / equity</option>
-              <option value="dated_future">Dated futures contract</option><option value="continuous_future">Continuous futures series</option>
+            <label>{t('Instrument type')} <select value={draft.instrument_kind ?? ''} onChange={event => updateDraft('instrument_kind', event.currentTarget.value)}>
+              <option value="">{t('Select type')}</option><option value="equity">{t('Stock / equity')}</option>
+              <option value="dated_future">{t('Dated futures contract')}</option><option value="continuous_future">{t('Continuous futures series')}</option>
             </select></label>
-            <label>Volume basis <select value={draft.volume_semantics ?? ''} onChange={event => updateDraft('volume_semantics', event.currentTarget.value)}>
-              <option value="">Select basis</option><option value="per_bar">Per bar</option><option value="cumulative">Cumulative</option>
+            <label>{t('Volume basis')} <select value={draft.volume_semantics ?? ''} onChange={event => updateDraft('volume_semantics', event.currentTarget.value)}>
+              <option value="">{t('Select basis')}</option><option value="per_bar">{t('Per bar')}</option><option value="cumulative">{t('Cumulative')}</option>
             </select></label>
-            {seriesFields.map(([key, label, placeholder, maxLength]) => <label key={key}>{label}
-              <input value={draft[key] ?? ''} placeholder={placeholder} maxLength={maxLength} onChange={event => updateDraft(key, event.currentTarget.value)} />
+            {seriesFields.map(([key, label, placeholder, maxLength]) => <label key={key}>{t(label)}
+              <input value={draft[key] ?? ''} placeholder={t(placeholder)} maxLength={maxLength} onChange={event => updateDraft(key, event.currentTarget.value)} />
             </label>)}
-            {draft.instrument_kind === 'continuous_future' && <label>Roll method
+            {draft.instrument_kind === 'continuous_future' && <label>{t('Roll method')}
               <input value={draft.roll_method ?? ''} maxLength={256} onChange={event => updateDraft('roll_method', event.currentTarget.value)} />
             </label>}
-            <label>Timestamp convention <select value={draft.timestamp_convention ?? ''} onChange={event => updateDraft('timestamp_convention', event.currentTarget.value)}>
-              <option value="">Select convention</option><option value="bar_start">Bar start</option><option value="bar_end">Bar end</option>
+            <label>{t('Timestamp convention')} <select value={draft.timestamp_convention ?? ''} onChange={event => updateDraft('timestamp_convention', event.currentTarget.value)}>
+              <option value="">{t('Select convention')}</option><option value="bar_start">{t('Bar start')}</option><option value="bar_end">{t('Bar end')}</option>
             </select></label>
-            {dateFields.map(([key, label, placeholder, maxLength]) => <label key={key}>{label}
-              <input value={draft[key] ?? ''} placeholder={placeholder} maxLength={maxLength} onChange={event => updateDraft(key, event.currentTarget.value)} />
+            {dateFields.map(([key, label, placeholder, maxLength]) => <label key={key}>{t(label)}
+              <input value={draft[key] ?? ''} placeholder={key === 'daily_start_time' ? t(placeholder) : placeholder} maxLength={maxLength} onChange={event => updateDraft(key, event.currentTarget.value)} />
             </label>)}
           </div>
-          <button type="button" className="primary local-import-preview" onClick={() => void inspect(false)}>Preview mapping</button>
-          {reviewed && <button type="button" className="secondary-button" onClick={() => void saveMapping()}>Save reviewed mapping</button>}
+          <button type="button" className="primary local-import-preview" onClick={() => void inspect(false)}>{t('Preview mapping')}</button>
+          {reviewed && <button type="button" className="secondary-button" onClick={() => void saveMapping()}>{t('Save reviewed mapping')}</button>}
         </fieldset>}
         {publishable && <fieldset className="local-import-card" disabled={busy}>
-          <legend>Publish reviewed CSV</legend>
-          <p>ScopeHub checks the complete file and keeps a copy of the original CSV in this profile.</p>
-          <button type="button" className="primary local-import-preview" onClick={() => void publish()}>Publish complete file</button>
+          <legend>{t('Publish reviewed CSV')}</legend>
+          <p>{t('ScopeHub checks the complete file and keeps a copy of the original CSV in this profile.')}</p>
+          <button type="button" className="primary local-import-preview" onClick={() => void publish()}>{t('Publish complete file')}</button>
         </fieldset>}
       </div>
       <div className="local-import-results">
         {progressText && <div className="local-import-card local-import-progress">
           <p role="status">{progressText}</p>
           {progress && !['read', 'revoke', 'read-folder', 'revoke-folder', 'prepare-folder'].includes(progress.action) && progress.phase !== 'cancelled' &&
-            <button type="button" className="secondary-button" disabled={progress.phase === 'cancelling'} onClick={cancel}>Cancel {actionText[progress.action].label}</button>}
+            <button type="button" className="secondary-button" disabled={progress.phase === 'cancelling'} onClick={cancel}>{t('Cancel {action}', { action: t(actionText[progress.action].label) })}</button>}
         </div>}
-        {mappingNotice && <div className="local-import-card" role="status">{mappingNotice}</div>}
-        {publicationNotice && <div className="local-import-card" role="status">{publicationNotice}</div>}
+        {mappingNotice && <div className="local-import-card" role="status">{t(mappingNotice)}</div>}
+        {publicationNotice && <div className="local-import-card" role="status">{t(publicationNotice)}</div>}
         <FolderRefreshReview
           revisionId={publishedFolder?.revision_id ?? published?.revision_id}
           busy={busy}
@@ -757,38 +778,43 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
           onPublish={() => void publishFolder()}
           onEdit={() => setPreparedFolder(undefined)}
         />
-        {publishedFolder && <section className="local-import-card" aria-label="Published local folder">
-          <h2>Published local folder</h2>
-          <p role="status">{publishedFolder.symbol} · {publishedFolder.bar_count.toLocaleString()} {publishedFolder.bar_count === 1 ? 'bar' : 'bars'} · {publishedFolder.source_count.toLocaleString()} {publishedFolder.source_count === 1 ? 'source' : 'sources'}</p>
-          <div className="local-import-hash"><strong>Folder revision ID</strong><code>{publishedFolder.revision_id}</code></div>
+        {publishedFolder && <section className="local-import-card" aria-label={t('Published local folder')}>
+          <h2>{t('Published local folder')}</h2>
+          <p role="status">{publishedFolder.symbol} · {plural('{count} bar', '{count} bars', publishedFolder.bar_count)} · {plural('{count} source', '{count} sources', publishedFolder.source_count)}</p>
+          <div className="local-import-hash"><strong>{t('Folder revision ID')}</strong><code>{publishedFolder.revision_id}</code></div>
           <div className="local-publication-actions">
-            <button type="button" className="secondary-button" disabled={busy} onClick={() => void openFrozenFolder()}>Open frozen folder chart</button>
-            {frozenFolder && <button type="button" className="secondary-button" disabled={busy} onClick={() => setFrozenFolder(undefined)}>Close frozen folder chart</button>}
+            <button type="button" className="secondary-button" disabled={busy} onClick={() => void openFrozenFolder()}>{t('Open frozen folder chart')}</button>
+            {frozenFolder && <button type="button" className="secondary-button" disabled={busy} onClick={() => setFrozenFolder(undefined)}>{t('Close frozen folder chart')}</button>}
           </div>
           <RevisionAccessActions key={publishedFolder.revision_id} folder disabled={busy} onRevoke={() => void revokeFrozenFolder()} />
         </section>}
-        {published && <section className="local-import-card" aria-label="Published local CSV">
-          <h2>Published local CSV</h2>
-          <p role="status">{published.symbol} · {published.bar_count.toLocaleString()} bars · {published.relative_path}</p>
-          <div className="local-import-hash"><strong>Revision ID</strong><code>{published.revision_id}</code></div>
+        {published && <section className="local-import-card" aria-label={t('Published local CSV')}>
+          <h2>{t('Published local CSV')}</h2>
+          <p role="status">{published.symbol} · {t('{count} bars', { count: formatNumber(published.bar_count) })} · {published.relative_path}</p>
+          <div className="local-import-hash"><strong>{t('Revision ID')}</strong><code>{published.revision_id}</code></div>
           <div className="local-publication-actions">
-            <button type="button" className="secondary-button" disabled={busy} onClick={() => void openFrozenChart()}>Open frozen chart</button>
-            {frozen && <button type="button" className="secondary-button" disabled={busy} onClick={() => setFrozen(undefined)}>Close frozen chart</button>}
+            <button type="button" className="secondary-button" disabled={busy} onClick={() => void openFrozenChart()}>{t('Open frozen chart')}</button>
+            {frozen && <button type="button" className="secondary-button" disabled={busy} onClick={() => setFrozen(undefined)}>{t('Close frozen chart')}</button>}
           </div>
           <RevisionAccessActions key={published.revision_id} disabled={busy} onRevoke={() => void revokeFrozenChart()} />
         </section>}
         {!frozen && !frozenFolder && <UnavailableSharedSelection workspace={workspace} />}
         {frozen && <FrozenLocalChart key={frozen.revision.revision_id} result={frozen} workspace={workspace} access={revisionAccess} />}
         {frozenFolder && <FrozenFolderChart key={frozenFolder.revision.revision_id} result={frozenFolder} access={revisionAccess} />}
-        {file && displayedSourceHash && <section className="local-import-card" aria-label={visible ? 'Preview source' : 'Current source'}>
+        {file && displayedSourceHash && <section className="local-import-card" aria-label={visible ? t('Preview source') : t('Current source')}>
           <h2>{file.relative_path}</h2>
-          {visible && <p>{visible.rows.length} source records{visible.truncated ? ' · Preview omits later records' : ''}{mapped && ` · Mapping v${visible.mapping_version} · ${visible.mapping_revision}`}</p>}
-          <div className="local-import-hash"><strong>Complete file SHA-256</strong><code>{displayedSourceHash}</code></div>
+          {visible && <p>{t('{count} source records', { count: ungrouped(visible.rows.length) })}
+            {visible.truncated && <> · {t('Preview omits later records')}</>}
+            {mapped && <> · {t('Mapping v{version} · {revision}', {
+              version: String(visible.mapping_version), revision: String(visible.mapping_revision),
+            })}</>}
+          </p>}
+          <div className="local-import-hash"><strong>{t('Complete file SHA-256')}</strong><code>{displayedSourceHash}</code></div>
         </section>}
         {mapped && <>{!frozen && !frozenFolder && renderChart(mapped)}<NormalizedBars preview={mapped.preview} /></>}
         {visible ? <><RawRows key={visible.mapping_revision} preview={visible} /><Diagnostics preview={visible} /></> :
-          <section className="local-import-card local-import-placeholder"><h2>Raw CSV rows</h2>
-            <p>{file ? 'Inspect raw rows to check the layout and map the fields.' : 'Choose a folder containing a CSV file to begin.'}</p>
+          <section className="local-import-card local-import-placeholder"><h2>{t('Raw CSV rows')}</h2>
+            <p>{file ? t('Inspect raw rows to check the layout and map the fields.') : t('Choose a folder containing a CSV file to begin.')}</p>
           </section>}
       </div>
     </div>

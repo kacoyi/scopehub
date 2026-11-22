@@ -4,6 +4,7 @@ import type {
 } from '../../../../contracts/generated/protocol';
 import type { ChartStyle, HistoryChartHandle, IndicatorChartLayer } from './chart-adapter/history';
 import { FrozenEvidenceControls, type FrozenChartResult } from './frozen-evidence';
+import { formatDateTime, formatNumber, getLocale, message, t } from './i18n';
 import { hasLocalCsvPicker, readLocalFolderSourceRow, readLocalImportSourceRow } from './local-import-transport';
 import { IndicatorPreview } from './indicator-preview';
 import { PriceChart } from './price-chart';
@@ -42,8 +43,8 @@ function LocalBarChart({ title, label, styleLabel, series, symbol, bars, emptyMe
       <h2>{title}</h2>
       {controls}
       {projection && <div role="group" aria-label={styleLabel}>
-        <button type="button" aria-pressed={style === 'candlestick'} onClick={() => setStyle('candlestick')}>Candles</button>
-        <button type="button" aria-pressed={style === 'line'} onClick={() => setStyle('line')}>Close-price line</button>
+        <button type="button" aria-pressed={style === 'candlestick'} onClick={() => setStyle('candlestick')}>{t('Candles')}</button>
+        <button type="button" aria-pressed={style === 'line'} onClick={() => setStyle('line')}>{t('Close-price line')}</button>
       </div>}
     </div>
     {projection && series ? <>
@@ -52,11 +53,11 @@ function LocalBarChart({ title, label, styleLabel, series, symbol, bars, emptyMe
           cursor="crosshair" replayBar={undefined} repairedBars={undefined} indicatorPreview={indicatorPreview} acceptedIndicators={acceptedIndicators} />
       </div>
       <footer className="chart-footer">
-        <span>{series.venue} · {series.timezone}</span><span>Volume in {series.quantity_unit}</span><span>{series.price_adjustment}</span>
-        {series.instrument_kind === 'dated_future' && <span>Dated futures contract</span>}
+        <span>{series.venue} · {series.timezone}</span><span>{t('Volume in {unit}', { unit: series.quantity_unit })}</span><span>{series.price_adjustment}</span>
+        {series.instrument_kind === 'dated_future' && <span>{t('Dated futures contract')}</span>}
         {series.instrument_kind === 'continuous_future' && <>
-          <span>Continuous futures series</span>
-          {series.roll_method && <span>Roll method {series.roll_method}</span>}
+          <span>{t('Continuous futures series')}</span>
+          {series.roll_method && <span>{t('Roll method {method}', { method: series.roll_method })}</span>}
         </>}
         <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">Charts by TradingView Lightweight Charts™</a>
       </footer>
@@ -81,11 +82,11 @@ export function LocalPreviewChart({ result }: { result: LocalImportPreviewOutput
   const symbol = bySymbol.has(pickedSymbol) ? pickedSymbol : bySymbol.keys().next().value;
   const bars = symbol === undefined ? undefined : bySymbol.get(symbol);
   const overlapping = bars?.some((bar, index) => index > 0 && bars[index - 1]?.time_ms === bar.time_ms);
-  return <LocalBarChart title="Chart preview" label="Local CSV chart preview" styleLabel="Preview chart style"
+  return <LocalBarChart title={t('Chart preview')} label={t('Local CSV chart preview')} styleLabel={t('Preview chart style')}
     series={series ?? undefined} symbol={symbol} bars={overlapping ? undefined : bars}
-    emptyMessage={overlapping ? 'Review overlapping bars for this symbol before charting.'
-      : 'Apply a closed-bar mapping to see a chart of the normalized rows.'}
-    controls={bySymbol.size > 1 && <label>Chart symbol <select value={symbol} onChange={event => setPickedSymbol(event.currentTarget.value)}>
+    emptyMessage={overlapping ? t('Review overlapping bars for this symbol before charting.')
+      : t('Apply a closed-bar mapping to see a chart of the normalized rows.')}
+    controls={bySymbol.size > 1 && <label>{t('Chart symbol')}{' '}<select value={symbol} onChange={event => setPickedSymbol(event.currentTarget.value)}>
       {Array.from(bySymbol.keys(), key => <option key={key}>{key}</option>)}
     </select></label>} />;
 }
@@ -99,17 +100,17 @@ export function FrozenLocalChart({ result, workspace, access }: {
   const bars = useMemo(() => events.map(event => event.bar), [events]);
   const showIndicators = result.snapshot && workspace && access.canDisplay(revision.revision_id);
   return <>
-    <LocalBarChart title="Frozen chart" label="Frozen local CSV chart" styleLabel="Frozen chart style"
+    <LocalBarChart title={t('Frozen chart')} label={t('Frozen local CSV chart')} styleLabel={t('Frozen chart style')}
       series={revision.series} symbol={revision.symbol} bars={bars} indicatorPreview={showIndicators ? indicatorPreview : undefined}
       acceptedIndicators={showIndicators ? acceptedIndicators : undefined} />
     {result.snapshot && workspace && <IndicatorPreview snapshot={result.snapshot} bars={bars} workspace={workspace}
       access={access} showResult={setIndicatorPreview} showAccepted={setAcceptedIndicators} />}
     {result.snapshot && workspace && <FrozenEvidenceControls snapshot={result.snapshot} bars={bars} workspace={workspace} access={access} />}
-    <section className="local-import-card" aria-label="Published source provenance">
-      <h2>Published source provenance</h2>
-      <div className="local-import-hash"><strong>Dataset revision</strong><code>{revision.revision_id}</code></div>
-      <div className="local-import-hash"><strong>Source SHA-256</strong><code>{revision.source_sha256}</code></div>
-      <div className="local-import-hash"><strong>Reviewed mapping {revision.review_revision} SHA-256</strong><code>{revision.mapping_sha256}</code></div>
+    <section className="local-import-card" aria-label={t('Published source provenance')}>
+      <h2>{t('Published source provenance')}</h2>
+      <div className="local-import-hash"><strong>{t('Dataset revision')}</strong><code>{revision.revision_id}</code></div>
+      <div className="local-import-hash"><strong>{t('Source SHA-256')}</strong><code>{revision.source_sha256}</code></div>
+      <div className="local-import-hash"><strong>{t('Reviewed mapping {revision} SHA-256', { revision: revision.review_revision })}</strong><code>{revision.mapping_sha256}</code></div>
       <FrozenSourceRows result={result} workspace={workspace} access={access} />
     </section>
   </>;
@@ -122,10 +123,24 @@ type OriginalSourceRow = {
   relativePath?: string;
 };
 
-type SourceRowRead = { loading: number } | { error: string } | { row: OriginalSourceRow };
+type SourceRowRead = { loading: number } | { error: ReturnType<typeof message> } | { row: OriginalSourceRow };
 
 function sourceLines(locator: LocalImportRowLocator) {
-  return locator.line_start === locator.line_end ? String(locator.line_start) : `${locator.line_start}–${locator.line_end}`;
+  const start = formatNumber(locator.line_start, { useGrouping: false });
+  return locator.line_start === locator.line_end ? start : `${start}–${formatNumber(locator.line_end, { useGrouping: false })}`;
+}
+
+export function formatSourceBarTime(time: number) {
+  const date = new Date(time);
+  if (!Number.isFinite(date.valueOf())) return t('{value} ms UTC', { value: String(time) });
+  return getLocale() === 'en' ? date.toISOString() : formatDateTime(date, {
+    timeZone: 'UTC', timeZoneName: 'short', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3, hourCycle: 'h23',
+  });
+}
+
+export function formatSourceBarValue(value: number) {
+  return getLocale() === 'en' ? String(value) : formatNumber(value, { useGrouping: false, maximumSignificantDigits: 21 });
 }
 
 function sameLocator(left: LocalImportRowLocator, right: LocalImportRowLocator) {
@@ -152,7 +167,7 @@ function useSourceRowRead(revisionId: string, access: PublishedRevisionAccess, w
       const row = await load(requestId);
       if (pending.current !== requestId || !access.canDisplay(revisionId)) return;
       if (!row || row.header.length !== row.raw_fields.length) {
-        setRead({ error: 'The original CSV row could not be verified.' });
+        setRead({ error: message('The original CSV row could not be verified.') });
         return;
       }
       setRead({ row });
@@ -165,8 +180,8 @@ function useSourceRowRead(revisionId: string, access: PublishedRevisionAccess, w
         return;
       }
       const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
-      setRead({ error: code === 'RESOURCE_LIMIT' ? 'This original CSV row exceeds the inspection size limit.'
-        : code === 'BUSY' ? 'The CSV reader is busy. Try inspecting the record again.' : 'Unable to inspect the original CSV row.' });
+      setRead({ error: code === 'RESOURCE_LIMIT' ? message('This original CSV row exceeds the inspection size limit.')
+        : code === 'BUSY' ? message('The CSV reader is busy. Try inspecting the record again.') : message('Unable to inspect the original CSV row.') });
     } finally {
       if (pending.current === requestId) pending.current = undefined;
     }
@@ -177,15 +192,17 @@ function useSourceRowRead(revisionId: string, access: PublishedRevisionAccess, w
 
 function OriginalSourceFields({ read }: { read: SourceRowRead | undefined }) {
   if (!read) return null;
-  if ('loading' in read) return <p role="status">Reading source record {read.loading}…</p>;
-  if ('error' in read) return <p role="alert" className="local-import-error">{read.error}</p>;
+  if ('loading' in read) return <p role="status">{t('Reading source record {record}…', { record: formatNumber(read.loading, { useGrouping: false }) })}</p>;
+  if ('error' in read) return <p role="alert" className="local-import-error">{t(read.error)}</p>;
   const { row } = read;
-  return <section aria-label="Original CSV fields">
-    <h3>Original CSV fields</h3>
-    <p>{row.relativePath && `${row.relativePath} · `}Record {row.locator.record_number} · Source lines {sourceLines(row.locator)}</p>
-    <div className="local-import-table local-import-source-fields table-scroll" tabIndex={0} role="region" aria-label="Scroll original CSV fields">
-      <table aria-label="Original CSV fields">
-        <thead><tr><th scope="col">Source column</th><th scope="col">Value</th></tr></thead>
+  return <section aria-label={t('Original CSV fields')}>
+    <h3>{t('Original CSV fields')}</h3>
+    <p>{row.relativePath && `${row.relativePath} · `}{t('Record {record} · Source lines {lines}', {
+      record: formatNumber(row.locator.record_number, { useGrouping: false }), lines: sourceLines(row.locator),
+    })}</p>
+    <div className="local-import-table local-import-source-fields table-scroll" tabIndex={0} role="region" aria-label={t('Scroll original CSV fields')}>
+      <table aria-label={t('Original CSV fields')}>
+        <thead><tr><th scope="col">{t('Source column')}</th><th scope="col">{t('Value')}</th></tr></thead>
         <tbody>{row.header.map((column, index) => <tr key={column}>
           <th scope="row">{column}</th><td>{row.raw_fields[index]}</td>
         </tr>)}</tbody>
@@ -223,7 +240,7 @@ function FrozenSourceRows({ result, workspace, access }: {
 
   return <details className="local-import-raw-only" onToggle={event => { if (!event.currentTarget.open) clearRead(); }}>
     <summary onClick={event => { if (event.currentTarget.parentElement?.hasAttribute('open')) clearRead(); }}>
-      Source rows ({revision.source_record_count.toLocaleString()})
+      {t('Source rows ({count})', { count: formatNumber(revision.source_record_count) })}
     </summary>
     {native && <form className="local-import-table-nav local-import-source-lookup" onSubmit={event => {
       event.preventDefault();
@@ -234,30 +251,33 @@ function FrozenSourceRows({ result, workspace, access }: {
         void readSourceRow(target.locator);
       }
     }}>
-      <label>Source record <input type="number" min={1} max={revision.source_record_count} step={1} value={record}
+      <label>{t('Source record')}{' '}<input type="number" min={1} max={revision.source_record_count} step={1} value={record}
         onChange={event => setRecord(event.currentTarget.value)} /></label>
       <button type="submit" className="secondary-button" disabled={!Number.isInteger(recordNumber) || recordNumber < 1
-        || recordNumber > revision.source_record_count}>Inspect source record</button>
+        || recordNumber > revision.source_record_count}>{t('Inspect source record')}</button>
     </form>}
-    <div className="local-import-table table-scroll" tabIndex={0} role="region" aria-label="Scroll published source rows">
-      <table aria-label="Published source rows">
+    <div className="local-import-table table-scroll" tabIndex={0} role="region" aria-label={t('Scroll published source rows')}>
+      <table aria-label={t('Published source rows')}>
         <thead><tr>{['Record', 'Source lines', 'Bar start (UTC)', 'Trading day', 'Close', ...(native ? ['Action'] : [])].map(label =>
-          <th scope="col" key={label}>{label}</th>,
+          <th scope="col" key={label}>{label === 'Close' ? t('Close', undefined, 'price') : t(label)}</th>,
         )}</tr></thead>
         <tbody>{rows.slice(first, last).map(({ bar, locator }) => <tr key={locator.record_number}>
-          <th scope="row">{locator.record_number}</th>
+          <th scope="row">{formatNumber(locator.record_number, { useGrouping: false })}</th>
           <td>{sourceLines(locator)}</td>
-          <td>{new Date(bar.time_ms).toISOString()}</td><td>{bar.trading_day}</td><td>{bar.close}</td>
+          <td>{formatSourceBarTime(bar.time_ms)}</td><td>{bar.trading_day}</td><td>{formatSourceBarValue(bar.close)}</td>
           {native && <td><button type="button" className="secondary-button" onClick={() => void readSourceRow(locator)}>
-            Inspect record {locator.record_number}
+            {t('Inspect record {record}', { record: formatNumber(locator.record_number, { useGrouping: false }) })}
           </button></td>}
         </tr>)}</tbody>
       </table>
     </div>
     {rows.length > pageSize && <div className="local-import-table-nav">
-      <p>Source rows {first + 1}–{last} of {rows.length}</p>
-      <button type="button" className="secondary-button" disabled={page === 0} onClick={() => changePage(page - 1)}>Previous source rows</button>
-      <button type="button" className="secondary-button" disabled={last >= rows.length} onClick={() => changePage(page + 1)}>Next source rows</button>
+      <p>{t('Source rows {first}–{last} of {count}', {
+        first: formatNumber(first + 1, { useGrouping: false }), last: formatNumber(last, { useGrouping: false }),
+        count: formatNumber(rows.length, { useGrouping: false }),
+      })}</p>
+      <button type="button" className="secondary-button" disabled={page === 0} onClick={() => changePage(page - 1)}>{t('Previous source rows')}</button>
+      <button type="button" className="secondary-button" disabled={last >= rows.length} onClick={() => changePage(page + 1)}>{t('Next source rows')}</button>
     </div>}
     <OriginalSourceFields read={read} />
   </details>;
@@ -291,42 +311,47 @@ export function FrozenFolderChart({ result, access }: { result: ReadLocalFolderR
   }
 
   return <>
-    <LocalBarChart title="Frozen folder chart" label="Frozen local folder chart" styleLabel="Frozen folder chart style"
+    <LocalBarChart title={t('Frozen folder chart')} label={t('Frozen local folder chart')} styleLabel={t('Frozen folder chart style')}
       series={revision.series} symbol={revision.symbol} bars={bars.length ? bars : undefined}
-      emptyMessage="This reviewed folder revision withdrew all accepted bars." />
-    <section className="local-import-card" aria-label="Published folder source provenance">
-      <h2>Published folder source provenance</h2>
-      <div className="local-import-hash"><strong>Folder revision</strong><code>{revision.revision_id}</code></div>
-      <div className="local-import-hash"><strong>Prior revision</strong><code>{revision.parent_revision_id ?? revision.base_revision_id}</code></div>
+      emptyMessage={t('This reviewed folder revision withdrew all accepted bars.')} />
+    <section className="local-import-card" aria-label={t('Published folder source provenance')}>
+      <h2>{t('Published folder source provenance')}</h2>
+      <div className="local-import-hash"><strong>{t('Folder revision')}</strong><code>{revision.revision_id}</code></div>
+      <div className="local-import-hash"><strong>{t('Prior revision')}</strong><code>{revision.parent_revision_id ?? revision.base_revision_id}</code></div>
       <details className="local-import-raw-only">
-        <summary>Source files ({files.length.toLocaleString()})</summary>
+        <summary>{t('Source files ({count})', { count: formatNumber(files.length) })}</summary>
         {files.length ? <ul>{files.map(file => <li key={file.relative_path}>
-          <strong>{file.relative_path}</strong> · {file.record_count.toLocaleString()} records · SHA-256 <code>{file.source_sha256}</code>
-        </li>)}</ul> : <p>No sources remain in this reviewed revision.</p>}
+          <strong>{file.relative_path}</strong> · {t('{count} records', { count: formatNumber(file.record_count) })} · SHA-256 <code>{file.source_sha256}</code>
+        </li>)}</ul> : <p>{t('No sources remain in this reviewed revision.')}</p>}
       </details>
       {rows.length > 0 && <details className="local-import-raw-only" onToggle={event => { if (!event.currentTarget.open) clearRead(); }}>
         <summary onClick={event => { if (event.currentTarget.parentElement?.hasAttribute('open')) clearRead(); }}>
-          Source rows ({rows.length.toLocaleString()})
+          {t('Source rows ({count})', { count: formatNumber(rows.length) })}
         </summary>
-        <div className="local-import-table table-scroll" tabIndex={0} role="region" aria-label="Scroll published folder source rows">
-          <table aria-label="Published folder source rows">
+        <div className="local-import-table table-scroll" tabIndex={0} role="region" aria-label={t('Scroll published folder source rows')}>
+          <table aria-label={t('Published folder source rows')}>
             <thead><tr>{['Source', 'Record', 'Source lines', 'Bar start (UTC)', 'Trading day', 'Close', ...(native ? ['Action'] : [])].map(label =>
-              <th scope="col" key={label}>{label}</th>,
+              <th scope="col" key={label}>{label === 'Close' ? t('Close', undefined, 'price') : t(label)}</th>,
             )}</tr></thead>
             <tbody>{rows.slice(first, last).map(({ bar, source }) => <tr key={`${source.relative_path}:${source.record_number}`}>
-              <th scope="row">{source.relative_path}</th><td>{source.record_number}</td>
+              <th scope="row">{source.relative_path}</th><td>{formatNumber(source.record_number, { useGrouping: false })}</td>
               <td>{sourceLines(source)}</td>
-              <td>{new Date(bar.time_ms).toISOString()}</td><td>{bar.trading_day}</td><td>{bar.close}</td>
+              <td>{formatSourceBarTime(bar.time_ms)}</td><td>{bar.trading_day}</td><td>{formatSourceBarValue(bar.close)}</td>
               {native && <td><button type="button" className="secondary-button" onClick={() => void readSourceRow(source)}>
-                Inspect record {source.record_number} from {source.relative_path}
+                {t('Inspect record {record} from {path}', {
+                  record: formatNumber(source.record_number, { useGrouping: false }), path: source.relative_path,
+                })}
               </button></td>}
             </tr>)}</tbody>
           </table>
         </div>
         {rows.length > pageSize && <div className="local-import-table-nav">
-          <p>Source rows {first + 1}–{last} of {rows.length}</p>
-          <button type="button" className="secondary-button" disabled={page === 0} onClick={() => changePage(page - 1)}>Previous source rows</button>
-          <button type="button" className="secondary-button" disabled={last >= rows.length} onClick={() => changePage(page + 1)}>Next source rows</button>
+          <p>{t('Source rows {first}–{last} of {count}', {
+            first: formatNumber(first + 1, { useGrouping: false }), last: formatNumber(last, { useGrouping: false }),
+            count: formatNumber(rows.length, { useGrouping: false }),
+          })}</p>
+          <button type="button" className="secondary-button" disabled={page === 0} onClick={() => changePage(page - 1)}>{t('Previous source rows')}</button>
+          <button type="button" className="secondary-button" disabled={last >= rows.length} onClick={() => changePage(page + 1)}>{t('Next source rows')}</button>
         </div>}
         <OriginalSourceFields read={read} />
       </details>}

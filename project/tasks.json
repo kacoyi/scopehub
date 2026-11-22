@@ -4867,7 +4867,8 @@
         "M4-014",
         "M1-030",
         "M1-031",
-        "M2-012"
+        "M2-012",
+        "M1-032"
       ],
       "scope": [
         "project/tasks.json",
@@ -13441,6 +13442,135 @@
       "next_action": "Start with the built-in inspection table and main chart. Specify the minimum bar fields and compatible source references against the existing layout definition, then test a local fixture and a controlled API adapter with equivalent bars.",
       "blocker": null,
       "closure_reason": null
+    },
+    {
+      "id": "M1-032",
+      "title": "Localize the desktop interface in English and Simplified Chinese",
+      "milestone": "M1",
+      "status": "done",
+      "delivery": "current-contract",
+      "depends_on": [
+        "M1-014",
+        "M0-055"
+      ],
+      "decision_refs": [
+        "0007",
+        "0008",
+        "0016",
+        "0025"
+      ],
+      "scope": [
+        "AGENTS.md",
+        "engineering-contract-v1.json",
+        "contracts/contract.json",
+        "apps/desktop",
+        "project/checks.json",
+        "project/tasks.json",
+        "tests/ui",
+        "tests/localization",
+        "contracts/decisions/0025-desktop-interface-languages.json",
+        "project/feedback.json"
+      ],
+      "acceptance": [
+        "Offer a persistent interface language setting on the fresh desktop and local-data workspace. Support system preference, English and Simplified Chinese. A future locale adds a registered language and its own catalog without branching the views.",
+        "Localize application-owned controls, accessibility labels, prompts and status messages in chart, source, model, layout, indicator and private-record workflows. Use locale-aware numbers and times with the original exchange timezone and precision. Preserve user content, codes, market evidence and third-party notices.",
+        "Switch the language on an open workspace, keep the selected chart and in-progress work, and restore the preference after reloading. Test fallback and compatible regional locale tags, both language directions and representative error and empty states using synthetic data."
+      ],
+      "checks": [
+        "desktop-localization",
+        "ui-build",
+        "market-workflow",
+        "project-state",
+        "python-contracts-workers",
+        "local-import-ui",
+        "market-quality-states"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-032-965d98919be9c27c.json",
+          "sha256": "d25f78e38b70cf661a38f1caab5703cdab360b1da485ea1cf60b5cc6a04334ad"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "All eight selected checks passed at b855b6e. Thirteen bilingual regression cases covered the registry, startup recovery, chooser language, chart and draft continuity, raw data, decimal price changes and owned or third-party messages across the two desktop workflows. The native GTK chooser, switching in an Ubuntu Tauri window and persistence after process restart were also observed with the staged M1-031 host. The local observation manifest is archives/observations/M1-032/b855b6ee44499f780361dffcf5a19ce4f18cdc18/observed.json (SHA-256 ac0bcc62922fa336982c9fb1c4f09a91e7c90fb5cb5900b6e0ea0314488e7beb). Physical Windows experience remains under M1-011.",
+      "plan": {
+        "outcome": "A user can operate the current desktop in English or Simplified Chinese and keep their language choice and work when the interface rerenders.",
+        "change_types": [
+          "ui",
+          "tooling"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "apps/desktop/ui/src/main.tsx",
+          "apps/desktop/ui/src/chart-workspace.tsx",
+          "apps/desktop/ui/src/workspace-start.ts",
+          "project/checks.json",
+          "contracts/decisions/0025-desktop-interface-languages.json"
+        ],
+        "hypotheses": [
+          "The shared renderer can resolve locale-specific messages independently of underlying protocol values and durable workspace state."
+        ],
+        "risks": [
+          {
+            "failure": "Changing language remounts a chart, resets a draft, changes a financial value or translates private content.",
+            "checks": [
+              "desktop-localization",
+              "market-workflow"
+            ]
+          },
+          {
+            "failure": "Missing resources or an unsupported locale strand a user or leave a control inaccessible.",
+            "checks": [
+              "desktop-localization",
+              "ui-build"
+            ]
+          }
+        ],
+        "rollback": "Revert the renderer change together with the catalogs. The display preference is an optional local setting.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "chart-adapter",
+            "desktop",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/main.tsx",
+            "apps/desktop/ui/src/chart-workspace.tsx",
+            "apps/desktop/ui/src/workspace-start.ts"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/design_reference"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/workspace_entry"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/localization"
+            }
+          ],
+          "non_goals": [
+            "Translation of user records, model replies or market identifiers. Delivery of additional language catalogs is outside this task."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing English controls, profile data, operation parameters, indicator input and selection."
+          ],
+          "change": [
+            "Introduce an extensible message catalog and persist an explicit interface language."
+          ],
+          "data_plan": "Keep the interface language in the local presentation profile. Use synthetic data for tests.",
+          "cleanup": "Migrate existing product-owned English copy to catalog lookups and keep user text opaque."
+        }
+      }
     }
   ]
 }

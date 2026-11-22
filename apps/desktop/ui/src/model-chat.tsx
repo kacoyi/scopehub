@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import type { AiTextChartEvidence, AiTextRouteChoice, VisibleRange } from '../../../../contracts/generated/protocol';
+import { message, t, useLocale, type Message } from './i18n';
 import { CloudCredentialSettings, providerName, RouteDisclosure } from './model-chat-settings';
 import {
   exchangeModel, isModelWorkspaceBusy, modelErrorCode, openAiCredential, openAiDestination,
@@ -27,39 +28,39 @@ type CompletedTurn = {
   chartRequested: boolean;
 };
 
-const unavailableModel = 'The model could not answer. Check the configured server and try again.';
-const missingOpenAiKey = 'Enter an OpenAI API key in AI settings, then review the connection again.';
-const unknownTurn = 'The workspace could not confirm this turn. Check its status to continue.';
-const deniedChart = 'Selected chart data is unavailable to this model connection.';
-const staleChart = 'The chart selection changed. Send the question again for the current selection.';
-const reselectChart = 'The chart selection changed. Close Ask AI and select the bar again. If prompted, reload workspace state, then select the bar before reopening Ask AI.';
+const unavailableModel = message('The model could not answer. Check the configured server and try again.');
+const missingOpenAiKey = message('Enter an OpenAI API key in AI settings, then review the connection again.');
+const unknownTurn = message('The workspace could not confirm this turn. Check its status to continue.');
+const deniedChart = message('Selected chart data is unavailable to this model connection.');
+const staleChart = message('The chart selection changed. Send the question again for the current selection.');
+const reselectChart = message('The chart selection changed. Close Ask AI and select the bar again. If prompted, reload workspace state, then select the bar before reopening Ask AI.');
 const pollIntervalMs = 200;
 const busyPollLimit = 10;
 const failedPollLimit = 2;
 
 function modelFailure(error: unknown) {
-  if (isModelWorkspaceBusy(error)) return 'The local workspace is busy. Try again when it is ready.';
+  if (isModelWorkspaceBusy(error)) return message('The local workspace is busy. Try again when it is ready.');
   switch (modelErrorCode(error)) {
-    case 'INVALID_ARGUMENT': return 'Enter a valid server origin and model name.';
-    case 'CONFIRMATION_REQUIRED': return 'Review the connection again before enabling it.';
+    case 'INVALID_ARGUMENT': return message('Enter a valid server origin and model name.');
+    case 'CONFIRMATION_REQUIRED': return message('Review the connection again before enabling it.');
     case 'PERMISSION_DENIED':
     case 'STALE_CONTEXT':
-    case 'PROVIDER_NOT_CONFIGURED': return 'This connection has expired. Open AI settings to enable a route.';
-    case 'BUSY': return 'An answer is already in progress for this connection.';
-    case 'TIMEOUT': return 'The configured model took too long to answer. Try again when the server is ready.';
+    case 'PROVIDER_NOT_CONFIGURED': return message('This connection has expired. Open AI settings to enable a route.');
+    case 'BUSY': return message('An answer is already in progress for this connection.');
+    case 'TIMEOUT': return message('The configured model took too long to answer. Try again when the server is ready.');
     case 'DATA_UNAVAILABLE':
     case 'OUTPUT_INVALID':
     case 'WORKER_EXITED': return unavailableModel;
-    case 'RESOURCE_LIMIT': return 'The question or response exceeded the text limit.';
-    case 'CANCELLED': return 'Turn cancelled. Connect and enable again to send another question.';
-    default: return 'The local model connection could not be updated.';
+    case 'RESOURCE_LIMIT': return message('The question or response exceeded the text limit.');
+    case 'CANCELLED': return message('Turn cancelled. Connect and enable again to send another question.');
+    default: return message('The local model connection could not be updated.');
   }
 }
 
 function routeSetupFailure(error: unknown, kind: AiTextRouteChoice['kind'] | undefined) {
   if (kind === 'openai_responses') {
     switch (modelErrorCode(error)) {
-      case 'INVALID_ARGUMENT': return 'Enter a valid OpenAI model ID.';
+      case 'INVALID_ARGUMENT': return message('Enter a valid OpenAI model ID.');
       case 'PROVIDER_NOT_CONFIGURED': return missingOpenAiKey;
     }
   }
@@ -71,13 +72,13 @@ function textTurnFailure(connection: ModelConnection, error: unknown) {
   if (connection.route.kind === 'openai_responses') {
     if (code === 'PROVIDER_NOT_CONFIGURED') return missingOpenAiKey;
     if (code === 'PERMISSION_DENIED') {
-      return 'OpenAI rejected the API key or account permissions. Update the key in AI settings and review the connection again.';
+      return message('OpenAI rejected the API key or account permissions. Update the key in AI settings and review the connection again.');
     }
     if (code === 'INVALID_ARGUMENT') {
-      return 'OpenAI could not use the selected model for this request. Check the model ID in AI settings and try again.';
+      return message('OpenAI could not use the selected model for this request. Check the model ID in AI settings and try again.');
     }
     if (['DATA_UNAVAILABLE', 'WORKER_EXITED', 'OUTPUT_INVALID'].includes(String(code))) {
-      return 'OpenAI could not answer. Check that the selected model is available to your API account and try again.';
+      return message('OpenAI could not answer. Check that the selected model is available to your API account and try again.');
     }
   }
   return code === 'PROVIDER_NOT_CONFIGURED' ? unavailableModel : modelFailure(error);
@@ -85,20 +86,20 @@ function textTurnFailure(connection: ModelConnection, error: unknown) {
 
 function intervalLabel(range: VisibleRange) {
   const start = new Date(range.from_ms).toISOString();
-  return range.to_ms === range.from_ms + 1 ? `Bar starting ${start}`
-    : `${start} to ${new Date(range.to_ms).toISOString()} (end excluded)`;
+  return range.to_ms === range.from_ms + 1 ? t('Bar starting {start}', { start })
+    : t('{start} to {end} (end excluded)', { start, end: new Date(range.to_ms).toISOString() });
 }
 
 function ChartEvidence({ evidence }: { evidence: AiTextChartEvidence }) {
-  return <section className="model-evidence" aria-label="Chart evidence used">
-    <h3>Chart evidence used</h3>
+  return <section className="model-evidence" aria-label={t('Chart evidence used')}>
+    <h3>{t('Chart evidence used')}</h3>
     <dl className="model-route">
-      <dt>Interval (UTC)</dt><dd>{intervalLabel(evidence.range)}</dd>
-      <dt>Offline sample</dt><dd><bdi>{evidence.source_reference}</bdi></dd>
-      <dt>Revision</dt><dd><bdi>{evidence.revision}</bdi></dd>
+      <dt>{t('Interval (UTC)')}</dt><dd>{intervalLabel(evidence.range)}</dd>
+      <dt>{t('Offline sample')}</dt><dd><bdi>{evidence.source_reference}</bdi></dd>
+      <dt>{t('Revision')}</dt><dd><bdi>{evidence.revision}</bdi></dd>
     </dl>
-    <table aria-label="Selected chart closes">
-      <thead><tr><th scope="col">Bar start (UTC)</th><th scope="col">Close</th></tr></thead>
+    <table aria-label={t('Selected chart closes')}>
+      <thead><tr><th scope="col">{t('Bar start (UTC)')}</th><th scope="col">{t('Close', undefined, 'price')}</th></tr></thead>
       <tbody>{evidence.rows.map(row => {
         const time = new Date(row.time_ms).toISOString();
         return <tr key={row.time_ms}><td><time dateTime={time}>{time}</time></td><td>{row.close}</td></tr>;
@@ -116,6 +117,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
   invalidChartSelectionRevision: number | undefined;
   discardChartSelection: () => void;
 }) {
+  useLocale();
   const heading = useId();
   const dialog = useRef<HTMLDialogElement>(null);
   const questionField = useRef<HTMLTextAreaElement>(null);
@@ -125,8 +127,8 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
   const pollInFlight = useRef<Promise<void> | undefined>(undefined);
   const lastTurn = useRef<string | undefined>(undefined);
   const [working, setWorking] = useState(false);
-  const [error, setError] = useState<string>();
-  const [notice, setNotice] = useState<string>();
+  const [error, setError] = useState<Message>();
+  const [notice, setNotice] = useState<Message>();
   const [connection, setConnection] = useState<ModelConnection>();
   const [connectionUnconfirmed, setConnectionUnconfirmed] = useState(false);
   const [proposal, setProposal] = useState<Proposal>();
@@ -214,10 +216,10 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
     }
     if (attempted && !recovered) {
       if (attempted.observation === 'checking-send') {
-        setError('The workspace did not confirm accepting this question.');
+        setError(message('The workspace did not confirm accepting this question.'));
       } else {
         if (attempted.question !== undefined) setQuestion('');
-        setError('The workspace no longer has the result for this turn.');
+        setError(message('The workspace no longer has the result for this turn.'));
       }
     } else if (recovered && attempted.observation !== 'polling') {
       setError(undefined);
@@ -230,8 +232,8 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
     } catch (failure) {
       if (signal.aborted) return;
       setCredential(undefined);
-      setError(modelErrorCode(failure) === 'BUSY' ? 'The workspace is busy. Check OpenAI key status again.'
-        : 'ScopeHub could not check the OpenAI API key. Check the local workspace and try again.');
+      setError(modelErrorCode(failure) === 'BUSY' ? message('The workspace is busy. Check OpenAI key status again.')
+        : message('ScopeHub could not check the OpenAI API key. Check the local workspace and try again.'));
     }
   }
 
@@ -264,7 +266,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
       } catch (failure) {
         if (!signal.aborted) {
           setError(isModelWorkspaceBusy(failure) ? modelFailure(failure)
-            : trackedTurn ? unknownTurn : 'The workspace could not check the model connection.');
+            : trackedTurn ? unknownTurn : message('The workspace could not check the model connection.'));
         }
       }
     }, false);
@@ -368,7 +370,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
         const status = await checkConnectionAfterChange(id, signal);
         if (!status) return;
         if (status.connection) throw failure;
-        setError('The workspace could not confirm the review. Review the connection again before enabling it.');
+        setError(message('The workspace could not confirm the review. Review the connection again before enabling it.'));
         return;
       }
       clearSession();
@@ -399,7 +401,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
     try { url = new URL(candidate); } catch { /* Report the invalid field below. */ }
     if (!url || url.username || url.password || url.pathname !== '/' || /[?#]/.test(candidate)
       || !['http:', 'https:'].includes(url.protocol)) {
-      setError('Enter a server origin, such as http://127.0.0.1:11434, without a path or sign-in details.');
+      setError(message('Enter a server origin, such as http://127.0.0.1:11434, without a path or sign-in details.'));
       return;
     }
     review({ kind: 'ollama', origin: candidate, model: model.trim(), ...(chartTools && { chart_tools: true }) });
@@ -426,7 +428,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
         if (!status) return;
         if (status.connection) throw failure;
       }
-      setNotice('Disconnected.');
+      setNotice(message('Disconnected.'));
     });
   }
 
@@ -448,11 +450,11 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
           setProvider('openai_responses');
         }
         if (proposal?.route.kind === 'openai_responses') setProposal(undefined);
-        setNotice(args.action === 'remove' ? 'OpenAI API key removed.' : 'OpenAI API key saved.');
+        setNotice(args.action === 'remove' ? message('OpenAI API key removed.') : message('OpenAI API key saved.'));
       } catch (failure) {
         if (signal.aborted) return;
         if (modelErrorCode(failure) === 'INVALID_ARGUMENT') {
-          setError('Enter a valid OpenAI API key.');
+          setError(message('Enter a valid OpenAI API key.'));
           return;
         }
         setCredential(undefined);
@@ -460,7 +462,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
           setProvider('openai_responses');
           await checkConnectionAfterChange(id, signal);
         }
-        setError('ScopeHub could not confirm the OpenAI API key update. Check its status.');
+        setError(message('ScopeHub could not confirm the OpenAI API key update. Check its status.'));
       }
     });
   }
@@ -484,11 +486,11 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
           throw failure;
         }
         clearSession(true);
-        setNotice('The model connection ended. Connect and enable again to send another question.');
+        setNotice(message('The model connection ended. Connect and enable again to send another question.'));
         return;
       }
       clearSession(true);
-      setNotice('Turn cancelled. Connect and enable again to send another question.');
+      setNotice(message('Turn cancelled. Connect and enable again to send another question.'));
     });
   }
 
@@ -525,7 +527,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
           setStaleSelectionRevision(selection.selectionRevision);
           if (status && status.connection?.connection_id !== active.connection_id) {
             applyStatus(status, undefined);
-            setError(status.connection ? 'The model connection changed. Review the active route in AI settings.'
+            setError(status.connection ? message('The model connection changed. Review the active route in AI settings.')
               : modelFailure(failure));
             return;
           }
@@ -571,70 +573,71 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
   return <dialog ref={dialog} className="symbol-dialog decision-dialog model-dialog" data-layout-theme={theme}
     aria-labelledby={heading} onCancel={event => { event.preventDefault(); if (!working) leaveSettings(undefined); }}>
     <div className="dialog-heading">
-      <h2 id={heading}>{view === 'question' ? 'Ask AI' : 'AI settings'}</h2>
+      <h2 id={heading}>{view === 'question' ? t('Ask AI') : t('AI settings')}</h2>
       <div className="model-actions">
         {view === 'question' && <button type="button" className="secondary-button" disabled={working}
-          onClick={openSettings}>AI settings</button>}
-        <button type="button" className="secondary-button" disabled={working} onClick={() => leaveSettings(undefined)}>Close</button>
+          onClick={openSettings}>{t('AI settings')}</button>}
+        <button type="button" className="secondary-button" disabled={working} onClick={() => leaveSettings(undefined)}>{t('Close')}</button>
       </div>
     </div>
     <div className="model-body">
-      {feedback && <p className="model-error" role="alert">{feedback}</p>}
-      {notice && <p role="status">{notice}</p>}
+      {feedback && <p className="model-error" role="alert">{t(feedback)}</p>}
+      {notice && <p role="status">{t(notice)}</p>}
       {connectionUnconfirmed ? <>
-        <p role="status">The workspace could not confirm which model connection is active.</p>
+        <p role="status">{t('The workspace could not confirm which model connection is active.')}</p>
         <div className="model-actions">
-          <button type="button" className="secondary-button" disabled={working} onClick={refresh}>Check connection status</button>
+          <button type="button" className="secondary-button" disabled={working} onClick={refresh}>{t('Check connection status')}</button>
         </div>
       </> : view === 'question' ? <>
-        <p className="model-muted" role="status">{connection?.route.kind === 'offline_mock' ? 'Offline mock enabled'
-          : connection ? <>{providerName(connection.route.kind)} connected · <bdi>{connection.route.model}</bdi></> : 'No model connected'}</p>
-        <div ref={transcript} className="model-transcript" role="log" aria-label="Conversation">
+        <p className="model-muted" role="status">{connection?.route.kind === 'offline_mock' ? t('Offline mock enabled')
+          : connection ? <>{t('{provider} connected', { provider: providerName(connection.route.kind) })} · <bdi>{connection.route.model}</bdi></>
+            : t('No model connected')}</p>
+        <div ref={transcript} className="model-transcript" role="log" aria-label={t('Conversation')}>
           {turns.map(turn => <article key={turn.id} className="model-turn">
-            {turn.question && <div className="model-question"><h3>You</h3><p dir="auto">{turn.question}</p></div>}
-            <div className="model-answer"><h3>Model <bdi>{turn.model}</bdi></h3><p dir="auto">{turn.text}</p></div>
+            {turn.question && <div className="model-question"><h3>{t('You')}</h3><p dir="auto">{turn.question}</p></div>}
+            <div className="model-answer"><h3>{t('Model')} <bdi>{turn.model}</bdi></h3><p dir="auto">{turn.text}</p></div>
             {turn.evidence ? <ChartEvidence evidence={turn.evidence} />
-              : turn.chartRequested && <p className="model-muted">No chart evidence used.</p>}
+              : turn.chartRequested && <p className="model-muted">{t('No chart evidence used.')}</p>}
           </article>)}
         </div>
         <form className="model-form" onSubmit={submit}>
           {chartScope && !mustReselect && <p className="model-muted">
-            {selection ? `Selected chart · ${intervalLabel(selection.range)}` : 'No chart selection for this turn.'}
+            {selection ? t('Selected chart · {interval}', { interval: intervalLabel(selection.range) }) : t('No chart selection for this turn.')}
           </p>}
-          <label>Question<textarea ref={questionField} rows={3} maxLength={2000} required value={question}
+          <label>{t('Question')}<textarea ref={questionField} rows={3} maxLength={2000} required value={question}
             disabled={Boolean(trackedTurn) || working} onChange={event => setQuestion(event.currentTarget.value)} /></label>
           <div className="model-actions">
-            <button type="submit" className="primary" disabled={Boolean(trackedTurn) || working || mustReselect || !question.trim()}>{connection ? 'Send' : 'Ask'}</button>
+            <button type="submit" className="primary" disabled={Boolean(trackedTurn) || working || mustReselect || !question.trim()}>{connection ? t('Send') : t('Ask')}</button>
             {mustReselect && <button type="button" className="secondary-button" disabled={Boolean(trackedTurn) || working}
-              onClick={startTextQuestion}>Start a text-only question</button>}
-            {unconfirmed && <button type="button" className="secondary-button" disabled={working} onClick={refresh}>Check turn status</button>}
-            {cancellable && <button type="button" className="secondary-button" disabled={working} onClick={() => cancel(cancellable)}>Cancel turn</button>}
-            {pending && <span role="status">Waiting for the model…</span>}
+              onClick={startTextQuestion}>{t('Start a text-only question')}</button>}
+            {unconfirmed && <button type="button" className="secondary-button" disabled={working} onClick={refresh}>{t('Check turn status')}</button>}
+            {cancellable && <button type="button" className="secondary-button" disabled={working} onClick={() => cancel(cancellable)}>{t('Cancel turn')}</button>}
+            {pending && <span role="status">{t('Waiting for the model…')}</span>}
           </div>
         </form>
       </> : <>
-        {!workspaceId && <p className="model-muted">Open the local workspace to connect a model or use the offline mock.</p>}
-        {proposal ? <section className="model-card" aria-label="Review model connection">
+        {!workspaceId && <p className="model-muted">{t('Open the local workspace to connect a model or use the offline mock.')}</p>}
+        {proposal ? <section className="model-card" aria-label={t('Review model connection')}>
           <RouteDisclosure route={proposal.route} />
           <div className="model-actions">
-            <button type="button" className="primary" disabled={working} onClick={() => activate(proposal)}>Connect and enable</button>
-            <button type="button" className="secondary-button" disabled={working} onClick={() => setProposal(undefined)}>Edit connection</button>
+            <button type="button" className="primary" disabled={working} onClick={() => activate(proposal)}>{t('Connect and enable')}</button>
+            <button type="button" className="secondary-button" disabled={working} onClick={() => setProposal(undefined)}>{t('Edit connection')}</button>
           </div>
         </section> : connection && !changing ? <>
-          <section className="model-card" aria-label="Active model connection">
+          <section className="model-card" aria-label={t('Active model connection')}>
             <RouteDisclosure route={connection.route} />
             <div className="model-actions">
-              <button type="button" className="secondary-button" disabled={working} onClick={() => disconnect(connection)}>Disconnect</button>
+              <button type="button" className="secondary-button" disabled={working} onClick={() => disconnect(connection)}>{t('Disconnect')}</button>
               <button type="button" className="secondary-button" disabled={working} onClick={() => {
                 if (connection.route.kind !== 'offline_mock') setProvider(connection.route.kind);
                 setChanging(true);
-              }}>Change connection</button>
+              }}>{t('Change connection')}</button>
             </div>
           </section>
           {cloudCredentialSettings}
         </> : <>
           <div className="model-form">
-            <label>Provider<select value={provider} disabled={!workspaceId || working} onChange={event => {
+            <label>{t('Provider')}<select value={provider} disabled={!workspaceId || working} onChange={event => {
               const cloud = event.currentTarget.value === 'openai_responses';
               setProvider(cloud ? 'openai_responses' : 'ollama');
               setError(undefined);
@@ -647,33 +650,33 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
           </div>
           {cloudCredentialSettings}
           <form className="model-form model-card" onSubmit={reviewSettings}>
-            <h3>{usingOpenAi ? 'OpenAI Responses' : 'Ollama text server'}</h3>
-            {usingOpenAi ? <p className="model-muted">Use a model available to your OpenAI API account. Your first question sends a request to <bdi>{openAiDestination}</bdi>.</p>
-              : <p className="model-muted">Use a server you control that accepts requests without sign-in. Use HTTPS for a remote server.</p>}
-            {!usingOpenAi && <label>Server origin<input type="url" required autoComplete="off" spellCheck={false} maxLength={512}
+            <h3>{usingOpenAi ? providerName('openai_responses') : t('Ollama text server')}</h3>
+            {usingOpenAi ? <p className="model-muted">{t('Use a model available to your OpenAI API account. Your first question sends a request to {destination}.', { destination: openAiDestination })}</p>
+              : <p className="model-muted">{t('Use a server you control that accepts requests without sign-in. Use HTTPS for a remote server.')}</p>}
+            {!usingOpenAi && <label>{t('Server origin')}<input type="url" required autoComplete="off" spellCheck={false} maxLength={512}
               placeholder="http://127.0.0.1:11434" value={origin} disabled={!workspaceId || working}
               onChange={event => setOrigin(event.currentTarget.value)} /></label>}
-            <label>Model<input required autoComplete="off" spellCheck={false} maxLength={128}
-              placeholder={usingOpenAi ? 'Model ID on your API account' : 'Model name on the server'}
+            <label>{t('Model')}<input required autoComplete="off" spellCheck={false} maxLength={128}
+              placeholder={usingOpenAi ? t('Model ID on your API account') : t('Model name on the server')}
               value={model} disabled={!workspaceId || working}
               onChange={event => (usingOpenAi ? setOpenAiModel : setOllamaModel)(event.currentTarget.value)} /></label>
             {!usingOpenAi && <label className="model-checkbox"><input type="checkbox" checked={chartTools} disabled={!workspaceId || working}
-              onChange={event => setChartTools(event.currentTarget.checked)} />Allow the selected offline sample’s close prices and times</label>}
+              onChange={event => setChartTools(event.currentTarget.checked)} />{t('Allow the selected offline sample’s close prices and times')}</label>}
             <div className="model-actions">
               <button type="submit" className="primary" disabled={!workspaceId || working || !model.trim()
-                || (usingOpenAi ? !credential?.configured : !origin.trim())}>Review connection</button>
+                || (usingOpenAi ? !credential?.configured : !origin.trim())}>{t('Review connection')}</button>
             </div>
           </form>
-          <section className="model-card" aria-label="Offline demonstration">
-            <p className="model-muted">Try canned replies on this device, without a model server or service charges.</p>
+          <section className="model-card" aria-label={t('Offline demonstration')}>
+            <p className="model-muted">{t('Try canned replies on this device, without a model server or service charges.')}</p>
             <div className="model-actions">
               <button type="button" className="secondary-button" disabled={!workspaceId || working}
-                onClick={() => review({ kind: 'offline_mock' })}>Use offline mock</button>
+                onClick={() => review({ kind: 'offline_mock' })}>{t('Use offline mock')}</button>
             </div>
           </section>
         </>}
         <div className="model-actions">
-          <button type="button" className="secondary-button" disabled={working} onClick={() => leaveSettings('question')}>Back to question</button>
+          <button type="button" className="secondary-button" disabled={working} onClick={() => leaveSettings('question')}>{t('Back to question')}</button>
         </div>
       </>}
     </div>

@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "id": "0025",
+  "title": "Resolve desktop presentation from registered interface languages",
+  "status": "accepted",
+  "recorded_at": "2026-11-22",
+  "context": "ScopeHub needs a multilingual desktop. English and Simplified Chinese are the first two interface languages. Users can have a chart, import review or private draft open when they change the interface language.",
+  "decision": "Register each language by its canonical BCP 47 tag, native name, writing direction and native folder dialog title in the desktop language registry. Keep source messages in English and translations in feature catalogs. Views use named arguments, contextual meanings and locale plural rules. Store the optional language override in the local desktop presentation profile. Resolve a compatible system language when the override is absent. Apply changes to the existing views and chart adapter.",
+  "authority": "The owner requested a foundation for additional languages and initial Chinese and English support. ADR 0007 assigns presentation architecture and compatibility verification to the development team.",
+  "alternatives": [
+    {
+      "option": "Place the two translations in each component.",
+      "reason": "Each additional language would require changing every view, including dialogs and accessibility labels."
+    },
+    {
+      "option": "Translate rendered text through a connected model.",
+      "reason": "The interface must work offline and preserve financial evidence, supplied data, drafts and model replies verbatim."
+    }
+  ],
+  "consequences": [
+    "Add a language entry in apps/desktop/ui/src/i18n/languages.json and its catalogs under i18n/locales/<tag>. Share product wording across features and give different meanings separate context keys. Include the startup messages for recovery when the main application cannot open.",
+    "The desktop-localization check covers literal source messages, catalog arguments, negotiated language, persistence and in-place changes. Run the local-import-ui check for the native chooser invocation and preservation of user-selected paths.",
+    "UI components render owned messages at display time. Chart formatting retains exchange timezones, tick precision and trading-day identity. The language preference uses no operation, credential or model connection."
+  ],
+  "supersedes": [],
+  "related_decisions": ["0007", "0016", "0024"],
+  "revisit_when": [
+    "A new locale needs a distinct regional catalog, writing-direction layout work or distribution outside the installed desktop bundle.",
+    "Translation volume or collaboration with translators justifies a different catalog format, loading strategy or extraction workflow."
+  ]
+}

@@ -1,25 +1,26 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { ListLocalFolderRevisionsOutput, ListLocalImportRevisionsOutput, ReadLocalFolderRevisionOutput } from '../../../../contracts/generated/protocol';
+import { formatNumber, message, plural, t } from './i18n';
 import {
   listLocalFolderRevisions, listLocalImportRevisions, readLocalFolderRevision, readLocalImportRevision,
-  revokeLocalFolderRevision, revokeLocalImportRevision,
+  revokeLocalFolderRevision, revokeLocalImportRevision, localImportErrorMessage, renderLocalImportMessage,
 } from './local-import-transport';
-import { FrozenFolderChart, FrozenLocalChart } from './local-preview-chart';
+import { formatSourceBarValue, FrozenFolderChart, FrozenLocalChart } from './local-preview-chart';
 import { openAuthenticatedFrozenChart, UnavailableSharedSelection, type FrozenChartResult } from './frozen-evidence';
 import { displayAccessDenied, useWatchPublishedRevision, type PublishedRevisionAccess } from './published-revision-access';
-import type { LocalWorkspace } from './use-local-workspace';
+import { type LocalWorkspace, WorkspaceSourceError } from './use-local-workspace';
 
 export function RevisionAccessActions({ disabled, folder = false, onRevoke }: { disabled: boolean; folder?: boolean; onRevoke: () => void }) {
   const [confirm, setConfirm] = useState(false);
   return confirm ? <fieldset className="local-import-card local-access-confirmation" disabled={disabled}>
-    <legend>Remove access to this revision?</legend>
-    <p>{folder ? 'The original sources stay in this profile.' : 'The original CSV copy stays in this profile.'}</p>
+    <legend>{t('Remove access to this revision?')}</legend>
+    <p>{folder ? t('The original sources stay in this profile.') : t('The original CSV copy stays in this profile.')}</p>
     <div className="local-publication-actions">
-      <button type="button" className="secondary-button" onClick={onRevoke}>Remove access</button>
-      <button type="button" className="secondary-button" onClick={() => setConfirm(false)}>Keep access</button>
+      <button type="button" className="secondary-button" onClick={onRevoke}>{t('Remove access')}</button>
+      <button type="button" className="secondary-button" onClick={() => setConfirm(false)}>{t('Keep access')}</button>
     </div>
   </fieldset> : <button type="button" className="secondary-button" disabled={disabled}
-    onClick={() => setConfirm(true)}>Remove frozen chart access</button>;
+    onClick={() => setConfirm(true)}>{t('Remove frozen chart access')}</button>;
 }
 
 function errorCode(error: unknown) {
@@ -27,14 +28,19 @@ function errorCode(error: unknown) {
 }
 
 function failureMessage(error: unknown, fallback: string) {
-  if (!error || typeof error !== 'object') return fallback;
-  if (errorCode(error) === 'SNAPSHOT_UNAVAILABLE') return 'This frozen chart is unavailable in the current profile.';
-  if (errorCode(error) === 'PERMISSION_DENIED') return 'This profile does not have permission to display this revision.';
-  if (errorCode(error) === 'STALE_CONTEXT') return 'The workspace changed. Reload its current state.';
-  return 'message' in error && typeof error.message === 'string' ? error.message : fallback;
+  const code = errorCode(error);
+  if (code === 'SNAPSHOT_UNAVAILABLE') return message('This frozen chart is unavailable in the current profile.');
+  if (code === 'PERMISSION_DENIED') return message('This profile does not have permission to display this revision.');
+  if (code === 'STALE_CONTEXT') return message('The workspace changed. Reload its current state.');
+  if (error instanceof WorkspaceSourceError) return error.localizedMessage;
+  if (error instanceof Error && error.message === 'The frozen chart reply could not be verified.') {
+    return message('The frozen chart reply could not be verified.');
+  }
+  if (error instanceof Error && error.message === 'The access removal reply could not be verified.') {
+    return message('The access removal reply could not be verified.');
+  }
+  return localImportErrorMessage(error) ?? message(fallback);
 }
-
-const unavailable = 'This frozen chart is unavailable in the current profile.';
 
 type LibraryPage =
   | { status: 'unconfigured' | 'error' }
@@ -73,8 +79,8 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
   const [frozen, setFrozen] = useState<OpenedRevision>();
   const [opening, setOpening] = useState<{ id: string; kind: RevisionKind }>();
   const [busy, setBusy] = useState(false);
-  const [failure, setFailure] = useState<string>();
-  const [notice, setNotice] = useState<string>();
+  const [failure, setFailure] = useState<ReturnType<typeof failureMessage>>();
+  const [notice, setNotice] = useState<ReturnType<typeof message>>();
   const revisionId = draft.trim().toLowerCase();
   const validId = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(revisionId);
   const watchedId = opening?.id ?? frozen?.result.revision.revision_id;
@@ -90,7 +96,7 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
   useEffect(() => {
     if (!lostAccess) return;
     setFrozen(undefined);
-    setFailure(unavailable);
+    setFailure(message('This frozen chart is unavailable in the current profile.'));
   }, [lostAccess]);
   const listLoading = nativeLocalImport && library.status === 'loading';
   const workspacePending = Boolean(workspace?.pending);
@@ -157,7 +163,8 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
     try {
       await work();
     } catch (error) {
-      setFailure(failureMessage(error, fallback));
+      const nextFailure = failureMessage(error, fallback);
+      setFailure(() => nextFailure);
     } finally {
       active.current = false;
       setBusy(false);
@@ -209,7 +216,7 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
       libraryTitle.current?.focus();
       setFrozen(undefined);
       removeFromLibrary(revision_id);
-      setNotice('Access removed for this published revision.');
+      setNotice(message('Access removed for this published revision.'));
       revisionAccess.revoke(revision_id);
       workspace?.reload();
     }, 'Unable to remove access to this revision.');
@@ -230,13 +237,13 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
 
   return <dialog ref={dialog} className="symbol-dialog local-revision-dialog" aria-labelledby={heading} onCancel={close}>
     <div className="dialog-heading local-revision-heading">
-      <h2 id={heading}>Open published CSV</h2>
-      <button type="button" className="secondary-button" onClick={close}>Close</button>
+      <h2 id={heading}>{t('Open published CSV')}</h2>
+      <button type="button" className="secondary-button" onClick={close}>{t('Close')}</button>
     </div>
     <div className="local-revision-body">
-      {busy && <p role="status">Working with the frozen revision…</p>}
+      {busy && <p role="status">{t('Working with the frozen revision…')}</p>}
       {(failure || workspace?.sourceRecovery && workspace.error) &&
-        <p className="local-import-error" role="alert">{failure ?? workspace?.error}</p>}
+        <p className="local-import-error" role="alert">{failure !== undefined ? renderLocalImportMessage(failure) : workspace?.error}</p>}
       {workspace?.error && <button type="button" className="secondary-button" disabled={working}
         onClick={() => {
           if (!workspace.sourceRecovery) {
@@ -250,9 +257,9 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
             return ownsSource;
           });
         }}>
-        Reload workspace state
+        {t('Reload workspace state')}
       </button>}
-      {notice && <p role="status">{notice}</p>}
+      {notice && <p role="status">{t(notice)}</p>}
       {!visibleFrozen && <UnavailableSharedSelection workspace={workspace} />}
       {visibleFrozen && <section ref={chart} className="local-revision-chart" tabIndex={-1} aria-labelledby={chartHeading}>
         <h3 id={chartHeading}>{visibleFrozen.kind === 'folder' ? visibleFrozen.result.revision.origin_path : visibleFrozen.result.revision.relative_path}</h3>
@@ -265,7 +272,7 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
               await useWorkspaceSource(visibleFrozen.result.revision.revision_id, signal);
               return true;
             },
-          )}>Use as workspace source</button>}
+          )}>{t('Use as workspace source')}</button>}
         {nativeLocalImport && <div className="local-import-card">
           <RevisionAccessActions key={visibleFrozen.result.revision.revision_id} folder={visibleFrozen.kind === 'folder'}
             disabled={working} onRevoke={() => void revoke()} />
@@ -273,18 +280,18 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
       </section>}
       {nativeLocalImport && <section className="local-import-card local-revision-library" aria-labelledby={libraryHeading}>
         <div className="local-revision-heading">
-          <h3 ref={libraryTitle} id={libraryHeading} tabIndex={-1}>Published revisions</h3>
-          <button type="button" className="secondary-button" disabled={working} onClick={() => browse([null])}>Refresh revisions</button>
+          <h3 ref={libraryTitle} id={libraryHeading} tabIndex={-1}>{t('Published revisions')}</h3>
+          <button type="button" className="secondary-button" disabled={working} onClick={() => browse([null])}>{t('Refresh revisions')}</button>
         </div>
-        <div className="local-publication-actions" role="group" aria-label="Revision kind">
+        <div className="local-publication-actions" role="group" aria-label={t('Revision kind')}>
           <button type="button" className="secondary-button" aria-pressed={kind === 'csv'} disabled={busy || (listLoading && kind === 'csv')}
-            onClick={() => browse([null], 'csv')}>Single-file revisions</button>
+            onClick={() => browse([null], 'csv')}>{t('Single-file revisions')}</button>
           <button type="button" className="secondary-button" aria-pressed={kind === 'folder'} disabled={busy || (listLoading && kind === 'folder')}
-            onClick={() => browse([null], 'folder')}>Folder revisions</button>
+            onClick={() => browse([null], 'folder')}>{t('Folder revisions')}</button>
         </div>
-        {listLoading && <p role="status">Loading published revisions…</p>}
-        {library.status === 'unconfigured' && <p role="status">Published revisions are unavailable because local profile storage is unconfigured.</p>}
-        {library.status === 'error' && <p className="local-import-error" role="alert">Unable to read published revisions. Try refreshing the list.</p>}
+        {listLoading && <p role="status">{t('Loading published revisions…')}</p>}
+        {library.status === 'unconfigured' && <p role="status">{t('Published revisions are unavailable because local profile storage is unconfigured.')}</p>}
+        {library.status === 'error' && <p className="local-import-error" role="alert">{t('Unable to read published revisions. Try refreshing the list.')}</p>}
         {library.status === 'ready' && <>
           {visibleRevisions.length ? <ul className="local-revision-list">
             {visibleRevisions.map(entry => {
@@ -293,34 +300,42 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
               const timeframe = folder ? entry.series.timeframe : entry.timeframe;
               return <li key={entry.revision_id}>
                 <button type="button" className="secondary-button" disabled={working} onClick={() => void open(entry.revision_id, true)}>
-                  <strong>{folder ? `Open folder revision from ${entry.origin_path}` : `Open ${entry.relative_path}`}</strong>
-                  <span>{entry.symbol}{venue && ` · ${venue}`} · {timeframe} · {entry.bar_count} {entry.bar_count === 1 ? 'bar' : 'bars'} · {
-                    folder ? `${entry.source_count} ${entry.source_count === 1 ? 'source' : 'sources'}`
-                      : `${entry.source_record_count} source ${entry.source_record_count === 1 ? 'row' : 'rows'}`
+                  <strong>{folder ? t('Open folder revision from {path}', { path: entry.origin_path }) : t('Open {path}', { path: entry.relative_path })}</strong>
+                  <span>{entry.symbol}{venue && ` · ${venue}`} · {timeframe} · {
+                    plural('{displayCount} bar', '{displayCount} bars', entry.bar_count, {
+                      displayCount: formatNumber(entry.bar_count, { useGrouping: false }),
+                    })
+                  } · {
+                    folder ? plural('{displayCount} source', '{displayCount} sources', entry.source_count, {
+                      displayCount: formatNumber(entry.source_count, { useGrouping: false }),
+                    })
+                      : plural('{displayCount} source row', '{displayCount} source rows', entry.source_record_count, {
+                        displayCount: formatNumber(entry.source_record_count, { useGrouping: false }),
+                      })
                   }</span>
                   {entry.bar_summary && <span className="local-revision-summary">
-                    <b>Final close {entry.bar_summary.final_close}</b> · Trading day {entry.bar_summary.final_trading_day}
+                    <b>{t('Final close {price}', { price: formatSourceBarValue(entry.bar_summary.final_close) })}</b> · {t('Trading day {day}', { day: entry.bar_summary.final_trading_day })}
                     {entry.bar_summary.first_trading_day !== entry.bar_summary.final_trading_day &&
-                      ` · First bar trading day ${entry.bar_summary.first_trading_day}`}
+                      <> · {t('First bar trading day {day}', { day: entry.bar_summary.first_trading_day })}</>}
                   </span>}
-                  <span>{!folder && <>CSV SHA-256 <code>{entry.source_sha256.slice(0, 12)}</code> · </>}Revision <code>{entry.revision_id.slice(0, 8)}</code></span>
+                  <span>{!folder && <>{t('CSV SHA-256')}{' '}<code>{entry.source_sha256.slice(0, 12)}</code> · </>}{t('Revision')}{' '}<code>{entry.revision_id.slice(0, 8)}</code></span>
                 </button>
               </li>;
             })}
           </ul> : <p role="status">{cursors.length === 1 && !library.result.next_after_revision_id
-            ? kind === 'folder' ? 'No published folder revisions are available in this profile.' : 'No published CSV revisions are available in this profile.'
-            : 'No published revisions on this page.'}</p>}
+            ? kind === 'folder' ? t('No published folder revisions are available in this profile.') : t('No published CSV revisions are available in this profile.')
+            : t('No published revisions on this page.')}</p>}
           {(cursors.length > 1 || library.result.next_after_revision_id) && <div className="local-publication-actions">
-            <button type="button" className="secondary-button" disabled={working || cursors.length < 2} onClick={() => browse(cursors.slice(0, -1))}>Previous page</button>
+            <button type="button" className="secondary-button" disabled={working || cursors.length < 2} onClick={() => browse(cursors.slice(0, -1))}>{t('Previous page')}</button>
             <button type="button" className="secondary-button" disabled={working || !library.result.next_after_revision_id}
-              onClick={() => browse([...cursors, library.result.next_after_revision_id])}>Next page</button>
+              onClick={() => browse([...cursors, library.result.next_after_revision_id])}>{t('Next page')}</button>
           </div>}
         </>}
       </section>}
       <form onSubmit={event => { event.preventDefault(); if (validId) void open(revisionId); }}>
         <fieldset className="local-import-card" disabled={working}>
           <div className="local-import-fields">
-            <label className="local-import-wide">Revision ID
+            <label className="local-import-wide">{t('Revision ID')}
               <input value={draft} maxLength={36} autoComplete="off" spellCheck={false} onChange={event => {
                 setDraft(event.currentTarget.value);
                 setFrozen(undefined);
@@ -329,7 +344,7 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
               }} />
             </label>
           </div>
-          <button type="submit" className="secondary-button" disabled={!validId}>{kind === 'folder' ? 'Open frozen folder revision' : 'Open frozen chart'}</button>
+          <button type="submit" className="secondary-button" disabled={!validId}>{kind === 'folder' ? t('Open frozen folder revision') : t('Open frozen chart')}</button>
         </fieldset>
       </form>
     </div>

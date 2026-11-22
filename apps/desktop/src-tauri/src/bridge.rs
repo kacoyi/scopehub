@@ -519,12 +519,21 @@ pub fn cancel_local_import_preview(
 pub async fn choose_local_csv_folder(
     window: tauri::WebviewWindow,
     state: tauri::State<'_, State>,
+    locale: Option<String>,
 ) -> Result<Option<Value>, Error> {
     authorize_window(window.label())?;
+    let languages: Vec<Value> =
+        serde_json::from_str(include_str!("../../ui/src/i18n/languages.json"))
+            .expect("embedded desktop languages");
+    let title = languages
+        .iter()
+        .find(|language| language["tag"].as_str() == Some(locale.as_deref().unwrap_or("en")))
+        .and_then(|language| language["folderPickerTitle"].as_str())
+        .unwrap_or("Choose local CSV folder");
     state
         .choose_local_csv_folder(|| async {
             rfd::AsyncFileDialog::new()
-                .set_title("Choose local CSV folder")
+                .set_title(title)
                 .set_parent(&window)
                 .pick_folder()
                 .await

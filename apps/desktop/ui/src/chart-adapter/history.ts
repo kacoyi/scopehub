@@ -25,6 +25,16 @@ export type HistoryChartData = {
 
 export type IndicatorChartLayer = { result: IndicatorResult; range: VisibleRange };
 
+export type HistoryChartLocalization = {
+  locale: string;
+  regionLabels: { preview: string; accepted: string };
+};
+
+const defaultChartLocalization: HistoryChartLocalization = {
+  locale: 'en',
+  regionLabels: { preview: 'Preview', accepted: 'Accepted' },
+};
+
 export interface HistoryChartHandle {
   dispose(): void;
   fit(): void;
@@ -33,6 +43,7 @@ export interface HistoryChartHandle {
   setCursor(mode: ChartCursorMode): void;
   setStyle(style: ChartStyle): void;
   setAppearance(appearance: ChartAppearance): void;
+  setLocale(localization: HistoryChartLocalization): void;
   setSelectedBar(time: number | undefined): void;
   replaceBars(bars: readonly Bar[]): void;
   updateLast(bar: Bar): void;
@@ -43,18 +54,32 @@ export interface HistoryChartHandle {
 export function mountHistoryChart(
   element: HTMLElement, history: HistoryChartData, instrument: Pick<Instrument, 'price_tick'>,
   style: ChartStyle, select: (bar: Bar) => void, activate?: (bar: Bar) => void,
+  localization = defaultChartLocalization,
 ): HistoryChartHandle {
   let appearance = defaultChartAppearance;
   let bars = [...history.bars];
   const lookup = new Map(bars.map(bar => [bar.time_ms / 1000, bar]));
-  const localTime = new Intl.DateTimeFormat('en-GB', {
+  const tick = instrument.price_tick;
+  const minMove = tick ? Number(tick) || 0.01 : observedDisplayStep(bars);
+  const precision = tick?.split('.')[1]?.length ?? 0;
+  const chartLocale = (locale: string) => locale === 'en' ? 'en-GB' : locale;
+  const intradayTime = (locale: string) => new Intl.DateTimeFormat(chartLocale(locale), {
     timeZone: history.dataset.timezone, month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
   });
+  const makeFormatters = (locale: string) => ({
+    time: intradayTime(locale),
+    price: new Intl.NumberFormat(locale, tick
+      ? { useGrouping: false, minimumFractionDigits: precision, maximumFractionDigits: precision }
+      : { useGrouping: false, maximumSignificantDigits: 21 }),
+    volume: new Intl.NumberFormat(locale, { useGrouping: false, notation: 'compact', maximumFractionDigits: 2 }),
+    indicator: new Intl.NumberFormat(locale, { useGrouping: false, minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+  });
+  let formatters = makeFormatters(localization.locale);
   const formatTime = (time: Time) => {
     const timestamp = Number(time);
     return history.dataset.timeframe === '1d'
       ? (lookup.get(timestamp)?.trading_day ?? '')
-      : localTime.format(new Date(timestamp * 1000));
+      : formatters.time.format(new Date(timestamp * 1000));
   };
   const colors = (theme: ChartAppearance['theme']) => ({
     layout: {
@@ -75,13 +100,19 @@ export function mountHistoryChart(
       fixLeftEdge: true, fixRightEdge: true,
       tickMarkMaxCharacterLength: history.dataset.timeframe === '1d' ? 10 : 13,
     },
-    localization: { locale: 'en-GB', timeFormatter: formatTime },
+    localization: { locale: chartLocale(localization.locale), timeFormatter: formatTime },
   });
   try {
-    const tick = instrument.price_tick;
-    const priceFormat = tick
-      ? { type: 'price' as const, precision: tick.split('.')[1]?.length ?? 0, minMove: Number(tick) || 0.01 }
-      : { type: 'custom' as const, minMove: observedDisplayStep(bars), formatter: (value: number) => String(value) };
+    const priceFormat = {
+      type: 'custom' as const, minMove,
+      formatter: (value: number) => {
+        const price = tick ? Math.round(Math.abs(value) / minMove) * minMove * Math.sign(value) : value;
+        return formatters.price.format(price === 0 ? 0 : price);
+      },
+    };
+    const indicatorFormat = {
+      type: 'custom' as const, minMove: 0.01, formatter: (value: number) => formatters.indicator.format(value),
+    };
     const timestamp = (bar: Bar) => (bar.time_ms / 1000) as UTCTimestamp;
     const candle = (bar: Bar) => ({ time: timestamp(bar), open: bar.open, high: bar.high, low: bar.low, close: bar.close });
     const linePoint = (bar: Bar) => ({ time: timestamp(bar), value: bar.close });
@@ -110,13 +141,16 @@ export function mountHistoryChart(
       }
     }
     let priceSeries = addPriceSeries(style);
-    const volumes = chart.addSeries(HistogramSeries, { priceFormat: { type: 'volume' }, priceLineVisible: false, lastValueVisible: false }, 1);
+    const volumes = chart.addSeries(HistogramSeries, {
+      priceFormat: { type: 'custom', minMove: 0.01, formatter: (value: number) => formatters.volume.format(value) },
+      priceLineVisible: false, lastValueVisible: false,
+    }, 1);
     volumes.setData(bars.map(volume));
     chart.panes()[1]?.setHeight(100);
     const markerPositions = { above: 'aboveBar', below: 'belowBar', on: 'inBar' } as const;
     const timeScale = chart.timeScale();
     let markerPlugin = createSeriesMarkers<Time>(priceSeries, []);
-    const setRegions = mountIndicatorRegions(priceSeries.getPane(), timeScale);
+    const regionsOverlay = mountIndicatorRegions(priceSeries.getPane(), timeScale, localization.regionLabels);
     let indicatorMarkers: SeriesMarker<Time>[] = [];
     let indicatorSeries: (ISeriesApi<'Line'> | ISeriesApi<'Histogram'>)[] = [];
     let indicatorLayers: (IndicatorChartLayer & { preview: boolean })[] = [];
@@ -141,7 +175,7 @@ export function mountHistoryChart(
             if (!points.length) continue;
             const pane = spec.pane === 'price' ? 0 : panes.get(spec.pane) ?? chart.panes().length;
             if (pane !== 0) panes.set(spec.pane, pane);
-            const options = { color: spec.style.color, lastValueVisible: false, priceLineVisible: false };
+            const options = { color: spec.style.color, priceFormat: indicatorFormat, lastValueVisible: false, priceLineVisible: false };
             const series = spec.type === 'line'
               ? chart.addSeries(LineSeries, { ...options, lineWidth: spec.style.width as LineWidth, lineStyle: layer.preview ? 2 : 0 }, pane)
               : chart.addSeries(HistogramSeries, options, pane);
@@ -160,7 +194,7 @@ export function mountHistoryChart(
       for (const series of indicatorSeries) chart.removeSeries(series);
       indicatorSeries = nextSeries;
       indicatorMarkers = markers;
-      setRegions(regions);
+      regionsOverlay.setBands(regions);
     }
 
     timeScale.fitContent();
@@ -197,7 +231,7 @@ export function mountHistoryChart(
     return {
       dispose() {
         element.style.cursor = originalCursor;
-        setRegions([]);
+        regionsOverlay.setBands([]);
         markerPlugin.detach();
         chart.remove();
       },
@@ -239,6 +273,16 @@ export function mountHistoryChart(
         if (style === 'candlestick') (priceSeries as ISeriesApi<'Candlestick'>).applyOptions(candleColors());
         else (priceSeries as ISeriesApi<'Line'>).applyOptions({ color: chartThemes[next.theme].price });
         volumes.setData(bars.map(volume));
+      },
+      setLocale(next) {
+        if (next.locale === localization.locale && next.regionLabels.preview === localization.regionLabels.preview
+          && next.regionLabels.accepted === localization.regionLabels.accepted) return;
+        const range = timeScale.getVisibleLogicalRange();
+        formatters = makeFormatters(next.locale);
+        localization = next;
+        chart.applyOptions({ localization: { locale: chartLocale(next.locale), timeFormatter: formatTime } });
+        regionsOverlay.setLabels(next.regionLabels);
+        if (range) timeScale.setVisibleLogicalRange(range);
       },
       setSelectedBar(time) {
         if (selectedTime === time) return;

@@ -3158,6 +3158,25 @@
           "report_sha256": "36f10d1a179b52be99e888b8e467461798b0ce923025658d63afd8b142ec1403"
         }
       ]
+    },
+    {
+      "id": "restored-csv-quote-drops-fraction",
+      "source": "Desktop localization engineering review on 2026-11-22. A synthetic restored equity without a declared price tick reproduced the issue.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The watchlist summary rendered a restored close of 12.34 as 12 when no price tick was available. Showing the fractional close exposed a binary floating-point tail in its displayed change from 12.25.",
+      "task_ids": [
+        "M1-032"
+      ],
+      "regression_checks": [
+        "desktop-localization"
+      ],
+      "resolution": {
+        "cause": "The quote formatter used zero fractional digits for an instrument with an unknown tick.",
+        "correction": "Keep the observed significant digits when the tick is unknown, compute displayed changes from the decimal values of both closes, and use the declared tick precision when available.",
+        "prevention": "The restored CSV workflow checks the 12.34 close and +0.09 change in both languages. Additional examples cover small and large prices and the precision of a declared tick."
+      },
+      "deferral_reason": null
     }
   ]
 }

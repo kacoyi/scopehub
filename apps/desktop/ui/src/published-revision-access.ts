@@ -68,16 +68,16 @@ export function useWatchPublishedRevision(
   const refresh = workspace?.snapshot;
   const reload = workspace?.sourceRecovery ? undefined : workspace?.reload;
   const canCheckRevision = workspace?.canCheckRevision;
-  const error = workspace?.error;
-  const previous = useRef({ id, refresh, error });
+  const errorId = workspace?.errorId;
+  const previous = useRef({ id, refresh, errorId });
   useEffect(() => {
     const observed = previous.current;
-    previous.current = { id, refresh, error };
+    previous.current = { id, refresh, errorId };
     // The foreground read authorizes its own result. An independent profile change
     // still rechecks access, including while that result is in transit.
-    const profileChanged = observed.id === id && (observed.refresh !== refresh || observed.error !== error);
+    const profileChanged = observed.id === id && (observed.refresh !== refresh || observed.errorId !== errorId);
     if (id && (initialAccess === 'check' || profileChanged)) void verify(id);
-  }, [id, verify, refresh, error, initialAccess]);
+  }, [id, verify, refresh, errorId, initialAccess]);
 
   useEffect(() => {
     if (!id) return;

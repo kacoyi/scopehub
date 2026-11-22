@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { assetLabel, instrumentName, symbol } from './instrument-display';
+import { t } from './i18n';
+import { assetLabel, instrumentName, instrumentSearchTerms, symbol } from './instrument-display';
 import type { Instrument } from './market';
 import { WorkspaceIcon } from './workspace-icons';
 
@@ -15,7 +16,7 @@ export function SymbolSearch({ instruments, initialQuery, sample, onChoose, onCl
   const [active, setActive] = useState(0);
   const term = query.trim().toLowerCase();
   const matches = instruments.filter(item =>
-    [item.id, item.name, instrumentName(item), assetLabel(item), item.currency].some(value => value.toLowerCase().includes(term)));
+    instrumentSearchTerms(item).some(value => value.toLowerCase().includes(term)));
   useEffect(() => {
     const node = dialog.current;
     if (!node) return;
@@ -31,13 +32,13 @@ export function SymbolSearch({ instruments, initialQuery, sample, onChoose, onCl
       const bounds = dialog.current.getBoundingClientRect();
       if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) onClose();
     }}>
-    <div className="dialog-heading"><h2 id="search-title">Search symbols</h2>
-      <button type="button" className="icon-button" aria-label="Close search" onClick={onClose}><WorkspaceIcon name="close" /></button>
+    <div className="dialog-heading"><h2 id="search-title">{t('Search symbols')}</h2>
+      <button type="button" className="icon-button" aria-label={t('Close search')} onClick={onClose}><WorkspaceIcon name="close" /></button>
     </div>
     <div className="search-field"><WorkspaceIcon name="search" />
-      <input ref={input} role="combobox" aria-label="Search symbols" aria-controls="symbol-options" aria-expanded="true"
+      <input ref={input} role="combobox" aria-label={t('Search symbols')} aria-controls="symbol-options" aria-expanded="true"
         aria-autocomplete="list" aria-activedescendant={current >= 0 ? 'symbol-option-' + current : undefined}
-        placeholder="Symbol or name" value={query} autoComplete="off" spellCheck={false}
+        placeholder={t('Symbol or name')} value={query} autoComplete="off" spellCheck={false}
         onChange={event => { setQuery(event.target.value); setActive(0); }}
         onKeyDown={event => {
           if (event.nativeEvent.isComposing || !matches.length) return;
@@ -51,7 +52,7 @@ export function SymbolSearch({ instruments, initialQuery, sample, onChoose, onCl
         }} />
       <kbd>Esc</kbd>
     </div>
-    <div role="listbox" id="symbol-options" aria-label="Matching instruments">
+    <div role="listbox" id="symbol-options" aria-label={t('Matching instruments')}>
       {matches.map((item, index) => <button type="button" role="option" tabIndex={-1} key={item.id}
         id={'symbol-option-' + index} aria-selected={current === index} className="search-option"
         onPointerMove={() => setActive(index)} onClick={() => onChoose(item)}>
@@ -59,8 +60,8 @@ export function SymbolSearch({ instruments, initialQuery, sample, onChoose, onCl
         <span className="search-market">{assetLabel(item)} · {item.currency}</span>
       </button>)}
     </div>
-    {!matches.length && (sample ? <p className="dialog-message" role="status">No matching instruments.</p>
-      : <div className="dialog-message"><p>No data source is connected.</p>
-        <button type="button" className="primary" onClick={openSample}>Open offline sample</button></div>)}
+    {!matches.length && (sample ? <p className="dialog-message" role="status">{t('No matching instruments.')}</p>
+      : <div className="dialog-message"><p>{t('No data source is connected.')}</p>
+        <button type="button" className="primary" onClick={openSample}>{t('Open offline sample')}</button></div>)}
   </dialog>;
 }

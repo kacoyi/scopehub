@@ -1,5 +1,6 @@
 import { Channel, invoke } from '@tauri-apps/api/core';
 import type { InstrumentSearchInput, InstrumentSearchOutput, MarketHistoryPageInput, MarketHistoryPageOutput } from '../../../../contracts/generated/protocol';
+import { message, type Message } from './i18n';
 import { isAdmissionBusy, marketAdmissionDeadline, retryMarketAdmission } from './market-admission';
 
 export type { Bar, DatasetDescriptor, Instrument, MarketGetBarsOutput } from '../../../../contracts/generated/protocol';
@@ -135,32 +136,32 @@ export function invalidMarketData() {
 
 export type MarketFailure = {
   kind: 'worker-exited' | 'transport-unavailable' | 'invalid-data' | 'unavailable' | 'error';
-  message: string;
+  message: Message;
   retryable: boolean;
 };
 
 export function describeMarketFailure(error: unknown): MarketFailure {
   if (error instanceof PreviewHttpFailure) {
-    return { kind: 'error', message: error.message, retryable: error.status >= 500 };
+    return { kind: 'error', message: message('The local preview returned HTTP {status}.', { status: error.status }), retryable: error.status >= 500 };
   }
   const retryable = error && typeof error === 'object' && 'retryable' in error && typeof error.retryable === 'boolean'
     ? error.retryable : true;
   switch (operationCode(error)) {
-    case 'WORKER_EXITED': return { kind: 'worker-exited', message: 'The market worker is disconnected.', retryable };
-    case 'OUTPUT_INVALID': return { kind: 'invalid-data', message: 'The data response failed validation.', retryable: false };
-    case 'DATA_UNAVAILABLE': return { kind: 'unavailable', message: 'No history is available for this instrument.', retryable: false };
-    case 'TIMEOUT': return { kind: 'error', message: 'The market worker timed out.', retryable };
-    case 'BUSY': return { kind: 'error', message: 'The market worker is busy.', retryable };
-    case 'RESOURCE_LIMIT': return { kind: 'error', message: 'This request exceeds the data limit. Select a narrower time range.', retryable: false };
-    case 'SNAPSHOT_UNAVAILABLE': return { kind: 'unavailable', message: 'The selected historical revision is unavailable.', retryable: false };
-    case 'PROVIDER_NOT_CONFIGURED': return { kind: 'unavailable', message: 'The offline demo runtime is not available in this build.', retryable: false };
-    case 'UNSUPPORTED_CAPABILITY': return { kind: 'error', message: 'This worker needs an update to read frozen history.', retryable: false };
-    case 'PROTOCOL_MISMATCH': return { kind: 'error', message: 'The market worker uses an incompatible protocol.', retryable: false };
-    case 'PERMISSION_DENIED': return { kind: 'error', message: 'Access to this source is denied.', retryable: false };
+    case 'WORKER_EXITED': return { kind: 'worker-exited', message: message('The market worker is disconnected.'), retryable };
+    case 'OUTPUT_INVALID': return { kind: 'invalid-data', message: message('The data response failed validation.'), retryable: false };
+    case 'DATA_UNAVAILABLE': return { kind: 'unavailable', message: message('No history is available for this instrument.'), retryable: false };
+    case 'TIMEOUT': return { kind: 'error', message: message('The market worker timed out.'), retryable };
+    case 'BUSY': return { kind: 'error', message: message('The market worker is busy.'), retryable };
+    case 'RESOURCE_LIMIT': return { kind: 'error', message: message('This request exceeds the data limit. Select a narrower time range.'), retryable: false };
+    case 'SNAPSHOT_UNAVAILABLE': return { kind: 'unavailable', message: message('The selected historical revision is unavailable.'), retryable: false };
+    case 'PROVIDER_NOT_CONFIGURED': return { kind: 'unavailable', message: message('The offline demo runtime is not available in this build.'), retryable: false };
+    case 'UNSUPPORTED_CAPABILITY': return { kind: 'error', message: message('This worker needs an update to read frozen history.'), retryable: false };
+    case 'PROTOCOL_MISMATCH': return { kind: 'error', message: message('The market worker uses an incompatible protocol.'), retryable: false };
+    case 'PERMISSION_DENIED': return { kind: 'error', message: message('Access to this source is denied.'), retryable: false };
     case undefined: return { kind: 'transport-unavailable', retryable: true, message: import.meta.env.SCOPEHUB_UBUNTU_PREVIEW
-      ? 'Disconnected from the local preview. Retry when the connection is restored.'
-      : 'Disconnected from the desktop runtime. Open the desktop development app and retry.' };
-    default: return { kind: 'error', message: 'Unable to load market data.', retryable: false };
+      ? message('Disconnected from the local preview. Retry when the connection is restored.')
+      : message('Disconnected from the desktop runtime. Open the desktop development app and retry.') };
+    default: return { kind: 'error', message: message('Unable to load market data.'), retryable: false };
   }
 }
 

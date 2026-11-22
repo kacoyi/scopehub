@@ -3,14 +3,19 @@ import type {
   PrivateRecordBackupV1, PrivateRecordContent, PrivateRecordEntry, PrivateRecordKind,
   PrivateRecordReadOutput, PrivateRecordReceipt11, PrivateRecordTurn,
 } from '../../../../contracts/generated/protocol';
+import { formatNumber, message, t, useLocale, type Message } from './i18n';
 import {
   exportPrivateRecords, maxPrivateBackupBytes, preparePrivateRecord, readPrivateRecords, recordErrorCode,
   resolvePrivateRecord, type PrepareRecord, type RecordApproval, type RecordResolution,
 } from './private-record-transport';
 import type { LocalWorkspace } from './use-local-workspace';
 
-const kinds = { conversation: 'Conversation exchange', memory: 'Long-term memory', strategy: 'Strategy' };
-const speakerLabels = { user: 'You', assistant: 'Assistant' };
+const kinds = {
+  conversation: message('Conversation exchange'),
+  memory: message('Long-term memory'),
+  strategy: message('Strategy'),
+};
+const speakerLabels = { user: message('You'), assistant: message('Assistant') };
 
 type Draft = { id: string; revision: number | null; content: PrivateRecordContent };
 type ReviewTarget = { title: string; kind: PrivateRecordKind; proposedTitle?: string | undefined };
@@ -37,47 +42,49 @@ function RecordEditor({ draft, current, disabled, onChange, onReview, onCancel }
   const updateTurn = (turns: PrivateRecordTurn[], index: number, turn: PrivateRecordTurn) =>
     turns.map((current, item) => item === index ? turn : current);
   return <form className="private-record-editor" onSubmit={onReview}>
-    <h3>{revision === null ? 'New private record' : 'Correct private record'}</h3>
-    {current && <section className="note-approval" aria-label="Current saved version">
-      <p role="alert">Another window changed this record. Compare the current saved version with your draft before reviewing the correction.</p>
+    <h3>{revision === null ? t('New private record') : t('Correct private record')}</h3>
+    {current && <section className="note-approval" aria-label={t('Current saved version')}>
+      <p role="alert">{t('Another window changed this record. Compare the current saved version with your draft before reviewing the correction.')}</p>
       <RecordDetail record={current} />
     </section>}
     <fieldset disabled={disabled}>
-      {revision === null && <label>Record type
+      {revision === null && <label>{t('Record type')}
         <select value={content.kind} onChange={event => change(emptyContent(event.target.value as PrivateRecordKind, content.title))}>
-          {Object.entries(kinds).map(([kind, label]) => <option key={kind} value={kind}>{label}</option>)}
+          {Object.entries(kinds).map(([kind, label]) => <option key={kind} value={kind}>{t(label)}</option>)}
         </select>
       </label>}
-      <label>Title<input value={content.title} onChange={event => change({ ...content, title: event.target.value })}
+      <label>{t('Title')}<input value={content.title} onChange={event => change({ ...content, title: event.target.value })}
         maxLength={120} autoComplete="off" required /></label>
       {content.kind === 'conversation' ? <>
-        <p>Enter the typed turns you want to keep, in their original order.</p>
+        <p>{t('Enter the typed turns you want to keep, in their original order.')}</p>
         {content.turns.map((turn, index) => <fieldset key={index} className="private-turn">
-          <legend>Turn {index + 1}</legend>
-          <label>Speaker
+          <legend>{t('Turn {number}', { number: formatNumber(index + 1) })}</legend>
+          <label>{t('Speaker')}
             <select value={turn.speaker} onChange={event => change({
               ...content, turns: updateTurn(content.turns, index, { ...turn, speaker: event.target.value as PrivateRecordTurn['speaker'] }),
             })}>
-              <option value="user">You</option><option value="assistant">Assistant</option>
+              <option value="user">{t(speakerLabels.user)}</option><option value="assistant">{t(speakerLabels.assistant)}</option>
             </select>
           </label>
-          <label>Text<textarea value={turn.text} onChange={event => change({
+          <label>{t('Text')}<textarea value={turn.text} onChange={event => change({
             ...content, turns: updateTurn(content.turns, index, { ...turn, text: event.target.value }),
           })} rows={3} maxLength={4096} spellCheck={false} required /></label>
           {content.turns.length > 2 && <button type="button" className="secondary-button"
-            onClick={() => change({ ...content, turns: content.turns.filter((_, item) => item !== index) })}>Remove turn {index + 1}</button>}
+            onClick={() => change({ ...content, turns: content.turns.filter((_, item) => item !== index) })}>
+            {t('Remove turn {number}', { number: formatNumber(index + 1) })}
+          </button>}
         </fieldset>)}
         <button type="button" className="secondary-button" disabled={content.turns.length === 16}
           onClick={() => change({
             ...content, turns: [...content.turns, { speaker: content.turns.at(-1)?.speaker === 'user' ? 'assistant' : 'user', text: '' }],
-          })}>Add turn</button>
-      </> : <label>{content.kind === 'memory' ? 'Memory' : 'Strategy'}
+          })}>{t('Add turn')}</button>
+      </> : <label>{content.kind === 'memory' ? t('Memory') : t(kinds.strategy)}
         <textarea value={content.text} onChange={event => change({ ...content, text: event.target.value })}
           rows={6} maxLength={4096} spellCheck={false} required />
       </label>}
       <div className="private-record-actions">
-        <button type="submit" className="primary">{current ? 'Review correction against current version' : 'Review save'}</button>
-        <button type="button" className="secondary-button" onClick={onCancel}>Discard draft</button>
+        <button type="submit" className="primary">{current ? t('Review correction against current version') : t('Review save')}</button>
+        <button type="button" className="secondary-button" onClick={onCancel}>{t('Discard draft')}</button>
       </div>
     </fieldset>
   </form>;
@@ -87,10 +94,10 @@ function RecordDetail({ record }: { record: PrivateRecordEntry }) {
   const { content } = record;
   return <article className="private-record-detail">
     <h3>{content.title}</h3>
-    <small>{kinds[content.kind]}</small>
+    <small>{t(kinds[content.kind])}</small>
     {content.kind === 'conversation' ? <ol>
       {content.turns.map((turn, index) => <li key={index}>
-        <strong>{speakerLabels[turn.speaker]}</strong><p>{turn.text}</p>
+        <strong>{t(speakerLabels[turn.speaker])}</strong><p>{turn.text}</p>
       </li>)}
     </ol> : <p>{content.text}</p>}
   </article>;
@@ -98,19 +105,20 @@ function RecordDetail({ record }: { record: PrivateRecordEntry }) {
 
 function failureMessage(error: unknown) {
   switch (recordErrorCode(error)) {
-    case 'STALE_CONTEXT': return 'The workspace or record changed. Review the current version before retrying.';
-    case 'CONFIRMATION_REQUIRED': return 'The review expired. Review the action again.';
-    case 'INVALID_ARGUMENT': return 'Check the record fields or select a valid private records backup.';
-    case 'DATA_UNAVAILABLE': return 'This private record is no longer available.';
-    case 'BUSY': return 'The local workspace is busy. Try again.';
-    case 'WORKER_EXITED': return 'The local workspace is unavailable. Private records are hidden.';
-    case 'PERMISSION_DENIED': return 'This action or backup is unavailable in this local profile.';
-    case 'RESOURCE_LIMIT': return 'This action exceeds a local record or backup limit.';
-    default: return 'The local workspace could not complete the action.';
+    case 'STALE_CONTEXT': return message('The workspace or record changed. Review the current version before retrying.');
+    case 'CONFIRMATION_REQUIRED': return message('The review expired. Review the action again.');
+    case 'INVALID_ARGUMENT': return message('Check the record fields or select a valid private records backup.');
+    case 'DATA_UNAVAILABLE': return message('This private record is no longer available.');
+    case 'BUSY': return message('The local workspace is busy. Try again.');
+    case 'WORKER_EXITED': return message('The local workspace is unavailable. Private records are hidden.');
+    case 'PERMISSION_DENIED': return message('This action or backup is unavailable in this local profile.');
+    case 'RESOURCE_LIMIT': return message('This action exceeds a local record or backup limit.');
+    default: return message('The local workspace could not complete the action.');
   }
 }
 
 export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspace; onClose: () => void }) {
+  useLocale();
   const modal = useRef<HTMLDialogElement>(null);
   const cancelReview = useRef<HTMLButtonElement>(null);
   const active = useRef<AbortController | null>(null);
@@ -125,15 +133,16 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
   const [busy, setBusy] = useState(false);
   const [recovery, setRecovery] = useState<PendingResolution>();
   const [recoveredOperationId, setRecoveredOperationId] = useState<string>();
-  const [notice, setNotice] = useState('');
-  const [error, setError] = useState('');
-  const [readError, setReadError] = useState('');
+  const [notice, setNotice] = useState<Message>();
+  const [error, setError] = useState<Message>();
+  const [readError, setReadError] = useState<Message>();
   const workspaceId = workspace.snapshot?.workspace.id;
   const record = view?.record;
   const changedRecord = record && draft?.id === record.record_id && draft.revision !== record.revision ? record : undefined;
   const expiredReview = prepared && view
     && prepared.scope.expected_workspace_revision !== view.workspace_revision;
   const visibleReview = expiredReview ? undefined : prepared;
+  const visibleError = error ?? readError;
 
   const rememberRecovery = useCallback((resolution: PendingResolution | undefined) => {
     pendingResolution.current = resolution;
@@ -153,8 +162,8 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
       rememberRecovery(undefined);
     }
     setRecoveredOperationId(undefined);
-    setNotice('');
-    setError('');
+    setNotice(undefined);
+    setError(undefined);
   }, [rememberRecovery]);
 
   const run = useCallback((
@@ -166,7 +175,7 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
     if (!background) {
       active.current = controller;
       setBusy(true);
-      setError('');
+      setError(undefined);
     }
     const waiting = probe.current?.task;
     const task = (async () => {
@@ -201,7 +210,7 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
       const current = await readPrivateRecords(workspaceId, id, signal);
       observedRevision.current = current.workspace_revision;
       setView(current);
-      setReadError('');
+      setReadError(undefined);
     } catch (fault) {
       if (signal.aborted) return;
       const code = recordErrorCode(fault);
@@ -247,7 +256,7 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
   useEffect(() => {
     if (!expiredReview) return;
     setPrepared(existing => existing === prepared ? undefined : existing);
-    setError('The workspace changed. Review this change again.');
+    setError(message('The workspace changed. Review this change again.'));
   }, [expiredReview, prepared]);
 
   const review = (args: PrepareRecord) => {
@@ -258,7 +267,7 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
       kind: args.content.kind,
       proposedTitle: saved && saved.title !== args.content.title ? args.content.title : undefined,
     } : args.action === 'delete' && saved ? { title: saved.title, kind: saved.kind } : undefined;
-    setNotice('');
+    setNotice(undefined);
     run(async signal => {
       if (view.workspace_revision !== observedRevision.current) throw { code: 'STALE_CONTEXT' };
       const approval = await preparePrivateRecord(workspaceId, view.workspace_revision, args, signal);
@@ -276,7 +285,7 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
       link.download = 'scopehub-private-records.json';
       link.click();
       window.setTimeout(() => URL.revokeObjectURL(url), 0);
-      setNotice('Private records backup download started.');
+      setNotice(message('Private records backup download started.'));
     });
   }
 
@@ -285,7 +294,7 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
     event.currentTarget.value = '';
     if (!file || !workspaceId || !view) return;
     const revision = view.workspace_revision;
-    setNotice('');
+    setNotice(undefined);
     run(async signal => {
       if (file.size > maxPrivateBackupBytes) throw { code: 'RESOURCE_LIMIT' };
       let backup: PrivateRecordBackupV1;
@@ -338,9 +347,13 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
       setPrepared(undefined);
       rememberRecovery(undefined);
       if (close) { onClose(); return; }
-      if (decision === 'decline') { setNotice('Action cancelled.'); return; }
+      if (decision === 'decline') { setNotice(message('Action cancelled.')); return; }
       setDraft(undefined);
-      const messages = { save: 'Private record saved.', delete: 'Private record deleted.', restore: 'Private records restored.' };
+      const messages = {
+        save: message('Private record saved.'),
+        delete: message('Private record deleted.'),
+        restore: message('Private records restored.'),
+      };
       setNotice(messages[action]);
       setRecoveredOperationId(retry && action === 'delete' ? receipt?.operation_id : undefined);
       await load(action === 'save' ? targetId : null, signal);
@@ -354,40 +367,50 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
     else onClose();
   }
 
+  const approvalLabels = {
+    save: t('Save private record'),
+    delete: t('Delete private record'),
+    restore: t('Restore private records'),
+  };
+
   return <dialog ref={modal} className="symbol-dialog decision-dialog" aria-labelledby="private-records-heading"
     onCancel={event => { event.preventDefault(); close(); }}>
     <div className="dialog-heading">
-      <h2 id="private-records-heading">Private records</h2>
-      <button type="button" className="secondary-button" onClick={close} disabled={busy}>Close</button>
+      <h2 id="private-records-heading">{t('Private records')}</h2>
+      <button type="button" className="secondary-button" onClick={close} disabled={busy}>{t('Close')}</button>
     </div>
     <div className="decision-body private-record-body" aria-busy={busy}>
-      {(error || readError) && <p className="note-error" role="alert">{error || readError}</p>}
-      {notice && <p role="status">{notice}</p>}
-      {recoveredOperationId && <p>Deletion receipt <code>{recoveredOperationId}</code></p>}
-      {recovery ? <section className="note-approval" aria-label="Recover private record result">
-        <h3>{recovery.action === 'delete' ? 'Recover deletion result' : 'Recover private record result'}</h3>
-        <p>Retry confirmation to recover the result of the submitted change.</p>
+      {visibleError && <p className="note-error" role="alert">{t(visibleError)}</p>}
+      {notice && <p role="status">{t(notice)}</p>}
+      {recoveredOperationId && <p>{t('Deletion receipt')} <code>{recoveredOperationId}</code></p>}
+      {recovery ? <section className="note-approval" aria-label={t('Recover private record result')}>
+        <h3>{recovery.action === 'delete' ? t('Recover deletion result') : t('Recover private record result')}</h3>
+        <p>{t('Retry confirmation to recover the result of the submitted change.')}</p>
         <div className="private-record-actions">
-          <button type="button" className="primary" disabled={busy} onClick={() => finish('approve')}>Retry confirmation</button>
+          <button type="button" className="primary" disabled={busy} onClick={() => finish('approve')}>{t('Retry confirmation')}</button>
         </div>
-      </section> : visibleReview ? <section className="note-approval" aria-label="Review private record change">
-        <h3>{visibleReview.action === 'delete' ? 'Delete this private record?'
-          : visibleReview.action === 'restore' ? 'Restore from this local backup?' : 'Save this private record locally?'}</h3>
+      </section> : visibleReview ? <section className="note-approval" aria-label={t('Review private record change')}>
+        <h3>{visibleReview.action === 'delete' ? t('Delete this private record?')
+          : visibleReview.action === 'restore' ? t('Restore from this local backup?') : t('Save this private record locally?')}</h3>
         {visibleReview.target && <dl className="private-review-target">
-          <dt>{kinds[visibleReview.target.kind]}</dt><dd>{visibleReview.target.title}</dd>
-          {visibleReview.target.proposedTitle && <><dt>Corrected title</dt><dd>{visibleReview.target.proposedTitle}</dd></>}
+          <dt>{t(kinds[visibleReview.target.kind])}</dt><dd>{visibleReview.target.title}</dd>
+          {visibleReview.target.proposedTitle && <><dt>{t('Corrected title')}</dt><dd>{visibleReview.target.proposedTitle}</dd></>}
         </dl>}
-        {visibleReview.action === 'delete' && <p>ScopeHub will remove this record from the profile and remember the deletion during restore. Independent backup files may still contain it.</p>}
+        {visibleReview.action === 'delete' && <p>{t('ScopeHub will remove this record from the profile and remember the deletion during restore. Independent backup files may still contain it.')}</p>}
         {visibleReview.action === 'restore' && <p>
-          {visibleReview.summary.added} to add, {visibleReview.summary.kept} current records to keep, {visibleReview.summary.removed} to remove,
-          {' '}{visibleReview.summary.suppressed} suppressed by known deletions, {visibleReview.summary.imported_deletions} deletion markers to import.
-          An independent older backup may contain records whose deletion history is unavailable.
+          {t('{added} to add, {kept} current records to keep, {removed} to remove, {suppressed} suppressed by known deletions, {imported} deletion markers to import.', {
+            added: formatNumber(visibleReview.summary.added),
+            kept: formatNumber(visibleReview.summary.kept),
+            removed: formatNumber(visibleReview.summary.removed),
+            suppressed: formatNumber(visibleReview.summary.suppressed),
+            imported: formatNumber(visibleReview.summary.imported_deletions),
+          })}{' '}{t('An independent older backup may contain records whose deletion history is unavailable.')}
         </p>}
         <div className="private-record-actions">
           <button type="button" ref={cancelReview} className="secondary-button" disabled={busy}
-            onClick={() => finish('decline')}>Cancel review</button>
+            onClick={() => finish('decline')}>{t('Cancel review')}</button>
           <button type="button" className="primary" disabled={busy} onClick={() => finish('approve')}>
-            {{ save: 'Save private record', delete: 'Delete private record', restore: 'Restore private records' }[visibleReview.action]}
+            {approvalLabels[visibleReview.action]}
           </button>
         </div>
       </section> : draft ? <RecordEditor draft={draft} current={changedRecord} disabled={busy || !view} onChange={setDraft} onCancel={() => setDraft(undefined)}
@@ -399,33 +422,34 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
           });
         }} />
         : record ? <>
-          <button type="button" className="secondary-button" disabled={busy} onClick={() => { setNotice(''); run(signal => load(null, signal)); }}>All private records</button>
+          <button type="button" className="secondary-button" disabled={busy}
+            onClick={() => { setNotice(undefined); run(signal => load(null, signal)); }}>{t('All private records')}</button>
           <RecordDetail record={record} />
           <div className="private-record-actions">
             <button type="button" className="secondary-button" disabled={busy} onClick={() => {
-              setNotice('');
+              setNotice(undefined);
               setDraft({ id: record.record_id, revision: record.revision, content: record.content });
-            }}>Correct record</button>
+            }}>{t('Correct record')}</button>
             <button type="button" className="secondary-button" disabled={busy} onClick={() => review({
               action: 'delete', record_id: record.record_id, expected_record_revision: record.revision,
-            })}>Review deletion</button>
+            })}>{t('Review deletion')}</button>
           </div>
         </> : view && <>
           <button type="button" className="primary" disabled={busy} onClick={() => {
-            setNotice('');
+            setNotice(undefined);
             setDraft({ id: crypto.randomUUID(), revision: null, content: emptyContent('conversation') });
-          }}>New private record</button>
+          }}>{t('New private record')}</button>
           {view.records.length ? <ul className="note-list">
             {view.records.map(item => <li key={item.record_id}>
               <button type="button" className="secondary-button" disabled={busy} onClick={() => {
-                setNotice('');
+                setNotice(undefined);
                 run(signal => load(item.record_id, signal));
-              }}>{item.title} <small>{kinds[item.kind]}</small></button>
+              }}>{item.title} <small>{t(kinds[item.kind])}</small></button>
             </li>)}
-          </ul> : <p>No private records saved.</p>}
+          </ul> : <p>{t('No private records saved.')}</p>}
           <div className="private-record-actions">
-            <button type="button" className="secondary-button" disabled={busy} onClick={downloadBackup}>Download local backup</button>
-            <label>Restore local backup<input type="file" accept=".json,application/json" disabled={busy} onChange={selectBackup} /></label>
+            <button type="button" className="secondary-button" disabled={busy} onClick={downloadBackup}>{t('Download local backup')}</button>
+            <label>{t('Restore local backup')}<input type="file" accept=".json,application/json" disabled={busy} onChange={selectBackup} /></label>
           </div>
         </>}
     </div>
