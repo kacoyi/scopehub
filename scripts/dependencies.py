@@ -209,9 +209,11 @@ def validate_advisory_scope(root, policy, request=fetch_json, publisher_request=
     desktop = tomllib.loads((root / 'apps/desktop/src-tauri/Cargo.toml').read_text(encoding='utf-8'))
     if desktop['package']['metadata']['scopehub']['check_platform'] != 'windows-x64':
         raise ValueError('Reassess the advisory disposition before enabling another desktop platform')
-    # Resolve both the supported native product and all targets of portable crates.
+    # Include the native Ubuntu development entry as well as the shipped target and portable crates.
     graphs = []
     for selection in [['--workspace', '--target', 'x86_64-pc-windows-msvc'],
+                      ['--package', desktop['package']['name'], '--features', 'ubuntu-desktop',
+                       '--target', 'x86_64-unknown-linux-gnu'],
                       ['--workspace', '--exclude', desktop['package']['name'], '--target', 'all']]:
         result = subprocess.run(['cargo', 'tree', '--locked', *selection, '--prefix', 'none', '--format', '{p}'],
                                 cwd=root, capture_output=True, text=True, encoding='utf-8', check=True, timeout=180)

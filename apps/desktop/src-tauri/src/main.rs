@@ -26,6 +26,14 @@ fn main() {
         ])
         .setup(move |app| {
             let local_data = app.path().app_local_data_dir().ok();
+            #[cfg(target_os = "linux")]
+            if let Some(path) = &local_data
+                && !path.try_exists()?
+            {
+                // WebKit shares this parent with the private workspace. Prepare it
+                // before Tauri creates it with the desktop session's umask.
+                scopehub_persistence::SqliteWorkspace::prepare_profile_root(path)?;
+            }
             let state = if development_workspace {
                 bridge::state_with_development_workspace(local_data.as_deref())
             } else {

@@ -109,41 +109,6 @@
   "advisory_dispositions": [
     {
       "ecosystem": "crates.io",
-      "name": "glib",
-      "version": "0.18.5",
-      "advisories": [
-        "RUSTSEC-2024-0429",
-        "GHSA-wrw7-89jp-8q8g"
-      ],
-      "expires": "2027-01-12",
-      "task_id": "M5-002",
-      "scope_guard": "absent-from-supported-builds",
-      "reason": "Upstream reports unsound VariantStrIter behavior below 0.20.0; upgrading that GTK family independently is not compatible with the current Tauri graph. Both dependencies occur only in the unsupported GTK desktop graph. Current Windows workspace and all-target portable crates exclude them. Scope is rechecked on every online review; revisit before adding Linux desktop support or by expiry.",
-      "evidence": [
-        "cargo tree --locked --workspace --target all -i glib",
-        "cargo tree --locked --workspace --target x86_64-pc-windows-msvc -i glib",
-        "https://rustsec.org/advisories/RUSTSEC-2024-0429.html"
-      ]
-    },
-    {
-      "ecosystem": "crates.io",
-      "name": "proc-macro-error",
-      "version": "1.0.4",
-      "advisories": [
-        "RUSTSEC-2024-0370"
-      ],
-      "expires": "2027-01-12",
-      "task_id": "M5-002",
-      "scope_guard": "absent-from-supported-builds",
-      "reason": "Upstream reports the macro helper as unmaintained with no patched version. Both dependencies occur only in the unsupported GTK desktop graph. Current Windows workspace and all-target portable crates exclude them. Scope is rechecked on every online review; revisit before adding Linux desktop support or by expiry.",
-      "evidence": [
-        "cargo tree --locked --workspace --target all -i proc-macro-error",
-        "cargo tree --locked --workspace --target x86_64-pc-windows-msvc -i proc-macro-error",
-        "https://rustsec.org/advisories/RUSTSEC-2024-0370.html"
-      ]
-    },
-    {
-      "ecosystem": "crates.io",
       "name": "block-buffer",
       "version": "0.10.4",
       "advisories": [
@@ -171,11 +136,12 @@
       "expires": "2027-01-12",
       "task_id": "M0-019",
       "scope_guard": "absent-from-supported-builds",
-      "reason": "RustSec reports that chrono is unmaintained. Cargo.lock includes this optional dependency of serde_with. Each online review checks its absence from the Windows desktop graph and all targets of the portable crates. Reassess on a graph change or expiry.",
+      "reason": "RustSec reports that chrono is unmaintained. Cargo.lock includes it as an optional serde_with dependency. Each online review checks the Windows desktop, Ubuntu development desktop and all targets of the portable crates. Reassess on a graph change or expiry.",
       "evidence": [
         "cargo tree --locked --workspace --target x86_64-pc-windows-msvc -i chrono",
         "cargo tree --locked --workspace --exclude scopehub-desktop --target all",
-        "https://rustsec.org/advisories/RUSTSEC-2026-0543.html"
+        "https://rustsec.org/advisories/RUSTSEC-2026-0543.html",
+        "cargo tree --locked --package scopehub-desktop --features ubuntu-desktop --target x86_64-unknown-linux-gnu"
       ]
     },
     {

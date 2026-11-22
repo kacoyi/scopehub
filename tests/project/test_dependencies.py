@@ -272,8 +272,11 @@ class DependencyTests(unittest.TestCase):
         success = subprocess.CompletedProcess([], 0, stdout='fixture v1.0.0\n', stderr='')
         with patch.object(review.subprocess, 'run', return_value=success):
             review.validate_advisory_scope(self.root, policy)
-        success.stdout = 'glib v0.18.5 (*)\n'
-        with patch.object(review.subprocess, 'run', return_value=success):
+        def native_graph(command, **kwargs):
+            included = 'ubuntu-desktop' in command and 'x86_64-unknown-linux-gnu' in command
+            return subprocess.CompletedProcess(command, 0, stdout='chrono v0.4.45 (*)\n' if included else '')
+
+        with patch.object(review.subprocess, 'run', side_effect=native_graph):
             with self.assertRaisesRegex(ValueError, 'no longer applies'):
                 review.validate_advisory_scope(self.root, policy)
         with patch.object(review.subprocess, 'run', side_effect=subprocess.CalledProcessError(1, ['cargo'])):
