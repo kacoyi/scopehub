@@ -660,7 +660,7 @@
     {
       "id": "desktop-workspace-transport",
       "status": "implemented",
-      "purpose": "Exercise the built desktop UI with substituted Tauri IPC for default startup, authorized timeframe and undo, and rejection. The portable Rust bridge checks exercise the actual registry and storage.",
+      "purpose": "Exercise the built desktop UI with substituted Tauri IPC for default startup, authorized timeframe and undo, rejection, and a delayed source invoke. Verify source recovery through the actual Rust registry and storage, including a still-pending write and late acknowledgement.",
       "platforms": "all",
       "command": [
         "pnpm",
@@ -676,7 +676,7 @@
     {
       "id": "model-connection-workflow",
       "status": "implemented",
-      "purpose": "Exercise local text settings and explicit offline mock, OpenAI credential entry and ordinary-text disclosure, ordinary turns, bounded selected-chart tool calls, corrected and denied intervals, and pending-reply invalidation through the Rust registry and real Ollama adapter against an owned synthetic HTTP peer. Verify that the browser guard allows local route removal and blocks and reports a different loopback origin. Hold a real published CSV status read while changing the workspace source and distinguish pre-admission rejection, accepted writes, superseding revisions and lost acknowledgements using synthetic profiles.",
+      "purpose": "Exercise local text settings and explicit offline mock, OpenAI credential entry and ordinary-text disclosure, ordinary turns, bounded selected-chart tool calls, corrected and denied intervals, and pending-reply invalidation through the Rust registry and real Ollama adapter against an owned synthetic HTTP peer. Verify that the browser guard allows local route removal and blocks and reports a different loopback origin. Hold a real published CSV status read while changing the workspace source and distinguish pre-admission rejection, accepted writes, superseding revisions, lost acknowledgements and overdue transport responses using synthetic profiles.",
       "platforms": "all",
       "command": [
         "pnpm",

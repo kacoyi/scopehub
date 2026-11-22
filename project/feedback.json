@@ -2782,6 +2782,24 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "published-source-issued-response-stall",
+      "source": "Independent Chromium and Rust writer review of PR 23 at 69997fdf24e14417e62369a6e658ae0939631983.",
+      "severity": "major",
+      "status": "open",
+      "observation": "The real writer accepted one frozen source selection at revision 1. When the browser response was withheld after commit and the dialog was closed, the workspace still showed No data source and Checking workspace source after 17.5 seconds. No recovery action was available. An independent snapshot confirmed the persisted frozen source and releasing the response restored the chart.",
+      "task_ids": [
+        "M4-013"
+      ],
+      "regression_checks": [
+        "ui-build",
+        "model-connection-workflow",
+        "desktop-workspace-transport",
+        "project-state"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

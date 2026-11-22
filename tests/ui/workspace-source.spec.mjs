@@ -87,11 +87,16 @@ async function observeWrites(page, record, onWrite, onSnapshot) {
     if (frame.type === 'workspace_source') {
       const response = await route.fetch({ timeout: 6_000 });
       const body = await response.json();
-      const write = { frame, status: response.status(), body };
+      const delivery = Promise.withResolvers();
+      const write = { frame, status: response.status(), body, delivered: delivery.promise };
       writes.push(write);
       record('foreground-write', write.status, body.error?.code);
-      if (await onWrite?.(write, writes.length) === 'drop') return route.abort('failed');
-      return route.fulfill({ response });
+      try {
+        if (await onWrite?.(write, writes.length) === 'drop') return await route.abort('failed');
+        return await route.fulfill({ response });
+      } finally {
+        delivery.resolve();
+      }
     }
     if (frame.type === 'snapshot' && writes.length > 0 && onSnapshot) return onSnapshot(route);
     return route.continue();
@@ -279,3 +284,81 @@ test('an acknowledged source never replaces a later peer selection during readba
     record('peer-selection-restored');
   });
 });
+
+for (const holdWrite of [true, false]) {
+  test(holdWrite ? 'closing the CSV dialog leaves read-only recovery when a committed response stalls'
+    : 'a stalled snapshot after acknowledgement exposes read-only recovery and fences late state', async ({ browser }, testInfo) => {
+    await withPublishedSource(browser, testInfo, async ({ page, dispatch, dialog, persisted, record, source }) => {
+      const stalled = Promise.withResolvers();
+      const release = Promise.withResolvers();
+      const readbackDelivered = Promise.withResolvers();
+      let readbacks = 0;
+      const writes = await observeWrites(page, record, async write => {
+        expect(write.body).toMatchObject({ ok: true, result: { selection_revision: 1 } });
+        if (!holdWrite) return;
+        record('committed-response-held', write.status);
+        stalled.resolve();
+        await release.promise;
+      }, async route => {
+        if (++readbacks !== 1) return route.continue();
+        if (holdWrite) {
+          record('first-recovery-snapshot-unavailable', 503, 'WORKER_EXITED');
+          return route.fulfill({ status: 503, json: { ok: false, error: { code: 'WORKER_EXITED', retryable: true } } });
+        }
+        const response = await route.fetch({ timeout: 6_000 });
+        expect(await response.json()).toMatchObject(expectedSnapshot({ ...source, status: 'available' }, 1));
+        record('committed-snapshot-held', response.status());
+        stalled.resolve();
+        await release.promise;
+        try {
+          await route.fulfill({ response });
+        } finally {
+          readbackDelivered.resolve();
+        }
+      });
+
+      try {
+        await useSource(dialog).click();
+        await stalled.promise;
+        expect(persisted()).toEqual({ selection_revision: 1, kind: 'frozen', revision_id: source.revision_id });
+        const pending = chart(page).getByText('Checking workspace source…', { exact: true });
+        await expect(pending).toBeAttached();
+        if (holdWrite) {
+          await control(dialog, 'Close').click();
+          await expect(dialog).toBeHidden();
+        }
+
+        const view = holdWrite ? chart(page) : dialog;
+        await expect(alert(view, holdWrite
+          ? 'The source request could not be confirmed. Reload the workspace state before changing the source again.'
+          : 'The source was saved. Reload the workspace state to confirm the current selection.')).toBeVisible({ timeout: 18_000 });
+        await expect(pending).toHaveCount(0);
+        if (!holdWrite) await expect(useSource(dialog)).toBeDisabled();
+        const reload = control(view, 'Reload workspace state');
+        await expect(reload).toBeEnabled();
+        record('stalled-request-recovery-available');
+        expect(writes).toHaveLength(1);
+
+        const peerSource = await commitPeer(dispatch, 1);
+        await reload.click();
+        if (!holdWrite) {
+          await expect(alert(dialog, 'The workspace selection changed after this request was saved.')).toBeVisible();
+          await control(dialog, 'Close').click();
+        }
+        await expect(page.locator('.connection')).toHaveText('Offline sampleSimulated');
+        await expectIndependentSnapshot(dispatch, peerSource, 2);
+
+        release.resolve();
+        await (holdWrite ? writes[0].delivered : readbackDelivered.promise);
+        await expect(dialog).toBeHidden();
+        await expect(page.locator('.connection')).toHaveText('Offline sampleSimulated');
+        expect(readbacks).toBe(2);
+        expect(writes).toHaveLength(1);
+        expect(persisted()).toEqual({ selection_revision: 2, kind: 'sample', revision_id: null });
+        record('late-delivery-fenced');
+      } finally {
+        release.resolve();
+      }
+    });
+  });
+}

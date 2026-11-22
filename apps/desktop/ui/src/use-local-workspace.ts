@@ -29,7 +29,8 @@ export type WorkspaceSourceChoice = { kind: 'none' } | { kind: 'sample'; instrum
 type WorkspaceSource = Exclude<WorkspaceSourceChoice, { kind: 'frozen' }>
   | { kind: 'frozen'; revision_id: string; status: 'available' | 'revoked' | 'unavailable' };
 type SourceRequest = { type: 'workspace_source'; request_id: string; expected_selection_revision: number; source: WorkspaceSourceChoice };
-type AdmissionRead = { type: 'snapshot' } | { type: 'frozen_chart'; request_id: string; revision_id: string };
+type SnapshotRequest = { type: 'snapshot' };
+type AdmissionRead = SnapshotRequest | { type: 'frozen_chart'; request_id: string; revision_id: string };
 type LocalRequest = SourceRequest | AdmissionRead | Command | DecisionNoteReadCommand11 | DecisionNoteSaveCommand11
   | AiTextConnectionCommand11
   | DecisionNoteAppendOutcomeCommand11 | DecisionNoteDeleteCommand11 | DecisionNoteExportBackupCommand11
@@ -44,11 +45,13 @@ type LocalRequest = SourceRequest | AdmissionRead | Command | DecisionNoteReadCo
   | { type: 'frozen_chart_status'; request_id: string; revision_id: string };
 type UndoTarget = Pick<OperationReceipt11, 'operation_id' | 'committed_workspace_revision'>;
 type CommittedRevision = Pick<OperationReceipt11, 'workspace_id' | 'committed_workspace_revision'>;
+type NativeSourceWrite = { pending: boolean };
 type SourceReadback = {
   request: SourceRequest;
   workspace: Workspace;
   committedRevision: number | undefined;
   owner: AbortSignal | undefined;
+  nativeWrite: NativeSourceWrite | undefined;
 };
 type ChartEvidence = { revision_id: string; range: VisibleRange; snapshot_hash?: string } | { unavailable: true };
 type Snapshot = {
@@ -77,6 +80,7 @@ const layoutTarget = { kind: 'layout', object_id: 'workspace-layout' } as const;
 const admissionRetryBudgetMs = 4_000;
 // The development bridge also bounds its in-flight writer command to eight seconds.
 const sourceAdmissionRetryBudgetMs = 8_000;
+const sourceReplyDeadlineMs = 15_000;
 
 function takeLaunchCapability() {
   const { hash, pathname, search } = window.location;
@@ -154,6 +158,41 @@ async function postWorkspace<T>(path: string, body: object, signal: AbortSignal,
 
 export const exchangeWorkspace: <T>(body: LocalRequest, signal: AbortSignal) => Promise<T> = exchange;
 
+async function waitForWorkspaceReply<T>(body: SourceRequest | AdmissionRead, signal: AbortSignal,
+  onAdmissionBusy: () => void, nativeWrite?: NativeSourceWrite): Promise<T> {
+  signal.throwIfAborted();
+  let stopWaiting: (() => void) | undefined;
+  try {
+    return await new Promise<T>((resolve, reject) => {
+      stopWaiting = () => reject(signal.reason);
+      signal.addEventListener('abort', stopWaiting, { once: true });
+      if (nativeWrite) nativeWrite.pending = true;
+      // Fetch can abort its delivery wait. Native invoke can still settle later,
+      // so keep both handlers attached and discard any result after the deadline.
+      void exchange<T>(body, signal, () => {
+        if (!signal.aborted) onAdmissionBusy();
+      }).finally(() => {
+        if (nativeWrite) nativeWrite.pending = false;
+      }).then(resolve, reject);
+    });
+  } finally {
+    if (stopWaiting) signal.removeEventListener('abort', stopWaiting);
+  }
+}
+
+async function exchangeSourceStage<T>(body: SourceRequest | SnapshotRequest, signal: AbortSignal,
+  onAdmissionBusy: () => void, nativeWrite?: NativeSourceWrite): Promise<T> {
+  const deadline = new AbortController();
+  const timer = window.setTimeout(() => {
+    deadline.abort(new DOMException('The workspace reply did not arrive in time.', 'TimeoutError'));
+  }, sourceReplyDeadlineMs);
+  try {
+    return await waitForWorkspaceReply<T>(body, AbortSignal.any([signal, deadline.signal]), onAdmissionBusy, nativeWrite);
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 function validWorkspace(value: Workspace | undefined) {
   return value && typeof value.id === 'string' && Number.isSafeInteger(value.revision)
     && value.revision >= 0 && ['1m', '5m', '1d'].includes(value.timeframe);
@@ -204,7 +243,9 @@ async function readSnapshotAfterWrite(signal: AbortSignal): Promise<Snapshot> {
 }
 
 export function readWorkspaceAfterAdmission<T>(body: AdmissionRead, signal: AbortSignal) {
-  return retryAdmission(onBusy => exchange<T>(body, signal, onBusy), signal);
+  return retryAdmission(onBusy => body.type === 'frozen_chart'
+    ? waitForWorkspaceReply<T>(body, signal, onBusy)
+    : exchange<T>(body, signal, onBusy), signal);
 }
 
 async function readCommittedSnapshot(receipt: CommittedRevision, signal: AbortSignal): Promise<Snapshot> {
@@ -405,7 +446,16 @@ export function useLocalWorkspace() {
     let current: Snapshot;
     let notice: string | undefined;
     try {
-      current = await readSnapshotAfterWrite(signal);
+      let nativeWritePending = false;
+      current = validateSnapshot(await retryAdmission(onBusy => {
+        nativeWritePending = readback.nativeWrite?.pending === true;
+        return exchangeSourceStage<Snapshot>({ type: 'snapshot' }, signal, onBusy);
+      }, signal));
+      // SQLite may have answered before an outstanding invoke reached the writer.
+      // A newer selection fences the old CAS; the original revision does not.
+      if (nativeWritePending && current.selection_revision === readback.request.expected_selection_revision) {
+        throw { code: 'BUSY' };
+      }
       notice = sourceReadbackNotice(current, readback);
     } catch {
       signal.throwIfAborted();
@@ -503,12 +553,14 @@ export function useLocalWorkspace() {
       };
       await runSource(async signal => {
         let committedRevision: number | undefined;
+        const nativeWrite = nativeWorkspace ? { pending: false } : undefined;
         try {
           // Closing the dialog cancels waiting for admission. An issued request
           // still settles so an accepted write can be read back and displayed.
           const retrySignal = cancelAdmission ? AbortSignal.any([signal, cancelAdmission]) : signal;
           const result = await retryAdmission(onBusy =>
-            exchange<{ selection_revision: number }>(request, signal, onBusy), retrySignal, sourceAdmissionRetryBudgetMs);
+            exchangeSourceStage<{ selection_revision: number }>(request, signal, onBusy, nativeWrite),
+          retrySignal, sourceAdmissionRetryBudgetMs);
           if (result?.selection_revision === request.expected_selection_revision + 1) {
             committedRevision = result.selection_revision;
           }
@@ -520,7 +572,7 @@ export function useLocalWorkspace() {
             throw error;
           }
         }
-        sourceReadback.current = { request, workspace: snapshot.workspace, committedRevision, owner: cancelAdmission };
+        sourceReadback.current = { request, workspace: snapshot.workspace, committedRevision, owner: cancelAdmission, nativeWrite };
         await readSource(signal);
       });
     },

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
+import { buildPreview, seedDisplayOnlyChart, withProfile, withWorkspace } from './ai-workflow-fixture.mjs';
 import { control, leaveSample } from './workspace-controls.mjs';
 
 const workspaceId = 'main';
@@ -40,7 +41,8 @@ async function nativeTransport(page, { optedIn, native = true, textModel = false
   await page.exposeBinding('dispatchNativeWorkspace', async (_, command, args) => {
     calls.push({ command, args });
     expect(command).toBe('execute_operation');
-    expect(Object.keys(args).sort()).toEqual(['operation', 'payload']);
+    expect(Object.keys(args).sort()).toEqual(args.operation === 'market.listLocalImportRevisions'
+      ? ['operation', 'payload', 'requestId'] : ['operation', 'payload']);
     return use(args);
   });
   await page.addInitScript(({ optedIn, native, textModel }) => {
@@ -142,6 +144,108 @@ test('opted-in desktop uses a distinct bootstrap and commits and undoes through 
   await expect(undoButton).toBeDisabled();
   expect(calls.map(call => call.args.operation)).toEqual([null, 'chart.setTimeframe', null, 'workspace.undo']);
   expect(network).toEqual([]);
+});
+
+test('an outstanding native source invoke needs revision proof and a late reply stays inert', async ({ page, browser, baseURL }) => {
+  test.setTimeout(180_000);
+  await buildPreview();
+  await withProfile(async profile => {
+    const revision = randomUUID();
+    await seedDisplayOnlyChart(profile, revision, {
+      time_ms: Date.parse('2026-02-03T00:00:00Z'), trading_day: '2026-02-03', open: 73, high: 75, low: 72, close: 74,
+      volume: 13, is_closed: true,
+    });
+    await withWorkspace(browser, profile, async (_preview, dispatch) => {
+      const entered = Promise.withResolvers();
+      const allowWrite = Promise.withResolvers();
+      const committed = Promise.withResolvers();
+      const allowReply = Promise.withResolvers();
+      const calls = await nativeTransport(page, { optedIn: true }, async ({ operation, payload }) => {
+        if (operation === 'market.listLocalImportRevisions') {
+          return { result: { revisions: [], next_after_revision_id: null } };
+        }
+        if (payload.type === 'frozen_chart_status') return { result: { available: true } };
+        expect(operation).toBeNull();
+        if (payload.type === 'workspace_source') {
+          entered.resolve();
+          await allowWrite.promise;
+          const reply = await dispatch(payload);
+          committed.resolve(reply);
+          await allowReply.promise;
+          return reply;
+        }
+        return dispatch(payload);
+      });
+      const network = observeWorkspaceNetwork(page, baseURL);
+      const snapshot = () => dispatch({ type: 'snapshot' });
+      const original = { ok: true, result: { selection_revision: 0, source: null } };
+      const sourceWrites = () => calls.filter(({ args }) => args.payload.type === 'workspace_source');
+      const snapshotReads = () => calls.filter(({ args }) => args.payload.type === 'snapshot').length;
+      const priceChart = page.getByRole('region', { name: 'Price chart' });
+      const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+      const useSource = control(dialog, 'Use as workspace source');
+      const reload = control(dialog, 'Reload workspace state');
+      const alert = dialog.getByRole('alert');
+      try {
+        await page.goto('/');
+        await control(priceChart, 'Open published CSV').click();
+        await dialog.getByLabel('Revision ID').fill(revision);
+        await control(dialog, 'Open frozen chart').click();
+        await expect(useSource).toBeEnabled();
+        expect(await snapshot()).toMatchObject(original);
+        await page.evaluate(() => {
+          const ipc = window.__TAURI_INTERNALS__;
+          const invoke = ipc.invoke;
+          ipc.invoke = async (command, args) => {
+            const reply = await invoke(command, args);
+            if (args.payload?.type === 'workspace_source') window.syntheticSourceReplyDelivered = true;
+            return reply;
+          };
+        });
+        await page.clock.install();
+        await useSource.click();
+        await entered.promise;
+        await page.clock.fastForward(17_500);
+        await expect(reload).toBeEnabled();
+        await expect(useSource).toBeDisabled();
+        await expect(alert).toContainText('Reload the workspace state before changing the source again.');
+        const firstRead = snapshotReads();
+        await reload.click();
+        await expect.poll(snapshotReads).toBe(firstRead + 1);
+        await expect(reload).toBeEnabled();
+        await expect(useSource).toBeDisabled();
+        expect(await snapshot()).toMatchObject(original);
+
+        allowWrite.resolve();
+        expect(await committed.promise).toMatchObject({ ok: true, result: { selection_revision: 1 } });
+        const source = { kind: 'none' };
+        const peer = await dispatch({
+          type: 'workspace_source', request_id: randomUUID(), expected_selection_revision: 1, source,
+        });
+        expect(peer).toMatchObject({ ok: true, result: { selection_revision: 2 } });
+        await reload.click();
+        await expect(useSource).toBeEnabled();
+        await expect(alert).toContainText('Review the current workspace source.');
+        const lastRead = snapshotReads();
+
+        allowReply.resolve();
+        await page.waitForFunction(() => window.syntheticSourceReplyDelivered === true);
+        await page.clock.runFor(100);
+        await expect(dialog).toBeVisible();
+        await expect(alert).toContainText('Review the current workspace source.');
+        expect(snapshotReads()).toBe(lastRead);
+        expect(sourceWrites()).toHaveLength(1);
+        expect(sourceWrites()[0].args.payload).toMatchObject({
+          expected_selection_revision: 0, source: { kind: 'frozen', revision_id: revision },
+        });
+        expect(await snapshot()).toMatchObject({ ok: true, result: { selection_revision: 2, source } });
+        expect(network).toEqual([]);
+      } finally {
+        allowWrite.resolve();
+        allowReply.resolve();
+      }
+    });
+  });
 });
 
 test('opted-in desktop keeps sample timeframe controls separate from durable IPC', async ({ page, baseURL }) => {
