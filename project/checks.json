@@ -769,6 +769,15 @@
       "cadence": "task"
     },
     {
+      "id": "workspace-widget-bindings",
+      "status": "planned",
+      "purpose": "Check widget composition, linked and pinned selection, chart and table agreement over equivalent local and controlled API sources, attributable source changes and layout restoration when a binding becomes unavailable.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
       "id": "desktop-localization",
       "status": "implemented",
       "purpose": "Exercise language negotiation, catalog coverage and the user-facing English and Simplified Chinese desktop interface, including state-preserving changes, restart and untouched user data.",
@@ -825,7 +834,8 @@
         "state-migrations",
         "workspace-layout",
         "workspace-timeframe",
-        "desktop-workspace-transport"
+        "desktop-workspace-transport",
+        "workspace-widget-bindings"
       ]
     },
     {
@@ -942,11 +952,12 @@
       ]
     },
     {
-      "requirement": "Preview, apply, name, restore and revert a single-chart layout. Manual and AI edits use the same panel settings, linked selections and allowed interactions.",
+      "requirement": "Preview, apply, name, restore and revert a single-chart layout. Manual and AI edits use the same panel settings, linked selections and allowed interactions. Compatible widgets can share authorized data and keep their arrangement when the user changes source.",
       "checks": [
         "workspace-layout",
         "operations-workflow",
-        "ai-workflow"
+        "ai-workflow",
+        "workspace-widget-bindings"
       ]
     },
     {

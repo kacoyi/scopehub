@@ -4867,6 +4867,7 @@
         "M4-014",
         "M1-030",
         "M1-031",
+        "M2-012",
         "M1-032"
       ],
       "scope": [
@@ -4889,7 +4890,8 @@
         "Observe CSV folder refresh, a restored custom layout, two-way evidence selection and in-place action results. Identify the exact authorized voice session or record why its real-connection evidence is outstanding.",
         "Exercise the local bridge against the visible Ubuntu chart and review a saved decision. Track actual CLI and desktop client observations under M4-005 on supported hosts, including Windows when required.",
         "Complete all Ubuntu-local scenarios in the native Tauri/WebKitGTK application launched with pnpm desktop:dev. Bind the observed actions and screenshots to that application process and window, the source revision and execution-input digest. Record actual model, audio and external-client observations separately. Use the accepted Ubuntu inputs for the physical Windows trial.",
-        "Observe saved-directory catch-up, a Parquet daily/auction source with a missing session and a cited research method on the integrated Ubuntu workspace. Record native Windows and eligible real service trials separately."
+        "Observe saved-directory catch-up, a Parquet daily/auction source with a missing session and a cited research method on the integrated Ubuntu workspace. Record native Windows and eligible real service trials separately.",
+        "In the native workspace, arrange and save a chart and an inspection widget, switch to a second compatible source, then reopen the layout. Compare the shared controls and the widget composition journey once those actions can be exercised together."
       ],
       "checks": [
         "ubuntu-preview",
@@ -13293,6 +13295,153 @@
       "next_action": null,
       "blocker": null,
       "closure_reason": "Ubuntu and Windows passed the selected checks in run 45000485659. Windows confirmed that the live writer was in the verification Job and that its retained handle signaled before WindowsJob.stop and run_logged returned. The timeout returned 0.266 seconds from the start of the timed wait. DELETE access, partial output, digest and strict deletion all passed. The exit barrier covers verified snapshot members. The original WinError 32 holder remains unknown."
+    },
+    {
+      "id": "M0-057",
+      "title": "Define source-independent widgets for the customizable desktop workspace",
+      "milestone": "M0",
+      "status": "done",
+      "delivery": "current-contract",
+      "depends_on": [
+        "M0-055",
+        "M2-002"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "contracts/references.json",
+        "project/tasks.json",
+        "project/checks.json",
+        "project/delivery.json",
+        "project/development.json"
+      ],
+      "decision_refs": [
+        "0007",
+        "0008",
+        "0016"
+      ],
+      "acceptance": [
+        "Identify OpenBB Workspace as a reference for widget composition and linked parameters within the TradingView Desktop design direction. Specify who owns source access, the data a widget consumes and the arrangement a user saves.",
+        "Assign a chart and table source-switch scenario to planned implementation and integrated desktop review. Describe the existing built-in layout in its verified scope."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-057-dfad6728e4d3de0f.json",
+          "sha256": "69352f5cd2de17a4a9f2b6b0f85517df471e3fa63eba323115e62df4544a8739"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Verified the workspace composition requirements and source-binding scenario at 6ab1f79. M2-012 owns implementation and M1-012 owns the integrated native observation.",
+      "plan": {
+        "outcome": "A contributor can trace the owner’s workspace request to a concrete, source-independent chart and table journey and distinguish it from the two-panel implementation.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/references.json",
+          "project/delivery.json",
+          "project/checks.json",
+          "apps/desktop/ui/src/workspace-layout-view.tsx",
+          "crates/application/src/workspace/layout.rs"
+        ],
+        "hypotheses": [
+          "The current layout operations and grant boundaries can express the product direction. Widget implementation can be specified without choosing a grid library or changing the wire format today."
+        ],
+        "risks": [
+          {
+            "failure": "A documentation reference becomes a service dependency or an existing layout receipt is taken as proof of arbitrary widget bindings.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the requirements and their planning links together. Keep the accepted two-panel task and layout decision intact.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "application",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "engineering-contract-v1.json",
+            "contracts/references.json",
+            "project/tasks.json",
+            "project/delivery.json"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/customization"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/design_reference"
+            }
+          ],
+          "non_goals": [
+            "Runtime widgets, UI styling, data service integration and executable panel extensions."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "The single main chart, existing named layouts, source grants and separate desktop experience review."
+          ],
+          "change": [
+            "Describe how built-in widgets are composed and how compatible sources feed different views."
+          ],
+          "data_plan": "Documentation and planning only. Widget implementation will use synthetic local and API fixtures for development.",
+          "cleanup": "Keep source-specific reads in their adapters and reserve implementation evidence for the new widget task."
+        }
+      }
+    },
+    {
+      "id": "M2-012",
+      "title": "Compose built-in widgets over interchangeable authorized data sources",
+      "milestone": "M2",
+      "status": "planned",
+      "delivery": "current-contract",
+      "depends_on": [
+        "M0-057",
+        "M2-002",
+        "M1-008"
+      ],
+      "scope": [
+        "apps/desktop",
+        "crates/application",
+        "crates/persistence",
+        "contracts/schemas",
+        "tests"
+      ],
+      "decision_refs": [
+        "0008",
+        "0015",
+        "0016"
+      ],
+      "acceptance": [
+        "In a single-chart workspace, add an inspection table, arrange and resize it, remove it and undo the change. Save and reopen the named layout. Linked selections follow the chosen instrument or range and an independent comparison retains its selection.",
+        "Render the same authorized bars in the chart and table, first from a published local fixture and then from a deterministic fixture representing a user-configured API. Check values against independent expected bars, with distinct source and revision or as-of labels. Changing the source preserves placement, and neither renderer reads vendor fields or credentials.",
+        "On incompatible data, disconnection or revoked access, retain the arrangement and surface the affected state. Enforce current grants on reopen, with no implicit replacement feed or stale values presented as current. Removing a widget leaves its source available to other views.",
+        "Keep existing two-panel layouts readable and the default layout usable. Exercise preview, apply and undo through the shared workspace operations. Version and test new wire or stored layouts, including interrupted changes, before adopting them."
+      ],
+      "checks": [
+        "workspace-widget-bindings",
+        "workspace-layout",
+        "operations-workflow",
+        "state-migrations",
+        "architecture"
+      ],
+      "evidence": [],
+      "next_action": "Start with the built-in inspection table and main chart. Specify the minimum bar fields and compatible source references against the existing layout definition, then test a local fixture and a controlled API adapter with equivalent bars.",
+      "blocker": null,
+      "closure_reason": null
     },
     {
       "id": "M1-032",
