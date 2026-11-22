@@ -11,6 +11,7 @@ portable_test_lib = true
 
 [features]
 portable-test-bridge = []
+ubuntu-desktop = ["dep:rfd", "dep:tauri", "dep:tauri-build"]
 
 [[example]]
 name = "local_import_bridge"
@@ -33,6 +34,13 @@ tauri = { version = "2.12.3", default-features = false, features = ["wry", "comp
 
 [target.'cfg(windows)'.build-dependencies]
 tauri-build = { version = "2.7.2", features = [] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+rfd = { version = "=0.17.2", optional = true, default-features = false, features = ["gtk3"] }
+tauri = { version = "2.12.3", optional = true, default-features = false, features = ["wry", "compression"] }
+
+[target.'cfg(target_os = "linux")'.build-dependencies]
+tauri-build = { version = "2.7.2", optional = true , features = [] }
 
 [lints]
 workspace = true

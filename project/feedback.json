@@ -3104,6 +3104,21 @@
         "prevention": "The fresh-profile scenario requires a directly supplied directory and a controlled third-party API with no first-party service. The requirements bindings were checked under M0-051. Its product gates await implementation."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "native-preview-desktop-design-review",
+      "source": "Owner feedback after viewing the native ScopeHub desktop preview on Ubuntu on 2026-11-22.",
+      "observation": "The owner noticed a different color palette, a TradingView mark at the lower left of the chart and differences in the arrangement of elements shared with TradingView Desktop. The owner reserved judgment on the unfinished interface. Most of the visual and interaction experience should stay familiar across shared workflows. ScopeHub has its own data and AI workflows, with different controls and panels where their purpose calls for them.",
+      "severity": "minor",
+      "status": "deferred",
+      "task_ids": [
+        "M1-012"
+      ],
+      "regression_checks": [
+        "ubuntu-workspace-observation"
+      ],
+      "resolution": null,
+      "deferral_reason": "The owner requested a comparison after implementation has advanced enough to try a representative workflow. A suitable point is when the user can move from a chart into data settings or an AI panel and back. Compare shared layout, color and interaction in matching desktop conditions, review the chart mark alongside the library attribution requirements, then refine feature-specific presentation."
     }
   ]
 }

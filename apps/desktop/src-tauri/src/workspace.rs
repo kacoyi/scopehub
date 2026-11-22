@@ -26,7 +26,7 @@ use scopehub_domain::protocol::{
 };
 use scopehub_persistence::SqliteWorkspace;
 use scopehub_platform::local_folder::FrozenFile;
-#[cfg(any(windows, test))]
+#[cfg(any(scopehub_desktop_host, test))]
 use scopehub_platform::model_credentials::CredentialLifetime;
 use scopehub_platform::model_credentials::{CredentialError, OpenAiCredentials};
 use serde_json::{Value, json};
@@ -312,7 +312,7 @@ impl WorkspaceBridge {
         Arc::clone(&self.openai_credentials)
     }
 
-    #[cfg(any(windows, test))]
+    #[cfg(any(scopehub_desktop_host, test))]
     pub(super) async fn configure_openai_credential(
         &self,
         action: String,

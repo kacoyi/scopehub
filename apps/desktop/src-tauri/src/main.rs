@@ -1,11 +1,11 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
-#[cfg(not(windows))]
+#[cfg(not(scopehub_desktop_host))]
 compile_error!(
-    "ScopeHub v1 desktop builds require native Windows x64; use the local protocol harness on other hosts."
+    "Use pnpm desktop:dev on Ubuntu or native Windows x64 to run the ScopeHub desktop host."
 );
 
-#[cfg(windows)]
+#[cfg(scopehub_desktop_host)]
 fn main() {
     use scopehub_desktop::bridge;
     use std::ffi::OsStr;
@@ -26,6 +26,14 @@ fn main() {
         ])
         .setup(move |app| {
             let local_data = app.path().app_local_data_dir().ok();
+            #[cfg(target_os = "linux")]
+            if let Some(path) = &local_data
+                && !path.try_exists()?
+            {
+                // WebKit shares this parent with the private workspace. Prepare it
+                // before Tauri creates it with the desktop session's umask.
+                scopehub_persistence::SqliteWorkspace::prepare_profile_root(path)?;
+            }
             let state = if development_workspace {
                 bridge::state_with_development_workspace(local_data.as_deref())
             } else {

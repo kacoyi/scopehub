@@ -13025,7 +13025,7 @@
       "id": "M1-031",
       "title": "Run the shared workspace in a native Ubuntu desktop window",
       "milestone": "M1",
-      "status": "planned",
+      "status": "active",
       "delivery": "current-contract",
       "depends_on": [
         "M0-052",
@@ -13039,7 +13039,12 @@
         "package.json",
         "scripts/verification_evidence.py",
         "project/checks.json",
-        "tests"
+        "tests",
+        "Cargo.lock",
+        "project/dependencies.json",
+        "scripts/dependencies.py",
+        "scripts/rust_workspace.py",
+        "project/dependency-inventory.json"
       ],
       "decision_refs": [
         "0001",
@@ -13056,12 +13061,96 @@
       "checks": [
         "ubuntu-desktop-host",
         "ubuntu-preview",
-        "windows-native-build"
+        "windows-native-build",
+        "project-state",
+        "python-contracts-workers",
+        "architecture",
+        "dependency-review"
       ],
       "evidence": [],
-      "next_action": "Enable the Tauri development entry and required platform dependencies on Ubuntu. Prove the first synthetic chart and native picker in the actual window, then bind retained observations to that host.",
+      "next_action": "Fresh-profile launch, explicit opt-in, 1m synthetic candles, volume and three watchlist symbols were observed in the Tauri WebKitGTK window. Resolve the glib and proc-macro-error advisories now present in the Ubuntu development graph, then verify the native picker, worker cleanup, reopen and host-bound field evidence.",
       "blocker": null,
-      "closure_reason": null
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A developer can open the shared ScopeHub workspace on the Ubuntu desktop, select the synthetic chart and exercise the native directory picker in the same window.",
+        "change_types": [
+          "packaging",
+          "dependencies",
+          "tooling"
+        ],
+        "context": [
+          "apps/desktop/src-tauri",
+          "project/dependencies.json",
+          "scripts/verification_evidence.py",
+          "contracts/decisions/0024-native-ubuntu-development.json"
+        ],
+        "hypotheses": [
+          "The existing Rust operation bridge and React workspace can run on the WebKitGTK backend with a platform-specific Cargo feature."
+        ],
+        "risks": [
+          {
+            "failure": "A browser preview or a blank webview is counted as an observed desktop journey.",
+            "checks": [
+              "ubuntu-desktop-host",
+              "ubuntu-preview"
+            ]
+          },
+          {
+            "failure": "Native Linux dependencies leak into portable checks or regress the Windows desktop entry.",
+            "checks": [
+              "architecture",
+              "dependency-review",
+              "windows-native-build"
+            ]
+          },
+          {
+            "failure": "A native file grant survives window shutdown or the worker remains alive.",
+            "checks": [
+              "ubuntu-desktop-host"
+            ]
+          }
+        ],
+        "rollback": "Revert the native Linux entry and its build configuration together. Preserve original evidence and the existing local workspace format.",
+        "implementation": {
+          "modules": [
+            "desktop",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "apps/desktop/src-tauri/src/main.rs",
+            "apps/desktop/src-tauri/src/bridge.rs",
+            "package.json",
+            "scripts/verification_evidence.py"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/product/platform"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/iteration_policy"
+            }
+          ],
+          "non_goals": [
+            "A Linux release package, new data adapters and a second frontend."
+          ],
+          "open_questions": [
+            "Which native observation fields reliably distinguish a Tauri window from a browser preview?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing Windows build, portable bridge tests, shared UI and Rust operation permissions."
+          ],
+          "change": [
+            "Enable the source desktop command on graphical Ubuntu and qualify its observations."
+          ],
+          "data_plan": "Use an isolated local profile and explicit synthetic fixtures for development observation. Keep the existing persistence and permission lifetimes.",
+          "cleanup": "Retain the Vite browser test path under its existing scope. Stop task-owned workers and release session grants when the native host exits."
+        }
+      }
     }
   ]
 }
