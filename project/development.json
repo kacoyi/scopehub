@@ -46,7 +46,7 @@
       "Test boundary, failure, cancellation and recovery behavior proportional to risk. Builds and schema validation establish only their own scope.",
       "Keep expected values independent of implementation; do not refresh golden outputs merely to pass. Changed requirements need explicit rationale and revised relevant assertions.",
       "Architecture checks enforce declared imports and dependencies, not complete design quality; inspect the actual diff and behavior.",
-      "Use current-contract task dependencies to schedule work. Complete physical Windows experience after Ubuntu-local acceptance; external-session and packaged-release gates require independent evidence."
+      "Use current-contract task dependencies to schedule work. Complete physical Windows experience after integrated Ubuntu Tauri desktop acceptance in M1-012. External-session and packaged-release gates require independent evidence."
     ],
     "evolution": [
       "For a refactor, replacement, migration or requirement reset, identify preserved and intentionally changed behavior, affected callers, data handling and cleanup before activation.",
@@ -156,7 +156,7 @@
         "apps/desktop/src-tauri",
         "apps/desktop/ui/ubuntu-workspace.mjs"
       ],
-      "responsibility": "Windows composition root, private Ubuntu workspace launcher transport and allowlisted UI commands.",
+      "responsibility": "Tauri application assembly and allowlisted native commands. The current native host targets Windows. M1-031 adds the native Ubuntu host. The Ubuntu browser preview uses a separate development transport.",
       "public_entries": [
         "apps/desktop/src-tauri/src/bridge.rs",
         "apps/desktop/src-tauri/src/main.rs"
@@ -179,7 +179,8 @@
       ],
       "checks": [
         "architecture",
-        "windows-native-build"
+        "windows-native-build",
+        "ubuntu-desktop-host"
       ]
     },
     {
