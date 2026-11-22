@@ -2964,7 +2964,7 @@
       "id": "verification-duration-critical-path",
       "source": "Owner request and independently measured normal GitHub verification runs on 2026-11-21.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "A full Windows run spent roughly 5 minutes each in Python and Rust tests plus 4 minutes building the desktop. Earlier full reports showed repeated overruns of the existing 15-minute change objective.",
       "task_ids": [
         "M0-046"
@@ -2973,14 +2973,18 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Independent checks ran serially and the narrow operations build repeated work.",
+        "correction": "Two repeated local schedule comparisons retained commands and named outcomes. Hosted full verification retained gates and improved critical elapsed from 2041 to 1617 seconds. See contracts/reviews/2026-11-22-verification-timing.json for remaining Windows overhead and cache differences.",
+        "prevention": "Regression tests cover overlapping verification, named operations and failure handling."
+      },
       "deferral_reason": null
     },
     {
       "id": "verification-durations-lack-comparable-history",
       "source": "Owner request and independently measured normal GitHub verification runs on 2026-11-21.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "Project checkpoint shows the five slowest checks from one local report, but the feedback loop lacks a comparable trend or actionable detection when verification grows.",
       "task_ids": [
         "M0-047"
@@ -2989,7 +2993,11 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Single-run timing lacked comparable coverage, setup and overhead history.",
+        "correction": "The bounded weekly review and offline comparison were exercised against retained ordinary PR and main observations. See contracts/reviews/2026-11-22-verification-timing.json for the budget signals, same-coverage boundary and next review.",
+        "prevention": "The read-only weekly workflow separates absolute objective breaches from same-coverage regressions and reports insufficient history."
+      },
       "deferral_reason": null
     },
     {

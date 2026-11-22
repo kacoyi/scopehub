@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-046",
+  "focus_task_id": "M0-048",
   "tasks": [
     {
       "id": "M0-001",
@@ -11857,7 +11857,7 @@
       "id": "M0-046",
       "title": "Reduce full verification time while retaining every required check",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [],
       "scope": [
         "scripts",
@@ -11888,10 +11888,19 @@
         "workspace-timeframe",
         "dependency-review"
       ],
-      "evidence": [],
-      "next_action": "Record platform-specific full workflow timing and identify verified expensive or duplicate work at the current source.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-046-374665c7ffe281d0.json",
+          "sha256": "d4e995e49a61aa70047a29ca52e57b373b9f51ffa24d72ba30ab668ef4eb4219"
+        },
+        {
+          "path": "project/evidence/M0-046-7a6c951ca7668d8a.json",
+          "sha256": "0018b69e1ac76f7e6b435d5053d57c0bfaafaa7aba24ba4a24201276116a4d7e"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Two repeated local schedule comparisons retained commands and named outcomes. Hosted full verification retained gates and improved critical elapsed from 2041 to 1617 seconds. See contracts/reviews/2026-11-22-verification-timing.json for remaining Windows overhead and cache differences.",
       "plan": {
         "outcome": "The same required Linux and Windows checks execute faster than a measured equal-coverage control, with unchanged pass, failure, timeout and evidence semantics.",
         "change_types": [
@@ -11974,7 +11983,7 @@
       "id": "M0-047",
       "title": "Measure verification speed continuously and track regressions",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [],
       "scope": [
         "scripts",
@@ -12001,10 +12010,19 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Keep queue, runner and harness elapsed time distinct. Identify slow checks and preserve coverage and profile identity for cold or warm observations when available.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-047-374665c7ffe281d0.json",
+          "sha256": "03dedaa0d7dc1a5ce74b8e8fe45e5c41b5d9480f9c1714c9cbb125c33d7aa3aa"
+        },
+        {
+          "path": "project/evidence/M0-047-7a6c951ca7668d8a.json",
+          "sha256": "e0a7e8177bd6b06dcf0f878ea22bd69b8ff407be96a403e5b6a692d539018736"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The bounded weekly review and offline comparison were exercised against retained ordinary PR and main observations. See contracts/reviews/2026-11-22-verification-timing.json for the budget signals, same-coverage boundary and next review.",
       "plan": {
         "outcome": "Each normal verification provides credible per-platform timing. Recurring review identifies persistent slowdown or missing comparable data and assigns corrective work.",
         "change_types": [
