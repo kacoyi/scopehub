@@ -43,52 +43,48 @@ instrument("apps/desktop/src-tauri/src/bridge_tests.rs", [
         })"""),
 ])
 
-build = subprocess.run(["cargo", "test", "--locked", "-p", "scopehub-desktop", "--lib",
-                        "--no-run", "--message-format=json"], stdout=subprocess.PIPE, check=True)
-binary, = [msg["executable"] for line in build.stdout.splitlines() if (msg := json.loads(line)).get("executable")
-           and msg["profile"]["test"] and msg["target"]["src_path"].replace("\\", "/").endswith("/src/lib.rs")
-           and "scopehub-desktop" in msg["package_id"]]
+import threading
+import psutil
+import check
 
-results = {"cpu_count": os.cpu_count(), "head": os.environ["GITHUB_SHA"], "variants": []}
-python_log = out / "python.log"
+subprocess.run(["cargo", "fmt", "--all"], check=True)
 
-
-def desktop(label, width=None, python=None):
-    clock = time.monotonic()
-    row = {"label": label, "started_epoch": time.time(), "width": width,
-           "python_active": python is not None and python.poll() is None}
-    if row["python_active"]:
-        lines = python_log.read_bytes().splitlines()
-        row["python_phase"] = lines[-1].decode(errors="replace")[:250] if lines else ""
-    with (out / (label + ".log")).open("wb") as stream:
-        args = [binary, "--nocapture"]
-        if width:
-            args.append(f"--test-threads={width}")
-        row["rc"] = subprocess.run(args, stdout=stream, stderr=subprocess.STDOUT, timeout=300).returncode
-    row["seconds"] = round(time.monotonic() - clock, 3)
-    results["variants"].append(row)
-    (out / "summary.json").write_text(json.dumps(results, indent=2))
-    print(row, flush=True)
+# Run the original build window through desktop tests on a fresh hosted VM.
+# Only synthetic, process-family aggregate samples and the active Python test are recorded.
+out = out.resolve()
+env = dict(os.environ, PYTHONPATH=os.pathsep.join(map(str, [Path.cwd(), Path.cwd() / "python"])),
+           SCOPEHUB_PYTHON=sys.executable, SCOPEHUB_RUN_DIR=str(out), PYTHONUNBUFFERED="1",
+           RUST_TEST_NOCAPTURE="1")
+catalog = json.loads(Path("project/checks.json").read_text())["checks"]
+first = next(i for i, item in enumerate(catalog) if item["id"] == "python-contracts-workers")
+last = next(i for i, item in enumerate(catalog) if item["id"] == "rust-contracts-workers")
+window = catalog[first:last+1]
+done = threading.Event()
 
 
-desktop("alone")
-python_env = dict(os.environ, PYTHONPATH=os.pathsep.join(map(str, [Path.cwd(), Path.cwd() / "python"])),
-                  SCOPEHUB_PYTHON=sys.executable, PYTHONUNBUFFERED="1",
-                  SCOPEHUB_RUN_DIR=str(out.resolve()))
-with python_log.open("wb") as log:
-    start = time.monotonic()
-    python = subprocess.Popen([sys.executable, "-u", "-m", "unittest", "discover", "-s", "tests",
-                               "-t", ".", "-p", "test_*.py", "-v", "--durations", "10"],
-                              stdout=log, stderr=subprocess.STDOUT, env=python_env)
-    try:
-        desktop("overlap-early", python=python)
-        time.sleep(max(0, 160 - (time.monotonic() - start)))
-        desktop("overlap-matched", python=python)
-        desktop("overlap-two", width=2, python=python)
-        desktop("overlap-late", python=python)
-        results["python_rc"] = python.wait(timeout=1000)
-    finally:
-        if python.poll() is None:
-            subprocess.run(["taskkill", "/T", "/F", "/PID", str(python.pid)])
-            python.wait()
-desktop("alone-after")
+def sample():
+    with (out / "samples.jsonl").open("w") as stream:
+        while not done.wait(1):
+            names = [p.info["name"].lower() for p in psutil.process_iter(["name"]) if p.info["name"]]
+            phase = ""
+            log = out / "python-contracts-workers.log"
+            if log.exists():
+                with log.open("rb") as f:
+                    f.seek(max(0, f.seek(0,2) - 400))
+                    lines = f.read().decode(errors="replace").splitlines()
+                    phase = lines[-1][-300:] if lines else ""
+            stream.write(json.dumps({"time":time.time(),"cpu":psutil.cpu_percent(),
+                "available_mb":psutil.virtual_memory().available//1048576,"python_phase":phase,
+                "powershell":names.count("powershell.exe"),"rustc":names.count("rustc.exe"),
+                "python":names.count("python.exe")})+"\n")
+            stream.flush()
+
+
+monitor = threading.Thread(target=sample, daemon=True)
+monitor.start()
+try:
+    results = check.run_overlapped(window, env, out)
+finally:
+    done.set()
+    monitor.join()
+(out / "summary.json").write_text(json.dumps(results, indent=2))
