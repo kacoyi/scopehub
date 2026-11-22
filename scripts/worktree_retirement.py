@@ -23,7 +23,7 @@ else:
 
 INTEGRATION_REF = 'refs/remotes/origin/main'
 FULL_COMMIT = re.compile(r'(?:[0-9a-f]{40}|[0-9a-f]{64})\Z')
-DURABLE_REF = re.compile(r'refs/(?:heads|tags|remotes)/.+')
+DURABLE_REF = re.compile(r'refs/(?:heads|tags|remotes|scopehub/recovery)/.+')
 GIT_OPERATIONS = (
     'index.lock', 'MERGE_HEAD', 'CHERRY_PICK_HEAD', 'REVERT_HEAD', 'BISECT_START',
     'MERGE_MODE', 'MERGE_MSG', 'SQUASH_MSG', 'REBASE_HEAD', 'BISECT_LOG',
@@ -863,7 +863,7 @@ def retirement_report(cwd, common, registered, *, archive_root=None, disposition
             elif (record := disposition_by_head.get(entry.head)):
                 ref = record['recoverable_ref']
                 tip = commit_at(cwd, ref)
-                if (ancestor(cwd, entry.head, tip) and
+                if (shared_refs is not None and ref in shared_refs and ancestor(cwd, entry.head, tip) and
                         (ancestor(cwd, disposition_commit, tip) or ancestor(cwd, disposition_commit, integrated))):
                     row['integration'] = {'kind': 'disposition', 'source': dispositions, 'retained_tip': tip, **record}
                     row['recovery_ref'] = ref

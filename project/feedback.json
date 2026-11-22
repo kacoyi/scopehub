@@ -2612,6 +2612,22 @@
         "prevention": "The real frozen-chart regression retains its eight-second observation, forces a true first-read HTTP 429 and validates persistent remove and undo counts, request identities and the recovered workspace. Local targeted negative checks also cover non-retryable BUSY, terminal cancellation, wrong workspace, lagging revision and teardown during backoff for both buttons. The selected market-worker checks and both hosted jobs in 44913291282 passed."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "merged-branches-and-stacked-pull-requests-outlive-delivery",
+      "source": "Owner review and live GitHub branch and PR inventory on 2026-11-21.",
+      "severity": "major",
+      "status": "open",
+      "observation": "At main f7624a93 GitHub had 35 branch heads. Twenty-three non-default heads were reachable from main, and seven stacked pull requests remained open with their full heads already integrated. Six other backup heads required independent preservation and comparison.",
+      "task_ids": [
+        "M0-039"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

@@ -1,0 +1,281 @@
+{
+  "version": 1,
+  "recorded_on": "2026-11-21",
+  "repository": "kacoyi/scopehub",
+  "source": "Owner request and direct GitHub, Git and independent archive observations.",
+  "baseline": {
+    "at": "2026-11-22T01:25:35.858118+00:00",
+    "main": "f7624a93ff976d0d01139500ab665dd0a65eb705",
+    "remote_heads": 35,
+    "open_pull_requests": 12
+  },
+  "after_initial_cleanup": {
+    "at": "2026-11-22T01:29:19.652644+00:00",
+    "remote_heads": 6,
+    "open_pull_requests": [
+      2,
+      3,
+      7,
+      23,
+      26
+    ],
+    "delete_branch_on_merge": true,
+    "main_protection": "Required Linux and Windows jobs, strict base freshness, enforced administrators and resolved conversations remained enabled."
+  },
+  "retired_integrated": [
+    {
+      "branch": "codex/continuous-delivery",
+      "head": "46c7c7643463915d0d3c84feb8a23f9146cc6578",
+      "containing_main_pr": 1
+    },
+    {
+      "branch": "codex/futures-tick-assessment",
+      "head": "4753c0da53f1fad132e8fc09ef76f96f7a09ab93",
+      "containing_main_pr": 5
+    },
+    {
+      "branch": "codex/herdr-decision-notes",
+      "head": "60713291b68e58090d46775e193a3d54265ed0a4",
+      "containing_main_pr": 21
+    },
+    {
+      "branch": "codex/herdr-delegated-approvals",
+      "head": "70c16c6cd005db70c42e08065cf5afe8ff33becb",
+      "containing_main_pr": 16
+    },
+    {
+      "branch": "codex/herdr-durable-workspace",
+      "head": "cf6de0199d775a455bba5a807390c82490083637",
+      "containing_main_pr": 10
+    },
+    {
+      "branch": "codex/herdr-indicator-integration",
+      "head": "2906fd7fb09134e468eb1937a15d721c4b58a490",
+      "containing_main_pr": 22
+    },
+    {
+      "branch": "codex/herdr-local-folder",
+      "head": "645012dc9776fa14efa59f3715d01ffe9a8ab3a9",
+      "containing_main_pr": 21
+    },
+    {
+      "branch": "codex/herdr-local-publication",
+      "head": "1cd40894ea90125a3f465b0aa7f55620df51bea4",
+      "containing_main_pr": 21
+    },
+    {
+      "branch": "codex/herdr-market-recovery",
+      "head": "2f4b88a4b53fbe3d93debd11bf479fb573c8e341",
+      "containing_main_pr": 9
+    },
+    {
+      "branch": "codex/herdr-market-selection-transport",
+      "head": "50aa340a962f10e483fff654af13b9b049ef99b7",
+      "containing_main_pr": 20
+    },
+    {
+      "branch": "codex/herdr-market-workflow",
+      "head": "52e27e36dc4018579a8e618013d11921c0193fc8",
+      "containing_main_pr": 8
+    },
+    {
+      "branch": "codex/herdr-private-workspace",
+      "head": "ca5099dadfd73a65eca152c647d839bc00ff305b",
+      "containing_main_pr": 21
+    },
+    {
+      "branch": "codex/herdr-product-integration",
+      "head": "7a20664e067ea16eff910432fbd3191854c395f6",
+      "containing_main_pr": 21
+    },
+    {
+      "branch": "codex/herdr-reviewed-folder",
+      "head": "3a423ec6ed7a48c05ad2e87f3dc85a297ccd3ab7",
+      "containing_main_pr": 21
+    },
+    {
+      "branch": "codex/herdr-reviewed-import",
+      "head": "a15b7c599324c905ff161effd081d335558d2296",
+      "containing_main_pr": 21
+    },
+    {
+      "branch": "codex/herdr-workspace-replay",
+      "head": "1e761786bb4f72491f7a235495ca284a5fed05e7",
+      "containing_main_pr": 21
+    },
+    {
+      "branch": "codex/indicator-removal-read-recovery",
+      "head": "8c84edccb7ba4269059b850297bd632ba2a486d0",
+      "containing_main_pr": 29
+    },
+    {
+      "branch": "codex/m1-market-fixtures",
+      "head": "8d51d0453672413f218143da8318ca59ae0e1142",
+      "containing_main_pr": 4
+    },
+    {
+      "branch": "codex/managed-worktree-layout",
+      "head": "2b61b437ca990c654ec2561e2d57300dd10eb748",
+      "containing_main_pr": 25
+    },
+    {
+      "branch": "codex/preview-fixture-disconnect",
+      "head": "2bf0a3a8866d1b28c80602de5010090578c4cc6d",
+      "containing_main_pr": 28
+    },
+    {
+      "branch": "codex/primary-checkout-relocation-review",
+      "head": "2ecc5f9e7cf9250188895a4c37c1ba2a6ff7d952",
+      "containing_main_pr": 28
+    },
+    {
+      "branch": "codex/repository-storage-maintenance",
+      "head": "740bc3a74b69e1dc79ecba3c7348d006d1e40912",
+      "containing_main_pr": 24
+    },
+    {
+      "branch": "codex/worktree-evidence-lifecycle",
+      "head": "f531480ae1b900a6389b765f11c3cc0fb7ca6408",
+      "containing_main_pr": 27
+    }
+  ],
+  "closed_superseded_prs": [
+    {
+      "number": 19,
+      "sha": "ca5099dadfd73a65eca152c647d839bc00ff305b",
+      "incorporated_by": 21,
+      "closed": "2026-11-22T01:28:42Z"
+    },
+    {
+      "number": 18,
+      "sha": "3a423ec6ed7a48c05ad2e87f3dc85a297ccd3ab7",
+      "incorporated_by": 21,
+      "closed": "2026-11-22T01:28:45Z"
+    },
+    {
+      "number": 17,
+      "sha": "1e761786bb4f72491f7a235495ca284a5fed05e7",
+      "incorporated_by": 21,
+      "closed": "2026-11-22T01:28:48Z"
+    },
+    {
+      "number": 15,
+      "sha": "1cd40894ea90125a3f465b0aa7f55620df51bea4",
+      "incorporated_by": 21,
+      "closed": "2026-11-22T01:28:51Z"
+    },
+    {
+      "number": 13,
+      "sha": "a15b7c599324c905ff161effd081d335558d2296",
+      "incorporated_by": 21,
+      "closed": "2026-11-22T01:28:54Z"
+    },
+    {
+      "number": 12,
+      "sha": "60713291b68e58090d46775e193a3d54265ed0a4",
+      "incorporated_by": 21,
+      "closed": "2026-11-22T01:28:58Z"
+    },
+    {
+      "number": 11,
+      "sha": "645012dc9776fa14efa59f3715d01ffe9a8ab3a9",
+      "incorporated_by": 21,
+      "closed": "2026-11-22T01:29:01Z"
+    }
+  ],
+  "retired_backups": [
+    {
+      "branch": "backup/pre-layout-20261121/candidate-receipts",
+      "head": "3229b95075f42d2f6c7f63b1dd60d54ef5e9d517",
+      "reason": "Same patch in bd2d25f on main."
+    },
+    {
+      "branch": "backup/pre-layout-20261121/folder-refresh",
+      "head": "4e3ee1f98309f3fb7badf42fd3003108f57fbce9",
+      "reason": "Same patch in 5ee07fd on main."
+    },
+    {
+      "branch": "backup/pre-layout-20261121/integration-policy",
+      "head": "1c42a48ed74a92b780daee735c506f687bdaf32a",
+      "reason": "Same patch in 67eb783 on main."
+    },
+    {
+      "branch": "backup/pre-layout-20261121/private-records",
+      "head": "3b92a6e4ef411412452a099a7bce0f30ba329cc5",
+      "reason": "Same patches in 3fbe1cc and 449e9d1 on main."
+    },
+    {
+      "branch": "backup/pre-layout-20261121/source-refresh-windows",
+      "head": "150d62d349e08b569fc9e085d54a7481faaf42bf",
+      "reason": "6fe62e0 on main implements the change, with renamed ADR 0014. Native field observation on main names the original source commit."
+    },
+    {
+      "branch": "backup/pre-layout-20261121/verified-candidate",
+      "head": "8363019af3f34dbe07ec76de85af7d9ed5e27da2",
+      "reason": "The two original M1-018 hosted receipts were recovered from run 44515807770. The original local receipt and accepted task definition were verified."
+    }
+  ],
+  "recovery": {
+    "remote_heads_bundle_sha256": "1681f445e1e01f1d711cd72d1e1110231707aba9472db35d0d43ccf4f27213c4",
+    "remote_heads": "All original GitHub heads restored by exact object ID into a new mirror with a complete object check. The private archive retains github-initial/all-before-cleanup.bundle and its verification.json under M0-039. Recover refs/remotes/origin/<name> from the bundle. Restore the verified head to GitHub with an empty expected-value lease only when its name is free.",
+    "local_refs_bundle_sha256": "92739b3b26823852af5e3fb8a6fec6ff2a391cb1a10c54159c6097b110c66647",
+    "local_refs": "The local-recovery.bundle in the same private archive preserves the individual shared recovery refs including a worktree-private reflog commit and the pre-existing stash. Twelve refs were restored to a fresh bare repository and checked with full fsck.",
+    "original_hosted_receipts_run": 44515807770
+  },
+  "dispositions": [
+    {
+      "head": "8363019af3f34dbe07ec76de85af7d9ed5e27da2",
+      "disposition": "superseded",
+      "reason": "The two original M1-018 hosted receipts were recovered from run 44515807770. The original local receipt and accepted task definition were verified.",
+      "recoverable_ref": "refs/scopehub/recovery/m0-039/local/ci-evidence"
+    },
+    {
+      "head": "1c42a48ed74a92b780daee735c506f687bdaf32a",
+      "disposition": "superseded",
+      "reason": "Main commit 67eb783 contains the equivalent standing authorization patch.",
+      "recoverable_ref": "refs/scopehub/recovery/m0-039/local/integration-policy"
+    },
+    {
+      "head": "303dbf35a07625f3afc9fa4243abb9059c0971e5",
+      "disposition": "superseded",
+      "reason": "The reviewed replacement was integrated through PR 28. Original development receipts with private machine paths are recoverable on the independent archive. The main task retains the published receipts.",
+      "recoverable_ref": "refs/scopehub/recovery/m0-039/local/primary-relocation"
+    },
+    {
+      "head": "3b92a6e4ef411412452a099a7bce0f30ba329cc5",
+      "disposition": "superseded",
+      "reason": "Main commits 3fbe1cc and 449e9d1 carry the two corresponding patches.",
+      "recoverable_ref": "refs/scopehub/recovery/m0-039/local/private-records"
+    },
+    {
+      "head": "150d62d349e08b569fc9e085d54a7481faaf42bf",
+      "disposition": "superseded",
+      "reason": "The implementation, native tests and failure recovery were integrated in 6fe62e0. The accepted main decision is ADR 0014.",
+      "recoverable_ref": "refs/scopehub/recovery/m0-039/local/source-refresh-windows"
+    }
+  ],
+  "follow_up": [
+    {
+      "pull_requests": [
+        23
+      ],
+      "task": "M4-013",
+      "reason": "The unique model and chart work includes seven accepted child tasks. The standard workflow passed, but the M4-006 Ubuntu selection failed and a bounded test reproduced foreground source selection losing admission to a background read."
+    },
+    {
+      "pull_requests": [
+        2,
+        3,
+        7,
+        26
+      ],
+      "task": "M0-040",
+      "reason": "The four original update proposals failed on both platforms. Two proposed unreviewed Action pins and two lost the previous checkpoint after a Dependabot force push."
+    }
+  ],
+  "compatibility_review": {
+    "market_worker": "Protocol 1.0 still supports two reads. Keep the explicit compatibility contract and independent wire expectations. M1-027 removes the duplicated production list.",
+    "user_data": "Versioned workspace migrations, archived receipt readers and frozen revision handling still serve observable stored inputs. Their compatibility coverage remains required.",
+    "temporary_primary_alias": "The guarded watcher observed its owner release on 2026-11-21. The previous link was absent at this review and the original observation was independently retained."
+  }
+}

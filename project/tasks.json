@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M4-001",
+  "focus_task_id": "M0-039",
   "tasks": [
     {
       "id": "M0-001",
@@ -6031,6 +6031,14 @@
         {
           "path": "project/evidence/M1-018-6747a65520edf647.json",
           "sha256": "29e1e02e0f8a19c8d899ed8f48f849748aeffb89514983e89bb79646d6555ac2"
+        },
+        {
+          "path": "project/evidence/M1-018-aed3b8fb247914e5.json",
+          "sha256": "1e10e301c797d48cbb52edcaa401309c86274f49b270ff26b5b4d409f9bcfdea"
+        },
+        {
+          "path": "project/evidence/M1-018-c5681de098db5410.json",
+          "sha256": "7b9deccb7532a2a8c37498e870df05917ab3e5cb8aa3dc83cbf60b8e8639de2b"
         }
       ],
       "next_action": null,
@@ -9862,6 +9870,202 @@
           ],
           "data_plan": "Use disposable synthetic frozen chart data and existing workspace records. The accepted receipt and undo remain under the existing single-writer lifecycle.",
           "cleanup": "Release read attempts, timers, route handlers and the synthetic producer on completion, cancellation or failure."
+        }
+      }
+    },
+    {
+      "id": "M0-039",
+      "title": "Reconcile historical Git branches, pull requests and recovery evidence",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [],
+      "scope": [
+        "scripts",
+        "tests/project",
+        "project",
+        "contracts/reviews",
+        "AGENTS.md",
+        "package.json",
+        "contracts/schemas/project.schema.json",
+        "contracts/decisions/0022-task-branch-retirement-and-verification.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0006",
+        "0007",
+        "0022"
+      ],
+      "acceptance": [
+        "Compare live default and protected branches, all tips, ancestry and open pull request heads and bases. Exercise merged, divergent, held and unavailable observations with synthetic repositories.",
+        "The integration assessment binds required hosted verification to the specific pull request and tested head and base. A different pull request or obsolete base cannot supply its green workflow.",
+        "Reconcile inherited merged pull requests and heads, retain and verify independent recovery of backup tips, and preserve any original acceptance receipts missing from main.",
+        "Record observed dispositions and the standing owner workflow. Establish when to open, checkpoint, push, integrate and retire work, and give recurring reviews a cadence and an actionable entry point."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Compare live default and protected branches, all tips, ancestry and open pull request heads and bases. Exercise merged, divergent, held and unavailable observations with synthetic repositories.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Each inherited GitHub branch has a verified outcome. Merged work is retired, unique work and evidence remain recoverable, and subsequent delivery has a repeatable branch review.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/ci.py",
+          "scripts/worktree_retirement.py",
+          "scripts/integration.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "At main f7624a93 GitHub had 35 branch heads. Twenty-three non-default heads were reachable from main, and seven stacked pull requests remained open with their full heads already integrated. Six other backup heads required independent preservation and comparison."
+        ],
+        "risks": [
+          {
+            "failure": "A stale or incomplete observation retires new work or an active base, or a backup or worktree loses its only recoverable copy.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A different pull request on the same commit or an old base supplies the apparent passing workflow.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep original local evidence private and verify an independent Git bundle for exact tips before cleanup. Restore a retired ref only after confirming its name is free.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/ci.py",
+            "scripts/worktree_retirement.py",
+            "scripts/integration.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "contracts/decisions/0022-task-branch-retirement-and-verification.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Releasing product packages or replacing product milestone acceptance with repository maintenance."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Strict protected main checks, historical task definitions, required migrations, owner data, and separate release authorization."
+          ],
+          "change": [
+            "Add an owner-invoked live branch review, prevent accumulated merged heads, and give the recurring maintenance review a concrete entry point.",
+            "Detect overdue branch, worktree and compatibility reviews in project status, and require specific pull request verification identity.",
+            "Recognize direct shared ScopeHub recovery refs for a committed exact-head worktree disposition and reject a symbolic ref as its recovery anchor."
+          ],
+          "data_plan": "Keep original local evidence private and verify an independent Git bundle for exact tips before cleanup. Restore a retired ref only after confirming its name is free.",
+          "cleanup": "Record observed dispositions and the standing owner workflow. Establish when to open, checkpoint, push, integrate and retire work, and give recurring reviews a cadence and an actionable entry point."
+        }
+      }
+    },
+    {
+      "id": "M1-027",
+      "title": "Use the shared supported operation list for legacy market worker negotiation",
+      "milestone": "M1",
+      "status": "active",
+      "depends_on": [
+        "M1-001"
+      ],
+      "scope": [
+        "crates/worker-host/src/market.rs",
+        "crates/application/src/lib.rs"
+      ],
+      "decision_refs": [
+        "0007",
+        "0010"
+      ],
+      "acceptance": [
+        "Negotiate both supported minimum reads with protocol 1.0 from one production definition and preserve optional paged history in 1.1.",
+        "Run independent handshake and market worker contract cases against the supported old and new versions."
+      ],
+      "checks": [
+        "rust-contracts-workers",
+        "rust-format",
+        "architecture",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Replace the duplicate market handshake list with the existing application contract and exercise both supported versions.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The Rust host and operation registry share the minimum market read capabilities while independent fixtures continue to assert the wire names.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "crates/application/src/lib.rs",
+          "crates/worker-host/src/market.rs",
+          "crates/worker-host/tests/handshake.rs",
+          "contracts/contract.json"
+        ],
+        "hypotheses": [
+          "The host repeats both names from an unused public constant even though both belong to the same supported capability set."
+        ],
+        "risks": [
+          {
+            "failure": "Changing the minimum capabilities rejects a working legacy worker or requires paging for an older worker.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the narrow host change and rerun the independent worker handshake and history tests. No data conversion is involved.",
+        "implementation": {
+          "modules": [
+            "application",
+            "worker-host"
+          ],
+          "entrypoints": [
+            "crates/worker-host/src/market.rs",
+            "crates/application/src/lib.rs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/protocol/compatibility"
+            }
+          ],
+          "non_goals": [
+            "Removing a supported protocol version or changing wire schemas."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Supported 1.0 reads and optional 1.1 paged history."
+          ],
+          "change": [
+            "Negotiate minimum capabilities from the declared shared set."
+          ],
+          "data_plan": "The wire format and persisted records use their existing representations.",
+          "cleanup": "Remove the two duplicated production literals and keep independent expected values in the tests."
         }
       }
     }
