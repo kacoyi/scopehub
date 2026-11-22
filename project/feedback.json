@@ -3136,7 +3136,7 @@
       "id": "windows-verification-return-precedes-writer-exit",
       "source": "Authenticated PR 35 verification run 44997698442, head bd6233001b3874cb1fb843606663d32fa54edb4f and tested merge 8dcda240584f4115ed5e7560e386c3620c40ae77. Original report and logs retained as archives/runs/20261122T072140.708728Z-edfb023d/test-report.json.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "Only the new Windows timeout writer observation failed. Its process handle returned WAIT_TIMEOUT both after Job stop and at run_logged return, 0.250 seconds from the timed wait. The DELETE access probe succeeded. The original timeout log test and the redirector membership control passed.",
       "task_ids": [
         "M0-056"
@@ -3145,7 +3145,11 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Job accounting removed terminating members before their process objects necessarily signaled. The cleanup waited on the launcher handle while the observed writer could still be terminating.",
+        "correction": "Retain handles for confirmed Job members before requesting termination, join them under one deadline and keep the Job accounting guard. If inspection fails, attempt termination and wait for the already confirmed members under the same bound. Report both inspection and shutdown failures if both occur.",
+        "prevention": "Native run 45000485659 confirmed actual live writer membership, exit at both cleanup boundaries, and intact, deletable diagnostics. Independent review exercised resize, membership and failure paths, including shared deadlines and compound errors. The confirmed snapshot is the scope of explicit member waits."
+      },
       "deferral_reason": null,
       "diagnostic_reports": [
         {

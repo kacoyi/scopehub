@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-056",
+  "focus_task_id": "M1-031",
   "tasks": [
     {
       "id": "M0-001",
@@ -13190,7 +13190,7 @@
       "id": "M0-056",
       "title": "Join observed Windows verification Job members before returning",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-053"
       ],
@@ -13214,7 +13214,16 @@
         "python-types-win32",
         "python-contracts-workers"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-056-44624a32bae4efd5.json",
+          "sha256": "90daa645f79922e7ce756f6043aed575e1e0be7bcfd4434f5ede44bd469ace88"
+        },
+        {
+          "path": "project/evidence/M0-056-a0f52c0d7eb460b1.json",
+          "sha256": "188ecf7c3d5596c1ea0f93bbf58539a4cf30082f53286cdebcbc1ba3c777ccae"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "20261122T072140.708728Z-edfb023d",
@@ -13280,9 +13289,9 @@
           "cleanup": "Close acquired process handles on every path and retain the existing kill-on-close fallback. Keep cleanup errors visible."
         }
       },
-      "next_action": "Add an observed-member exit barrier, then rerun the native timeout regression and the exact PR checks.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null
+      "closure_reason": "Ubuntu and Windows passed the selected checks in run 45000485659. Windows confirmed that the live writer was in the verification Job and that its retained handle signaled before WindowsJob.stop and run_logged returned. The timeout returned 0.266 seconds from the start of the timed wait. DELETE access, partial output, digest and strict deletion all passed. The exit barrier covers verified snapshot members. The original WinError 32 holder remains unknown."
     }
   ]
 }
