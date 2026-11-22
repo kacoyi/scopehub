@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-042",
+  "focus_task_id": "M4-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -10083,7 +10083,7 @@
       "id": "M0-042",
       "title": "Verify the actual checkout of every required pull request job",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [],
       "scope": [
         "scripts/integration.py",
@@ -10106,10 +10106,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Reject a latest attempt whose checked parent conflicts with its own claimed head, even when an older run succeeded.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-042-dbd24cb9613c1695.json",
+          "sha256": "698479fc18f6a637940404eca9ccf26ed88475bcee5fb7124c8adaf4751eb587"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Verified Ubuntu and Windows checkout logs from hosted run 44926059988 against exact merge parents. Two-job regressions reject missing or divergent platform checkouts and a newer incorrect head even when an older attempt passed. Independent review reproduced the defect before repair and rejected incorrect and malformed parents afterward.",
       "plan": {
         "outcome": "A merge recommendation identifies the actual checkout of each required platform and withholds approval when any required job has stale or missing provenance.",
         "change_types": [
