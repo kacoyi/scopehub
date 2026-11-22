@@ -3204,6 +3204,34 @@
           "report_sha256": "12470f56f1b88f1ceb042892deeee8180bc32ea80f806bb95832af364a25bd11"
         }
       ]
+    },
+    {
+      "id": "windows-chromium-loopback-exhaustion",
+      "source": "Authenticated Windows verification for main push 45018382994 and PR 41 run 45018440319. Original diagnostics are retained under archives/runs/20261122T114203.123694Z-afc7cc49/test-report.json and archives/runs/20261122T114251.223282Z-6c1990d5/test-report.json.",
+      "severity": "major",
+      "status": "open",
+      "observation": "Chromium reported ERR_NO_BUFFER_SPACE during same-origin Vite module loading in distinct workspace-timeframe cases in both Windows runs. The main push also failed desktop-localization navigation to its loopback listener. The Linux jobs passed.",
+      "task_ids": [
+        "M0-062"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "desktop-localization"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T114203.123694Z-afc7cc49",
+          "source_commit": "e7d49580cb5a58ce76bf07fa092b42bfa197f600",
+          "report_sha256": "651dac391dbdbdba49cee8b00abae4a7ab760b9cb8c4ccf38fbb4aefeb69d105"
+        },
+        {
+          "run_id": "20261122T114251.223282Z-6c1990d5",
+          "source_commit": "6e6681c0c440397ed200e926c563c3225d2a17f6",
+          "report_sha256": "532e34bb88fd556cf38dd126e3144c052cb82ef90d6d187400ada57370390b20"
+        }
+      ]
     }
   ]
 }

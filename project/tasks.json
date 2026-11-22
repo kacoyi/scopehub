@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-031",
+  "focus_task_id": "M0-062",
   "tasks": [
     {
       "id": "M0-001",
@@ -13792,6 +13792,106 @@
           ],
           "data_plan": "Use synthetic catalogs and local development metadata. No user financial data or model credentials are needed.",
           "cleanup": "Remove concrete generation pins from the active policy. Existing terminals retain their launch arguments."
+        }
+      }
+    },
+    {
+      "id": "M0-062",
+      "title": "Restore reliable Windows Chromium loopback verification",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-058"
+      ],
+      "scope": [
+        "tests/ubuntu-preview",
+        "tests/localization",
+        "apps/desktop/ui/vite.config.ts",
+        "scripts/check.py",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/checks.json"
+      ],
+      "decision_refs": [
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the two independent native Windows failures and identify the shared failure mechanism with measurements or a controlled comparison.",
+        "Preserve all browser journeys, real operation endpoints and assertion coverage. Pass workspace-timeframe and desktop-localization on native Windows and verify the protected main push."
+      ],
+      "checks": [
+        "workspace-timeframe",
+        "desktop-localization",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Compare retained failures, measure loopback resource demand and validate the correction under the affected Windows checks.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Windows Chromium can navigate and load same-origin application modules throughout the existing verification sequence.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/localization/desktop.config.mjs",
+          "project/feedback.json"
+        ],
+        "hypotheses": [
+          "Repeated preview sessions, browser contexts or unbundled module loading may exhaust Windows loopback network resources. Distinguish the contributors before choosing a correction."
+        ],
+        "risks": [
+          {
+            "failure": "An isolated case passes while the cumulative Windows verification sequence still exhausts resources.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-localization"
+            ]
+          },
+          {
+            "failure": "A harness adjustment hides application errors or changes the operations exercised.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-localization"
+            ]
+          }
+        ],
+        "rollback": "Retain the failed run artifacts and revert the harness change through a protected PR if verification regresses.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.config.mjs",
+            "tests/localization/desktop.config.mjs",
+            "scripts/check.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing product behavior, widening permissions, skipping assertions, increasing retries or changing protected check selection."
+          ],
+          "open_questions": [
+            "Which shared resource is depleted, and how can the harness expose the difference on a Windows runner?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing browser journeys, native Windows coverage and operation semantics."
+          ],
+          "change": [
+            "Correct the verified resource lifecycle or demand in the internal verification harness."
+          ],
+          "data_plan": "Use isolated synthetic CI profiles and retain only diagnostic artifacts.",
+          "cleanup": "Remove experimental harness paths after selecting the verified correction."
         }
       }
     }
