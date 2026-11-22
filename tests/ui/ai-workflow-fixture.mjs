@@ -1,4 +1,4 @@
-import { execFile, spawn } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { on, once } from 'node:events';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
@@ -6,30 +6,14 @@ import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { expect } from '@playwright/test';
+import { closeWorkspaceService, spawnWorkspaceService } from './workspace-service.mjs';
 
 const exec = promisify(execFile);
 const root = fileURLToPath(new URL('../../', import.meta.url));
-const ui = join(root, 'apps/desktop/ui');
-const vite = pathToFileURL(join(ui, 'node_modules/vite/dist/node/index.js')).href;
-const writerGate = new URL('./workspace-writer-gate.mjs', import.meta.url).href;
 const workspaceBridge = join(root, 'target', 'debug', process.platform === 'win32' ? 'workspace_bridge.exe' : 'workspace_bridge');
-const service = `
-  if (process.argv[2]) (await import(process.argv[2])).installPublishedRevisionGate();
-  const { createServer } = await import(process.argv[1]);
-  const server = await createServer({ mode: 'ubuntu-workspace',
-    server: { host: '127.0.0.1', port: 0, strictPort: true, watch: null, hmr: false, ws: false },
-  });
-  process.on('message', async message => {
-    if (message !== 'close') return;
-    await server.close();
-    process.disconnect();
-  });
-  await server.listen();
-  process.send(server.httpServer.address().port);
-`;
 
 export const workspaceEndpoint = '/__scopehub/workspace';
 export const credentialEndpoint = '/__scopehub/model-credential';
@@ -111,16 +95,7 @@ export function persistedRows(profile) {
 }
 
 export async function withWorkspace(browser, profile, use, protectedValues = [], gateStatus = false) {
-  const child = spawn(process.execPath, ['--input-type=module', '--eval', service, vite, ...(gateStatus ? [writerGate] : [])], {
-    cwd: ui,
-    env: {
-      ...process.env,
-      SCOPEHUB_WORKSPACE_PROFILE_ROOT: profile.directory,
-      SCOPEHUB_WORKSPACE_PROFILE_ID: profile.id,
-      SCOPEHUB_WORKSPACE_ID: 'main',
-    },
-    stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
-  });
+  const child = spawnWorkspaceService(profile, { gateStatus });
   const closed = once(child, 'close');
   let output = '';
   let keyLogged = false;
@@ -192,15 +167,9 @@ export async function withWorkspace(browser, profile, use, protectedValues = [],
       await context.close();
     }
   } finally {
-    if (child.connected) child.send('close', () => {});
-    const grace = setTimeout(() => child.kill('SIGKILL'), 7_000);
-    try {
-      const [code] = await closed;
-      expect(code, 'The owned preview exits cleanly').toBe(0);
-      expect(keyLogged, 'The preview and browser console never log a synthetic API key').toBe(false);
-    } finally {
-      clearTimeout(grace);
-    }
+    const [code] = await closeWorkspaceService(child, closed);
+    expect(code, 'The owned preview exits cleanly').toBe(0);
+    expect(keyLogged, 'The preview and browser console never log a synthetic API key').toBe(false);
   }
 }
 

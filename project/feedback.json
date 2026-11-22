@@ -3007,6 +3007,24 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "ai-workflow-fixture-outlives-parent",
+      "source": "Historical host retirement audit and byte-identical current AI workflow fixture on 2026-11-21.",
+      "severity": "major",
+      "status": "open",
+      "observation": "Two detached synthetic Vite services and their Rust writers outlived the benchmark parent. The current shared AI workflow fixture handles explicit close but has no IPC disconnect handler.",
+      "task_ids": [
+        "M0-049"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers",
+        "model-connection-workflow",
+        "workspace-layout"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
