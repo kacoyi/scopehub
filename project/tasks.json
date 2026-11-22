@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-059",
+  "focus_task_id": "M1-031",
   "tasks": [
     {
       "id": "M0-001",
@@ -13576,7 +13576,7 @@
       "id": "M0-059",
       "title": "Update the locked Rust URL parser for RUSTSEC-2026-0592",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-040"
       ],
@@ -13603,7 +13603,12 @@
         "dependency-review",
         "rust-contracts-workers"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-059-57f3da3ad1a50132.json",
+          "sha256": "4080f28d72ea12108831dd5a458f365e18e7d5e115bc8326a47f560beffbad37"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "20261122T094812.711104Z-690a13fb",
@@ -13611,9 +13616,9 @@
           "report_sha256": "12470f56f1b88f1ceb042892deeee8180bc32ea80f806bb95832af364a25bd11"
         }
       ],
-      "next_action": "Update the affected dependency and verify the inventory, fresh advisory review and Rust contracts.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The patched application and worker contracts and fresh online dependency review passed on the clean source. The exact portable and Windows dependency graphs resolve url 2.5.9 and its required form_urlencoded 1.2.3. The original failed Windows diagnostic remains verifiable in the archive.",
       "plan": {
         "outcome": "Restore integration after a new Rust URL parser advisory surfaced against the shared main dependency graph.",
         "change_types": [
