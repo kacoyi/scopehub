@@ -11,7 +11,7 @@ const report = process.env.SCOPEHUB_RUN_DIR
 
 export default defineConfig({
   testDir: '.',
-  testMatch: ['ai-workflow.spec.mjs', 'ai-workflow-route-guard.spec.mjs'],
+  testMatch: ['ai-workflow.spec.mjs', 'ai-workflow-route-guard.spec.mjs', 'workspace-source.spec.mjs'],
   workers: 1,
   timeout: 60_000,
   metadata: { scope: 'Ordinary text and bounded selected-chart turns through the Rust registry and an owned synthetic HTTP peer.' },

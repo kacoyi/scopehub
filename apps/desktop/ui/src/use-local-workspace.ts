@@ -29,7 +29,8 @@ export type WorkspaceSourceChoice = { kind: 'none' } | { kind: 'sample'; instrum
 type WorkspaceSource = Exclude<WorkspaceSourceChoice, { kind: 'frozen' }>
   | { kind: 'frozen'; revision_id: string; status: 'available' | 'revoked' | 'unavailable' };
 type SourceRequest = { type: 'workspace_source'; request_id: string; expected_selection_revision: number; source: WorkspaceSourceChoice };
-type LocalRequest = SourceRequest | { type: 'snapshot' } | Command | DecisionNoteReadCommand11 | DecisionNoteSaveCommand11
+type AdmissionRead = { type: 'snapshot' } | { type: 'frozen_chart'; request_id: string; revision_id: string };
+type LocalRequest = SourceRequest | AdmissionRead | Command | DecisionNoteReadCommand11 | DecisionNoteSaveCommand11
   | AiTextConnectionCommand11
   | DecisionNoteAppendOutcomeCommand11 | DecisionNoteDeleteCommand11 | DecisionNoteExportBackupCommand11
   | DecisionNotePreviewRestoreCommand11 | DecisionNoteRestoreBackupCommand11
@@ -40,9 +41,15 @@ type LocalRequest = SourceRequest | { type: 'snapshot' } | Command | DecisionNot
   | { type: 'indicator_accepted_layers'; request_id: string; revision_id: string }
   | { type: 'indicator_accepted_output'; request_id: string; layer_id: string }
   | { type: 'indicator_preview_status'; request_id: string; task_id: string }
-  | { type: 'frozen_chart' | 'frozen_chart_status'; request_id: string; revision_id: string };
+  | { type: 'frozen_chart_status'; request_id: string; revision_id: string };
 type UndoTarget = Pick<OperationReceipt11, 'operation_id' | 'committed_workspace_revision'>;
 type CommittedRevision = Pick<OperationReceipt11, 'workspace_id' | 'committed_workspace_revision'>;
+type SourceReadback = {
+  request: SourceRequest;
+  workspace: Workspace;
+  committedRevision: number | undefined;
+  owner: AbortSignal | undefined;
+};
 type ChartEvidence = { revision_id: string; range: VisibleRange; snapshot_hash?: string } | { unavailable: true };
 type Snapshot = {
   workspace: Workspace; selection_revision: number; undo: UndoTarget | null;
@@ -52,9 +59,11 @@ type Snapshot = {
 };
 type View = {
   snapshot: Snapshot | undefined;
-  pending: 'open' | 'save' | 'evidence' | undefined;
+  pending: 'open' | 'save' | 'evidence' | 'source' | undefined;
   error: string | undefined;
   selectionNotice?: string | undefined;
+  sourceRecovery?: boolean;
+  sourceNotice?: string | undefined;
 };
 
 const desktop = isTauri();
@@ -65,7 +74,9 @@ const launchCapability = !desktop && import.meta.env.SCOPEHUB_UBUNTU_WORKSPACE ?
 const enabled = nativeWorkspace || launchCapability !== undefined;
 const chart = { kind: 'chart', object_id: 'main-chart' } as const;
 const layoutTarget = { kind: 'layout', object_id: 'workspace-layout' } as const;
-const snapshotRetryBudgetMs = 4_000;
+const admissionRetryBudgetMs = 4_000;
+// The development bridge also bounds its in-flight writer command to eight seconds.
+const sourceAdmissionRetryBudgetMs = 8_000;
 
 function takeLaunchCapability() {
   const { hash, pathname, search } = window.location;
@@ -97,21 +108,20 @@ function retryableBusy(error: unknown) {
     && 'retryable' in error && error.retryable === true;
 }
 
-async function exchange<T>(body: LocalRequest, signal: AbortSignal, onSnapshotBusy?: () => void): Promise<T> {
-  const admissionBusy = body.type === 'snapshot' ? onSnapshotBusy : undefined;
+async function exchange<T>(body: LocalRequest, signal: AbortSignal, onAdmissionBusy?: () => void): Promise<T> {
   const operation = body.type === 'request' ? 'operation' in body ? body.operation : body.intent.operation : null;
   if (nativeWorkspace || nativeModel && operation === 'ai.textConnection' || desktop && body.type === 'frozen_chart_status') {
     signal.throwIfAborted();
     const value = await invoke<T>('execute_operation', { operation, payload: body }).catch(error => {
-      // A native snapshot can report writer admission or a failed SQLite read transaction.
-      // Neither applies changes under the bound local workspace grant.
-      if (admissionBusy && retryableBusy(error)) admissionBusy();
+      // Native BUSY means writer admission failed or the SQLite transaction
+      // did not commit. The source registry runs no fallible work after commit.
+      if (onAdmissionBusy && retryableBusy(error)) onAdmissionBusy();
       throw error;
     });
     signal.throwIfAborted();
     return value;
   }
-  return postWorkspace<T>('/__scopehub/workspace', body, signal, admissionBusy);
+  return postWorkspace<T>('/__scopehub/workspace', body, signal, onAdmissionBusy);
 }
 
 export async function exchangeOpenAiCredential<T>(body: {
@@ -169,25 +179,81 @@ function validateSnapshot(snapshot: Snapshot): Snapshot {
   return snapshot;
 }
 
-async function readCommittedSnapshot(receipt: CommittedRevision, signal: AbortSignal): Promise<Snapshot> {
-  const deadline = performance.now() + snapshotRetryBudgetMs;
+async function retryAdmission<T>(work: (onBusy: () => void) => Promise<T>, signal: AbortSignal,
+  budgetMs = admissionRetryBudgetMs): Promise<T> {
+  const deadline = performance.now() + budgetMs;
   for (let delayMs = 25; ; delayMs = Math.min(2 * delayMs, 100)) {
     signal.throwIfAborted();
     let admissionBusy = false;
     try {
-      const current = validateSnapshot(await exchange<Snapshot>({ type: 'snapshot' }, signal, () => { admissionBusy = true; }));
-      if (current.workspace.id !== receipt.workspace_id || current.workspace.revision < receipt.committed_workspace_revision) {
-        throw { code: 'OUTPUT_INVALID' };
-      }
-      return current;
+      return await work(() => { admissionBusy = true; });
     } catch (error) {
+      if (!admissionBusy) throw error;
       signal.throwIfAborted();
       const remaining = deadline - performance.now();
-      if (!admissionBusy || remaining <= 0) throw error;
+      if (remaining <= 0) throw error;
       await abortableDelay(Math.min(delayMs, remaining), signal);
       signal.throwIfAborted();
       if (performance.now() >= deadline) throw error;
     }
+  }
+}
+
+async function readSnapshotAfterWrite(signal: AbortSignal): Promise<Snapshot> {
+  return validateSnapshot(await readWorkspaceAfterAdmission<Snapshot>({ type: 'snapshot' }, signal));
+}
+
+export function readWorkspaceAfterAdmission<T>(body: AdmissionRead, signal: AbortSignal) {
+  return retryAdmission(onBusy => exchange<T>(body, signal, onBusy), signal);
+}
+
+async function readCommittedSnapshot(receipt: CommittedRevision, signal: AbortSignal): Promise<Snapshot> {
+  const current = await readSnapshotAfterWrite(signal);
+  if (current.workspace.id !== receipt.workspace_id || current.workspace.revision < receipt.committed_workspace_revision) {
+    throw { code: 'OUTPUT_INVALID' };
+  }
+  return current;
+}
+
+function sameSource(current: Snapshot['source'], requested: WorkspaceSourceChoice) {
+  if (requested.kind === 'frozen') return current?.kind === 'frozen' && current.revision_id === requested.revision_id;
+  if (requested.kind === 'sample') return current?.kind === 'sample' && current.instrument_id === requested.instrument_id;
+  return current?.kind === 'none';
+}
+
+function sourceReadbackNotice(current: Snapshot, readback: SourceReadback) {
+  const { request, workspace, committedRevision } = readback;
+  const source = current.source;
+  const validSource = source === null || source?.kind === 'none'
+    || source?.kind === 'sample' && (source.instrument_id === null || typeof source.instrument_id === 'string')
+    || source?.kind === 'frozen' && typeof source.revision_id === 'string'
+      && ['available', 'revoked', 'unavailable'].includes(source.status);
+  if (current.workspace.id !== workspace.id || current.workspace.revision < workspace.revision || !validSource
+    || current.selection_revision < (committedRevision ?? request.expected_selection_revision)) throw { code: 'OUTPUT_INVALID' };
+  // A matching source and revision could belong to another caller when the
+  // original write reply was lost. Only an acknowledged write can close the dialog.
+  if (committedRevision === undefined) return 'The source request could not be confirmed. Review the current workspace source.';
+  if (current.selection_revision > committedRevision) {
+    return 'The workspace selection changed after this request was saved. Review the current workspace source.';
+  }
+  if (!sameSource(source, request.source) || current.chart_evidence !== null) throw { code: 'OUTPUT_INVALID' };
+  if (source?.kind === 'frozen' && source.status !== 'available') {
+    return 'The source was selected, but this frozen chart is no longer available.';
+  }
+}
+
+function sourceRejected(error: unknown) {
+  switch (errorCode(error)) {
+    case 'BUSY':
+    case 'INVALID_ARGUMENT':
+    case 'PERMISSION_DENIED':
+    case 'RESOURCE_LIMIT':
+    case 'SNAPSHOT_UNAVAILABLE':
+    case 'STALE_CONTEXT':
+    case 'UNSUPPORTED_CAPABILITY':
+      return true;
+    default:
+      return false;
   }
 }
 
@@ -282,24 +348,27 @@ async function mutate(snapshot: Snapshot, intent: Intent, signal: AbortSignal): 
 
 export function useLocalWorkspace() {
   const active = useRef<AbortController | null>(null);
+  const sourceActive = useRef(false);
+  const sourceReadback = useRef<SourceReadback | null>(null);
   const mounted = useRef(false);
   const queuedRecovery = useRef<{ revision: number; start: () => void } | null>(null);
   const [view, setView] = useState<View>({ snapshot: undefined, pending: 'open', error: undefined });
   const release = useCallback((controller: AbortController) => {
     if (active.current !== controller) return;
     active.current = null;
+    if (sourceReadback.current) return;
     const next = queuedRecovery.current;
     queuedRecovery.current = null;
     next?.start();
   }, []);
   const run = useCallback((work: (signal: AbortSignal) => Promise<Snapshot>, pending: View['pending']) => {
-    if (active.current) return;
+    if (active.current || sourceReadback.current) return;
     const controller = new AbortController();
     active.current = controller;
     setView(previous => ({ ...previous, pending, error: undefined, selectionNotice: undefined }));
     return work(controller.signal).then(snapshot => {
       if (controller.signal.aborted) return false;
-      setView({ snapshot, pending: undefined, error: undefined });
+      setView(previous => ({ snapshot, pending: undefined, error: undefined, sourceNotice: previous.sourceNotice }));
       return true;
     }, error => {
       if (!controller.signal.aborted) {
@@ -313,7 +382,48 @@ export function useLocalWorkspace() {
       return false;
     }).finally(() => release(controller));
   }, [release]);
-  const reload = useCallback(() => { void run(readWorkspaceSnapshot, 'open'); }, [run]);
+  const canCheckRevision = useCallback(() => !sourceActive.current, []);
+  const runSource = useCallback(async (work: (signal: AbortSignal) => Promise<void>) => {
+    if (active.current) throw { code: 'BUSY' };
+    const controller = new AbortController();
+    active.current = controller;
+    sourceActive.current = true;
+    setView(previous => ({ ...previous, pending: 'source', error: undefined, selectionNotice: undefined }));
+    try {
+      await work(controller.signal);
+    } finally {
+      if (active.current === controller) {
+        sourceActive.current = false;
+        setView(previous => ({ ...previous, pending: undefined }));
+        release(controller);
+      }
+    }
+  }, [release]);
+  const readSource = useCallback(async (signal: AbortSignal) => {
+    const readback = sourceReadback.current;
+    if (!readback) return;
+    let current: Snapshot;
+    let notice: string | undefined;
+    try {
+      current = await readSnapshotAfterWrite(signal);
+      notice = sourceReadbackNotice(current, readback);
+    } catch {
+      signal.throwIfAborted();
+      const message = readback.committedRevision === undefined
+        ? 'The source request could not be confirmed. Reload the workspace state before changing the source again.'
+        : 'The source was saved. Reload the workspace state to confirm the current selection.';
+      setView(previous => ({ ...previous, error: message, sourceRecovery: true }));
+      throw new Error(message);
+    }
+    sourceReadback.current = null;
+    setView({ snapshot: current, pending: undefined, error: undefined, sourceNotice: notice });
+    if (notice) throw new Error(notice);
+  }, []);
+  const recoverSource = useCallback(() => runSource(readSource), [readSource, runSource]);
+  const reload = useCallback(() => {
+    if (sourceReadback.current) void recoverSource().catch(() => {});
+    else void run(readWorkspaceSnapshot, 'open');
+  }, [recoverSource, run]);
   useEffect(() => {
     if (!enabled) return;
     mounted.current = true;
@@ -321,6 +431,8 @@ export function useLocalWorkspace() {
     return () => {
       mounted.current = false;
       queuedRecovery.current = null;
+      sourceActive.current = false;
+      sourceReadback.current = null;
       active.current?.abort();
       active.current = null;
     };
@@ -335,7 +447,7 @@ export function useLocalWorkspace() {
       throw { code: 'OUTPUT_INVALID' };
     }
     const start = () => run(signal => readCommittedSnapshot(receipt, signal), 'open');
-    if (!active.current) start();
+    if (!active.current && !sourceReadback.current) start();
     else if (!queuedRecovery.current || revision > queuedRecovery.current.revision) {
       queuedRecovery.current = { revision, start };
     }
@@ -346,7 +458,7 @@ export function useLocalWorkspace() {
   };
   async function editLayout(request: LayoutCommand) {
     if (!snapshot || snapshot.workspace.id !== request.scope.workspace_id) throw { code: 'STALE_CONTEXT' };
-    if (active.current) throw { code: 'BUSY' };
+    if (active.current || sourceReadback.current) throw { code: 'BUSY' };
     const controller = new AbortController();
     const signal = controller.signal;
     active.current = controller;
@@ -368,7 +480,9 @@ export function useLocalWorkspace() {
       if (current.workspace.id !== workspace_id || current.workspace.revision < outcome.receipt.committed_workspace_revision) {
         throw { code: 'OUTPUT_INVALID' };
       }
-      if (!signal.aborted) setView({ snapshot: current, pending: undefined, error: undefined });
+      if (!signal.aborted) setView(previous => ({
+        snapshot: current, pending: undefined, error: undefined, sourceNotice: previous.sourceNotice,
+      }));
       return undefined;
     } finally {
       if (active.current === controller) {
@@ -378,30 +492,37 @@ export function useLocalWorkspace() {
     }
   }
   return {
-    ...view, reload, refreshAfterIndicatorCommit,
-    async chooseSource(source: WorkspaceSourceChoice) {
+    ...view, reload, refreshAfterIndicatorCommit, canCheckRevision, recoverSource,
+    ownsSourceRecovery: (signal: AbortSignal) => sourceReadback.current?.owner === signal,
+    async chooseSource(source: WorkspaceSourceChoice, cancelAdmission?: AbortSignal) {
       if (!snapshot) throw { code: 'STALE_CONTEXT' };
-      if (active.current) throw { code: 'BUSY' };
-      const controller = new AbortController();
-      active.current = controller;
-      setView(previous => ({ ...previous, pending: 'evidence', error: undefined, selectionNotice: undefined }));
-      try {
-        const result = await exchangeWorkspace<{ selection_revision: number }>({
-          type: 'workspace_source', request_id: crypto.randomUUID(),
-          expected_selection_revision: snapshot.selection_revision, source,
-        }, controller.signal);
-        if (result?.selection_revision !== snapshot.selection_revision + 1) throw { code: 'OUTPUT_INVALID' };
-        const current = await readWorkspaceSnapshot(controller.signal);
-        if (!controller.signal.aborted) setView({ snapshot: current, pending: undefined, error: undefined });
-      } catch (error) {
-        if (!controller.signal.aborted) setView(previous => ({ ...previous, error: describeFailure(error) }));
-        throw error;
-      } finally {
-        if (active.current === controller) {
-          setView(previous => ({ ...previous, pending: undefined }));
-          release(controller);
+      if (sourceReadback.current) throw { code: 'STALE_CONTEXT' };
+      const request: SourceRequest = {
+        type: 'workspace_source', request_id: crypto.randomUUID(),
+        expected_selection_revision: snapshot.selection_revision, source,
+      };
+      await runSource(async signal => {
+        let committedRevision: number | undefined;
+        try {
+          // Closing the dialog cancels waiting for admission. An issued request
+          // still settles so an accepted write can be read back and displayed.
+          const retrySignal = cancelAdmission ? AbortSignal.any([signal, cancelAdmission]) : signal;
+          const result = await retryAdmission(onBusy =>
+            exchange<{ selection_revision: number }>(request, signal, onBusy), retrySignal, sourceAdmissionRetryBudgetMs);
+          if (result?.selection_revision === request.expected_selection_revision + 1) {
+            committedRevision = result.selection_revision;
+          }
+        } catch (error) {
+          signal.throwIfAborted();
+          if (cancelAdmission?.aborted && error === cancelAdmission.reason) throw error;
+          if (sourceRejected(error)) {
+            setView(previous => ({ ...previous, error: describeFailure(error) }));
+            throw error;
+          }
         }
-      }
+        sourceReadback.current = { request, workspace: snapshot.workspace, committedRevision, owner: cancelAdmission };
+        await readSource(signal);
+      });
     },
     async previewLayout(edit: WorkspaceLayoutEdit11, revision: number): Promise<PreparedWorkspaceLayout> {
       if (!snapshot) throw { code: 'STALE_CONTEXT' };

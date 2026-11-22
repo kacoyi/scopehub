@@ -94,7 +94,8 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   const evidence = workspace?.snapshot?.chart_evidence;
   const integratedSample = sample && workspace?.snapshot?.source?.kind === 'sample';
   const hasSampleSelection = Boolean(evidence && 'snapshot_hash' in evidence && evidence.snapshot_hash);
-  const sampleFiltersBlocked = integratedSample && (workspace?.pending === 'evidence' || hasSampleSelection && workspaceBlocked);
+  const sampleFiltersBlocked = integratedSample && (workspace?.pending === 'evidence' || workspace?.pending === 'source'
+    || hasSampleSelection && workspaceBlocked);
   const timeframeBlocked = sample ? sampleFiltersBlocked : workspaceBlocked || restoredSource !== undefined;
   const [revision, setRevision] = useState<SampleRevision>(saved?.sampleRevision ?? 'normal');
   const [date, setDate] = useState(saved?.sampleDate ?? '');
@@ -371,7 +372,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
         <button type="button" className="period notes-trigger" aria-haspopup="dialog"
           disabled={workspaceBlocked} onClick={() => setRecordsOpen(true)}>Private records</button></div>}
       <button type="button" className="period notes-trigger" aria-haspopup="dialog"
-        disabled={Boolean(workspace?.pending === 'evidence')} onClick={() => {
+        disabled={Boolean(workspace?.pending === 'evidence' || workspace?.pending === 'source')} onClick={() => {
           const state = workspace?.snapshot;
           openModelChat(state && boundSelection && history && !selectionBlocked ? {
             selectionRevision: state.selection_revision,
@@ -409,10 +410,12 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
         <footer className="chart-footer"><span>{sample ? (date ? date + ' UTC' : 'Jan 2024') : 'ScopeHub'}</span>
           <UnavailableSharedSelection workspace={workspace} />
           {workspace?.pending && <span role="status">{workspace.pending === 'open' ? 'Loading local workspace…'
-            : workspace.pending === 'evidence' ? 'Sharing chart evidence…' : 'Saving timeframe…'}</span>}
+            : workspace.pending === 'evidence' ? 'Sharing chart evidence…'
+              : workspace.pending === 'source' ? 'Checking workspace source…' : 'Saving timeframe…'}</span>}
           {workspace?.error && <><span role="alert" className="workspace-error">{workspace.error}</span>
             <button type="button" className="secondary-button" onClick={workspace.reload}>Reload workspace state</button></>}
           {workspace?.selectionNotice && <span role="status">{workspace.selectionNotice}</span>}
+          {workspace?.sourceNotice && <span role="status">{workspace.sourceNotice}</span>}
           {selected && <span>{selected.timezone}</span>}
           {history && <HistoryStatus history={history} repaired={Boolean(repairedBars)} />}
           {canReplay && <button type="button" className="secondary-button replay-button" onClick={playing ? stop : start}>

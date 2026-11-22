@@ -2756,6 +2756,32 @@
         "prevention": "The registered Chromium regression holds the observer through route removal, observes one local service arrival and verifies that an attempted second loopback origin has zero arrivals and fails the guard assertion. It reproduced the legacy error three times and passed three times with the repair. The full browser workflow and Rust replay passed locally and on authenticated Ubuntu and native Windows workflow 44923738119 attempt 1 at f7a0e469b1e106ff964f07b614deb3ae4c963bc5."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "published-source-foreground-admission-contention",
+      "source": "GitHub Actions M4-006 run 44926633907 and the independent controlled Chromium reproduction recorded on PR 23.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261121T165105.115104Z-7e76ce8a",
+          "source_commit": "fc6e88a678e0f4d95fa8a3122016fba0ea2a6033",
+          "report_sha256": "070e3bd29b9acd75f83a711d73e7f1ac74836bbc261f9d14392cc4e18bf1dfa3"
+        }
+      ],
+      "severity": "major",
+      "status": "open",
+      "observation": "A periodic published-revision status read can hold the local admission slot when the user selects a source. A rejected foreground request left the dialog open and the independently observed database unchanged.",
+      "task_ids": [
+        "M4-013"
+      ],
+      "regression_checks": [
+        "ui-build",
+        "market-workflow",
+        "local-folder-import",
+        "model-connection-workflow",
+        "project-state"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

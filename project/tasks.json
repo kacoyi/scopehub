@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M4-001",
+  "focus_task_id": "M4-013",
   "tasks": [
     {
       "id": "M0-001",
@@ -779,7 +779,7 @@
       "id": "M4-001",
       "title": "Deliver the first human-AI chart collaboration workflow",
       "milestone": "M4",
-      "status": "active",
+      "status": "planned",
       "depends_on": [
         "M3-001",
         "M1-008",
@@ -10829,6 +10829,121 @@
           ],
           "data_plan": "Use two disposable loopback servers and synthetic requests. Retain original hosted logs and distinct local red and green reports.",
           "cleanup": "Release the held observer on success or failure and close the owned browser context and listeners."
+        }
+      }
+    },
+    {
+      "id": "M4-013",
+      "title": "Complete a foreground workspace source change during background revision inspection",
+      "milestone": "M4",
+      "status": "active",
+      "depends_on": [],
+      "scope": [
+        "apps/desktop/ui",
+        "tests",
+        "project"
+      ],
+      "decision_refs": [
+        "0004",
+        "0006",
+        "0007",
+        "0016"
+      ],
+      "acceptance": [
+        "Reproduce the pre-admission foreground BUSY response while holding a real background revision read. Distinguish it from an accepted write followed by an unavailable snapshot.",
+        "Prevent background status activity from starving the foreground intent. Verify one accepted write, dialog completion and final source and revision. Preserve error handling, cancellation and bounded diagnostics.",
+        "Keep the original expected revision across known refusals. Verify that a competing selection survives and that a lost write acknowledgement shows uncertainty after read-only recovery, even when the durable source matches.",
+        "Run the affected M4-006 selection and the deterministic contention regression including hosted Ubuntu and Windows. Retain the failure and recovery evidence."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "local-folder-import",
+        "model-connection-workflow",
+        "project-state"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M4-013-e5cd89397cd2604a.json",
+          "sha256": "fae199ce59294a61626b69bddcc2a4795368040381de94159e27a96aec5dc766"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261121T165105.115104Z-7e76ce8a",
+          "source_commit": "fc6e88a678e0f4d95fa8a3122016fba0ea2a6033",
+          "report_sha256": "070e3bd29b9acd75f83a711d73e7f1ac74836bbc261f9d14392cc4e18bf1dfa3"
+        }
+      ],
+      "next_action": "Verify the committed repair with hosted M4-006 and M4-013 task selections on Ubuntu and Windows. The local task check passed. The original hosted failure remains at archives/runs/20261121T165105.115104Z-7e76ce8a/test-report.json.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "One authorized click selects the intended published source under overlapping background status activity, with exactly one accepted mutation and an authoritative recovered revision.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/local-revision-dialog.tsx",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "apps/desktop/ui/src/published-revision-access.ts",
+          "apps/desktop/ui/src/workspace-source.ts",
+          "tests/ui/workspace-source.spec.mjs",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The retained Ubuntu M4-006 run observed the open dialog after the source click. The controlled Chromium reproduction on the same revision confirmed HTTP 429 BUSY before admission while a real periodic status read was held. The stored source and selection revision were unchanged.",
+          "An acknowledged source write returns an authoritative selection revision. A snapshot can verify that revision, show a superseding selection, or fail independently. With a missing write result, a matching source snapshot alone cannot attribute the write to the original intent."
+        ],
+        "risks": [
+          {
+            "failure": "A retry or late result writes twice, changes a stale workspace, or hides an actual denial.",
+            "checks": [
+              "ui-build",
+              "market-workflow",
+              "local-folder-import",
+              "model-connection-workflow",
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Revert the UI coordination and regression together if necessary. The profile schema and wire messages are retained. Keep the original failure report and synthetic regression evidence for diagnosis.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/local-revision-dialog.tsx",
+            "apps/desktop/ui/src/use-local-workspace.ts",
+            "apps/desktop/ui/src/published-revision-access.ts",
+            "apps/desktop/ui/src/workspace-source.ts"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "This is a foreground source-selection repair following the accepted M4-006 through M4-012 connection and recovery slices. M4-001 keeps its entire scope, acceptance, checks and diagnostic for remaining assisted actions, replay evaluations and private excerpt acceptance.",
+            "New provider calls, real credentials and completion of the wider assisted product and release milestones."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing authorization, selection revisions, request identities, error visibility and user-owned records."
+          ],
+          "change": [
+            "Coordinate the foreground and background entries. Keep the write result separate from readback recovery, and apply only an authoritative snapshot. Preserve the original expected revision for a known pre-admission retry. Surface a missing acknowledgement as uncertain even if the displayed source happens to match."
+          ],
+          "data_plan": "Use synthetic temporary profiles. Keep diagnostic outputs bounded to operation stages, statuses and selection revisions. Retain existing authorization and optimistic selection checks without introducing persisted request metadata.",
+          "cleanup": "Release the held reply and owned profile on every test outcome. Run the affected M4-006 selection and deterministic regression locally and on hosted Ubuntu and Windows. Retain the failure and recovery evidence."
         }
       }
     }

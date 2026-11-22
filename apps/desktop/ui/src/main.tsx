@@ -57,8 +57,9 @@ function App() {
   }, [supportsSourcePreference]);
   useEffect(() => {
     if (!legacySample || window.location.hash !== '#demo' || demoLinkHandled.current
-      || !supportsSourcePreference || !localWorkspace || localWorkspace.pending || source?.kind === 'sample') return;
+      || !supportsSourcePreference || !localWorkspace || localWorkspace.pending || localWorkspace.sourceRecovery) return;
     demoLinkHandled.current = true;
+    if (source?.kind === 'sample') return;
     void localWorkspace.chooseSource({ kind: 'sample', instrument_id: readSampleView()?.symbol ?? null }).catch(() => {});
   }, [legacySample, localWorkspace, source, supportsSourcePreference]);
 
@@ -140,6 +141,13 @@ function App() {
             <button type="button" className="secondary-button" aria-haspopup="dialog" onClick={() => setModelChatView('question')}>Ask AI</button>
           </div>
         </header>
+        {workspace?.sourceNotice && <p role="status">{workspace.sourceNotice}</p>}
+        {workspace?.sourceRecovery && <div className="local-publication-actions">
+          <p role="alert">{workspace.error}</p>
+          <button type="button" className="secondary-button" onClick={workspace.reload} disabled={Boolean(workspace.pending)}>
+            Reload workspace state
+          </button>
+        </div>}
         <LocalImportEditor key={folder.folder_id} initialCatalog={folder} chooseFolder={chooseFolder}
           previewImport={previewLocalImport} cancelPreview={cancelLocalPreview} revisionAccess={revisionAccess}
           renderChart={result => <LocalPreviewChart result={result} />} workspace={workspace} />
@@ -151,14 +159,15 @@ function App() {
       discardChartSelection={() => setModelSelection(undefined)} />
     {openingRevision && <OpenLocalRevisionDialog onClose={() => setOpeningRevision(false)} revisionAccess={revisionAccess}
       workspace={workspace} nativeLocalImport={hasLocalCsvPicker()}
-      useWorkspaceSource={workspace && supportsSourcePreference ? async revision_id => {
-        await workspace.chooseSource({ kind: 'frozen', revision_id });
+      useWorkspaceSource={workspace && supportsSourcePreference
+        ? (revision_id, signal) => workspace.chooseSource({ kind: 'frozen', revision_id }, signal) : undefined}
+      onWorkspaceSourceSelected={() => {
         if (window.location.hash === '#demo') {
           window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
         }
         setLocal(false);
         setOpeningRevision(false);
-      } : undefined} />}
+      }} />}
   </>;
 }
 
