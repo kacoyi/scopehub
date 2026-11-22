@@ -1038,6 +1038,31 @@
     }
   ],
   "profiles": {
+    "records": [
+      "environment",
+      "project-state",
+      "generated-contracts",
+      "dependency-review"
+    ],
+    "tooling": [
+      "environment",
+      "project-state",
+      "generated-contracts",
+      "architecture",
+      "python-types",
+      "python-contracts-workers",
+      "dependency-review"
+    ],
+    "localization": [
+      "environment",
+      "project-state",
+      "generated-contracts",
+      "architecture",
+      "typescript-contracts",
+      "ui-build",
+      "desktop-localization",
+      "dependency-review"
+    ],
     "fast": [
       "environment",
       "project-state",

@@ -196,16 +196,24 @@ TASK_CHECKS_WITHOUT_BROWSER_OR_CARGO_BUILD = {
                                  '-p', 'test_*.py', '-v', '--durations', '10'],
     'dependency-review': ['{python}', 'scripts/dependencies.py'],
 }
+PROFILE_CHECKS_WITHOUT_BROWSER_OR_CARGO_BUILD = {
+    **TASK_CHECKS_WITHOUT_BROWSER_OR_CARGO_BUILD,
+    'generated-contracts': ['{python}', 'scripts/generate_contracts.py', '--check'],
+}
 
 
-def ci_requires_build_setup(project, task_id):
-    if task_id not in project['tasks']:
+def ci_requires_build_setup(project, task_id=None, *, profile=None):
+    if not task_id and profile not in {'records', 'tooling'}:
+        return True
+    try:
+        selected = select_checks(project, profile=profile, task_id=task_id)
+    except ProjectError:
         return True
     # These checks can run with the installed toolchains and an empty Cargo target.
     # A new check or changed command keeps setup until its prerequisites are reviewed.
-    return any(key not in TASK_CHECKS_WITHOUT_BROWSER_OR_CARGO_BUILD
-               or project['checks'].get(key, {}).get('command') != TASK_CHECKS_WITHOUT_BROWSER_OR_CARGO_BUILD[key]
-               for key in select_checks(project, task_id=task_id))
+    reviewed = TASK_CHECKS_WITHOUT_BROWSER_OR_CARGO_BUILD if task_id else PROFILE_CHECKS_WITHOUT_BROWSER_OR_CARGO_BUILD
+    return not selected or any(key not in reviewed or project['checks'].get(key, {}).get('command') != reviewed[key]
+                               for key in selected)
 
 
 def checked_session(project, run_dir, key, source):
@@ -226,7 +234,7 @@ def main():
     args = parser.parse_args()
     if args.ci_build_setup_required:
         try:
-            required = ci_requires_build_setup(load_project(ROOT), args.task)
+            required = ci_requires_build_setup(load_project(ROOT), args.task, profile=args.profile)
         except Exception:
             # Leave failed project validation and recovery evidence to the actual check run.
             required = True

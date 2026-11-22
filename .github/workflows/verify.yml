@@ -4,6 +4,8 @@ on:
   pull_request:
   push:
     branches: [main]
+  schedule:
+    - cron: '31 3 * * 1'
   workflow_dispatch:
     inputs:
       profile:
@@ -20,12 +22,17 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ inputs.task_id && format('verify-task-{0}-{1}:{2}', github.workflow, github.ref, inputs.task_id) || format('verify-{0}-{1}', github.workflow, github.ref) }}
+  group: >-
+    ${{ github.event_name == 'schedule' && format('verify-weekly-{0}-{1}', github.workflow, github.ref) ||
+        inputs.task_id && format('verify-task-{0}-{1}:{2}', github.workflow, github.ref, inputs.task_id) ||
+        inputs.profile == 'release' && format('verify-release-{0}-{1}', github.workflow, github.ref) ||
+        format('verify-{0}-{1}', github.workflow, github.ref) }}
   cancel-in-progress: true
 
 jobs:
   verify:
     name: ${{ inputs.task_id && 'verify task' || 'verify' }} (${{ matrix.os }})
+    if: github.event_name != 'schedule' || github.ref == 'refs/heads/main'
     strategy:
       fail-fast: false
       matrix:
@@ -74,20 +81,44 @@ jobs:
           components: rustfmt, clippy
       - run: uv sync --locked
       - run: pnpm install --frozen-lockfile
-      - name: Check the selected task's browser and build-output prerequisites
-        if: inputs.task_id
-        id: task_setup
+      - name: Select the hosted verification profile
+        id: scope
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        # Missing scope or a failed selection leaves the complete change suite enabled.
+        continue-on-error: true
+        run: uv run --no-sync python scripts/verification_scope.py --ci
+      - name: Check browser and build-output prerequisites
+        id: build_setup
         env:
           SCOPEHUB_TASK_ID: ${{ inputs.task_id }}
+          SCOPEHUB_SCOPE: ${{ steps.scope.outcome == 'success' && steps.scope.outputs.profile || 'full' }}
+          SCOPEHUB_SCOPE_HAS_DECISION: ${{ steps.scope.outputs.decision != '' && 'true' || 'false' }}
         shell: bash
         run: |
-          if required="$(uv run --no-sync python scripts/check.py --task="$SCOPEHUB_TASK_ID" --ci-build-setup-required)" &&
+          if [ -n "$SCOPEHUB_TASK_ID" ]; then
+            selection=(--task="$SCOPEHUB_TASK_ID")
+          else
+            if [ "$SCOPEHUB_SCOPE_HAS_DECISION" != 'true' ]; then
+              exit 0
+            fi
+            case "$SCOPEHUB_SCOPE" in
+              records|tooling|localization)
+                printf 'profile=%s\n' "$SCOPEHUB_SCOPE" >> "$GITHUB_OUTPUT" ;;
+              *) exit 0 ;;
+            esac
+            # The localization preview builds the Rust history bridge and starts Chromium.
+            if [ "$SCOPEHUB_SCOPE" = 'localization' ]; then
+              exit 0
+            fi
+            selection=(--profile="$SCOPEHUB_SCOPE")
+          fi
+          if required="$(uv run --no-sync python scripts/check.py "${selection[@]}" --ci-build-setup-required)" &&
               [ "$required" = 'false' ]; then
             printf 'skip=true\n' >> "$GITHUB_OUTPUT"
           fi
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: cargo_cache
-        if: steps.task_setup.outputs.skip != 'true'
+        if: steps.build_setup.outputs.skip != 'true'
         with:
           path: |
             ~/.cargo/registry/index
@@ -98,7 +129,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('rust-toolchain.toml') }}-
       - name: Install and start the pinned chart-test browser
-        if: steps.task_setup.outputs.skip != 'true'
+        if: steps.build_setup.outputs.skip != 'true'
         shell: bash
         run: |
           pnpm exec playwright install chromium
@@ -136,9 +167,15 @@ jobs:
           SCOPEHUB_TASK_ID: '${{ inputs.task_id }}'
         shell: bash
         run: uv run python scripts/check.py --task="$SCOPEHUB_TASK_ID"
-      - if: runner.os != 'Windows' && !inputs.task_id
+      - name: Verify ${{ steps.build_setup.outputs.profile }} changes
+        if: steps.build_setup.outputs.profile != '' && !inputs.task_id
+        env:
+          SCOPEHUB_SCOPE: ${{ steps.build_setup.outputs.profile }}
+        shell: bash
+        run: uv run python scripts/check.py --profile "$SCOPEHUB_SCOPE"
+      - if: runner.os != 'Windows' && !inputs.task_id && steps.build_setup.outputs.profile == ''
         run: pnpm check
-      - if: runner.os == 'Windows' && inputs.profile != 'release' && !inputs.task_id
+      - if: runner.os == 'Windows' && inputs.profile != 'release' && !inputs.task_id && steps.build_setup.outputs.profile == ''
         run: uv run python scripts/check.py --require-windows
       - if: runner.os == 'Windows' && inputs.profile == 'release' && !inputs.task_id
         run: uv run python scripts/check.py --profile release --require-windows
@@ -146,6 +183,10 @@ jobs:
         id: artifacts
         if: always() && steps.reports.outcome == 'success'
         env:
+          SCOPEHUB_SCOPE_OUTCOME: ${{ steps.scope.outcome }}
+          SCOPEHUB_SCOPE_PROFILE: ${{ steps.scope.outputs.profile }}
+          SCOPEHUB_SCOPE_DECISION: ${{ steps.scope.outputs.decision }}
+          SCOPEHUB_SCOPE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
           # A cache state describes the archive restored by this job.
           SCOPEHUB_TIMING_CACHE: >-
             ${{ steps.cargo_cache.outcome == 'skipped' && 'not_requested' ||
@@ -172,7 +213,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
       - name: Save the complete Cargo cache
-        if: success() && !inputs.task_id && steps.cargo_cache.outputs['cache-primary-key'] != '' && steps.cargo_cache.outputs['cache-hit'] != 'true'
+        if: success() && !inputs.task_id && steps.build_setup.outputs.profile == '' && steps.cargo_cache.outputs['cache-primary-key'] != '' && steps.cargo_cache.outputs['cache-hit'] != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
