@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-065",
+  "focus_task_id": "M1-031",
   "tasks": [
     {
       "id": "M0-001",
@@ -14113,7 +14113,7 @@
       "id": "M0-065",
       "title": "Clarify development tool installation and paid procurement recommendations",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-063"
       ],
@@ -14132,10 +14132,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Clarify the existing Herdr tooling and owner consultation entries and inspect their ordinary project views.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-065-b20afcf0657fbf0d.json",
+          "sha256": "1aee1d975a36093b4980f5da0a1ebb2b35b66f12b4321a2da94f496c1de0eaac"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The Herdr tooling entry covers ordinary development utilities, skills, MCP servers and plugins. The project brief and each focused phase expose when to recommend paid products and who authorizes new spending and access. The selected checks passed on the reviewed source. Independent review traced all four cases through the existing policies.",
       "plan": {
         "outcome": "The development AI can act on existing tool authority and advise the owner when a paid capability would help.",
         "change_types": [
