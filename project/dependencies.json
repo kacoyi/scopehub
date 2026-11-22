@@ -253,6 +253,7 @@
       "Review the open Dependabot queue and each recorded proposal by exact head and hosted run. Reconcile changed heads against the current graph, record shipped replacements after integration, and retain closed or superseded decisions with their original evidence. Reopen review when a deferred trigger is met or a replacement disappears from the supported graph.",
       "Check release notes and concrete benefit. Update one coherent dependency family, regenerate locks with the pinned manager, refresh the inventory and inspect its diff. Never automatically approve newly encountered licenses or advisories.",
       "Actions: resolve the reviewed upstream release to its official full commit and inspect each used manifest, runtime declaration, runner support, release notes, implementation, inputs and permissions. Check hosted job logs and annotations for forced runtime or deprecation warnings, then retain matching source and artifact identities for changed verification workflows.",
+      "At integrated pull request or branch retirement, or when cache pressure is observed, list GitHub Actions cache IDs, refs and sizes. Preserve default and active scopes and any caches needed by pending reruns. Once evidence is retained, manually retire only rebuildable entries scoped solely to a verified closed pull request or retired head. Main cannot restore archives scoped to a closed pull request's merge ref. Keep inventory read-only and use existing operator authorization for retirement.",
       "Python/npm: inspect upstream releases; use uv lock --upgrade-package <name> or pnpm update <name> within the intended range. For Cargo use cargo update -p <name>. Major upgrades need an explicit compatibility plan.",
       "Toolchains: review Python 3.12, Node 24, pinned pnpm, Rust and uv together with doctor expectations, workflow setup, locks and native build compatibility.",
       "Run fast/affected checks, fresh dependency-review and Linux/Windows integration. Retain failures, source checkpoints and matching reports. Keep packaging/soak checks at their declared cadence unless the change needs them."
@@ -263,6 +264,8 @@
       "https://github.com/dependabot/dependabot-core/blob/v0.405.0/uv/Dockerfile",
       "https://docs.github.com/en/actions/reference/security/secure-use",
       "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
+      "https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching",
+      "https://docs.github.com/en/rest/actions/cache",
       "https://google.github.io/osv.dev/post-v1-querybatch/"
     ],
     "proposal_review": {
