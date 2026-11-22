@@ -14277,6 +14277,7 @@
       ],
       "scope": [
         "project/checks.json",
+        "contracts/schemas/project.schema.json",
         "scripts/check.py",
         "scripts/verification_scope.py",
         "tests/project",
