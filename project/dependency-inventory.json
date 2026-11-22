@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
-  "observed_at": "2026-11-22T10:19:34.886944+00:00",
+  "observed_at": "2026-11-22T12:15:56.583002+00:00",
   "lock_sha256": {
     "Cargo.lock": "813c34437d98de9439bf625cf35301abd0cceb79023472a763f5af290640aba7",
     "uv.lock": "628c3231c45d1c644d8909dcf009367266104f5978d3d87976af6760c78c2842",
-    "pnpm-lock.yaml": "baa4c0c5c4776cdb58bb3e654f5cadd4e681c9b45f82312b3cfa7a88376ddcfc"
+    "pnpm-lock.yaml": "93ce172ebd5dbdddc6e00334d8aa79f9913545cf2bf52a49770d4eedff16c1f3"
   },
   "packages": [
     {
@@ -3482,9 +3482,9 @@
     {
       "ecosystem": "npm",
       "name": "@playwright/test",
-      "version": "1.64.0",
+      "version": "1.65.1",
       "license": "Apache-2.0",
-      "metadata_url": "https://registry.npmjs.org/%40playwright%2Ftest/1.64.0"
+      "metadata_url": "https://registry.npmjs.org/%40playwright%2Ftest/1.65.1"
     },
     {
       "ecosystem": "npm",
@@ -4035,16 +4035,16 @@
     {
       "ecosystem": "npm",
       "name": "playwright",
-      "version": "1.64.0",
+      "version": "1.65.1",
       "license": "Apache-2.0",
-      "metadata_url": "https://registry.npmjs.org/playwright/1.64.0"
+      "metadata_url": "https://registry.npmjs.org/playwright/1.65.1"
     },
     {
       "ecosystem": "npm",
       "name": "playwright-core",
-      "version": "1.64.0",
+      "version": "1.65.1",
       "license": "Apache-2.0",
-      "metadata_url": "https://registry.npmjs.org/playwright-core/1.64.0"
+      "metadata_url": "https://registry.npmjs.org/playwright-core/1.65.1"
     },
     {
       "ecosystem": "npm",

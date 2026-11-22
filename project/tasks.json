@@ -13804,10 +13804,13 @@
         "M0-058"
       ],
       "scope": [
+        "package.json",
+        "pnpm-lock.yaml",
+        "project/dependency-inventory.json",
+        "THIRD_PARTY_NOTICES",
+        "contracts/references.json",
         "tests/ubuntu-preview",
         "tests/localization",
-        "apps/desktop/ui/vite.config.ts",
-        "scripts/check.py",
         "tests/project",
         "project/tasks.json",
         "project/feedback.json",
@@ -13824,7 +13827,9 @@
         "workspace-timeframe",
         "desktop-localization",
         "project-state",
-        "python-contracts-workers"
+        "python-contracts-workers",
+        "architecture",
+        "dependency-review"
       ],
       "evidence": [],
       "next_action": "Compare retained failures, measure loopback resource demand and validate the correction under the affected Windows checks.",
@@ -13833,15 +13838,20 @@
       "plan": {
         "outcome": "Windows Chromium can navigate and load same-origin application modules throughout the existing verification sequence.",
         "change_types": [
-          "tooling"
+          "tooling",
+          "dependencies"
         ],
         "context": [
           "tests/ubuntu-preview/workspace.spec.mjs",
           "tests/localization/desktop.config.mjs",
-          "project/feedback.json"
+          "project/feedback.json",
+          "package.json",
+          "project/dependencies.json",
+          "project/dependency-inventory.json"
         ],
         "hypotheses": [
-          "Repeated preview sessions, browser contexts or unbundled module loading may exhaust Windows loopback network resources. Distinguish the contributors before choosing a correction."
+          "Repeated preview sessions, browser contexts or unbundled module loading may exhaust Windows loopback network resources. Distinguish the contributors before choosing a correction.",
+          "The pinned Playwright release lacks the upstream Windows Chromium source-port allocation workaround for intermittent Winsock 10055. Check the installed launch arguments and compare the unchanged browser journeys on a native runner with a fixed release."
         ],
         "risks": [
           {
@@ -13857,6 +13867,15 @@
               "workspace-timeframe",
               "desktop-localization"
             ]
+          },
+          {
+            "failure": "The new browser or runner shifts unrelated dependencies or invalidates dependency and browser coverage.",
+            "checks": [
+              "dependency-review",
+              "architecture",
+              "workspace-timeframe",
+              "desktop-localization"
+            ]
           }
         ],
         "rollback": "Retain the failed run artifacts and revert the harness change through a protected PR if verification regresses.",
@@ -13867,12 +13886,18 @@
           "entrypoints": [
             "tests/ubuntu-preview/workspace.config.mjs",
             "tests/localization/desktop.config.mjs",
-            "scripts/check.py"
+            "scripts/check.py",
+            "package.json",
+            "scripts/dependencies.py"
           ],
           "rules": [
             {
               "path": "project/delivery.json",
               "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/dependencies.json",
+              "pointer": "/maintenance"
             }
           ],
           "non_goals": [
@@ -13891,7 +13916,7 @@
             "Correct the verified resource lifecycle or demand in the internal verification harness."
           ],
           "data_plan": "Use isolated synthetic CI profiles and retain only diagnostic artifacts.",
-          "cleanup": "Remove experimental harness paths after selecting the verified correction."
+          "cleanup": "Remove temporary workflow resource sampling after archiving the original-sequence diagnostic. Keep the fix in the pinned upstream verification tooling."
         }
       }
     }
