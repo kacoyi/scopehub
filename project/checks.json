@@ -758,6 +758,15 @@
       "command": null,
       "timeout_seconds": 900,
       "cadence": "task"
+    },
+    {
+      "id": "ubuntu-desktop-host",
+      "status": "planned",
+      "purpose": "Verify a retained Ubuntu Tauri/WebKitGTK session from its host and window identity, native chart and picker actions, close/reopen and worker cleanup. The verifier can run on any host using evidence captured on Ubuntu.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 900,
+      "cadence": "task"
     }
   ],
   "milestones": [

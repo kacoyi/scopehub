@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-030",
+  "focus_task_id": "M1-031",
   "tasks": [
     {
       "id": "M0-001",
@@ -4249,13 +4249,14 @@
       "decision_refs": [
         "0004",
         "0005",
-        "0007"
+        "0007",
+        "0024"
       ],
       "acceptance": [
         "Open the Ubuntu-reviewed revision using pnpm desktop:dev on the physical Windows 10/11 x64 desktop and observe the native WebView2 window.",
         "Exercise the unconfigured entry, synthetic chart, selection, timeframe, chart style, resizing, crosshair, table and exit. Retain the revision, Windows runtime and on-screen observations with screenshots.",
         "Record any experience feedback supplied by the owner in their own terms and retain any engineering defects for correction.",
-        "Link the Windows observation to the Ubuntu-reviewed commit and match its execution-input digest. A bookkeeping-only commit that attaches an Ubuntu receipt is recorded separately. Changed executable inputs require a renewed Ubuntu observation before the physical trial."
+        "Link the Windows observation to the commit reviewed in the native Ubuntu Tauri window and match its execution-input digest. A bookkeeping-only commit that attaches an Ubuntu receipt is recorded separately. Changed executable inputs require a renewed Ubuntu observation before the physical trial."
       ],
       "checks": [
         "windows-native-build",
@@ -4847,7 +4848,7 @@
     },
     {
       "id": "M1-012",
-      "title": "Verify completion of the overall Ubuntu experience before the Windows trial",
+      "title": "Verify the integrated Ubuntu desktop experience before the physical Windows trial",
       "milestone": "M1",
       "status": "planned",
       "depends_on": [
@@ -4864,7 +4865,8 @@
         "M1-028",
         "M1-029",
         "M4-014",
-        "M1-030"
+        "M1-030",
+        "M1-031"
       ],
       "scope": [
         "project/tasks.json",
@@ -4875,7 +4877,8 @@
         "0004",
         "0005",
         "0007",
-        "0009"
+        "0009",
+        "0024"
       ],
       "acceptance": [
         "Exercise the current contract's live and historical chart journeys on Ubuntu, including interruption and recovery, user-owned local data, shared operations, durable workspace recovery, reproducible indicators and human-AI chart collaboration.",
@@ -4883,7 +4886,7 @@
         "Verify the complete applicable Ubuntu experience on a recorded revision and retain end-to-end observations and regression results. Track Windows installation, packaging and native credential evidence on their designated platform. Explicitly later capabilities remain outside this review unless their delivery scope changes.",
         "Observe CSV folder refresh, a restored custom layout, two-way evidence selection and in-place action results. Identify the exact authorized voice session or record why its real-connection evidence is outstanding.",
         "Exercise the local bridge against the visible Ubuntu chart and review a saved decision. Track actual CLI and desktop client observations under M4-005 on supported hosts, including Windows when required.",
-        "Complete all Ubuntu-local scenarios through an explicitly enabled development entry sharing the Rust state and operation permissions. Retain the observed revision and screenshots, with a separate status for actual model, audio and external client observations. Passing the Ubuntu-local task permits the physical Windows trial while real-session release gates remain independent.",
+        "Complete all Ubuntu-local scenarios in the native Tauri/WebKitGTK application launched with pnpm desktop:dev. Bind the observed actions and screenshots to that application process and window, the source revision and execution-input digest. Record actual model, audio and external-client observations separately. Use the accepted Ubuntu inputs for the physical Windows trial.",
         "Observe saved-directory catch-up, a Parquet daily/auction source with a missing session and a cited research method on the integrated Ubuntu workspace. Record native Windows and eligible real service trials separately."
       ],
       "checks": [
@@ -4900,10 +4903,11 @@
         "local-folder-import",
         "workspace-layout",
         "external-ai-bridge",
-        "ubuntu-workspace-observation"
+        "ubuntu-workspace-observation",
+        "ubuntu-desktop-host"
       ],
       "evidence": [],
-      "next_action": "Deliver the chart workspace in M1-014, then continue M1-006 and the existing Ubuntu-capable contract tasks. Track each required capability and record the integrated Ubuntu experience before scheduling M1-011.",
+      "next_action": "Complete the native Ubuntu development entry in M1-031 and the remaining workflow dependencies. Record the integrated journeys in that desktop window before scheduling M1-011.",
       "blocker": null,
       "closure_reason": null
     },
@@ -12689,6 +12693,164 @@
       ],
       "evidence": [],
       "next_action": "Build the independent settings entry with the local directory picker and a form for a directly obtained API. Verify save, reopen and a bounded test against a controlled connector on a fresh local profile.",
+      "blocker": null,
+      "closure_reason": null
+    },
+    {
+      "id": "M0-052",
+      "title": "Set the Ubuntu development and experience target to the native desktop application",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-051",
+        "M1-010"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "contracts",
+        "project/tasks.json",
+        "project/checks.json",
+        "project/delivery.json",
+        "project/development.json"
+      ],
+      "decision_refs": [
+        "0001",
+        "0004",
+        "0007",
+        "0024"
+      ],
+      "acceptance": [
+        "The platform contract, UI runtime and release instructions identify the Ubuntu desktop development entry, its browser preview and the Windows v1 installer.",
+        "Current tasks and check mappings require future native Ubuntu evidence before the physical Windows trial. Prior browser observations keep their historical meaning."
+      ],
+      "checks": [
+        "project-state",
+        "generated-contracts",
+        "architecture",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-052-4456841b407de845.json",
+          "sha256": "f189878117f1b37f762be934c8355c7232e38e8d21a5023034ffc576b28a1ef9"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Verified contract v1.6.0, task dependencies and historical scope at 6e8db6e. Native launch and field observations are planned under M1-031 and M1-012.",
+      "plan": {
+        "outcome": "A contributor can identify which entry to implement on Ubuntu, where to exercise the integrated experience and which platform ships v1.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/contract.json",
+          "project/delivery.json",
+          "project/checks.json",
+          "contracts/reviews/2026-11-18-hosted-ux.json",
+          "apps/desktop/src-tauri/src/main.rs",
+          "scripts/verification_evidence.py",
+          "contracts/reviews/2026-11-22-ubuntu-desktop.json",
+          "contracts/decisions/0024-native-ubuntu-development.json"
+        ],
+        "hypotheses": [
+          "The existing Tauri composition and shared UI allow a native development entry without a second frontend or a Linux release."
+        ],
+        "risks": [
+          {
+            "failure": "A preview screenshot is credited as a native observation or a Linux installer becomes an unintended release requirement.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The requirement changes operation authority or rewrites accepted history.",
+            "checks": [
+              "architecture",
+              "generated-contracts",
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Revert these requirements and task bindings together. Retain the original observations and decision history.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "engineering-contract-v1.json",
+            "contracts/contract.json",
+            "project/tasks.json"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/product/platform"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/iteration_policy"
+            }
+          ],
+          "non_goals": [
+            "Desktop runtime implementation, product field acceptance and installer publication."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "The shared React UI, Rust registry, existing browser tests and the Windows v1 release gates."
+          ],
+          "change": [
+            "Develop and review the Ubuntu experience inside the native application window."
+          ],
+          "data_plan": "This requirements change reads and migrates no user data.",
+          "cleanup": "Update live platform guidance and retain historical browser evidence with its original scope."
+        }
+      }
+    },
+    {
+      "id": "M1-031",
+      "title": "Run the shared workspace in a native Ubuntu desktop window",
+      "milestone": "M1",
+      "status": "planned",
+      "delivery": "current-contract",
+      "depends_on": [
+        "M0-052",
+        "M1-014",
+        "M1-008"
+      ],
+      "scope": [
+        "apps/desktop",
+        "crates/platform",
+        "crates/worker-host",
+        "package.json",
+        "scripts/verification_evidence.py",
+        "project/checks.json",
+        "tests"
+      ],
+      "decision_refs": [
+        "0001",
+        "0007",
+        "0014",
+        "0024"
+      ],
+      "acceptance": [
+        "Launch pnpm desktop:dev from source in an Ubuntu graphical session. The Tauri-owned WebKitGTK window renders the shared workspace. A fresh profile opens unconfigured and an explicit offline sample displays its synthetic provenance.",
+        "Use the native folder dialog to cancel and then select a synthetic CSV directory. Inspect a reviewed fixture through the native Rust operations, close the window, check worker cleanup and reopen the same profile with its permitted workspace state restored. The session-only picker grant expires on close.",
+        "Retain Ubuntu and WebKitGTK versions, application process and window identity, source revision, execution-input digest, observed actions and screenshots. Bind M1-012 integrated evidence to the native window that performed its journeys, and keep the physical Windows receipt linked to those inputs. Add evidence checks that reject a browser tab, Chromium app mode and standalone Vite while allowing historical observations to be read in their original scope.",
+        "Preserve frontend hot reload in the development window, the explicit browser test commands and the existing Windows desktop build and packaging path."
+      ],
+      "checks": [
+        "ubuntu-desktop-host",
+        "ubuntu-preview",
+        "windows-native-build"
+      ],
+      "evidence": [],
+      "next_action": "Enable the Tauri development entry and required platform dependencies on Ubuntu. Prove the first synthetic chart and native picker in the actual window, then bind retained observations to that host.",
       "blocker": null,
       "closure_reason": null
     }
