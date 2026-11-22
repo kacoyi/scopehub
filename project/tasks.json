@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-071",
+  "focus_task_id": "M1-031",
   "tasks": [
     {
       "id": "M0-001",
@@ -14270,7 +14270,7 @@
       "id": "M0-071",
       "title": "Recover native Windows desktop ACL preparation under verification load",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-036"
       ],
@@ -14292,10 +14292,23 @@
         "rust-format",
         "rust-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Verify native fixture startup, workspace refusal and recovery, and the ordinary protected checks.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-071-583fa3f43c8b5f41.json",
+          "sha256": "6063cd869619e41383aa96594c6baae42cd77d5447a073854d3f2ae2a1ea21cd"
+        },
+        {
+          "path": "project/evidence/M0-071-5f3665cf4fa717bb.json",
+          "sha256": "96da51b023a0df1e4cd6071054f3f3821d75bbe42344b6908bceb987e5265d74"
+        },
+        {
+          "path": "project/evidence/M0-071-644377af0f478682.json",
+          "sha256": "63f0b3f199aaad8e0287a5f263e3b114fbe0bad2686b74df3d2e20febb94e9eb"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Native diagnostic 45052208778 reproduced both fixture startup failures under a controlled delay. Removing redundant outer preparation reduced explicit helper starts from seven to two across the original journeys. All 54 original application helper calls remained. The added mapping-save case verified fail-closed timeout, child cleanup and recovery on a new request. The uninstrumented candidate passed the protected Ubuntu and Windows checks.",
       "diagnostic_reports": [
         {
           "run_id": "20261122T165618.491721Z-d3e98934",
