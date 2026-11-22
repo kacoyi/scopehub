@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-058",
+  "focus_task_id": "M1-031",
   "tasks": [
     {
       "id": "M0-001",
@@ -13576,7 +13576,7 @@
       "id": "M0-058",
       "title": "Resolve Herdr development models by role and quality needs",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-028"
       ],
@@ -13603,10 +13603,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Implement role resolution and check its behavior on the installed Herdr and Codex launch path.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-058-d7101e692332ca7b.json",
+          "sha256": "f0bf5bbfb98ead4c0a5bd2e47c663f3d275b35454f765731354a4737febf9e80"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Live Herdr launches used gpt-6.2-sol for implementation and gpt-6.2-astra for review and coordination, all at medium effort. The independent read-only review passed after the schema and launcher were aligned on family validation, and the coordinator verified the regression.",
       "plan": {
         "outcome": "A developer can launch work, review and coordination at the requested quality floor, escalate a specific assignment and adopt a new compatible model without editing the role policy.",
         "change_types": [

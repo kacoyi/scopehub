@@ -1,0 +1,73 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-058",
+  "task_definition_sha256": "62c3ac2b63753b4229f2ec66617e58ece78246c61e451420fb9d00c67b96abda",
+  "run_id": "20261122T094332.601363Z-70b15247",
+  "recorded_at": "2026-11-22T09:45:05.704916+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "8c90ba727c99c5337ab4fe9ca0f8b03c37e6a63c608d513aeaffb31f8fdab712",
+    "file_count": 547,
+    "git_head": "3fa2c965b0f596f7ef4fff26c39d32f588710473",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "d7101e692332ca7b4a36b4b4ad16158080575f19ba0961dcbe97ce69a40afd3b",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/herdr-role-routing/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/herdr-role-routing/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "4f9cf2dfc61af365dbbdce9d20b2fa4223d1530eb6b470d98164b8971ba7cea6"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/herdr-role-routing/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "10"
+      ],
+      "exit_code": 0,
+      "log_sha256": "cf495d7db0911d1d1e146f8ffa84c998c3c77da9050cabee7b56ae6369a421ec"
+    }
+  ],
+  "project_definition_sha256": "3bb6dca3e0440a5b06920c4fbd27f8af9aec797aa050ada1c85d13880c9a1fe5",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}
